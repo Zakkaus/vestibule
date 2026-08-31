@@ -210,6 +210,26 @@ readable sentences; whoever reads one of them first follows it. When you change 
 for the old one across `docs/` and `web/` before you commit.
 
 
+## Stopping is for what forces you to invent
+
+An agent told to stop on any discrepancy stops on all of them, and the cost of a
+stop is the whole dispatch. Seven refusals on one slice were all correct, and the
+last two were a missing authorisation and a miscounted number in prose. Neither
+changed what would have been built.
+
+**Stop** when continuing means inventing something the documents were supposed to
+supply: a type with no definition, two documents that contradict each other on
+what to build, a permission the spec withholds for work it also demands. Say what
+is missing, with the file and line, and change nothing.
+
+**Report and continue** when the discrepancy does not change the work: a count in
+prose that does not match the code, a stale line number, a name spelled two ways.
+Put it in the report under its own heading. The next reader fixes it; the dispatch
+still lands.
+
+The test is whether an answer is needed to proceed correctly. If the work is the
+same either way, the finding is a note, not a blocker.
+
 ## What may happen without asking
 
 Merge a phase branch into `main` when all three of these hold, and say in the
