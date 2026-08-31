@@ -79,6 +79,21 @@ def read(path: Path) -> tuple[str, str]:
     styles = "\n".join(re.findall(r"<style[^>]*>(.*?)</style>", text, re.S))
     markup = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.S)
     markup = re.sub(r"<!--.*?-->", " ", markup, flags=re.S)
+    # A class or data attribute quoted inside <code> or <pre> is prose about some
+    # other project, not a use on this page. Counting it hides a genuinely
+    # undefined name behind one the document merely mentions.
+    #
+    # Blank the text and keep the tags: a highlighted code block is real markup
+    # that this page styles — <pre><span class="k-val"> is a use, while
+    # <code>class="k-val"</code> is prose. Removing the whole subtree could not
+    # tell them apart and reported twenty-six live spans as dead CSS.
+    def _text_only(m: "re.Match") -> str:
+        inner = re.sub(r">[^<]*<", "><", m.group(2))
+        return m.group(1) + inner + m.group(3)
+
+    markup = re.sub(r"(<(code|pre)\b[^>]*>)(.*?)(</\2>)",
+                    lambda m: m.group(1) + re.sub(r">[^<]*<", "><", m.group(3)) + m.group(4),
+                    markup, flags=re.S)
     return strip_comments(styles), markup
 
 

@@ -52,6 +52,6 @@ jobs:
         run: python3 scripts/check-docs.py
       - name: Structure, style rules and coverage of the two pages
         run: |
-          python3 scripts/design-checks/html-structure.py web/design.html web/architecture.html
-          python3 scripts/design-checks/style-rules.py    web/design.html web/architecture.html
-          python3 scripts/design-checks/css-coverage.py   web/design.html web/architecture.html
+          for c in html-structure style-rules css-coverage shadowed undefined-var; do
+            python3 "scripts/design-checks/$c.py" web/design.html web/architecture.html
+          done
