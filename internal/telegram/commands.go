@@ -1,4 +1,4 @@
-package bot
+package telegram
 
 import (
 	"context"
@@ -64,7 +64,7 @@ func adminCommands(l i18n.Lang, warnLimit int) []telego.BotCommand {
 }
 
 // SetupCommands registers member, administrator, and claimed-owner Telegram command menus.
-func (s *Service) SetupCommands(ctx context.Context, bot *telego.Bot) {
+func (s *Updates) SetupCommands(ctx context.Context, bot *telego.Bot) {
 	type commandMenu struct {
 		name         string
 		commands     []telego.BotCommand
@@ -129,7 +129,7 @@ func (s *Service) SetupCommands(ctx context.Context, bot *telego.Bot) {
 	log.Printf("registered bot command menus (%d scopes)", len(menus))
 }
 
-func (s *Service) groupLanguage(groupID int64) i18n.Lang {
+func (s *Updates) groupLanguage(groupID int64) i18n.Lang {
 	if s.settings != nil {
 		if group, ok := s.settings.Group(groupID); ok {
 			return i18n.FromStored(group.Lang().Value)

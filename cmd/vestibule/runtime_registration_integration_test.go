@@ -10,7 +10,7 @@ import (
 	botapp "github.com/Zakkaus/vestibule/internal/bot"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/panel"
-	"github.com/Zakkaus/vestibule/internal/tg"
+	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/verify"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -61,7 +61,7 @@ func TestRuntimeRegistrationActivatesServicesWithoutRebuiltConfig(t *testing.T) 
 		{groupID, testBotID}: adminMember(testBotID),
 	}}
 	bot := newRegistrationBot(t, caller)
-	telegram := tg.New(bot)
+	telegram := telegram.NewConnector(bot)
 	verification := verify.New(settings, telegram, cfg, &i18n.Messages, bot,
 		verify.Identity{ID: testBotID, Username: "verify_test_bot"}, "")
 	defer verification.Shutdown()

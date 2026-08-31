@@ -25,7 +25,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/panel"
 	"github.com/Zakkaus/vestibule/internal/status"
 	"github.com/Zakkaus/vestibule/internal/store"
-	"github.com/Zakkaus/vestibule/internal/tg"
+	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/verify"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -286,7 +286,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("create bot: %v", err)
 	}
-	telegram := tg.New(bot)
+	telegram := telegram.NewConnector(bot)
 	githubToken := os.Getenv("GITHUB_TOKEN")
 	lookups := lookup.New(runtimeSettings, telegram, cfg, githubToken)
 	if githubToken != "" {

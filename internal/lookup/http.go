@@ -13,7 +13,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/store"
-	"github.com/Zakkaus/vestibule/internal/tg"
+	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -67,14 +67,14 @@ var githubToken string
 // Service owns lookup handlers and their private-query rate state.
 type Service struct {
 	settings  *store.Settings
-	telegram  *tg.Client
+	telegram  *telegram.Connector
 	cfg       *config.Config
 	mu        sync.Mutex
 	queryHits map[int64][]time.Time
 }
 
 // New constructs a lookup service from runtime settings, Telegram transport, configuration, and an optional GitHub token.
-func New(settings *store.Settings, telegram *tg.Client, cfg *config.Config, githubAPIToken string) *Service {
+func New(settings *store.Settings, telegram *telegram.Connector, cfg *config.Config, githubAPIToken string) *Service {
 	if cfg == nil {
 		cfg = &config.Config{}
 	}

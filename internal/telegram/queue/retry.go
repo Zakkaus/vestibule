@@ -1,4 +1,4 @@
-package tg
+package queue
 
 import (
 	"context"
@@ -10,15 +10,6 @@ import (
 	"github.com/mymmrac/telego/telegoapi"
 )
 
-// MarkupRejected reports errors that may indicate rejected Telegram HTML entities.
-func MarkupRejected(err error) bool {
-	if err == nil {
-		return false
-	}
-	message := strings.ToLower(err.Error())
-	return strings.Contains(message, "parse") || strings.Contains(message, "entit") || strings.Contains(message, "bad request")
-}
-
 // ErrorCode returns a structured Telegram Bot API error code or zero.
 func ErrorCode(err error) int {
 	var apiErr *telegoapi.Error
@@ -28,63 +19,7 @@ func ErrorCode(err error) int {
 	return 0
 }
 
-// CannotInitiateConversation reports the ordinary 403 returned before a user has started the bot.
-func CannotInitiateConversation(err error) bool {
-	if err == nil {
-		return false
-	}
-	message := strings.ToLower(err.Error())
-	if !strings.Contains(message, "bot can't initiate conversation with a user") {
-		return false
-	}
-	code := ErrorCode(err)
-	return code == 0 || code == 403
-}
-
-// BotWasBlockedByUser reports the distinct 403 returned after a user blocks the bot.
-func BotWasBlockedByUser(err error) bool {
-	if err == nil {
-		return false
-	}
-	message := strings.ToLower(err.Error())
-	if !strings.Contains(message, "bot was blocked by the user") {
-		return false
-	}
-	code := ErrorCode(err)
-	return code == 0 || code == 403
-}
-
-// JoinRequestGone reports a join-request action that Telegram rejected because it no
-// longer holds the request: already settled, withdrawn by the applicant, or the user is
-// a member by now. Retrying such a call can never succeed.
-func JoinRequestGone(err error) bool {
-	if err == nil {
-		return false
-	}
-	message := strings.ToLower(err.Error())
-	return strings.Contains(message, "hide_requester_missing") ||
-		strings.Contains(message, "user_already_participant") ||
-		strings.Contains(message, "participant_id_invalid")
-}
-
-// ApplicantGone reports a target whose Telegram account no longer exists. Neither approving nor
-// declining their join request can ever succeed, and no administrator can settle it by hand
-// either, so the attempt is spent at once and nobody is asked to look at it.
-func ApplicantGone(err error) bool {
-	if err == nil {
-		return false
-	}
-	message := strings.ToLower(err.Error())
-	if !strings.Contains(message, "user is deactivated") && !strings.Contains(message, "user_deactivated") {
-		return false
-	}
-	code := ErrorCode(err)
-	return code == 0 || code == 403
-}
-
-// GroupUnreachable reports a chat the bot can no longer act in at all: it was removed, or the
-// chat is gone. Unlike missing rights, this cannot be repaired by retrying — only by an
-// administrator putting the bot back.
+// GroupUnreachable reports a chat the bot can no longer act in at all.
 func GroupUnreachable(err error) bool {
 	if err == nil {
 		return false
@@ -94,18 +29,6 @@ func GroupUnreachable(err error) bool {
 		strings.Contains(message, "bot was kicked from") ||
 		strings.Contains(message, "chat not found") ||
 		strings.Contains(message, "the group chat was deleted")
-}
-
-// IsBlocked reports Telegram 403 responses indicating that the bot cannot contact the target.
-func IsBlocked(err error) bool {
-	if err == nil {
-		return false
-	}
-	if ErrorCode(err) == 403 {
-		return true
-	}
-	message := strings.ToLower(err.Error())
-	return strings.Contains(message, "bot was blocked") || strings.Contains(message, "forbidden: bot")
 }
 
 // RetryAfter returns Telegram's requested 429 delay or zero when none is available.
@@ -138,9 +61,7 @@ func RetryAfter(err error) time.Duration {
 	return time.Duration(seconds) * time.Second
 }
 
-// MessageAlreadyGone reports a delete Telegram refused because there is nothing left to remove,
-// or because the message is past the age a bot may delete. Either way the chat is already in the
-// state the caller wanted, so this is not a failure worth reporting or retrying.
+// MessageAlreadyGone reports a delete that has already reached the requested outcome.
 func MessageAlreadyGone(err error) bool {
 	if err == nil {
 		return false
@@ -168,9 +89,7 @@ func PermanentEditError(err error) bool {
 		strings.Contains(message, "message_id_invalid")
 }
 
-// destinationError reports failures caused by the destination chat itself: the bot lost posting
-// rights, was muted, the topic closed, the chat migrated or vanished. They say nothing about the
-// item or the message being sent, so neither path may count them against one of those.
+// destinationError reports failures caused by the destination chat rather than one item.
 func destinationError(err error) bool {
 	message := strings.ToLower(err.Error())
 	for _, marker := range []string{
@@ -228,7 +147,7 @@ func PermanentPostError(err error) bool {
 	return code == 400 || code == 0 && strings.Contains(message, "bad request")
 }
 
-// Pace waits for pause or returns false when ctx is cancelled first.
+// Pace waits for a per-chat send pause or returns false when ctx is cancelled first.
 func Pace(ctx context.Context, pause time.Duration) bool {
 	if pause <= 0 {
 		return true

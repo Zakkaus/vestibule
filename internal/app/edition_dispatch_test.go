@@ -1,8 +1,10 @@
-package bot
+package app
 
 import (
 	"reflect"
 	"testing"
+
+	"github.com/Zakkaus/vestibule/internal/edition"
 
 	"github.com/mymmrac/telego"
 )
@@ -13,7 +15,7 @@ import (
 func TestEditionCommandsReachTheirHandlers(t *testing.T) {
 	fixture := newDispatchFixture(t, 0)
 	for _, name := range []string{"pkg", "use", "bug", "news", "bbs", "arm"} {
-		command := "/" + gentooPrefix + name
+		command := "/" + edition.CommandPrefix + name
 		t.Run(command, func(t *testing.T) {
 			got := dispatchRouteNames(t, fixture, telego.Update{Message: &telego.Message{
 				Chat: telego.Chat{ID: fixture.groupID, Type: telego.ChatTypeSupergroup},
@@ -26,7 +28,7 @@ func TestEditionCommandsReachTheirHandlers(t *testing.T) {
 		})
 	}
 	// The unqualified names belong to the group in the general edition and must reach nothing.
-	if gentooPrefix != "" {
+	if edition.CommandPrefix != "" {
 		for _, name := range []string{"pkg", "use", "bug", "news", "bbs", "arm"} {
 			command := "/" + name
 			got := dispatchRouteNames(t, fixture, telego.Update{Message: &telego.Message{

@@ -1,0 +1,422 @@
+package telegram
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"reflect"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/mymmrac/telego"
+	ta "github.com/mymmrac/telego/telegoapi"
+	th "github.com/mymmrac/telego/telegohandler"
+)
+
+// TestHandlerOrder protects the documented label sequence; it does not exercise predicates,
+// handler pairings, or Telego's first-match dispatch.
+func TestHandlerOrder(t *testing.T) {
+	want := []string{
+		"verify.answer",
+		"verify.admin_action",
+		"verify.channel_recheck",
+		"panel.settings_callback",
+		"verify.join_request",
+		"verify.member_joined",
+		"panel.chat_shared",
+		"panel.input",
+		"verify.kernel_answer",
+		"bot.private_dm",
+		"moderate.sb",
+		"moderate.ban",
+		"moderate.warn",
+		"moderate.clearwarn",
+		"moderate.bc",
+		"panel.ping",
+		"panel.start",
+		"panel.settings",
+		"panel.stop",
+		"panel.stats",
+		"lookup.pkg",
+		"lookup.use",
+		"lookup.bug",
+		"lookup.news",
+		"lookup.wiki",
+		"lookup.bbs",
+		"lookup.pkgs",
+		"lookup.distro",
+		"lookup.arm",
+		"lookup.armpkgs",
+		"lookup.kernel",
+		"lookup.man",
+		"lookup.cve",
+		"lookup.repology",
+		"panel.rich",
+		"panel.spoiler",
+		"panel.vmode",
+		"panel.autodel",
+		"panel.bantime",
+		"moderate.mute",
+		"moderate.unmute",
+		"panel.help",
+	}
+	routes := (&Updates{}).handlerRoutes()
+	got := make([]string, len(routes))
+	for i := range routes {
+		got[i] = routes[i].name
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("handler order changed:\n got: %v\nwant: %v", got, want)
+	}
+}
+
+type recordingCaller struct {
+	mu           sync.Mutex
+	sendMessages int
+}
+
+func (c *recordingCaller) Call(_ context.Context, url string, _ *ta.RequestData) (*ta.Response, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	switch url[strings.LastIndexByte(url, '/')+1:] {
+	case "sendMessage":
+		c.sendMessages++
+		return apiResponse(&telego.Message{MessageID: c.sendMessages})
+	default:
+		return nil, fmt.Errorf("unexpected Telegram method %q", url)
+	}
+}
+
+type commandRequest struct {
+	Commands     []telego.BotCommand `json:"commands"`
+	LanguageCode string              `json:"language_code"`
+	Scope        struct {
+		Type   string          `json:"type"`
+		ChatID json.RawMessage `json:"chat_id"`
+	} `json:"scope"`
+}
+
+type commandRecordingCaller struct {
+	requests []commandRequest
+}
+
+func (c *commandRecordingCaller) Call(_ context.Context, url string, data *ta.RequestData) (*ta.Response, error) {
+	if !strings.HasSuffix(url, "/setMyCommands") {
+		return nil, fmt.Errorf("unexpected Telegram method %q", url)
+	}
+	var request commandRequest
+	if err := json.Unmarshal(data.BodyRaw, &request); err != nil {
+		return nil, err
+	}
+	c.requests = append(c.requests, request)
+	return apiResponse(true)
+}
+
+func apiResponse(value any) (*ta.Response, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
+	return &ta.Response{Ok: true, Result: raw}, nil
+}
+
+func testBot(t *testing.T, caller ta.Caller) *telego.Bot {
+	t.Helper()
+	telegramBot, err := telego.NewBot("1:"+strings.Repeat("a", 35), telego.WithAPICaller(caller), telego.WithDiscardLogger())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return telegramBot
+}
+
+func runHandlerUpdates(t *testing.T, telegramBot *telego.Bot, handler th.Handler, values []telego.Update) {
+	t.Helper()
+	updates := make(chan telego.Update, len(values))
+	botHandler, err := th.NewBotHandler(telegramBot, updates)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handled := make(chan error, len(values))
+	botHandler.Handle(func(ctx *th.Context, update telego.Update) error {
+		err := handler(ctx, update)
+		handled <- err
+		return err
+	})
+	started := make(chan error, 1)
+	go func() { started <- botHandler.Start() }()
+	for _, update := range values {
+		updates <- update
+	}
+	for range values {
+		if err := <-handled; err != nil {
+			t.Fatalf("handler returned %v", err)
+		}
+	}
+	close(updates)
+	if err := <-started; err != nil {
+		t.Fatalf("bot handler returned %v", err)
+	}
+}
+
+func expectedMemberCommands(language i18n.Lang) []telego.BotCommand {
+	menu := i18n.Messages.Bot.Menu.Member
+	return []telego.BotCommand{
+		{Command: "help", Description: menu.Help.For(language)},
+		{Command: gentooPrefix + "pkg", Description: menu.Pkg.For(language)},
+		{Command: gentooPrefix + "use", Description: menu.Use.For(language)},
+		{Command: gentooPrefix + "bug", Description: menu.Bug.For(language)},
+		{Command: gentooPrefix + "news", Description: menu.News.For(language)},
+		{Command: "wiki", Description: menu.Wiki.For(language)},
+		{Command: gentooPrefix + "bbs", Description: menu.BBS.For(language)},
+		{Command: "pkgs", Description: menu.Pkgs.For(language)},
+		{Command: "distro", Description: menu.Distro.For(language)},
+		{Command: gentooPrefix + "arm", Description: menu.Arm.For(language)},
+		{Command: "armpkgs", Description: menu.ArmPkgs.For(language)},
+		{Command: "kernel", Description: menu.Kernel.For(language)},
+		{Command: "man", Description: menu.Man.For(language)},
+		{Command: "cve", Description: menu.CVE.For(language)},
+		{Command: "repology", Description: menu.Repology.For(language)},
+		{Command: "ping", Description: menu.Ping.For(language)},
+		{Command: "stats", Description: menu.Stats.For(language)},
+	}
+}
+
+func expectedAdminCommands(language i18n.Lang, warnLimit int) []telego.BotCommand {
+	menu := i18n.Messages.Bot.Menu.Admin
+	return append([]telego.BotCommand{
+		{Command: "start", Description: menu.Start.For(language)},
+		{Command: "settings", Description: i18n.Messages.Panel.Menu.Settings.For(language)},
+		{Command: "stop", Description: menu.Stop.For(language)},
+		{Command: "mute", Description: menu.Mute.For(language)},
+		{Command: "unmute", Description: menu.Unmute.For(language)},
+		{Command: "sb", Description: menu.Purge.For(language)},
+		{Command: "ban", Description: menu.Ban.For(language)},
+		{Command: "warn", Description: menu.Warn.Render(language, warnLimit)},
+		{Command: "clearwarn", Description: menu.ClearWarn.For(language)},
+		{Command: "bc", Description: menu.Channel.For(language)},
+		{Command: "rich", Description: menu.RichText.For(language)},
+		{Command: "spoiler", Description: menu.NameSpoiler.For(language)},
+		{Command: "vmode", Description: menu.VerificationMode.For(language)},
+		{Command: "autodel", Description: menu.AutoDelete.For(language)},
+		{Command: "bantime", Description: menu.BanTime.For(language)},
+	}, expectedMemberCommands(language)...)
+}
+
+func expectedOwnerCommands(language i18n.Lang) []telego.BotCommand {
+	menu := i18n.Messages.Bot.Menu.Owner
+	return append([]telego.BotCommand{
+		{Command: "enroll", Description: menu.Enroll.For(language)},
+		{Command: "unregister", Description: menu.Unregister.For(language)},
+	}, expectedMemberCommands(language)...)
+}
+func commandDifference(got, want []telego.BotCommand) string {
+	if len(got) != len(want) {
+		return fmt.Sprintf("length = %d, want %d", len(got), len(want))
+	}
+	for index := range want {
+		if !reflect.DeepEqual(got[index], want[index]) {
+			return fmt.Sprintf("command %d = %#v, want catalogue command %#v", index, got[index], want[index])
+		}
+	}
+	return ""
+}
+
+func TestSetupCommandsLanguageScopes(t *testing.T) {
+	const groupID int64 = -100
+	cfg := &config.Config{
+		Groups:    []config.GroupConfig{{ID: groupID, Lang: "zh-Hant"}},
+		GroupIDs:  []int64{groupID},
+		WarnLimit: 3,
+	}
+	settings, err := store.NewSettings("", botTestSettingsBaseline(t, cfg))
+	if err != nil {
+		t.Fatal(err)
+	}
+	caller := &commandRecordingCaller{}
+	service := &Updates{cfg: cfg, settings: settings}
+	service.SetupCommands(context.Background(), testBot(t, caller))
+
+	if len(caller.requests) != 8 {
+		t.Fatalf("command menu requests = %d, want 8", len(caller.requests))
+	}
+	languages, scopes := commandRequestCounts(t, caller.requests, cfg.WarnLimit)
+	if languages[""] != 4 || languages["zh"] != 2 || languages["en"] != 2 {
+		t.Fatalf("command language codes = %v", languages)
+	}
+	if scopes["default"] != 3 || scopes["all_chat_administrators"] != 3 ||
+		scopes["chat"] != 1 || scopes["chat_administrators"] != 1 {
+		t.Fatalf("command scopes = %v", scopes)
+	}
+}
+
+func commandRequestCounts(
+	t *testing.T,
+	requests []commandRequest,
+	warnLimit int,
+) (map[string]int, map[string]int) {
+	t.Helper()
+	languages := make(map[string]int)
+	scopes := make(map[string]int)
+	for _, request := range requests {
+		languages[request.LanguageCode]++
+		scopes[request.Scope.Type]++
+		assertCommandRequest(t, request, warnLimit)
+	}
+	return languages, scopes
+}
+
+func assertCommandRequest(t *testing.T, request commandRequest, warnLimit int) {
+	t.Helper()
+	chatScope := request.Scope.Type == "chat" || request.Scope.Type == "chat_administrators"
+	if chatScope && !strings.Contains(string(request.Scope.ChatID), "-100") {
+		t.Fatalf("zh-Hant chat scope has chat_id %s", request.Scope.ChatID)
+	}
+	language := i18n.LangZH
+	if request.LanguageCode == "en" {
+		language = i18n.LangEN
+	}
+	if chatScope {
+		language = i18n.LangZHHant
+	}
+	wantCommands := expectedMemberCommands(language)
+	if request.Scope.Type == "all_chat_administrators" || request.Scope.Type == "chat_administrators" {
+		wantCommands = expectedAdminCommands(language, warnLimit)
+	}
+	if difference := commandDifference(request.Commands, wantCommands); difference != "" {
+		t.Errorf("%s/%q commands: %s", request.Scope.Type, request.LanguageCode, difference)
+	}
+}
+
+func TestSetupCommandsRereadsRuntimeGroups(t *testing.T) {
+	const groupID int64 = -1009000000501
+	cfg := &config.Config{Lang: "zh-Hant", WarnLimit: 3}
+	settings, err := store.NewSettings(t.TempDir()+"/settings.json", botTestSettingsBaseline(t, cfg))
+	if err != nil {
+		t.Fatal(err)
+	}
+	caller := &commandRecordingCaller{}
+	service := &Updates{cfg: cfg, settings: settings}
+	bot := testBot(t, caller)
+	service.SetupCommands(context.Background(), bot)
+	registration := settings.Registrations()
+	registration.RegisteredGroups = []store.RegisteredGroup{{ID: groupID, RegisteredBy: 42}}
+	if _, err := settings.CommitRegistrations(registration.Revision, registration); err != nil {
+		t.Fatal(err)
+	}
+	service.SetupCommands(context.Background(), bot)
+
+	if len(caller.requests) != 14 {
+		t.Fatalf("command menu requests after runtime registration = %d, want 14", len(caller.requests))
+	}
+	runtimeScopes := 0
+	for _, request := range caller.requests[6:] {
+		if (request.Scope.Type == "chat" || request.Scope.Type == "chat_administrators") &&
+			strings.Contains(string(request.Scope.ChatID), "-1009000000501") {
+			runtimeScopes++
+		}
+	}
+	if runtimeScopes != 2 {
+		t.Errorf("runtime group command scopes = %d, want 2", runtimeScopes)
+	}
+}
+
+func TestSetupCommandsAddsOwnerPrivateMenuFromRuntimeState(t *testing.T) {
+	const ownerID int64 = 42
+	cfg := &config.Config{WarnLimit: 3}
+	settings, err := store.NewSettings(t.TempDir()+"/settings.json", botTestSettingsBaseline(t, cfg))
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Unix(2_000_000_000, 0)
+	nonce, _, err := settings.EnsureOwnerClaim(now, time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := settings.ClaimOwner(ownerID, nonce, now); err != nil {
+		t.Fatal(err)
+	}
+
+	caller := &commandRecordingCaller{}
+	service := &Updates{cfg: cfg, settings: settings}
+	service.SetupCommands(context.Background(), testBot(t, caller))
+
+	ownerMenus := 0
+	languages := map[string]int{}
+	for _, request := range caller.requests {
+		if request.Scope.Type != "chat" || !strings.Contains(string(request.Scope.ChatID), "42") {
+			continue
+		}
+		ownerMenus++
+		languages[request.LanguageCode]++
+		language := i18n.LangZH
+		if request.LanguageCode == "en" {
+			language = i18n.LangEN
+		}
+		if difference := commandDifference(request.Commands, expectedOwnerCommands(language)); difference != "" {
+			t.Errorf("owner/%q commands: %s", request.LanguageCode, difference)
+		}
+	}
+	if ownerMenus != 3 || languages[""] != 1 || languages["zh"] != 1 || languages["en"] != 1 {
+		t.Fatalf("owner private menus/languages = %d/%v, want three localized scopes", ownerMenus, languages)
+	}
+}
+
+func TestDMReplyThrottle(t *testing.T) {
+	caller := &recordingCaller{}
+	telegramBot := testBot(t, caller)
+	dm := &dmHandler{
+		cfg:            &config.Config{PrivateQueryPerMin: 4},
+		telegram:       NewConnector(telegramBot),
+		last:           make(map[int64]time.Time),
+		catalogueReply: true,
+	}
+	message := func(userID int64) telego.Update {
+		return telego.Update{Message: &telego.Message{
+			Chat: telego.Chat{ID: userID, Type: "private"},
+			From: &telego.User{ID: userID},
+			Text: "hello",
+		}}
+	}
+	runHandlerUpdates(t, telegramBot, dm.onPrivateDM, []telego.Update{message(7), message(7), message(8)})
+	if caller.sendMessages != 2 {
+		t.Fatalf("DM replies = %d, want one per user during the cooldown", caller.sendMessages)
+	}
+}
+
+func TestDMReplyCapacityKeepsActiveCooldown(t *testing.T) {
+	caller := &recordingCaller{}
+	telegramBot := testBot(t, caller)
+	now := time.Now()
+	const activeUID int64 = 1
+	dm := &dmHandler{
+		cfg:            &config.Config{PrivateQueryPerMin: 3},
+		telegram:       NewConnector(telegramBot),
+		last:           make(map[int64]time.Time, dmMapMax),
+		catalogueReply: true,
+	}
+	dm.last[activeUID] = now
+	for uid := int64(2); uid <= dmMapMax; uid++ {
+		dm.last[uid] = now.Add(-dmReplyCooldown - time.Second)
+	}
+	message := func(userID int64) telego.Update {
+		return telego.Update{Message: &telego.Message{
+			Chat: telego.Chat{ID: userID, Type: "private"},
+			From: &telego.User{ID: userID},
+			Text: "hello",
+		}}
+	}
+
+	runHandlerUpdates(t, telegramBot, dm.onPrivateDM, []telego.Update{message(dmMapMax + 1)})
+	runHandlerUpdates(t, telegramBot, dm.onPrivateDM, []telego.Update{message(activeUID)})
+
+	if caller.sendMessages != 1 {
+		t.Errorf("DM replies across capacity event = %d, want only the new user's reply", caller.sendMessages)
+	}
+}
+
+

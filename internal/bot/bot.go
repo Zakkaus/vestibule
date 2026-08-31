@@ -10,7 +10,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/moderate"
 	"github.com/Zakkaus/vestibule/internal/panel"
 	"github.com/Zakkaus/vestibule/internal/store"
-	"github.com/Zakkaus/vestibule/internal/tg"
+	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/verify"
 	th "github.com/mymmrac/telego/telegohandler"
 )
@@ -36,7 +36,7 @@ type Service struct {
 func New(
 	cfg *config.Config,
 	settings *store.Settings,
-	telegram *tg.Client,
+	telegram *telegram.Connector,
 	verification *verify.Service,
 	administration *panel.Panel,
 	moderation *moderate.Service,

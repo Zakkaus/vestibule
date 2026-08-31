@@ -1,4 +1,4 @@
-package bot
+package telegram
 
 import "github.com/Zakkaus/vestibule/internal/edition"
 

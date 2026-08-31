@@ -12,7 +12,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
-	"github.com/Zakkaus/vestibule/internal/tg"
+	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -49,7 +49,7 @@ type Lookup interface {
 // Panel owns the existing administration handlers and their policy gates.
 type Panel struct {
 	settings   *store.Settings
-	telegram   *tg.Client
+	telegram   *telegram.Connector
 	cfg        *config.Config
 	verifier   Verification
 	moderation Moderation
@@ -62,7 +62,7 @@ type Panel struct {
 // New constructs the existing administration surface from explicit dependencies.
 func New(
 	settings *store.Settings,
-	telegram *tg.Client,
+	telegram *telegram.Connector,
 	cfg *config.Config,
 	_ *i18n.Catalog,
 	verifier Verification,

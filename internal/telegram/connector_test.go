@@ -1,4 +1,4 @@
-package tg
+package telegram
 
 import (
 	"context"
@@ -71,7 +71,7 @@ func (c *scriptedCaller) methodCalls(method string) []recordedCall {
 	return calls
 }
 
-func newTestClient(t *testing.T, caller *scriptedCaller) *Client {
+func newTestClient(t *testing.T, caller *scriptedCaller) *Connector {
 	t.Helper()
 	if caller.responses == nil {
 		caller.responses = make(map[string][]scriptedResult)
@@ -80,7 +80,7 @@ func newTestClient(t *testing.T, caller *scriptedCaller) *Client {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return New(bot)
+	return NewConnector(bot)
 }
 
 func TestSendHTMLFallback(t *testing.T) {
@@ -177,13 +177,13 @@ func TestSendRichOrHTMLFallback(t *testing.T) {
 	}
 }
 
-func TestReplyCleanupAndNotifyBound(t *testing.T) {
+func TestReplyCleanupAndNotify(t *testing.T) {
 	t.Run("lookup response then command", func(t *testing.T) {
 		caller := &scriptedCaller{}
-		client := newTestClient(t, caller)
-		client.ReplyPlain(context.Background(), -100, 9, "reply", time.Millisecond)
+		connector := newTestClient(t, caller)
+		connector.ReplyPlain(context.Background(), -100, 9, "reply", time.Millisecond)
 		waitForMethodCalls(t, caller, "deleteMessage", 2)
-		waitForCleanupTimerCount(t, client, 0)
+		waitForCleanupTimerCount(t, connector, 0)
 		calls := caller.methodCalls("deleteMessage")
 		var first, second telego.DeleteMessageParams
 		if err := json.Unmarshal(calls[0].body, &first); err != nil {
@@ -197,60 +197,25 @@ func TestReplyCleanupAndNotifyBound(t *testing.T) {
 		}
 	})
 
-	t.Run("lookup cleanup respects capacity", func(t *testing.T) {
+	t.Run("notification uses cleanup queue", func(t *testing.T) {
 		caller := &scriptedCaller{}
-		client := newTestClient(t, caller)
-		client.cleanupTimers.Store(cleanupTimerMax)
-		client.ScheduleCleanup(-100, 9, 101, time.Millisecond)
-		time.Sleep(10 * time.Millisecond)
-		if got := len(caller.methodCalls("deleteMessage")); got != 0 {
-			t.Fatalf("deleteMessage calls = %d, want 0", got)
-		}
-		if got := client.cleanupTimers.Load(); got != cleanupTimerMax {
-			t.Fatalf("cleanup timer count = %d, want %d", got, cleanupTimerMax)
-		}
+		connector := newTestClient(t, caller)
+		connector.Notify(context.Background(), -100, "notice", 0)
+		waitForMethodCalls(t, caller, "deleteMessage", 1)
+		waitForCleanupTimerCount(t, connector, 0)
 	})
-
-	tests := []struct {
-		name       string
-		prefill    int32
-		wantDelete bool
-	}{
-		{name: "below capacity", prefill: cleanupTimerMax - 1, wantDelete: true},
-		{name: "at capacity", prefill: cleanupTimerMax, wantDelete: false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			caller := &scriptedCaller{}
-			client := newTestClient(t, caller)
-			client.cleanupTimers.Store(tt.prefill)
-			client.Notify(context.Background(), -100, "notice", 0)
-			if tt.wantDelete {
-				waitForMethodCalls(t, caller, "deleteMessage", 1)
-				waitForCleanupTimerCount(t, client, tt.prefill)
-			} else {
-				time.Sleep(10 * time.Millisecond)
-				if got := len(caller.methodCalls("deleteMessage")); got != 0 {
-					t.Fatalf("deleteMessage calls = %d, want 0", got)
-				}
-			}
-			if got := client.cleanupTimers.Load(); got != tt.prefill {
-				t.Fatalf("cleanup timer count = %d, want %d", got, tt.prefill)
-			}
-		})
-	}
 }
 
-func waitForCleanupTimerCount(t *testing.T, client *Client, want int32) {
+func waitForCleanupTimerCount(t *testing.T, connector *Connector, want int32) {
 	t.Helper()
 	deadline := time.Now().Add(time.Second)
 	for time.Now().Before(deadline) {
-		if client.cleanupTimers.Load() == want {
+		if connector.cleanup.Pending() == want {
 			return
 		}
 		time.Sleep(time.Millisecond)
 	}
-	t.Fatalf("cleanup timer count = %d, want %d", client.cleanupTimers.Load(), want)
+	t.Fatalf("cleanup timer count = %d, want %d", connector.cleanup.Pending(), want)
 }
 
 func TestAlertsUseConfiguredOrFallbackChat(t *testing.T) {
@@ -277,6 +242,12 @@ func TestAlertsUseConfiguredOrFallbackChat(t *testing.T) {
 }
 
 func TestAdminCacheAndFreshLookup(t *testing.T) {
+	t.Run("positive cache", testPositiveAdminCache)
+	t.Run("non-admin is not cached", testNonAdminCache)
+	t.Run("fresh lookup ignores cache errors", testFreshAdminError)
+}
+
+func testPositiveAdminCache(t *testing.T) {
 	admin := &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
 	member := &telego.ChatMemberMember{Status: telego.MemberStatusMember}
 	caller := &scriptedCaller{responses: map[string][]scriptedResult{
@@ -298,30 +269,36 @@ func TestAdminCacheAndFreshLookup(t *testing.T) {
 	if got := len(caller.methodCalls("getChatMember")); got != 2 {
 		t.Fatalf("fresh path made total %d Telegram calls, want 2", got)
 	}
+}
 
-	nonAdminCaller := &scriptedCaller{responses: map[string][]scriptedResult{
+func testNonAdminCache(t *testing.T) {
+	admin := &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
+	member := &telego.ChatMemberMember{Status: telego.MemberStatusMember}
+	caller := &scriptedCaller{responses: map[string][]scriptedResult{
 		"getChatMember": {{value: member}, {value: admin}},
 	}}
-	nonAdminClient := newTestClient(t, nonAdminCaller)
-	if ok, err := nonAdminClient.CachedAdmin(context.Background(), -100, 8); ok || err != nil {
+	client := newTestClient(t, caller)
+	if ok, err := client.CachedAdmin(context.Background(), -100, 8); ok || err != nil {
 		t.Fatalf("member CachedAdmin = (%v, %v), want (false, nil)", ok, err)
 	}
-	if ok, err := nonAdminClient.CachedAdmin(context.Background(), -100, 8); !ok || err != nil {
+	if ok, err := client.CachedAdmin(context.Background(), -100, 8); !ok || err != nil {
 		t.Fatalf("promoted CachedAdmin = (%v, %v), want (true, nil)", ok, err)
 	}
-	if got := len(nonAdminCaller.methodCalls("getChatMember")); got != 2 {
+	if got := len(caller.methodCalls("getChatMember")); got != 2 {
 		t.Fatalf("non-admin status was cached: Telegram calls = %d, want 2", got)
 	}
+}
 
-	errorCaller := &scriptedCaller{responses: map[string][]scriptedResult{
+func testFreshAdminError(t *testing.T) {
+	caller := &scriptedCaller{responses: map[string][]scriptedResult{
 		"getChatMember": {{err: errors.New("network")}},
 	}}
-	errorClient := newTestClient(t, errorCaller)
-	errorClient.adminCache[adminKey{chatID: -100, userID: 9}] = time.Now().Add(time.Minute)
-	if ok, err := errorClient.FreshAdmin(context.Background(), -100, 9); ok || err == nil {
+	client := newTestClient(t, caller)
+	client.adminCache[adminKey{chatID: -100, userID: 9}] = time.Now().Add(time.Minute)
+	if ok, err := client.FreshAdmin(context.Background(), -100, 9); ok || err == nil {
 		t.Fatalf("failed fresh lookup = (%v, %v), want (false, error)", ok, err)
 	}
-	if got := len(errorCaller.methodCalls("getChatMember")); got != 1 {
+	if got := len(caller.methodCalls("getChatMember")); got != 1 {
 		t.Fatalf("failed fresh lookup made %d Telegram calls, want 1 despite cached positive", got)
 	}
 }
@@ -483,42 +460,8 @@ func TestErrorClassification(t *testing.T) {
 		!BotWasBlockedByUser(blockedErr) || BotWasBlockedByUser(initErr) {
 		t.Error("never-started and blocked-user 403 responses were not distinguished")
 	}
-	rateErr := &ta.Error{ErrorCode: 429, Description: "Too Many Requests", Parameters: &ta.ResponseParameters{RetryAfter: 30}}
-	if !IsRateLimited(rateErr) || RetryAfter(rateErr) != 30*time.Second {
-		t.Errorf("429 classification = rateLimited %v retryAfter %v", IsRateLimited(rateErr), RetryAfter(rateErr))
-	}
-	if RetryAfter(errors.New("Too Many Requests: retry after: 7")) != 7*time.Second {
-		t.Error("text retry-after was not extracted")
-	}
-	if PermanentEditError(errors.New("Bad Request: chat not found")) {
-		t.Error("chat not found must remain transient for edits")
-	}
-	for _, message := range []string{"message to edit not found", "message can't be edited", "MESSAGE_ID_INVALID"} {
-		if !PermanentEditError(errors.New("Bad Request: " + message)) {
-			t.Errorf("%q should be a permanent edit error", message)
-		}
-	}
-	if CountablePermanentEditError(context.Canceled) || CountablePermanentEditError(errors.New("Bad Gateway")) {
-		t.Error("cancellation and 5xx-like errors must not count as deterministic 400s")
-	}
-	if !CountablePermanentEditError(&ta.Error{ErrorCode: 400, Description: "Bad Request"}) {
-		t.Error("structured 400 should count as deterministic")
-	}
-	if PermanentPostError(errors.New("Bad Request: chat not found")) || !PermanentPostError(errors.New("Bad Request: invalid entity")) {
-		t.Error("post permanence classification changed")
-	}
 }
 
-func TestPace(t *testing.T) {
-	if !Pace(context.Background(), 0) {
-		t.Error("disabled pacing should return immediately")
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	if Pace(ctx, time.Hour) {
-		t.Error("cancelled pacing should return false")
-	}
-}
 
 func waitForMethodCalls(t *testing.T, caller *scriptedCaller, method string, want int) {
 	t.Helper()

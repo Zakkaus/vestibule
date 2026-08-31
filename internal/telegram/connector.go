@@ -1,25 +1,24 @@
-package tg
+package telegram
 
 import (
 	"context"
 	"errors"
 	"log"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/telegram/ids"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
+	"github.com/Zakkaus/vestibule/internal/telegram/queue"
 
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
 const (
-	adminCacheTTL   = 30 * time.Second
-	adminCacheMax   = 4096
-	cleanupTimerMax = 256
+	adminCacheTTL = 30 * time.Second
+	adminCacheMax = 4096
 )
 
 type adminKey struct {
@@ -27,8 +26,9 @@ type adminKey struct {
 	userID int64
 }
 
-// Client provides Telegram transport and authorization mechanics over one bot.
-type Client struct {
+// Connector provides Telegram transport and authorization mechanics over one bot. Its methods
+// perform network I/O and must not be called from database transactions or decide business results.
+type Connector struct {
 	bot *telego.Bot
 
 	adminMu    sync.Mutex
@@ -40,17 +40,22 @@ type Client struct {
 	linkedMu    sync.Mutex
 	linkedCache map[int64]linkedChatEntry
 
-	cleanupTimers atomic.Int32
+	cleanup *queue.DeleteQueue
 }
 
-// New wraps bot with transport helpers and a bounded positive admin cache.
-func New(bot *telego.Bot) *Client {
-	return &Client{bot: bot, adminCache: make(map[adminKey]time.Time), alertSeen: make(map[alertKey]time.Time),
-		linkedCache: make(map[int64]linkedChatEntry)}
+// NewConnector wraps bot with transport helpers and a bounded positive admin cache.
+func NewConnector(bot *telego.Bot) *Connector {
+	return &Connector{
+		bot:         bot,
+		adminCache:  make(map[adminKey]time.Time),
+		alertSeen:   make(map[alertKey]time.Time),
+		linkedCache: make(map[int64]linkedChatEntry),
+		cleanup:     queue.NewDeleteQueue(bot),
+	}
 }
 
 // ReplyPlain sends reply-bound plain text and schedules optional group cleanup.
-func (c *Client) ReplyPlain(ctx context.Context, chatID int64, replyTo int, text string, cleanupAfter time.Duration) {
+func (c *Connector) ReplyPlain(ctx context.Context, chatID int64, replyTo int, text string, cleanupAfter time.Duration) {
 	params := tu.Message(tu.ID(chatID), text)
 	if reply := ids.ReplyParameters(replyTo); reply != nil {
 		params = params.WithReplyParameters(reply)
@@ -60,7 +65,7 @@ func (c *Client) ReplyPlain(ctx context.Context, chatID int64, replyTo int, text
 }
 
 // ReplyHTML sends reply-bound HTML and schedules optional group cleanup.
-func (c *Client) ReplyHTML(ctx context.Context, chatID int64, replyTo int, text string, cleanupAfter time.Duration) *telego.Message {
+func (c *Connector) ReplyHTML(ctx context.Context, chatID int64, replyTo int, text string, cleanupAfter time.Duration) *telego.Message {
 	params := tgfmt.HTMLMessage(chatID, text)
 	if reply := ids.ReplyParameters(replyTo); reply != nil {
 		params = params.WithReplyParameters(reply)
@@ -71,7 +76,7 @@ func (c *Client) ReplyHTML(ctx context.Context, chatID int64, replyTo int, text 
 }
 
 // SendHTMLFallback sends verification HTML, retries only rejected markup, and returns the sent message.
-func (c *Client) SendHTMLFallback(ctx context.Context, chatID int64, rich, simpler string) (*telego.Message, error) {
+func (c *Connector) SendHTMLFallback(ctx context.Context, chatID int64, rich, simpler string) (*telego.Message, error) {
 	sent, err := c.bot.SendMessage(ctx, tgfmt.HTMLMessage(chatID, rich))
 	if err == nil {
 		return sent, nil
@@ -99,7 +104,7 @@ func (c *Client) SendHTMLFallback(ctx context.Context, chatID int64, rich, simpl
 }
 
 // SendPrivateHTMLFallback retries an HTML private reply as plain text after any send failure.
-func (c *Client) SendPrivateHTMLFallback(ctx context.Context, chatID int64, text string) {
+func (c *Connector) SendPrivateHTMLFallback(ctx context.Context, chatID int64, text string) {
 	if _, err := c.bot.SendMessage(ctx, tgfmt.HTMLMessage(chatID, text)); err != nil {
 		log.Printf("private_reply HTML send failed (%v); retrying as plain text", err)
 		_, _ = c.bot.SendMessage(ctx, tu.Message(tu.ID(chatID), text))
@@ -107,7 +112,7 @@ func (c *Client) SendPrivateHTMLFallback(ctx context.Context, chatID int64, text
 }
 
 // SendRichOrHTML sends rich HTML when enabled and falls back to ordinary HTML on rejection.
-func (c *Client) SendRichOrHTML(ctx context.Context, chatID int64, replyTo int, richHTML, plainHTML string, rich bool, cleanupAfter time.Duration) {
+func (c *Connector) SendRichOrHTML(ctx context.Context, chatID int64, replyTo int, richHTML, plainHTML string, rich bool, cleanupAfter time.Duration) {
 	reply := ids.ReplyParameters(replyTo)
 	if rich && richHTML != "" {
 		params := (&telego.SendRichMessageParams{}).
@@ -130,69 +135,21 @@ func (c *Client) SendRichOrHTML(ctx context.Context, chatID int64, replyTo int, 
 }
 
 // ScheduleCleanup deletes a group response and its command after cleanupAfter.
-func (c *Client) ScheduleCleanup(chatID int64, commandMessageID, responseMessageID int, cleanupAfter time.Duration) {
+func (c *Connector) ScheduleCleanup(chatID int64, commandMessageID, responseMessageID int, cleanupAfter time.Duration) {
 	if cleanupAfter <= 0 || responseMessageID == 0 {
 		return
 	}
-	c.scheduleDelete(chatID, responseMessageID, commandMessageID, cleanupAfter)
+	c.cleanup.Schedule(chatID, responseMessageID, commandMessageID, cleanupAfter)
 }
 
 // Delete removes one message and treats a zero message ID as a no-op.
-func (c *Client) Delete(ctx context.Context, chatID int64, messageID int) {
-	c.deleteMessage(ctx, chatID, messageID)
+func (c *Connector) Delete(ctx context.Context, chatID int64, messageID int) {
+	c.cleanup.Delete(ctx, chatID, messageID)
 }
 
-// A delete that quietly fails leaves the chat exactly as cluttered as no cleanup at all, and
-// leaves nothing in the journal to explain why. Retry what a retry can fix — rate limiting is the
-// one failure that is both common and recoverable — but retry on a timer, because settlement
-// must not wait out a rate limit before telling the applicant what happened.
-const (
-	deleteRetries  = 2
-	deleteRetryCap = 30 * time.Second
-)
-
-// A variable so a test can retry without waiting out the real delay.
-var deleteRetryDelay = 2 * time.Second
-
-func (c *Client) deleteMessage(ctx context.Context, chatID int64, messageID int) {
-	if messageID == 0 {
-		return
-	}
-	err := c.bot.DeleteMessage(ctx, &telego.DeleteMessageParams{ChatID: tu.ID(chatID), MessageID: messageID})
-	c.afterDelete(chatID, messageID, err, deleteRetries)
-}
-
-// afterDelete decides what a failed delete deserves: nothing when the message is already gone,
-// a scheduled retry when waiting could help, and a log line when nothing can.
-func (c *Client) afterDelete(chatID int64, messageID int, err error, remaining int) {
-	if err == nil || MessageAlreadyGone(err) {
-		return
-	}
-	if GroupUnreachable(err) || remaining <= 0 {
-		log.Printf("delete message %d in chat %d failed: %v", messageID, chatID, err)
-		return
-	}
-	wait := RetryAfter(err)
-	if wait <= 0 {
-		wait = deleteRetryDelay
-	}
-	if wait > deleteRetryCap {
-		log.Printf("delete message %d in chat %d: Telegram asked for %s, longer than cleanup waits: %v", messageID, chatID, wait, err)
-		return
-	}
-	if !c.reserveCleanupTimer() {
-		log.Printf("delete retry for message %d in chat %d dropped: %d timers already pending: %v", messageID, chatID, cleanupTimerMax, err)
-		return
-	}
-	time.AfterFunc(wait, func() {
-		defer c.cleanupTimers.Add(-1)
-		retryErr := c.bot.DeleteMessage(context.Background(), &telego.DeleteMessageParams{ChatID: tu.ID(chatID), MessageID: messageID})
-		c.afterDelete(chatID, messageID, retryErr, remaining-1)
-	})
-}
 
 // Notify sends a transient plain-text notice and bounds outstanding deletion timers.
-func (c *Client) Notify(ctx context.Context, chatID int64, text string, ttlSeconds int) {
+func (c *Connector) Notify(ctx context.Context, chatID int64, text string, ttlSeconds int) {
 	message, err := c.bot.SendMessage(ctx, tu.Message(tu.ID(chatID), text))
 	if err != nil || message == nil || ttlSeconds < 0 {
 		return
@@ -201,7 +158,7 @@ func (c *Client) Notify(ctx context.Context, chatID int64, text string, ttlSecon
 	if !ok {
 		return
 	}
-	c.scheduleDelete(chatID, message.MessageID, 0, duration)
+	c.cleanup.Schedule(chatID, message.MessageID, 0, duration)
 }
 
 // A failure that keeps being retried produces the same alert every round. Collapse repeats
@@ -218,7 +175,7 @@ type alertKey struct {
 
 // alertAllowed reports whether this exact alert may be sent now and records the send.
 // It fails open: when bookkeeping is full the alert still goes out.
-func (c *Client) alertAllowed(chatID int64, text string) bool {
+func (c *Connector) alertAllowed(chatID int64, text string) bool {
 	key := alertKey{chatID: chatID, text: text}
 	now := time.Now()
 	c.alertMu.Lock()
@@ -243,7 +200,7 @@ func (c *Client) alertAllowed(chatID int64, text string) bool {
 // Alert sends a repeat-suppressed diagnostic to the admin-log chat when one is configured.
 // Use it for conditions that recur while a fault persists, never for a record of something
 // that happened once — see AuditLog.
-func (c *Client) Alert(ctx context.Context, adminLogChatID int64, text string) {
+func (c *Connector) Alert(ctx context.Context, adminLogChatID int64, text string) {
 	if adminLogChatID == 0 {
 		return
 	}
@@ -256,14 +213,14 @@ func (c *Client) Alert(ctx context.Context, adminLogChatID int64, text string) {
 
 // AuditLog records one moderation action that actually happened. Two identical actions are two
 // facts, so this channel is never deduplicated: the same ban an hour apart must appear twice.
-func (c *Client) AuditLog(ctx context.Context, adminLogChatID int64, text string) {
+func (c *Connector) AuditLog(ctx context.Context, adminLogChatID int64, text string) {
 	if adminLogChatID == 0 {
 		return
 	}
 	c.sendAlert(ctx, adminLogChatID, text)
 }
 
-func (c *Client) sendAlert(ctx context.Context, adminLogChatID int64, text string) {
+func (c *Connector) sendAlert(ctx context.Context, adminLogChatID int64, text string) {
 	if _, err := c.bot.SendMessage(ctx, tu.Message(tu.ID(adminLogChatID), text)); err != nil {
 		log.Printf("adminAlert to %d failed (check admin_log_chat_id / bot membership): %v", adminLogChatID, err)
 	}
@@ -275,7 +232,7 @@ func (c *Client) sendAlert(ctx context.Context, adminLogChatID int64, text strin
 const groupFallbackAlertTTL = 4 * time.Minute
 
 // FailAlert sends a failure alert to the admin log or falls back to the affected group.
-func (c *Client) FailAlert(ctx context.Context, adminLogChatID, groupID int64, text string) {
+func (c *Connector) FailAlert(ctx context.Context, adminLogChatID, groupID int64, text string) {
 	target, fallback := adminLogChatID, false
 	if target == 0 {
 		target, fallback = groupID, true
@@ -290,7 +247,7 @@ func (c *Client) FailAlert(ctx context.Context, adminLogChatID, groupID int64, t
 		return
 	}
 	if fallback && message != nil {
-		c.scheduleDelete(target, message.MessageID, 0, groupFallbackAlertTTL)
+		c.cleanup.Schedule(target, message.MessageID, 0, groupFallbackAlertTTL)
 	}
 }
 
@@ -310,7 +267,7 @@ type linkedChatEntry struct {
 
 // LinkedChat returns the channel linked to chatID. known=false means the pairing could not be
 // read; callers must not treat that as "there is no linked channel".
-func (c *Client) LinkedChat(ctx context.Context, chatID int64) (linked int64, known bool) {
+func (c *Connector) LinkedChat(ctx context.Context, chatID int64) (linked int64, known bool) {
 	now := time.Now()
 	c.linkedMu.Lock()
 	entry, cached := c.linkedCache[chatID]
@@ -333,7 +290,7 @@ func (c *Client) LinkedChat(ctx context.Context, chatID int64) (linked int64, kn
 }
 
 // CachedAdmin returns cached positive status or performs a Telegram membership lookup.
-func (c *Client) CachedAdmin(ctx context.Context, chatID, userID int64) (bool, error) {
+func (c *Connector) CachedAdmin(ctx context.Context, chatID, userID int64) (bool, error) {
 	key := adminKey{chatID: chatID, userID: userID}
 	c.adminMu.Lock()
 	expires, cached := c.adminCache[key]
@@ -345,7 +302,7 @@ func (c *Client) CachedAdmin(ctx context.Context, chatID, userID int64) (bool, e
 }
 
 // FreshAdmin bypasses the positive cache for destructive authorization checks.
-func (c *Client) FreshAdmin(ctx context.Context, chatID, userID int64) (bool, error) {
+func (c *Connector) FreshAdmin(ctx context.Context, chatID, userID int64) (bool, error) {
 	return c.fetchAdmin(ctx, adminKey{chatID: chatID, userID: userID})
 }
 
@@ -369,7 +326,7 @@ func MissingModRights(member telego.ChatMember) []string {
 }
 
 // Ban bans a member permanently or until the requested duration elapses.
-func (c *Client) Ban(ctx context.Context, chatID, userID int64, seconds int, revokeMessages bool) error {
+func (c *Connector) Ban(ctx context.Context, chatID, userID int64, seconds int, revokeMessages bool) error {
 	params := &telego.BanChatMemberParams{ChatID: tu.ID(chatID), UserID: userID, RevokeMessages: revokeMessages}
 	if seconds > 0 {
 		duration, ok := config.SecondsToDuration(seconds)
@@ -382,7 +339,7 @@ func (c *Client) Ban(ctx context.Context, chatID, userID int64, seconds int, rev
 }
 
 // Unban removes a member ban and optionally requires that the member is currently banned.
-func (c *Client) Unban(ctx context.Context, chatID, userID int64, onlyIfBanned bool) error {
+func (c *Connector) Unban(ctx context.Context, chatID, userID int64, onlyIfBanned bool) error {
 	return c.bot.UnbanChatMember(ctx, &telego.UnbanChatMemberParams{
 		ChatID:       tu.ID(chatID),
 		UserID:       userID,
@@ -391,7 +348,7 @@ func (c *Client) Unban(ctx context.Context, chatID, userID int64, onlyIfBanned b
 }
 
 // Mute restricts all member permissions until the requested duration elapses.
-func (c *Client) Mute(ctx context.Context, chatID, userID int64, seconds int) error {
+func (c *Connector) Mute(ctx context.Context, chatID, userID int64, seconds int) error {
 	duration, ok := config.SecondsToDuration(seconds)
 	if !ok {
 		return errors.New("mute duration seconds exceed time.Duration")
@@ -405,7 +362,7 @@ func (c *Client) Mute(ctx context.Context, chatID, userID int64, seconds int) er
 }
 
 // Unmute restores the group's default member permissions.
-func (c *Client) Unmute(ctx context.Context, chatID, userID int64) error {
+func (c *Connector) Unmute(ctx context.Context, chatID, userID int64) error {
 	chat, err := c.bot.GetChat(ctx, &telego.GetChatParams{ChatID: tu.ID(chatID)})
 	if err != nil {
 		return err
@@ -424,16 +381,16 @@ func (c *Client) Unmute(ctx context.Context, chatID, userID int64) error {
 }
 
 // BanSenderChat bans messages sent on behalf of a channel in one group.
-func (c *Client) BanSenderChat(ctx context.Context, chatID, senderChatID int64) error {
+func (c *Connector) BanSenderChat(ctx context.Context, chatID, senderChatID int64) error {
 	return c.bot.BanChatSenderChat(ctx, &telego.BanChatSenderChatParams{ChatID: tu.ID(chatID), SenderChatID: senderChatID})
 }
 
 // UnbanSenderChat removes a sender-chat ban in one group.
-func (c *Client) UnbanSenderChat(ctx context.Context, chatID, senderChatID int64) error {
+func (c *Connector) UnbanSenderChat(ctx context.Context, chatID, senderChatID int64) error {
 	return c.bot.UnbanChatSenderChat(ctx, &telego.UnbanChatSenderChatParams{ChatID: tu.ID(chatID), SenderChatID: senderChatID})
 }
 
-func (c *Client) fetchAdmin(ctx context.Context, key adminKey) (bool, error) {
+func (c *Connector) fetchAdmin(ctx context.Context, key adminKey) (bool, error) {
 	member, err := c.bot.GetChatMember(ctx, &telego.GetChatMemberParams{ChatID: tu.ID(key.chatID), UserID: key.userID})
 	if err != nil {
 		return false, err
@@ -459,7 +416,7 @@ func (c *Client) fetchAdmin(ctx context.Context, key adminKey) (bool, error) {
 	return isAdmin, nil
 }
 
-func (c *Client) pruneAdminCacheLocked(now time.Time) {
+func (c *Connector) pruneAdminCacheLocked(now time.Time) {
 	for key, expires := range c.adminCache {
 		if !now.Before(expires) {
 			delete(c.adminCache, key)
@@ -479,33 +436,3 @@ func (c *Client) pruneAdminCacheLocked(now time.Time) {
 	}
 }
 
-// A private chat is the applicant's own record of what the bot told them, so nothing there
-// is ever deleted on a timer. Timed cleanup exists to keep shared chats readable, and only
-// group and channel IDs are negative.
-func (c *Client) scheduleDelete(chatID int64, firstMessageID, secondMessageID int, after time.Duration) {
-	if chatID >= 0 {
-		return
-	}
-	if !c.reserveCleanupTimer() {
-		// Silently dropping the timer is what makes cleanup look unreliable rather than busy.
-		log.Printf("cleanup timer for message %d in chat %d dropped: %d timers already pending", firstMessageID, chatID, cleanupTimerMax)
-		return
-	}
-	time.AfterFunc(after, func() {
-		defer c.cleanupTimers.Add(-1)
-		c.deleteMessage(context.Background(), chatID, firstMessageID)
-		c.deleteMessage(context.Background(), chatID, secondMessageID)
-	})
-}
-
-func (c *Client) reserveCleanupTimer() bool {
-	for {
-		count := c.cleanupTimers.Load()
-		if count >= cleanupTimerMax {
-			return false
-		}
-		if c.cleanupTimers.CompareAndSwap(count, count+1) {
-			return true
-		}
-	}
-}

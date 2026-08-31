@@ -11,14 +11,14 @@ import (
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
-	"github.com/Zakkaus/vestibule/internal/tg"
+	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/verify"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 )
 
 func newAdminTestApplication(cfg *config.Config, settings *store.Settings, bot *telego.Bot) (*Panel, *verify.Service) {
-	telegram := tg.New(bot)
+	telegram := telegram.NewConnector(bot)
 	verification := verify.New(settings, telegram, cfg, &i18n.Messages, bot, verify.Identity{}, "")
 	administration := New(
 		settings, telegram, cfg, &i18n.Messages,

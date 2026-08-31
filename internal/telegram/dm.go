@@ -1,4 +1,4 @@
-package bot
+package telegram
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/store"
-	"github.com/Zakkaus/vestibule/internal/tg"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 )
@@ -18,7 +17,7 @@ import (
 type dmHandler struct {
 	cfg            *config.Config
 	settings       *store.Settings
-	telegram       *tg.Client
+	telegram       *Connector
 	mu             sync.Mutex
 	last           map[int64]time.Time
 	catalogueReply bool
