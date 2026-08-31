@@ -61,6 +61,8 @@ jobs:
         run: python3 scripts/gen-arch-md.py --check
       - name: Documents agree with themselves
         run: python3 scripts/check-docs.py
+      - name: CONTRIBUTING names every gate CI runs
+        run: python3 scripts/check-gate-list.py
       # One path per step: the action passes its `path` input as a single quoted
       # argument, so a space-separated list becomes one filename that does not exist.
       #
