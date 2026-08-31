@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
 import { EntryScreen } from "../features/entry";
 import { GroupListScreen } from "../features/groups";
+import { QueueScreen } from "../features/queue";
 import { AppShell } from "./AppShell";
 
 const entryHandle = {
@@ -21,6 +22,11 @@ const router = createBrowserRouter([
         index: true,
         element: <EntryScreen />,
         handle: entryHandle
+      },
+      {
+        path: "queue",
+        element: <QueueScreen />,
+        handle: consoleHandle
       },
       {
         path: "groups",

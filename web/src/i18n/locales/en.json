@@ -18,6 +18,7 @@
   "navigation": {
     "label": "Console navigation",
     "workspace": "Workspace",
+    "queue": "Waiting queue",
     "groups": "Groups and channels"
   },
   "shell": {
@@ -65,6 +66,21 @@
       }
     }
   },
+  "challenge": {
+    "state": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "declined": "Declined",
+      "banned": "Banned",
+      "expired": "Expired",
+      "superseded": "Superseded"
+    },
+    "reason": {
+      "wrongAnswer": "Answer incorrect",
+      "rejected": "Answer accepted, veto condition triggered",
+      "externalUnmet": "External condition unavailable"
+    }
+  },
   "groups": {
     "title": "Groups and channels",
     "description": "Every row keeps the current Telegram mode and verification prerequisites visible, so a group that cannot receive applications is not shown as healthy.",
@@ -90,22 +106,48 @@
     "metrics": {
       "applications48h": "Applications in 48 hours",
       "settled": "Settled",
-      "timeout": "Timed out"
+      "expired": "Expired"
     },
     "applicants": {
       "heading": "Recent applicants",
       "withUsername": "@{{username}} · {{id}}",
       "idOnly": "ID {{id}}"
     },
-    "settlement": {
-      "timeout": "Timed out",
-      "approved": "Approved",
-      "rejected": "Rejected"
-    },
     "names": {
       "gentooZh": "Gentoo Chinese Community",
       "archZh": "Arch Linux Chinese Community",
       "oldOt": "Old OT"
+    }
+  },
+  "queue": {
+    "title": "Waiting queue",
+    "tableLabel": "Waiting queue records",
+    "columns": {
+      "user": "User",
+      "group": "Group",
+      "result": "Result",
+      "time": "Time",
+      "actions": "Actions"
+    },
+    "status": {
+      "pending": "Waiting {{time}}"
+    },
+    "actions": {
+      "release": "Release",
+      "releaseFor": "Release {{user}}",
+      "revoke": "Revoke",
+      "revokeFor": "Revoke {{user}}",
+      "details": "Details",
+      "detailsFor": "View details for {{user}}"
+    },
+    "empty": {
+      "title": "No one has applied yet",
+      "description": "Waiting applicants appear here after the first application arrives."
+    },
+    "filteredEmpty": {
+      "title": "No records match the current filters",
+      "currentCondition": "Current filters: group {{group}}, result {{result}}.",
+      "clear": "Clear filters"
     }
   }
 }

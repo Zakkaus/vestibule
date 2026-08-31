@@ -18,6 +18,7 @@
   "navigation": {
     "label": "控制台導覽",
     "workspace": "工作區",
+    "queue": "等待佇列",
     "groups": "群組與頻道"
   },
   "shell": {
@@ -65,6 +66,21 @@
       }
     }
   },
+  "challenge": {
+    "state": {
+      "pending": "等待中",
+      "approved": "已通過",
+      "declined": "已退回",
+      "banned": "已封鎖",
+      "expired": "已逾時",
+      "superseded": "已取代"
+    },
+    "reason": {
+      "wrongAnswer": "答錯",
+      "rejected": "答對但觸發否決條件",
+      "externalUnmet": "無法查詢外部條件"
+    }
+  },
   "groups": {
     "title": "群組與頻道",
     "description": "每一列都顯示 Telegram 目前模式與驗證前置，避免把收不到申請的群組當成正常。",
@@ -90,22 +106,48 @@
     "metrics": {
       "applications48h": "48 小時內申請",
       "settled": "已結算",
-      "timeout": "逾時"
+      "expired": "已逾時"
     },
     "applicants": {
       "heading": "最近申請人",
       "withUsername": "@{{username}} · {{id}}",
       "idOnly": "ID {{id}}"
     },
-    "settlement": {
-      "timeout": "逾時",
-      "approved": "已通過",
-      "rejected": "已拒絕"
-    },
     "names": {
       "gentooZh": "Gentoo 中文社群",
       "archZh": "Arch Linux 中文社群",
       "oldOt": "老 OT"
+    }
+  },
+  "queue": {
+    "title": "等待佇列",
+    "tableLabel": "等待佇列記錄",
+    "columns": {
+      "user": "使用者",
+      "group": "群組",
+      "result": "結果",
+      "time": "時間",
+      "actions": "操作"
+    },
+    "status": {
+      "pending": "等待中 {{time}}"
+    },
+    "actions": {
+      "release": "放行",
+      "releaseFor": "放行 {{user}}",
+      "revoke": "撤銷",
+      "revokeFor": "撤銷 {{user}}",
+      "details": "詳細資料",
+      "detailsFor": "查看 {{user}} 的詳細資料"
+    },
+    "empty": {
+      "title": "還沒有人申請",
+      "description": "收到第一份申請後，等待中的人會出現在這裡。"
+    },
+    "filteredEmpty": {
+      "title": "找不到符合條件的記錄",
+      "currentCondition": "目前條件：群組為 {{group}}，結果為 {{result}}。",
+      "clear": "清除篩選"
     }
   }
 }

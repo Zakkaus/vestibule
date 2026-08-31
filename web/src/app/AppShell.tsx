@@ -17,6 +17,10 @@ type RouteHandle = {
 
 const navigationItems = [
   {
+    path: "/queue",
+    labelKey: "navigation.queue"
+  },
+  {
     path: "/groups",
     labelKey: "navigation.groups"
   }
@@ -52,6 +56,8 @@ function ConsoleNavigation() {
 
 export function AppShell() {
   const { t } = useTranslation();
+  const location = useLocation();
+  const currentNavigationItem = navigationItems.find((item) => item.path === location.pathname);
   const matches = useMatches();
   const routeHandle = matches.at(-1)?.handle as RouteHandle | undefined;
   const shellVariant = routeHandle?.shell ?? "entry";
@@ -86,7 +92,9 @@ export function AppShell() {
             <summary>{t("shell.mobileNavigation")}</summary>
             <ConsoleNavigation />
           </details>
-          <span data-header-title>{t("navigation.groups")}</span>
+          <span data-header-title>
+            {currentNavigationItem ? t(currentNavigationItem.labelKey) : t("app.name")}
+          </span>
           <div data-header-controls>
             <GroupSwitcher />
             <UtilityControls />

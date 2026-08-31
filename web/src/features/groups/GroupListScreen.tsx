@@ -8,15 +8,8 @@ import {
   groupFixtures,
   modeDefinitions,
   resolveGroupSelection,
-  settlementDefinitions,
   verificationPrerequisites
 } from "./fixtures";
-
-const settlementTones: Record<(typeof settlementDefinitions)[number]["id"], StatusTone> = {
-  timeout: "neutral",
-  approved: "ok",
-  rejected: "error"
-};
 
 export function GroupListScreen() {
   const { t, i18n } = useTranslation();
@@ -26,7 +19,6 @@ export function GroupListScreen() {
     () => new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language),
     [i18n.language, i18n.resolvedLanguage]
   );
-
 
   return (
     <section data-groups-page aria-labelledby="groups-title">
@@ -48,10 +40,16 @@ export function GroupListScreen() {
             (prerequisite) => !group.prerequisites[prerequisite.id]
           );
           const verificationTone: StatusTone = missingPrerequisites.length === 0 ? "ok" : "error";
-          const settledCount = settlementDefinitions.reduce(
-            (count, settlement) => count + group.settlements[settlement.id],
+          const settledCount = group.settlements.reduce(
+            (count, settlement) => count + settlement.count,
             0
           );
+          const expiredCount = group.settlements.reduce(
+            (count, settlement) =>
+              settlement.result.state === "expired" ? count + settlement.count : count,
+            0
+          );
+
 
           return (
             <article
@@ -88,19 +86,19 @@ export function GroupListScreen() {
                     <span data-group-metric-value>{numberFormatter.format(settledCount)}</span>
                   </div>
                   <div data-group-metric>
-                    <span data-group-metric-label>{t("groups.metrics.timeout")}</span>
+                    <span data-group-metric-label>{t("groups.metrics.expired")}</span>
                     <span data-group-metric-value>
-                      {numberFormatter.format(group.settlements.timeout)}
+                      {numberFormatter.format(expiredCount)}
                     </span>
                   </div>
                 </div>
 
                 <ul data-settlement-list>
-                  {settlementDefinitions.map((settlement) => (
-                    <li key={settlement.id} data-settlement-item>
-                      <span>{t(settlement.labelKey)}</span>
+                  {group.settlements.map((settlement) => (
+                    <li key={settlement.result.id} data-settlement-item>
+                      <span>{t(settlement.result.labelKey)}</span>
                       <span data-settlement-value>
-                        {numberFormatter.format(group.settlements[settlement.id])}
+                        {numberFormatter.format(settlement.count)}
                       </span>
                     </li>
                   ))}
@@ -147,8 +145,8 @@ export function GroupListScreen() {
                               })
                             : t("groups.applicants.idOnly", { id: applicant.userId })}
                         </span>
-                        <StatusBadge tone={settlementTones[applicant.settlement]}>
-                          {t(`groups.settlement.${applicant.settlement}`)}
+                        <StatusBadge tone={applicant.result.tone}>
+                          {t(applicant.result.labelKey)}
                         </StatusBadge>
                       </li>
                     ))}

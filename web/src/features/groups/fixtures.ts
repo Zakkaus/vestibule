@@ -1,3 +1,8 @@
+import {
+  challengeResults,
+  type ChallengeResultDefinition
+} from "../../lib/challenge";
+
 export type TelegramMode = "approval" | "join-restrict";
 
 export type PrerequisiteId =
@@ -5,12 +10,15 @@ export type PrerequisiteId =
   | "botIsAdministrator"
   | "joinEventsDeclared";
 
-export type SettlementReason = "timeout" | "approved" | "rejected";
+export type Settlement = {
+  result: ChallengeResultDefinition;
+  count: number;
+};
 
 export type RecentApplicant = {
   userId: string;
   username: string | null;
-  settlement: SettlementReason;
+  result: ChallengeResultDefinition;
 };
 
 export type GroupFixture = {
@@ -19,7 +27,7 @@ export type GroupFixture = {
   mode: TelegramMode;
   prerequisites: Record<PrerequisiteId, boolean>;
   applicationsLast48Hours: number;
-  settlements: Readonly<Record<SettlementReason, number>>;
+  settlements: readonly Settlement[];
   recentApplicants: readonly RecentApplicant[];
 };
 export const allGroupsSelection = "all";
@@ -59,23 +67,6 @@ export const modeDefinitions: Record<
   }
 };
 
-export const settlementDefinitions: readonly {
-  id: SettlementReason;
-  labelKey: string;
-}[] = [
-  {
-    id: "timeout",
-    labelKey: "groups.settlement.timeout"
-  },
-  {
-    id: "approved",
-    labelKey: "groups.settlement.approved"
-  },
-  {
-    id: "rejected",
-    labelKey: "groups.settlement.rejected"
-  }
-];
 
 export const groupFixtures: readonly GroupFixture[] = [
   {
@@ -88,26 +79,35 @@ export const groupFixtures: readonly GroupFixture[] = [
       joinEventsDeclared: true
     },
     applicationsLast48Hours: 129,
-    settlements: {
-      timeout: 119,
-      approved: 7,
-      rejected: 2
-    },
+    settlements: [
+      {
+        result: challengeResults.expired,
+        count: 119
+      },
+      {
+        result: challengeResults.approved,
+        count: 7
+      },
+      {
+        result: challengeResults.declinedRejected,
+        count: 2
+      }
+    ],
     recentApplicants: [
       {
         userId: "741928306",
         username: null,
-        settlement: "timeout"
+        result: challengeResults.expired
       },
       {
         userId: "528106774",
         username: "kernel_trace",
-        settlement: "timeout"
+        result: challengeResults.expired
       },
       {
         userId: "890173425",
         username: null,
-        settlement: "approved"
+        result: challengeResults.approved
       }
     ]
   },
@@ -121,26 +121,39 @@ export const groupFixtures: readonly GroupFixture[] = [
       joinEventsDeclared: true
     },
     applicationsLast48Hours: 89,
-    settlements: {
-      timeout: 82,
-      approved: 4,
-      rejected: 2
-    },
+    settlements: [
+      {
+        result: challengeResults.expired,
+        count: 82
+      },
+      {
+        result: challengeResults.approved,
+        count: 4
+      },
+      {
+        result: challengeResults.declinedWrongAnswer,
+        count: 1
+      },
+      {
+        result: challengeResults.declinedExternalUnmet,
+        count: 1
+      }
+    ],
     recentApplicants: [
       {
         userId: "612005499",
         username: null,
-        settlement: "timeout"
+        result: challengeResults.expired
       },
       {
         userId: "475998132",
         username: null,
-        settlement: "timeout"
+        result: challengeResults.expired
       },
       {
         userId: "908116254",
         username: null,
-        settlement: "rejected"
+        result: challengeResults.declinedWrongAnswer
       }
     ]
   },
@@ -154,16 +167,17 @@ export const groupFixtures: readonly GroupFixture[] = [
       joinEventsDeclared: false
     },
     applicationsLast48Hours: 1,
-    settlements: {
-      timeout: 1,
-      approved: 0,
-      rejected: 0
-    },
+    settlements: [
+      {
+        result: challengeResults.expired,
+        count: 1
+      }
+    ],
     recentApplicants: [
       {
         userId: "334281907",
         username: null,
-        settlement: "timeout"
+        result: challengeResults.expired
       }
     ]
   }
