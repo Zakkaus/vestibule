@@ -129,12 +129,16 @@ See `internal/i18n/README.md` for the catalogue layout and translation workflow.
 
 ## Before opening a PR
 
-CI runs these, and the release workflow runs the same gate before publishing binaries. Run
+CI runs these. The release workflow runs the Go half of them before publishing binaries —
+not the frontend or document checks, which do not bear on a Go binary, and not the baseline
+ratchet, which compares a branch against its base and has nothing to compare on a tag. Run
 them locally first. **Clear the build and type caches first**: a stale cache turns a red gate
 green locally.
 
 ```sh
 gofmt -l .                       # must print nothing
+scripts/lint.sh                  # package boundaries, file and function length, complexity
+python3 scripts/check-baseline-ratchet.py origin/main   # a held violation may not grow
 go vet ./...
 go build ./... && go build -tags gentoo ./...
 go test -race ./... && go test -race -tags gentoo ./...
@@ -148,6 +152,7 @@ for c in style-rules undefined-var shadowed theme-leak; do \
   python3 "scripts/design-checks/$c.py" web/dist/assets/*.css; done
 for c in html-structure style-rules css-coverage shadowed undefined-var theme-leak; do \
   python3 "scripts/design-checks/$c.py" web/design.html web/architecture.html; done
+cd web && npm run e2e && cd ..  # the console journey and the render gate, in Chromium
 ```
 
 **Both build tags must pass.** Running only the default one misses the generic edition.

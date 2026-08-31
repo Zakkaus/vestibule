@@ -17,13 +17,14 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-      - name: Test gate (never publish binaries from a broken commit — same gate as CI)
+      - name: Test gate (never publish binaries from a broken commit — CI's Go checks)
         run: |
           unformatted="$(gofmt -l .)"
           if [ -n "$unformatted" ]; then
             echo "These files are not gofmt-clean:"; echo "$unformatted"; exit 1
           fi
           go vet ./...
+          scripts/lint.sh
           go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
           go build ./...
           go build -tags gentoo ./...
