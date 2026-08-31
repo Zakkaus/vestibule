@@ -30,6 +30,32 @@ code.
 `docs/PLAN-v5.md` says which phase we are in and what that phase explicitly does not do.
 Work outside the current phase does not get merged, however good it is.
 
+## When you are stuck, look at what others shipped
+
+Three sources, checked out under `/home/zakk/code/refs/`:
+
+| Source | What it answers |
+|---|---|
+| `gentoo-zh-verify-bot` | Why the previous generation does what it does. A lot of it was bought with production incidents; a check that looks redundant usually has a reason |
+| `policr-mini` | What a mature peer product decided, and what it got wrong |
+| `mautrix-go`, `mautrix-telegram` | How a high-quality Go program of the same shape handles lifecycle, concurrency and error layering |
+
+**They are practice, not authority.** Their value is that someone shipped this and lived with
+the consequences — that is evidence about cost, not proof of correctness. Ask why they did it
+that way and whether the reason holds here.
+
+Three cases found while checking them: the peer product stores an owner flag in one field and
+reads a different one; a large project's guide still documents a CI job that no longer exists;
+a proof-of-work implementation counts hex characters, so each difficulty step is sixteen times
+the last and nothing usable sits in between.
+
+Cite `file:line` when you use one. Say so plainly when a reference disagrees with our
+architecture — write down both options and their costs rather than quietly following either.
+The previous generation carries the most weight because it ran with the same users on the same
+platform, but it is not authority either.
+
+Do not pay this cost for an obvious change. Reading code to fix a typo is waste.
+
 ## Invariants
 
 These hold at every commit. Breaking one means the change is not finished.
