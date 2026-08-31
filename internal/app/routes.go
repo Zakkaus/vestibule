@@ -5,28 +5,18 @@ import (
 	"github.com/Zakkaus/vestibule/internal/moderate"
 	"github.com/Zakkaus/vestibule/internal/panel"
 	"github.com/Zakkaus/vestibule/internal/telegram"
-	"github.com/Zakkaus/vestibule/internal/verify"
+	"github.com/Zakkaus/vestibule/internal/verification"
 )
 
 func telegramHandlers(
-	verification *verify.Service,
+	verification *verification.Service,
+	verificationGateway *telegram.VerificationGateway,
 	administration *panel.Panel,
 	moderation *moderate.Service,
 	lookups *lookup.Service,
 ) telegram.HandlerSet {
 	return telegram.HandlerSet{
-		Verification: telegram.VerificationHandlers{
-			Answer:               verification.OnAnswer,
-			AdminAction:          verification.OnAdminAction,
-			ChannelRecheck:       verification.OnChannelRecheck,
-			JoinRequest:          verification.OnJoinRequest,
-			MemberJoined:         verification.OnMemberJoined,
-			KernelAnswer:         verification.OnKernelAnswer,
-			KernelAnswerDM:       verification.KernelAnswerDM,
-			AnswerPrefix:         verify.AnswerCallbackPrefix,
-			AdminPrefix:          verify.AdminCallbackPrefix,
-			ChannelRecheckPrefix: verify.ChannelRecheckCallbackPrefix,
-		},
+		Verification: telegram.NewVerificationHandlers(verification, verificationGateway),
 		Panel: telegram.PanelHandlers{
 			SettingsCallback: administration.OnSettingsCallback,
 			ChatShared:       administration.OnPanelChatShared,

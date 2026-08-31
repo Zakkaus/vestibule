@@ -11,6 +11,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
 )
@@ -73,6 +74,8 @@ type outageAwareBot struct {
 	observer *retentionOutageObserver
 }
 
+var _ verification.LiveProbe = (*outageAwareBot)(nil)
+
 func (b *outageAwareBot) Unwrap() *telego.Bot { return b.Bot }
 
 func (b *outageAwareBot) GetMe(ctx context.Context) (*telego.User, error) {
@@ -81,6 +84,11 @@ func (b *outageAwareBot) GetMe(ctx context.Context) (*telego.User, error) {
 		b.observer.observe(time.Now())
 	}
 	return me, err
+}
+
+func (b *outageAwareBot) Probe(ctx context.Context) error {
+	_, err := b.GetMe(ctx)
+	return err
 }
 
 func alertRetentionOutage(

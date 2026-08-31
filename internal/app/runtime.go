@@ -10,7 +10,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/feed"
 	"github.com/Zakkaus/vestibule/internal/store"
-	"github.com/Zakkaus/vestibule/internal/verify"
+	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
 )
 
@@ -71,7 +71,7 @@ func startFeeds(ctx context.Context, cfg *config.Config, bot *telego.Bot, stateD
 	return done
 }
 
-func startHeartbeat(ctx context.Context, verification *verify.Service, bot *outageAwareBot) <-chan struct{} {
+func startHeartbeat(ctx context.Context, verification *verification.Service, bot *outageAwareBot) <-chan struct{} {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)

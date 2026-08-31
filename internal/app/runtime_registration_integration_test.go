@@ -15,7 +15,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/panel"
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/Zakkaus/vestibule/internal/telegram"
-	"github.com/Zakkaus/vestibule/internal/verify"
+	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 )
@@ -37,7 +37,7 @@ type runtimeRegistrationFixture struct {
 	caller       *dispatchCaller
 	cfg          *config.Config
 	settings     *store.Settings
-	verification *verify.Service
+	verification *verification.Service
 	updates      *telegram.Updates
 	registration *telegram.Registration
 }
@@ -78,8 +78,9 @@ func newRuntimeRegistrationFixture(
 	})
 	bot := testBot(t, caller)
 	connector := telegram.NewConnector(bot)
-	identity := verify.Identity{ID: botID, Username: "verify_test_bot"}
-	verification := verify.New(settings, connector, cfg, &i18n.Messages, bot, identity, "")
+	identity := verification.Identity{ID: botID, Username: "verify_test_bot"}
+	verification := newTestVerifier(settings, connector, cfg, identity, "")
+	verificationGateway := telegram.NewVerificationGateway(connector)
 	t.Cleanup(verification.Shutdown)
 	moderation := moderate.New(settings, connector, cfg, "")
 	lookups := lookup.New(settings, connector, cfg, "")
@@ -87,7 +88,7 @@ func newRuntimeRegistrationFixture(
 		settings, connector, cfg, &i18n.Messages,
 		verification, moderation, lookups, "test", time.Now(),
 	)
-	updates := telegram.NewUpdates(cfg, settings, connector, telegramHandlers(verification, administration, moderation, lookups))
+	updates := telegram.NewUpdates(cfg, settings, connector, telegramHandlers(verification, verificationGateway, administration, moderation, lookups))
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	return &runtimeRegistrationFixture{

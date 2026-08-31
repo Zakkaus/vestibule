@@ -20,7 +20,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/moderate"
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/Zakkaus/vestibule/internal/telegram"
-	"github.com/Zakkaus/vestibule/internal/verify"
+	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
 	ta "github.com/mymmrac/telego/telegoapi"
 )
@@ -38,15 +38,14 @@ type panelVerifierStub struct {
 
 func (v *panelVerifierStub) AgentStatsText(i18n.Lang) string { return "" }
 func (v *panelVerifierStub) ControlGroupID() int64           { return panelTestGroupA }
-func (v *panelVerifierStub) DMOrGroup(*telego.Message) bool  { return true }
+func (v *panelVerifierStub) DMOrGroup(int64, bool) bool      { return true }
 func (v *panelVerifierStub) EffectiveMode(int64) string      { return config.ModeKernel }
 func (v *panelVerifierStub) IsEnabled(int64) bool            { return true }
-func (v *panelVerifierStub) KernelAnswerDM(_ context.Context, update telego.Update) bool {
-	message := update.Message
-	return v.kernelPending && message != nil && message.From != nil && message.Chat.Type == "private" &&
-		strings.TrimSpace(message.Text) != "" && !strings.HasPrefix(strings.TrimSpace(message.Text), "/")
+func (v *panelVerifierStub) KernelAnswerDM(_ int64, text string, private bool) bool {
+	return v.kernelPending && private && strings.TrimSpace(text) != "" &&
+		!strings.HasPrefix(strings.TrimSpace(text), "/")
 }
-func (v *panelVerifierStub) SendDMChallenge(context.Context, *telego.Bot, int64, string, int64) {
+func (v *panelVerifierStub) SendDMChallenge(context.Context, int64, string, int64) {
 	v.challengeCalls++
 }
 func (v *panelVerifierStub) SetAutoDelete(int64, time.Duration, bool) error { return nil }
@@ -345,7 +344,7 @@ func TestVerificationStartPayloadSelectsOnePendingGroupAndBarePayloadStillFansOu
 	questionA := config.Question{Q: "Group A question", Options: []string{"A", "B"}, Answer: 0}
 	questionB := config.Question{Q: "Group B question", Options: []string{"A", "B"}, Answer: 1}
 
-	newFlow := func(t *testing.T) (*Panel, *verify.Service, *panelAPICaller, *telego.Bot) {
+	newFlow := func(t *testing.T) (*Panel, *verification.Service, *panelAPICaller, *telego.Bot) {
 		t.Helper()
 		cfg := &config.Config{
 			Groups: []config.GroupConfig{
@@ -364,13 +363,14 @@ func TestVerificationStartPayloadSelectsOnePendingGroupAndBarePayloadStillFansOu
 		}
 		caller := &panelAPICaller{messageID: 100}
 		bot := newAPITestBot(t, caller)
-		telegram := telegram.NewConnector(bot)
-		verifier := verify.New(settings, telegram, cfg, &i18n.Messages, bot,
-			verify.Identity{ID: 500, Username: "settings_test_bot"}, "")
+		connector := telegram.NewConnector(bot)
+		verifier := newPanelTestVerifier(settings, connector, cfg,
+			verification.Identity{ID: 500, Username: "settings_test_bot"}, "")
 		t.Cleanup(verifier.Shutdown)
-		panel := New(settings, telegram, cfg, &i18n.Messages, verifier, nil, nil, "test", time.Now())
+		panel := New(settings, connector, cfg, &i18n.Messages, verifier, nil, nil, "test", time.Now())
+		handlers := telegram.NewVerificationHandlers(verifier, telegram.NewVerificationGateway(connector))
 		for _, groupID := range []int64{panelTestGroupA, panelTestGroupB} {
-			runFakeHandler(t, bot, verifier.OnJoinRequest, telego.Update{ChatJoinRequest: &telego.ChatJoinRequest{
+			runFakeHandler(t, bot, handlers.JoinRequest, telego.Update{ChatJoinRequest: &telego.ChatJoinRequest{
 				Chat: telego.Chat{ID: groupID, Type: "supergroup"},
 				From: telego.User{ID: userID, FirstName: "Applicant", LanguageCode: "en"},
 			}})
@@ -523,7 +523,7 @@ func TestPanelInputPrecedesKernelForSameUser(t *testing.T) {
 	if !panel.PanelInputDM(context.Background(), update) {
 		t.Fatal("exact panel prompt reply did not match panel input")
 	}
-	if !verifier.KernelAnswerDM(context.Background(), update) {
+	if !verifier.KernelAnswerDM(panelTestUser, update.Message.Text, true) {
 		t.Fatal("test did not establish a simultaneous kernel pending")
 	}
 	if session.pending != nil {

@@ -10,7 +10,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/panel"
 	"github.com/Zakkaus/vestibule/internal/telegram"
-	"github.com/Zakkaus/vestibule/internal/verify"
+	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 )
@@ -25,6 +25,7 @@ func routeRecorder(name string, handled *[]string) th.Handler {
 func recordingHandlers(fixture *dispatchFixture, handled *[]string) telegram.HandlerSet {
 	handlers := telegramHandlers(
 		fixture.verification,
+		fixture.verificationGateway,
 		fixture.administration,
 		fixture.moderation,
 		fixture.lookups,
@@ -142,9 +143,9 @@ func globalDispatchCases(
 ) []dispatchCase {
 	return []dispatchCase{
 		{name: "join request", update: fixture.joinRequest(803), want: "verify.join_request"},
-		{name: "answer callback", update: callbackUpdate(verify.AnswerCallbackPrefix), want: "verify.answer"},
-		{name: "admin callback", update: callbackUpdate(verify.AdminCallbackPrefix), want: "verify.admin_action"},
-		{name: "channel recheck callback", update: callbackUpdate(verify.ChannelRecheckCallbackPrefix), want: "verify.channel_recheck"},
+		{name: "answer callback", update: callbackUpdate(verification.AnswerCallbackPrefix), want: "verify.answer"},
+		{name: "admin callback", update: callbackUpdate(verification.AdminCallbackPrefix), want: "verify.admin_action"},
+		{name: "channel recheck callback", update: callbackUpdate(verification.ChannelRecheckCallbackPrefix), want: "verify.channel_recheck"},
 		{name: "settings callback", update: callbackUpdate(panel.SettingsCallbackPrefix), want: "panel.settings_callback"},
 		{name: "panel input", update: panelInput, want: "panel.input"},
 		{name: "kernel answer", update: kernelAnswer, want: "verify.kernel_answer"},
@@ -169,9 +170,9 @@ func TestGlobalDispatchRunsOnlyTheIntendedHandler(t *testing.T) {
 	const kernelUser int64 = 802
 	fixture := newDispatchFixture(t, 0)
 	panelInput := fixture.preparePanelInput(t, panelUser)
-	runDirectHandler(t, fixture.bot, fixture.verification.OnJoinRequest, fixture.joinRequest(kernelUser))
+	runDirectHandler(t, fixture.bot, telegram.NewVerificationHandlers(fixture.verification, fixture.verificationGateway).JoinRequest, fixture.joinRequest(kernelUser))
 	kernelAnswer := privateCommand(kernelUser, "6.12.3")
-	if !fixture.verification.KernelAnswerDM(context.Background(), kernelAnswer) {
+	if !fixture.verification.KernelAnswerDM(kernelUser, kernelAnswer.Message.Text, true) {
 		t.Fatal("kernel fixture did not establish a gradeable private answer")
 	}
 	for _, test := range globalDispatchCases(fixture, panelInput, kernelAnswer, panelUser) {
@@ -218,7 +219,7 @@ func TestVerificationPublicHandlerBoundaries(t *testing.T) {
 		Status: telego.MemberStatusLeft,
 		User:   telego.User{ID: applicantID},
 	})
-	runDirectHandler(t, channelFixture.bot, channelFixture.verification.OnJoinRequest, channelFixture.joinRequest(applicantID))
+	runDirectHandler(t, channelFixture.bot, telegram.NewVerificationHandlers(channelFixture.verification, channelFixture.verificationGateway).JoinRequest, channelFixture.joinRequest(applicantID))
 	beforeMessages := len(channelFixture.caller.sentTexts())
 	channelFixture.caller.setMember(requiredChannel, applicantID, &telego.ChatMemberMember{
 		Status: telego.MemberStatusMember,
@@ -227,7 +228,7 @@ func TestVerificationPublicHandlerBoundaries(t *testing.T) {
 	channelCallback := telego.Update{CallbackQuery: &telego.CallbackQuery{
 		ID:   "channel-recheck",
 		From: telego.User{ID: applicantID, LanguageCode: "en"},
-		Data: fmt.Sprintf("%s%d:%d", verify.ChannelRecheckCallbackPrefix, channelFixture.groupID, applicantID),
+		Data: fmt.Sprintf("%s%d:%d", verification.ChannelRecheckCallbackPrefix, channelFixture.groupID, applicantID),
 	}}
 	channelHandler, err := th.NewBotHandler(channelFixture.bot, nil)
 	if err != nil {
@@ -264,7 +265,7 @@ func TestVerificationPublicHandlerBoundaries(t *testing.T) {
 		From: &telego.User{ID: applicantID, LanguageCode: "en"},
 		Text: "6.12.3",
 	}}
-	if !kernelFixture.verification.KernelAnswerDM(context.Background(), answer) {
+	if !kernelFixture.verification.KernelAnswerDM(applicantID, answer.Message.Text, true) {
 		t.Fatal("kernel public-handler fixture did not establish a gradeable answer")
 	}
 	beforeApprove := kernelFixture.caller.methodCount("approveChatJoinRequest")
