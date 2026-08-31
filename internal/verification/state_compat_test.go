@@ -162,6 +162,7 @@ func TestStateCompatPending(t *testing.T) {
 				out := filepath.Join(t.TempDir(), "pending.json")
 				v.statePath = out
 				v.save()
+				stateCompatAssertPendingEpoch(t, stateCompatRead(t, out))
 				stateCompatAssertStableJSON(t, "pending", current, stateCompatRead(t, out))
 			}
 			if tt.legacy {
@@ -389,6 +390,17 @@ func stateCompatWithUnknown(t *testing.T, data []byte) []byte {
 	return out
 }
 
+func stateCompatAssertPendingEpoch(t *testing.T, data []byte) {
+	t.Helper()
+	var records []PendingRecord
+	stateCompatDecode(t, data, &records)
+	for _, record := range records {
+		if record.Epoch == 0 {
+			t.Fatalf("pending group=%d user=%d has no persisted epoch", record.GroupID, record.UserID)
+		}
+	}
+}
+
 func stateCompatAssertStableJSON(t *testing.T, artifact string, want, got []byte) {
 	t.Helper()
 	wantValue := stateCompatNormalizedJSON(t, artifact, want)
@@ -419,6 +431,13 @@ func stateCompatNormalizedJSON(t *testing.T, artifact string, data []byte) any {
 		records, ok := root.([]any)
 		if !ok {
 			t.Fatalf("%s fixture root is %T, want array", artifact, root)
+		}
+		if artifact == "pending" {
+			for _, value := range records {
+				if record, ok := value.(map[string]any); ok {
+					delete(record, "epoch")
+				}
+			}
 		}
 		sort.Slice(records, func(i, j int) bool {
 			a := records[i].(map[string]any)

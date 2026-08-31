@@ -1021,7 +1021,7 @@ func TestRepliesCannotChargeAReplacedPending(t *testing.T) {
 	}
 }
 
-func TestReapplyKeepsAttemptsAndFallback(t *testing.T) {
+func TestReapplyKeepsExistingAttemptsAndFallback(t *testing.T) {
 	v := newTestService(&config.Config{Groups: []config.GroupConfig{{ID: -100}}, GroupIDs: []int64{-100},
 		TimeoutSeconds: 240, VerifyMode: config.ModeKernel, DeliveryMode: config.DeliveryDM})
 	key := pkey{-100, 5}
@@ -1039,29 +1039,15 @@ func TestReapplyKeepsAttemptsAndFallback(t *testing.T) {
 	runFakeHandler(t, newAPITestBot(t, bot), v.OnJoinRequest, update)
 
 	p := v.pend[key]
-	if p == nil || p == old {
-		t.Fatalf("onJoinRequest did not install a fresh pending: old=%p new=%p", old, p)
-	}
-	if !old.done {
-		t.Error("onJoinRequest must retire the replaced pending")
+	if p != old || old.done {
+		t.Fatalf("repeat application replaced the open challenge: old=%p current=%p done=%v", old, p, old.done)
 	}
 	if p.tries != 2 || !p.hinted || !p.sampleBounced || !p.noLinuxReminded || !p.osClarified ||
 		p.qText != old.qText || !slices.Equal(p.fbAnswers, old.fbAnswers) {
-		t.Errorf("replacement did not inherit attempts, spent reminders, and fallback: %+v", p)
+		t.Errorf("repeat application changed attempts, guards, or fallback: %+v", p)
 	}
-	if &p.fbAnswers[0] == &old.fbAnswers[0] {
-		t.Error("replacement fallback answers alias the retired pending")
-	}
-	if bot.sends != 1 || bot.deletes != 2 {
-		t.Errorf("real reapply path sent/deleted = %d/%d, want 1/2", bot.sends, bot.deletes)
-	}
-	if len(bot.sendTexts) != 1 || !strings.Contains(bot.sendTexts[0], old.qText) {
-		t.Errorf("reapply prompt = %q, want the active fallback question", bot.sendTexts)
-	}
-	if len(bot.deletedChats) != 2 || bot.deletedChats[0] != -100 || bot.deletedChats[1] != 5 ||
-		bot.deletedMessageIDs[0] != 42 || bot.deletedMessageIDs[1] != 43 {
-		t.Errorf("reapply cleanup = chats %v messages %v, want old group and private challenges",
-			bot.deletedChats, bot.deletedMessageIDs)
+	if bot.sends != 0 || bot.deletes != 0 {
+		t.Errorf("repeat application sent/deleted = %d/%d, want no visible side effect", bot.sends, bot.deletes)
 	}
 	if p.timer != nil {
 		p.timer.Stop()

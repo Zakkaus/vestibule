@@ -426,37 +426,8 @@ func (v *Service) Stats() (date string, approved, declined int) {
 	return v.statDate, v.approved, v.declined
 }
 
-func (v *Service) save() {
-	if v.statePath == "" || v.stateStore == nil {
-		return
-	}
-	_ = v.stateStore.SavePending(v.statePath, func() []PendingRecord {
-		v.mu.Lock()
-		defer v.mu.Unlock()
-		recs := make([]PendingRecord, 0, len(v.pend))
-		for k, p := range v.pend {
-			var deferredSince int64
-			if !p.deferredSince.IsZero() {
-				deferredSince = p.deferredSince.Unix()
-			}
-			recs = append(recs, PendingRecord{UserID: k.uid, GroupID: k.gid,
-				GroupMsgID: p.groupMsgID, PrivateMsgID: p.privateMsgID,
-				ChallengeDelivered: p.challengeDelivered && p.groupMsgID == 0 && p.privateMsgID == 0,
-				Mode:               p.mode, Lang: p.persistedLang(),
-				FbAnswers: p.fbAnswers, FallbackPending: p.fallbackPending, Prompted: p.prompted,
-				Tries: p.tries, Hinted: p.hinted, SampleBounced: p.sampleBounced,
-				NoLinuxReminded: p.noLinuxReminded, OSClarified: p.osClarified,
-				QText: p.qText, QOpts: p.qOpts, CorrectIdx: p.correctIdx, Nonce: p.nonce, Name: p.name,
-				Deadline: p.deadline.Unix(), DeferredSince: deferredSince, DeferralCapReached: p.deferralCapReached,
-				SettleFailures: p.settleFailures, SettlePendingSaid: p.settlePendingSaid, Gate: p.gate, Invited: p.invited, Held: p.held, HoldUntil: p.holdUntil, Passing: p.passing,
-				ChannelUnreadable: p.channelUnreadable})
-		}
-		return recs
-	})
-}
-
-func (v *Service) stateUnavailable(path string) bool {
-	return path == "" || v.stateStore == nil
+func restoredChallengeNeedsRenotify(persisted, renotify bool) bool {
+	return persisted && renotify
 }
 
 func (v *Service) load(bot Gateway) {
@@ -472,7 +443,6 @@ func (v *Service) load(bot Gateway) {
 		return // corrupt files were backed up; unreadable files remain untouched and write-disabled
 	}
 	now := v.wallNow()
-	// Long downtime gets fresh windows and re-notification; quick restarts stay quiet.
 	var downtime time.Duration
 	if !lastOnline.IsZero() {
 		if d := now.Sub(lastOnline); d > 0 {
@@ -480,14 +450,12 @@ func (v *Service) load(bot Gateway) {
 		}
 	}
 	longOutage := downtime > outageRecovery
-
 	var refresh []renotifyItem
-	stateAdjusted := false
 	for _, r := range recs {
 		gid, uid := r.GroupID, r.UserID
-		// Never restore pendings for unknown chats or unwinnable quiz payloads.
 		if !v.settings.IsGroup(gid) {
 			log.Printf("state load: skip pending for unknown group %d (user %d)", gid, uid)
+			v.supersedePendingRecord(r)
 			continue
 		}
 		mode := r.Mode
@@ -497,6 +465,7 @@ func (v *Service) load(bot Gateway) {
 		// Kernel challenges have no options; quiz payloads must remain winnable.
 		if mode == (config.ModeQuiz) && (len(r.QOpts) < 2 || r.CorrectIdx < 0 || r.CorrectIdx >= len(r.QOpts)) {
 			log.Printf("state load: skip pending with invalid question payload (group %d user %d)", gid, uid)
+			v.supersedePendingRecord(r)
 			continue
 		}
 		var deferredSince time.Time
@@ -511,16 +480,16 @@ func (v *Service) load(bot Gateway) {
 			tries: r.Tries, hinted: r.Hinted, sampleBounced: r.SampleBounced,
 			noLinuxReminded: r.NoLinuxReminded, osClarified: r.OSClarified,
 			qText: r.QText, qOpts: r.QOpts, correctIdx: r.CorrectIdx,
-			nonce: r.Nonce, name: r.Name, deadline: time.Unix(r.Deadline, 0),
+			nonce: r.Nonce, name: r.Name, deadline: time.Unix(r.Deadline, 0), epoch: r.Epoch,
 			deferredSince: deferredSince, deferralCapReached: r.DeferralCapReached, settleFailures: r.SettleFailures, gate: r.Gate, invited: r.Invited, held: r.Held, holdUntil: r.HoldUntil, passing: r.Passing, channelUnreadable: r.ChannelUnreadable,
 			settlePendingSaid: r.SettlePendingSaid,
 		}
 		delay := p.deadline.Sub(now)
 		reason := challengeExpiryReason(p.challengeDelivered && !p.fallbackPending)
+		renotify := false
 		if !p.deferralCapReached && !p.deferredSince.IsZero() &&
 			!now.Before(p.deferredSince.Add(maxVerificationDeferral)) {
 			p.deferralCapReached = true
-			stateAdjusted = true
 			logDeferralCapReached(gid, uid)
 		}
 		switch {
@@ -529,7 +498,6 @@ func (v *Service) load(bot Gateway) {
 			if delay <= 0 || delay > noFaultGrace {
 				delay = noFaultGrace
 				p.deadline = now.Add(delay)
-				stateAdjusted = true
 			}
 		case longOutage:
 			// The outage consumed the window, so refresh and do not strike on this lapse. The
@@ -539,8 +507,7 @@ func (v *Service) load(bot Gateway) {
 			p.deadline = now.Add(delay)
 			p.lastRenotify = now // mark re-notified so a runtime recovery right after doesn't re-message
 			reason = "recovered"
-			refresh = append(refresh, renotifyItem{gid, uid, r.Name, p.messages(), p})
-			stateAdjusted = true
+			renotify = true
 		case delay <= 0:
 			// Short-restart lapses receive a strike-free grace window.
 			delay = noFaultGrace
@@ -552,15 +519,22 @@ func (v *Service) load(bot Gateway) {
 		v.mu.Lock()
 		key := pkey{gid, uid}
 		if _, replacing := v.pend[key]; !replacing && !v.pendingCapacityOKLocked(gid) {
+			v.supersedePendingRecord(r)
 			v.mu.Unlock()
 			log.Printf("state load: pending cap reached; leaving user %d in group %d for manual review", uid, gid)
 			v.alertPendingCap(context.Background(), bot, gid, r.Gate)
 			continue
 		}
 		v.pend[key] = p
+		p.persistedPath = v.statePath
+		expectedEpoch := p.epoch
 		// Publish the entry before arming even a near-zero timer.
 		v.armExpiry(bot, p, gid, uid, delay, reason)
+		persisted := v.persistPendingLocked(key, p, expectedEpoch)
 		v.mu.Unlock()
+		if restoredChallengeNeedsRenotify(persisted, renotify) {
+			refresh = append(refresh, renotifyItem{gid, uid, r.Name, p.messages(), p})
+		}
 	}
 	if len(recs) > 0 {
 		log.Printf("restored %d pending verification(s)", len(recs))
@@ -576,9 +550,6 @@ func (v *Service) load(bot Gateway) {
 			v.renotifyPending(context.Background(), bot, it.gid, it.uid, it.name, it.oldMessages, it.p, downtime)
 		}
 		log.Printf("recovery: re-notified %d restored verification(s) after ~%s down%s", len(refresh), downtime.Round(time.Second), capNote(capped))
-	}
-	if stateAdjusted {
-		v.save() // persist adjusted deadlines and deferral state after replacement message IDs settle
 	}
 }
 
@@ -647,7 +618,6 @@ func (v *Service) onExpiry(c context.Context, bot Gateway, gid, uid int64, nonce
 	}
 	if newlyCapped {
 		logDeferralCapReached(gid, uid)
-		v.save()
 	}
 	if v.offlineNow() || !v.reachable(c) {
 		v.deferExpiry(bot, gid, uid, nonce, epoch, reason)
@@ -656,7 +626,7 @@ func (v *Service) onExpiry(c context.Context, bot Gateway, gid, uid int64, nonce
 	if capped {
 		reason = deferredExpiryReason
 	}
-	p, ok := v.claimPendingExpiry(gid, uid, nonce, epoch)
+	p, ok := v.claimPendingExpiry(gid, uid, nonce, epoch, reason)
 	if !ok {
 		return
 	}
@@ -698,19 +668,21 @@ func (v *Service) onExpiry(c context.Context, bot Gateway, gid, uid int64, nonce
 func (v *Service) claimSettlePendingNotice(gid, uid int64, p *pending) bool {
 	v.mu.Lock()
 	defer v.mu.Unlock()
-	cur, ok := v.pend[pkey{gid, uid}]
+	key := pkey{gid, uid}
+	cur, ok := v.pend[key]
 	if !ok || cur != p || p.settlePendingSaid {
 		return false
 	}
 	p.settlePendingSaid = true
-	return true
+	return v.persistPendingLocked(key, p, p.epoch)
 }
 
 // deferralCapState also claims the one-time warning marker while the pending is locked.
 func (v *Service) deferralCapState(gid, uid int64, nonce string, epoch uint64) (valid, capped, newlyCapped bool) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
-	p, ok := v.pend[pkey{gid, uid}]
+	key := pkey{gid, uid}
+	p, ok := v.pend[key]
 	if !ok || p.done || p.nonce != nonce || p.epoch != epoch {
 		return false, false, false
 	}
@@ -721,6 +693,9 @@ func (v *Service) deferralCapState(gid, uid int64, nonce string, epoch uint64) (
 		return true, false, false
 	}
 	p.deferralCapReached = true
+	if !v.persistPendingLocked(key, p, p.epoch) {
+		return false, false, false
+	}
 	return true, true, true
 }
 
@@ -733,13 +708,14 @@ func (v *Service) deferExpiry(bot Gateway, gid, uid int64, nonce string, epoch u
 	now := v.wallNow()
 	newlyCapped := false
 	v.mu.Lock()
-	p, ok := v.pend[pkey{gid, uid}]
+	key := pkey{gid, uid}
+	p, ok := v.pend[key]
 	if !ok || p.done || p.nonce != nonce || p.epoch != epoch {
 		v.mu.Unlock()
 		return
 	}
 	if p.timer != nil {
-		p.timer.Stop() // stop the current timer before armExpiry installs the next (matches every other re-arm site)
+		p.timer.Stop()
 	}
 	if p.deferredSince.IsZero() {
 		p.deferredSince = now
@@ -758,11 +734,14 @@ func (v *Service) deferExpiry(bot Gateway, gid, uid int64, nonce string, epoch u
 	}
 	p.deadline = now.Add(delay)
 	v.armExpiry(bot, p, gid, uid, delay, reason)
+	persisted := v.persistPendingLocked(key, p, epoch)
 	v.mu.Unlock()
+	if !persisted {
+		return
+	}
 	if newlyCapped {
 		logDeferralCapReached(gid, uid)
 	}
-	v.save()
 }
 
 // Shared challenge rendering returns zero and alerts admins on delivery failure.
@@ -918,6 +897,7 @@ func (v *Service) onRecovery(c context.Context, bot Gateway, outage time.Duratio
 		if p == nil || p.done {
 			continue
 		}
+		expectedEpoch := p.epoch
 		if p.timer != nil {
 			p.timer.Stop()
 		}
@@ -934,12 +914,15 @@ func (v *Service) onRecovery(c context.Context, bot Gateway, outage time.Duratio
 		}
 		p.deadline = now.Add(delay)
 		v.armExpiry(bot, p, k.gid, k.uid, delay, reason)
+		if !v.persistPendingLocked(k, p, expectedEpoch) {
+			continue
+		}
 		refreshed++
 		if p.deferralCapReached {
 			continue
 		}
 		if !p.lastRenotify.IsZero() && now.Sub(p.lastRenotify) < delay {
-			continue // re-notified recently (flapping) — refresh the window silently, don't re-message
+			continue
 		}
 		p.lastRenotify = now
 		items = append(items, renotifyItem{k.gid, k.uid, p.name, p.messages(), p})
@@ -947,9 +930,6 @@ func (v *Service) onRecovery(c context.Context, bot Gateway, outage time.Duratio
 	v.mu.Unlock()
 	for _, k := range newlyCapped {
 		logDeferralCapReached(k.gid, k.uid)
-	}
-	if len(newlyCapped) > 0 {
-		v.save()
 	}
 	if refreshed == 0 {
 		return
@@ -962,7 +942,6 @@ func (v *Service) onRecovery(c context.Context, bot Gateway, outage time.Duratio
 	for _, it := range items {
 		v.renotifyPending(c, bot, it.gid, it.uid, it.name, it.oldMessages, it.p, outage)
 	}
-	v.save() // after renotifyPending so the persisted groupMsgIDs point at the re-posted challenges
 	log.Printf("recovery: refreshed %d verification(s), re-notified %d after ~%s offline%s", refreshed, len(items), outage.Round(time.Second), capNote(capped))
 }
 
@@ -986,20 +965,16 @@ func (v *Service) dropIfAlreadyJoined(c context.Context, bot Gateway, gid, uid i
 	return true
 }
 
-// discardPending drops a pending that no longer has anything to settle, stopping its timer
-// so no expiry fires for a request Telegram has already released.
+// discardPending conditionally marks a challenge superseded before removing its local timer.
 func (v *Service) discardPending(gid, uid int64, p *pending) {
 	v.mu.Lock()
+	defer v.mu.Unlock()
 	key := pkey{gid, uid}
-	if cur, ok := v.pend[key]; ok && cur == p {
-		if p.timer != nil {
-			p.timer.Stop()
-		}
-		p.done = true
-		delete(v.pend, key)
+	if v.pend[key] != p {
+		v.releaseTerminalLocked(key, p)
+		return
 	}
-	v.releaseTerminalLocked(key, p)
-	v.mu.Unlock()
+	v.supersedePendingLocked(key, p)
 }
 
 // Re-notify without holding v.mu, replacing working challenges only after a confirmed current send.
@@ -1023,11 +998,13 @@ func (v *Service) renotifyPending(
 		return
 	}
 	v.mu.Lock()
-	cur, current := v.pend[pkey{gid, uid}]
+	key := pkey{gid, uid}
+	cur, current := v.pend[key]
 	current = current && cur == p && !p.done
 	if current {
 		p.groupMsgID = delivery.messages.groupMsgID
 		p.challengeDelivered = true
+		current = v.persistPendingLocked(key, p, p.epoch)
 	}
 	v.mu.Unlock()
 	if !current {

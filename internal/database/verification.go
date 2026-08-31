@@ -3,13 +3,16 @@ package database
 
 import (
 	"fmt"
-
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/Zakkaus/vestibule/internal/verification"
+	"sync"
 )
 
 // VerificationJSONStore preserves the legacy atomic JSON write and corruption-recovery behavior.
-type VerificationJSONStore struct{}
+// Its mutex makes each retained read-modify-write operation atomic within one process.
+type VerificationJSONStore struct {
+	pendingMu sync.Mutex
+}
 
 var _ verification.Store = (*VerificationJSONStore)(nil)
 
@@ -23,8 +26,88 @@ func (s *VerificationJSONStore) LoadPending(path string) ([]verification.Pending
 	return records, nil
 }
 
-func (s *VerificationJSONStore) SavePending(path string, snapshot func() []verification.PendingRecord) error {
-	return store.Save(path, func() any { return snapshot() })
+func (s *VerificationJSONStore) InsertPending(path string, record verification.PendingRecord) (bool, error) {
+	return s.mutatePending(path, func(records *[]verification.PendingRecord) bool {
+		for _, current := range *records {
+			if current.GroupID == record.GroupID && current.UserID == record.UserID {
+				return false
+			}
+		}
+		*records = append(*records, record)
+		return true
+	})
+}
+
+func (s *VerificationJSONStore) UpdatePending(
+	path string,
+	expected verification.PendingRef,
+	record verification.PendingRecord,
+) (bool, error) {
+	return s.mutatePending(path, func(records *[]verification.PendingRecord) bool {
+		for i := range *records {
+			if pendingRecordMatches((*records)[i], expected) {
+				(*records)[i] = record
+				return true
+			}
+		}
+		return false
+	})
+}
+
+func (s *VerificationJSONStore) TransitionChallenge(path string, transition verification.ChallengeTransition) (bool, error) {
+	switch {
+	case transition.From == verification.ChallengePending:
+		return s.mutatePending(path, func(records *[]verification.PendingRecord) bool {
+			for i := range *records {
+				if pendingRecordMatches((*records)[i], transition.Expected) {
+					*records = append((*records)[:i], (*records)[i+1:]...)
+					return true
+				}
+			}
+			return false
+		})
+	case transition.To == verification.ChallengePending:
+		return s.InsertPending(path, transition.Record)
+	default:
+		// Legacy JSON represents only pending rows; a terminal-to-terminal transition has no file change.
+		return true, nil
+	}
+}
+
+func (s *VerificationJSONStore) DeletePending(path string, expected verification.PendingRef) (bool, error) {
+	return s.mutatePending(path, func(records *[]verification.PendingRecord) bool {
+		for i := range *records {
+			if pendingRecordMatches((*records)[i], expected) {
+				*records = append((*records)[:i], (*records)[i+1:]...)
+				return true
+			}
+		}
+		return false
+	})
+}
+
+func (s *VerificationJSONStore) mutatePending(
+	path string,
+	mutate func(*[]verification.PendingRecord) bool,
+) (bool, error) {
+	s.pendingMu.Lock()
+	defer s.pendingMu.Unlock()
+	records, err := s.LoadPending(path)
+	if err != nil {
+		return false, err
+	}
+	if !mutate(&records) {
+		return false, nil
+	}
+	if err = store.Write(path, records); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func pendingRecordMatches(record verification.PendingRecord, expected verification.PendingRef) bool {
+	return record.GroupID == expected.GroupID && record.UserID == expected.UserID &&
+		record.Nonce == expected.Nonce && record.Epoch == expected.Epoch
 }
 
 func (s *VerificationJSONStore) LoadFailures(path string) ([]verification.FailureRecord, error) {

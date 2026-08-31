@@ -313,7 +313,18 @@ func pace(ctx context.Context, delay time.Duration) bool {
 	}
 }
 
-// PendingRecord is the legacy JSON representation of one in-progress verification.
+// PendingRecord is the durable payload of one live challenge. JSON tags preserve legacy import.
+type ChallengeState string
+
+const (
+	ChallengePending    ChallengeState = "pending"
+	ChallengeApproved   ChallengeState = "approved"
+	ChallengeDeclined   ChallengeState = "declined"
+	ChallengeBanned     ChallengeState = "banned"
+	ChallengeExpired    ChallengeState = "expired"
+	ChallengeSuperseded ChallengeState = "superseded"
+)
+
 type PendingRecord struct {
 	UserID             int64    `json:"user_id"`
 	GroupID            int64    `json:"group_id"`
@@ -336,6 +347,7 @@ type PendingRecord struct {
 	Nonce              string   `json:"nonce"`
 	Name               string   `json:"name,omitempty"`
 	Deadline           int64    `json:"deadline"`
+	Epoch              uint64   `json:"epoch,omitempty"`
 	DeferredSince      int64    `json:"deferred_since,omitempty"`
 	DeferralCapReached bool     `json:"deferral_cap_reached,omitempty"`
 	Gate               string   `json:"gate,omitempty"`
@@ -346,6 +358,30 @@ type PendingRecord struct {
 	Passing            bool     `json:"passing,omitempty"`
 	SettleFailures     int      `json:"settle_failures,omitempty"`
 	SettlePendingSaid  bool     `json:"settle_pending_said,omitempty"`
+}
+
+// PendingRef is the persisted identity and timer generation a write must still match.
+type PendingRef struct {
+	GroupID int64
+	UserID  int64
+	Nonce   string
+	Epoch   uint64
+}
+
+func (r PendingRecord) Ref() PendingRef {
+	return PendingRef{GroupID: r.GroupID, UserID: r.UserID, Nonce: r.Nonce, Epoch: r.Epoch}
+}
+
+// ChallengeTransition carries both sides of one compare-and-swap. Record is the final
+// pending payload captured under the service lock.
+type ChallengeTransition struct {
+	Expected  PendingRef
+	Record    PendingRecord
+	From      ChallengeState
+	To        ChallengeState
+	Reason    string
+	SettledAt int64
+	SettledBy int64
 }
 
 // FailureRecord is the legacy JSON representation of one applicant's strike window.
@@ -370,12 +406,19 @@ type HeartbeatRecord struct {
 // ErrStoreReadOnly marks a state file that could not be read without risking later overwrite.
 var ErrStoreReadOnly = errors.New("verification state is read-only")
 
-// Store persists the four verification snapshots. Snapshot callbacks execute under the
-// implementation's process-wide write lock, preserving the existing lock order. Implementations
-// must not perform network I/O; database implementations ignore the legacy path arguments.
+// Store persists verification state without network I/O. Pending challenges use per-record
+// operations so database predicates, rather than a process snapshot, arbitrate every change.
 type Store interface {
+	// LoadPending restores the live set once at startup.
 	LoadPending(string) ([]PendingRecord, error)
-	SavePending(string, func() []PendingRecord) error
+	// InsertPending returns false, not an error, when the open-challenge constraint rejects the row.
+	InsertPending(string, PendingRecord) (bool, error)
+	// UpdatePending returns false, not an error, when state, nonce, or epoch no longer matches.
+	UpdatePending(string, PendingRef, PendingRecord) (bool, error)
+	// TransitionChallenge conditionally changes state; false means another path already settled it.
+	TransitionChallenge(string, ChallengeTransition) (bool, error)
+	// DeletePending removes an unexposed challenge conditionally; false is already handled.
+	DeletePending(string, PendingRef) (bool, error)
 	LoadFailures(string) ([]FailureRecord, error)
 	SaveFailures(string, func() []FailureRecord) error
 	LoadAgents(string) (AgentTally, error)

@@ -19,10 +19,14 @@ func TestVerificationStoreRoundTrip(t *testing.T) {
 	pending := []verification.PendingRecord{{
 		GroupID: -100, UserID: 7, GroupMsgID: 11, PrivateMsgID: 12,
 		ChallengeDelivered: true, Mode: "kernel", Lang: "en", FbAnswers: []string{"gentoo.org"},
-		Prompted: true, Tries: 2, QText: "question", CorrectIdx: -1, Nonce: "nonce", Deadline: 1234,
+		Prompted: true, Tries: 2, QText: "question", CorrectIdx: -1, Nonce: "nonce", Deadline: 1234, Epoch: 4,
 	}}
-	if err = store.SavePending("ignored", func() []verification.PendingRecord { return pending }); err != nil {
+	inserted, err := store.InsertPending("ignored", pending[0])
+	if err != nil {
 		t.Fatal(err)
+	}
+	if !inserted {
+		t.Fatal("first pending insert was rejected")
 	}
 	gotPending, err := store.LoadPending("ignored")
 	if err != nil {
@@ -41,6 +45,101 @@ func TestVerificationStoreRoundTrip(t *testing.T) {
 	}
 	if !reflect.DeepEqual(gotFailures, failures) {
 		t.Fatalf("failure round trip = %#v, want %#v", gotFailures, failures)
+	}
+}
+func TestVerificationStoreRejectsRepeatedOpenChallenge(t *testing.T) {
+	db, err := Open(context.Background(), testSQLiteConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	state := NewVerificationStore(db)
+	first := verification.PendingRecord{
+		GroupID: -100, UserID: 7, Nonce: "first", Deadline: 1234, Epoch: 1,
+	}
+	repeat := first
+	repeat.Nonce = "repeat"
+
+	firstInserted, err := state.InsertPending("ignored", first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	repeatInserted, err := state.InsertPending("ignored", repeat)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pending, err := state.LoadPending("ignored")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pending) != 1 {
+		t.Fatalf("database open-challenge dedup rows=%#v, want one", pending)
+	}
+	t.Logf("first insert=%t repeat insert=%t pending rows=%d active nonce=%q",
+		firstInserted, repeatInserted, len(pending), pending[0].Nonce)
+	if !firstInserted || repeatInserted || pending[0].Nonce != first.Nonce {
+		t.Fatalf("database open-challenge dedup failed: first=%t repeat=%t rows=%#v",
+			firstInserted, repeatInserted, pending)
+	}
+}
+
+func TestVerificationStoreRejectsStaleChallengeTransitions(t *testing.T) {
+	db, err := Open(context.Background(), testSQLiteConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	state := NewVerificationStore(db)
+	old := verification.PendingRecord{
+		GroupID: -100, UserID: 7, Nonce: "old", Deadline: 1234, Epoch: 3,
+	}
+	if inserted, insertErr := state.InsertPending("ignored", old); insertErr != nil || !inserted {
+		t.Fatalf("insert old challenge = %t, %v", inserted, insertErr)
+	}
+	oldSettled, err := state.TransitionChallenge("ignored", verification.ChallengeTransition{
+		Expected: old.Ref(), Record: old, From: verification.ChallengePending, To: verification.ChallengeApproved,
+		SettledAt: 2000,
+	})
+	if err != nil || !oldSettled {
+		t.Fatalf("settle old challenge = %t, %v", oldSettled, err)
+	}
+	current := old
+	current.Nonce = "current"
+	current.Epoch = 8
+	current.Deadline = 5678
+	if inserted, insertErr := state.InsertPending("ignored", current); insertErr != nil || !inserted {
+		t.Fatalf("insert current challenge = %t, %v", inserted, insertErr)
+	}
+	staleNonce, err := state.TransitionChallenge("ignored", verification.ChallengeTransition{
+		Expected: old.Ref(), Record: old, From: verification.ChallengePending, To: verification.ChallengeDeclined,
+		SettledAt: 2001,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	staleEpochRef := current.Ref()
+	staleEpochRef.Epoch--
+	staleEpoch, err := state.TransitionChallenge("ignored", verification.ChallengeTransition{
+		Expected: staleEpochRef, Record: current, From: verification.ChallengePending, To: verification.ChallengeExpired,
+		SettledAt: 2002,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	pending, err := state.LoadPending("ignored")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pending) != 1 {
+		t.Fatalf("stale transition left pending rows=%#v, want one", pending)
+	}
+	t.Logf("old settled=%t stale nonce affected=%t stale epoch affected=%t active nonce=%q epoch=%d",
+		oldSettled, staleNonce, staleEpoch, pending[0].Nonce, pending[0].Epoch)
+	if staleNonce || staleEpoch {
+		t.Fatalf("stale transition affected rows: nonce=%t epoch=%t", staleNonce, staleEpoch)
+	}
+	if !reflect.DeepEqual(pending[0], current) {
+		t.Fatalf("stale transition changed current challenge: got=%#v want=%#v", pending[0], current)
 	}
 }
 

@@ -35,56 +35,56 @@ func requireStateWriteFailureLogged(t *testing.T, path, output string) {
 	}
 }
 
+func TestPendingWriteFailureStopsBeforeDelivery(t *testing.T) {
+	const gid, uid = int64(-100), int64(5)
+	cfg := &config.Config{
+		Groups:         []config.GroupConfig{{ID: gid}},
+		GroupIDs:       []int64{gid},
+		TimeoutSeconds: 240,
+		VerifyMode:     config.ModeQuiz,
+	}
+	v := newTestService(cfg)
+	group, ok := v.settings.Group(gid)
+	if !ok {
+		t.Fatal("test group is missing")
+	}
+	overrides := group.Overrides()
+	deliveryMode := config.DeliveryGroup
+	overrides.DeliveryMode = &deliveryMode
+	if _, err := v.settings.CommitGroup(gid, group.Revision(), overrides); err != nil {
+		t.Fatal(err)
+	}
+	path := failedStateWritePath(t, "pending.json")
+	v.statePath = path
+	bot := newFakeVerifyBot()
+	update := Update{ChatJoinRequest: &ChatJoinRequest{
+		Chat: Chat{ID: gid},
+		From: User{ID: uid, FirstName: "Applicant"},
+	}}
+	err := v.OnJoinRequest(NewHandlerContext(context.Background(), newAPITestBot(t, bot)), update)
+	if err == nil {
+		t.Fatal("pending persistence failure returned nil")
+	}
+	key := pkey{gid, uid}
+	if p := v.pend[key]; p != nil {
+		t.Fatalf("failed pre-delivery persistence left runtime pending = %+v", p)
+	}
+	if bot.sends != 0 {
+		t.Fatalf("pending persistence failure sent %d challenges before durable insert, want none", bot.sends)
+	}
+	if !strings.Contains(err.Error(), filepath.Dir(path)) {
+		t.Fatalf("pending persistence error %q does not identify failed path %q", err, path)
+	}
+	fresh := newTestService(cfg)
+	fresh.statePath = path
+	fresh.load(newFakeVerifyBot())
+	if _, restored := fresh.pend[key]; restored {
+		t.Fatal("fresh service restored a pending whose initial write failed")
+	}
+}
+
 func TestStateWriteFailuresKeepRuntimeStateButLoseRestartRecovery(t *testing.T) {
 	const gid, uid = int64(-100), int64(5)
-
-	t.Run("pending_verification", func(t *testing.T) {
-		cfg := &config.Config{
-			Groups:         []config.GroupConfig{{ID: gid}},
-			GroupIDs:       []int64{gid},
-			TimeoutSeconds: 240,
-			VerifyMode:     config.ModeQuiz,
-		}
-		v := newTestService(cfg)
-		group, ok := v.settings.Group(gid)
-		if !ok {
-			t.Fatal("test group is missing")
-		}
-		overrides := group.Overrides()
-		deliveryMode := config.DeliveryGroup
-		overrides.DeliveryMode = &deliveryMode
-		if _, err := v.settings.CommitGroup(gid, group.Revision(), overrides); err != nil {
-			t.Fatal(err)
-		}
-		path := failedStateWritePath(t, "pending.json")
-		v.statePath = path
-		bot := newFakeVerifyBot()
-		update := Update{ChatJoinRequest: &ChatJoinRequest{
-			Chat: Chat{ID: gid},
-			From: User{ID: uid, FirstName: "Applicant"},
-		}}
-
-		output := captureStateWriteLog(t, func() {
-			runFakeHandler(t, newAPITestBot(t, bot), v.OnJoinRequest, update)
-		})
-		key := pkey{gid, uid}
-		p := v.pend[key]
-		if p == nil || !p.challengeDelivered || p.groupMsgID == 0 {
-			t.Fatalf("runtime pending after failed save = %+v", p)
-		}
-		t.Cleanup(func() { p.timer.Stop() })
-		if bot.sends != 1 || bot.lastSendChat != gid {
-			t.Fatalf("pending write failure sends/chat = %d/%d, want only the group challenge", bot.sends, bot.lastSendChat)
-		}
-		requireStateWriteFailureLogged(t, path, output)
-
-		fresh := newTestService(cfg)
-		fresh.statePath = path
-		fresh.load(newFakeVerifyBot())
-		if _, restored := fresh.pend[key]; restored {
-			t.Fatal("fresh service restored a pending whose state write failed")
-		}
-	})
 
 	t.Run("verification_strikes", func(t *testing.T) {
 		cfg := &config.Config{

@@ -34,63 +34,6 @@ func newTestService(cfg *config.Config) *Service {
 	return service
 }
 
-type testVerificationStore struct{}
-
-func (testVerificationStore) LoadPending(path string) ([]PendingRecord, error) {
-	var records []PendingRecord
-	if err := store.Load(path, &records); err != nil {
-		return nil, testStoreLoadError(err)
-	}
-	return records, nil
-}
-
-func (testVerificationStore) SavePending(path string, snapshot func() []PendingRecord) error {
-	return store.Save(path, func() any { return snapshot() })
-}
-
-func (testVerificationStore) LoadFailures(path string) ([]FailureRecord, error) {
-	var records []FailureRecord
-	if err := store.Load(path, &records); err != nil {
-		return nil, testStoreLoadError(err)
-	}
-	return records, nil
-}
-
-func (testVerificationStore) SaveFailures(path string, snapshot func() []FailureRecord) error {
-	return store.Save(path, func() any { return snapshot() })
-}
-
-func (testVerificationStore) LoadAgents(path string) (AgentTally, error) {
-	var tally AgentTally
-	if err := store.Load(path, &tally); err != nil {
-		return AgentTally{}, testStoreLoadError(err)
-	}
-	return tally, nil
-}
-
-func (testVerificationStore) SaveAgents(path string, snapshot func() AgentTally) error {
-	return store.Save(path, func() any { return snapshot() })
-}
-
-func (testVerificationStore) LoadHeartbeat(path string) (HeartbeatRecord, error) {
-	var heartbeat HeartbeatRecord
-	if err := store.Load(path, &heartbeat); err != nil {
-		return HeartbeatRecord{}, testStoreLoadError(err)
-	}
-	return heartbeat, nil
-}
-
-func (testVerificationStore) SaveHeartbeat(path string, heartbeat HeartbeatRecord) error {
-	return store.Write(path, heartbeat)
-}
-
-func testStoreLoadError(err error) error {
-	if store.ReadFailed(err) {
-		return fmt.Errorf("%w: %v", ErrStoreReadOnly, err)
-	}
-	return err
-}
-
 func TestNameSpoilerDefaultAndToggle(t *testing.T) {
 	const groupID int64 = -100
 	v := newTestService(&config.Config{Groups: []config.GroupConfig{{ID: groupID}}, GroupIDs: []int64{groupID}})
@@ -956,6 +899,38 @@ func TestOnAnswer(t *testing.T) {
 		})
 	}
 }
+func TestOnAnswerTreatsZeroRowTransitionAsAlreadySettled(t *testing.T) {
+	const gid, uid = int64(-100), int64(5)
+	state := &zeroTransitionStore{}
+	v := newTestService(&config.Config{VerifyMaxFails: 3})
+	v.statePath = "database"
+	v.stateStore = state
+	key := pkey{gid: gid, uid: uid}
+	v.pend[key] = &pending{
+		nonce: "current", correctIdx: 1, groupMsgID: 42, deadline: time.Now().Add(time.Hour),
+		epoch: 4, persistedPath: v.statePath,
+	}
+	bot := newFakeVerifyBot()
+	update := Update{CallbackQuery: &CallbackQuery{
+		ID: "answer", From: User{ID: uid}, Data: "v:-100:5:current:1",
+	}}
+
+	err := v.OnAnswer(NewHandlerContext(context.Background(), newAPITestBot(t, bot)), update)
+	t.Logf("transition calls=%d handler error=%v approvals=%d pending=%t",
+		state.calls, err, bot.approves, v.pend[key] != nil)
+	if err != nil {
+		t.Fatalf("zero-row transition returned caller error: %v", err)
+	}
+	if state.calls != 1 || bot.approves != 0 {
+		t.Fatalf("zero-row transition calls/approvals = %d/%d, want 1/0", state.calls, bot.approves)
+	}
+	if _, exists := v.pend[key]; exists {
+		t.Fatal("zero-row transition kept stale in-memory pending")
+	}
+	if len(bot.callbackAnswers) != 1 || !bot.callbackAnswers[0].ShowAlert {
+		t.Fatalf("zero-row transition acknowledgement = %#v, want already-settled alert", bot.callbackAnswers)
+	}
+}
 
 func TestAdminCallbackReportsActionInProgress(t *testing.T) {
 	const gid, uid, adminID = int64(-100), int64(5), int64(9)
@@ -1427,7 +1402,9 @@ func TestTerminalActionBlocksReapplication(t *testing.T) {
 			}
 
 			replacement := &pending{nonce: "replacement"}
-			if _, status := v.startPending(bot, gid, uid, replacement); status != pendingBlockedTerminal {
+			if _, status, err := v.startPending(bot, gid, uid, replacement); err != nil {
+				t.Fatal(err)
+			} else if status != pendingBlockedTerminal {
 				t.Fatalf("startPending status = %v, want pendingBlockedTerminal", status)
 			}
 			if v.pend[key] == replacement {
@@ -1445,7 +1422,9 @@ func TestTerminalActionBlocksReapplication(t *testing.T) {
 			}
 
 			next := &pending{nonce: "next"}
-			if _, status := v.startPending(bot, gid, uid, next); status != pendingStarted {
+			if _, status, err := v.startPending(bot, gid, uid, next); err != nil {
+				t.Fatal(err)
+			} else if status != pendingStarted {
 				t.Fatalf("startPending after terminal completion = %v, want pendingStarted", status)
 			}
 			next.timer.Stop()
@@ -2039,7 +2018,10 @@ func TestPendingCaps(t *testing.T) {
 			v := newTestService(&config.Config{TimeoutSeconds: 3600})
 			tt.fill(v)
 			p := &pending{nonce: "new"}
-			_, status := v.startPending(&fakeVerifyBot{}, tt.gid, tt.uid, p)
+			_, status, err := v.startPending(&fakeVerifyBot{}, tt.gid, tt.uid, p)
+			if err != nil {
+				t.Fatal(err)
+			}
 			if status != tt.wantStatus {
 				t.Fatalf("startPending status = %v, want %v", status, tt.wantStatus)
 			}
@@ -2140,7 +2122,7 @@ func TestRemoveGroupCancelsAllPendingStateWithoutStrikes(t *testing.T) {
 	}
 }
 
-func TestShutdownSnapshotKeepsBlockedExpirySettlement(t *testing.T) {
+func TestShutdownDoesNotReopenClaimedExpirySettlement(t *testing.T) {
 	const gid, uid = int64(-100), int64(5)
 	v := newTestService(&config.Config{TimeoutSeconds: 3600, VerifyMaxFails: 3})
 	v.statePath = t.TempDir() + "/pending.json"
@@ -2155,6 +2137,7 @@ func TestShutdownSnapshotKeepsBlockedExpirySettlement(t *testing.T) {
 		challengeDelivered: true,
 	}
 	v.pend[key] = p
+	v.save()
 	bot := newBlockingTerminalBot()
 	done := make(chan struct{})
 	go func() {
@@ -2178,8 +2161,8 @@ func TestShutdownSnapshotKeepsBlockedExpirySettlement(t *testing.T) {
 	if err := store.Load(v.statePath, &during); err != nil {
 		t.Fatal(err)
 	}
-	if len(during) != 1 || during[0].GroupID != gid || during[0].UserID != uid {
-		t.Fatalf("shutdown snapshot during settlement = %+v, want the claimed pending", during)
+	if len(during) != 0 {
+		t.Fatalf("shutdown reopened claimed expiry as pending: %+v", during)
 	}
 
 	bot.release <- struct{}{}
@@ -2197,7 +2180,7 @@ func TestShutdownSnapshotKeepsBlockedExpirySettlement(t *testing.T) {
 	}
 }
 
-func TestLateBothDeliveryDeletesAbandonedMessagesWithoutPromptingReplacement(t *testing.T) {
+func TestDuplicateArrivalKeepsInFlightBothDelivery(t *testing.T) {
 	const gid, uid = int64(-100), int64(701)
 	v := newTestService(&config.Config{
 		Groups:         []config.GroupConfig{{ID: gid}},
@@ -2242,8 +2225,8 @@ func TestLateBothDeliveryDeletesAbandonedMessagesWithoutPromptingReplacement(t *
 	v.mu.Lock()
 	replacement := v.pend[key]
 	v.mu.Unlock()
-	if replacement == nil || replacement.prompted {
-		t.Fatalf("replacement before old delivery completion = %+v, want unprompted", replacement)
+	if replacement == nil || replacement.prompted || second.sends != 0 {
+		t.Fatalf("duplicate arrival changed in-flight challenge = %+v, duplicate sends=%d", replacement, second.sends)
 	}
 
 	release <- struct{}{}
@@ -2255,13 +2238,11 @@ func TestLateBothDeliveryDeletesAbandonedMessagesWithoutPromptingReplacement(t *
 	v.mu.Lock()
 	current := v.pend[key]
 	v.mu.Unlock()
-	if current != replacement || current.prompted {
-		t.Fatalf("late old delivery changed replacement = %+v, want same unprompted pending", current)
+	if current != replacement || !current.prompted {
+		t.Fatalf("original delivery did not complete its unchanged challenge: %+v", current)
 	}
-	if first.deletes != 2 || !reflect.DeepEqual(first.deletedChats, []int64{uid, gid}) ||
-		!reflect.DeepEqual(first.deletedMessageIDs, []int{101, 101}) {
-		t.Fatalf("late challenge cleanup = chats %v messages %v, want abandoned private and group messages",
-			first.deletedChats, first.deletedMessageIDs)
+	if first.deletes != 0 {
+		t.Fatalf("original delivery deleted %d current challenge messages", first.deletes)
 	}
 }
 
