@@ -831,17 +831,18 @@ li::marker { color: var(--border); }
     <a href="#s1"><span class="mono" style="font-size:0.6875rem;opacity:0.7">01</span> 色彩</a>
     <a href="#s2"><span class="mono" style="font-size:0.6875rem;opacity:0.7">02</span> 字体</a>
     <a href="#s3"><span class="mono" style="font-size:0.6875rem;opacity:0.7">03</span> 形状与层次</a>
-    <a href="#s4"><span class="mono" style="font-size:0.6875rem;opacity:0.7">04</span> 组件</a>
-    <a href="#s5"><span class="mono" style="font-size:0.6875rem;opacity:0.7">05</span> 后台管什么</a>
-    <a href="#s6"><span class="mono" style="font-size:0.6875rem;opacity:0.7">06</span> 验证方式</a>
-    <a href="#s7a"><span class="mono" style="font-size:0.6875rem;opacity:0.7">07</span> 反垃圾</a>
-    <a href="#spkg"><span class="mono" style="font-size:0.6875rem;opacity:0.7">08</span> 配置包</a>
-    <a href="#s7r"><span class="mono" style="font-size:0.6875rem;opacity:0.7">09</span> 机器人说的话</a>
-    <a href="#s7m"><span class="mono" style="font-size:0.6875rem;opacity:0.7">10</span> 手机与桌面</a>
-    <a href="#s7"><span class="mono" style="font-size:0.6875rem;opacity:0.7">11</span> 文字</a>
-    <a href="#s9"><span class="mono" style="font-size:0.6875rem;opacity:0.7">12</span> 一个 bot，很多群</a>
-    <a href="#s11"><span class="mono" style="font-size:0.6875rem;opacity:0.7">13</span> 图表与数据</a>
-    <a href="#s8"><span class="mono" style="font-size:0.6875rem;opacity:0.7">14</span> 默认不做的，以及在哪打开</a>
+    <a href="#sfirst"><span class="mono" style="font-size:0.6875rem;opacity:0.7">04</span> 首次部署</a>
+    <a href="#s4"><span class="mono" style="font-size:0.6875rem;opacity:0.7">05</span> 组件</a>
+    <a href="#s5"><span class="mono" style="font-size:0.6875rem;opacity:0.7">06</span> 后台管什么</a>
+    <a href="#s6"><span class="mono" style="font-size:0.6875rem;opacity:0.7">07</span> 验证方式</a>
+    <a href="#s7a"><span class="mono" style="font-size:0.6875rem;opacity:0.7">08</span> 反垃圾</a>
+    <a href="#spkg"><span class="mono" style="font-size:0.6875rem;opacity:0.7">09</span> 配置包</a>
+    <a href="#s7r"><span class="mono" style="font-size:0.6875rem;opacity:0.7">10</span> 机器人说的话</a>
+    <a href="#s7m"><span class="mono" style="font-size:0.6875rem;opacity:0.7">11</span> 手机与桌面</a>
+    <a href="#s7"><span class="mono" style="font-size:0.6875rem;opacity:0.7">12</span> 文字</a>
+    <a href="#s9"><span class="mono" style="font-size:0.6875rem;opacity:0.7">13</span> 一个 bot，很多群</a>
+    <a href="#s11"><span class="mono" style="font-size:0.6875rem;opacity:0.7">14</span> 图表与数据</a>
+    <a href="#s8"><span class="mono" style="font-size:0.6875rem;opacity:0.7">15</span> 默认不做的，以及在哪打开</a>
   </div>
 </div>
 
@@ -1006,10 +1007,68 @@ li::marker { color: var(--border); }
     </div>
   </section>
 
+  <!-- ═══ 首次部署 ═══ -->
+  <section id="sfirst" class="stack-m">
+    <hr class="rule">
+    <div class="sechead"><span class="num">04</span><h2>首次部署</h2></div>
+    <p>装的人未必懂 Telegram 的机器人体系，也未必想读文档。
+      <b>脚本负责机器上的事，网页负责配置</b>：令牌、身份、第一个群都在浏览器里填，
+      不在命令行里问。</p>
+    <p style="font-size:0.875rem;">这样分还有一个好处：<b>令牌不进命令行历史</b>，
+      也不会因为终端回滚被人看到。</p>
+
+    <h3>先解决一个绕不过去的问题</h3>
+    <p>首次打开时还没有机器人，<b>拿什么证明打开网页的人就是装它的人</b>？
+      上一代已经解决过：脚本生成一个短期一次性口令，
+      部署者把它私聊发给机器人，机器人据此绑定他的 Telegram 账号。
+      有效期十分钟，用过即失效。</p>
+    <p>这条链的顺序不能换，因为每一步都依赖上一步的产物：</p>
+    <div class="spec-wrap">
+      <div class="cap"><span>引导四步</span><span class="hint">关掉浏览器不丢进度</span></div>
+      <div class="in">
+        <div class="seq"><span class="a">1</span>  <span class="b">打开控制台</span>      脚本装完打印一个一次性链接，点开即认领这台控制台
+<span class="a">2</span>  <span class="b">填机器人令牌</span>    立刻校验并显示机器人的名字
+                    <span class="a">看到名字才知道自己粘对了</span>
+<span class="a">3</span>  <span class="b">绑定你的账号</span>    页面给一段口令，私聊发给机器人
+                    <span class="a">此时机器人已存在，才能收到消息</span>
+<span class="a">4</span>  <span class="b">拉进第一个群</span>    页面等它出现，出现即完成
+                    <span class="a">顺带检查它在群里的权限够不够</span></div>
+      </div>
+    </div>
+
+    <h3>每一步先说要做什么，再做</h3>
+    <div class="tw"><table class="spec-table">
+      <thead><tr><th>步骤</th><th>失败时说什么</th></tr></thead>
+      <tbody>
+        <tr><td>认领控制台</td>
+            <td>链接过期就再执行一次脚本的某个子命令重新生成，<b>写清是哪个子命令</b>，
+              不要只说「链接无效」</td></tr>
+        <tr><td>填令牌</td>
+            <td>令牌不对说「这个令牌没被接受」，连不上说「连不上 Telegram」。
+              <b>两者分开</b>：一个要重填，一个要查网络</td></tr>
+        <tr><td>绑定账号</td>
+            <td>口令过期就当场再给一个。收不到消息时提示先给机器人发一条任意消息，
+              因为机器人无法主动私聊没有交互过的人</td></tr>
+        <tr><td>拉进群</td>
+            <td>权限不足时逐项列出缺哪个，并说明缺了会导致什么，
+              <b>不是只说「权限不足」</b></td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>装完不是空的</h3>
+    <p>走完四步直接可用：验证已开、反垃圾的四条默认规则已开且处于只记录档、
+      文案是默认的。<b>不需要再配十几项才能用。</b></p>
+    <p>最后一屏给两个按钮：<b>先看看首页</b>，或者<b>装一个配置包</b>。
+      需要 Linux 社区那套的人点后者，不需要的人直接走。</p>
+    <p style="font-size:0.875rem;">引导只走一次。之后重新打开进的是首页，
+      但这四步在诊断屏里保留为一份检查清单：权限、令牌、绑定、群，
+      <b>出问题时按同样的顺序排查</b>。</p>
+  </section>
+
   <!-- ═══ 04 组件 ═══ -->
   <section id="s4" class="stack-m">
     <hr class="rule">
-    <div class="sechead"><span class="num">04</span><h2>组件</h2></div>
+    <div class="sechead"><span class="num">05</span><h2>组件</h2></div>
     <p>下面全是活的实例，用的就是这一页的样式表。</p>
 
     <h3>按钮</h3>
@@ -1157,7 +1216,7 @@ li::marker { color: var(--border); }
   <!-- ═══ 05 后台管什么 ═══ -->
   <section id="s5" class="stack-m">
     <hr class="rule">
-    <div class="sechead"><span class="num">05</span><h2>后台管什么</h2></div>
+    <div class="sechead"><span class="num">06</span><h2>后台管什么</h2></div>
     <p>十四个屏，分六组。<b>分组不是为了好看，是为了让人不用记住十三个名字。</b>
       导航是一份数据，按能力过滤：一个群没开推送订阅，那一项不出现；
       一整组都看不到时，组标题跟着消失，不留一个空标题在那。</p>
@@ -1416,7 +1475,7 @@ li::marker { color: var(--border); }
   <!-- ═══ 06 验证方式 ═══ -->
   <section id="s6" class="stack-m">
     <hr class="rule">
-    <div class="sechead"><span class="num">06</span><h2>验证方式</h2></div>
+    <div class="sechead"><span class="num">07</span><h2>验证方式</h2></div>
     <p>验证方式是两条独立的轴。把它们混成一个下拉框是现在这版的问题：
       内核版本号被写死成一种模式，加第二种就得改代码。</p>
 
@@ -1751,7 +1810,7 @@ li::marker { color: var(--border); }
   <!-- ═══ 07 反垃圾 ═══ -->
   <section id="s7a" class="stack-m">
     <hr class="rule">
-    <div class="sechead"><span class="num">07</span><h2>反垃圾</h2></div>
+    <div class="sechead"><span class="num">08</span><h2>反垃圾</h2></div>
     <p>这一屏要同时满足两种人：装完不想管的，和想自己调的。
       因此<b>出厂就带一组能用的默认规则，同时每一条都能改、能关、能加</b>。</p>
 
@@ -1860,7 +1919,7 @@ li::marker { color: var(--border); }
   <!-- ═══ 配置包 ═══ -->
   <section id="spkg" class="stack-m">
     <hr class="rule">
-    <div class="sechead"><span class="num">08</span><h2>配置包</h2></div>
+    <div class="sechead"><span class="num">09</span><h2>配置包</h2></div>
     <p>一个群整理好的题库、自动回复、反垃圾规则、订阅源和文案，可以打成一个包给别人用。
       Linux 社区包、开发者群包、卖货群包，各自装一次就有一套能用的配置。</p>
 
@@ -2004,7 +2063,7 @@ li::marker { color: var(--border); }
   <!-- ═══ 07 自动回复 ═══ -->
   <section id="s7r" class="stack-m">
     <hr class="rule">
-    <div class="sechead"><span class="num">09</span><h2>机器人说的话</h2></div>
+    <div class="sechead"><span class="num">10</span><h2>机器人说的话</h2></div>
     <p>机器人发言有三个来源：成员提问触发的自动回复、群内事件触发的进出提示、
       外部内容触发的订阅推送。三者都提供默认文案且均可修改。
       判断这组功能是否可用的标准只有一条：
@@ -2394,7 +2453,7 @@ li::marker { color: var(--border); }
   <!-- ═══ 07 手机与桌面 ═══ -->
   <section id="s7m" class="stack-m">
     <hr class="rule">
-    <div class="sechead"><span class="num">10</span><h2>手机与桌面</h2></div>
+    <div class="sechead"><span class="num">11</span><h2>手机与桌面</h2></div>
     <p>控制台在手机上不降级为只读。值班者通常在手机上接到通知并完成放行，
       因此队列这条路径必须在手机上可用；其余屏使用频率低，但都须可达。</p>
 
@@ -2471,7 +2530,7 @@ li::marker { color: var(--border); }
   <!-- SEC_TEXT -->
   <section id="s7" class="stack-m">
     <hr class="rule">
-    <div class="sechead"><span class="num">11</span><h2>文字</h2></div>
+    <div class="sechead"><span class="num">12</span><h2>文字</h2></div>
     <p>先写结论，再说必要理由。每段不超过四句。简体是源文案，繁体用台湾用语，
       英文最宽，按钮留量按英文的渲染宽度定，不按字节数。</p>
 
@@ -2524,7 +2583,7 @@ li::marker { color: var(--border); }
   <!-- ═══ 09 一个 bot 很多群 ═══ -->
   <section id="s9" class="stack-m">
     <hr class="rule">
-    <div class="sechead"><span class="num">12</span><h2>一个 bot，很多群</h2></div>
+    <div class="sechead"><span class="num">13</span><h2>一个 bot，很多群</h2></div>
     <p>这是一个公开的机器人，谁都可以拉进自己的群，拉进去就是他自己的机器人，
       他自己配。<b>我们社区不是特别版，只是其中一套设定。</b></p>
     <div class="card card-pad">
@@ -2701,7 +2760,7 @@ li::marker { color: var(--border); }
   <!-- ═══ 11 图表与数据 ═══ -->
   <section id="s11" class="stack-m">
     <hr class="rule">
-    <div class="sechead"><span class="num">13</span><h2>图表与数据</h2></div>
+    <div class="sechead"><span class="num">14</span><h2>图表与数据</h2></div>
     <p>统计屏的规矩只有一条：<b>图看趋势，表看数字，两个都给。</b>
       图上读不出精确值，表上看不出走向，缺哪个都不行。
       表在图下面，不折叠，因为需要精确值的人往往正在写事故记录。</p>
@@ -2826,7 +2885,7 @@ li::marker { color: var(--border); }
   <!-- ═══ 08 默认不做的 ═══ -->
   <section id="s8" class="stack-m">
     <hr class="rule">
-    <div class="sechead"><span class="num">14</span><h2>默认不做的，以及在哪打开</h2></div>
+    <div class="sechead"><span class="num">15</span><h2>默认不做的，以及在哪打开</h2></div>
     <p>下面这些是默认取值，不是禁令。默认带着观点，因为不带观点的默认等于没有默认；
       但这个机器人别人也要部署，别人的社区有别人的样子。开关全在
       <code>/preferences</code>，打开之后仍然受一条约束管着，写在最右边。</p>
