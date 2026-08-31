@@ -1942,6 +1942,7 @@ Sender {
     payload    <span class="k-val">TEXT</span>   <span class="k-key">NOT NULL</span>,   <span class="k-cm">-- 题面、诱饵、nonce、难度</span>
     delivery   <span class="k-val">TEXT</span>   <span class="k-key">NOT NULL</span>,   <span class="k-cm">-- 实际送到哪几处，各自的消息 id</span>
     attempts   <span class="k-val">INTEGER</span> <span class="k-key">NOT NULL DEFAULT</span> 0,
+    reason     <span class="k-val">TEXT</span>,             <span class="k-cm">-- 只在 declined 时非空：wrong_answer|rejected|external_unmet</span>
     expires_at <span class="k-val">BIGINT</span> <span class="k-key">NOT NULL</span>,
     settled_at <span class="k-val">BIGINT</span>,
     settled_by <span class="k-val">BIGINT</span>,          <span class="k-cm">-- 管理员结算时记录其 user_id</span>
@@ -1967,6 +1968,15 @@ Sender {
 );</pre>
     </div>
 
+    <h3>为什么退回要分原因</h3>
+    <p><code>state</code> 已经把超时和拒绝分成 <code>expired</code> 与 <code>declined</code>。
+      再加 <code>reason</code>，是因为 <code>declined</code> 里混着三件不同的事：
+      答错、答对却触发否决条件、外部条件查不到。三者对应的处置和文案都不同，
+      合成一个词就统计不出来。</p>
+    <p>上一代正是这样：七天七百七十八次验证里，没有一条日志能说明一个人是为什么被退的，
+      所以「这道题到底拦住了谁」问不出答案。这一列存在的唯一目的，就是让统计屏那行
+      「各验证方式拦截量」有数可依。见设计文档「上一代七天里的真实分布」。</p>
+
     <h3>写入顺序</h3>
     <p>顺序固定，颠倒会留下没有主的挑战。这是扫描中发现的一类实际缺陷。</p>
     <div class="spec-wrap">
@@ -1986,7 +1996,7 @@ Sender {
       <div data-t="live"><div class="st">pending</div><div class="dz">已发出挑战，等待作答</div></div>
       <div><div class="st">approved</div><div class="dz">答对，或管理员放行</div></div>
       <div><div class="st">expired</div><div class="dz">超时未作答</div></div>
-      <div><div class="st">declined</div><div class="dz">答错超过上限，或管理员拒绝</div></div>
+      <div><div class="st">declined</div><div class="dz">答错超过上限，或管理员拒绝。<code>reason</code> 记下是哪一种</div></div>
       <div><div class="st">banned</div><div class="dz">拒绝后按配置封禁</div></div>
       <div><div class="st">superseded</div><div class="dz">被新一轮挑战取代</div></div>
     </div>

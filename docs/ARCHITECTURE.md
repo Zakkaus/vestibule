@@ -689,6 +689,7 @@ CREATE TABLE challenge (
     payload    TEXT   NOT NULL,   -- 题面、诱饵、nonce、难度
     delivery   TEXT   NOT NULL,   -- 实际送到哪几处，各自的消息 id
     attempts   INTEGER NOT NULL DEFAULT 0,
+    reason     TEXT,             -- 只在 declined 时非空：wrong_answer|rejected|external_unmet
     expires_at BIGINT NOT NULL,
     settled_at BIGINT,
     settled_by BIGINT,          -- 管理员结算时记录其 user_id
@@ -713,6 +714,12 @@ CREATE TABLE rule (
     definition TEXT   NOT NULL    -- 题面、条件、回复内容，三语
 );
 ```
+
+### 为什么退回要分原因
+
+`state` 已经把超时和拒绝分成 `expired` 与 `declined`。 再加 `reason`，是因为 `declined` 里混着三件不同的事： 答错、答对却触发否决条件、外部条件查不到。三者对应的处置和文案都不同， 合成一个词就统计不出来。
+
+上一代正是这样：七天七百七十八次验证里，没有一条日志能说明一个人是为什么被退的， 所以「这道题到底拦住了谁」问不出答案。这一列存在的唯一目的，就是让统计屏那行 「各验证方式拦截量」有数可依。见设计文档「上一代七天里的真实分布」。
 
 ### 写入顺序
 
