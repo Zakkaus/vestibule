@@ -139,6 +139,8 @@ go test -race ./... && go test -race -tags gentoo ./...
 go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
 go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
 go run github.com/securego/gosec/v2/cmd/gosec@v2.28.0 -exclude=G304,G703,G706 ./...
+python3 scripts/gen-arch-md.py --check
+python3 scripts/check-docs.py
 ```
 
 **Both build tags must pass.** Running only the default one misses the generic edition.
@@ -156,6 +158,33 @@ put it back.
 
 Assert the anchor exists and is unique before replacing anything, and check that the diff is
 the size you expected. A script exiting zero is not evidence that it did the right thing.
+
+## Documents ship with the change that invalidates them
+
+The plan, the architecture document and the design document rot before the code does. Update
+them **in the PR that makes them wrong**, not in a later cleanup pass. A later cleanup pass does
+not happen.
+
+When a phase lands, check four things:
+
+- the plan marks that phase done, and says what was actually built rather than what was intended
+- work discovered during the phase is filed under the phase that owns it, not appended at the end
+- conclusions the change overturned are corrected in the architecture document, not appended to
+- design text for shipped behaviour reads as description, not as intent
+
+`docs/ARCHITECTURE.md` is generated from `web/architecture.html`. Edit the HTML and regenerate;
+a hand edit to the Markdown is lost on the next run, and CI fails on the difference.
+
+`scripts/check-docs.py` covers the part of this that a machine can see: stated counts against
+real structure, and references from present-tense documents to files that exist. The plan and
+the architecture document are exempt from the second check because they legitimately name files
+that do not exist yet.
+
+**The failure it cannot see is two documents contradicting each other.** One page saying the
+token is entered in the browser while another says the install script asks for it are both
+readable sentences; whoever reads one of them first follows it. When you change a decision, grep
+for the old one across `docs/` and `web/` before you commit.
+
 
 ## Pull requests
 
