@@ -1473,13 +1473,13 @@ testdata/                   样本与固定装置</div>
 
     <div class="grid2">
       <div class="card card-pad stack">
-        <h4>定时同步</h4>
+        <h3>定时同步</h3>
         <p style="font-size:0.875rem;">周期性调用 <code>getChatAdministrators</code>，
           把结果写进本地权限表。控制台的群列表、导航过滤、界面显示都读这份缓存。
           <b>解决的是「不能为了画一个列表打十次接口」。</b></p>
       </div>
       <div class="card card-pad stack">
-        <h4>写前现查</h4>
+        <h3>写前现查</h3>
         <p style="font-size:0.875rem;">每次敏感写入前用 <code>getChatMember</code> 单独查一次，
           只接受群主与管理员。<b>解决的是「缓存里他还是管理员，实际已经被撤了」。</b>
           被操作对象的身份同样现查。</p>
@@ -1827,7 +1827,7 @@ styles/globals.css       token 层，<b>全项目唯一可以写颜色的地方<
 
     <h3>前后端契约</h3>
     <p>一份 OpenAPI 文件生成 Go 服务端接口与 TypeScript 客户端类型，
-      门禁中重新生成并比对差异。<b>两端各自编译通过不代表契约同步。</b></p>
+      门禁中重新生成并比对差异，理由见接口一节。</p>
     <p style="font-size:0.875rem;"><code>lib/api</code> 全部是生成物，不手写。
       手写一个请求函数很快，但它会与契约无声分叉，而且分叉时两边都是绿的。</p>
   </section>
