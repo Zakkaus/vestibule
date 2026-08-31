@@ -116,7 +116,7 @@ internal/
 │   └── store/              适配器自己的表，独立版本表
 ├── console/                Web 后台
 │   ├── api/                路由与数据传输结构
-│   ├── auth/               initData 与 OIDC 校验
+│   ├── auth/               initData 校验与运维令牌会话
 │   └── assets/             前端产物 go:embed
 ├── settings/               配置，configupgrade
 ├── database/               dbutil 装配与迁移
@@ -757,13 +757,26 @@ internal/settings/
 
 #### 一、身份
 
-Telegram Mini App 的 `initData`， 校验 HMAC 签名与签发时间，并记录已用过的签名，有效期内不接受第二次。 需要在普通浏览器打开时改用 Telegram Login 的 OIDC， 校验 ID Token 的签名、`iss`、`aud`、`exp`。 不使用已归档的旧 iframe Widget。
+**两类使用者，两个入口，都不用密码。**
+
+| 谁 | 怎么进 | 为什么是这个 |
+|---|---|---|
+| 群管理员 | Telegram 里的 Mini App。每次请求带 `initData`， 校验 HMAC 与签发时间，记录已用过的签名，有效期内不接受第二次 | 他要管的群在 Telegram 里，人也在。**每次请求都重新证明一次**， 比一张长期票据强 |
+| 运维 | 机器人发一条一次性链接，浏览器打开即换成会话。 **整条链与 Telegram 的登录服务无关** | 他要看的是诊断、版本、证书续期，**而这些恰恰在出事时才看**。 那时 Telegram 可能正好不通 |
+
+**不做 Telegram Login 的 OIDC。**它存在的理由是「在普通浏览器里打开控制台」， 但真正需要普通浏览器的是运维，而 OIDC 在最需要它的那一刻依赖 Telegram 可达。 一次性链接换会话这套机制安装时已经有了，复用它，少一个协议、少一个回调、 少一处要配的凭据。代价写清楚：**群管理员不能在普通浏览器里打开控制台**， 桌面版 Telegram 里可以。
+
+policr-mini 独立走到了同一形状： 群管理员那一面走 Mini App 校验， `lib/policr_mini_web/console_v2/tma_auth.ex`； 管理面走与 Telegram 无关的令牌 cookie， `lib/policr_mini_web/admin_v2/token_auth.ex`。
 
 #### 二、授权
 
-每次敏感写入前用来访者的数字 ID 调用本地 Bot API 的 `getChatMember`，只接受 `creator` 与 `administrator`。会话最长 8 小时，非写入路径每 60 秒复查。 **被操作对象的管理员身份同样现查，不使用缓存。**
+**不把权限镜像进库。**每次敏感写入前用来访者的数字 ID 调用本地 Bot API 的 `getChatMember`，只接受 `creator` 与 `administrator`。会话最长 8 小时，非写入路径每 60 秒复查。 **被操作对象的管理员身份同样现查，不使用缓存。**
+
+policr-mini 选了另一条：把 Telegram 的权限镜像进 `permissions` 表，`lib/policr_mini/schema/permission.ex`， 字段里既有从 Telegram 抄来的 `tg_is_owner`、 `tg_can_restrict_members`，也有它自己的 `readable`、 `writable`。**两种代价都摆出来**：镜像的好处是快、离线也能判， 坏处是会过期——在 Telegram 里被撤职的人，直到下一次同步之前仍然进得来， 它为此专门有一条同步链。我们选现查，代价是每次判定多一趟往返， 在我们的部署位置上约半秒；换来的是**没有过期窗口，也不需要同步机制**。
 
 `initData` 只证明来访者是谁，不证明他能管这个群。**两步不可互相替代。**
+
+**运维与群管理员是两类主体，不是同一类的两个档位。** 运维看这台机器：诊断、版本、升级、证书。群管理员看他自己的群。 **运维不因为是运维就能读某个群的数据**，除非他本来就是那个群的管理员。 界面上不做「简单版与专业版」：两者看到的差别来自服务端的授权结果，不是模式开关。
 
 ### 路由
 
@@ -771,7 +784,8 @@ Telegram Mini App 的 `initData`， 校验 HMAC 签名与签发时间，并记�
 |---|---|
 | GET /livez | 进程事件循环存活即 200，不探测依赖，避免依赖抖动引发重启风暴 |
 | GET /readyz | 配置校验完成、数据库已迁移、Telegram 通道建立才 200 |
-| POST /api/session | 校验 initData 或 OIDC 回调，签发会话 |
+| POST /api/session | 校验 `initData`，签发群管理员会话 |
+| GET /enter/{token} | 运维入口。机器人发的一次性链接落在这里，换成会话后重定向。**令牌用过即失效**，整条链与 Telegram 的登录服务无关 |
 | GET /api/chats | 群与频道屏。该管理员可管理的群，由 getChatMember 求交集得出，不存租户表 |
 | GET /api/chats/{id}/overview | 首页四层所需数据，一次返回 |
 | GET /api/chats/{id}/queue | 等待队列 |
