@@ -135,6 +135,51 @@ testdata/                   样本与固定装置
 | rules | 纯函数，无副作用 | 访问数据库或网络 |
 | telegram | 实现 verification.Gateway | 决定谁通过谁拒绝，查核心的表 |
 
+### 端口的签名
+
+这一节以前只说了「接口定义在 `ports.go`」而没有给签名， 结果是照着它做的人只能自己编。签名按上一代实际用到的调用面定， **不按想象中该有的样子定**。
+
+```text
+type Gateway interface {
+    DeliverChallenge(ctx, ChallengeID, Delivery) (Delivered, error)
+    Retract(ctx, []MessageRef) error
+    AckInteraction(ctx, InteractionID, AckResult) error
+
+    ApproveJoin(ctx, ChatID, UserID) error
+    DeclineJoin(ctx, ChatID, UserID) error
+    Mute(ctx, ChatID, UserID, until time.Time) error
+    Unmute(ctx, ChatID, UserID) error
+    Kick(ctx, ChatID, UserID) error
+    Ban(ctx, ChatID, UserID, until time.Time) error
+
+    Membership(ctx, ChatID, UserID) (Membership, error)
+}
+
+type Store interface {
+    Create(ctx, *Challenge) (bool, error)
+    Open(ctx, ChatID, UserID) (*Challenge, error)
+    AttachDelivery(ctx, ChallengeID, Delivered) error
+    Settle(ctx, ChallengeID, epoch uint64, from, to State, act Action) (bool, error)
+    ClaimExpired(ctx, now time.Time, limit int) ([]*Challenge, error)
+}
+```
+
+每一处形状都有理由，而且每一条都是上一代踩过的：
+
+| 形状 | 为什么不是更直白的写法 |
+|---|---|
+| `DeliverChallenge` 收一份投递意图，返回**实际送到了哪几处** | 挑战按每群配置发到群里、私聊或两者。写成返回单个消息引用就表达不了部分成功， 而部分成功是常态：机器人无法主动私聊没有交互过的人 |
+| `Retract` 收一组消息引用 | 结算时要收掉这次挑战贴出的全部消息。逐条删就会删一半失败一半， 留下半截现场 |
+| `AckInteraction` 是独立一项，**且必须先于任何其他调用** | 上一代按钮转两秒，原因是回调应答排在三四次串行往返之后。 把它并进结算就必然又排到后面 |
+| `Mute` 与 `Unmute` 成对； `Kick` 与 `Ban` 分开 | 禁言档的验证通过后要抬走自己下的那次禁言，没有解除就是过了还是哑的。 踢和封是两件事，合成一个带时限的调用会让调用方无法表达「只踢不封」 |
+| `Membership` 一次返回身份与权限 | 是否在群、是否管理员来自同一次查询。拆成两个方法就是两次往返， 而每次往返在我们的部署位置上约半秒 |
+| `Settle` 同时收状态转换与要执行的动作 | 状态转换与动作意图必须落在同一个事务里。分成两次调用， 进程在两次之间死掉就会出现「已判定但没执行」 |
+| `Settle` 带 `epoch` | 停机恢复后会重新计时，旧的定时器可能仍在路上。 没有 epoch 就无法拒绝一次过期的结算 |
+| `Create` 返回 `bool` 而不是靠错误区分 | 重复到达由唯一索引拒绝，那不是异常，是预期内的一种结果 |
+| `ClaimExpired` 收 `now` | 因此不需要 `Clock` 接口。少一个接口，测试直接传时间即可 |
+
+与上一代的分歧记在这里：它的 `verifyBot` 直接暴露 telego 的参数结构体， `internal/verify/service.go:55`。那样省掉一层转换， 代价是核心包里出现平台类型，我们的不变量不允许。 **转换的成本落在适配器，换来核心可以脱离平台测试。**
+
 **用编译期断言固定接口。**`var _ verification.Gateway = (*Connector)(nil)` 写在实现旁边，接口变更在编译时暴露，这一条同样取自 mautrix。
 
 `rules` 是纯函数包，因此可以脱离一切依赖测试， 也可以被控制台的试答直接调用，不必绕一圈网络。
