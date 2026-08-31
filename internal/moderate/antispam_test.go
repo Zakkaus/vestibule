@@ -1,6 +1,7 @@
 package moderate
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -58,12 +59,12 @@ func TestBCAllowUpdatesOnlyInvokingGroup(t *testing.T) {
 				telegram.senderUnbanErr = map[int64]error{-200: errors.New("no rights")}
 			}
 			service := newTestService(t, cfg, telegram, "")
-			runFakeHandler(t, newAPITestBot(t, telegram), service.OnBC, telego.Update{Message: &telego.Message{
+			service.BlockChannel(context.Background(), ChannelSenderCommand{
+				ChatID:    -200,
 				MessageID: 1,
-				Chat:      telego.Chat{ID: -200, Type: "supergroup"},
-				From:      &telego.User{ID: 7},
+				CallerID:  7,
 				Text:      "/bc allow 1234567890",
-			}})
+			})
 
 			if !service.channelWhitelisted(-200, senderID) {
 				t.Fatal("successful /bc allow did not update the invoking group")
@@ -90,37 +91,7 @@ func TestBCAllowUpdatesOnlyInvokingGroup(t *testing.T) {
 	}
 }
 
-func TestChannelWhitelistBound(t *testing.T) {
-	for _, test := range []struct {
-		name  string
-		extra int
-	}{
-		{name: "one over cap", extra: 1},
-		{name: "multiple over cap", extra: 19},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			var whitelist []int64
-			for index := range channelWhitelistMax + test.extra {
-				whitelist = nextChannelWhitelist(whitelist, -1000000-int64(index), true)
-			}
-			if len(whitelist) != channelWhitelistMax {
-				t.Fatalf("whitelist entries = %d, want %d", len(whitelist), channelWhitelistMax)
-			}
-			for index := range test.extra {
-				for _, senderID := range whitelist {
-					if senderID == -1000000-int64(index) {
-						t.Errorf("oldest whitelist entry %d was not evicted", index)
-					}
-				}
-			}
-			if whitelist[len(whitelist)-1] != -1000000-int64(channelWhitelistMax+test.extra-1) {
-				t.Error("newest whitelist entry was evicted")
-			}
-		})
-	}
-}
-
-func TestFilterChannelSendersUsesTelegramTransport(t *testing.T) {
+func TestFilterChannelSenderUsesTelegramTransport(t *testing.T) {
 	const (
 		groupID  int64 = -100
 		senderID int64 = -1001234567890
@@ -134,14 +105,14 @@ func TestFilterChannelSendersUsesTelegramTransport(t *testing.T) {
 	}
 	telegram := newFakeMod()
 	service := newTestService(t, cfg, telegram, "")
-	runFakeHandler(t, newAPITestBot(t, telegram), service.FilterChannelSenders, telego.Update{Message: &telego.Message{
-		MessageID: 3,
-		Chat:      telego.Chat{ID: groupID, Type: "supergroup"},
-		SenderChat: &telego.Chat{
-			ID:    senderID,
-			Title: "Spam Channel",
-		},
-	}})
+	if !service.FilterChannelSender(context.Background(), ChannelSenderMessage{
+		ChatID:          groupID,
+		MessageID:       3,
+		SenderChatID:    senderID,
+		SenderChatTitle: "Spam Channel",
+	}) {
+		t.Fatal("channel sender filter did not consume the spam post")
+	}
 	if telegram.deletes != 1 || telegram.senderBans != 1 {
 		t.Fatalf("filter actions = deletes %d, sender bans %d", telegram.deletes, telegram.senderBans)
 	}

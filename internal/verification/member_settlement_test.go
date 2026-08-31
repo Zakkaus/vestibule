@@ -8,6 +8,7 @@ import (
 
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 )
 
 // A verification that began while somebody waited outside cannot be settled by declining a join
@@ -219,9 +220,9 @@ func TestStrandedBanIsReportedAsABan(t *testing.T) {
 // join request they do not have.
 func TestChallengeWordingMatchesTheGate(t *testing.T) {
 	for _, locale := range i18n.Languages() {
-		question := kernelQuestion(&i18n.Messages, locale)
-		applicant := kernelPromptHTML(&i18n.Messages, locale, question, 3, "n", true, gateRequest)
-		member := kernelPromptHTML(&i18n.Messages, locale, question, 3, "n", true, gateMute)
+		question := tgfmt.KernelQuestion(&i18n.Messages, locale)
+		applicant := tgfmt.KernelPromptHTML(&i18n.Messages, locale, question, 3, "n", true, false)
+		member := tgfmt.KernelPromptHTML(&i18n.Messages, locale, question, 3, "n", true, true)
 		if applicant == member {
 			t.Errorf("%s: a member standing in the group gets the same warning as somebody waiting outside", locale)
 		}

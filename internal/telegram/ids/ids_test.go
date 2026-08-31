@@ -24,3 +24,33 @@ func TestParseChannelID(t *testing.T) {
 		}
 	}
 }
+
+func TestUpdateChannelWhitelistBoundsNewestEntries(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		extra int
+	}{
+		{name: "one over cap", extra: 1},
+		{name: "multiple over cap", extra: 19},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var whitelist []int64
+			for index := range channelWhitelistMax + test.extra {
+				whitelist = UpdateChannelWhitelist(whitelist, -1000000-int64(index), true)
+			}
+			if len(whitelist) != channelWhitelistMax {
+				t.Fatalf("whitelist entries = %d, want %d", len(whitelist), channelWhitelistMax)
+			}
+			for index := range test.extra {
+				for _, senderID := range whitelist {
+					if senderID == -1000000-int64(index) {
+						t.Errorf("oldest whitelist entry %d was not evicted", index)
+					}
+				}
+			}
+			if whitelist[len(whitelist)-1] != -1000000-int64(channelWhitelistMax+test.extra-1) {
+				t.Error("newest whitelist entry was evicted")
+			}
+		})
+	}
+}

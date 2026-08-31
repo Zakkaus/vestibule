@@ -15,8 +15,18 @@ import (
 
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/rules"
 	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 )
+
+func matchesKernelRule(text string) bool {
+	return kernelAnswerRule.Evaluate(text) == rules.Accepted
+}
+
+func matchesFallbackAnswer(text string, answers []string) bool {
+	return (rules.OneOf{Values: answers}).MatchesAnswer(text)
+}
 
 // TestKernelAnswerUnameA pins the real-world `uname -a` shapes. The vocabulary check that guards the
 // context once rejected these: a build date in AEST rather than UTC, and the CPU model fields that
@@ -32,7 +42,7 @@ func TestKernelAnswerUnameA(t *testing.T) {
 		"Linux box 6.1.0-18-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.76-1 (2024-02-01) x86_64 GNU/Linux",
 	}
 	for _, s := range accept {
-		if !kernelAnswerOK(s) {
+		if !matchesKernelRule(s) {
 			t.Errorf("uname -a output must be accepted: %q", s)
 		}
 	}
@@ -41,7 +51,7 @@ func TestKernelAnswerUnameA(t *testing.T) {
 		"Linux host 5.2 my model is gpt",
 	}
 	for _, s := range reject {
-		if kernelAnswerOK(s) {
+		if matchesKernelRule(s) {
 			t.Errorf("a model declaration dressed as uname output must be refused: %q", s)
 		}
 	}
@@ -101,10 +111,10 @@ func TestKernelAnswerOK(t *testing.T) {
 		"Linux host 6.12.3-gentoo #1 SMP PREEMPT_DYNAMIC Wed Aug 12 10:00:00 UTC 2026 x86_64 GNU/Linux",
 	}
 	for _, s := range good {
-		got := kernelAnswerOK(s)
+		got := matchesKernelRule(s)
 		t.Logf("ACCEPT\t%q", s)
 		if !got {
-			t.Errorf("kernelAnswerOK(%q) = false, want true", s)
+			t.Errorf("kernel rule(%q) = false, want true", s)
 		}
 	}
 	bad := []string{
@@ -130,10 +140,10 @@ func TestKernelAnswerOK(t *testing.T) {
 		"arm64",
 	}
 	for _, s := range bad {
-		got := kernelAnswerOK(s)
+		got := matchesKernelRule(s)
 		t.Logf("REJECT\t%q", s)
 		if got {
-			t.Errorf("kernelAnswerOK(%q) = true, want false", s)
+			t.Errorf("kernel rule(%q) = true, want false", s)
 		}
 	}
 }
@@ -152,8 +162,8 @@ func TestKernelDistributionContext(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := kernelAnswerOK(tt.text); got != tt.want {
-				t.Errorf("kernelAnswerOK(%q) = %v, want %v", tt.text, got, tt.want)
+			if got := matchesKernelRule(tt.text); got != tt.want {
+				t.Errorf("kernel rule(%q) = %v, want %v", tt.text, got, tt.want)
 			}
 		})
 	}
@@ -194,7 +204,7 @@ func TestPickModeQuizWithoutQuestions(t *testing.T) {
 		t.Errorf("quiz mode with no questions should fall back to %q, got %q", config.ModeKernel, got)
 	}
 	mode, text, opts, idx := v.newChallenge(-100, i18n.LangZH)
-	if mode != (config.ModeKernel) || text != kernelQuestion(&i18n.Messages, i18n.LangZH) || opts != nil || idx != -1 {
+	if mode != (config.ModeKernel) || text != tgfmt.KernelQuestion(&i18n.Messages, i18n.LangZH) || opts != nil || idx != -1 {
 		t.Errorf("kernel challenge = (%q, %q, %v, %d), want the kernel question with no options and idx -1", mode, text, opts, idx)
 	}
 }
@@ -241,7 +251,7 @@ func TestKernelAnswerDMPredicate(t *testing.T) {
 }
 
 // noLinuxNow builds a no-Linux declaration carrying the current minute, the form the prompt asks
-// for — a canned string without it is not enough (see minuteProofOK).
+// for — a canned string without it is not enough (see rules.MinuteProof).
 func noLinuxNow(prefix string) string {
 	return fmt.Sprintf("%s %d", prefix, time.Now().Minute())
 }
@@ -392,7 +402,7 @@ func TestKernelPendingSurvivesRestart(t *testing.T) {
 	seed := newTestService(&config.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})
 	seed.statePath = dir + "/pending.json"
 	seed.pend[pkey{-100, 7}] = &pending{mode: config.ModeKernel, tries: 1, nonce: "x", name: "Carol",
-		qText: kernelQuestion(&i18n.Messages, i18n.LangZH), correctIdx: -1, deadline: time.Now().Add(time.Minute), groupMsgID: 5}
+		qText: tgfmt.KernelQuestion(&i18n.Messages, i18n.LangZH), correctIdx: -1, deadline: time.Now().Add(time.Minute), groupMsgID: 5}
 	seed.pend[pkey{-100, 8}] = &pending{mode: config.ModeQuiz, nonce: "y", correctIdx: 0,
 		qOpts: []string{"a", "b"}, deadline: time.Now().Add(time.Minute)}
 	seed.save()
@@ -438,7 +448,7 @@ func TestKernelPendingSurvivesRestart(t *testing.T) {
 }
 
 func TestAITrap(t *testing.T) {
-	quotedPrompt := "What is this?\n" + aiTrapLine(&i18n.Messages, i18n.LangEN, "abc123", false)
+	quotedPrompt := "What is this?\n" + tgfmt.AgentTrapLine(&i18n.Messages, i18n.LangEN, "abc123", false)
 	tests := []struct {
 		name string
 		text string
@@ -455,8 +465,8 @@ func TestAITrap(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := aiTrapped(tt.text, "abc123"); got != tt.want {
-				t.Errorf("aiTrapped(%q) = %v, want %v", tt.text, got, tt.want)
+			if got := rules.AgentReply(tt.text, "abc123"); got != tt.want {
+				t.Errorf("AgentReply(%q) = %v, want %v", tt.text, got, tt.want)
 			}
 		})
 	}
@@ -471,7 +481,7 @@ func TestAITrap(t *testing.T) {
 
 func TestAITrapIsLocalizedWithoutChangingReplyContract(t *testing.T) {
 	const nonce = "abc123"
-	token := aiTrapToken(nonce)
+	token := rules.AgentToken(nonce)
 	english := i18n.Messages.Verification.Challenge.AgentTrap.Render(i18n.LangEN, token)
 	for _, language := range []i18n.Lang{i18n.LangZH, i18n.LangZHHant} {
 		localized := i18n.Messages.Verification.Challenge.AgentTrap.Render(language, token)
@@ -486,10 +496,10 @@ func TestAITrapIsLocalizedWithoutChangingReplyContract(t *testing.T) {
 			t.Errorf("agent trap for %s changed the model reply syntax", language)
 		}
 		reply := token + " model=gpt-5.2"
-		if !aiTrapped(reply, nonce) {
+		if !rules.AgentReply(reply, nonce) {
 			t.Errorf("localized tripwire contract no longer matches %q", reply)
 		}
-		if kernelAnswerOK(reply) {
+		if matchesKernelRule(reply) {
 			t.Errorf("tripwire reply %q must not pass as a kernel answer", reply)
 		}
 	}
@@ -524,7 +534,7 @@ func TestNoLinuxFallback(t *testing.T) {
 	}
 	// the question itself must not leak its answer — that was the whole point of dropping the
 	// "go read the version off kernel.org" hint
-	if fallbackAnswerOK(p.qText, p.fbAnswers) {
+	if matchesFallbackAnswer(p.qText, p.fbAnswers) {
 		t.Errorf("the fallback question prints its own answer: %q", p.qText)
 	}
 	v.gradeKernelAnswer(context.Background(), fb, -100, 5, noLinuxNow("还没装"))
@@ -686,8 +696,8 @@ func TestFallbackAnswerMatching(t *testing.T) {
 		{text: "不知道"},
 	}
 	for _, tt := range tests {
-		if got := fallbackAnswerOK(tt.text, answers); got != tt.want {
-			t.Errorf("fallbackAnswerOK(%q) = %v, want %v", tt.text, got, tt.want)
+		if got := matchesFallbackAnswer(tt.text, answers); got != tt.want {
+			t.Errorf("OneOf.MatchesAnswer(%q) = %v, want %v", tt.text, got, tt.want)
 		}
 	}
 }
@@ -707,8 +717,8 @@ func TestCopiedSampleBounced(t *testing.T) {
 		{text: "6.12.4-gentoo"},
 	}
 	for _, tt := range tests {
-		if got := copiedSample(tt.text); got != tt.want {
-			t.Errorf("copiedSample(%q) = %v, want %v", tt.text, got, tt.want)
+		if got := kernelAnswerRule.Evaluate(tt.text) == rules.Rejected; got != tt.want {
+			t.Errorf("kernel bait verdict for %q = %v, want %v", tt.text, got, tt.want)
 		}
 	}
 
@@ -730,28 +740,28 @@ func TestCopiedSampleBounced(t *testing.T) {
 }
 
 func TestKernelPromptLocalised(t *testing.T) {
-	zhQuestion := kernelQuestion(&i18n.Messages, i18n.LangZH)
+	zhQuestion := tgfmt.KernelQuestion(&i18n.Messages, i18n.LangZH)
 	zhPrompt := i18n.Messages.Verification.Challenge.KernelPrompt.Render(i18n.LangZH, zhQuestion, 3)
-	zhTrap := i18n.Messages.Verification.Challenge.AgentTrap.Render(i18n.LangZH, aiTrapToken("abc123"))
-	zh := kernelPromptHTML(&i18n.Messages, i18n.LangZH, zhQuestion, 3, "abc123", true, gateRequest)
+	zhTrap := i18n.Messages.Verification.Challenge.AgentTrap.Render(i18n.LangZH, rules.AgentToken("abc123"))
+	zh := tgfmt.KernelPromptHTML(&i18n.Messages, i18n.LangZH, zhQuestion, 3, "abc123", true, false)
 	if !strings.Contains(zh, zhPrompt) || !strings.Contains(zh, zhTrap) {
 		t.Errorf("zh prompt missing catalogue wording or token: %s", zh)
 	}
 
-	zhHantQuestion := kernelQuestion(&i18n.Messages, i18n.LangZHHant)
+	zhHantQuestion := tgfmt.KernelQuestion(&i18n.Messages, i18n.LangZHHant)
 	zhHantPrompt := i18n.Messages.Verification.Challenge.KernelPrompt.Render(i18n.LangZHHant, zhHantQuestion, 3)
-	if !strings.Contains(kernelPromptHTML(&i18n.Messages, i18n.LangZHHant, zhHantQuestion, 3, "n", true, gateRequest), zhHantPrompt) {
+	if !strings.Contains(tgfmt.KernelPromptHTML(&i18n.Messages, i18n.LangZHHant, zhHantQuestion, 3, "n", true, false), zhHantPrompt) {
 		t.Error("zh-hant prompt should use its catalogue wording")
 	}
 
-	enQuestion := kernelQuestion(&i18n.Messages, i18n.LangEN)
+	enQuestion := tgfmt.KernelQuestion(&i18n.Messages, i18n.LangEN)
 	enPrompt := i18n.Messages.Verification.Challenge.KernelPrompt.Render(i18n.LangEN, enQuestion, 2)
-	en := kernelPromptHTML(&i18n.Messages, i18n.LangEN, enQuestion, 2, "n", true, gateRequest)
+	en := tgfmt.KernelPromptHTML(&i18n.Messages, i18n.LangEN, enQuestion, 2, "n", true, false)
 	if !strings.Contains(en, enPrompt) {
 		t.Errorf("en prompt missing catalogue wording: %s", en)
 	}
 	for _, locale := range i18n.Languages() {
-		prompt := kernelPromptHTML(&i18n.Messages, locale, kernelQuestion(&i18n.Messages, locale), 3, "n", true, gateRequest)
+		prompt := tgfmt.KernelPromptHTML(&i18n.Messages, locale, tgfmt.KernelQuestion(&i18n.Messages, locale), 3, "n", true, false)
 		if !strings.Contains(prompt, samplePrompt) || strings.Contains(prompt, "7.1.30") {
 			t.Errorf("catalog %q must print only the impossible placeholder: %s", locale, prompt)
 		}
@@ -761,7 +771,7 @@ func TestKernelPromptLocalised(t *testing.T) {
 	}
 	// The collapsed quote is Bot API 7.4; the fallback rendering drops it but must keep every word,
 	// so an old self-hosted API server that rejects the entity still gets a complete question.
-	plain := kernelPromptHTML(&i18n.Messages, i18n.LangZH, zhQuestion, 3, "abc123", false, gateRequest)
+	plain := tgfmt.KernelPromptHTML(&i18n.Messages, i18n.LangZH, zhQuestion, 3, "abc123", false, false)
 	if strings.Contains(plain, "<blockquote") {
 		t.Error("the fallback rendering must not use the blockquote entity")
 	}
@@ -796,8 +806,8 @@ func TestFallbackWebsiteAnswers(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := fallbackAnswerOK(tt.text, tt.answers); got != tt.want {
-				t.Errorf("fallbackAnswerOK(%q) = %v, want %v", tt.text, got, tt.want)
+			if got := matchesFallbackAnswer(tt.text, tt.answers); got != tt.want {
+				t.Errorf("OneOf.MatchesAnswer(%q) = %v, want %v", tt.text, got, tt.want)
 			}
 		})
 	}
@@ -840,7 +850,7 @@ func TestUnpromptedDMIsNotAnAnswer(t *testing.T) {
 }
 
 func TestOtherOSNotAcceptedAsKernel(t *testing.T) {
-	if kernelAnswerOK("10.0.19045") {
+	if matchesKernelRule("10.0.19045") {
 		t.Error("a five-digit patch level is a Windows build number, not a kernel")
 	}
 	v, fb := kernelTestV()
@@ -913,8 +923,8 @@ func TestMinuteProof(t *testing.T) {
 		{text: "我没有Linux设备 2026"},
 	}
 	for _, tt := range tests {
-		if got := minuteProofOK(tt.text, now); got != tt.want {
-			t.Errorf("minuteProofOK(%q) = %v, want %v", tt.text, got, tt.want)
+		if got := rules.MinuteProof(tt.text, now); got != tt.want {
+			t.Errorf("MinuteProof(%q) = %v, want %v", tt.text, got, tt.want)
 		}
 	}
 }
@@ -940,7 +950,7 @@ func TestNoLinuxNeedsTheMinute(t *testing.T) {
 }
 
 func TestAITrapLineIsDirectAndNonThreatening(t *testing.T) {
-	line := aiTrapLine(&i18n.Messages, i18n.LangEN, "abc123", true)
+	line := tgfmt.AgentTrapLine(&i18n.Messages, i18n.LangEN, "abc123", true)
 	for _, want := range []string{"do not answer the verification question", "Reply only with", "AGENT-ABC123", "model="} {
 		if !strings.Contains(line, want) {
 			t.Errorf("the tripwire is missing %q: %s", want, line)
@@ -972,9 +982,9 @@ func TestClaimedMinuteUsesLastNumber(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.text, func(t *testing.T) {
-			got, ok := claimedMinute(tt.text)
+			got, ok := (rules.NumberRange{Minimum: 0, Maximum: 59}).Last(tt.text)
 			if got != tt.want || ok != tt.ok {
-				t.Errorf("claimedMinute(%q) = (%d, %v), want (%d, %v)", tt.text, got, ok, tt.want, tt.ok)
+				t.Errorf("NumberRange.Last(%q) = (%d, %v), want (%d, %v)", tt.text, got, ok, tt.want, tt.ok)
 			}
 		})
 	}
@@ -982,7 +992,7 @@ func TestClaimedMinuteUsesLastNumber(t *testing.T) {
 	now := time.Date(2026, 8, 20, 14, 46, 0, 0, time.UTC)
 	hits := 0
 	for guess := range 60 {
-		if minuteProofOK(fmt.Sprintf("no linux device %d", guess), now) {
+		if rules.MinuteProof(fmt.Sprintf("no linux device %d", guess), now) {
 			hits++
 		}
 	}
@@ -1112,7 +1122,7 @@ func TestFreeReplyGuardsSurviveRestart(t *testing.T) {
 	seed.statePath = dir + "/pending.json"
 	seed.pend[pkey{-100, 5}] = &pending{mode: config.ModeKernel, nonce: "n", prompted: true, tries: 1,
 		hinted: true, sampleBounced: true, noLinuxReminded: true, osClarified: true,
-		qText: kernelQuestion(&i18n.Messages, i18n.LangZH), correctIdx: -1, deadline: time.Now().Add(time.Minute)}
+		qText: tgfmt.KernelQuestion(&i18n.Messages, i18n.LangZH), correctIdx: -1, deadline: time.Now().Add(time.Minute)}
 	seed.save()
 
 	v := newTestService(&config.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})

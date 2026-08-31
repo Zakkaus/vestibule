@@ -88,19 +88,18 @@ file-lines	internal/feed/feed_test.go	0		919
 file-lines	internal/lookup/content.go	0		697
 file-lines	internal/lookup/distros.go	0		941
 file-lines	internal/lookup/packages.go	0		1593
-file-lines	internal/moderate/moderate_test.go	0		970
+file-lines	internal/moderate/moderate_test.go	0		973
 file-lines	internal/panel/settings_controls_test.go	0		1051
 file-lines	internal/panel/settings_input.go	0		851
 file-lines	internal/panel/settings_panel.go	0		1398
 file-lines	internal/panel/settings_panel_behavior_test.go	0		1243
 file-lines	internal/store/settings.go	0		1591
 file-lines	internal/store/settings_test.go	0		906
-file-lines	internal/verification/kernel.go	0		834
-file-lines	internal/verification/kernel_test.go	0		1131
+file-lines	internal/verification/kernel_test.go	0		1141
 file-lines	internal/verification/recovery_test.go	0		1014
 file-lines	internal/verification/service.go	0		2719
 file-lines	internal/verification/state.go	0		1078
-file-lines	internal/verification/verify_test.go	0		2327
+file-lines	internal/verification/verify_test.go	0		2329
 function-lines	cmd/vestibule/main.go	249	main	166
 function-lines	cmd/vestibule/main_test.go	393	TestRuntimeLifecycleStopRestart	212
 function-lines	cmd/vestibule/registration.go	406	(*registrationService).onMyChatMember	90
@@ -131,7 +130,7 @@ function-lines	internal/store/baseline.go	51	settingsBaselineFromConfig	127
 function-lines	internal/store/settings.go	334	NewSettings	118
 function-lines	internal/store/settings_test.go	536	TestSettingsMigratesCurrentAntispamGoldenToEveryEffectiveGroup	86
 function-lines	internal/store/settings_test.go	63	TestSettingsSparseRoundTripAndRestore	153
-function-lines	internal/verification/kernel.go	623	(*Service).gradeKernelAnswer	104
+function-lines	internal/verification/kernel.go	295	(*Service).gradeKernelAnswer	105
 function-lines	internal/verification/kernel_test.go	50	TestKernelAnswerOK	90
 function-lines	internal/verification/service.go	1102	(*Service).OnMemberJoined	105
 function-lines	internal/verification/service.go	2542	(*Service).finishDecline	86

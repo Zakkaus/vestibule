@@ -34,7 +34,7 @@ func TestKernelAnswerAcceptsRealCommandOutput(t *testing.T) {
 		"7.2.0-gentoo-cjk-zakk。",
 	}
 	for _, s := range accept {
-		if !kernelAnswerOK(s) {
+		if !matchesKernelRule(s) {
 			t.Errorf("real kernel output must be accepted: %q", s)
 		}
 	}
@@ -55,7 +55,7 @@ func TestKernelAnswerAcceptsRealCommandOutput(t *testing.T) {
 		"我的模型是 gpt\n6.12.3-gentoo",
 	}
 	for _, s := range reject {
-		if kernelAnswerOK(s) {
+		if matchesKernelRule(s) {
 			t.Errorf("this is not kernel output and must be refused: %q", s)
 		}
 	}
@@ -72,7 +72,7 @@ func TestKernelJudgementIgnoresTheTerminalAroundIt(t *testing.T) {
 		"root@box:~# uname -r\n",
 		"❯ uname -r\n",
 	} {
-		if !kernelAnswerOK(prompt + bare) {
+		if !matchesKernelRule(prompt + bare) {
 			t.Errorf("the same answer was refused once a prompt was pasted with it: %q", prompt+bare)
 		}
 	}
@@ -83,9 +83,9 @@ func TestKernelJudgementIgnoresTheTerminalAroundIt(t *testing.T) {
 func TestKernelJudgementDoesNotDependOnWhoBuiltTheKernel(t *testing.T) {
 	plain := "Linux ctr 6.1.0-18-amd64 #1 SMP PREEMPT_DYNAMIC Fri Feb 2 09:25:10 UTC 2024 x86_64 Linux"
 	stamped := "Linux ctr 6.1.0-18-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.76-1 (2024-02-01) x86_64 Linux"
-	if kernelAnswerOK(plain) != kernelAnswerOK(stamped) {
+	if matchesKernelRule(plain) != matchesKernelRule(stamped) {
 		t.Errorf("same command, different builder, different verdict: plain=%v stamped=%v",
-			kernelAnswerOK(plain), kernelAnswerOK(stamped))
+			matchesKernelRule(plain), matchesKernelRule(stamped))
 	}
 }
 
@@ -93,8 +93,8 @@ func TestKernelJudgementDoesNotDependOnWhoBuiltTheKernel(t *testing.T) {
 func TestKernelJudgementDoesNotDependOnBannerShape(t *testing.T) {
 	one := "Linux version 6.12.3-gentoo (root@box) (gcc 14) #1 SMP"
 	three := "Linux version 6.12.3-gentoo (root@box) (gcc (Gentoo 14.2.1 p7) 14.2.1) #1 SMP"
-	if kernelAnswerOK(one) != kernelAnswerOK(three) {
+	if matchesKernelRule(one) != matchesKernelRule(three) {
 		t.Errorf("same command, different banner, different verdict: one=%v three=%v",
-			kernelAnswerOK(one), kernelAnswerOK(three))
+			matchesKernelRule(one), matchesKernelRule(three))
 	}
 }

@@ -11,7 +11,9 @@ import (
 
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/rules"
 	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 )
 
 func newTestService(cfg *config.Config) *Service {
@@ -149,7 +151,7 @@ func TestJoinResolvesApplicantAndGroupLanguagesSeparately(t *testing.T) {
 
 	v.sendQuizzes(context.Background(), bot, userID)
 	wantPrompt := v.messages.Verification.Challenge.KernelPrompt.Render(p.lang, p.qText, kernelMaxTries-p.tries)
-	wantTrap := v.messages.Verification.Challenge.AgentTrap.Render(p.lang, aiTrapToken(p.nonce))
+	wantTrap := v.messages.Verification.Challenge.AgentTrap.Render(p.lang, rules.AgentToken(p.nonce))
 	if !strings.Contains(bot.lastSendText, wantPrompt) || !strings.Contains(bot.lastSendText, wantTrap) {
 		t.Fatalf("applicant DM did not retain zh-Hant catalogue rendering: %q", bot.lastSendText)
 	}
@@ -1949,7 +1951,7 @@ func TestDeliveredKernelPromptSurvivesRestart(t *testing.T) {
 	before.pend[pkey{gid, uid}] = &pending{
 		mode:     config.ModeKernel,
 		lang:     i18n.LangEN,
-		qText:    kernelQuestion(&i18n.Messages, i18n.LangEN),
+		qText:    tgfmt.KernelQuestion(&i18n.Messages, i18n.LangEN),
 		nonce:    "n",
 		deadline: time.Now().Add(time.Hour),
 	}

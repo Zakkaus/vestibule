@@ -938,12 +938,13 @@ func TestChannelSenderFilterSparesTheLinkedChannel(t *testing.T) {
 		name          string
 		linkedChat    int64
 		linkedUnknown bool
+		wantConsumed  bool
 		wantDeletes   int
 		wantBans      int
 	}{
 		{name: "the group's own channel", linkedChat: channelID, wantDeletes: 0, wantBans: 0},
-		{name: "an unrelated channel", linkedChat: -1009000000111, wantDeletes: 1, wantBans: 1},
-		{name: "linked channel unreadable", linkedUnknown: true, wantDeletes: 1, wantBans: 0},
+		{name: "an unrelated channel", linkedChat: -1009000000111, wantConsumed: true, wantDeletes: 1, wantBans: 1},
+		{name: "linked channel unreadable", linkedUnknown: true, wantConsumed: true, wantDeletes: 1, wantBans: 0},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -952,13 +953,15 @@ func TestChannelSenderFilterSparesTheLinkedChannel(t *testing.T) {
 			telegram.linkedUnknown = tc.linkedUnknown
 			cfg := &config.Config{GroupIDs: []int64{groupID}, BlockChannelSenders: boolPtr(true), NotifyTTLSeconds: -1}
 			service := newTestService(t, cfg, telegram, "")
-			update := telego.Update{Message: &telego.Message{
-				MessageID:  9,
-				Chat:       telego.Chat{ID: groupID, Type: telego.ChatTypeSupergroup},
-				SenderChat: &telego.Chat{ID: channelID, Type: telego.ChatTypeChannel, Title: "Channel"},
-				Text:       "hello",
-			}}
-			runFakeHandler(t, newAPITestBot(t, telegram), service.FilterChannelSenders, update)
+			consumed := service.FilterChannelSender(context.Background(), ChannelSenderMessage{
+				ChatID:          groupID,
+				MessageID:       9,
+				SenderChatID:    channelID,
+				SenderChatTitle: "Channel",
+			})
+			if consumed != tc.wantConsumed {
+				t.Errorf("consumed = %t, want %t", consumed, tc.wantConsumed)
+			}
 			if telegram.deletes != tc.wantDeletes {
 				t.Errorf("deletes = %d, want %d", telegram.deletes, tc.wantDeletes)
 			}

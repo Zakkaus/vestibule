@@ -10,8 +10,6 @@ import (
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/Zakkaus/vestibule/internal/telegram/ids"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
-	"github.com/mymmrac/telego"
-	th "github.com/mymmrac/telego/telegohandler"
 )
 
 func (s *Service) antispamEnabled(groupID int64) bool {
@@ -76,35 +74,13 @@ func (s *Service) toggleAntispam(groupID int64) (bool, error) {
 	return enabled, err
 }
 
-func nextChannelWhitelist(current []int64, senderID int64, allow bool) []int64 {
-	for index, existingID := range current {
-		if existingID != senderID {
-			continue
-		}
-		if allow {
-			return current
-		}
-		copy(current[index:], current[index+1:])
-		return current[:len(current)-1]
-	}
-	if !allow {
-		return current
-	}
-	if len(current) >= channelWhitelistMax {
-		drop := len(current) - channelWhitelistMax + 1
-		copy(current, current[drop:])
-		current = current[:len(current)-drop]
-	}
-	return append(current, senderID)
-}
-
 // UpdateChannelWhitelist applies the shared whitelist bound and unbans newly allowed senders.
 func (s *Service) UpdateChannelWhitelist(ctx context.Context, groupID, senderID int64, allow bool) (unbanErr, updateErr error) {
 	group, ok := s.settings.Group(groupID)
 	if !ok {
 		return nil, fmt.Errorf("%w: %d", store.ErrUnknownGroup, groupID)
 	}
-	whitelist := nextChannelWhitelist(group.ChannelWhitelist().Value, senderID, allow)
+	whitelist := ids.UpdateChannelWhitelist(group.ChannelWhitelist().Value, senderID, allow)
 	overrides := group.Overrides()
 	overrides.ChannelWhitelist = &whitelist
 	if _, err := s.settings.CommitGroup(groupID, group.Revision(), overrides); err != nil {
@@ -116,95 +92,107 @@ func (s *Service) UpdateChannelWhitelist(ctx context.Context, groupID, senderID 
 	return nil, nil
 }
 
-// FilterChannelSenders drops untrusted sender-channel posts when BotFather privacy mode is disabled.
-func (s *Service) FilterChannelSenders(ctx *th.Context, update telego.Update) error {
-	msg := update.Message
-	if msg != nil && s.settings.IsGroup(msg.Chat.ID) && s.antispamEnabled(msg.Chat.ID) {
-		if sender := msg.SenderChat; sender != nil &&
-			sender.ID != msg.Chat.ID && // Anonymous group admins post as the group itself.
-			!msg.IsAutomaticForward && // Telegram auto-forwards linked discussion-channel posts.
-			!s.isKnownChat(sender.ID) &&
-			!s.channelWhitelisted(msg.Chat.ID, sender.ID) {
-			requestCtx := ctx.Context()
-			l := s.groupLanguage(msg.Chat.ID)
-			// A discussion group's own channel replying to a comment is not an impersonator.
-			linked, linkKnown := s.telegram.LinkedChat(requestCtx, msg.Chat.ID)
-			if linkKnown && linked != 0 && linked == sender.ID {
-				return ctx.Next(update)
-			}
-			s.telegram.Delete(requestCtx, msg.Chat.ID, msg.MessageID)
-			banned := false
-			if !linkKnown {
-				// A sender-chat ban is permanent and only an administrator can lift it. Never
-				// impose one on a guess: delete the advert, and leave the ban for a reading that
-				// can rule out this group's own channel.
-				log.Printf("antispam: linked channel for %d unknown; deleted message from %d without banning", msg.Chat.ID, sender.ID)
-			} else if err := s.telegram.BanSenderChat(requestCtx, msg.Chat.ID, sender.ID); err != nil {
-				log.Printf("antispam: ban sender_chat %d in %d: %v", sender.ID, msg.Chat.ID, err)
-			} else {
-				banned = true
-			}
-			s.telegram.Alert(requestCtx, s.adminLogChatID(),
-				tgfmt.ChannelSenderAlert(l, banned, sender.Title, sender.ID, msg.Chat.ID))
-			log.Printf("antispam: channel sender %d (%q) in group %d deleted, banned=%v", sender.ID, sender.Title, msg.Chat.ID, banned)
-			return nil
-		}
-	}
-	return ctx.Next(update)
+// ChannelSenderMessage is the platform-neutral part of a sender-chat message.
+type ChannelSenderMessage struct {
+	ChatID           int64
+	MessageID        int
+	SenderChatID     int64
+	SenderChatTitle  string
+	AutomaticForward bool
 }
 
-// OnBC handles per-group channel-sender filtering and whitelist changes.
-func (s *Service) OnBC(ctx *th.Context, update telego.Update) error {
-	msg := update.Message
-	if msg == nil || msg.From == nil || !s.settings.IsGroup(msg.Chat.ID) {
-		return nil
-	}
-	requestCtx := ctx.Context()
-	groupID := msg.Chat.ID
-	l := s.groupLanguage(groupID)
-	defer s.telegram.Delete(requestCtx, groupID, msg.MessageID)
-	if admin, err := s.isGroupAdmin(requestCtx, groupID, msg.From.ID); !admin {
-		s.notify(requestCtx, groupID, callerRefusal(l, err, i18n.Messages.Moderate.Common.CommandAdminOnly.Render(l, "/bc")))
-		return nil
+// FilterChannelSender deletes and, when safely possible, bans an untrusted sender-chat post.
+// It reports whether the Telegram adapter must stop routing the update.
+func (s *Service) FilterChannelSender(ctx context.Context, message ChannelSenderMessage) bool {
+	if !s.settings.IsGroup(message.ChatID) || !s.antispamEnabled(message.ChatID) ||
+		message.SenderChatID == 0 ||
+		message.SenderChatID == message.ChatID || // Anonymous group admins post as the group itself.
+		message.AutomaticForward || // Telegram auto-forwards linked discussion-channel posts.
+		s.isKnownChat(message.SenderChatID) ||
+		s.channelWhitelisted(message.ChatID, message.SenderChatID) {
+		return false
 	}
 
-	fields := strings.Fields(commandArg(msg.Text))
+	l := s.groupLanguage(message.ChatID)
+	// A discussion group's own channel replying to a comment is not an impersonator.
+	linked, linkKnown := s.telegram.LinkedChat(ctx, message.ChatID)
+	if linkKnown && linked != 0 && linked == message.SenderChatID {
+		return false
+	}
+	s.telegram.Delete(ctx, message.ChatID, message.MessageID)
+	banned := false
+	if !linkKnown {
+		// A sender-chat ban is permanent and only an administrator can lift it. Never
+		// impose one on a guess: delete the advert, and leave the ban for a reading that
+		// can rule out this group's own channel.
+		log.Printf("antispam: linked channel for %d unknown; deleted message from %d without banning", message.ChatID, message.SenderChatID)
+	} else if err := s.telegram.BanSenderChat(ctx, message.ChatID, message.SenderChatID); err != nil {
+		log.Printf("antispam: ban sender_chat %d in %d: %v", message.SenderChatID, message.ChatID, err)
+	} else {
+		banned = true
+	}
+	s.telegram.Alert(ctx, s.adminLogChatID(),
+		tgfmt.ChannelSenderAlert(l, banned, message.SenderChatTitle, message.SenderChatID, message.ChatID))
+	log.Printf("antispam: channel sender %d (%q) in group %d deleted, banned=%v", message.SenderChatID, message.SenderChatTitle, message.ChatID, banned)
+	return true
+}
+
+// ChannelSenderCommand is the platform-neutral data required by /bc.
+type ChannelSenderCommand struct {
+	ChatID    int64
+	MessageID int
+	CallerID  int64
+	Text      string
+}
+
+// BlockChannel handles per-group sender-chat filtering and whitelist changes.
+func (s *Service) BlockChannel(ctx context.Context, command ChannelSenderCommand) {
+	if command.CallerID == 0 || !s.settings.IsGroup(command.ChatID) {
+		return
+	}
+	l := s.groupLanguage(command.ChatID)
+	defer s.telegram.Delete(ctx, command.ChatID, command.MessageID)
+	if admin, err := s.isGroupAdmin(ctx, command.ChatID, command.CallerID); !admin {
+		s.notify(ctx, command.ChatID, callerRefusal(l, err, i18n.Messages.Moderate.Common.CommandAdminOnly.Render(l, "/bc")))
+		return
+	}
+
+	fields := strings.Fields(commandArg(command.Text))
 	switch {
 	case len(fields) == 0:
-		enabled, err := s.toggleAntispam(groupID)
+		enabled, err := s.toggleAntispam(command.ChatID)
 		if err != nil {
-			s.notifySettingsFailure(requestCtx, groupID, l, err)
-			return nil
+			s.notifySettingsFailure(ctx, command.ChatID, l, err)
+			return
 		}
 		if enabled {
-			s.notify(requestCtx, groupID, i18n.Messages.Moderate.Antispam.Enabled.For(l))
+			s.notify(ctx, command.ChatID, i18n.Messages.Moderate.Antispam.Enabled.For(l))
 		} else {
-			s.notify(requestCtx, groupID, i18n.Messages.Moderate.Antispam.Disabled.For(l))
+			s.notify(ctx, command.ChatID, i18n.Messages.Moderate.Antispam.Disabled.For(l))
 		}
 	case (fields[0] == "allow" || fields[0] == "deny") && len(fields) >= 2:
 		senderID, ok := ids.ParseChannelID(fields[1])
 		if !ok {
-			s.notify(requestCtx, groupID, i18n.Messages.Moderate.Antispam.InvalidChannelID.For(l))
-			return nil
+			s.notify(ctx, command.ChatID, i18n.Messages.Moderate.Antispam.InvalidChannelID.For(l))
+			return
 		}
 		allow := fields[0] == "allow"
-		unbanErr, err := s.UpdateChannelWhitelist(requestCtx, groupID, senderID, allow)
+		unbanErr, err := s.UpdateChannelWhitelist(ctx, command.ChatID, senderID, allow)
 		if err != nil {
-			s.notifySettingsFailure(requestCtx, groupID, l, err)
-			return nil
+			s.notifySettingsFailure(ctx, command.ChatID, l, err)
+			return
 		}
 		if !allow {
-			s.notify(requestCtx, groupID, i18n.Messages.Moderate.Antispam.Removed.Render(l, senderID))
-			return nil
+			s.notify(ctx, command.ChatID, i18n.Messages.Moderate.Antispam.Removed.Render(l, senderID))
+			return
 		}
 		if unbanErr != nil {
-			log.Printf("/bc allow: unban sender_chat %d in %d: %v", senderID, groupID, unbanErr)
-			s.notify(requestCtx, groupID, i18n.Messages.Moderate.Antispam.AllowedUnbanFailed.Render(l, senderID))
-			return nil
+			log.Printf("/bc allow: unban sender_chat %d in %d: %v", senderID, command.ChatID, unbanErr)
+			s.notify(ctx, command.ChatID, i18n.Messages.Moderate.Antispam.AllowedUnbanFailed.Render(l, senderID))
+			return
 		}
-		s.notify(requestCtx, groupID, i18n.Messages.Moderate.Antispam.Allowed.Render(l, senderID))
+		s.notify(ctx, command.ChatID, i18n.Messages.Moderate.Antispam.Allowed.Render(l, senderID))
 	default:
-		s.notify(requestCtx, groupID, i18n.Messages.Moderate.Antispam.Usage.For(l))
+		s.notify(ctx, command.ChatID, i18n.Messages.Moderate.Antispam.Usage.For(l))
 	}
-	return nil
 }

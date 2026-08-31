@@ -18,6 +18,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 )
 
 const (
@@ -1343,7 +1344,7 @@ func (v *Service) completeDMDelivery(
 	}
 	if sendErr != nil {
 		if question && prompt.fallbackPending && p.fallbackPending && definiteDMFailure(sendErr) {
-			p.qText = kernelQuestion(v.messages, p.lang)
+			p.qText = tgfmt.KernelQuestion(v.messages, p.lang)
 			p.fbAnswers = nil
 			p.fallbackPending = false
 			p.hinted = false
@@ -1419,14 +1420,16 @@ func (v *Service) sendDMQuestionRetainingPrevious(
 	var err error
 	if prompt.mode == config.ModeKernel {
 		left := kernelMaxTries - prompt.tries
-		render := kernelPromptHTML
+		var rich, plain string
 		if prompt.fallback {
-			render = fallbackPromptHTML
+			rich = tgfmt.FallbackPromptHTML(v.messages, prompt.lang, prompt.text, left, prompt.nonce, true)
+			plain = tgfmt.FallbackPromptHTML(v.messages, prompt.lang, prompt.text, left, prompt.nonce, false)
+		} else {
+			held := gateOf(prompt.pending).gate == gateMute
+			rich = tgfmt.KernelPromptHTML(v.messages, prompt.lang, prompt.text, left, prompt.nonce, true, held)
+			plain = tgfmt.KernelPromptHTML(v.messages, prompt.lang, prompt.text, left, prompt.nonce, false, held)
 		}
-		gate := gateOf(prompt.pending).gate
-		messageID, err = v.sendVerifyDM(c, bot, uid,
-			render(v.messages, prompt.lang, prompt.text, left, prompt.nonce, true, gate),
-			render(v.messages, prompt.lang, prompt.text, left, prompt.nonce, false, gate))
+		messageID, err = v.sendVerifyDM(c, bot, uid, rich, plain)
 	} else {
 		gidStr, uidStr := strconv.FormatInt(prompt.gid, 10), strconv.FormatInt(uid, 10)
 		rows := make([][]Button, 0, len(prompt.opts))
