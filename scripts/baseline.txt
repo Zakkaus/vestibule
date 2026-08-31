@@ -1,0 +1,169 @@
+# Existing lint findings, frozen for the phase-zero snapshot.
+# Fields: kind<TAB>path<TAB>line<TAB>name<TAB>value
+cyclomatic-complexity	cmd/vestibule/main.go	249	main	17
+cyclomatic-complexity	cmd/vestibule/main.go	176	runRuntimeLifecycle	20
+cyclomatic-complexity	cmd/vestibule/main_test.go	393	TestRuntimeLifecycleStopRestart	25
+cyclomatic-complexity	cmd/vestibule/registration.go	406	(*registrationService).onMyChatMember	26
+cyclomatic-complexity	cmd/vestibule/registration_test.go	94	(*registrationCaller).Call	24
+cyclomatic-complexity	cmd/vestibule/registration_test.go	1440	TestEnrollmentTransportFailuresRetainDurableState	37
+cyclomatic-complexity	cmd/vestibule/registration_test.go	1032	TestOwnerCanUnregisterRuntimeGroupAndDropOverrides	27
+cyclomatic-complexity	internal/bot/bot_test.go	240	TestSetupCommandsLanguageScopes	20
+cyclomatic-complexity	internal/config/config.go	698	(*Config).IsKnownChat	17
+cyclomatic-complexity	internal/config/config.go	355	LoadConfig	83
+cyclomatic-complexity	internal/feed/feed.go	775	pollAllWithSources	20
+cyclomatic-complexity	internal/feed/feed.go	674	postFeedItems	21
+cyclomatic-complexity	internal/feed/feed.go	525	refreshTracked	25
+cyclomatic-complexity	internal/feed/feed_test.go	732	TestRefreshTrackedConfirmPing	18
+cyclomatic-complexity	internal/feed/feed_test.go	443	TestRefreshTrackedEditBranches	17
+cyclomatic-complexity	internal/i18n/catalog.go	194	loadLocaleValue	21
+cyclomatic-complexity	internal/i18n/catalog_test.go	266	indexedPlaceholders	17
+cyclomatic-complexity	internal/lookup/distros.go	340	(*Service).OnPkgs	27
+cyclomatic-complexity	internal/lookup/distros.go	800	deriveDebianReleaseData	19
+cyclomatic-complexity	internal/lookup/distros.go	174	familyChannels	20
+cyclomatic-complexity	internal/lookup/distros.go	259	fetchRepologyWith	17
+cyclomatic-complexity	internal/lookup/handlers_test.go	256	TestLookupHandlerArgumentsAndTelegramFallbacks	22
+cyclomatic-complexity	internal/lookup/packages.go	1421	(*Service).OnUse	17
+cyclomatic-complexity	internal/lookup/packages.go	1198	renderUseRich	16
+cyclomatic-complexity	internal/lookup/parser_fixtures_test.go	271	TestContentLiveFixtures	32
+cyclomatic-complexity	internal/lookup/parser_fixtures_test.go	143	TestPackagesGentooLiveFixtures	18
+cyclomatic-complexity	internal/lookup/parser_fixtures_test.go	381	TestReleaseMetadataLiveFixtures	21
+cyclomatic-complexity	internal/lookup/pkgs_test.go	168	TestSnapVersionAndUbuntuChannels	19
+cyclomatic-complexity	internal/moderate/service.go	74	(*Service).CheckGroupSetup	20
+cyclomatic-complexity	internal/panel/settings_controls_test.go	548	TestPanelNumericControlsMutateOnlyTargetRenderAndRejectStale	18
+cyclomatic-complexity	internal/panel/settings_controls_test.go	366	TestPanelRuntimeControlsMutateOnlyTargetRenderAndRejectStale	21
+cyclomatic-complexity	internal/panel/settings_controls_test.go	716	TestPanelTrustedGroupAndChannelControlsMutateOnlyTargetRenderAndRejectStale	30
+cyclomatic-complexity	internal/panel/settings_input.go	469	(*Panel).OnPanelChatShared	19
+cyclomatic-complexity	internal/panel/settings_input.go	400	(*Panel).OnPanelInput	18
+cyclomatic-complexity	internal/panel/settings_input.go	699	(*Panel).applySharedChat	16
+cyclomatic-complexity	internal/panel/settings_input.go	546	(*Panel).applyTextInput	37
+cyclomatic-complexity	internal/panel/settings_input.go	239	(*Panel).dispatchConfirmation	16
+cyclomatic-complexity	internal/panel/settings_input.go	145	(*Panel).dispatchFallbackDraft	19
+cyclomatic-complexity	internal/panel/settings_input.go	47	(*Panel).dispatchQuizDraft	25
+cyclomatic-complexity	internal/panel/settings_panel.go	149	(*Panel).OnSettingsCallback	23
+cyclomatic-complexity	internal/panel/settings_panel.go	505	(*Panel).buildScreen	16
+cyclomatic-complexity	internal/panel/settings_panel.go	223	(*Panel).dispatchCallback	21
+cyclomatic-complexity	internal/panel/settings_panel.go	1352	(*Panel).inputPrompt	18
+cyclomatic-complexity	internal/panel/settings_panel_behavior_test.go	75	(*panelAPICaller).Call	19
+cyclomatic-complexity	internal/panel/settings_panel_behavior_test.go	1016	TestPanelCommittedCallbackRenderFailuresReportSaved	16
+cyclomatic-complexity	internal/store/baseline.go	51	settingsBaselineFromConfig	22
+cyclomatic-complexity	internal/store/json_test.go	170	TestSaveOrdersSnapshotAndCommit	17
+cyclomatic-complexity	internal/store/settings.go	1239	(*Settings).validateRegistrations	29
+cyclomatic-complexity	internal/store/settings.go	334	NewSettings	26
+cyclomatic-complexity	internal/store/settings.go	1131	validateEffectiveGroup	34
+cyclomatic-complexity	internal/store/settings_test.go	724	TestOwnerClaimExpiryAndEnrollmentIssuance	20
+cyclomatic-complexity	internal/store/settings_test.go	285	TestSettingsLookupAutoDeleteRetainsTTLAcrossToggle	16
+cyclomatic-complexity	internal/store/settings_test.go	536	TestSettingsMigratesCurrentAntispamGoldenToEveryEffectiveGroup	23
+cyclomatic-complexity	internal/store/settings_test.go	436	TestSettingsMigratesLegacyGoldenToEveryConfiguredGroup	28
+cyclomatic-complexity	internal/store/settings_test.go	765	TestSettingsRegistrationRoundTripAndRuntimeOnlyPolicy	22
+cyclomatic-complexity	internal/store/settings_test.go	63	TestSettingsSparseRoundTripAndRestore	59
+cyclomatic-complexity	internal/store/state_root_compat_test.go	70	TestStateCompatSettings	16
+cyclomatic-complexity	internal/tg/tg_test.go	280	TestAdminCacheAndFreshLookup	17
+cyclomatic-complexity	internal/tg/tg_test.go	477	TestErrorClassification	18
+cyclomatic-complexity	internal/verify/kernel.go	641	(*Service).gradeKernelAnswer	28
+cyclomatic-complexity	internal/verify/kernel_test.go	1017	TestReapplyKeepsAttemptsAndFallback	22
+cyclomatic-complexity	internal/verify/recovery_test.go	64	TestDeferredExpiryCapSettlesStrikeFree	17
+cyclomatic-complexity	internal/verify/service.go	1261	(*Service).OnMemberJoined	22
+cyclomatic-complexity	internal/verify/service.go	1501	(*Service).completeDMDelivery	23
+cyclomatic-complexity	internal/verify/service.go	2682	(*Service).finishDecline	16
+cyclomatic-complexity	internal/verify/service.go	981	(*Service).startPending	17
+cyclomatic-complexity	internal/verify/settings_test.go	117	TestPerGroupRuntimeSettingsIsolation	42
+cyclomatic-complexity	internal/verify/settings_test.go	59	TestUntouchedGroupUsesConfigAndDefaults	22
+cyclomatic-complexity	internal/verify/state.go	472	(*Service).load	34
+cyclomatic-complexity	internal/verify/state.go	659	(*Service).onExpiry	16
+cyclomatic-complexity	internal/verify/state.go	934	(*Service).onRecovery	18
+cyclomatic-complexity	internal/verify/state_compat_test.go	305	stateCompatAssertPending	25
+cyclomatic-complexity	internal/verify/state_write_failure_test.go	39	TestStateWriteFailuresKeepRuntimeStateButLoseRestartRecovery	25
+cyclomatic-complexity	internal/verify/verify_test.go	784	(*fakeVerifyBot).Call	22
+cyclomatic-complexity	internal/verify/verify_test.go	388	TestJoinRequestDMModeDeliversPrivatelyOrFallsBackToScopedGroupLink	23
+cyclomatic-complexity	internal/verify/verify_test.go	172	TestJoinRequestDefaultPostsGroupBeforePrivateChallenge	16
+cyclomatic-complexity	internal/verify/verify_test.go	1036	TestOnAdminActionTelegramFailureAfterAcknowledgement	20
+file-lines	cmd/vestibule/main_test.go	0		604
+file-lines	cmd/vestibule/registration.go	0		1044
+file-lines	cmd/vestibule/registration_test.go	0		1643
+file-lines	internal/bot/bot_test.go	0		1021
+file-lines	internal/config/config.go	0		732
+file-lines	internal/config/config_test.go	0		633
+file-lines	internal/feed/feed.go	0		975
+file-lines	internal/feed/feed_fix_test.go	0		653
+file-lines	internal/feed/feed_test.go	0		919
+file-lines	internal/lookup/content.go	0		697
+file-lines	internal/lookup/distros.go	0		941
+file-lines	internal/lookup/packages.go	0		1593
+file-lines	internal/moderate/moderate_test.go	0		970
+file-lines	internal/panel/settings_controls_test.go	0		1051
+file-lines	internal/panel/settings_input.go	0		851
+file-lines	internal/panel/settings_panel.go	0		1398
+file-lines	internal/panel/settings_panel_behavior_test.go	0		1243
+file-lines	internal/store/settings.go	0		1591
+file-lines	internal/store/settings_test.go	0		906
+file-lines	internal/verify/kernel.go	0		852
+file-lines	internal/verify/kernel_test.go	0		1134
+file-lines	internal/verify/recovery_test.go	0		1014
+file-lines	internal/verify/service.go	0		2859
+file-lines	internal/verify/state.go	0		1105
+file-lines	internal/verify/verify_test.go	0		2353
+function-lines	cmd/vestibule/main.go	249	main	166
+function-lines	cmd/vestibule/main_test.go	393	TestRuntimeLifecycleStopRestart	212
+function-lines	cmd/vestibule/registration.go	406	(*registrationService).onMyChatMember	90
+function-lines	cmd/vestibule/registration_test.go	94	(*registrationCaller).Call	118
+function-lines	cmd/vestibule/registration_test.go	1440	TestEnrollmentTransportFailuresRetainDurableState	204
+function-lines	cmd/vestibule/registration_test.go	1032	TestOwnerCanUnregisterRuntimeGroupAndDropOverrides	122
+function-lines	cmd/vestibule/registration_test.go	320	TestRegistrationGlobalDispatch	85
+function-lines	cmd/vestibule/runtime_registration_integration_test.go	44	TestRuntimeRegistrationActivatesServicesWithoutRebuiltConfig	88
+function-lines	internal/bot/bot_test.go	817	TestGlobalDispatchRunsOnlyTheIntendedHandler	130
+function-lines	internal/config/config.go	355	LoadConfig	214
+function-lines	internal/feed/feed.go	775	pollAllWithSources	84
+function-lines	internal/feed/feed.go	525	refreshTracked	100
+function-lines	internal/feed/feed_test.go	443	TestRefreshTrackedEditBranches	88
+function-lines	internal/lookup/distros.go	340	(*Service).OnPkgs	111
+function-lines	internal/lookup/handlers_test.go	256	TestLookupHandlerArgumentsAndTelegramFallbacks	120
+function-lines	internal/lookup/handlers_test.go	377	TestLookupHandlerAuthorizationRateAndScheduledCleanup	84
+function-lines	internal/lookup/parser_fixtures_test.go	271	TestContentLiveFixtures	109
+function-lines	internal/lookup/pkgs_test.go	308	TestFetchRepologyAvailability	91
+function-lines	internal/moderate/moderate_test.go	366	TestGroupSetupReportPermissionsAndChannelReadability	123
+function-lines	internal/panel/settings_controls_test.go	548	TestPanelNumericControlsMutateOnlyTargetRenderAndRejectStale	139
+function-lines	internal/panel/settings_controls_test.go	366	TestPanelRuntimeControlsMutateOnlyTargetRenderAndRejectStale	181
+function-lines	internal/panel/settings_controls_test.go	716	TestPanelTrustedGroupAndChannelControlsMutateOnlyTargetRenderAndRejectStale	336
+function-lines	internal/panel/settings_controls_test.go	156	testSettingsScreenContracts	209
+function-lines	internal/panel/settings_input.go	546	(*Panel).applyTextInput	130
+function-lines	internal/panel/settings_integration_test.go	201	TestRuntimeSettingsCommandHandlersPersistAndRespond	90
+function-lines	internal/panel/settings_panel_behavior_test.go	1016	TestPanelCommittedCallbackRenderFailuresReportSaved	142
+function-lines	internal/store/baseline.go	51	settingsBaselineFromConfig	127
+function-lines	internal/store/settings.go	334	NewSettings	118
+function-lines	internal/store/settings_test.go	536	TestSettingsMigratesCurrentAntispamGoldenToEveryEffectiveGroup	86
+function-lines	internal/store/settings_test.go	63	TestSettingsSparseRoundTripAndRestore	153
+function-lines	internal/verify/kernel.go	641	(*Service).gradeKernelAnswer	104
+function-lines	internal/verify/kernel_test.go	52	TestKernelAnswerOK	90
+function-lines	internal/verify/service.go	1261	(*Service).OnMemberJoined	105
+function-lines	internal/verify/service.go	2682	(*Service).finishDecline	86
+function-lines	internal/verify/settings_test.go	117	TestPerGroupRuntimeSettingsIsolation	115
+function-lines	internal/verify/state.go	472	(*Service).load	122
+function-lines	internal/verify/state_write_failure_test.go	39	TestStateWriteFailuresKeepRuntimeStateButLoseRestartRecovery	145
+function-lines	internal/verify/verify_test.go	388	TestJoinRequestDMModeDeliversPrivatelyOrFallsBackToScopedGroupLink	99
+function-lines	internal/verify/verify_test.go	1036	TestOnAdminActionTelegramFailureAfterAcknowledgement	132
+package-boundary	internal/verify/channel_gate_test.go	9	github.com/mymmrac/telego	0
+package-boundary	internal/verify/channel_outage_test.go	9	github.com/mymmrac/telego	0
+package-boundary	internal/verify/decline_gone_test.go	9	github.com/mymmrac/telego	0
+package-boundary	internal/verify/duplicate_arrival_test.go	8	github.com/mymmrac/telego	0
+package-boundary	internal/verify/failure_time_test.go	9	github.com/mymmrac/telego	0
+package-boundary	internal/verify/kernel.go	17	github.com/mymmrac/telego	0
+package-boundary	internal/verify/kernel.go	18	github.com/mymmrac/telego/telegohandler	0
+package-boundary	internal/verify/kernel.go	19	github.com/mymmrac/telego/telegoutil	0
+package-boundary	internal/verify/kernel_test.go	19	github.com/mymmrac/telego	0
+package-boundary	internal/verify/kernel_test.go	20	github.com/mymmrac/telego/telegoapi	0
+package-boundary	internal/verify/member_settlement_test.go	9	github.com/mymmrac/telego	0
+package-boundary	internal/verify/post_join_flood_test.go	8	github.com/mymmrac/telego	0
+package-boundary	internal/verify/post_join_journey_test.go	7	github.com/mymmrac/telego	0
+package-boundary	internal/verify/post_join_test.go	12	github.com/mymmrac/telego	0
+package-boundary	internal/verify/recovery_held_test.go	8	github.com/mymmrac/telego	0
+package-boundary	internal/verify/recovery_request_test.go	9	github.com/mymmrac/telego	0
+package-boundary	internal/verify/service.go	22	github.com/mymmrac/telego	0
+package-boundary	internal/verify/service.go	23	github.com/mymmrac/telego/telegohandler	0
+package-boundary	internal/verify/service.go	24	github.com/mymmrac/telego/telegoutil	0
+package-boundary	internal/verify/state.go	17	github.com/mymmrac/telego	0
+package-boundary	internal/verify/state.go	18	github.com/mymmrac/telego/telegoutil	0
+package-boundary	internal/verify/state_write_failure_test.go	14	github.com/mymmrac/telego	0
+package-boundary	internal/verify/transport_wrapper_test.go	8	github.com/mymmrac/telego	0
+package-boundary	internal/verify/verify_test.go	16	github.com/mymmrac/telego	0
+package-boundary	internal/verify/verify_test.go	17	github.com/mymmrac/telego/telegoapi	0
+package-boundary	internal/verify/verify_test.go	18	github.com/mymmrac/telego/telegohandler	0

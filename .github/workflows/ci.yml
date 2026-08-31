@@ -19,6 +19,9 @@ jobs:
           if [ -n "$unformatted" ]; then
             echo "These files are not gofmt-clean:"; echo "$unformatted"; exit 1
           fi
+      - name: lint
+        run: scripts/lint.sh
+
       - name: go vet
         run: go vet ./...
       - name: staticcheck
