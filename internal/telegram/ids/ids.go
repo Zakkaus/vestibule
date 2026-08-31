@@ -42,3 +42,28 @@ func ParseChannelID(value string) (int64, bool) {
 	}
 	return full, true
 }
+
+const channelWhitelistMax = 4096
+
+// UpdateChannelWhitelist adds or removes one sender chat while retaining the newest 4,096 entries.
+func UpdateChannelWhitelist(current []int64, senderID int64, allow bool) []int64 {
+	for index, existingID := range current {
+		if existingID != senderID {
+			continue
+		}
+		if allow {
+			return current
+		}
+		copy(current[index:], current[index+1:])
+		return current[:len(current)-1]
+	}
+	if !allow {
+		return current
+	}
+	if len(current) >= channelWhitelistMax {
+		drop := len(current) - channelWhitelistMax + 1
+		copy(current, current[drop:])
+		current = current[:len(current)-drop]
+	}
+	return append(current, senderID)
+}

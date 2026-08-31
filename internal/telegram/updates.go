@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/moderate"
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/mymmrac/telego"
 	ta "github.com/mymmrac/telego/telegoapi"
@@ -82,6 +83,55 @@ type ModerationHandlers struct {
 	BlockChannel         th.Handler
 	Mute                 th.Handler
 	Unmute               th.Handler
+}
+
+// NewModerationHandlers converts sender-chat updates before invoking moderation policy.
+func NewModerationHandlers(service *moderate.Service) ModerationHandlers {
+	return ModerationHandlers{
+		FilterChannelSenders: channelSenderHandler(service),
+		Purge:                service.OnPurge,
+		Ban:                  service.OnBan,
+		Warn:                 service.OnWarn,
+		ClearWarn:            service.OnClearWarn,
+		BlockChannel:         blockChannelHandler(service),
+		Mute:                 service.OnMute,
+		Unmute:               service.OnUnmute,
+	}
+}
+
+func channelSenderHandler(service *moderate.Service) th.Handler {
+	return func(ctx *th.Context, update telego.Update) error {
+		message := update.Message
+		if message == nil || message.SenderChat == nil {
+			return ctx.Next(update)
+		}
+		if service.FilterChannelSender(ctx.Context(), moderate.ChannelSenderMessage{
+			ChatID:           message.Chat.ID,
+			MessageID:        message.MessageID,
+			SenderChatID:     message.SenderChat.ID,
+			SenderChatTitle:  message.SenderChat.Title,
+			AutomaticForward: message.IsAutomaticForward,
+		}) {
+			return nil
+		}
+		return ctx.Next(update)
+	}
+}
+
+func blockChannelHandler(service *moderate.Service) th.Handler {
+	return func(ctx *th.Context, update telego.Update) error {
+		message := update.Message
+		if message == nil || message.From == nil {
+			return nil
+		}
+		service.BlockChannel(ctx.Context(), moderate.ChannelSenderCommand{
+			ChatID:    message.Chat.ID,
+			MessageID: message.MessageID,
+			CallerID:  message.From.ID,
+			Text:      message.Text,
+		})
+		return nil
+	}
 }
 
 // LookupHandlers maps Telegram lookup commands to lookup service handlers.

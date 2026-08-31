@@ -36,16 +36,7 @@ func telegramHandlers(
 			InputDM:          administration.PanelInputDM,
 			SettingsPrefix:   panel.SettingsCallbackPrefix,
 		},
-		Moderation: telegram.ModerationHandlers{
-			FilterChannelSenders: moderation.FilterChannelSenders,
-			Purge:                moderation.OnPurge,
-			Ban:                  moderation.OnBan,
-			Warn:                 moderation.OnWarn,
-			ClearWarn:            moderation.OnClearWarn,
-			BlockChannel:         moderation.OnBC,
-			Mute:                 moderation.OnMute,
-			Unmute:               moderation.OnUnmute,
-		},
+		Moderation: telegram.NewModerationHandlers(moderation),
 		Lookup: telegram.LookupHandlers{
 			Package:  lookups.OnPkg,
 			Use:      lookups.OnUse,

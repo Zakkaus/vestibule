@@ -17,8 +17,6 @@ import (
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
-const channelWhitelistMax = 4096
-
 // Telegram is the caller-owned transport used for moderation and authorization.
 type Telegram interface {
 	Delete(ctx context.Context, chatID int64, messageID int)
