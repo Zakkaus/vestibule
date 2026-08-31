@@ -142,11 +142,13 @@ python3 scripts/check-baseline-ratchet.py origin/main   # a held violation may n
 go vet ./...
 go build ./... && go build -tags gentoo ./...
 go test -race ./... && go test -race -tags gentoo ./...
+scripts/test-static-sqlite.sh    # the release build configuration, run rather than compiled
 go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
 go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
 go run github.com/securego/gosec/v2/cmd/gosec@v2.28.0 -exclude=G304,G703,G706 ./...
 python3 scripts/gen-arch-md.py --check
 python3 scripts/check-docs.py
+python3 scripts/check-gate-list.py   # this list names every gate CI runs
 cd web && npm ci && npm run build && cd ..
 for c in style-rules undefined-var shadowed theme-leak; do \
   python3 "scripts/design-checks/$c.py" web/dist/assets/*.css; done
@@ -172,8 +174,8 @@ script it refuses an empty package, a platform type in the core, and a rise in t
 number of baselined violations the phase-zero gate is holding.
 
 Chinese documents and user-visible copy go through the prose checker — `docs/`,
-`web/design.html` and `web/architecture.html`. CI runs it, so this is a gate rather
-than a habit. `docs/INVENTORY.md` and `docs/previous-generation/` stay out: one is a
+`web/design.html` and `web/architecture.html`. CI runs it as the `Zakk-LLM/Chinese-skill`
+action, one step per document, so this is a gate rather than a habit. `docs/INVENTORY.md` and `docs/previous-generation/` stay out: one is a
 lookup table whose cells repeat by design, the other is the replaced bot's own
 documents, kept as they were written. It did not use to be: the plan went unchecked for several rounds
 because nobody had named it, and had seven findings when it was finally run. Naming
