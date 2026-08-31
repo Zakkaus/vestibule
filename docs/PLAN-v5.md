@@ -312,7 +312,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 **分支** `v5/dbutil`
 
 引入 `go.mau.fi/util/dbutil`，建立 `migrations/00-latest.sql`，
-把现有 JSON 状态一次性迁入数据库。表结构见 `docs/ARCHITECTURE.md` 第 3 节。
+把现有 JSON 状态一次性迁入数据库。表结构见 `docs/ARCHITECTURE.md` 第 6 节「数据模型」。
 
 **必须同时落地的五件事**，缺一则本阶段未完成：
 
@@ -321,6 +321,21 @@ internal/app  verification  rules  telegram  console  settings  database  status
 3. 超时由扫描器领取到期记录，删除进程内定时器。
 4. `pending_action` 表：状态转换与动作意图同一次事务写入，由执行器完成。
 5. 拉取更新的实例租约写在数据库里，不在内存里。
+
+#### 为什么分片
+
+这五件事有先后：没有库就谈不上带条件的更新，没有带条件的更新就不能把定时器换成扫描器。
+一次全做完，验收若不过，分不清坏在介质、判定、时间还是动作 ——
+与阶段一分片时是同一个问题，规模更大：七千余行，而且是重写不是搬移。
+
+| 分片 | 边界 |
+|---|---|
+| 3A · 介质 | 引入 `dbutil`、`migrations/00-latest.sql`、仓储与一次性导入命令。读写从 JSON 换成数据库，**判定与时序不变**：定时器还在进程里，动作仍直接执行。 |
+| 3B · 判定落库 | 上表第 1、2 件：`challenge_open` 部分唯一索引，以及全部状态转换改为带条件的更新，影响 0 行按已结算处理。 |
+| 3C · 时间与动作 | 上表第 3、4、5 件：扫描器领取到期记录并删除进程内定时器、`pending_action` 表与执行器、实例租约入库。 |
+
+每片结束均须两个构建标签可编译、两套测试全绿。
+本阶段的验收在 3C 之后整体执行一次 —— 分片是为了定位失败，不是降低标准。
 
 **迁移**：提供一次性导入命令，可重复执行且结果一致。
 导入前备份原 JSON 文件，导入后校验条数与关键字段。
@@ -331,7 +346,10 @@ internal/app  verification  rules  telegram  console  settings  database  status
 
 #### 文件处置
 
-**8 个文件，7,395 行。**
+**8 个文件，7,395 行**，其中 `internal/tg/tg.go` 那一行看起来已由阶段一第二片做完：
+该来源文件不存在，它的三个去处都已就位，HTML fallback 与管理员缓存在 `connector.go`、
+删除重试在 `telegram/queue/delete.go`。动手前先确认这一行还剩什么，
+剩下的行数按实际接触面算，不要照搬这里的七千余行。
 
 | 现路径 | 处置 | 目标位置 |
 |---|---|---|
