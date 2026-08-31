@@ -23,7 +23,7 @@ one is ready.
 |---|---|
 | Console values, screen contents, copy rules | `web/design.html` |
 | Package structure, data, flows, reliability | `web/architecture.html` and `docs/ARCHITECTURE.md` |
-| Build, commits, pre-PR checks, code style | `CONTRIBUTING.md` and `docs/development.md` |
+| Rules: limits, invariants, language, commits, the gate | `CONTRIBUTING.md` |
 
 The rewrite order and each phase's acceptance criteria are in `docs/PLAN-v5.md`.
 

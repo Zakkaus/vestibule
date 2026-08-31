@@ -1,131 +1,149 @@
 # Contributing
 
-Thanks for your interest in improving vestibule! Issues and pull
-requests are welcome.
+Issues and pull requests are welcome. This file is the single statement of the rules for
+this repository. Where it conflicts with anything else, this file wins.
 
-## Building
+## Read one of these first
 
-Requires **Go 1.26.7+** (per `go.mod`) and uses [telego v1.11.2](https://github.com/mymmrac/telego).
+Do not start editing until you know which document governs the change.
 
-```sh
-go build ./cmd/vestibule
-```
+| You are changing | Read |
+|---|---|
+| Console values, screens, copy | `web/design.html` |
+| Packages, data, flows, reliability | `web/architecture.html` and `docs/ARCHITECTURE.md` |
+| What to work on next, and when a phase is done | `docs/PLAN-v5.md` |
 
-## Before opening a PR
+The two reference pages render in the tokens they document, so a broken token breaks the
+page. Open them with `python3 -m http.server 8787 --bind 127.0.0.1 --directory web`.
 
-The CI runs these checks — please make sure they pass locally (the release workflow runs the same
-gate before publishing binaries):
+## The project is mid-rewrite
 
-```sh
-gofmt -l .      # must print nothing (run `gofmt -w .` to fix)
-go vet ./...
-go build ./...
-go test -race ./...
-go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
-go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
-go run github.com/securego/gosec/v2/cmd/gosec@v2.28.0 -exclude=G304,G703,G706 ./...   # excluded classes: see SECURITY.md
-```
+The current tree is `gentoo-zh-verify-bot` v4.5.6 carried over and renamed. The target
+architecture is not what the tree looks like today.
 
-## Project layout
+**New code goes into the packages `docs/ARCHITECTURE.md` declares, not into the packages
+that happen to exist.** When the two disagree, the document is right and the tree is what we
+are moving away from. If you need a package the document does not declare, change the
+document first — say what it owns, what it may do, what it must not do — and only then write
+code.
 
-The executable entry point and process assembly live in `cmd/vestibule`. Runtime
-responsibilities are split across focused internal packages:
+`docs/PLAN-v5.md` says which phase we are in and what that phase explicitly does not do.
+Work outside the current phase does not get merged, however good it is.
 
-- `internal/bot`: handler ordering, command menus, and private-message routing
-- `internal/config`: configuration loading, normalization, and validation
-- `internal/feed`: Bugzilla and news polling
-- `internal/i18n`: typed catalogues and locale files
-- `internal/lookup`: package, bug, news, wiki, and distribution lookups
-- `internal/moderate`: moderation policy, commands, and warning state
-- `internal/panel`: administration commands and the settings panel
-- `internal/store`: persisted settings and atomic JSON state helpers
-- `internal/tg`: shared Telegram transport and authorization mechanics
-- `internal/verify`: join-verification state and challenge flows
+## Invariants
 
-Tests sit beside the code they cover. `state_compat_test.go` and `testdata/state/` define
-the persisted-format compatibility contract. A persisted-format change must preserve
-intentional backward compatibility and update the affected fixtures deliberately. Never
-regenerate them as an unrelated cleanup. Run only the package-qualified generator for the
-format being changed:
+These hold at every commit. Breaking one means the change is not finished.
 
-```sh
-UPDATE_STATE_COMPAT_FIXTURES=1 go test ./internal/verify -run '^TestStateCompatGenerateFixtures$'
-UPDATE_STATE_COMPAT_FIXTURES=1 go test ./internal/feed -run '^TestStateCompatGenerateFeedFixtures$'
-UPDATE_STATE_COMPAT_FIXTURES=1 go test ./internal/moderate -run '^TestGenerateWarningFixture$'
-```
+1. The console and Telegram updates call the same service. Any path that writes state
+   without going through it is a defect.
+2. `internal/verification` does not import telego and contains no Telegram types.
+3. Failure falls towards refusing. Not found, timed out, errored — nobody gets in. The only
+   exception is an external condition explicitly configured to fail open.
+4. State transitions are conditional updates. Never read-then-write. Zero rows affected
+   means another path settled it first: treat it as settled, do not retry, do not error.
+5. Write to the database before anything becomes externally visible. If the external call
+   fails, delete the row.
+6. A failed migration exits the process. Never serve traffic on an old schema.
+7. No branch anywhere keys off a specific group. Delete our own community's rows and the
+   product still works.
+8. The bot token never reaches a log, a screen, or the repository.
 
-Review every fixture diff, then run the full test gate. `settings.json` fixtures have no generator;
-update them deliberately by hand when the store compatibility tests require it.
+## Limits that keep this from turning into spaghetti
 
-See the [documentation index](docs/README.md) for architecture, operations, and flow-specific
-guides.
+Every change lands as complete architecture. "Tidy it later" has never once happened; it
+only moves the cost to the next person.
 
-## Adding a lookup command
+| Thing | Limit | When you exceed it |
+|---|---|---|
+| One file | 600 lines | Split by responsibility, not by line count |
+| One function | 80 lines | Extract sub-functions whose names say what they do |
+| Cyclomatic complexity | 15 | Usually means branching should become a lookup or an interface |
+| Concerns per commit | 1 | Behaviour and structure are two commits |
 
-1. Implement the handler in `internal/lookup` and add its route to
-   `(*Service).handlerRoutes` in `internal/bot/bot.go`.
-2. Insert the route name at the exact matching position in the `want` ordering list in
-   `internal/bot/bot_test.go`; handler order is a tested first-match contract.
-3. Add the command to the appropriate Telegram menus in `internal/bot/commands.go`.
-4. Add typed catalogue fields and values in every locale for the command menu, `/help`, usage,
-   errors, and results.
-5. Update the public command tables in `README.md`, `README.zh-CN.md`, and any command table in
-   `docs/` that covers the changed surface.
-6. Add package-level behavior tests and update menu, handler-order, and localization tests that
-   cover the observable command.
+Limits are thresholds that start a conversation, not targets to approach. **When you get
+close, ask whether it is in the wrong package.**
 
-## Adding a panel setting
+Never introduce a package named `util`, `common`, `helper` or `misc`. They have no boundary,
+so everything ends up in them, and you get a second pile.
 
-1. Add and validate the `config.Config` source value, then project it into a provenance-aware
-   baseline in `internal/store/baseline.go`.
-2. Add the effective setting and sparse override to `internal/store/settings.go`. Preserve
-   optimistic revision checks, validate candidates before publishing, and omit an override when
-   it equals the baseline.
-3. Extend the callback grammar in `internal/panel/codec.go`. Use the existing compact field/value
-   encoding and keep encoded callback data within Telegram's 64-byte limit.
-4. Add rendering and callback dispatch in `internal/panel/settings_panel.go`; add ForceReply or
-   chat-picker input dispatch in `internal/panel/settings_input.go` when the value cannot be
-   selected directly.
-5. Add typed catalogue entries and every locale value.
-6. Cover config normalization, baseline provenance, sparse persistence and revision conflicts,
-   codec validation, rendering, input dispatch, authorization, and settings integration as
-   applicable.
+Also: one function does not fetch, decide and render; business packages do not assemble
+user-visible strings — that belongs to `i18n`, and the business layer returns structured
+results; and the second time a piece of logic appears, extract it. The third time means it
+was extracted into the wrong place.
 
-## Localisation
+## Language
 
-- Put every user-visible string in the typed catalogue under `internal/i18n/`, with one JSON
-  file per subsystem and locale.
-- To add a key, add its typed `Text` or `Format` field and the matching JSON key in every
-  locale. Adding a locale also requires every selection path listed in
-  `internal/i18n/README.md`; a `Lang` constant and `localeDefinitions` entry alone are insufficient.
-- `TestProductionCodeContainsNoChineseStringLiterals` rejects Chinese literals outside the
-  catalogue. `TestLocaleFilesLoad` rejects missing files, malformed JSON, unknown keys, and
-  invalid value shapes. The other `internal/i18n` tests enforce completeness, placeholder
-  parity, terminology, English Gentoo terms, and script consistency.
-- Write Traditional Chinese natively; never derive it by converting Simplified Chinese.
+| Where | Language |
+|---|---|
+| Commit messages | English |
+| `README.md` | English, with `README.zh-CN.md` alongside |
+| Code comments | English |
+| User-visible strings | Simplified Chinese source in the catalogue, plus Traditional Chinese and English |
+| Design and architecture documents | Chinese |
 
-See [`internal/i18n/README.md`](internal/i18n/README.md) for the catalogue layout and complete
-translation workflow.
+Write Traditional Chinese natively; never derive it by converting Simplified Chinese. Keep
+user-visible text in the catalogue — the localisation invariants reject Chinese literals in
+production code, comments included.
 
-## Code style
-
-- Put new functionality in the package that owns its policy. Keep
-  `cmd/vestibule` focused on process assembly and registration lifecycle, and reuse
-  existing package services and transport or storage helpers instead of duplicating them.
-- Keep it simple and readable; match the surrounding style. `gofmt` decides formatting.
-- Keep user-visible text in the localisation catalogue; do not hard-code it in production.
-- Write all repository code comments in English. The localization invariants reject Chinese
-  production literals, including comments; do not discover this rule only after the test fails.
-- Make config values configurable (with a sensible default in `LoadConfig`) instead of
-  hard-coding them.
+See `internal/i18n/README.md` for the catalogue layout and translation workflow.
 
 ## Commits
 
-- Group changes by topic — one commit per logical change, not one big mixed commit.
-- Write a clear, imperative subject line (e.g. `feat: …`, `fix: …`, `docs: …`).
+- One commit per logical change. Squash the incremental fixups before opening a PR.
+- Subject says what changed; body says why. The body does not restate the diff.
+- Reference the issue or bug number in the body.
+- **Every commit is GPG-signed.** Do not turn signing off. If the agent times out, fix the
+  agent rather than the configuration; `git log --format='%h %G?'` must be all `G` before you
+  push.
+- No AI signatures or attribution anywhere: no `Co-Authored-By`, no generated-by line, no
+  mention of which tool was used.
+- Mechanical churn — reformatting, import reordering — goes in its own commit.
+
+## Before opening a PR
+
+CI runs these, and the release workflow runs the same gate before publishing binaries. Run
+them locally first. **Clear the build and type caches first**: a stale cache turns a red gate
+green locally.
+
+```sh
+gofmt -l .                       # must print nothing
+go vet ./...
+go build ./... && go build -tags gentoo ./...
+go test -race ./... && go test -race -tags gentoo ./...
+go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
+go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
+go run github.com/securego/gosec/v2/cmd/gosec@v2.28.0 -exclude=G304,G703,G706 ./...
+```
+
+**Both build tags must pass.** Running only the default one misses the generic edition.
+
+Chinese documents and user-visible copy go through the prose checker before the PR.
+
+### If you add a check, drive it red
+
+A check written and never seen to fail usually cannot fail, and a check that always passes is
+worse than none: it makes people think that spot is covered. Break the thing on purpose,
+confirm it goes red, **confirm it goes red on your assertion and not somewhere else**, then
+put it back.
+
+### If you script a bulk edit
+
+Assert the anchor exists and is unique before replacing anything, and check that the diff is
+the size you expected. A script exiting zero is not evidence that it did the right thing.
+
+## Pull requests
+
+- Say why the change was made and what you verified. Skip the diff narration.
+- Keep the template: description above the marker, checklist untouched.
+- Tick a box only after running that check. An unticked box is information; a wrongly ticked
+  one is misdirection.
+- Watch CI afterwards. If something fails, read the log and fix the cause. Do not guess.
 
 ## Secrets
 
-Never commit secrets. The bot token (`BOT_TOKEN`) and optional `GITHUB_TOKEN` come
-from the environment; `bot.env` and `config.json` are git-ignored. See
-[SECURITY.md](SECURITY.md) for how to report a vulnerability.
+Never commit secrets. `BOT_TOKEN` and the optional `GITHUB_TOKEN` come from the environment;
+`bot.env` and `config.json` are git-ignored. See `SECURITY.md` for reporting a vulnerability.
+
+Two specific hazards in this project: the self-hosted Bot API server stores state in a
+directory whose name is the bot token, so never list that directory; and a configuration file
+gets pasted into issues and chats, so secrets go in by reference, never inline.
