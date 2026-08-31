@@ -18,6 +18,7 @@
   "navigation": {
     "label": "控制台导航",
     "workspace": "工作区",
+    "queue": "等待队列",
     "groups": "群与频道"
   },
   "shell": {
@@ -65,6 +66,21 @@
       }
     }
   },
+  "challenge": {
+    "state": {
+      "pending": "等待中",
+      "approved": "已通过",
+      "declined": "已退回",
+      "banned": "已封禁",
+      "expired": "已过期",
+      "superseded": "已替代"
+    },
+    "reason": {
+      "wrongAnswer": "答错",
+      "rejected": "答对但触发否决条件",
+      "externalUnmet": "外部条件查不到"
+    }
+  },
   "groups": {
     "title": "群与频道",
     "description": "每一行都显示 Telegram 当前模式与验证前置，避免把无法收到申请的群当成正常。",
@@ -90,22 +106,48 @@
     "metrics": {
       "applications48h": "48 小时内申请",
       "settled": "已结算",
-      "timeout": "超时"
+      "expired": "已过期"
     },
     "applicants": {
       "heading": "最近申请人",
       "withUsername": "@{{username}} · {{id}}",
       "idOnly": "ID {{id}}"
     },
-    "settlement": {
-      "timeout": "超时",
-      "approved": "已通过",
-      "rejected": "已拒绝"
-    },
     "names": {
       "gentooZh": "Gentoo 中文社区",
       "archZh": "Arch Linux 中文社区",
       "oldOt": "老 OT"
+    }
+  },
+  "queue": {
+    "title": "等待队列",
+    "tableLabel": "等待队列记录",
+    "columns": {
+      "user": "用户",
+      "group": "群",
+      "result": "结果",
+      "time": "时间",
+      "actions": "操作"
+    },
+    "status": {
+      "pending": "等待中 {{time}}"
+    },
+    "actions": {
+      "release": "放行",
+      "releaseFor": "放行 {{user}}",
+      "revoke": "撤销",
+      "revokeFor": "撤销 {{user}}",
+      "details": "详情",
+      "detailsFor": "查看 {{user}} 的详情"
+    },
+    "empty": {
+      "title": "还没有人申请",
+      "description": "收到第一份申请后，等待中的人会出现在这里。"
+    },
+    "filteredEmpty": {
+      "title": "没有找到符合条件的记录",
+      "currentCondition": "当前条件：群为 {{group}}，结果为 {{result}}。",
+      "clear": "清除筛选"
     }
   }
 }

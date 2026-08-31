@@ -318,6 +318,84 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+[data-queue-page] {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+[data-queue-table-scroll] {
+  overflow-x: auto;
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--card);
+  box-shadow: var(--card-shadow);
+}
+
+[data-queue-table] {
+  inline-size: 100%;
+  min-inline-size: 48rem;
+  border-collapse: collapse;
+}
+
+[data-queue-table] th,
+[data-queue-table] td {
+  padding-block: var(--sp-3);
+  padding-inline: var(--sp-4);
+  border-block-end: var(--hairline) solid var(--border);
+  text-align: start;
+  vertical-align: middle;
+}
+
+[data-queue-table] th {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+[data-queue-table] tbody tr:last-child td {
+  border-block-end: 0;
+}
+
+[data-queue-user],
+[data-queue-time] {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+[data-queue-group] {
+  min-inline-size: 12rem;
+  overflow-wrap: anywhere;
+}
+
+[data-queue-result] {
+  white-space: nowrap;
+}
+
+[data-queue-action] {
+  text-align: end;
+  white-space: nowrap;
+}
+
+[data-queue-empty] {
+  display: grid;
+  justify-items: start;
+  inline-size: min(100%, 38rem);
+  gap: var(--sp-3);
+}
+
+[data-queue-empty] h2 {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+[data-queue-empty] p {
+  margin: 0;
+  color: var(--muted-foreground);
+}
+
 [data-slot="badge"][data-status="ok"] {
   background: var(--status-ok-bg);
   color: var(--status-ok-fg);
