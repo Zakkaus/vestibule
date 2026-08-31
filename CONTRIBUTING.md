@@ -152,6 +152,12 @@ for c in html-structure style-rules css-coverage shadowed undefined-var theme-le
 
 **Both build tags must pass.** Running only the default one misses the generic edition.
 
+A phase that removes baselined violations owns three edits, not one: clear the
+violations, delete their rows from `scripts/baseline.txt`, and lower
+`scripts/held.txt` to the new count. The gate names which rows went stale and
+the acceptance script refuses while any remain, so none of the three can be
+skipped quietly.
+
 A phase's acceptance is a script, not a paragraph. `scripts/accept-phase1.sh` is phase
 one's, clause by clause in the plan's own order. The count of baselined violations it
 compares against lives in `scripts/held.txt` and is a ratchet: the check fails when the

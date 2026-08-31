@@ -79,8 +79,15 @@ func main() {
 		// A frozen package-boundary finding is a violated invariant, and reporting it
 		// as a plain pass is how a check ends up permanently green over a broken rule.
 		// Report the two separately so the count stays visible on every run.
-		if held := countHeld(baseline, boundaryKind); held > 0 {
+		if held := countHeld(findings, baseline, boundaryKind); held > 0 {
 			fmt.Printf("lint: passed, holding %d baselined %s violations — these break an invariant and are due in the phase that owns them\n", held, boundaryKind)
+			if stale := staleBaseline(findings, baseline, boundaryKind); len(stale) > 0 {
+				fmt.Printf("lint: %d baselined %s violations no longer occur; remove them from scripts/baseline.txt\n", len(stale), boundaryKind)
+			}
+			return
+		}
+		if stale := staleBaseline(findings, baseline, boundaryKind); len(stale) > 0 {
+			fmt.Printf("lint: passed, and every baselined %s violation is gone; remove them from scripts/baseline.txt\n", boundaryKind)
 			return
 		}
 		fmt.Println("lint: passed")
@@ -93,14 +100,43 @@ func main() {
 }
 
 // countHeld reports how many baselined findings of one kind are still present.
-func countHeld(baseline map[string]metric, kind string) int {
+//
+// It counts the intersection, not the baseline file. Counting the file made the
+// number permanent: a phase could remove every violation it owned and the gate
+// would still print the original count, while the acceptance script demanded the
+// printed number match a ratchet file. Lowering the file then failed acceptance
+// and leaving it failed the phase — an instruction with no way to satisfy it.
+func countHeld(findings []metric, baseline map[string]metric, kind string) int {
 	n := 0
-	for _, finding := range baseline {
-		if finding.kind == kind {
+	for _, finding := range findings {
+		if finding.kind != kind {
+			continue
+		}
+		if _, baselined := baseline[metricKey(finding)]; baselined {
 			n++
 		}
 	}
 	return n
+}
+
+// staleBaseline reports baselined findings of one kind that no longer occur, so
+// a phase that cleared them can prune the file rather than guess which are gone.
+func staleBaseline(findings []metric, baseline map[string]metric, kind string) []string {
+	live := make(map[string]struct{}, len(findings))
+	for _, finding := range findings {
+		live[metricKey(finding)] = struct{}{}
+	}
+	stale := make([]string, 0)
+	for key, finding := range baseline {
+		if finding.kind != kind {
+			continue
+		}
+		if _, still := live[key]; !still {
+			stale = append(stale, key)
+		}
+	}
+	sort.Strings(stale)
+	return stale
 }
 
 func printBaseline(findings []metric) {
