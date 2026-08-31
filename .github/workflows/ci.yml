@@ -58,6 +58,34 @@ jobs:
         run: python3 scripts/gen-arch-md.py --check
       - name: Documents agree with themselves
         run: python3 scripts/check-docs.py
+      # One path per step: the action passes its `path` input as a single quoted
+      # argument, so a space-separated list becomes one filename that does not exist.
+      #
+      # Two documents are deliberately absent. docs/previous-generation/ is 21 documents
+      # from the bot being replaced, kept as they were written rather than as prose we
+      # author. docs/INVENTORY.md is a lookup table whose categorical cells repeat by
+      # design, which the checker reads as a repeated sentence; no style setting accepts
+      # it. CONTRIBUTING's rule is prose people follow, and neither is that.
+      - name: Chinese prose — docs/PLAN-v5.md
+        uses: Zakk-LLM/Chinese-skill@242ec69c089f5dae91cfc7eb3b4dc924d5c1aab0 # v1.4.0
+        with:
+          path: docs/PLAN-v5.md
+      - name: Chinese prose — docs/ARCHITECTURE.md
+        uses: Zakk-LLM/Chinese-skill@242ec69c089f5dae91cfc7eb3b4dc924d5c1aab0 # v1.4.0
+        with:
+          path: docs/ARCHITECTURE.md
+      - name: Chinese prose — docs/README.md
+        uses: Zakk-LLM/Chinese-skill@242ec69c089f5dae91cfc7eb3b4dc924d5c1aab0 # v1.4.0
+        with:
+          path: docs/README.md
+      - name: Chinese prose — web/design.html
+        uses: Zakk-LLM/Chinese-skill@242ec69c089f5dae91cfc7eb3b4dc924d5c1aab0 # v1.4.0
+        with:
+          path: web/design.html
+      - name: Chinese prose — web/architecture.html
+        uses: Zakk-LLM/Chinese-skill@242ec69c089f5dae91cfc7eb3b4dc924d5c1aab0 # v1.4.0
+        with:
+          path: web/architecture.html
       - name: Console frontend builds and its stylesheet holds the rules
         run: |
           cd web && npm ci --silent && npm run build

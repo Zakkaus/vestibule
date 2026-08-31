@@ -171,10 +171,14 @@ is recorded rather than left as headroom to creep back into. Read as prose it pr
 script it refuses an empty package, a platform type in the core, and a rise in the
 number of baselined violations the phase-zero gate is holding.
 
-Chinese documents and user-visible copy go through the prose checker before the PR —
-`docs/`, `web/design.html` and `web/architecture.html`. The plan went unchecked for
-several rounds because nobody had named it, and it had seven findings when it was
-finally run. If it is prose people follow, it goes through the checker.
+Chinese documents and user-visible copy go through the prose checker — `docs/`,
+`web/design.html` and `web/architecture.html`. CI runs it, so this is a gate rather
+than a habit. `docs/INVENTORY.md` and `docs/previous-generation/` stay out: one is a
+lookup table whose cells repeat by design, the other is the replaced bot's own
+documents, kept as they were written. It did not use to be: the plan went unchecked for several rounds
+because nobody had named it, and had seven findings when it was finally run. Naming
+it was not enough — a document was merged with a finding in it the same day this
+became a CI step. If it is prose people follow, it goes through the checker.
 
 ### If you add a check, drive it red
 
