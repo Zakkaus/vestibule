@@ -184,6 +184,20 @@ type Store interface {
 
 `rules` 是纯函数包，因此可以脱离一切依赖测试， 也可以被控制台的试答直接调用，不必绕一圈网络。
 
+### 进程骨架的选择
+
+三种常见骨架都能监督后台任务，但它们表达退出顺序的能力不同。
+
+| 模式 | 优点 | 本项目的代价 |
+|---|---|---|
+| `run.Group` 的成对 actor | 实现小，任一关键 actor 返回即可触发整组退出 | 六个任务并不对称。更新入口必须先停，发送器必须最后排空， 顺序仍隐藏在注册位置 |
+| 后台服务 registry | 统一为 `Run(context.Context) error`，可表达依赖、状态与禁用 | 六个固定任务不需要动态依赖图，引入 manager、反射命名与服务状态会增加 生命周期本身的复杂度 |
+| 显式 `App.Start/Stop` | 组装、启动与反向退出顺序直接可见 | 必须自行补齐部分启动失败回滚、统一超时与关键组件监督 |
+
+**选择显式 `App` 编排。**`internal/app.App` 是唯一生命周期所有者；`app.New` 只升级并校验配置、迁移数据库和组装依赖， 不启动 goroutine。`App.Run` 按固定顺序启动组件，任何关键组件在非退出阶段返回 都进入同一关闭路径。后台任务统一实现 `Run(context.Context) error`， 但不引入动态 registry 或 `run.Group`。
+
+`cmd/bot` 只处理进程参数、信号 context 与退出码， 不保存业务对象，也不直接执行 SQL。调研依据： `/home/zakk/code/memory/verify-bot/research/H-runtime.md:17-29,114-208`。
+
 ### 拉取更新时必须声明要哪几种
 
 平台默认**不投递** `chat_join_request`。 权限给满、群里开关也开了，只要拉取时没有声明这一项， 加群申请一条都收不到，而且没有任何报错。上一代把五种一次声明清楚， `cmd/gentoo-zh-verify-bot/main.go:368`：
@@ -215,18 +229,20 @@ callback_query       按钮作答
 2  打开数据库 → 执行迁移          失败退出，不允许旧结构接流量
 3  组装依赖，注册后台任务
 4  取更新拉取租约                 拿不到则只提供控制台，不拉取更新
-5  启动 HTTP，此时 /livez 已通
-6  建立 Telegram 通道，通后 /readyz 转通
-7  异步做启动后收尾：权限预检、权限同步、积压清理
+5  启动发送器
+6  启动四个固定周期任务
+7  启动 HTTP，此时 /livez 已通
+8  建立 Telegram 更新通道，通后 /readyz 转通
+9  异步做启动后收尾：权限预检、积压重列
 ```
 
 ```text
 1  置关闭标志                     进行中的操作据此提前放弃重试
 2  /readyz 转不通                  先摘流量，再停处理
 3  停止拉取更新，释放租约
-4  停止各后台循环，各自带超时
-5  等待进行中的处理结束           并发等待，总超时到点即放弃
-6  刷新待写数据
+4  等待进行中的处理结束           并发等待，总超时到点即放弃
+5  停止各周期生产者，各自带超时
+6  排空发送器，刷新日志与指标
 7  最后关数据库                它是所有人的依赖，必须最后关
 ```
 
@@ -239,22 +255,109 @@ callback_query       按钮作答
 | 数据库不是自己打开的就不关 | 嵌入使用时不应替调用方管理生命周期 |
 | 可停止能力用可选接口表达 | 不强迫每个组件都实现停止方法 |
 
+#### 优雅退出预算
+
+默认总预算为 30 秒，可在 10 至 120 秒之间配置。各阶段都从同一个关闭起点计算 **累计绝对 deadline**，不是五段独立超时相加；前一阶段提前完成， 余量自动留给后续阶段。
+
+| 累计 deadline | 阶段 | 正常动作 | 到期后 |
+|---|---|---|---|
+| T+2s | 关闭入口 | `ready=false`；停止 Telegram admission 与管理 HTTP listener | 关闭底层 transport 或 listener，继续下一阶段 |
+| T+10s | 等待在途操作 | 等待 update worker、HTTP handler 与已开始的数据库事务，不再分配新业务工作 | 取消 handler context；未提交事务回滚，durable inbox 留待重放 |
+| T+15s | 停止周期生产者 | 按注册顺序的逆序取消并等待，此后不再产生新 outbox | 取消剩余 I/O；由 lease 或版本条件保证下次可重试 |
+| T+27s | 排空发送器 | 只完成已在途和当前已到期的 outbox，不等待未来延期、429 暂停或打开的断路器 | 取消发送请求，释放 lease 或等待 lease 到期 |
+| T+30s | 关闭资源 | 刷新日志与指标，最后关闭数据库 | 记录未完成阶段并返回关闭错误；第二次终止信号可强制退出 |
+
+某一阶段失败或超时后仍继续执行后续清理，不能因前一项失败而跳过数据库关闭。 发送器是消费者，不随周期生产者一起停止；生产者停止后，它保留到 `T+27s` 排空。业务状态没有 write-behind 内存缓冲， inbox 与 outbox 始终以数据库为准。
+
+调研依据： `/home/zakk/code/memory/verify-bot/research/H-runtime.md:580-661`。
+
 ### 后台任务
 
-六个长期任务，统一注册，统一带自己的上下文与超时。
+六个长期任务都在 `app.New` 构造期固定注册，不提供运行时插件 registry。 发送器与更新入口是具有特殊启停顺序的显式组件；其余四项放进固定的周期任务 slice， 由同一个 managed-task 适配器提供独立 context、`Done`、 `Err` 与有超时的停止方法。
 
-| 任务 | 启动 | 关闭 | 失败时 |
-|---|---|---|---|
-| 更新拉取 | 取到租约后 | 第 3 步，最先停 | 退避重连，标志健康状态 |
-| 发送队列 | 第 3 步 | 第 4 步，停前先冲干净 | 429 退避；队列满则拒绝入队 |
-| 到期扫描 | 第 3 步 | 第 4 步 | 记录并在下个周期重试 |
-| 动作执行 | 第 3 步 | 第 4 步 | 按次数退避，到上限转人工 |
-| 权限同步 | 第 7 步 | 第 4 步 | 保留旧记录，不清空 |
-| 订阅抓取 | 第 7 步 | 第 4 步 | 连续失败暂停该源并通知 |
+| 任务 | 注册位置 | 启动 | 关闭 | 失败处理 |
+|---|---|---|---|---|
+| 更新拉取 | `App` 的显式入口组件 | 取到租约后，最后开放入口 | 最先停止 admission 并释放租约 | 网络错误有限退避；令牌或协议配置错误返回进程级错误 |
+| 发送队列 | `App` 的显式消费者组件 | 先于所有生产者 | 最后排空并停止 | 429 持久化延期；网络与 5xx 退避；永久 4xx 进入 dead-letter 或禁用群 |
+| 到期扫描 | 固定周期任务 slice | 启动后立即扫描，再按周期执行 | 按 slice 逆序停止 | 单项失败隔离；连续的全局查询失败返回进程级错误 |
+| 动作执行 | 固定周期任务 slice | 与到期扫描同时注册 | 按 slice 逆序停止 | 按项退避；达到上限转人工处理，不静默丢弃 |
+| 权限同步 | 固定周期任务 slice | 与其他周期任务一同启动 | 按 slice 逆序停止 | 单个故障域暂停；全局认证错误返回进程级错误 |
+| 订阅抓取 | 固定周期任务 slice | 与其他周期任务一同启动 | 按 slice 逆序停止 | 单个 feed 失败只影响该 feed；任务循环意外返回属于进程级错误 |
 
-**每个任务的循环体外面包一层恢复。**一次处理崩溃只丢这一次， 记录足够定位的字段后继续下一次。**恢复只包在循环体这一层**： 包得太深会掩盖真正的缺陷，不包则一个群的异常会带停整个任务。
+每个周期任务同步完成一次迭代后才重置 timer，同一任务不重叠； 一次执行过慢后，不并发执行积压周期。新增长期任务时，必须同时补入固定注册表、 启动与退出表、就绪和指标定义，以及生命周期测试。
 
-装配阶段的错误不恢复，直接退出： 配置错、迁移失败、依赖缺失都属于起不来的问题， 让它带着残缺状态运行比崩掉更糟。
+**恢复只放在单项处理边界。**记录定位字段和 stack 后，把该项写成可重试或终态， 再继续下一项。顶层任务循环、发送调度器与 supervisor 不恢复；这些位置的 panic 或意外返回可能已经破坏锁、事务、堆或在途标记，必须让进程退出。
+
+调研依据： `/home/zakk/code/memory/verify-bot/research/H-runtime.md:185-208,359-384,663-677`。
+
+### 发送队列
+
+消息先在业务事务内写入 durable outbox。内存 channel、最小堆和缓存只保存有上限的唤醒信息， 数据库行才是权威状态。队列提供至少一次发送，不宣称 Telegram 不支持的恰好一次语义。
+
+```text
+send_outbox(
+  id, dedupe_key UNIQUE, chat_id, chat_kind, method,
+  payload, state, attempt, available_at,
+  lease_owner, lease_until, telegram_message_id,
+  last_error, created_at, completed_at
+)
+INDEX(state, available_at, id)
+INDEX(chat_id, state, id)
+```
+
+`dedupe_key` 防止同一业务事件重复创建 outbox。claim 使用有期限的 lease； 进程退出后，`lease_until` 到期即可重领。Telegram 已接收消息而返回值尚未落库时 仍可能重发，因此该窄窗口接受重复，并在已有 `message_id` 的操作中优先改用 edit。
+
+```text
+chatBucket {
+  chat_id, chat_kind,
+  head, has_head, in_flight,
+  next_send_at, blocked_until, last_used_at,
+  heap_index, breaker_key
+}
+
+Sender {
+  global_limiter,
+  buckets map[chat_id]*chatBucket,
+  ready_min_heap,
+  work[2 * workers], result[2 * workers],
+  wake[1]
+}
+```
+
+每个 bucket 只装载一条 durable 队首。单一 scheduler 按 `max(outbox.available_at, next_send_at, blocked_until)` 排序； 到期后先取得全局令牌，再把该群标为 `in_flight` 并交给有界 worker。 结果返回前不派发同群第二条，因此同群保持 FIFO，不同群仍可并行。
+
+| 约束 | 初始值 | 达到上限时 |
+|---|---|---|
+| 全局发送 | 29 条/秒，burst 1 | 等待全局令牌 |
+| 群组发送 | 每 3 秒一条，burst 1 | 队首留在最小堆 |
+| 私聊发送 | 每秒一条，burst 1 | 队首留在最小堆 |
+| 内存 bucket | 2,048 个活跃群 | 空 bucket 按最后使用时间驱逐，其他 due 群留在数据库 |
+| outbox | 全局 100,000 条，每群 500 条 | 事务返回 backpressure 错误，不静默丢弃 |
+
+收到 429 后不占用 worker 等待。当前行的 `available_at` 与对应 bucket 的 `blocked_until` 一起持久化为 `retry_after` 加 0 至 250 毫秒抖动， worker 随即释放。所有 Telegram 消息发送必须经过 `Sender`；权限查询等非消息 API 可有独立并发上限，但仍必须设置请求超时并处理 429。
+
+调研依据： `/home/zakk/code/memory/verify-bot/research/H-runtime.md:386-463`； Telegram 限额与退避字段见 [Bot FAQ](https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this) 和 [ResponseParameters](https://core.telegram.org/bots/api#responseparameters)。
+
+### 断路器
+
+断路器按**故障域**取键，不把同一个上游故障机械复制成每群一次探测。 消息发送仍按群分桶；共享 Bot API 的网络与 5xx 故障使用 `bot|upstream`， 独立 provider 使用 `group_id|provider`，订阅抓取使用 feed。 每个 bucket 只保存 `breaker_key`，由有上限的 breaker 表取得状态。
+
+最简状态只需要 `state`、`generation`、`failures`、 `probe`、`open_for` 与 `open_until`。 `generation` 使旧请求的完成回调无法覆盖新一代状态。
+
+| 当前状态 | 事件 | 转换 |
+|---|---|---|
+| closed | 成功 | 连续失败数清零 |
+| closed | 第 5 次连续可重试失败 | open 2 分钟 |
+| open | `open_until` 未到 | 本地拒绝，不访问上游 |
+| open | `open_until` 已到 | half-open，只允许一次 probe |
+| half-open | probe 成功 | closed，等待恢复为 2 分钟 |
+| half-open | probe 失败 | 重新 open，等待翻倍，最多 30 分钟 |
+
+只把 transport error 与 5xx 计为可重试失败。429 使用自己的 `retry_after` 暂停，不计断路失败；明确永久 400/403 直接禁用对应群或资源， 也不进入 half-open 探测。状态按故障域持久化，进程重启或内存项驱逐后恢复， 避免重启清空暂停期。
+
+当前状态机不引入通用断路器库。只有出现并发 probe、滑动窗口统计或跨进程协调时， 才重新评估成熟实现。
+
+调研依据： `/home/zakk/code/memory/verify-bot/research/H-runtime.md:465-576`； 故障域取键依据： `/home/zakk/code/memory/verify-bot/research/G-maintenance.md:219-227`。
 
 ## 4. 群的两种模式
 
@@ -851,11 +954,71 @@ Grafana 把前端指南拆成九份，**按维护者任务分**，不按组件�
 
 **新增一条规则时，同时给出它失败时会变红的检查。** 没有检查的规则只是偏好，半年后没有人记得。
 
+第 02 节的允许与禁止矩阵是机器检查的输入，不只是评审提示。 模块外边界由 Go 的 `internal` 目录强制；模块内边界由依赖 linter 按目录和完整 module import path 拒绝。只检查 import cycle 不够， 因为无环的错误依赖仍能编译。
+
+| 边界 | 机器约束 |
+|---|---|
+| 模块外部不得依赖实现 | 运行包全部位于 `internal/`， 由 Go 工具链拒绝模块外导入 |
+| 模块内部不得越层 | 依赖边界规则逐目录拒绝第 02 节矩阵中的禁止边 |
+| `rules` 保持纯函数 | 导入检查拒绝数据库、网络与具体协议包 |
+| 接口实现必须完整 | 编译期接口断言随接口签名一起编译 |
+| 所有构建配置都有效 | 每套受支持的构建标签分别执行静态检查、构建与测试 |
+| 不出现单群特例 | 静态检查拒绝固定群标识和主群一类的业务命名 |
+
+新增边界时必须同时增加一个能因违规而失败的检查，并用故意违规证明失败发生在目标断言。 检查的稳定合同是“拒绝哪条边”，不是当前脚本、命令或作业的名字。
+
+调研依据： `/home/zakk/code/memory/verify-bot/research/G-maintenance.md:18-43`。
+
+### 兼容表面
+
+| 表面 | 稳定性 | 维护合同 |
+|---|---|---|
+| Go 包与内部接口 | 内部 | 不承诺模块外兼容；一次变更内迁移全部调用方后直接删除旧接口， 不保留永久 shim |
+| 已发布的管理 HTTP API | 公共且版本化 | 请求、响应与错误码保持兼容；破坏性删除只进入 major release |
+| 实验 HTTP API | 不稳定 | 只能位于显式实验入口或受功能开关保护，文档必须说明可能变更 |
+| YAML 配置 | 公共 | 字段改名与移动由配置升级器单向迁移；运行时只读取规范的新字段 |
+| 数据库 schema | 持久兼容表面 | 已发布 migration 的标识、顺序与 SQL 冻结；修正只能追加新的 forward migration |
+| Telegram update 与 callback | 外部协议 | 兼容 Telegram 协议；SDK 类型只留在 `telegram`， 不成为本项目的公共 Go API |
+
+稳定性必须由目录、路由版本、迁移历史与兼容固定装置体现， 不能只在文字中标为 internal 或 public。
+
+调研依据： `/home/zakk/code/memory/verify-bot/research/G-maintenance.md:45-66`。
+
+### 弃用与向后兼容
+
+以下流程只适用于已发布的 HTTP、配置和持久数据表面。 内部 Go 接口采用一次变更内的完整切换。
+
+- 在 issue 中记录旧项、替代项、使用范围、停止接受的版本与删除版本。
+- 先发布替代项。配置升级只从旧路径写入新路径，业务代码只读取新字段， 不长期保留两套实现。
+- 启动日志或 HTTP 响应只警告一次，同时给出替代项与删除版本。
+- 同一变更加入旧配置、旧 HTTP 请求或旧数据库固定装置， 证明升级后只产生规范的新表示。
+- 小型配置项至少保留两个 minor release 且不少于 90 天； 稳定 HTTP 字段保留到下一 major。
+- 只有可关闭功能才在删除前经历一个默认关闭的 minor； 普通字段改名不人为增加关闭期。
+- 删除运行时代码后仍保留旧配置迁移固定装置与全部已发布 migration， 使跨版本升级继续可验证。
+
+调研依据： `/home/zakk/code/memory/verify-bot/research/G-maintenance.md:68-94`。
+
+### 版本与发布
+
+应用版本采用 SemVer：用户可见的兼容功能进入 minor，兼容缺陷修复进入 patch， 稳定 HTTP API 的破坏性修改进入 major；内部包重构本身不决定版本号。 有用户可见内容时，每六周最多发布一个 minor；没有内容则跳过， patch 与安全版本按需发布。当前 v5 的阶段合并与一次性发布次序仍以 `docs/PLAN-v5.md` 为准。
+
+发布说明只记录使用者能观察到或必须采取行动的变化：破坏性变化、功能、缺陷修复、 安全、配置与数据库。内部重构、构建清理和机械调整不进入发布说明。
+
+应用 SemVer 与 schema version 独立。schema 使用单调递增版本和兼容下限； 旧二进制发现数据库兼容下限高于自身能力时拒绝启动。已发布 migration 不修改、不重排、 不删除，错误由新的 forward migration 修正。降级只保证到兼容下限允许的版本； 破坏性迁移执行前必须备份。
+
+发布验证至少覆盖空库升级、上一发布版本数据库升级，以及兼容范围内的一次降级启动。 这些是场景合同，不把当前执行命令或流水线作业名写进架构书。
+
+调研依据： `/home/zakk/code/memory/verify-bot/research/G-maintenance.md:96-129`。
+
 ### 文档与代码的一致
 
-大型项目的架构文档普遍会过时，参考实现里就有描述了已被删除的检查工具的段落。 因此这里只写三类内容：**不变量、边界、以及为什么这样选**。 具体的命令名、作业名、行号不写进文档，它们比代码更快过时。
+本项目继续同时维护 `docs/ARCHITECTURE.md` 与 `web/architecture.html`；两份文档表达同一结论，并在同一次变更中更新。
 
-这一页与 `docs/ARCHITECTURE.md` 内容相同， 两者同时更新。界面相关的规定一律放 [设计语言](design.html)，不在这里重复。
+影响包职责、允许的导入边、稳定 HTTP 表面、配置升级、schema 兼容或启动关闭顺序的变更， 必须同步更新两份架构文档，或在评审中明确记录为何架构没有变化。 每六个月只检查断链、已删除符号和失效流程，不按日历重写仍然有效的架构决定。
+
+正文只保存不变量、边界、选择理由与稳定的场景合同。 可判定的约束由 lint、编译和行为固定装置执行；具体命令名、作业名与实现行号不写入正文， 避免流程调整后文档仍指向旧入口。
+
+调研依据： `/home/zakk/code/memory/verify-bot/research/G-maintenance.md:256-287`。 界面相关规定仍只放在 [设计语言](design.html)，不在这里重复。
 
 ## 15. 安装与更新
 
