@@ -50,3 +50,8 @@ jobs:
         run: python3 scripts/gen-arch-md.py --check
       - name: Documents agree with themselves
         run: python3 scripts/check-docs.py
+      - name: Structure, style rules and coverage of the two pages
+        run: |
+          python3 scripts/design-checks/html-structure.py web/design.html web/architecture.html
+          python3 scripts/design-checks/style-rules.py    web/design.html web/architecture.html
+          python3 scripts/design-checks/css-coverage.py   web/design.html web/architecture.html
