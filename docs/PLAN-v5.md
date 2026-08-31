@@ -683,6 +683,38 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 结构不兼容时升级前就明确提示不可回退。
 **实机**：在一台干净机器上按 install.sh 走一遍，装完打开打印的那条地址就能用。
 
+#### 文件处置
+
+| 现路径 | 处置 | 目标位置 |
+|---|---|---|
+| `deploy/install.sh` | 重写 | 同名。现有这份继承自上一代：只做「从 GitHub release 下载、校验 SHA256、装 systemd 单元」，不管容器、不管回退、不管卸载 |
+| `deploy/vestibule.service` | 沿用并扩写 | 同名。加上执行替换的那个单元 |
+| `deploy/gentoo-zhbot.service` | 沿用并扩写 | 同名 |
+
+本阶段还要从无到有做出来的：容器镜像与 compose 定义、执行替换的宿主单元、
+以及安装结果文件（`600` 权限，写认领链接不写凭据）。
+
+#### 必须保住的行为
+
+以下是现有两份文件已经做到的，重写时不能丢：
+
+- 下载的二进制按发布的 `SHA256SUMS` 校验后才安装（`deploy/install.sh:54`）。
+- **已存在的 `bot.env` 从不覆盖**，所以升级就是重跑同一条命令（`deploy/install.sh:60-61`）。
+- 两个版本名字全程分开，一台机器上可以同时装（`--generic` 与 `--gentoo`）。
+- 单元的加固逐条保留：`DynamicUser`、`ProtectSystem=strict`、
+  `CapabilityBoundingSet=` 空、`SystemCallFilter=@system-service`、
+  `RestrictAddressFamilies` 只留三种、`UMask=0077`、`StateDirectoryMode=0700`。
+- `Type=notify` 加 `WatchdogSec=120s`：进程要自己报活，卡住由 systemd 处理。
+
+#### 依赖
+
+依赖阶段五：`/livez` 与 `/readyz` 由那一阶段的 HTTP 服务提供。
+架构文档第 11 节与第 13 节已经定了这两个端点各自的判据，
+但**代码里现在一个都没有** —— 本阶段的「健康检查通过」在它们存在之前无从验起。
+
+自建 Bot API 这一侧已经就位：`internal/app/app.go:166-168` 接受
+`TelegramAPIURL` 并转给 `telego.WithAPIServer`，本阶段只需把它接进部署。
+
 
 ### 阶段十 · 切换到生产
 
