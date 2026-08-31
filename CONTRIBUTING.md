@@ -148,7 +148,10 @@ python3 scripts/check-docs.py
 **Both build tags must pass.** Running only the default one misses the generic edition.
 
 A phase's acceptance is a script, not a paragraph. `scripts/accept-phase1.sh` is phase
-one's, clause by clause in the plan's own order. Read as prose it proved nothing; as a
+one's, clause by clause in the plan's own order. The count of baselined violations it
+compares against lives in `scripts/held.txt` and is a ratchet: the check fails when the
+number rises **and** when it falls without the file being lowered to match, so progress
+is recorded rather than left as headroom to creep back into. Read as prose it proved nothing; as a
 script it refuses an empty package, a platform type in the core, and a rise in the
 number of baselined violations the phase-zero gate is holding.
 
