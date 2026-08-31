@@ -127,6 +127,28 @@ def check_screen_coverage() -> None:
                             "claims to be exhaustive" % screen)
 
 
+def check_phase_branches_are_distinct(text: str) -> None:
+    """No two phases claim the same branch.
+
+    Phase five was written by copying phase two and editing the parts someone
+    remembered: its heading and its file table are its own, its branch name and
+    its opening paragraph still described extracting a pure rules package that
+    phase two had already shipped. A dispatched agent reads the paragraph, not
+    the heading.
+
+    The branch name is the part a machine can hold. Two phases naming one branch
+    is either a copy that was not finished or a plan that cannot be followed.
+    """
+    branches = {}
+    for match in re.finditer(r"^\*\*分支\*\* `([^`]+)`", text, re.M):
+        branches.setdefault(match.group(1), 0)
+        branches[match.group(1)] += 1
+    for branch, count in sorted(branches.items()):
+        if count > 1:
+            failures.append("plan: %d phases claim the branch %s"
+                            % (count, branch))
+
+
 def check_schema_matches_migration() -> None:
     """The architecture's schema and the migration name the same tables.
 
@@ -168,6 +190,7 @@ def main() -> int:
         plan_text = PLAN.read_text(encoding="utf-8")
         phases = phase_count(plan_text)
         check_plan_phases(plan_text)
+        check_phase_branches_are_distinct(plan_text)
 
     check_schema_matches_migration()
 
