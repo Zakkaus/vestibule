@@ -147,7 +147,10 @@ python3 scripts/check-docs.py
 
 **Both build tags must pass.** Running only the default one misses the generic edition.
 
-Chinese documents and user-visible copy go through the prose checker before the PR.
+Chinese documents and user-visible copy go through the prose checker before the PR —
+`docs/`, `web/design.html` and `web/architecture.html`. The plan went unchecked for
+several rounds because nobody had named it, and it had seven findings when it was
+finally run. If it is prose people follow, it goes through the checker.
 
 ### If you add a check, drive it red
 
