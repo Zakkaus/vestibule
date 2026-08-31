@@ -1,38 +1,27 @@
 # 架构
 
-一个 Telegram 群入群验证与管理机器人，加一个 Web 控制台。同一份代码服务很多群，
-每个群由该群自己的 Telegram 管理员配置。
+<!-- 由 scripts/gen-arch-md.py 从 web/architecture.html 生成，不要手改。 -->
 
-本文件是实施依据。界面取值见 `web/design.html`，贡献方式与门禁见 `CONTRIBUTING.md`。
+## 0. 不变量
 
-> 本文件与 `web/architecture.html` 内容一致，两者同时更新。
-> 界面相关的规定一律放 `web/design.html`，不在这里重复。
-> 章节顺序：不变量 · 部署拓扑 · 包结构 · 群的两种模式 · 流程 · 数据模型 ·
-> 状态机与动作执行 · 规则引擎 · 权限 · 配置 · 接口 · 前端 · 稳定性 ·
-> 可观测与维护 · 实施。
+每一阶段都必须成立。任何一条被破坏，即为该阶段未完成。
 
+| 不变量 | 破坏时会发生什么 |
+|---|---|
+| 控制台与 Telegram 更新调用同一个 Service | 后台放行与群内答题走出两套规则 |
+| 验证包不引用 telego | 验证逻辑无法在无网络条件下测试 |
+| 失败朝拒绝方向倒 | 上游抖动时陌生人被放行入群 |
+| 状态转换是带条件的更新 | 并发路径重复结算 |
+| 先落库，再对外可见 | 挑战已发出而系统不知道，重启后无人结算 |
+| 迁移失败即退出 | 以旧结构接收流量，写坏数据 |
+| 代码中没有针对特定群的分支 | 通用性只是说法，删掉我们的配置就无法运行 |
+| 机器人令牌不进日志、界面、仓库 | 令牌泄露等于全部身份可被伪造 |
 
-## 0. 设计目标与不变量
-
-不变量在每一个阶段都必须成立，任何一条被破坏即为该阶段未完成。
-
-| # | 不变量 | 破坏时的表现 |
-|---|---|---|
-| 1 | Web 控制台与 Telegram 更新调用同一个 `verification.Service` | 后台放行与群内答题走出两套规则 |
-| 2 | `internal/verification` 不引用 telego，不出现 Telegram 类型 | 验证逻辑无法在无网络条件下测试 |
-| 3 | 失败朝拒绝方向倒 | 上游抖动时陌生人被放行入群 |
-| 4 | 状态转换是带条件的更新，读取后不再写回 | 并发路径重复结算 |
-| 5 | 先落库，再对外可见 | 挑战已发出但系统不知道，重启后无人结算 |
-| 6 | 迁移失败即退出 | 以旧结构接收流量，写坏数据 |
-| 7 | 代码中不存在针对特定群的分支 | 通用性只是说法，删掉我们的配置就无法运行 |
-| 8 | 机器人令牌不进日志、界面、仓库 | 令牌泄露等于全部身份可被伪造 |
-
-验收标准一句话：**删掉我们社区那几行配置，产品照常运转。**
+验收标准：删掉我们社区那几行配置，产品照常运转。
 
 ## 1. 不许写成面条
 
-**每一次改动都按完整架构落地，不允许先塞进去以后再整理。**
-「以后再拆」在这个仓库里没有发生过一次，它只是把成本推给下一个人。
+**每一次改动都按完整架构落地，不允许先塞进去以后再整理。** 「以后再拆」在这个仓库里没有发生过一次，它只是把成本推给下一个人。
 
 ### 硬性上限
 
@@ -47,285 +36,448 @@
 
 ### 新代码必须有归属
 
-新增的代码只能落在架构书已经声明的包里。**需要一个新包时，先改架构书**，
-说明它管什么、允许什么、禁止什么，再写代码。
+新增的代码只能落在本文已经声明的包里。**需要一个新包时，先改本文**， 说明它管什么、允许什么、禁止什么，再写代码。
 
-不允许出现这几种形态：
-
-- 名为 `util`、`common`、`helper`、`misc` 的包。它们没有边界，
-  因此任何内容都能进去，最后成为第二个面条团。
-- 一个函数同时做取数、判断和渲染。三件事分给三处。
-- 在业务包里直接拼接面向用户的文案。文案归 `i18n`，业务返回结构化结果。
-- 复制一段逻辑改两行。第二次出现时抽出来，第三次出现说明抽错了地方。
+- **不许出现 `util`、`common`、`helper`、 `misc` 这类包。**它们没有边界，因此任何内容都能进去， 最后成为第二个面条团。
+- **一个函数不同时做取数、判断和渲染。**三件事分给三处。
+- **业务包里不拼接面向用户的文案。**文案归 `i18n`， 业务返回结构化结果。
+- **不复制一段逻辑改两行。**第二次出现时抽出来， 第三次出现说明抽错了地方。
 
 ### 怎么检查
 
-门禁里带文件行数、函数行数与圈复杂度三项，超限即失败。
-包边界用导入检查：验证包不许引用 telego，规则包不许引用数据库与网络。
+门禁里带文件行数、函数行数与圈复杂度三项，超限即失败。 包边界用导入检查：验证包不许引用 telego，规则包不许引用数据库与网络。
 
-**这些检查在第一次实质改动之前就要能执行。** 先有尺子，再动手。
+**这些检查在第一次实质改动之前就要能执行。**先有尺子，再动手。
 
 ## 2. 部署拓扑
 
 三个组件，一次部署。
 
-```
-                    ┌──────────────────────────────┐
-   管理员浏览器 ────▶│  app（单个 Go 二进制）        │
-   （Telegram 内）   │                              │
-                    │  ├ adminhttp   :8080         │
-                    │  ├ verification              │
-                    │  ├ telegram                  │
-                    │  └ web/dist（go:embed）      │
-                    └───────┬──────────────┬───────┘
-                            │              │
-                     ┌──────▼─────┐   ┌────▼──────────┐
-                     │ 数据库      │   │ telegram-bot- │
-                     │ SQLite 或   │   │ api（容器）    │
-                     │ PostgreSQL  │   │ :8081         │
-                     └────────────┘   └────┬──────────┘
-                                           │ MTProto
-                                           ▼
-                                      Telegram
+```text
+管理员浏览器（Telegram 内）
+        │
+        ▼
+┌─────────────────────────────────────┐
+│  app  ·  单个 Go 二进制              │
+│                                     │
+│   adminhttp      :8080              │
+│   verification                      │
+│   telegram                          │
+│   web/dist       go:embed           │
+└──────────┬──────────────┬───────────┘
+           │              │
+           ▼              ▼
+   ┌───────────────┐  ┌──────────────────┐
+   │ 数据库         │  │ telegram-bot-api │
+   │ SQLite 或 PG   │  │ 容器 · :8081     │
+   └───────────────┘  └────────┬─────────┘
+                               │ MTProto
+                               ▼
+                          Telegram
 ```
 
 - **app** 同时承载机器人与控制台，前端构建产物编进同一个二进制，线上不运行 Node。
-- **telegram-bot-api** 自建，不可省略：直连 api.telegram.org 实测 707 ms，本地 1.3 ms。
-  官方不提供静态二进制与镜像，因此在发布 CI 编译一次并发布按 commit 固定的镜像，部署机只拉取。
-- **数据库** 自托管默认 SQLite 单文件，我们的公开实例使用 PostgreSQL。
-  同一份迁移，只有个别 DDL 分方言。
-
-8081 不向宿主机发布。app 与 bot-api 通过容器网络通信。
+- **telegram-bot-api** 自建，不可省略：直连实测 707 ms，本地 1.3 ms。 官方不提供静态二进制与镜像，因此在发布流水线编译一次并发布按 commit 固定的镜像，部署机只拉取。
+- **数据库** 自托管默认 SQLite 单文件，公开实例使用 PostgreSQL。 同一份迁移，只有个别 DDL 分方言。
 
 ## 3. 包结构
 
-```
-cmd/bot                     进程入口，解析命令行，调用 app.Run
-  │
-internal/app                配置加载、数据库打开与迁移、依赖组装、生命周期、健康检查
-  ├──▶ internal/adminhttp   HTTP 路由、认证、DTO
-  ├──▶ internal/verification  验证状态机、策略、超时、处罚
-  └──▶ internal/telegram    SDK 调用、轮询或 webhook、Update 转领域事件
-```
+形状取自 [mautrix-telegram](https://github.com/mautrix/telegram)， 它是同类型的 Go 程序，也把一个外部协议接进自己的核心。四条做法直接照抄。
 
-依赖方向单向向下，`verification` 不依赖任何兄弟包。
+| 照抄的做法 | 它怎么做 | 我们怎么用 |
+|---|---|---|
+| 按领域概念分文件 | `portal.go`、`user.go`、`login.go`、 `queue.go` 各一个文件，不按技术层切 | `join.go`、`answer.go`、`settle.go`、 `timeout.go` |
+| 标识转换独立成包 | `connector/ids` 只做标识互转 | 同名包。避免整套代码到处传裸整数 |
+| 每个方向一个格式化包 | `telegramfmt` 与 `matrixfmt` 分开 | `tgfmt` 只负责把我们的消息渲染成 Telegram 格式 |
+| 适配器自带存储与独立版本表 | `connector/store` 用 `db.Child()` 取得独立版本表 | 适配器的表与核心的表分开升级，互不牵制 |
+
+```text
+cmd/bot/                    入口，解析命令行，调用 app.Run
+
+internal/
+├── app/                    装配、生命周期、后台任务注册
+├── verification/           核心
+│   ├── ports.go            Gateway 与 Store 接口定义在这里
+│   ├── join.go             入群申请
+│   ├── answer.go           答案判定
+│   ├── settle.go           批准、拒绝、封禁
+│   ├── timeout.go          到期扫描
+│   └── postjoin.go         进群后验证
+├── rules/                  规则引擎
+│   ├── normalize.go        匹配前归一化
+│   ├── condition.go        封闭的条件类型集合
+│   └── signals.go          结构信号计分
+├── telegram/               适配器
+│   ├── connector.go        实现 verification.Gateway
+│   ├── updates.go          轮询或 webhook，Update 转领域事件
+│   ├── ids/                标识转换
+│   ├── tgfmt/              消息渲染
+│   ├── queue/              发送队列、按群限流、429 退避
+│   └── store/              适配器自己的表，独立版本表
+├── console/                Web 后台
+│   ├── api/                路由与数据传输结构
+│   ├── auth/               initData 与 OIDC 校验
+│   └── assets/             前端产物 go:embed
+├── settings/               配置，configupgrade
+├── database/               dbutil 装配与迁移
+└── status/                 健康检查、诊断、指标
+
+web/                        前端源码，Vite + React
+migrations/                 编号 SQL
+testdata/                   样本与固定装置
+```
 
 | 包 | 允许 | 禁止 |
 |---|---|---|
-| `app` | 引用全部 | 承载业务判断 |
-| `adminhttp` | 调用 `verification.Service` | 直接调用 telego；直接执行 SQL |
-| `verification` | 定义并使用 `Gateway`、`Store` 接口 | 引用 telego；出现 `tgbotapi.*` 类型 |
-| `telegram` | 实现 `verification.Gateway` | 决定谁通过谁拒绝 |
+| app | 引用全部 | 承载业务判断 |
+| console | 调用 verification 与 status | 直接调用 telegram，直接执行 SQL |
+| verification | 使用自己定义的接口，调用 rules | 引用 telego，出现 Telegram 类型，格式化面向用户的文案 |
+| rules | 纯函数，无副作用 | 访问数据库或网络 |
+| telegram | 实现 verification.Gateway | 决定谁通过谁拒绝，查核心的表 |
 
-保留的既有包按原职责继续存在：`i18n`、`lookup`、`feed`、`moderate`、`panel`、`edition`。
-其中 `lookup` 与 `feed` 是可选功能模块，由每个群自行启用。
+**用编译期断言固定接口。**`var _ verification.Gateway = (*Connector)(nil)` 写在实现旁边，接口变更在编译时暴露，这一条同样取自 mautrix。
 
-### 接口定义在使用方
+`rules` 是纯函数包，因此可以脱离一切依赖测试， 也可以被控制台的试答直接调用，不必绕一圈网络。
 
-```go
-// internal/verification/ports.go
-package verification
+### 装配与生命周期
 
-type Gateway interface {
-    SendChallenge(ctx context.Context, c Challenge) (MessageRef, error)
-    DeleteMessage(ctx context.Context, chat ChatID, msg MessageID) error
-    ApproveJoin(ctx context.Context, chat ChatID, user UserID) error
-    DeclineJoin(ctx context.Context, chat ChatID, user UserID) error
-    RestrictMember(ctx context.Context, chat ChatID, user UserID, until time.Time) error
-    RemoveMember(ctx context.Context, chat ChatID, user UserID, banUntil time.Time) error
-    IsMember(ctx context.Context, chat ChatID, user UserID) (bool, error)
-    IsAdmin(ctx context.Context, chat ChatID, user UserID) (bool, error)
-}
+启动顺序照 mautrix：**先起连接，再起会话，最后异步做启动后的收尾**。 关闭顺序是它更值得抄的部分，逐条都有理由。
 
-type Store interface {
-    CreateChallenge(ctx context.Context, c *Challenge) error
-    AttachMessages(ctx context.Context, id ChallengeID, refs []MessageRef) error
-    Transition(ctx context.Context, id ChallengeID, from, to State) (bool, error)
-    Get(ctx context.Context, id ChallengeID) (*Challenge, error)
-    FindOpen(ctx context.Context, chat ChatID, user UserID) (*Challenge, error)
-    ClaimExpired(ctx context.Context, now time.Time, limit int) ([]*Challenge, error)
-    Settings(ctx context.Context, chat ChatID) (*GroupSettings, error)
-}
-
-type Clock interface{ Now() time.Time }
-
-type Service struct {
-    gw    Gateway
-    store Store
-    clock Clock
-}
+```text
+1  读配置 → 升级配置 → 校验      失败退出
+2  打开数据库 → 执行迁移          失败退出，不允许旧结构接流量
+3  组装依赖，注册后台任务
+4  取更新拉取租约                 拿不到则只提供控制台，不拉取更新
+5  启动 HTTP，此时 /livez 已通
+6  建立 Telegram 通道，通后 /readyz 转通
+7  异步做启动后收尾：权限预检、权限同步、积压清理
 ```
 
-`Transition` 返回 `(bool, error)`：`false` 表示状态已被其他路径改变，
-调用方按已结算处理，不重试也不报错。这是不变量 4 在接口上的体现。
-
-## 4. 数据模型
-
-使用 `go.mau.fi/util/dbutil`：一套代码同时支持 SQLite 与 PostgreSQL，
-统一写 `$1` 占位符，SQLite 执行前自动转 `?1`。迁移经 `embed.FS` 注册。
-
-```go
-//go:embed migrations/*.sql
-var migrationFS embed.FS
-
-var migrations = dbutil.BuildUpgradeTable().WithFSPath(migrationFS, "migrations").Finish()
+```text
+1  置关闭标志                     进行中的操作据此提前放弃重试
+2  /readyz 转不通                  先摘流量，再停处理
+3  停止拉取更新，释放租约
+4  停止各后台循环，各自带超时
+5  等待进行中的处理结束           并发等待，总超时到点即放弃
+6  刷新待写数据
+7  最后关数据库                它是所有人的依赖，必须最后关
 ```
 
-`migrations/00-latest.sql` 建立当前完整结构，新安装一步到位；
-后续变更新增 `01-*.sql`、`02-*.sql`。版本表带兼容下限，
-**旧二进制连接新结构会被拒绝启动**，因此结构不兼容时禁止直接回退二进制。
+| 照抄的做法 | 为什么 |
+|---|---|
+| 关闭标志是一个原子变量，第一步就置 | 正在重试的操作能立刻知道该放弃，而不是等到超时 |
+| 先摘流量后停处理，分两段 | 合成一步会让关闭瞬间到达的请求得到错误响应 |
+| 各处停止都带超时，且并发等待 | 串行等待会让关闭时间等于所有任务之和 |
+| 数据库最后关 | 提前关闭会让正在刷新的数据写不进去 |
+| 数据库不是自己打开的就不关 | 嵌入使用时不应替调用方管理生命周期 |
+| 可停止能力用可选接口表达 | 不强迫每个组件都实现停止方法 |
 
-### 表
+### 后台任务
 
-```sql
--- 群。bot 所在的每个群一行。没有全局默认，缺省值即出厂默认。
+六个长期任务，统一注册，统一带自己的上下文与超时。
+
+| 任务 | 启动 | 关闭 | 失败时 |
+|---|---|---|---|
+| 更新拉取 | 取到租约后 | 第 3 步，最先停 | 退避重连，标志健康状态 |
+| 发送队列 | 第 3 步 | 第 4 步，停前先冲干净 | 429 退避；队列满则拒绝入队 |
+| 到期扫描 | 第 3 步 | 第 4 步 | 记录并在下个周期重试 |
+| 动作执行 | 第 3 步 | 第 4 步 | 按次数退避，到上限转人工 |
+| 权限同步 | 第 7 步 | 第 4 步 | 保留旧记录，不清空 |
+| 订阅抓取 | 第 7 步 | 第 4 步 | 连续失败暂停该源并通知 |
+
+**每个任务的循环体外面包一层恢复。**一次处理崩溃只丢这一次， 记录足够定位的字段后继续下一次。**恢复只包在循环体这一层**： 包得太深会掩盖真正的缺陷，不包则一个群的异常会带停整个任务。
+
+装配阶段的错误不恢复，直接退出： 配置错、迁移失败、依赖缺失都属于起不来的问题， 让它带着残缺状态运行比崩掉更糟。
+
+## 4. 群的两种模式
+
+同一个机器人在两种群里的行为不一样，因为 Telegram 给的入口本身就是两条。 **这是群的属性，不是我们的设定项**，控制台必须显示当前是哪一种， 因为它决定了未通过验证的人此刻在群里还是群外。
+
+控制台在群列表与首页各显示一次当前模式。处于第二种模式时给出一句说明， 并指出开启批准的位置 —— **不替管理员改群设置**，那是他的群。
+
+此外还有两类群直接跳过：机器人不在其中的群， 以及配置为只发消息不做验证的频道与群。频道、管理员、机器人账号本身也不触发验证。
+
+## 5. 流程
+
+五条主要流程。**每条都写明失败时倒向哪一边**，因为这决定陌生人进不进得来。
+
+### 一、审批制的入群验证
+
+```text
+申请人            机器人                     数据库              群
+   │                 │                          │                 │
+   │─ 申请加入 ─────▶│                          │                 │
+   │                 │─ 检查免验证来源 ────────▶│                 │
+   │                 │  命中 → 直接批准，结束                        │
+   │                 │                          │                 │
+   │                 │─ 写入待验证记录 ────────▶│                 │
+   │                 │  唯一索引冲突 → 重复到达，保持原挑战，结束      │
+   │                 │                          │                 │
+   │◀─ 私聊发出挑战 ─│                          │                 │
+   │                 │  私聊不可达 → 群内说明未送达，到期自动拒绝          │
+   │                 │─────────────────────────────── 合并入口消息 ▶│
+   │                 │                          │                 │
+   │─ 提交答案 ─────▶│                          │                 │
+   │                 │─ 条件更新 pending→approved ▶│               │
+   │                 │  影响 0 行 → 已被结算，返回成功                │
+   │                 │─ 批准加群 ──────────────────────────────────▶│
+   │                 │─ 删除挑战消息 ──────────────────────────────▶│
+```
+
+### 二、先入群后限制
+
+差别只在两端：开头多一步收回发言权限，结尾把批准换成恢复权限。 中间的挑战、判定、结算完全相同，**因为它们在同一个 Service 里，只有一份实现**。
+
+```text
+新成员            机器人                     数据库              群
+   │─ 已进入群 ─────▶│                          │                 │
+   │                 │─ 收回发言权限 ──────────────────────────────▶│
+   │                 │─ 写入待验证记录 ────────▶│                 │
+   │◀─ 私聊发出挑战 ─│                          │                 │
+   │─ 提交答案 ─────▶│                          │                 │
+   │                 │─ 条件更新 ──────────────▶│                 │
+   │                 │─ 恢复发言权限 ──────────────────────────────▶│
+```
+
+### 三、超时
+
+不用进程内定时器。扫描器按到期时间领取记录，一次一批。
+
+```text
+每 N 秒
+   │
+   ├─ 条件更新：pending 且已到期 → expired，一次取一批
+   │     领到的才处理。没领到说明别的实例先领了
+   │
+   ├─ 按该群配置处置：拒绝 · 移出 · 移出并封禁
+   │
+   └─ 删除挑战消息，写入操作记录
+```
+
+### 四、掉线恢复
+
+机器人连不上 Telegram 期间，待验证记录仍在到期。 **掉线是我们的问题，不能记在申请人头上。**
+
+- 心跳探测不通时**暂停结算**，不产生拒绝，也不记失败次数。
+- 恢复后给一个完整的新窗口，并重新发出挑战。`epoch` 递增， 恢复前排队的旧定时器凭旧 `epoch` 结算会被拒绝。
+- 重新发出前先确认这个人还在群里或申请还在，已经不在的直接清理，不重发。
+- **积压的更新按时间丢弃。**收到的更新距当前超过一定时长， 直接判为过期并处置，不再生成题目 —— 此时用户早已离开，出题没有意义。 这条取自既有的入群验证方案。
+
+### 五、管理员在控制台处置
+
+```text
+浏览器            adminhttp                verification        Telegram
+   │─ 放行请求 ─────▶│                          │                 │
+   │                 │─ 校验会话签名 ───────────│                 │
+   │                 │─ 现查操作者是否仍是管理员 ──────────────────▶│
+   │                 │  否 → 403，不执行                              │
+   │                 │─ 现查被操作对象的身份 ──────────────────────▶│
+   │                 │─────────────────────────▶│                 │
+   │                 │                          │─ 条件更新 ──────│
+   │                 │                          │─ 批准加群 ──────▶│
+   │                 │                          │─ 写操作记录 ────│
+```
+
+`adminhttp` 只做认证、参数校验与调用。 「这个人该不该被放行」的判断在 `verification` 里， 与群内答题走的是同一个方法。
+
+## 6. 数据模型
+
+用 `dbutil`：一套代码同时支持 SQLite 与 PostgreSQL，统一写 `$1` 占位符， SQLite 执行前自动转 `?1`。迁移经 `embed.FS` 注册，版本表带兼容下限， **旧二进制连接新结构会被拒绝启动**。
+
+```text
+-- 群。没有全局默认，settings 只存与出厂默认不同的项。
 CREATE TABLE chat (
-    id            BIGINT PRIMARY KEY,          -- Telegram chat id
-    title         TEXT   NOT NULL,
-    joined_at     BIGINT NOT NULL,
-    left_at       BIGINT,                      -- 非空表示 bot 已被移出，数据待清理
-    settings      TEXT   NOT NULL DEFAULT '{}' -- 仅存与出厂默认不同的项
+    id         BIGINT PRIMARY KEY,
+    title      TEXT   NOT NULL,
+    left_at    BIGINT,          -- 非空表示 bot 已被移出，数据待清理
+    settings   TEXT   NOT NULL DEFAULT '{}'
 );
 
--- 待验证与已结算的挑战。等待队列、操作记录、统计都从这张表出。
 CREATE TABLE challenge (
-    id            TEXT   PRIMARY KEY,
-    chat_id       BIGINT NOT NULL REFERENCES chat(id) ON DELETE CASCADE,
-    user_id       BIGINT NOT NULL,
-    user_name     TEXT   NOT NULL DEFAULT '',
-    state         TEXT   NOT NULL,             -- pending|approved|declined|banned|expired|superseded
-    kind          TEXT   NOT NULL,             -- rule|pow|captcha|membership
-    payload       TEXT   NOT NULL DEFAULT '{}',-- 题面、诱饵、nonce、难度
-    attempts      INTEGER NOT NULL DEFAULT 0,
-    created_at    BIGINT NOT NULL,
-    expires_at    BIGINT NOT NULL,
-    settled_at    BIGINT,
-    settled_by    BIGINT,                      -- 管理员结算时记录其 user_id
-    reason        TEXT   NOT NULL DEFAULT '',
-    epoch         INTEGER NOT NULL DEFAULT 0   -- 掉线恢复重发时递增，旧定时器据此失效
-);
-CREATE UNIQUE INDEX challenge_open ON challenge (chat_id, user_id) WHERE state = 'pending';
-CREATE INDEX challenge_due   ON challenge (expires_at) WHERE state = 'pending';
-CREATE INDEX challenge_recent ON challenge (chat_id, created_at DESC);
-
--- 挑战发出的消息。删除时按此逐条撤回。
-CREATE TABLE challenge_message (
-    challenge_id  TEXT   NOT NULL REFERENCES challenge(id) ON DELETE CASCADE,
-    chat_id       BIGINT NOT NULL,
-    message_id    BIGINT NOT NULL,
-    PRIMARY KEY (challenge_id, chat_id, message_id)
+    id         TEXT   PRIMARY KEY,
+    chat_id    BIGINT NOT NULL REFERENCES chat(id) ON DELETE CASCADE,
+    user_id    BIGINT NOT NULL,
+    state      TEXT   NOT NULL,   -- pending|approved|declined|banned|expired|superseded
+    kind       TEXT   NOT NULL,   -- rule|pow|captcha|membership
+    payload    TEXT   NOT NULL,   -- 题面、诱饵、nonce、难度
+    attempts   INTEGER NOT NULL DEFAULT 0,
+    expires_at BIGINT NOT NULL,
+    settled_at BIGINT,
+    settled_by BIGINT,          -- 管理员结算时记录其 user_id
+    epoch      INTEGER NOT NULL DEFAULT 0  -- 掉线恢复重发时递增
 );
 
--- 规则集合。题库与自动回复共用同一张表，用 collection 区分。
+-- 同一人在同一群同时只能有一条待验证记录。
+-- 重复到达在数据库层被拒绝，不依赖内存中的已见集合。
+CREATE UNIQUE INDEX challenge_open
+    ON challenge (chat_id, user_id) WHERE state = 'pending';
+CREATE INDEX challenge_due
+    ON challenge (expires_at) WHERE state = 'pending';
+
+-- 题库、自动回复、显示名黑名单共用一张表，用 collection 区分。
+-- 条件类型只有一套，因此匹配与导出导入各只有一份实现。
 CREATE TABLE rule (
-    id            TEXT   PRIMARY KEY,
-    chat_id       BIGINT NOT NULL REFERENCES chat(id) ON DELETE CASCADE,
-    collection    TEXT   NOT NULL,             -- challenge|autoreply
-    ordinal       INTEGER NOT NULL,
-    enabled       BOOLEAN NOT NULL DEFAULT TRUE,
-    definition    TEXT   NOT NULL,             -- 题面、条件、回复内容，三语
-    updated_at    BIGINT NOT NULL,
-    updated_by    BIGINT
+    id         TEXT   PRIMARY KEY,
+    chat_id    BIGINT NOT NULL REFERENCES chat(id) ON DELETE CASCADE,
+    collection TEXT   NOT NULL,   -- challenge|autoreply|namefilter
+    ordinal    INTEGER NOT NULL,
+    enabled    BOOLEAN NOT NULL DEFAULT TRUE,
+    definition TEXT   NOT NULL    -- 题面、条件、回复内容，三语
 );
-CREATE INDEX rule_lookup ON rule (chat_id, collection, ordinal);
-
--- 订阅源。
-CREATE TABLE feed_source (
-    id            TEXT   PRIMARY KEY,
-    chat_id       BIGINT NOT NULL REFERENCES chat(id) ON DELETE CASCADE,
-    url           TEXT   NOT NULL,
-    format        TEXT   NOT NULL,             -- rss|atom|jsonfeed
-    interval_s    INTEGER NOT NULL,
-    filters       TEXT   NOT NULL DEFAULT '[]',
-    last_ok_at    BIGINT,
-    fail_count    INTEGER NOT NULL DEFAULT 0,
-    paused        BOOLEAN NOT NULL DEFAULT FALSE
-);
-CREATE TABLE feed_seen (
-    source_id     TEXT   NOT NULL REFERENCES feed_source(id) ON DELETE CASCADE,
-    entry_id      TEXT   NOT NULL,             -- 条目标识，不用标题
-    seen_at       BIGINT NOT NULL,
-    PRIMARY KEY (source_id, entry_id)
-);
-
--- 操作记录。所有写入都留痕，可撤销的记录保留撤销所需数据。
-CREATE TABLE audit (
-    id            BIGSERIAL PRIMARY KEY,
-    chat_id       BIGINT NOT NULL,
-    actor_id      BIGINT NOT NULL,
-    action        TEXT   NOT NULL,
-    target        TEXT   NOT NULL DEFAULT '',
-    before_value  TEXT,
-    after_value   TEXT,
-    undo_until    BIGINT,
-    created_at    BIGINT NOT NULL
-);
-CREATE INDEX audit_recent ON audit (chat_id, created_at DESC);
 ```
-
-`challenge_open` 这个部分唯一索引是不变量 4 的落点：
-同一个人在同一个群同时只能有一条待验证记录，重复到达在数据库层被拒绝，
-不依赖内存中的已见集合。
-
-`epoch` 保留现有语义：掉线恢复后重发挑战时递增，恢复前排队的定时器凭旧 epoch 结算会被拒绝。
 
 ### 写入顺序
 
-```
-BEGIN
-  INSERT INTO challenge (... state='pending' ...)      -- 先落库
-COMMIT
-SendChallenge()                                        -- 再对外可见
-BEGIN
-  INSERT INTO challenge_message (...)                  -- 回填消息标识
-COMMIT
+顺序固定，颠倒会留下没有主的挑战。这是扫描中发现的一类实际缺陷。
+
+```text
+1. INSERT challenge (state='pending')      提交
+2. SendChallenge()                        对外可见
+3. INSERT challenge_message (...)         回填消息标识
 ```
 
-`SendChallenge` 失败时删除该条记录。顺序颠倒会留下没有主的挑战，
-这是扫描中发现的一类实际缺陷。
+## 7. 状态机与动作执行
 
-## 5. 状态机
+每一次转换都是一条带条件的更新。**影响 0 行不是错误**， 表示已被其他路径结算，调用方据此返回成功。 扫描发现的「刚通过验证的人被进群后验证再抓一次」正是缺少这一层导致的。
 
-```
-                    ┌──────────┐
-   join request ───▶│ pending  │
-                    └────┬─────┘
-        答对 / 管理员放行 │ 超时      │ 管理员拒绝    │ 重复到达
-                    ┌────▼─────┐ ┌───▼──────┐ ┌────▼─────┐ ┌──────────┐
-                    │ approved │ │ expired  │ │ declined │ │superseded│
-                    └──────────┘ └────┬─────┘ └────┬─────┘ └──────────┘
-                                      │ 配置了拒绝后封禁
-                                 ┌────▼─────┐
-                                 │  banned  │
-                                 └──────────┘
-```
-
-每一次转换都是一条带条件的更新：
-
-```sql
+```text
 UPDATE challenge
-   SET state = $2, settled_at = $3, settled_by = $4, reason = $5
+   SET state = $2, settled_at = $3, settled_by = $4
  WHERE id = $1 AND state = 'pending';
 ```
 
-影响 0 行表示已被其他路径结算。**这不是错误**，调用方按已结算处理并返回成功。
-扫描发现的「刚通过验证的人被进群后验证又抓一次」正是缺少这一层导致的。
+### 超时不用进程内定时器
 
-超时不使用进程内定时器。扫描器按 `challenge_due` 索引领取到期记录：
+扫描器按 `challenge_due` 索引领取到期记录。 代价是精度由秒级变为扫描间隔，收益是重启不丢、多实例不重复。 现有实现给每个待验证的人挂一个内存定时器，进程重启即全部丢失。
 
-```sql
-UPDATE challenge SET state = 'expired', settled_at = $1
- WHERE id IN (SELECT id FROM challenge
-               WHERE state = 'pending' AND expires_at <= $1
-               ORDER BY expires_at LIMIT $2)
-RETURNING id, chat_id, user_id;
+## 8. 规则引擎
+
+一套条件类型，三个作用对象：验证答案、消息文本、显示名与个人简介。 **纯函数包，无副作用**，因此控制台的试答直接调用它，与线上判定不可能不一致。
+
+### 先归一化，再匹配
+
+真实垃圾信息不会把关键词原样写出来。归一化只用于匹配，不改动原文； 界面展示、消息删除、操作记录用的都是原始内容。
+
+```text
+// NFKC 必须最先执行，否则全角分隔符无法被后续步骤识别。
+func Normalize(in string) string {
+    s := norm.NFKC.String(in)      // 全角转半角，兼容字符归一
+    s = dropInvisible(s)           // U+200B-200F, U+2060-2064, U+FEFF, 变体选择器
+    s = foldCJKSeparators(s)       // 折叠汉字之间的 · * - _ . 与多余空白
+    return strings.ToLower(s)
+}
 ```
 
-代价是精度由秒级变为扫描间隔。收益是重启不丢、多实例不重复。
+### 条件类型是封闭集合
 
-## 6. 配置
+加类型要改代码，加规则不用。这条边界保证规则可以导出成文件、 可以被不信任地导入，也可以被界面完整表达。
 
-配置分三层，各有各的位置。**不写成一份文件。** 判断一项属于哪一层，看谁改它、多久改一次。
+| 类型 | 参数 |
+|---|---|
+| equals | 值、是否忽略大小写 |
+| one_of | 值的集合 |
+| contains | 子串、是否要求井号前缀 |
+| regex | 正则，带长度与执行时长上限 |
+| number_range | 上下界 |
+| version_range | 上下界、归一化方式 |
+| membership | 群或频道、查询失败时的方向 |
+
+### 富文本按实体存，不按标记语言存
+
+回复内容、题面、进出提示都可以带格式。**存储与传输的是实体数组**： 文字一份，样式一份，样式记录起始偏移与长度。
+
+| 做法 | 代价 |
+|---|---|
+| 标记语言加解析模式 | 要转义。用户输入里的一个尖括号或下划线就能让整条消息发送失败， 或者产生错位的格式。转义与反转义必须两端一致，容易长期不一致 |
+| **实体数组** | 需要一个编辑器把选区转成偏移，但**复制到的文字等于屏幕上的文字**， 且与平台的表示一致，不必自己维护一套转义规则 |
+
+实体类型是封闭集合：加粗、斜体、下划线、删除线、剧透、行内代码、代码块、 引用、可折叠引用、带文字的链接。
+
+**两类明确排除。**自定义表情要求发送方持有会员资格， 换一台机器部署即无法发送，规则文件因此不可移植； 可点击的用户提及让自动回复能点名任何人，是现成的骚扰通道。
+
+偏移按 UTF-16 码元计，与平台一致。 **不要按字节或按 rune 计**：中文与表情会算错位置， 而错位的实体不会报错，只会把样式套在别的字上。
+
+### 链接预览与按钮
+
+- **链接预览用新的选项对象**，三态：关、小图、大图， 另可选显示在文字上方。**默认关**：自动回复一天触发多次， 每次拖一张大图会让群难以阅读。
+- **只发链接按钮。**不使用回调按钮：回调需要一套编码协议、 一份状态和一条鉴权路径，而自动回复只负责发言。 这条边界一旦松开，它会长成一个任何人都能在群内编写的脚本引擎。
+- 保存前校验每个网址：协议、可解析、按钮文字非空。 **不允许存进一个点了没反应的按钮。**
+
+渲染归 `telegram/tgfmt`： 业务包返回结构化结果与实体，由它转成平台调用。 **业务包不拼接标记，也不直接构造键盘。**
+
+### 结构信号
+
+关键词表落后于改词，**规避手法本身是更稳的信号**。以下不看内容只看形态，累加计分。
+
+| 信号 | 取自 | 说明 |
+|---|---|---|
+| 词中间的不可见字符 | 归一化前后的差异 | 归一化删掉了字符即说明原文嵌了隐藏字符。**正常输入不产生这种差异** |
+| 私有邀请链接数量 | Telegram 消息实体 | 从平台解析好的实体读取，不使用自写的正则扫描全文 |
+| 提及的用户名数量 | Telegram 消息实体 | 同上 |
+| 链接总数 | Telegram 消息实体 | 同上 |
+| 入群时长 | 成员记录 | 新成员首条含链接的权重高于长期成员 |
+
+实体由平台解析，不受显示层的字符插入影响， 因此比自写的全文扫描可靠。
+
+处置分四档：仅记录、删除、删除并禁言、删除并移出。每次自动处置写入操作记录且可撤销。 **默认最低档**，先观察命中情况再提档。
+
+线上样本进 `testdata/` 作测试用例，不进出厂默认规则： 默认规则要对所有群成立，具体广告词只对特定时期的特定骗局成立。
+
+## 9. 权限
+
+两层，各解决一个问题。**只有其中一层都不成立。**
+
+#### 定时同步
+
+周期性调用 `getChatAdministrators`， 把结果写进本地权限表。控制台的群列表、导航过滤、界面显示都读这份缓存。 **解决的是「不能为了画一个列表打十次接口」。**
+
+#### 写前现查
+
+每次敏感写入前用 `getChatMember` 单独查一次， 只接受群主与管理员。**解决的是「缓存里他还是管理员，实际已经被撤了」。** 被操作对象的身份同样现查。
+
+| 用途 | 数据来源 | 过期怎么办 |
+|---|---|---|
+| 能看到哪些群 | 本地权限表 | 差一个周期。多显示一个群没有危害，因为写入时会被拒绝 |
+| 导航项是否出现 | 本地权限表 | 同上。**加载完成前按无权限处理**，先显示再收回更糟 |
+| 能否执行写入 | 现查 | 不允许过期。查不到即拒绝 |
+| 能否处置某个人 | 现查被操作对象 | 不允许过期。刚被提升为管理员的人不应被处置 |
+
+### 同步的触发时机
+
+- 固定周期，按群错开，避免所有群在同一秒发起请求。
+- 收到该群的管理员变动更新时立即同步这一个群。
+- 管理员打开该群的控制台时同步这一个群，因为他接下来大概率要操作。
+- **同步失败不清空已有记录。**清空会让所有人瞬间失去访问， 而失败通常只是一次网络抖动。记录失败时间，在诊断屏显示。
+
+### 运维与群管理员是两回事
+
+群管理员管自己的群，运维管这台机器。**两者的边界要写死，不能混。**
+
+| 能力 | 群管理员 | 运维 |
+|---|---|---|
+| 本群的配置与队列 | 可 | 不可，除非他也是该群管理员 |
+| 导出本群数据 | 可 | 同上 |
+| 删除本群数据 | 可 | 同上 |
+| 整机诊断与指标 | 不可 | 可 |
+| 查看其他群的内容 | **不可** | **不可** |
+
+**运维不能读别人群里的内容。**他能看到整机的计数与延迟， 看不到具体某个群的队列与文案。这条要落在接口上，不是靠界面隐藏。
+
+自托管的人同时是运维和管理员，两个身份重合， 但代码里仍然是两套判断。这样公开实例与自托管共用同一份实现。
+
+### 同步的成本
+
+一百个群定时同步就是一百次接口调用。**按群错开并延长周期**， 活跃群同步更频繁，长期没有申请的群降低频率。 收到管理员变动的更新时立即同步该群，这比定时更准。
+
+### 写权限怎么定
+
+不是所有管理员都该能改配置。**以 Telegram 自己的权限位为准，不另立一套角色。** 具备限制成员权限的管理员可写，其余只读。群主始终可写。 这样管理员在 Telegram 里被降权，控制台的权限跟着降，不需要第二处维护。
+
+既有的入群验证方案在这里踩过一个坑： 群主状态存了一个字段，能力判断却读另一个字段，两者不一致。 **权限只有一个来源**，不存两份。
+
+## 10. 配置
+
+配置分三层，各有各的位置。**不把它们写成一份文件。** 判断一项属于哪一层，看谁改它、多久改一次。
 
 | 层 | 谁改 | 放在哪 | 例 |
 |---|---|---|---|
@@ -335,12 +487,15 @@ RETURNING id, chat_id, user_id;
 
 ### 进程配置：默认内嵌，用户文件只写差异
 
-```
+```text
 /etc/vestibule/
 ├── config.yaml                 只写与默认不同的项
 └── provisioning/
-    ├── rules/{challenges,autoreply}.yaml
-    └── feeds/*.yaml
+    ├── rules/
+    │   ├── challenges.yaml
+    │   └── autoreply.yaml
+    └── feeds/
+        └── gentoo.yaml
 
 internal/settings/
 ├── defaults.yaml               go:embed，完整、带注释、含全部默认值
@@ -349,207 +504,261 @@ internal/settings/
 └── load.go                     Do → Unmarshal → Validate
 ```
 
-- **分节**：`server`、`database`、`telegram`、`web`、`log` 各管一段，不是平铺的表。
-- **环境变量按机械映射覆盖**：`database.uri` 对应 `VT_DATABASE_URI`，规则可推导。
-- **密钥只写引用**：`token: $file{/run/secrets/bot_token}` 或 `$env{BOT_TOKEN}`。
-  明文密钥不进配置文件，因为配置文件会被贴进工单、提交进仓库、发到群里求助。
-- **升级由 configupgrade 处理**：以当前 `defaults.yaml` 为模板重建，按白名单复制旧值，
-  不维护版本链。代价是拼错的未知键会在写回时消失，因此每个字段都要有示例项与复制规则。
+- **分节，不是一张平铺的表。**`server`、`database`、 `telegram`、`web`、`log` 各管一段。
+- **环境变量按机械映射覆盖。**`database.uri` 对应 `VT_DATABASE_URI`，规则可推导，不逐个登记。
+- **密钥只写引用。**`token: $file{/run/secrets/bot_token}` 或 `$env{BOT_TOKEN}`。**明文密钥不进配置文件**， 因为配置文件会被贴进工单、提交进仓库、发到群里求助。
+- **升级由 configupgrade 处理。**以当前 `defaults.yaml` 为模板重建， 按白名单复制旧值，不维护版本链。
 
 ### 每群配置：存空表示继承
 
-数据库只存与出厂默认不同的项。空值表示继承，不保存副本，
-否则默认值改动之后无法传播。既有的入群验证方案采用同一做法。
+数据库里只存与出厂默认不同的项。空值表示继承，不保存一份副本 —— 保存副本会让默认值改动之后无法传播。这与既有的入群验证方案做法一致。
 
-**接口返回来源，不只返回最终值。** 每一项返回六个字段：
+**接口返回来源，不只返回最终值。**只给一个最终值， 使用者无法判断它为何是这个值，也无法恢复默认。每一项返回六个字段：
 
 | 字段 | 含义 |
 |---|---|
-| `defaultValue` | 出厂默认 |
-| `overrideValue` | 本群设定，未设定时为空 |
-| `effectiveValue` | 当前实际生效的值 |
-| `pendingValue` | 本次未保存的改动 |
-| `source` | `default` · `group` · `provisioning` |
-| `locked` | 由文件管理时为真，界面只读 |
+| defaultValue | 出厂默认 |
+| overrideValue | 本群设定，未设定时为空 |
+| effectiveValue | 当前实际生效的值 |
+| pendingValue | 本次未保存的改动 |
+| source | default · group · provisioning |
+| locked | 由文件管理时为真，界面只读 |
 
-界面三态各有各的样子：继承、已覆盖、待保存。已覆盖不只靠颜色区分，
-同时给圆点与文字，并提供只看已覆盖的筛选和恢复默认。
+界面上三态各有各的样子：继承、已覆盖、待保存。 已覆盖不只靠颜色区分，同时给圆点与文字，并提供只看已覆盖的筛选和恢复默认。
 
 ### 声明式资源：可由文件管理的部分
 
-题库、自动回复、订阅源既可在控制台修改，也可放进 `provisioning/` 由文件管理，
-启动时应用。自托管者据此把这些内容纳入版本控制，一套配置也可复制到另一台。
+题库、自动回复、订阅源既可以在控制台里改，也可以放进 `provisioning/` 由文件管理，启动时应用。 这让自托管者能把这些内容纳入版本控制，也让一套配置可以复制到另一台。
 
-- 与控制台导入**共用同一份实现和同一套校验**，不为文件另写一条路径。
-- 由文件管理的资源在控制台**只读并标出来源**，避免界面改完后被重启覆盖却查不出原因。
+- **与控制台导入是同一份实现、同一套校验。**不为文件另写一条路径。
+- 由文件管理的资源在控制台里**只读并标出来源**，避免有人在界面上改完， 下次重启被文件覆盖却不知道原因。
 - 文件解析失败时拒绝启动并指出是哪个文件第几条，不做部分应用。
 
-## 7. HTTP 层
+## 11. 接口
 
-### 认证与授权
+### 两步，缺一不可
 
-两步，缺一不可：
+#### 一、身份
 
-1. **身份**：Telegram Mini App 的 `initData`，校验 HMAC 签名、`auth_date`，
-   并把已用过的签名记入短期缓存，有效期内不接受第二次。
-   需要在普通浏览器打开时，改用当前 Telegram Login 的 OIDC，
-   校验 ID Token 的签名、`iss`、`aud`、`exp`，配合一次性 `state`、PKCE 与 `nonce`。
-   **不使用已归档的旧 iframe Login Widget。**
-2. **授权**：每次敏感写入前，用来访者的数字 ID 调用本地 Bot API 的 `getChatMember`，
-   只接受 `creator` 与 `administrator`。会话最长 8 小时，
-   非写入路径每 60 秒复查一次。
+Telegram Mini App 的 `initData`， 校验 HMAC 签名与签发时间，并记录已用过的签名，有效期内不接受第二次。 需要在普通浏览器打开时改用 Telegram Login 的 OIDC， 校验 ID Token 的签名、`iss`、`aud`、`exp`。 不使用已归档的旧 iframe Widget。
+
+#### 二、授权
+
+每次敏感写入前用来访者的数字 ID 调用本地 Bot API 的 `getChatMember`，只接受 `creator` 与 `administrator`。会话最长 8 小时，非写入路径每 60 秒复查。 **被操作对象的管理员身份同样现查，不使用缓存。**
 
 `initData` 只证明来访者是谁，不证明他能管这个群。**两步不可互相替代。**
-被操作对象的管理员身份同样现查，不使用缓存。
 
 ### 路由
 
-```
-GET    /livez                     进程事件循环存活即 200，不探测依赖
-GET    /readyz                    配置校验完成、数据库已迁移、Telegram 通道建立才 200
-POST   /api/session               校验 initData 或 OIDC 回调，签发会话
-GET    /api/chats                 该管理员可管理的群，由 getChatMember 求交集得出
-GET    /api/chats/{id}/overview   首页四层所需数据，一次返回
-GET    /api/chats/{id}/queue      等待队列
-POST   /api/chats/{id}/queue/{cid}/approve
-POST   /api/chats/{id}/queue/{cid}/decline
-GET    /api/chats/{id}/settings   带每项来源：出厂默认或本群设定
-PATCH  /api/chats/{id}/settings   只提交改动过的字段，带版本号做冲突检测
-GET    /api/chats/{id}/rules      collection=challenge|autoreply
-PUT    /api/chats/{id}/rules      整份替换，用于导入
-POST   /api/chats/{id}/rules/test 试答，调用线上同一份判定代码
-GET    /api/chats/{id}/audit      操作记录
-POST   /api/chats/{id}/audit/{aid}/undo
-GET    /api/chats/{id}/stats
-GET    /api/chats/{id}/diagnostics
-GET    /verify/{token}            入群验证页，面向陌生访问者，无会话
-POST   /verify/{token}/answer     提交答案、工作量证明结果或人机验证凭据
-```
-
-`/verify/*` 是唯一的公开面。它不复用管理会话，令牌一次性、带签名与有效期。
+| 路径 | 说明 |
+|---|---|
+| GET /livez | 进程事件循环存活即 200，不探测依赖，避免依赖抖动引发重启风暴 |
+| GET /readyz | 配置校验完成、数据库已迁移、Telegram 通道建立才 200 |
+| POST /api/session | 校验 initData 或 OIDC 回调，签发会话 |
+| GET /api/chats | 该管理员可管理的群，由 getChatMember 求交集得出，不存租户表 |
+| GET /api/chats/{id}/overview | 首页四层所需数据，一次返回 |
+| GET /api/chats/{id}/queue | 等待队列 |
+| GET /api/chats/{id}/settings | 带每项来源：出厂默认或本群设定 |
+| PATCH /api/chats/{id}/settings | 只提交改动过的字段，带版本号做冲突检测 |
+| GET · PUT /api/chats/{id}/rules | 题库与自动回复共用，`collection` 区分。PUT 整份替换用于导入 |
+| POST /api/chats/{id}/rules/test | 试答，调用线上同一份判定代码 |
+| GET /api/chats/{id}/audit | 操作记录，含撤销 |
+| GET /verify/{token} | **唯一的公开面。**令牌一次性、带签名与有效期，不复用管理会话 |
 
 ### 错误
 
-三层，照搬 bridgev2 的做法：
+三层：Go 侧 sentinel 与 `%w` 包装；稳定的 API 错误码 `VERIFICATION_NOT_FOUND`、`INVALID_STATE_TRANSITION`、 `TELEGRAM_RATE_LIMITED`、`FORBIDDEN`、`CONFLICT`； 响应只带公开消息与 request id，内部原因留在日志。
 
-1. Go 侧 sentinel 与 `%w` 包装，支持 `errors.Is/As`；
-2. 稳定的 API 错误码：`VERIFICATION_NOT_FOUND`、`INVALID_STATE_TRANSITION`、
-   `TELEGRAM_RATE_LIMITED`、`FORBIDDEN`、`CONFLICT`、`INTERNAL_ERROR`；
-3. 响应只带公开消息与 request id，内部原因留在日志。
+**契约由单一 OpenAPI 文件生成两端类型，流水线中重新生成并比对差异。** 两端各自编译通过不代表契约同步。
 
-### 契约
+## 12. 前端
 
-单一 OpenAPI 文件生成 Go 服务端接口与 TypeScript 客户端类型，
-CI 中重新生成并比对差异。两端各自编译通过不代表契约同步。
-
-## 8. 前端
-
-**Vite + React + React Router**，组件层用 shadcn/ui（`base-nova`、`neutral`、CSS variables）
-+ Tailwind v4 + lucide，与既有生产项目保持同一套设计系统。
-构建产物 `dist/` 经 `//go:embed` 进入二进制。
+**Vite + React + React Router**，组件层用 shadcn/ui（`base-nova`、 `neutral`、CSS variables）+ Tailwind v4 + lucide， 与既有生产项目同一套设计系统。构建产物 `dist/` 经 `go:embed` 进入二进制。
 
 ### 为什么不用 Next.js
 
-既有生产项目使用 Next.js，但它的价值集中在服务端：RSC、ISR、图片优化、middleware。
-本控制台位于登录之后，不需要 SEO、不需要首屏服务端渲染、不需要增量再生成。
-若采用静态导出，这些能力全部关闭，剩下的是一个 React 构建工具加文件路由，
-同时要接受两项限制：路由不能使用路径参数，`go:embed` 必须记得写 `all:` 前缀
-以免下划线开头的目录被静默排除。为用不到的能力付这两笔代价不成立。
+Next.js 的价值集中在服务端：RSC、增量再生成、图片优化、middleware。 本控制台位于登录之后，不需要搜索引擎收录，不需要首屏服务端渲染。 采用静态导出会把这些能力全部关闭，剩下的是一个 React 构建工具加文件路由， 同时要接受两项限制：路由不能使用路径参数；`go:embed` 必须写 `all:` 前缀，否则下划线开头的目录被静默排除，构建通过而页面白屏。
 
-核实过既有项目的实际用法：没有 middleware、没有 server actions、
-没有 `cookies()` 与 `headers()`，`next/image` 零引用，页面几乎全部是客户端组件。
-它当前虽运行在 Node 进程上，该进程实际不承担服务端职责。
-
-### 什么保持一致
-
-设计系统与框架无关，因此一致的部分不受影响：
-
-| 项 | 取值 |
-|---|---|
-| 组件库 | shadcn/ui，`base-nova`，`neutral`，CSS variables，官方支持 Vite |
-| 样式 | Tailwind v4 |
-| token | 同一份 oklch 语义 token 与 `.dark` 机制 |
-| 图标 | lucide |
-| 表单 | react-hook-form + zod |
-| 组件契约 | StatusBadge 查表映射、Promise 式 ConfirmDialog、PageHeader、Section、EmptyState |
-
-只更换一项：多语言由 next-intl 改为 react-i18next。
-需要保持的是约定而非实现：顶层 key 按域划分、缺失翻译回落到源语言、
-按语言校验复数类别、变量占位符与源串逐一比对。
+核实过既有项目的实际用法：没有 middleware、没有 server actions、 没有 `cookies()` 与 `headers()`、`next/image` 零引用， 页面几乎全部是客户端组件。它虽运行在 Node 进程上，该进程不承担服务端职责。
 
 ### 前后端分离
 
-**分离是架构上的，恒定成立；内嵌只是两种部署方式之一。** 前端是纯 SPA，
-后端是一组 JSON 接口，之间只有 OpenAPI 这一份契约。没有服务端渲染的 HTML，
-没有模板与 Go 结构体的耦合。
+**分离是架构上的，恒定成立；内嵌只是两种部署方式之一。** 两者不冲突：前端是一个纯 SPA，后端是一组 JSON 接口， 之间只有 OpenAPI 这一份契约。没有服务端渲染的 HTML， 没有模板与 Go 结构体的耦合，前端可以对着假数据独立开发。
 
 | 部署方式 | 怎么做 | 代价 |
 |---|---|---|
-| 内嵌（默认） | 构建产物 `go:embed` 进二进制，`/` 提供静态文件，`/api` 提供接口 | 无。版本天然对齐，一条命令部署 |
-| 分开部署 | 前端放 CDN 或 nginx，后端只提供接口，前端用 `VITE_API_BASE` 指向后端 | 需处理跨域与版本协商。前后端可能不同步，因此接口返回自身版本，不匹配时前端提示刷新 |
+| 内嵌 默认 | 构建产物 `go:embed` 进二进制，后端在 `/` 提供静态文件，接口在 `/api` | 无。前后端版本天然对齐，一条命令部署 |
+| 分开部署 | 前端放 CDN 或 nginx，后端只提供接口。 前端用 `VITE_API_BASE` 指向后端地址 | 需要处理跨域与版本协商。**前后端可能不同步**， 因此接口要返回自身版本，前端不匹配时提示刷新 |
 
-后端不假设静态文件一定存在：没有内嵌产物时它就是纯接口服务，正常启动。
-两种方式共用同一个二进制，切换不改代码。
+后端不假设静态文件一定存在：没有内嵌产物时它就是一个纯接口服务，正常启动。 这样两种方式共用同一个二进制，切换不需要改代码。
 
-开发时前端运行自己的开发服务器，把 `/api` 代理到本机后端或一份假数据。
-**前端不依赖后端即可运行**，这是分离是否真正成立的判断标准。
+开发时前端运行自己的开发服务器，把 `/api` 代理到本机后端或一份假数据。**前端不依赖后端即可运行**， 这是分离是否真正成立的判断标准。
 
-### 收益
+### 迁移面有多大
 
-- 动态路由可直接使用 `/groups/:id`，不必改写为查询参数。
-- 构建产物为 `dist/assets/`，不含下划线开头的目录，`go:embed` 无须特殊前缀。
-- 构建时间与依赖数量明显低于 Next.js。
+设计系统与框架无关，因此风格完全一致，不是近似。
 
-主题、token、组件契约见 `web/design.html`。
+| 项 | 处数 | 换成 |
+|---|---|---|
+| `components/ui` 全部 25 个组件 | 0 | 原样使用，其中没有一个引用 Next |
+| next-intl | 58 | react-i18next。key 结构与回落约定不变 |
+| next/navigation | 19 | react-router 的 useLocation 与 useNavigate |
+| next/link | 18 | react-router 的 Link |
+| next/dynamic | 7 | React.lazy 加 Suspense |
+| next-themes | 1 | 本身是纯 React 库，直接沿用 |
 
-## 9. 并发与内存
+样式层一行不改：oklch token、`.dark` 变体、 `[data-slot]` 覆盖、状态色、圆角推导全部原样。 `components.json` 只需去掉 `rsc`。字体从 npm 包换为自托管。
 
-Telegram 侧上限为全局每秒 30 条、同群每分钟约 20 条，吞吐不是瓶颈。
-需要保证的是并发与重启之下不丢状态、不重复结算。
+收益：动态路由可直接使用 `/groups/:id`；产物为 `dist/assets/`，不含下划线目录；构建时间与依赖数量明显下降。
 
-- 发送经统一队列，按群与按整机两层限流；收到 429 按 `retry_after` 退避，
-  并把该信号上报，不在各调用点各自重试。
-- 状态全在数据库后应用进程无状态，可起多份。剩余约束：主动拉取更新只能有一个实例执行；
-  需要多实例时改用 webhook。**数据模型现在即按此设计。**
-- 内存不随群数增长：待验证记录不在内存排队，题库与配置按群缓存但有上限与过期。
-  基线为线上实测常驻 58 MB、峰值 62 MB，目标是**一百个群常驻不超过 150 MB**。
+### 目录：按屏组织，不按文件类型组织
 
-## 10. 可观测
+形状取自 Grafana：**实现、故事、测试同目录，同寿命**； 页面按功能划分目录，只从目录根导出对外入口。
 
-- 日志用结构化字段，固定为 `component`、`request_id`、`update_id`、`chat_id`、
-  `user_id`、`challenge_id`、`state_from`、`state_to`。生产输出 JSON。
-  **令牌、验证答案、cookie、完整 Authorization 头不得进入日志。**
-- 健康检查两个：`/livez` 不探测依赖，避免依赖抖动引发重启风暴；`/readyz` 探测全部依赖。
-  探针成功不写访问日志，失败必须记录状态与 request id。
-- 指标只保留能驱动告警或容量决策的：待验证数、超时数、状态转换失败数、
-  Telegram 429 数、更新处理延迟、通过率。不把高基数字段放入标签。
+```text
+app/                     壳：路由表、布局、Provider、错误边界
+features/                一个屏一个目录
+├── queue/
+│   ├── QueueScreen.tsx
+│   ├── QueueTable.tsx
+│   ├── QueueTable.test.tsx
+│   ├── api.ts           只放这一屏的请求
+│   └── index.ts         对外只导出这一个文件声明的内容
+├── verification/
+├── rules/
+├── messages/
+└── stats/
+components/
+├── ui/                  shadcn 生成物，不手改
+└── …                    自写共用件：StatusBadge、ConfirmDialog、PageHeader、EmptyState
+lib/
+├── api/                 由 OpenAPI 生成，不手写
+├── auth.ts  i18n.ts  utils.ts
+styles/globals.css       token 层，全项目唯一可以写颜色的地方
+```
 
-通过率是最有价值的一个。线上当前为 2/71，说明来访基本是批量账号；
-若突然升至八成，说明验证被绕过或正在拦截真实用户。
+| 规则 | 为什么 |
+|---|---|
+| features 之间不互相引用 | 需要共用就上移到 `components` 或 `lib`。 横向引用会使删除一个屏需要先做一次全项目排查 |
+| 只从 `index.ts` 导出 | 目录内部随便改，对外只有一个面。这条要有检查，否则第一天就会被绕过 |
+| `components/ui` 不手改 | 它是生成物，升级会覆盖。需要改行为时在外面包一层 |
+| 测试与组件同目录 | 删组件时测试跟着删，不会留下针对已删除组件的测试 |
 
-## 11. 分阶段实施
+### 状态分两种，不要混
+
+| 种类 | 放哪 | 例 |
+|---|---|---|
+| 服务端状态 | 查询库缓存，带失效与重取 | 队列、设置、统计 |
+| 界面状态 | 组件内部，或 URL | 展开的分组、筛选条件、当前群 |
+
+**不要把服务端数据塞进全局存储。**它一旦进入全局存储，就需要自行处理失效、 重取、并发请求与错误，而这些查询库已经做完了。
+
+筛选条件与当前群放 URL，**这样一个链接可以直接发给同事**， 刷新也不丢。存在组件里会两样都做不到。
+
+### 一个屏崩了不带崩后台
+
+每个 feature 外面包一层错误边界，出错时只有这一屏显示错误与重试， 导航与其他屏照常。这与后端「一个群出问题不影响其他群」是同一条原则的两侧。
+
+按 feature 懒加载，首屏只下载首页需要的部分。 十几个屏全部打进一个包会让第一次打开明显变慢。
+
+### 文档拆成两份，不是九份
+
+Grafana 把前端指南拆成九份，**按维护者任务分**，不按组件分： 全局代码约定、样式实现手法、token 语义、可访问性各一份， 单个组件的用法放在组件旁边的文档里。
+
+我们只有一个维护者，按同样的维度缩小到两份：
+
+| 文件 | 管什么 |
+|---|---|
+| [设计语言](design.html) | token 语义、视觉规则、组件契约、文案规则 |
+| `web/README.md` | 目录约定、命名、导出边界、状态放哪、怎么加一个屏 |
+
+**暂不引入组件展示工具。**十几个屏、一个维护者，它的收益不抵维护成本。 改用一条只在开发构建里存在的路由，把所有共用件排在一页上， 同一份组件、同一套 token。规模上来再换。
+
+### 三种约束载体各管各的
+
+这条同样取自 Grafana，它把约束明确分给三处：
+
+| 载体 | 负责 | 我们的落点 |
+|---|---|---|
+| 文档 | 解释语义、选择条件、为什么这样选。工具推断不出来的部分 | 设计语言与本页 |
+| 门禁 | 可判定的不变量 | 类型检查、lint、构建、生成物无漂移、可访问性零违规 |
+| 目录结构 | 让实现、测试、文档同寿命，新文件自动被工具扫到 | 共置与 `index.ts` 边界 |
+
+**文档中除稳定的命令名之外不写具体标识。**Grafana 的可访问性指南至今还在描述一个 已经不存在的检查作业，把贡献者引向不存在的流程。 因此这里只引用稳定的命令名，不复制作业名与阈值；改门禁时同一次提交里改文档。
+
+### 前后端契约
+
+一份 OpenAPI 文件生成 Go 服务端接口与 TypeScript 客户端类型， 门禁中重新生成并比对差异。**两端各自编译通过不代表契约同步。**
+
+`lib/api` 全部是生成物，不手写。 手写一个请求函数很快，但它会与契约无声分叉，而且分叉时两边都是绿的。
+
+## 13. 稳定性
+
+公开服务的核心要求：**一个群出问题，其他群不受影响；进程重启不丢状态。** 这一节把隔离、兜底、并发、内存、备份收在一起，因为它们服务同一个目标。
+
+### 并发与内存
+
+## 14. 可观测与维护
+
+### 日志
+
+结构化字段固定为 `component`、`request_id`、`update_id`、 `chat_id`、`user_id`、`challenge_id`、 `state_from`、`state_to`。生产输出 JSON，开发输出可读格式。
+
+**令牌、验证答案、会话凭据、完整的授权头不得进入日志。** 这条要有一个写入前的过滤器兜底，不能只靠调用点自觉。
+
+访问日志记录方法、路径、耗时、状态码与响应大小， 按状态码分级。**探针成功不写日志**，否则日志里九成是健康检查。
+
+### 健康检查
+
+| 探针 | 检查什么 | 为什么这样分 |
+|---|---|---|
+| /livez | 进程事件循环仍在运行 | **不探测数据库与 Telegram。**依赖短暂故障不应触发重启， 重启解决不了外部依赖的问题，只会放大故障 |
+| /readyz | 配置已校验、数据库已迁移、Telegram 通道已建立 | 未就绪时不接流量，但进程继续存活等待依赖恢复 |
+
+### 指标
+
+只保留能驱动告警或容量决策的。**不把群标识放进标签**，那是高基数字段， 群多了会把指标系统撑爆；按群的数据在诊断屏用查询得出。
+
+| 指标 | 用来判断 |
+|---|---|
+| 待验证数量 | 队列是否积压 |
+| 各终态计数 | 通过率变化 |
+| 状态转换失败数 | 并发竞争是否异常 |
+| 待执行动作积压与最长等待 | Telegram 调用是否卡住 |
+| 429 计数 | 是否触及速率上限 |
+| 更新处理延迟 | 是否跟得上 |
+
+**通过率是最有价值的一个。**线上当前为 2/71，说明来访基本是批量账号。 若突然升至八成，说明验证被绕过，或者正在拦截真实用户，两者都要立即排查。
+
+### 让架构不腐化
+
+口头约定会失效，因此每条边界都要有机器能查的手段。
+
+| 边界 | 怎么查 |
+|---|---|
+| 验证包不引用 telego | 检查该包的导入列表，出现即失败 |
+| 规则包无副作用 | 禁止导入数据库与网络相关的包 |
+| 接口实现完整 | 编译期断言写在实现旁边 |
+| 两个构建标签都能编 | 门禁同时跑两次 |
+| 文案是书面语 | 中文检查脚本 |
+| 没有针对特定群的分支 | 检索固定的群标识与主群一类的命名 |
+
+**新增一条规则时，同时给出它失败时会变红的检查。** 没有检查的规则只是偏好，半年后没有人记得。
+
+### 文档与代码的一致
+
+大型项目的架构文档普遍会过时，参考实现里就有描述了已被删除的检查工具的段落。 因此这里只写三类内容：**不变量、边界、以及为什么这样选**。 具体的命令名、作业名、行号不写进文档，它们比代码更快过时。
+
+这一页与 `docs/ARCHITECTURE.md` 内容相同， 两者同时更新。界面相关的规定一律放 [设计语言](design.html)，不在这里重复。
+
+## 15. 实施
 
 不做一次性重写。每一阶段独立通过全部门禁并可发布。
 
-| 阶段 | 内容 | 验收 |
-|---|---|---|
-| 一 | 同包纯移动：`service.go` 2859 行按七组职责拆成多个文件，签名不变 | 两个构建标签均编译通过，测试全绿，diff 只有移动 |
-| 二 | 抽出 `Gateway` 与 `Store` 接口，现有实现原样满足 | 行为零变更，新增假实现的单元测试 |
-| 三 | 数据层换 `dbutil`，JSON 状态一次性迁入数据库 | 迁移可重放，旧二进制连新库被拒绝启动 |
-| 四 | 配置换 `configupgrade` | 现有三个版本的配置都能升级且保留用户改过的值 |
-| 五 | `adminhttp` 与前端，`go:embed` 进同一二进制 | 一条命令部署，健康检查通过 |
-| 六 | 多租户：去掉全局默认，配置按群隔离 | 删除我们社区的配置后产品照常运转 |
+### 哪里不该做什么
 
-**第一阶段不动锁。** `v.mu` 是跨文件共享状态的边界，按新文件拆锁会引入死锁。
-同理 `state`、`kernel`、`pending` 不拆成独立服务，它们共享同一份状态。
-测试首轮不随源文件移动，否则无法用测试证明移动本身没有改变行为。
-
-## 12. 哪里不该做什么
-
-- **不在 `adminhttp` 里判断业务。** 它只做认证、参数校验与调用。
-  「这个人能不能被放行」属于 `verification`。
-- **不在 `telegram` 里查数据库。** 它把 Update 转成领域事件即结束。
-- **不在 `verification` 里格式化面向用户的文案。** 它返回结构化结果，
-  由 `i18n` 与调用方渲染。
-- **不给不变量加开关。** 界面偏好可以配置，不变量不可以。
-- **不为单个群加分支。** 需要差异时加配置项，并给出出厂默认。
+- **不在 adminhttp 里判断业务。**它只做认证、参数校验与调用。
+- **不在 telegram 里查数据库。**它把 Update 转成领域事件即结束。
+- **不在 verification 里格式化面向用户的文案。**它返回结构化结果。
+- **不给不变量加开关。**界面偏好可以配置，不变量不可以。
+- **不为单个群加分支。**需要差异时加配置项，并给出出厂默认。

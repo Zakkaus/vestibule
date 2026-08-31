@@ -1910,6 +1910,84 @@ li::marker { color: var(--border); }
     <p style="font-size:0.875rem;">既可以在界面上逐条编写，也可以导出后用文本编辑器批量修改再导入。
       两条路径写出的规则完全等价，因为界面本身就是在编辑同一份数据。</p>
 
+    <h3>回复内容支持富文本</h3>
+    <p>回复不只是一行纯文本。加粗、行内代码、可折叠引用、剧透、带文字的链接都要能用，
+      因为常被问到的往往是一段配置或一条命令。</p>
+
+    <p><b>存的是实体，不是标记语言。</b>标记语言要转义，而转义在用户输入里几乎必然出错：
+      一个 <code>&lt;</code> 或一个下划线就能让整条回复发不出去，或者发出一段错位的格式。
+      实体记录的是「第几个字符起、多长、什么样式」，与文字本身分开，
+      因此<b>复制到的文字等于屏幕上看到的文字</b>，这是第 04 节的组件契约要求的。</p>
+
+    <div class="tw"><table class="spec-table">
+      <thead><tr><th>允许</th><th>不允许</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>加粗、斜体、下划线、删除线</td>
+          <td rowspan="4"><b>自定义表情</b>：要求发送方有会员资格，
+            换台机器部署即无法发送，规则文件也就不可移植。<br><br>
+            <b>提及具体用户</b>：自动回复能点名任何人，是现成的骚扰通道。
+            要提到人就写名字，不做可点击的提及。</td>
+        </tr>
+        <tr><td>剧透</td></tr>
+        <tr><td>行内代码、代码块</td></tr>
+        <tr><td>引用、可折叠引用、带文字的链接</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>编辑器不让人写标记</h3>
+    <p>一条工具栏：加粗、斜体、行内代码、链接、剧透、引用。选中文字点一下，
+      存进去的是实体。<b>不提供「源码模式」</b>，因为那等于把转义的责任交回给使用者。</p>
+    <div class="spec-wrap">
+      <div class="cap"><span>回复编辑器</span><span class="hint">存实体，不存标记</span></div>
+      <div class="in stack">
+        <div class="row" style="gap:0.35rem;">
+          <button class="btn btn-outline btn-sm" type="button" style="font-weight:700;">B</button>
+          <button class="btn btn-outline btn-sm" type="button" style="font-style:italic;">I</button>
+          <button class="btn btn-outline btn-sm" type="button" class="mono">&lt;/&gt;</button>
+          <button class="btn btn-outline btn-sm" type="button">链接</button>
+          <button class="btn btn-outline btn-sm" type="button">剧透</button>
+          <button class="btn btn-outline btn-sm" type="button">引用</button>
+        </div>
+        <div class="raised" style="font-size:0.875rem;line-height:1.9;">
+          Matrix 桥接地址在这里，<b>先关掉端到端加密</b>再加入：<br>
+          <span class="mono" style="background:var(--muted);padding:0.1rem 0.35rem;border-radius:var(--radius-sm);">#gentoo-zh:matrix.gentoozh.org</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>链接预览是三态，不是开关</h3>
+    <p>一条带链接的回复，预览可以关掉、小图、大图。<b>默认关掉</b>：
+      自动回复往往一天触发多次，每次拖一张大图会把群刷得很难读。</p>
+    <div class="card card-pad">
+      <div class="setting">
+        <span class="k"><svg class="i"><use href="#i-image"/></svg>链接预览</span>
+        <span class="d">预览显示在文字上方还是下方也可以选。链接不止一条时按第一条生成。</span>
+        <span class="c"><span class="seg" role="group" aria-label="链接预览">
+          <button type="button" aria-pressed="true">关</button>
+          <button type="button" aria-pressed="false">小图</button>
+          <button type="button" aria-pressed="false">大图</button>
+        </span></span>
+      </div>
+    </div>
+
+    <h3>按钮只能是链接</h3>
+    <p>回复下方可以挂一排链接按钮，比长网址好读得多。但<b>只能是链接按钮</b>，
+      不能是触发动作的按钮 —— 自动回复负责说话，不负责执行。
+      这条边界要守住，否则它会逐步长成一个任何人都能在群内编写的脚本引擎。</p>
+    <div class="spec-wrap">
+      <div class="cap"><span>链接按钮</span><span class="hint">最多两行，每行最多三个</span></div>
+      <div class="in stack">
+        <div class="row" style="gap:0.4rem;">
+          <button class="btn btn-outline btn-sm" type="button">加入房间</button>
+          <button class="btn btn-outline btn-sm" type="button">桥接说明</button>
+          <button class="btn btn-outline btn-sm" type="button">报告问题</button>
+        </div>
+        <p style="font-size:0.875rem;">保存前校验每个网址：必须是 https，
+          必须能解析，按钮文字不能为空。<b>存不进一个点了没反应的按钮。</b></p>
+      </div>
+    </div>
+
     <h3>护栏</h3>
     <p>自动回复容易成为噪音来源，因此以下限制不提供开关：</p>
     <ul>
@@ -1925,9 +2003,7 @@ li::marker { color: var(--border); }
     </ul>
 
     <h3>回复内容</h3>
-    <p>支持纯文本、链接与按钮三种。按钮仅限链接按钮，不触发其他动作：
-      自动回复负责发言，不负责执行。这条边界必须保持，
-      否则它会逐步演变成一个任何人都能在群内编写的脚本引擎。</p>
+
     <div class="card card-pad">
       <div class="setting">
         <span class="k"><svg class="i"><use href="#i-clock"/></svg>冷却</span>
