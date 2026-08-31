@@ -363,10 +363,7 @@ func (v *Service) gradeKernelAnswer(c context.Context, bot Gateway, gid, uid int
 					if !current {
 						return
 					}
-					result, _ := v.sendDMQuestion(c, bot, uid, prompt)
-					if !result.current {
-						v.deleteChallenge(c, bot, uid, result.messageID)
-					}
+					_, _ = v.sendDMQuestion(c, bot, uid, prompt)
 					return
 				}
 			}
@@ -440,9 +437,6 @@ func (v *Service) beginKernelFallback(bot Gateway, gid, uid int64, nonce, questi
 	p.qText = question
 	p.fbAnswers = append([]string(nil), answers...)
 	p.fallbackPending = true
-	if p.timer != nil {
-		p.timer.Stop()
-	}
 	p.deadline = v.wallNow().Add(pendingDeliveryTimeout)
 	v.armExpiry(bot, p, gid, uid, pendingDeliveryTimeout, challengeExpiryReason(false))
 	return v.persistPendingLocked(key, p, expectedEpoch)

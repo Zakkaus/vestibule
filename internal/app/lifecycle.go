@@ -14,6 +14,8 @@ type runtimeLifecycle struct {
 	stopHandlers      func(context.Context) error
 	waitRegistration  func()
 	heartbeatDone     <-chan struct{}
+	expiryDone        <-chan struct{}
+	actionDone        <-chan struct{}
 	flushVerification func()
 	feedDone          <-chan struct{}
 	notifierDone      <-chan error
@@ -27,12 +29,14 @@ func runRuntimeLifecycle(ctx context.Context, lifecycle runtimeLifecycle) error 
 	}
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), lifecycle.deadline())
 	defer cancel()
-	log.Printf("shutdown: waiting up to %s to drain fetched updates and in-flight update handlers", lifecycle.deadline())
+	log.Printf("shutdown: stopping update polling and releasing its lease before draining handlers")
+	stopUpdateHandlers(shutdownCtx, lifecycle.stopHandlers)
 	// waitForHandlerShutdown logs the handler's error itself; nothing here reads it back.
 	_, _ = waitForHandlerShutdown(shutdownCtx, lifecycle.handlerDone, handlerErr, handlerStopped)
-	stopUpdateHandlers(shutdownCtx, lifecycle.stopHandlers)
 	waitForRegistration(shutdownCtx, lifecycle.waitRegistration)
 	waitForShutdownComponent(shutdownCtx, "Telegram heartbeat", lifecycle.heartbeatDone)
+	waitForShutdownComponent(shutdownCtx, "verification expiry scanner", lifecycle.expiryDone)
+	waitForShutdownComponent(shutdownCtx, "verification action executor", lifecycle.actionDone)
 	log.Printf("shutdown: flushing verification state")
 	if lifecycle.flushVerification != nil {
 		lifecycle.flushVerification()
@@ -74,6 +78,9 @@ func waitForHandlerShutdown(
 	current error,
 	stopped bool,
 ) (error, bool) {
+	if done == nil {
+		return current, stopped
+	}
 	if !stopped {
 		select {
 		case current = <-done:

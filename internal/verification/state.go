@@ -528,7 +528,7 @@ func (v *Service) load(bot Gateway) {
 		v.pend[key] = p
 		p.persistedPath = v.statePath
 		expectedEpoch := p.epoch
-		// Publish the entry before arming even a near-zero timer.
+		// Publish the entry before persisting even a near-zero durable deadline.
 		v.armExpiry(bot, p, gid, uid, delay, reason)
 		persisted := v.persistPendingLocked(key, p, expectedEpoch)
 		v.mu.Unlock()
@@ -584,14 +584,13 @@ func (v *Service) reachable(c context.Context) bool {
 	return v.probe.Probe(pc) == nil
 }
 
-// Caller holds v.mu. Every re-arm bumps epoch so replaced timers become stale.
-// Deferral-aware deadlines stop at the cap; non-positive delays become strike-free grace.
-func (v *Service) armExpiry(bot Gateway, p *pending, gid, uid int64, delay time.Duration, reason string) {
+// armExpiry now records only a durable deadline. The scanner owns expiry work, so no callback
+// can settle an applicant after graceful shutdown or disappear across a restart.
+func (v *Service) armExpiry(_ Gateway, p *pending, _ int64, _ int64, delay time.Duration, _ string) {
 	now := v.wallNow()
 	if delay <= 0 {
 		delay = noFaultGrace
 		p.deadline = now.Add(delay)
-		reason = challengeExpiryReason(false)
 	}
 	if !p.deferredSince.IsZero() && !p.deferralCapReached {
 		remaining := p.deferredSince.Add(maxVerificationDeferral).Sub(now)
@@ -604,9 +603,6 @@ func (v *Service) armExpiry(bot Gateway, p *pending, gid, uid int64, delay time.
 		}
 	}
 	p.epoch++
-	epoch := p.epoch
-	nonce := p.nonce
-	p.timer = time.AfterFunc(delay, func() { v.onExpiry(context.Background(), bot, gid, uid, nonce, epoch, reason) })
 }
 
 // Unreachable expiries receive fresh windows until the deferral cap, then short settlement retries.
@@ -713,9 +709,6 @@ func (v *Service) deferExpiry(bot Gateway, gid, uid int64, nonce string, epoch u
 	if !ok || p.done || p.nonce != nonce || p.epoch != epoch {
 		v.mu.Unlock()
 		return
-	}
-	if p.timer != nil {
-		p.timer.Stop()
 	}
 	if p.deferredSince.IsZero() {
 		p.deferredSince = now
@@ -898,9 +891,6 @@ func (v *Service) onRecovery(c context.Context, bot Gateway, outage time.Duratio
 			continue
 		}
 		expectedEpoch := p.epoch
-		if p.timer != nil {
-			p.timer.Stop()
-		}
 		delay := v.gateTimeout(k.gid, p.gate)
 		reason := "recovered"
 		if p.deferralCapReached || !p.deferredSince.IsZero() &&
@@ -1009,13 +999,7 @@ func (v *Service) renotifyPending(
 	v.mu.Unlock()
 	if !current {
 		v.deleteChallenges(c, bot, gid, uid, delivery.messages)
-		if delivery.replacedPrivateMsgID != 0 {
-			v.deleteChallenge(c, bot, uid, delivery.replacedPrivateMsgID)
-		}
 		return
-	}
-	if delivery.replacedPrivateMsgID != 0 {
-		oldMessages.privateMsgID = delivery.replacedPrivateMsgID
 	}
 	v.deleteChallenges(c, bot, gid, uid, oldMessages)
 }

@@ -56,9 +56,7 @@ func TestOnExpiryOfflineDefers(t *testing.T) {
 	if !cur.deadline.After(time.Now().Add(v.timeout(key.gid) - 5*time.Second)) {
 		t.Errorf("deferred expiry should re-arm a fresh full window, deadline=%v", cur.deadline)
 	}
-	if cur.timer != nil {
-		cur.timer.Stop()
-	}
+
 }
 
 func TestDeferredExpiryCapSettlesStrikeFree(t *testing.T) {
@@ -84,9 +82,7 @@ func TestDeferredExpiryCapSettlesStrikeFree(t *testing.T) {
 	v.probe = bot
 
 	v.onExpiry(context.Background(), bot, gid, uid, p.nonce, p.epoch, "timeout")
-	if p.timer != nil {
-		p.timer.Stop()
-	}
+
 	now = now.Add(49 * time.Hour)
 	bot.getMeErr = nil
 	v.mu.Lock()
@@ -129,9 +125,9 @@ func TestDeferredExpiryCapSettlesStrikeFree(t *testing.T) {
 	if bot.bans != 0 {
 		t.Errorf("capped expiry issued %d bans, want none", bot.bans)
 	}
-	if bot.deletes != 2 || !reflect.DeepEqual(bot.deletedChats, []int64{gid, uid}) ||
-		!reflect.DeepEqual(bot.deletedMessageIDs, []int{42, 43}) {
-		t.Errorf("capped expiry cleanup = chats %v messages %v, want both challenge messages",
+	if bot.deletes != 1 || !reflect.DeepEqual(bot.deletedChats, []int64{gid}) ||
+		!reflect.DeepEqual(bot.deletedMessageIDs, []int{42}) {
+		t.Errorf("capped expiry cleanup = chats %v messages %v, want the group challenge only",
 			bot.deletedChats, bot.deletedMessageIDs)
 	}
 	wantText := v.messages.Verification.Result.DeferralExpired.For(i18n.LangEN)
@@ -154,9 +150,7 @@ func TestDeferredExpiryCapRetriesWithoutFreshWindowAndLogsOnce(t *testing.T) {
 	v.probe = bot
 
 	v.onExpiry(context.Background(), bot, gid, uid, p.nonce, p.epoch, "timeout")
-	if p.timer != nil {
-		p.timer.Stop()
-	}
+
 	now = now.Add(49 * time.Hour)
 
 	var output bytes.Buffer
@@ -164,9 +158,7 @@ func TestDeferredExpiryCapRetriesWithoutFreshWindowAndLogsOnce(t *testing.T) {
 	log.SetOutput(&output)
 	t.Cleanup(func() {
 		log.SetOutput(oldWriter)
-		if p.timer != nil {
-			p.timer.Stop()
-		}
+
 	})
 
 	v.onExpiry(context.Background(), bot, gid, uid, p.nonce, p.epoch, "timeout")
@@ -176,9 +168,7 @@ func TestDeferredExpiryCapRetriesWithoutFreshWindowAndLogsOnce(t *testing.T) {
 	if !pendingStateBool(t, v.statePath, "deferral_cap_reached") {
 		t.Error("first capped retry did not persist its one-time warning marker")
 	}
-	if p.timer != nil {
-		p.timer.Stop()
-	}
+
 	now = now.Add(noFaultGrace)
 	v.onExpiry(context.Background(), bot, gid, uid, p.nonce, p.epoch, "timeout")
 	if remaining := p.deadline.Sub(now); remaining != noFaultGrace {
@@ -251,9 +241,7 @@ func TestDeferredExpiryAccumulatorSurvivesLongOutageRestart(t *testing.T) {
 	first.probe = probe
 
 	first.onExpiry(context.Background(), probe, gid, uid, p.nonce, p.epoch, "timeout")
-	if p.timer != nil {
-		p.timer.Stop()
-	}
+
 	first.save()
 	deferredSince := pendingStateUnix(t, first.statePath, "deferred_since")
 	first.mu.Lock()
@@ -327,9 +315,7 @@ func TestOfflineExpiryDoesNotLogPerPending(t *testing.T) {
 	log.SetOutput(&output)
 	t.Cleanup(func() {
 		log.SetOutput(oldWriter)
-		if p.timer != nil {
-			p.timer.Stop()
-		}
+
 	})
 
 	v.deferExpiry(newFakeVerifyBot(), key.gid, key.uid, p.nonce, p.epoch, "timeout")
@@ -354,9 +340,9 @@ func TestOnExpiryOnlineDeclines(t *testing.T) {
 	if r := v.vfail[key]; r == nil || r.count != 1 {
 		t.Error("online timeout should record one strike")
 	}
-	if fb.deletes != 2 || !reflect.DeepEqual(fb.deletedChats, []int64{-100, 5}) ||
-		!reflect.DeepEqual(fb.deletedMessageIDs, []int{42, 43}) {
-		t.Errorf("online timeout cleanup = chats %v messages %v, want both challenge messages", fb.deletedChats, fb.deletedMessageIDs)
+	if fb.deletes != 1 || !reflect.DeepEqual(fb.deletedChats, []int64{-100}) ||
+		!reflect.DeepEqual(fb.deletedMessageIDs, []int{42}) {
+		t.Errorf("online timeout cleanup = chats %v messages %v, want the group challenge only", fb.deletedChats, fb.deletedMessageIDs)
 	}
 }
 
@@ -430,9 +416,6 @@ func TestOnExpiryOnsetLagProbeDefers(t *testing.T) {
 	if _, struck := v.vfail[key]; struck {
 		t.Error("onset-lag defer must not strike")
 	}
-	if p := v.pend[key]; p != nil && p.timer != nil {
-		p.timer.Stop()
-	}
 }
 
 func TestOnExpiryStaleEpochNoop(t *testing.T) {
@@ -446,7 +429,7 @@ func TestOnExpiryStaleEpochNoop(t *testing.T) {
 	stale := p.epoch
 	v.armExpiry(fb, p, -100, 5, time.Hour, "timeout") // epoch -> 2 (a later re-arm superseded epoch 1)
 	v.mu.Unlock()
-	v.onExpiry(context.Background(), fb, -100, 5, "n", stale, "timeout") // the epoch-1 timer fires late
+	v.onExpiry(context.Background(), fb, -100, 5, "n", stale, "timeout") // the epoch-1 scanner claim arrives late
 	if fb.declines != 0 {
 		t.Error("a superseded (stale-epoch) expiry must not decline")
 	}
@@ -456,9 +439,7 @@ func TestOnExpiryStaleEpochNoop(t *testing.T) {
 	if _, struck := v.vfail[key]; struck {
 		t.Error("a superseded expiry must not strike")
 	}
-	if p.timer != nil {
-		p.timer.Stop()
-	}
+
 }
 
 func TestExpiryDeferThenOnlineStrikes(t *testing.T) {
@@ -476,11 +457,9 @@ func TestExpiryDeferThenOnlineStrikes(t *testing.T) {
 		t.Fatalf("offline expiry deleted %d challenge messages before settlement", fb.deletes)
 	}
 	deferredEpoch := cur.epoch
-	if cur.timer != nil {
-		cur.timer.Stop() // we drive the "fire" manually below
-	}
+
 	setOnline(v)
-	v.onExpiry(context.Background(), fb, -100, 5, "n", deferredEpoch, "timeout") // re-armed timer fires online
+	v.onExpiry(context.Background(), fb, -100, 5, "n", deferredEpoch, "timeout") // re-armed scanner claim arrives online
 	if fb.declines != 1 {
 		t.Errorf("a re-armed timeout, once online, should decline, got %d", fb.declines)
 	}
@@ -490,9 +469,9 @@ func TestExpiryDeferThenOnlineStrikes(t *testing.T) {
 	if r := v.vfail[key]; r == nil || r.count != 1 {
 		t.Error("the deferred timeout should still strike once online — no strike laundering")
 	}
-	if fb.deletes != 2 || !reflect.DeepEqual(fb.deletedChats, []int64{-100, 5}) ||
-		!reflect.DeepEqual(fb.deletedMessageIDs, []int{44, 45}) {
-		t.Errorf("deferred timeout cleanup = chats %v messages %v, want both challenge messages", fb.deletedChats, fb.deletedMessageIDs)
+	if fb.deletes != 1 || !reflect.DeepEqual(fb.deletedChats, []int64{-100}) ||
+		!reflect.DeepEqual(fb.deletedMessageIDs, []int{44}) {
+		t.Errorf("deferred timeout cleanup = chats %v messages %v, want the group challenge only", fb.deletedChats, fb.deletedMessageIDs)
 	}
 }
 
@@ -501,13 +480,14 @@ func TestDeferExpiryGuards(t *testing.T) {
 	key := pkey{-100, 5}
 	fresh := &pending{nonce: "new", epoch: 7, deadline: time.Now().Add(time.Hour)}
 	v.pend[key] = fresh
+	epoch, deadline := fresh.epoch, fresh.deadline
 	v.deferExpiry(&fakeVerifyBot{}, -100, 5, "old", 7, "timeout") // stale nonce
-	if fresh.timer != nil {
-		t.Error("a stale-nonce defer must not re-arm the current pending")
+	if fresh.epoch != epoch || !fresh.deadline.Equal(deadline) {
+		t.Error("a stale-nonce defer must not replace the current deadline")
 	}
 	v.deferExpiry(&fakeVerifyBot{}, -100, 5, "new", 3, "timeout") // right nonce, stale epoch
-	if fresh.timer != nil {
-		t.Error("a stale-epoch defer must not re-arm the current pending")
+	if fresh.epoch != epoch || !fresh.deadline.Equal(deadline) {
+		t.Error("a stale-epoch defer must not replace the current deadline")
 	}
 }
 
@@ -521,9 +501,7 @@ func TestNonPositiveExpiryDelayGetsStrikeFreeGrace(t *testing.T) {
 	v.pend[key] = p
 	v.armExpiry(newFakeVerifyBot(), p, gid, uid, v.timeout(gid), "timeout")
 	deadline := p.deadline
-	if p.timer != nil {
-		p.timer.Stop()
-	}
+
 	delete(v.pend, key)
 	v.mu.Unlock()
 
@@ -554,9 +532,6 @@ func TestHeartbeatTickRecovers(t *testing.T) {
 	p, ok := v.pend[key]
 	if !ok || !p.deadline.After(time.Now().Add(v.timeout(key.gid)-10*time.Second)) {
 		t.Error("recovery should refresh the pending's window")
-	}
-	if p != nil && p.timer != nil {
-		p.timer.Stop()
 	}
 }
 
@@ -597,9 +572,7 @@ func TestOnRecoveryRefreshesAndRenotifies(t *testing.T) {
 		if !p.deadline.After(time.Now().Add(v.timeout(k.gid) - 10*time.Second)) {
 			t.Errorf("pending %v should get a fresh full window, deadline=%v", k, p.deadline)
 		}
-		if p.timer != nil {
-			p.timer.Stop()
-		}
+
 	}
 }
 
@@ -616,11 +589,6 @@ func TestOnRecoveryRenotifyCooldown(t *testing.T) {
 	v.onRecovery(context.Background(), fb, 2*time.Minute) // immediate flap
 	if fb.sends != first {
 		t.Errorf("a second recovery within the window must not re-notify again (cooldown), sends %d -> %d", first, fb.sends)
-	}
-	for _, p := range v.pend {
-		if p.timer != nil {
-			p.timer.Stop()
-		}
 	}
 }
 
@@ -796,15 +764,13 @@ func TestLoadRefreshesAfterOutage(t *testing.T) {
 	if fb.sends == 0 {
 		t.Error("a long outage should re-notify the restored applicant")
 	}
-	if p.timer != nil {
-		p.timer.Stop()
-	}
+
 	if !v.approve(context.Background(), fb, -100, 7) {
 		t.Fatal("restored pending did not settle")
 	}
-	if !reflect.DeepEqual(fb.deletedChats, []int64{-100, 7, -100, 7}) ||
-		!reflect.DeepEqual(fb.deletedMessageIDs, []int{5, 6, 1, 1}) {
-		t.Fatalf("outage recovery cleanup = chats %v messages %v, want both old then both replacement challenges",
+	if !reflect.DeepEqual(fb.deletedChats, []int64{-100}) ||
+		!reflect.DeepEqual(fb.deletedMessageIDs, []int{5}) {
+		t.Fatalf("outage recovery cleanup = chats %v messages %v, want the replaced group challenge only",
 			fb.deletedChats, fb.deletedMessageIDs)
 	}
 }
@@ -852,9 +818,9 @@ func TestLoadRecoveryBothReplacesAndDeletesBothChallenges(t *testing.T) {
 	if p.groupMsgID != 99 || p.privateMsgID != 99 {
 		t.Fatalf("replacement message IDs = group %d/private %d, want 99/99", p.groupMsgID, p.privateMsgID)
 	}
-	if !reflect.DeepEqual(bot.deletedChats, []int64{gid, uid}) ||
-		!reflect.DeepEqual(bot.deletedMessageIDs, []int{41, 42}) {
-		t.Fatalf("recovery deleted chats/messages %v/%v, want both stale challenges",
+	if !reflect.DeepEqual(bot.deletedChats, []int64{gid}) ||
+		!reflect.DeepEqual(bot.deletedMessageIDs, []int{41}) {
+		t.Fatalf("recovery deleted chats/messages %v/%v, want the stale group challenge only",
 			bot.deletedChats, bot.deletedMessageIDs)
 	}
 	if p.groupMsgID == 41 || p.privateMsgID == 42 {
@@ -922,9 +888,9 @@ func TestRenotifyUsesDeliveryModeAndRetainsUnconfirmedPrivateID(t *testing.T) {
 			if !reflect.DeepEqual(bot.sendChats, tt.wantChats) {
 				t.Fatalf("send chats = %v, want delivery-mode sequence %v", bot.sendChats, tt.wantChats)
 			}
-			if !reflect.DeepEqual(bot.deletedChats, []int64{gid, uid}) ||
-				!reflect.DeepEqual(bot.deletedMessageIDs, []int{41, 42}) {
-				t.Fatalf("deleted chats/messages = %v/%v, want both old challenges",
+			if !reflect.DeepEqual(bot.deletedChats, []int64{gid}) ||
+				!reflect.DeepEqual(bot.deletedMessageIDs, []int{41}) {
+				t.Fatalf("deleted chats/messages = %v/%v, want the old group challenge only",
 					bot.deletedChats, bot.deletedMessageIDs)
 			}
 		})
@@ -960,15 +926,12 @@ func TestLoadQuickRestartKeepsWindow(t *testing.T) {
 	if fb.sends != 0 {
 		t.Errorf("a quick restart must not re-notify, got %d sends", fb.sends)
 	}
-	if p.timer != nil {
-		p.timer.Stop()
-	}
+
 	if !v.approve(context.Background(), fb, -100, 8) {
 		t.Fatal("restored pending did not settle")
 	}
-	if !reflect.DeepEqual(fb.deletedChats, []int64{-100, 8}) ||
-		!reflect.DeepEqual(fb.deletedMessageIDs, []int{6, 7}) {
-		t.Fatalf("quick-restart cleanup = chats %v messages %v, want restored group and private challenges",
+	if len(fb.deletedChats) != 0 || len(fb.deletedMessageIDs) != 0 {
+		t.Fatalf("terminal cleanup must be queued, got immediate deletions %v/%v",
 			fb.deletedChats, fb.deletedMessageIDs)
 	}
 }

@@ -85,3 +85,21 @@ func startHeartbeat(ctx context.Context, verification *verification.Service, bot
 	}()
 	return done
 }
+
+func startExpiryScanner(ctx context.Context, verification *verification.Service) <-chan struct{} {
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		verification.RunExpiryScanner(ctx)
+	}()
+	return done
+}
+
+func startPendingActions(ctx context.Context, verification *verification.Service) <-chan struct{} {
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		verification.RunPendingActions(ctx)
+	}()
+	return done
+}

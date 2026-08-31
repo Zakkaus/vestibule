@@ -442,15 +442,10 @@ func assertLifecycleShutdownOrder(t *testing.T, shutdown *lifecycleShutdown) {
 	t.Helper()
 	shutdown.cancel()
 	<-shutdown.heartbeatStopping
-	select {
-	case <-shutdown.stopEntered:
-		t.Fatal("update handlers stopped before the fetched update stream drained")
-	default:
-	}
-	close(shutdown.handlerDone)
 	<-shutdown.stopEntered
 	close(shutdown.releaseStop)
 	<-shutdown.stopReturned
+	close(shutdown.handlerDone)
 	<-shutdown.registrationWaitEntered
 	close(shutdown.releaseRegistrationWait)
 	<-shutdown.registrationWaitReturned

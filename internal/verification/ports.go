@@ -214,7 +214,7 @@ type AckResult struct {
 type Gateway interface {
 	Send(context.Context, OutgoingMessage) (int, error)
 	SendHTMLFallback(context.Context, int64, string, string) (int, error)
-	Delete(context.Context, int64, int)
+	Delete(context.Context, int64, int) error
 	Notify(context.Context, int64, string, int)
 	Alert(context.Context, int64, string)
 	AuditLog(context.Context, int64, string)
@@ -248,6 +248,7 @@ const (
 	FailureBlockedByUser
 	FailureGroupUnreachable
 	FailureRateLimited
+	FailureMessageGone
 )
 
 // GatewayError is a platform failure translated at the adapter boundary.
@@ -358,6 +359,7 @@ type PendingRecord struct {
 	Passing            bool     `json:"passing,omitempty"`
 	SettleFailures     int      `json:"settle_failures,omitempty"`
 	SettlePendingSaid  bool     `json:"settle_pending_said,omitempty"`
+	FailedAt           int64    `json:"failed_at,omitempty"`
 }
 
 // PendingRef is the persisted identity and timer generation a write must still match.
@@ -372,8 +374,9 @@ func (r PendingRecord) Ref() PendingRef {
 	return PendingRef{GroupID: r.GroupID, UserID: r.UserID, Nonce: r.Nonce, Epoch: r.Epoch}
 }
 
-// ChallengeTransition carries both sides of one compare-and-swap. Record is the final
-// pending payload captured under the service lock.
+// ChallengeTransition carries both sides of one compare-and-swap and every externally visible
+// effect it makes durable in the same transaction. Record is the final pending payload captured
+// under the service lock.
 type ChallengeTransition struct {
 	Expected  PendingRef
 	Record    PendingRecord
@@ -382,6 +385,26 @@ type ChallengeTransition struct {
 	Reason    string
 	SettledAt int64
 	SettledBy int64
+	Actions   []ActionIntent
+}
+
+// ActionIntent is an externally visible operation made durable with a challenge transition.
+// Payload is operation-specific JSON owned by the verification service, not by the store.
+type ActionIntent struct {
+	ID         string
+	Kind       string
+	Payload    string
+	NextTryAt  int64
+	ClaimOwner string
+	ClaimUntil int64
+}
+
+// PendingAction is a claimed durable operation. Attempts counts completed failed attempts,
+// while the claim fields remain internal to the Store implementation.
+type PendingAction struct {
+	ActionIntent
+	ChallengeID string
+	Attempts    int
 }
 
 // FailureRecord is the legacy JSON representation of one applicant's strike window.
@@ -419,6 +442,19 @@ type Store interface {
 	TransitionChallenge(string, ChallengeTransition) (bool, error)
 	// DeletePending removes an unexposed challenge conditionally; false is already handled.
 	DeletePending(string, PendingRef) (bool, error)
+	// ClaimExpired leases due pending rows by moving their deadline to claimUntil. The scanner
+	// supplies both timestamps and a bounded batch so it needs neither a Clock nor an unbounded
+	// transaction.
+	ClaimExpired(namespace string, now, claimUntil int64, limit int) ([]PendingRecord, error)
+	// ClaimActions leases ready actions to one worker. A lease expiry makes a crashed worker's
+	// action available again; every action implementation must therefore be idempotent.
+	ClaimActions(namespace, owner string, now, claimUntil int64, limit int) ([]PendingAction, error)
+	// CompleteAction marks one owned action done and persists follow-up intents atomically.
+	CompleteAction(namespace, id, owner string, completedAt int64, followups []ActionIntent) (bool, error)
+	// RetryAction returns one owned action to the queue after a transient failure.
+	RetryAction(namespace, id, owner string, attempts int, nextTryAt int64, detail string) (bool, error)
+	// FailAction records a permanent or exhausted failure without requeueing it.
+	FailAction(namespace, id, owner string, failedAt int64, detail string) (bool, error)
 	LoadFailures(string) ([]FailureRecord, error)
 	SaveFailures(string, func() []FailureRecord) error
 	LoadAgents(string) (AgentTally, error)

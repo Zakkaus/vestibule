@@ -16,8 +16,20 @@ func (v *Service) claimPendingLocked(
 	reason string,
 	settledBy int64,
 ) bool {
+	if p.failedAt.IsZero() {
+		p.failedAt = v.wallNow()
+	}
+	var actions []ActionIntent
+	if !v.stateUnavailable(v.statePath) {
+		action, err := v.newSettlementAction(key, p, state, reason)
+		if err != nil {
+			log.Printf("verification: prepare %s action for group %d user %d: %v", state, key.gid, key.uid, err)
+			return false
+		}
+		actions = []ActionIntent{action}
+	}
 	changed, err := v.transitionChallengeLocked(
-		key, p, ChallengePending, state, reason, settledBy, p.epoch,
+		key, p, ChallengePending, state, reason, settledBy, p.epoch, actions...,
 	)
 	if err != nil {
 		log.Printf("verification: claim %s for group %d user %d: %v", state, key.gid, key.uid, err)
@@ -29,8 +41,9 @@ func (v *Service) claimPendingLocked(
 	}
 	p.done = true
 	p.claimedState = state
-	if p.timer != nil {
-		p.timer.Stop()
+	if len(actions) != 0 {
+		p.actionID = actions[0].ID
+		p.actionOwner = actions[0].ClaimOwner
 	}
 	v.markTerminalLocked(key, p)
 	return true
@@ -52,7 +65,7 @@ func (v *Service) consumeBy(gid, uid, settledBy int64) (*pending, bool) {
 	return p, true
 }
 
-// Nonce and timer epoch must both match in memory and in storage, so superseded timers
+// Nonce and scanner epoch must both match in memory and storage, so a superseded scan
 // cannot claim a replacement or a re-armed challenge.
 func (v *Service) claimPendingExpiry(gid, uid int64, nonce string, epoch uint64, reason string) (*pending, bool) {
 	v.mu.Lock()
@@ -76,6 +89,5 @@ func (v *Service) claimPendingExpiry(gid, uid int64, nonce string, epoch uint64,
 	if !v.claimPendingLocked(key, p, state, storedReason, 0) {
 		return nil, false
 	}
-	p.failedAt = v.wallNow()
 	return p, true
 }

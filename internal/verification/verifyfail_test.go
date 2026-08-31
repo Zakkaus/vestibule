@@ -165,7 +165,7 @@ func TestVerifyFailCapacityEvictsOldestWithoutClearingLiveState(t *testing.T) {
 func TestClaimPendingNonce(t *testing.T) {
 	v := newTestService(&config.Config{})
 	key := pkey{-100, 42}
-	p := &pending{nonce: "NEW", timer: time.AfterFunc(time.Hour, func() {})}
+	p := &pending{nonce: "NEW"}
 	v.pend[key] = p
 	if _, ok := v.claimPendingNonce(key.gid, key.uid, "OLD"); ok {
 		t.Fatal("stale nonce claimed the replacement pending")
@@ -177,7 +177,6 @@ func TestClaimPendingNonce(t *testing.T) {
 	if !ok || got != p || !p.done {
 		t.Fatalf("matching nonce claim = (%p, %v), pending done=%v", got, ok, p.done)
 	}
-	p.timer.Stop()
 }
 
 func TestRecordVerifyFailCountsAtClaimTime(t *testing.T) {
