@@ -26,6 +26,7 @@ Telegram 群入群验证与管理机器人，一个实例服务很多群，
 | 界面取值、屏的内容、文案规则 | `web/design.html` |
 | 包结构、数据、流程、稳定性 | `web/architecture.html` 与 `docs/ARCHITECTURE.md` |
 | 规则：上限、不变量、语言、提交、门禁 | `CONTRIBUTING.md` |
+| 软件保存哪些关于人的数据，运行实例的人要写明什么 | `docs/PRIVACY.zh-CN.md` |
 
 改造次序与每阶段的验收见 `docs/PLAN-v5.md`。
 

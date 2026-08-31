@@ -63,6 +63,12 @@ jobs:
         run: python3 scripts/check-docs.py
       - name: CONTRIBUTING names every gate CI runs
         run: python3 scripts/check-gate-list.py
+      - name: The privacy statement names every table holding a person
+        run: python3 scripts/check-privacy-tables.py
+      - name: Chinese prose — docs/PRIVACY.zh-CN.md
+        uses: Zakk-LLM/Chinese-skill@242ec69c089f5dae91cfc7eb3b4dc924d5c1aab0 # v1.4.0
+        with:
+          path: docs/PRIVACY.zh-CN.md
       # One path per step: the action passes its `path` input as a single quoted
       # argument, so a space-separated list becomes one filename that does not exist.
       #
