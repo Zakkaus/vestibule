@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title></title>
+    <script>
+      (() => {
+        const themeKey = "verify-console-theme";
+        const localeKey = "verify-console-locale";
+        const localeFromBrowser = () => {
+          const language = navigator.language;
+          if (language === "zh-TW" || language.startsWith("zh-Hant")) return "zh-TW";
+          if (language.startsWith("en")) return "en";
+          return "zh-CN";
+        };
+
+        try {
+          const theme = localStorage.getItem(themeKey);
+          if (theme === "light" || theme === "dark") {
+            document.documentElement.dataset.theme = theme;
+          }
+          document.documentElement.dataset.themePreference = theme === "light" || theme === "dark" ? theme : "system";
+
+          const locale = localStorage.getItem(localeKey);
+          document.documentElement.lang = locale === "zh-CN" || locale === "zh-TW" || locale === "en"
+            ? locale
+            : localeFromBrowser();
+        } catch {
+          document.documentElement.dataset.themePreference = "system";
+          document.documentElement.lang = localeFromBrowser();
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

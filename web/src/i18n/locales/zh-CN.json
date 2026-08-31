@@ -1,0 +1,111 @@
+{
+  "app": {
+    "title": "验证控制台",
+    "name": "验证控制台"
+  },
+  "theme": {
+    "label": "主题",
+    "system": "跟随系统",
+    "light": "浅色",
+    "dark": "深色"
+  },
+  "locale": {
+    "label": "语言",
+    "zhCN": "中文（简体）",
+    "zhTW": "中文（繁体）",
+    "en": "English"
+  },
+  "navigation": {
+    "label": "控制台导航",
+    "workspace": "工作区",
+    "groups": "群与频道"
+  },
+  "shell": {
+    "mobileNavigation": "打开导航",
+    "groupSwitcher": "当前群",
+    "allGroups": "全部可管理的群"
+  },
+  "entry": {
+    "nextSteps": "下一步",
+    "noSession": {
+      "title": "从 Telegram 打开控制台",
+      "description": "群管理员请在 Telegram 中打开 {{botUsername}} 的菜单。运维请向 {{botUsername}} 索取一次性链接。",
+      "steps": {
+        "openBot": "在 Telegram 中打开 {{botUsername}}。",
+        "manager": "群管理员从机器人的菜单进入控制台。",
+        "operator": "运维向机器人索取一次性链接。"
+      }
+    },
+    "expired": {
+      "title": "这条链接已过期",
+      "description": "一次性链接有有效期。过期不表示账号或控制台出了问题。",
+      "steps": {
+        "request": "向 {{botUsername}} 再要一条一次性链接。"
+      }
+    },
+    "redeemed": {
+      "title": "这条链接已被用过",
+      "description": "这可能表示有人先打开了它。不要继续转发原链接。",
+      "steps": {
+        "request": "向 {{botUsername}} 索取一条新链接，并确认链接只发给预定的运维人员。"
+      }
+    },
+    "noGroups": {
+      "title": "这个账号尚未获任何群授权",
+      "description": "会话有效，但 Telegram 账号 {{accountId}} 目前没有可管理的群。",
+      "steps": {
+        "authorization": "请让群主在 Telegram 中把这个账号设为群管理员，然后从机器人的菜单打开控制台。"
+      }
+    },
+    "outsideTelegram": {
+      "title": "群管理仅可从 Telegram 内打开",
+      "description": "这是刻意的安全边界。普通浏览器不能提供群管理员所需的签名身份数据。",
+      "steps": {
+        "desktop": "在 Telegram Desktop 中打开 {{botUsername}} 的菜单，再进入控制台。"
+      }
+    }
+  },
+  "groups": {
+    "title": "群与频道",
+    "description": "每一行都显示 Telegram 当前模式与验证前置，避免把无法收到申请的群当成正常。",
+    "managedCount_one": "{{count}} 个可管理的群",
+    "managedCount_other": "{{count}} 个可管理的群",
+    "mode": {
+      "approval": "审批制",
+      "joinRestrict": "先入群后限制",
+      "joinRestrictNote": "未通过的人已在群内，仍可看到群里的消息。"
+    },
+    "verification": {
+      "available": "可验证",
+      "unavailable": "不可验证"
+    },
+    "prerequisites": {
+      "heading": "验证前置",
+      "joinRequestsEnabled": "群已开启批准",
+      "botIsAdministrator": "机器人是管理员",
+      "joinEventsDeclared": "拉取时声明申请事件",
+      "present": "已具备",
+      "missing": "缺失"
+    },
+    "metrics": {
+      "applications48h": "48 小时内申请",
+      "settled": "已结算",
+      "timeout": "超时"
+    },
+    "applicants": {
+      "heading": "最近申请人",
+      "withUsername": "@{{username}} · {{id}}",
+      "idOnly": "ID {{id}}"
+    },
+    "settlement": {
+      "timeout": "超时",
+      "approved": "已通过",
+      "rejected": "已拒绝"
+    },
+    "names": {
+      "gentooZh": "Gentoo 中文社区",
+      "archZh": "Arch Linux 中文社区",
+      "oldOt": "老 OT"
+    }
+  }
+}
