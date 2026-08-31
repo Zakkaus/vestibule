@@ -14,7 +14,6 @@ import (
 	"go.mau.fi/util/dbutil"
 
 	_ "github.com/lib/pq"
-	_ "go.mau.fi/util/dbutil/litestream"
 )
 
 const (
