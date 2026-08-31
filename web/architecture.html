@@ -1150,6 +1150,35 @@ type Store interface {
     <p style="font-size:0.875rem;"><code>rules</code> 是纯函数包，因此可以脱离一切依赖测试，
       也可以被控制台的试答直接调用，不必绕一圈网络。</p>
 
+    <h3>拉取更新时必须声明要哪几种</h3>
+    <p>平台默认<b>不投递</b> <code>chat_join_request</code>。
+      权限给满、群里开关也开了，只要拉取时没有声明这一项，
+      加群申请一条都收不到，而且没有任何报错。上一代把五种一次声明清楚，
+      <code>cmd/gentoo-zh-verify-bot/main.go:368</code>：</p>
+    <div class="spec-wrap">
+      <div class="cap"><span>要声明的更新类型</span><span class="hint">少一种就是一整条路径静默失效</span></div>
+      <div class="in">
+        <div class="flow">chat_join_request    加群申请，验证的唯一触发点
+chat_member          成员变化，用于恢复期核对与踢出后清理
+my_chat_member       机器人自己被加入或移出群
+message              入群后验证、反垃圾、命令
+callback_query       按钮作答</div>
+      </div>
+    </div>
+    <p><b>这一项归启动前的自检管。</b>拉取时声明了什么是自己的配置，
+      能不能收到还取决于群的设置和机器人的权限。三者缺任一，
+      表现都是「什么也没发生」，因此要在启动时逐项报，不能等第一个申请进来才发现。</p>
+    <div class="tw"><table class="spec-table">
+      <thead><tr><th>查什么</th><th>不满足时的表现</th></tr></thead>
+      <tbody>
+        <tr><td>拉取时声明了 <code>chat_join_request</code></td><td>没有申请事件</td></tr>
+        <tr><td>群是超级群且开了「需管理员批准」</td><td>平台不产生申请事件</td></tr>
+        <tr><td>机器人是管理员，且有邀请、封禁、删除三项</td><td>收得到但结算不了</td></tr>
+      </tbody>
+    </table></div>
+    <p style="font-size:0.875rem;">三条都通过才算这个群「可以验证」，
+      在控制台的群列表里就要这么标。<b>标成可用却什么都不做，比标成不可用更糟。</b></p>
+
     <h3>装配与生命周期</h3>
     <p>启动顺序照 mautrix：<b>先起连接，再起会话，最后异步做启动后的收尾</b>。
       关闭顺序是它更值得抄的部分，逐条都有理由。</p>
