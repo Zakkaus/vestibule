@@ -1,0 +1,445 @@
+html,
+body,
+#root {
+  min-block-size: 100%;
+}
+
+body {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+[data-app-shell] {
+  min-block-size: 100dvb;
+}
+
+[data-app-shell][data-shell-variant="console"] .shell {
+  min-block-size: 100dvb;
+}
+
+[data-app-shell][data-shell-variant="entry"] {
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+[data-entry-utilities] {
+  display: flex;
+  justify-content: end;
+  padding-block: var(--sp-4);
+  padding-inline: var(--sp-5);
+}
+
+[data-utility-controls] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: end;
+  gap: var(--sp-3);
+}
+
+[data-utility-control] {
+  display: grid;
+  gap: var(--sp-1);
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+[data-utility-control] select {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  font-size: 0.8125rem;
+}
+
+[data-entry-main] {
+  display: grid;
+  place-items: center;
+  padding-block: var(--sp-5);
+  padding-inline: var(--sp-5);
+}
+
+[data-entry-page] {
+  display: grid;
+  inline-size: min(100%, 58ch);
+  gap: var(--sp-5);
+}
+[data-entry-page] [data-slot="card"],
+[data-entry-page] section {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+[data-entry-page] h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+
+[data-entry-page] h1,
+[data-page-heading] h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+[data-entry-copy],
+[data-page-heading] p,
+[data-mode-note] {
+  margin: 0;
+  color: var(--muted-foreground);
+}
+
+[data-entry-steps] {
+  display: grid;
+  gap: var(--sp-3);
+  margin: 0;
+  padding-inline-start: var(--sp-5);
+}
+
+[data-entry-steps] li {
+  padding-inline-start: var(--sp-1);
+}
+
+[data-console-header] {
+  display: flex;
+  min-inline-size: 0;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+[data-header-title] {
+  min-inline-size: 0;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+/* The console header is a fixed bar of --header-h, and a visible label stacked
+   above each control does not fit in it — the label was being clipped at the top
+   edge. Hidden at every width rather than only on the desktop, because each
+   control's value already names it: "All manageable groups", "Follow system",
+   "English". The select keeps its aria-label, so the name is still announced. */
+[data-console-header] [data-utility-control] > span,
+[data-console-header] [data-group-switcher] > span {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+[data-header-controls] {
+  display: flex;
+  min-inline-size: 0;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: end;
+  gap: var(--sp-3);
+  margin-inline-start: auto;
+}
+
+[data-group-switcher] {
+  display: grid;
+  gap: var(--sp-1);
+  min-inline-size: min(100%, var(--field-w));
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+[data-group-switcher] select {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  font-size: 0.8125rem;
+}
+
+[data-mobile-navigation] {
+  display: none;
+}
+
+[data-groups-page] {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+[data-page-heading] {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+[data-group-list] {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+[data-group-row] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--sp-5);
+}
+
+[data-group-row][data-selected] {
+  border-color: var(--foreground);
+}
+
+[data-group-primary] {
+  display: grid;
+  min-inline-size: 0;
+  gap: var(--sp-4);
+}
+
+[data-group-heading] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+[data-group-heading] h2 {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+[data-mode-note] {
+  font-size: 0.875rem;
+}
+
+[data-group-metrics] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--sp-2);
+}
+
+[data-group-metric] {
+  display: grid;
+  gap: var(--sp-1);
+  min-inline-size: 0;
+  padding-block: var(--sp-3);
+  padding-inline: var(--sp-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}
+
+[data-group-metric-label] {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+[data-group-metric-value] {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-group-side] {
+  display: grid;
+  inline-size: min(100%, 18rem);
+  gap: var(--sp-3);
+}
+[data-group-side] > section {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+[data-group-id] {
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+
+[data-prerequisite-heading],
+[data-applicant-heading] {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+[data-prerequisite-list],
+[data-applicant-list] {
+  display: grid;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-prerequisite],
+[data-applicant] {
+  display: flex;
+  min-inline-size: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  font-size: 0.8125rem;
+}
+
+[data-prerequisite][data-prerequisite-state="missing"] {
+  font-weight: 600;
+}
+
+[data-applicant-identity] {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-settlement-list] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr));
+  gap: var(--sp-2);
+  margin: 0;
+  padding-block-start: var(--sp-3);
+  border-block-start: var(--hairline) solid var(--border);
+  list-style: none;
+}
+
+[data-settlement-item] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+[data-settlement-value] {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+[data-slot="badge"][data-status="ok"] {
+  background: var(--status-ok-bg);
+  color: var(--status-ok-fg);
+}
+
+[data-slot="badge"][data-status="info"] {
+  background: var(--status-info-bg);
+  color: var(--status-info-fg);
+}
+
+[data-slot="badge"][data-status="pending"] {
+  background: var(--status-pending-bg);
+  color: var(--status-pending-fg);
+}
+
+[data-slot="badge"][data-status="error"] {
+  background: var(--status-error-bg);
+  color: var(--status-error-fg);
+}
+
+[data-slot="badge"][data-status="neutral"] {
+  background: var(--status-neutral-bg);
+  color: var(--status-neutral-fg);
+}
+
+@media (max-width: 48rem) {
+  [data-entry-utilities] {
+    padding-block: var(--sp-3);
+    padding-inline: var(--sp-3);
+  }
+
+  [data-entry-utilities] [data-utility-controls] {
+    inline-size: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  [data-entry-utilities] [data-utility-control] select {
+    inline-size: 100%;
+  }
+
+  [data-app-shell][data-shell-variant="console"] .shell-aside {
+    display: none;
+  }
+
+  [data-app-shell][data-shell-variant="console"] .shell-header {
+    block-size: auto;
+    min-block-size: var(--header-h);
+    align-items: start;
+    flex-wrap: wrap;
+    padding-block: var(--sp-3);
+    padding-inline: var(--sp-3);
+  }
+
+  [data-console-header] {
+    inline-size: 100%;
+    flex-wrap: wrap;
+  }
+
+  [data-mobile-navigation] {
+    display: block;
+    position: relative;
+  }
+
+  [data-mobile-navigation] summary {
+    min-block-size: var(--control-h);
+    display: inline-flex;
+    align-items: center;
+    padding-inline: var(--sp-3);
+    border: var(--hairline) solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+    font-size: 0.8125rem;
+  }
+
+  [data-mobile-navigation][open] nav {
+    position: absolute;
+    z-index: 1;
+    inset-block-start: calc(100% + var(--sp-2));
+    inset-inline-start: 0;
+    inline-size: min(18rem, calc(100vi - var(--sp-6)));
+    max-block-size: 70dvb;
+    overflow: auto;
+    padding-block: var(--sp-3);
+    padding-inline: var(--sp-3);
+    border: var(--hairline) solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--popover);
+    box-shadow: var(--elev-2);
+  }
+
+  [data-header-controls] {
+    inline-size: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  [data-header-controls] [data-group-switcher] {
+    grid-column: 1 / -1;
+  }
+
+  [data-header-controls] [data-utility-controls] {
+    display: contents;
+  }
+
+  [data-header-controls] [data-utility-control] select,
+  [data-header-controls] [data-group-switcher] select {
+    inline-size: 100%;
+  }
+
+  [data-app-shell][data-shell-variant="console"] .shell-content {
+    padding-block: var(--sp-3);
+    padding-inline: var(--sp-3);
+  }
+
+  [data-group-row] {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--sp-4);
+  }
+
+  [data-group-side] {
+    inline-size: 100%;
+  }
+}

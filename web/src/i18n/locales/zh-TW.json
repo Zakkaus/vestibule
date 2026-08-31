@@ -1,0 +1,111 @@
+{
+  "app": {
+    "title": "驗證控制台",
+    "name": "驗證控制台"
+  },
+  "theme": {
+    "label": "佈景主題",
+    "system": "跟隨系統",
+    "light": "淺色",
+    "dark": "深色"
+  },
+  "locale": {
+    "label": "語言",
+    "zhCN": "中文（簡體）",
+    "zhTW": "中文（繁體）",
+    "en": "English"
+  },
+  "navigation": {
+    "label": "控制台導覽",
+    "workspace": "工作區",
+    "groups": "群組與頻道"
+  },
+  "shell": {
+    "mobileNavigation": "開啟導覽",
+    "groupSwitcher": "目前群組",
+    "allGroups": "全部可管理的群組"
+  },
+  "entry": {
+    "nextSteps": "下一步",
+    "noSession": {
+      "title": "從 Telegram 開啟控制台",
+      "description": "群組管理員請在 Telegram 中開啟 {{botUsername}} 的選單。維運人員請向 {{botUsername}} 索取一次性連結。",
+      "steps": {
+        "openBot": "在 Telegram 中開啟 {{botUsername}}。",
+        "manager": "群組管理員從機器人的選單進入控制台。",
+        "operator": "維運人員向機器人索取一次性連結。"
+      }
+    },
+    "expired": {
+      "title": "這條連結已過期",
+      "description": "一次性連結有有效期限。過期不表示帳號或控制台發生問題。",
+      "steps": {
+        "request": "向 {{botUsername}} 再索取一條一次性連結。"
+      }
+    },
+    "redeemed": {
+      "title": "這條連結已被使用",
+      "description": "這可能表示有人先開啟了它。請勿繼續轉傳原連結。",
+      "steps": {
+        "request": "向 {{botUsername}} 索取新連結，並確認連結只發給預定的維運人員。"
+      }
+    },
+    "noGroups": {
+      "title": "這個帳號尚未取得任何群組授權",
+      "description": "工作階段有效，但 Telegram 帳號 {{accountId}} 目前沒有可管理的群組。",
+      "steps": {
+        "authorization": "請讓群組擁有者在 Telegram 中將這個帳號設為群組管理員，然後從機器人的選單開啟控制台。"
+      }
+    },
+    "outsideTelegram": {
+      "title": "群組管理只能從 Telegram 內開啟",
+      "description": "這是刻意設定的安全邊界。一般瀏覽器無法提供群組管理員需要的簽名身分資料。",
+      "steps": {
+        "desktop": "在 Telegram Desktop 中開啟 {{botUsername}} 的選單，再進入控制台。"
+      }
+    }
+  },
+  "groups": {
+    "title": "群組與頻道",
+    "description": "每一列都顯示 Telegram 目前模式與驗證前置，避免把收不到申請的群組當成正常。",
+    "managedCount_one": "{{count}} 個可管理的群組",
+    "managedCount_other": "{{count}} 個可管理的群組",
+    "mode": {
+      "approval": "審核制",
+      "joinRestrict": "先加入再限制",
+      "joinRestrictNote": "未通過的人已在群組內，仍可看到群組中的訊息。"
+    },
+    "verification": {
+      "available": "可驗證",
+      "unavailable": "不可驗證"
+    },
+    "prerequisites": {
+      "heading": "驗證前置",
+      "joinRequestsEnabled": "群組已開啟加入審核",
+      "botIsAdministrator": "機器人是管理員",
+      "joinEventsDeclared": "擷取時已宣告申請事件",
+      "present": "已具備",
+      "missing": "缺少"
+    },
+    "metrics": {
+      "applications48h": "48 小時內申請",
+      "settled": "已結算",
+      "timeout": "逾時"
+    },
+    "applicants": {
+      "heading": "最近申請人",
+      "withUsername": "@{{username}} · {{id}}",
+      "idOnly": "ID {{id}}"
+    },
+    "settlement": {
+      "timeout": "逾時",
+      "approved": "已通過",
+      "rejected": "已拒絕"
+    },
+    "names": {
+      "gentooZh": "Gentoo 中文社群",
+      "archZh": "Arch Linux 中文社群",
+      "oldOt": "老 OT"
+    }
+  }
+}

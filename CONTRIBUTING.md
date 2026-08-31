@@ -143,6 +143,9 @@ go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
 go run github.com/securego/gosec/v2/cmd/gosec@v2.28.0 -exclude=G304,G703,G706 ./...
 python3 scripts/gen-arch-md.py --check
 python3 scripts/check-docs.py
+cd web && npm ci && npm run build && cd ..
+for c in style-rules undefined-var shadowed theme-leak; do \
+  python3 "scripts/design-checks/$c.py" web/dist/assets/*.css; done
 for c in html-structure style-rules css-coverage shadowed undefined-var theme-leak; do \
   python3 "scripts/design-checks/$c.py" web/design.html web/architecture.html; done
 ```
