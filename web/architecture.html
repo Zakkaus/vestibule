@@ -1638,6 +1638,20 @@ Sender {
     <p>扫描器按 <code>challenge_due</code> 索引领取到期记录。
       代价是精度由秒级变为扫描间隔，收益是重启不丢、多实例不重复。
       现有实现给每个待验证的人挂一个内存定时器，进程重启即全部丢失。</p>
+      <p><b>两个各自独立做出来的产品都栽在这里。</b>上一代用
+        <code>time.AfterFunc</code>，优雅停机时会在中途判一个人不通过。
+        policr-mini 用异步任务：<code>lib/policr_mini_bot/verification_helper.ex:111</code>
+        起任务，而 <code>lib/policr_mini_bot/boot_helper.ex</code>
+        只有取机器人信息与生成命令两个函数，<b>启动时不重扫未结算的验证</b>。
+        它的剩余时间把负数夹到零，<code>verification_helper.ex:575-577</code>，
+        注释写着这「通常是机器人停止后超时处理取消产生的现象」——
+        <b>它知道这个现象，选择显示成零而不是重新安排</b>。</p>
+      <p style="font-size:0.875rem;">同一份文件里另有一处：限制成员是在验证记录写进去<b>之前</b>
+        异步发出的，<code>verification_helper.ex:69-70</code>。两者之间崩一次，
+        就留下一个被禁言、没有记录、没有定时器、重启也扫不到的人。
+        我们把状态转换与动作意图放进同一个事务，正是为了不存在这个中间态。
+        <b>这不是说它写错了。</b>异步限制换来的是响应快，而它的部署形态里重启不频繁；
+        取舍不同，结论才不同。</p>
   </section>
 
   <section id="RULE" class="stack-m">
