@@ -1972,14 +1972,20 @@ internal/settings/
         <tr><td class="mono">GET /livez</td><td>进程事件循环存活即 200，不探测依赖，避免依赖抖动引发重启风暴</td></tr>
         <tr><td class="mono">GET /readyz</td><td>配置校验完成、数据库已迁移、Telegram 通道建立才 200</td></tr>
         <tr><td class="mono">POST /api/session</td><td>校验 initData 或 OIDC 回调，签发会话</td></tr>
-        <tr><td class="mono">GET /api/chats</td><td>该管理员可管理的群，由 getChatMember 求交集得出，不存租户表</td></tr>
+        <tr><td class="mono">GET /api/chats</td><td>群与频道屏。该管理员可管理的群，由 getChatMember 求交集得出，不存租户表</td></tr>
         <tr><td class="mono">GET /api/chats/{id}/overview</td><td>首页四层所需数据，一次返回</td></tr>
         <tr><td class="mono">GET /api/chats/{id}/queue</td><td>等待队列</td></tr>
-        <tr><td class="mono">GET /api/chats/{id}/settings</td><td>带每项来源：出厂默认或本群设定</td></tr>
+          <tr><td class="mono">POST /api/chats/{id}/queue/{cid}</td><td>人工结算一条：放行、拒绝、封禁。
+            <b>带当前状态做条件更新</b>，已被超时或他人结算过的返回冲突，不覆盖</td></tr>
+          <tr><td class="mono">PATCH /api/chats/{id}</td><td>这个群开不开验证、是不是只发消息不验证</td></tr>
+        <tr><td class="mono">GET /api/chats/{id}/settings</td><td>验证方式、管理与处罚、功能三屏共用。带每项来源：出厂默认、本群设定或由文件管理</td></tr>
         <tr><td class="mono">PATCH /api/chats/{id}/settings</td><td>只提交改动过的字段，带版本号做冲突检测</td></tr>
-        <tr><td class="mono">GET · PUT /api/chats/{id}/rules</td><td>题库、自动回复、显示名黑名单与反垃圾共用，<code>collection</code> 区分。PUT 整份替换用于导入</td></tr>
+        <tr><td class="mono">GET · PUT /api/chats/{id}/rules</td><td>题库、消息与文案、免验证来源三屏共用，<code>collection</code> 区分题库、自动回复、显示名黑名单与反垃圾。PUT 整份替换用于导入</td></tr>
         <tr><td class="mono">POST /api/chats/{id}/rules/test</td><td>试答，调用线上同一份判定代码</td></tr>
-        <tr><td class="mono">GET /api/chats/{id}/audit</td><td>操作记录，含撤销</td></tr>
+        <tr><td class="mono">GET /api/chats/{id}/audit</td><td>操作记录</td></tr>
+          <tr><td class="mono">POST /api/chats/{id}/audit/{aid}/undo</td><td>撤销一条。
+            只有可逆的才给这个入口，删掉的消息回不来</td></tr>
+          <tr><td class="mono">GET · PUT /api/chats/{id}/feeds</td><td>订阅推送。PUT 整份替换用于导入</td></tr>
         <tr><td class="mono">GET /api/chats/{id}/stats</td><td>统计屏。区间与粒度由查询参数给，服务端聚合，不把明细发给前端</td></tr>
           <tr><td class="mono">GET /api/chats/{id}/packages</td><td>已装的配置包与可装的包</td></tr>
           <tr><td class="mono">POST /api/chats/{id}/packages</td><td>装一个包。先返回它将改动哪些项，确认后才落库</td></tr>

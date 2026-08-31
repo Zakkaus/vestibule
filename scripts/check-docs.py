@@ -84,6 +84,34 @@ def check_links(path: Path) -> None:
             failures.append("%s: names %s, which does not exist" % (path.relative_to(ROOT), ref))
 
 
+def check_screen_coverage() -> None:
+    """The route table says it is exhaustive, so hold it to that.
+
+    Every screen the design language lists has to be named by some row of the
+    architecture's route table. A screen with no row is a screen nobody has
+    worked out how to load or save, and the claim rots within weeks otherwise.
+    """
+    design = ROOT / "web" / "design.html"
+    arch = ROOT / "docs" / "ARCHITECTURE.md"
+    if not (design.exists() and arch.exists()):
+        return
+    d = design.read_text(encoding="utf-8")
+    start = d.find("各屏职责")
+    if start < 0:
+        return
+    table = d[d.find("<table", start):d.find("</table>", start)]
+    screens = re.findall(r"<tr><td>([^<]+)</td>", table)
+    a = arch.read_text(encoding="utf-8")
+    first, last = a.find("| GET /livez"), a.find("这张表是穷举的")
+    if first < 0 or last < 0:
+        failures.append("architecture: the route table or its exhaustiveness claim is gone")
+        return
+    region = a[first:last]
+    for screen in screens:
+        if screen not in region:
+            failures.append("no route names the %s screen, but the route table claims to be exhaustive" % screen)
+
+
 def main() -> int:
     if not PLAN.exists():
         failures.append("docs/PLAN-v5.md is missing")
@@ -102,6 +130,8 @@ def main() -> int:
         check_headings(path, text)
         if str(path.relative_to(ROOT)) not in FORWARD_LOOKING:
             check_links(path)
+
+    check_screen_coverage()
 
     if failures:
         for f in failures:

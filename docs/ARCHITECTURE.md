@@ -768,14 +768,18 @@ Telegram Mini App 的 `initData`， 校验 HMAC 签名与签发时间，并记�
 | GET /livez | 进程事件循环存活即 200，不探测依赖，避免依赖抖动引发重启风暴 |
 | GET /readyz | 配置校验完成、数据库已迁移、Telegram 通道建立才 200 |
 | POST /api/session | 校验 initData 或 OIDC 回调，签发会话 |
-| GET /api/chats | 该管理员可管理的群，由 getChatMember 求交集得出，不存租户表 |
+| GET /api/chats | 群与频道屏。该管理员可管理的群，由 getChatMember 求交集得出，不存租户表 |
 | GET /api/chats/{id}/overview | 首页四层所需数据，一次返回 |
 | GET /api/chats/{id}/queue | 等待队列 |
-| GET /api/chats/{id}/settings | 带每项来源：出厂默认或本群设定 |
+| POST /api/chats/{id}/queue/{cid} | 人工结算一条：放行、拒绝、封禁。 **带当前状态做条件更新**，已被超时或他人结算过的返回冲突，不覆盖 |
+| PATCH /api/chats/{id} | 这个群开不开验证、是不是只发消息不验证 |
+| GET /api/chats/{id}/settings | 验证方式、管理与处罚、功能三屏共用。带每项来源：出厂默认、本群设定或由文件管理 |
 | PATCH /api/chats/{id}/settings | 只提交改动过的字段，带版本号做冲突检测 |
-| GET · PUT /api/chats/{id}/rules | 题库、自动回复、显示名黑名单与反垃圾共用，`collection` 区分。PUT 整份替换用于导入 |
+| GET · PUT /api/chats/{id}/rules | 题库、消息与文案、免验证来源三屏共用，`collection` 区分题库、自动回复、显示名黑名单与反垃圾。PUT 整份替换用于导入 |
 | POST /api/chats/{id}/rules/test | 试答，调用线上同一份判定代码 |
-| GET /api/chats/{id}/audit | 操作记录，含撤销 |
+| GET /api/chats/{id}/audit | 操作记录 |
+| POST /api/chats/{id}/audit/{aid}/undo | 撤销一条。 只有可逆的才给这个入口，删掉的消息回不来 |
+| GET · PUT /api/chats/{id}/feeds | 订阅推送。PUT 整份替换用于导入 |
 | GET /api/chats/{id}/stats | 统计屏。区间与粒度由查询参数给，服务端聚合，不把明细发给前端 |
 | GET /api/chats/{id}/packages | 已装的配置包与可装的包 |
 | POST /api/chats/{id}/packages | 装一个包。先返回它将改动哪些项，确认后才落库 |
