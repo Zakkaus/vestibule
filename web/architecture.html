@@ -1139,6 +1139,45 @@ type Store interface {
             <td>因此不需要 <code>Clock</code> 接口。少一个接口，测试直接传时间即可</td></tr>
       </tbody>
     </table></div>
+    <h3>接口上要写清不许做什么</h3>
+    <p>上面那张表说的是每个方法为什么长这样，<b>但没说实现时不许做什么</b>。
+      mautrix 的接口注释两样都写：某个方法「不允许返回错误，连接错误走另一条通道」，
+      某个方法「在全局缓存锁里被调用，因此不能做慢操作」。
+      约束写在接口旁边，实现的人不必去读调用方才知道。补上我们的：</p>
+    <div class="tw"><table class="spec-table">
+      <thead><tr><th>约束</th><th>违反会怎样</th></tr></thead>
+      <tbody>
+        <tr><td><b>不许在数据库事务里调用 <code>Gateway</code> 的任何方法</b></td>
+            <td>每一次调用都是一趟网络往返，在我们的部署位置上约半秒。
+              事务被这样撑住，锁的持有时间从毫秒变成秒</td></tr>
+        <tr><td><code>Store</code> 的实现不许发起网络调用</td>
+            <td>它是数据层。一旦它自己去问 Telegram，
+              「先写库再执行动作」这条次序就无从保证</td></tr>
+        <tr><td><code>AckInteraction</code> 必须先于同一次交互中的任何其他调用</td>
+            <td>排在几次往返之后，按钮就转好几秒。上一代正是这么慢下来的</td></tr>
+        <tr><td><code>ClaimExpired</code> 必须受 <code>limit</code> 约束，
+            实现不得忽略它</td>
+            <td>积压之后一次领走全部到期记录，一轮扫描要发成百上千条消息，
+              直接撞上限流</td></tr>
+        <tr><td><code>Gateway</code> 的实现不许决定谁通过谁拒绝</td>
+            <td>那是 <code>verification</code> 的事。适配器一旦开始判断，
+              就有两处地方在做同一个决定</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>为什么不做可选能力接口</h3>
+    <p>mautrix 把必须实现的部分压得很小，其余能力各自一个可选接口，
+      核心用类型断言探测。<code>bridgev2/networkinterface.go</code> 里
+      <code>NetworkConnector</code> 只有十个方法，<code>NetworkAPI</code> 九个，
+      而整个文件有<b>八十四个接口</b>。</p>
+    <p>这个模式解决的是<b>多个平台各自支持不同能力</b>：连接器实现哪个接口就支持哪个能力，
+      新增一种能力不会让已有的连接器编译不过。代价是那份契约无法一次读完，
+      要知道有哪些可选能力，只能通读整个文件。</p>
+    <p><b>我们只有一个平台，所以不取。</b>十个方法写在一个接口里，
+      一眼看得完，测试替身实现十个方法也不算负担。
+      <b>触发条件写在这里</b>：真的出现第二个平台时，按它的形状拆，
+      而不是那时才临时想一个。</p>
+
     <p style="font-size:0.875rem;">与上一代的分歧记在这里：它的
       <code>verifyBot</code> 直接暴露 telego 的参数结构体，
       <code>internal/verify/service.go:55</code>。那样省掉一层转换，
