@@ -174,7 +174,7 @@
 
 每片结束均须使两个构建标签可编译、两套测试全绿。
 
-下列 `现路径` 均是 `INVENTORY.md` 的来源追溯。阶段一搬移后，后续阶段修改对应目标路径；同一来源文件因后续重写再次出现时，行数是该阶段的接触面，不能将各阶段合计为全仓行数。
+下列 `现路径` 均是 `docs/INVENTORY.md` 的来源追溯。阶段一搬移后，后续阶段修改对应目标路径；同一来源文件因后续重写再次出现时，行数是该阶段的接触面，不能将各阶段合计为全仓行数。
 
 **命名已定：`console`。** 架构图和流程原本把这条 HTTP 边界叫 `adminhttp`，
 而包结构声明的是 `internal/console`，同一件事两个词。统一到后者：
@@ -184,7 +184,7 @@
 **这是一次重排，不是原地整理。** 旧版仍在生产运行，本仓库另起一份，
 因此直接朝目标架构搬，不做「先同包拆再搬第二次」。
 
-依据 `INVENTORY.md` 的逐文件去向。建立架构书声明的包：
+依据 `docs/INVENTORY.md` 的逐文件去向。建立架构书声明的包：
 
 ```
 internal/app  verification  rules  telegram  console  settings  database  status
@@ -210,7 +210,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 
 #### 文件处置
 
-**46 个文件，21,434 行非测试 Go 代码。** 表按清点处置分组；逐段去向和测试资产细节仍以 `INVENTORY.md` 为准。
+**46 个文件，21,434 行非测试 Go 代码。** 表按清点处置分组；逐段去向和测试资产细节仍以 `docs/INVENTORY.md` 为准。
 
 | 现路径 | 处置 | 目标位置 |
 |---|---|---|
@@ -367,7 +367,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 - 默认值夹取、显式来源、每群稀疏覆盖、空 override 继承出厂默认和群间隔离不变。
 - revision 冲突、整份校验和写入失败时不发布半个新快照不变；旧配置升级保留用户改值，新字段采用默认值。
 
-**阶段归属冲突：** `docs/ARCHITECTURE.md` 第 10 节与 `INVENTORY.md` 对这三个文件的目标一致：出厂默认加 `chat.settings`，不存在全局默认或 control group。现有阶段八却把这项切换列为其工作，两者不能同时成立。本计划不替任一来源裁定；维护者须先决定由阶段四完成切换，还是修改目标架构与阶段验收的归属。
+**阶段归属冲突：** `docs/ARCHITECTURE.md` 第 10 节与 `docs/INVENTORY.md` 对这三个文件的目标一致：出厂默认加 `chat.settings`，不存在全局默认或 control group。现有阶段八却把这项切换列为其工作，两者不能同时成立。本计划不替任一来源裁定；维护者须先决定由阶段四完成切换，还是修改目标架构与阶段验收的归属。
 
 #### 依赖
 
