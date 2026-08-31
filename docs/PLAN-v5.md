@@ -409,7 +409,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 
 ### 阶段六 · 前端与一条通路
 
-**分支** `v5/console-api`
+**分支** `v5/console-ui`
 
 **次序固定**：先定契约，再写后端，再写前端。契约先定，两端各自对着它开发。
 
