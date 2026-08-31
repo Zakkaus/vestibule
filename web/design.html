@@ -1194,6 +1194,8 @@ li::marker { color: var(--border); }
         </div>
         <div class="grp">
           <span class="glabel">这台控制台</span>
+          <a href="#"><svg class="i"><use href="#i-refresh"/></svg>版本
+            <span class="count badge pending">v5.1</span></a>
           <a href="#"><svg class="i"><use href="#i-toggle"/></svg>功能</a>
           <a href="#"><svg class="i"><use href="#i-settings"/></svg>偏好</a>
         </div>
@@ -1343,6 +1345,37 @@ li::marker { color: var(--border); }
       多出来的放进统计屏。判断一个数字该不该进首页：
       <b>它变化时，当班的人需要立刻知道吗。</b>不需要就不放。</p>
 
+    <h3>版本放在侧栏底部</h3>
+    <p>当前版本常驻侧栏最下面。有新版时旁边出现一个标记，点进去看它改了什么再决定。
+      <b>不做一键直接升级</b>：升级会重启整台机器上所有群的服务，
+      值得多一次确认。</p>
+    <div class="spec-wrap">
+      <div class="cap"><span>版本屏</span><span class="hint">只有运维能看到升级按钮</span></div>
+      <div class="in stack">
+        <div class="setting">
+          <span class="k"><svg class="i"><use href="#i-refresh"/></svg>当前 v5.1 · 有新版 v5.2</span>
+          <span class="d">升级会重启服务，中断几秒。进行中的验证不会丢，
+            重复到达不会被处理两次。</span>
+          <span class="c"><button class="btn btn-primary btn-sm" type="button">
+            <svg class="i"><use href="#i-refresh"/></svg>升级</button></span>
+        </div>
+        <div class="setting">
+          <span class="k"><svg class="i"><use href="#i-check"/></svg>能否回退</span>
+          <span class="d">升级前就要知道。数据结构不向下兼容时这里会写明，
+            <b>不要等装完才发现回不去</b>。</span>
+          <span class="c"><span class="badge ok"><span class="dot"></span>可回退</span></span>
+        </div>
+        <div class="setting">
+          <span class="k"><svg class="i"><use href="#i-file"/></svg>这一版改了什么</span>
+          <span class="d">上游的变更说明，看完再决定。</span>
+          <span class="c"><button class="btn btn-outline btn-sm" type="button">查看</button></span>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:0.875rem;">升级期间控制台显示「正在更新」并自动重试，
+      <b>不要抛一个连接错误让人以为坏了</b>。群管理员看不到这一屏 ——
+      升级影响机器上所有的群，而他只对自己的群负责。</p>
+
     <h3>每屏拥有什么</h3>
     <p>下表把今天散在 Telegram 面板和配置文件里的每一项，都对到一个屏。
       <b>没有「设置」这种什么都往里放的兜底屏</b>，一项找不到归属就说明分组错了。</p>
@@ -1363,6 +1396,7 @@ li::marker { color: var(--border); }
         <tr><td>诊断</td><td>权限预检、Bot API 延迟、心跳、上次失败原因、查询缓存与限流</td></tr>
         <tr><td>功能</td><td>这个群开哪些能力，每项一句话说清带来什么</td></tr>
         <tr><td>偏好</td><td>标记、名字、强调色、标题图标、保存方式、界面语言</td></tr>
+        <tr><td>版本</td><td>当前版本、可用新版、变更说明、能否回退、升级。仅运维可见</td></tr>
       </tbody>
     </table></div>
     <p style="font-size:0.875rem;">反频道马甲今天默认就是开的（配置里不写等于开），
