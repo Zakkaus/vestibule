@@ -52,6 +52,10 @@ done
 #    baselined violations it is holding; that number may fall, never rise.
 if [ -f scripts/lint.sh ]; then
   out=$(sh scripts/lint.sh 2>&1)
+  if printf '%s' "$out" | grep -q 'no longer occur'; then
+    bad "baseline holds violations that are gone; prune scripts/baseline.txt"
+    printf '%s\n' "$out" | grep 'no longer occur' | sed 's/^/    /'
+  fi
   if printf '%s' "$out" | grep -q FAIL; then
     bad "phase-zero gate"
     printf '%s\n' "$out" | grep FAIL | sed 's/^/    /'
