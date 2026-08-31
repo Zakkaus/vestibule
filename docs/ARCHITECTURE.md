@@ -141,18 +141,32 @@ testdata/                   样本与固定装置
 
 ```text
 type Gateway interface {
+    // 投递。富文本被平台拒绝时退回简版；瞬时失败绝不重试，
+    // 因为第一条可能已经送到了。这条是上一代用重复消息换来的。
     DeliverChallenge(ctx, ChallengeID, Delivery) (Delivered, error)
+    DeliverResult(ctx, ChatID, rich, simpler string) (MessageID, error)
+    Notify(ctx, ChatID, text string, ttlSeconds int)
+    Alert(ctx, logChat ChatID, text string)
+    FailAlert(ctx, logChat, group ChatID, text string)
+    Audit(ctx, logChat ChatID, text string)
     Retract(ctx, []MessageRef) error
-    AckInteraction(ctx, InteractionID, AckResult) error
 
+    // 交互应答。一次交互只能调用其中一个。
+    AckFast(ctx, InteractionID) error
+    AckResult(ctx, InteractionID, AckResult) error
+
+    // 成员动作。时长用秒，与平台一致；在边界上换算不损失精度，
+    // 而换成 time.Time 会引入一个没人要求的取整决定。
     ApproveJoin(ctx, ChatID, UserID) error
     DeclineJoin(ctx, ChatID, UserID) error
-    Mute(ctx, ChatID, UserID, until time.Time) error
+    Ban(ctx, ChatID, UserID, seconds int, revoke bool) error
+    Unban(ctx, ChatID, UserID, onlyIfBanned bool) error
+    Mute(ctx, ChatID, UserID, seconds int) error
     Unmute(ctx, ChatID, UserID) error
-    Kick(ctx, ChatID, UserID) error
-    Ban(ctx, ChatID, UserID, until time.Time) error
 
-    Membership(ctx, ChatID, UserID) (Membership, error)
+    // 权限。两个，不是一个：读路径用缓存的，写之前必须用现查的。
+    CachedAdmin(ctx, ChatID, UserID) (bool, error)
+    FreshAdmin(ctx, ChatID, UserID) (bool, error)
 }
 
 type Store interface {
@@ -238,6 +252,22 @@ type AckResult struct {            // 回调应答；文案本身可能就是结
     Alert bool                     // 弹窗还是气泡
 }
 ```
+
+### 这份契约是从八个接口反推的，不是想出来的
+
+第一版 `Gateway` 有十个方法，是照着「核心大概需要什么」写的， 只核对过我碰巧查到的那几处。派去实施的助手连着指出七组缺口， 最后一组把问题的性质说清楚了：**`internal/verify` 声明的不是两个接口，是八个。**
+
+| 它声明的 | 是什么 | 去哪 |
+|---|---|---|
+| `verifyTransport`（11 个方法） | **上一代自己的端口，而且分得很好**：投递、清理、告警、审计、 封禁解禁、禁言解禁 | 去掉平台类型后**就是** `Gateway` 的主体 |
+| `adminTransport` | `CachedAdmin` 与 `FreshAdmin` 两个查询 | 两个都留。合成一个会丢掉「写前现查」与六十秒缓存的区分， 而那是 v3.6.7 量出来的 |
+| `verifyBot`、`modBot`、`Telegram` | 直接暴露 telego 参数结构体的三层包装 | 不保留。我们的不变量不允许核心出现平台类型 |
+| `liveProbe`、`heartbeatBot` | `GetMe` 探活 | 归 `app`，见「连接中断由装配层处理」 |
+| `botUnwrapper` | 取出底层客户端的逃生口 | 不保留。它存在的理由是包装层太多 |
+
+**教训写在这里：这类契约要自下而上从被替换的代码反推，不能自上而下想。** 想出来的版本每一轮都会被实施推翻一次，而每一次推翻都是一整次派发。
+
+被推翻的具体几处：漏掉退回简版的投递、 把审计定成本地存储，而它发到日志群、漏掉带清理时限的通知、 漏掉解封、把两个权限查询合成一个、时长用了 `time.Time` 而平台收秒。
 
 ### Store 要覆盖核心实际持有的状态
 
