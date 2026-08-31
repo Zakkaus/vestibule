@@ -70,7 +70,7 @@ jobs:
               || echo "::warning::web/src/styles/$f.css differs from the shared design system"
           done
 
-      - name: Console session-to-release journey works in Chromium
+      - name: Console session-to-release journey and render gate work in Chromium
         run: |
           cd web
           npx playwright install --with-deps chromium
