@@ -127,6 +127,29 @@ def check_screen_coverage() -> None:
                             "claims to be exhaustive" % screen)
 
 
+def check_phases_have_their_sections(text: str) -> None:
+    """A phase that touches files says which files, what survives, and what it waits on.
+
+    Phase nine had none of the three. It rewrites deploy/install.sh, keeps two
+    systemd units whose hardening must survive verbatim, and cannot verify its own
+    acceptance until phase five serves /livez — and the plan said none of that,
+    while every other phase of the same kind said all of it.
+
+    Phase zero built the gates before there was anything to move, and phase ten
+    is a cutover rather than a change to files. Those two are exempt by name.
+    """
+    exempt = {"零", "十"}
+    for match in re.finditer(r"^### 阶段([零一二三四五六七八九十]+) · (.+?)$(.*?)(?=^### |\Z)",
+                             text, re.M | re.S):
+        number, title, body = match.group(1), match.group(2), match.group(3)
+        if number in exempt:
+            continue
+        for heading in ("#### 文件处置", "#### 必须保住的行为", "#### 依赖"):
+            if heading not in body:
+                failures.append("plan: 阶段%s · %s has no %s"
+                                % (number, title, heading.strip("# ")))
+
+
 def check_phase_branches_are_distinct(text: str) -> None:
     """No two phases claim the same branch.
 
@@ -191,6 +214,7 @@ def main() -> int:
         phases = phase_count(plan_text)
         check_plan_phases(plan_text)
         check_phase_branches_are_distinct(plan_text)
+        check_phases_have_their_sections(plan_text)
 
     check_schema_matches_migration()
 
