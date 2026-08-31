@@ -1769,8 +1769,8 @@ li::marker { color: var(--border); }
         <tr>
           <td>入群问答 · 规则版</td>
           <td>打字，但答案由规则判，不是对标准答案</td>
-          <td>照搬网络答案的人。内核版本号一题依靠一个不存在的诱饵版本筛选</td>
-          <td>了解该领域的人可以通过，这是设计目的；诱饵被公开讨论后需要更换</td>
+          <td>照搬提示里示例的人。内核版本号一题在题面里给的是占位符 <code>X.Y.Z</code>，把它原样发回来即判失败</td>
+          <td>执行一次 <code>uname -r</code> 就能通过，这是设计目的；占位符的样子被公开讨论后需要更换</td>
           <td>群内 · 私聊 · 网页</td>
         </tr>
         <tr>
@@ -1816,7 +1816,7 @@ li::marker { color: var(--border); }
     <div class="tw"><table class="spec-table">
       <thead><tr><th>今天的样子</th><th>统一形式下</th></tr></thead>
       <tbody>
-        <tr><td>内核版本号模式</td><td class="mono">type: rule · version_range + reject 诱饵</td></tr>
+        <tr><td>内核版本号模式</td><td class="mono">type: rule · version_range + reject 占位符</td></tr>
         <tr><td>选择题题库</td><td class="mono">type: rule · input: choice · one_of</td></tr>
         <tr><td>混合模式</td><td>两条规则题串联，或按申请者随机取一条</td></tr>
         <tr><td>必须关注频道</td><td class="mono">type: membership · fail_open 可配</td></tr>
@@ -1829,7 +1829,7 @@ li::marker { color: var(--border); }
       网页和 Telegram 共用这一个入口。</p>
 
     <h3>内核版本号只是一个模板</h3>
-    <p>现在这道题是写死的代码：正则、可能的版本范围、以及一个不可能存在的诱饵版本，
+    <p>现在这道题是写死的代码：正则、可能的版本范围、以及题面里那个占位符，
       全在 Go 里。它应该退回成题库里的一条，用和别人自己加的题完全一样的形式表达。
       下面是它存下来的样子，人看到的是再下面那个编辑器，不是这段文本。</p>
 
@@ -1845,14 +1845,23 @@ li::marker { color: var(--border); }
   <span class="k">accept:</span>              <span class="c"># 全部满足才算过</span>
     <span class="k">- version_range:</span> { min: 2.6, max: 6.99, normalize: strip_suffix }
   <span class="k">reject:</span>              <span class="c"># 命中任意一条即失败</span>
-    <span class="k">- one_of:</span> ["7.1.30"]   <span class="c"># 诱饵，这个版本不存在</span>
+    <span class="k">- one_of:</span> ["X.Y.Z"]    <span class="c"># 题面里给的占位符，原样发回即失败</span>
   <span class="k">escape:</span> no-linux      <span class="c"># 给没在用 Linux 的人一条出路</span>
 </pre>
     </div>
 
-    <p>诱饵是这道题的关键，值得单独说：抄答案的人会去搜一个「看起来最新」的版本号，
-      而这个号不存在。真在用 Linux 的人只会照着 <code>uname -r</code> 念自己的。
+    <p>否决的是<b>题面自己给出的那个占位符</b>，值得单独说，因为很容易写反。
+      题面示例写的是 <code>X.Y.Z</code>，并明说不要发送示例中的占位符；
+      把它原样发回来的人即判失败，而真在用 Linux 的人念的是 <code>uname -r</code> 的输出。
       任何人加自己的题时都能用 <code>reject</code> 做同样的事。</p>
+    <p><b>不要改成否决某个具体版本号。</b>本书早先的版本写的是
+      <code>one_of: ["7.1.30"]</code>，理由是「这个版本不存在」。
+      上一代生产代码里有一条测试恰恰相反 ——
+      <code>internal/verify/kernel_test.go:59</code> 写着
+      <i>a real future kernel line must never be blacklisted</i>，
+      并另有一条断言真实的 7.1.30 应当立即通过。
+      按写反的那版实现，<b>7.1.30 发布那天就会开始拒真人</b>。
+      占位符不会有这个问题：没有哪台机器的 <code>uname -r</code> 会输出 <code>X.Y.Z</code>。</p>
 
     <h3>上一代七天里的真实分布</h3>
     <p>下面这组数字取自上一代机器人在生产上的日志，二〇二六年八月二十五日到三十一日，
@@ -1878,8 +1887,9 @@ li::marker { color: var(--border); }
       而是<strong>有没有人来答</strong>。所以把题出难不会多退回几个人，
       代价却全部由那百分之一点五真人承担 —— 他们是唯一会来答题的人。
       这一条对本项目的任何一种验证方式都成立：调难度之前先问，难度到底退回了谁。</p>
-    <p>日志无法回答的一个问题：有多少人是搜到诱饵、发现搜不出结果就放弃的。
-      他们和从没打算答题的机器人一样，都只留下一条超时。诱饵退回了多少人，上一代量不出来。</p>
+    <p>日志无法回答的一个问题：有多少人是看懂了要执行 <code>uname -r</code>、
+      却没有去执行就放弃的。他们和从没打算答题的机器人一样，都只留下一条超时。
+      这道题劝退了多少人，上一代量不出来。</p>
     <p>这直接决定了本项目要记什么：<strong>每一次退回都要记下原因</strong> ——
       超时、答错、答对但触发否决条件、外部条件不满足，分开记。</p>
     <p>上一代已经分了三种：<code>timeout</code>、<code>wrong answer</code>、
@@ -2039,8 +2049,8 @@ li::marker { color: var(--border); }
         <span class="c"><button class="btn btn-outline btn-sm" type="button">改条件</button></span>
       </div>
       <div class="setting">
-        <span class="k">否决条件 <span class="badge plain"><span class="dot"></span>诱饵</span></span>
-        <span class="d">one_of · 7.1.30</span>
+        <span class="k">否决条件 <span class="badge plain"><span class="dot"></span>占位符</span></span>
+        <span class="d">one_of · X.Y.Z</span>
         <span class="c"><button class="btn btn-outline btn-sm" type="button">改条件</button></span>
       </div>
       <div class="setting">
