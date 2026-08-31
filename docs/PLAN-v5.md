@@ -123,7 +123,7 @@
 | 三 | `v5/database` | 数据层换 dbutil，状态入库，待执行动作表，实例租约 |
 | 四 | `v5/config` | 配置换 configupgrade，分成三层 |
 | 五 | `v5/console-api` | 接口契约、`internal/console`、Mini App 认证与授权 |
-| 六 | `v5/console-ui` | 前端骨架与一条通路：登录、选群、看队列、放行一个人 |
+| 六 | `v5/console-ui` | 前端骨架与一条通路：进入、选群、看队列、放行一个人 |
 | 七 | `v5/console-screens` | 其余各屏 |
 | 八 | `v5/multitenant` | 去掉全局默认，配置按群隔离 |
 | 九 | `v5/deploy` | 一次部署、健康检查、失败自动回退 |
@@ -420,14 +420,19 @@ internal/app  verification  rules  telegram  console  settings  database  status
 
 **次序固定**：先定契约，再写后端，再写前端。契约先定，两端各自对着它开发。
 
-先做能走通一条路径的最小集：**登录 → 选群 → 看等待队列 → 放行一个人**。
+先做能走通一条路径的最小集：**进入 → 选群 → 看等待队列 → 放行一个人**。
+
+**「进入」不是登录屏。** 这个产品没有登录表单：群管理员从 Telegram 里打开 Mini App，
+身份来自每次请求携带的签名数据；运维打开机器人发的一次性链接，链接换成会话。
+这一步要验的是**会话换取本身**，以及换不到时那五种状态各自说什么，
+见设计文档「打不开的时候看到什么」。
 这条通了再铺其余屏。
 
 同时落地的还有：Mini App 身份校验、写入前现查管理员、权限定时同步、
 前端目录约定与错误边界。
 
 **验收**：契约生成物与手写代码无差异；前端在没有后端时能对着假数据启动；
-这条通路有一个跑在真浏览器里的端到端用例，从登录走到放行成功；
+这条通路有一个跑在真浏览器里的端到端用例，从换取会话走到放行成功；
 改动过的每条路由在两个宽度、每个主题、最长的那种语言下各看过一遍，
 并且用键盘从头走通一次。
 静态检查证明不了这些，只有渲染出来看能证明；
@@ -440,11 +445,11 @@ internal/app  verification  rules  telegram  console  settings  database  status
 
 | 现路径 | 处置 | 目标位置 |
 |---|---|---|
-| `internal/panel/settings_panel.go:1–472` | 重写 | `internal/console/api` 与 `web/` 的登录、选群、队列和放行通路 |
+| `internal/panel/settings_panel.go:1–472` | 重写 | `internal/console/api` 与 `web/` 的会话、选群、队列和放行通路 |
 
 #### 必须保住的行为
 
-- 登录后只可选择已授权的群，等待队列和放行操作始终带目标群边界。
+- 取得会话后只可选择已授权的群，等待队列和放行操作始终带目标群边界。
 - 放行仍调用阶段三的同一 `verification.Service`；写入前现查管理员，失败方向为拒绝。
 - 浏览器不继承 Telegram callback、ForceReply、64 字节 payload 或 `telego.InlineKeyboardMarkup` 协议。
 
@@ -603,7 +608,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 
 - 误拒真实用户，一天内两起
 - 验证消息发送失败或重复发送，持续超过十分钟
-- 控制台无法登录，且十分钟内没有恢复
+- 控制台换不到会话，且十分钟内没有恢复
 - 数据库写入失败率超过百分之一
 
 退回的动作是：把新机器人的权限收回，旧机器人的权限恢复，
@@ -657,7 +662,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 |---|---|
 | 十一个阶段各自的验收都过了 | 逐条对，不补记 |
 | 门禁在两个构建标签下都是绿的 | 完整跑一遍，不看缓存 |
-| 一条端到端用例在真浏览器里通过 | 从登录走到放行成功 |
+| 一条端到端用例在真浏览器里通过 | 从换取会话走到放行成功 |
 | 三种语言各跑过一遍全部屏 | 最长的那种语言下无截断、无横向滚动 |
 | 迁移命令在生产数据的副本上跑通 | 条数逐类核对一致 |
 | 演练过一次退回 | 退回后旧机器人照常工作 |
