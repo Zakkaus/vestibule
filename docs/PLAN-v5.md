@@ -68,7 +68,7 @@
 条件类型是封闭集合，作用于三处：验证答案、消息文本、显示名与个人简介。
 新增一种玩法应当是新增一条配置，不是新增一段代码。
 
-### 不在本轮范围### 不在本轮范围
+### 不在本轮范围
 
 - 付费与配额计费。
 - 移动端原生应用。
@@ -128,6 +128,22 @@
 
 **分支** `v5/skeleton`
 
+#### 为什么要分片
+
+清点的 46 个来源文件中有 13 个标为 `重写`，其中验证、设置和持久状态同时改变依赖方向与状态模型。一次切换无法判断失败来自搬移、端口边界还是状态转换，因此阶段一分为三片：
+
+| 分片 | 边界 |
+|---|---|
+| 1A · 无状态边界 | 先迁 `lookup`、`i18n`、日志脱敏、标识与格式化职责；不改变持久状态和对外动作时序。 |
+| 1B · Telegram 与装配边界 | 将 Update 路由、Gateway 实现、命令注册和生命周期装配移到 `telegram`、`app` 与 `cmd/bot`；核心只经端口调用外部服务。 |
+| 1C · 核心端口边界 | 将验证流程置于 `verification`，以 `Store`、`Gateway`、`Clock` 隔离现有状态；不在本片更换数据库介质，状态迁移留给阶段三。 |
+
+每片结束均须使两个构建标签可编译、两套测试全绿。
+
+下列 `现路径` 均是 `INVENTORY.md` 的来源追溯。阶段一搬移后，后续阶段修改对应目标路径；同一来源文件因后续重写再次出现时，行数是该阶段的接触面，不能将各阶段合计为全仓行数。
+
+**命名冲突：** 架构图和流程把 HTTP 边界称为 `adminhttp`，包结构则声明 `internal/console`；`INVENTORY.md` 将两者视为同一边界。表中同时保留这层对应关系，不新增平行的 `adminhttp` 包；术语定名仍须维护者确认。
+
 **这是一次重排，不是原地整理。** 旧版仍在生产运行，本仓库另起一份，
 因此直接朝目标架构搬，不做「先同包拆再搬第二次」。
 
@@ -152,6 +168,48 @@ internal/app  verification  rules  telegram  console  settings  database  status
 `grep -r telego internal/verification` 无结果；
 每个目标包都有编译期接口断言；阶段零的四项检查不出现新增超限项。
 
+#### 文件处置
+
+**46 个文件，21,434 行非测试 Go 代码。** 表按清点处置分组；逐段去向和测试资产细节仍以 `INVENTORY.md` 为准。
+
+| 现路径 | 处置 | 目标位置 |
+|---|---|---|
+| `internal/tg/redact.go` | 移入 | `internal/status` |
+| `internal/i18n/{lookup_content,lookup_distros,lookup_packages,moderate,feed,doc}.go` | 移入 | `internal/i18n` |
+| `internal/verify/kernel.go` | 拆分 | `internal/rules`、`internal/verification`、`internal/settings`、`internal/telegram/updates.go`、`internal/telegram/tgfmt` |
+| `internal/tg/{tg,errors}.go` | 拆分 | `internal/telegram/connector.go`、`internal/telegram/tgfmt`、`internal/telegram/queue` |
+| `internal/panel/panel.go` | 拆分 | `internal/telegram/updates.go`、`internal/status`、保留的 `internal/panel` 命令薄层 |
+| `internal/lookup/{repology,content,cve,distros,http,kernel,manpage,packages}.go` | 拆分 | `internal/lookup`、`internal/telegram/updates.go`、`internal/telegram/tgfmt`、`internal/settings` |
+| `internal/moderate/{antispam,service}.go` | 拆分 | `internal/moderate`、`internal/telegram/ids`、`internal/telegram/updates.go`、`internal/settings`、`internal/status` |
+| `internal/bot/{bot,commands,dm}.go` | 拆分 | `internal/telegram/updates.go`、`internal/telegram/tgfmt`、`internal/app`、`internal/status`、`internal/settings` |
+| `internal/feed/feed.go` | 拆分 | `internal/feed`、`internal/database`、`internal/telegram/queue`、`internal/telegram/tgfmt`、`internal/status`、`internal/app` |
+| `internal/i18n/{bot,catalog,verification,panel}.go` | 拆分 | `internal/i18n`；控制台文案迁至 `web/` locale |
+| `cmd/vestibule/sd_notify.go` | 拆分 | `internal/app`、`internal/status`、`internal/telegram` |
+| `internal/verify/{service,state}.go` | 重写 | `internal/verification`、`internal/database`、`internal/telegram/tgfmt`、`internal/telegram/queue`、`internal/status` |
+| `internal/store/{baseline,settings}.go` | 重写 | `internal/settings`、`internal/database` |
+| `internal/panel/{session,settings_input,settings_panel}.go` | 重写 | `internal/console/{auth,api}`、`internal/settings`、`internal/rules`、`web/` |
+| `internal/moderate/state.go` | 重写 | `internal/moderate`、`internal/database` |
+| `internal/config/config.go` | 重写 | `internal/settings`、`internal/rules` |
+| `internal/edition/{edition_gentoo,edition_generic}.go` | 重写 | `internal/edition` |
+| `cmd/vestibule/{main,registration}.go` | 重写 | `cmd/bot`、`internal/{app,status,telegram,database,settings}` |
+| `internal/store/json.go` | 删除 | 无；由 `internal/database` 的事务、迁移和导入承接 |
+| `internal/panel/codec.go` | 删除 | 无；由 `internal/console/{auth,api}` 的会话和 DTO 校验承接 |
+| `internal/bot/edition.go` | 删除 | 无；功能改由每群配置控制 |
+
+#### 必须保住的行为
+
+- 两种入群模式、可信群绕过、冷却、群内与私聊投递、确认送达后才计时、nonce/epoch 防旧事件、管理员结算、失败不误罚、挑战清理和不重复验证。
+- 真实 `uname` 输出与命令回显的判定、跨群 fallback 隔离、三次尝试、归一化后的规则命中，以及结构信号不依赖 Telegram 或数据库。
+- Telegram 的私聊不自动删除、已删除消息视为成功、敏感操作现查管理员、恢复群默认权限、发送经队列并遵守 `429` 退避；日志在所有调用点都不得泄露 bot token。
+- 设置的来源、稀疏覆盖、revision 冲突与整份校验；控制台和 Telegram 命令的目标群隔离、过期与重放防护、写入 fail closed。
+- lookup 的“未找到”与上游故障区分、有界 HTTP 与缓存、版本排序和固定上游样本；moderation 与 feed 的处罚、cursor、投递失败和暂停语义。
+- 生命周期的路由优先级、单个 Update 只进入预期 handler、先注册后拉取、关闭顺序和运行时群加入/移出语义；所有用户可见文本继续经 `i18n`。
+
+#### 依赖
+
+依赖：阶段零的门禁、基线清单和两个构建标签均已可执行，第一片开始前先以它们冻结当前行为。
+
+
 ### 阶段二 · 规则引擎
 
 **分支** `v5/rules`
@@ -166,6 +224,28 @@ internal/app  verification  rules  telegram  console  settings  database  status
 
 **验收**：包边界检查通过；用 `testdata/spam` 的真实样本跑测试，
 断言归一化之后能命中；同一个函数同时服务线上判定与试答。
+
+#### 文件处置
+
+**3 个来源文件，1,245 行。** `state.go` 只计清点标出的结构信号段 `21–177`。
+
+| 现路径 | 处置 | 目标位置 |
+|---|---|---|
+| `internal/verify/kernel.go` | 拆分 | `internal/rules/{normalize,condition}.go`、`internal/verification`、`internal/telegram/updates.go`、`internal/telegram/tgfmt` |
+| `internal/verify/state.go:21–177` | 拆分 | `internal/rules/signals.go` |
+| `internal/moderate/antispam.go` | 拆分 | `internal/moderate`、`internal/telegram/ids`、`internal/telegram/updates.go`、`internal/settings` |
+
+#### 必须保住的行为
+
+- 内核版本题仍接受真实命令输出并剥离回显；Windows 和 macOS 转入 fallback；全角分钟证明、nonce 绑定和三次尝试不变。
+- 同一用户跨群使用 fallback 不误扣次数，同题库可复用、不同题库不串题；线上判定和控制台试答调用同一纯函数入口。
+- 归一化后仍能识别规避写法，结构信号保持输入清洗与计数上限，不以关键词表替代既有信号。
+- 反频道身份策略只影响当前群，保留 4,096 项上限、linked channel 例外、白名单边界和解除白名单后的 unban。
+
+#### 依赖
+
+依赖：阶段一第三片已建立无 `telego` 依赖的 `rules` 包和验证端口，且旧 handler 已改为调用领域入口。
+
 
 ### 阶段三 · 数据层
 
@@ -188,6 +268,34 @@ internal/app  verification  rules  telegram  console  settings  database  status
 **验收**：迁移可重放；旧二进制连新库被拒绝启动；
 用旧数据跑一遍导入，等待队列与操作记录条数与导入前一致。
 
+#### 文件处置
+
+**8 个文件，7,395 行。**
+
+| 现路径 | 处置 | 目标位置 |
+|---|---|---|
+| `internal/tg/tg.go` | 拆分 | `internal/telegram/connector.go`、`internal/telegram/tgfmt`、`internal/telegram/queue` |
+| `internal/feed/feed.go` | 拆分 | `internal/feed`、`internal/database`、`internal/telegram/queue`、`internal/telegram/tgfmt`、`internal/status`、`internal/app` |
+| `internal/moderate/service.go` | 拆分 | `internal/moderate`、`internal/telegram`、`internal/status`、`internal/settings` |
+| `internal/verify/{service,state}.go` | 重写 | `internal/verification`、`internal/database`、`internal/telegram/queue`、`internal/telegram/tgfmt`、`internal/status` |
+| `internal/moderate/state.go` | 重写 | `internal/moderate`、`internal/database` |
+| `cmd/vestibule/registration.go` | 重写 | `internal/telegram/updates.go`、`internal/database`、`internal/settings` |
+| `internal/store/json.go` | 删除 | 无；迁移、事务和 repository 位于 `internal/database` |
+
+#### 必须保住的行为
+
+- 两种入群模式、可信群、冷却和挑战投递保持原有判定；待验证记录只在可见动作前落库，同一群同一人不重复打开挑战，旧 nonce/epoch 不能结算新挑战。
+- 临时故障有上限重试，群已不可达或动作永久失败不循环；频道查询或掉线不得计为申请人失败，恢复前核验成员状态，48 小时后不再延期。
+- 代办动作的投递、删除和处罚保留成功、瞬态失败、永久失败三种结果；私聊不自动删除，已不存在消息成功，权限恢复使用群默认权限。
+- warning 的群与用户双键、确定性有界驱逐、处罚成功后再删证据、目标管理员保护和失败告警跨重启仍成立。
+- feed cursor 不越过未投递项，状态编辑、首次 baseline、确认 ping、永久错误推进、瞬态错误保留和每源失败暂停不变。
+- bot 加入、移出和标题更新幂等；同群转移串行，持久化成功后服务立即按该群配置工作。
+
+#### 依赖
+
+依赖：阶段二已提供纯规则判定，阶段一的 Gateway、Store 与任务装配边界已稳定，数据库迁移才可替换现有状态介质。
+
+
 ### 阶段四 · 配置
 
 **分支** `v5/config`
@@ -202,12 +310,57 @@ internal/app  verification  rules  telegram  console  settings  database  status
 **已知代价**：拼错但语法合法的未知键会在写回时消失。
 评审要求每个 struct 字段同时具备示例项与复制规则。
 
+#### 文件处置
+
+**3 个文件，2,500 行。**
+
+| 现路径 | 处置 | 目标位置 |
+|---|---|---|
+| `internal/config/config.go` | 重写 | `internal/settings`、`internal/rules` |
+| `internal/store/baseline.go` | 重写 | `internal/settings` |
+| `internal/store/settings.go` | 重写 | `internal/settings`、`internal/database` |
+
+#### 必须保住的行为
+
+- 时长溢出保护、Telegram 处罚边界、模式、语言、题目、feed 间隔和反垃圾默认值继续经过同等严格的值域校验。
+- 默认值夹取、显式来源、每群稀疏覆盖、空 override 继承出厂默认和群间隔离不变。
+- revision 冲突、整份校验和写入失败时不发布半个新快照不变；旧配置升级保留用户改值，新字段采用默认值。
+
+**阶段归属冲突：** `docs/ARCHITECTURE.md` 第 10 节与 `INVENTORY.md` 对这三个文件的目标一致：出厂默认加 `chat.settings`，不存在全局默认或 control group。现有阶段八却把这项切换列为其工作，两者不能同时成立。本计划不替任一来源裁定；维护者须先决定由阶段四完成切换，还是修改目标架构与阶段验收的归属。
+
+#### 依赖
+
+依赖：阶段三的 `chat.settings`、迁移和事务已可用，且维护者已裁定本阶段与阶段八之间的全局默认切换归属。
+
+
 ### 阶段五 · 接口与认证
 
 **分支** `v5/rules`
 
 把匹配相关的代码抽成 `internal/rules`，**纯函数、无副作用、禁止导入数据库与网络**。
 包含归一化流水线、封闭的条件类型集合、结构信号计分。
+
+#### 文件处置
+
+**4 个文件，1,834 行。**
+
+| 现路径 | 处置 | 目标位置 |
+|---|---|---|
+| `internal/panel/panel.go` | 拆分 | `internal/console/api`、`internal/console/auth`、`internal/telegram/updates.go`、`internal/status`、保留的 `internal/panel` |
+| `internal/panel/session.go` | 重写 | `internal/console/{auth,api}` |
+| `internal/panel/settings_input.go` | 重写 | `internal/console/api`、`internal/settings`、`internal/rules` |
+| `internal/panel/codec.go` | 删除 | 无；由 OpenAPI、会话、CSRF/state、DTO 校验和 revision 控制替代 |
+
+#### 必须保住的行为
+
+- 身份与群绑定、会话过期、单用户会话和并发重放仅成功一次；权限失效或成员查询失败时拒绝写入。
+- 题库、fallback、频道和白名单仍做整份校验；确认删除、目标群隔离和 stale revision 冲突继续可观察。
+- 信息命令不要求管理员；写入命令维持群范围限制和 fail closed，不能直接写 SQL 或绕过 `verification.Service`。
+
+#### 依赖
+
+依赖：阶段三的 `verification.Service` 与动作状态机、阶段四的设置读取和 revision 语义均已完成，接口才能只做认证、校验与调用。
+
 
 ### 阶段六 · 前端与一条通路
 
@@ -227,6 +380,25 @@ internal/app  verification  rules  telegram  console  settings  database  status
 并且用键盘从头走通一次。
 静态检查证明不了这些，只有渲染出来看能证明；
 一条命令部署后健康检查通过。
+
+#### 文件处置
+
+**1 个来源文件的首段，472 行。**
+
+| 现路径 | 处置 | 目标位置 |
+|---|---|---|
+| `internal/panel/settings_panel.go:1–472` | 重写 | `internal/console/api` 与 `web/` 的登录、选群、队列和放行通路 |
+
+#### 必须保住的行为
+
+- 登录后只可选择已授权的群，等待队列和放行操作始终带目标群边界。
+- 放行仍调用阶段三的同一 `verification.Service`；写入前现查管理员，失败方向为拒绝。
+- 浏览器不继承 Telegram callback、ForceReply、64 字节 payload 或 `telego.InlineKeyboardMarkup` 协议。
+
+#### 依赖
+
+依赖：阶段五的 OpenAPI 契约、Mini App/OIDC 身份校验和写前授权已冻结，阶段三的队列读取与结算接口已可调用。
+
 
 ### 阶段七 · 其余各屏
 
@@ -248,6 +420,25 @@ internal/app  verification  rules  telegram  console  settings  database  status
 
 **验收**：三种语言各自跑一遍全部屏；最长的那种语言下没有截断、
 没有横向滚动、没有把按钮挤出容器。
+#### 文件处置
+
+**2 个文件或来源段，1,193 行。**
+
+| 现路径 | 处置 | 目标位置 |
+|---|---|---|
+| `internal/i18n/panel.go` | 拆分 | Telegram 命令文案留在 `internal/i18n`；控制台屏幕文案迁至 `web/` locale |
+| `internal/panel/settings_panel.go:473–1398` | 重写 | `internal/console/api` 与 `web/` 的其余设置、规则、频道、反垃圾和统计屏 |
+
+#### 必须保住的行为
+
+- 各屏继续只读写目标群，并展示设置来源、恢复默认、整份校验、确认删除和 revision 冲突。
+- 题库、频道、白名单、反垃圾和诊断屏复用阶段二、三、四的领域结果，不在前端重写规则或状态转换。
+- 屏幕文案继续经 locale 资源提供；不带回旧回调编码、内联键盘或 ForceReply 交互。
+
+#### 依赖
+
+依赖：阶段六的一条通路已验证，且阶段五的接口契约保持不变；需要新契约时按本阶段既有“不做”回到阶段六处理。
+
 
 ### 阶段八 · 多租户
 
@@ -263,6 +454,34 @@ internal/app  verification  rules  telegram  console  settings  database  status
 **验收**：把我们社区的群配置全部删除，机器人与控制台照常工作；
 关掉全部可选模块后二进制照常启动，命令表里不残留它们的条目；
 `grep -rn '主群\|mainGroup\|isMainChat' internal cmd` 无业务分支。
+
+#### 文件处置
+
+**12 个文件，4,600 行。** 这些来源已在前序阶段搬入目标包的，行数表示最终去除全局模型时仍需复查的接触面。
+
+| 现路径 | 处置 | 目标位置 |
+|---|---|---|
+| `internal/bot/{commands,dm}.go` | 拆分 | `internal/telegram/updates.go`、`internal/telegram/tgfmt`、`internal/settings` |
+| `internal/i18n/{bot,catalog,verification}.go` | 拆分 | `internal/i18n`、`internal/settings`、出厂 rules/provisioning |
+| `cmd/vestibule/registration.go` | 重写 | `internal/telegram/updates.go`、`internal/database`、`internal/settings` |
+| `internal/store/{baseline,settings}.go` | 重写 | `internal/settings`、`internal/database` |
+| `internal/config/config.go` | 重写 | `internal/settings` |
+| `internal/edition/{edition_gentoo,edition_generic}.go` | 重写 | 单一的 `internal/edition` |
+| `internal/bot/edition.go` | 删除 | 无；不再由 edition 决定群功能 |
+
+#### 必须保住的行为
+
+- bot 加入、移出、标题更新和同群串行保持幂等；加入后即创建该群可用的状态，移出后保留待清理标记。
+- 每群只继承出厂默认或本群 override，配置、队列、授权和规则互不串群；删除社区配置后产品仍可运行。
+- 每次敏感写入仍现查管理员；不保留全局 owner、enrollment、未知群延迟离开或 build edition 的特权路径。
+- 命令菜单保留语言 scope 与运行时群更新；私聊命令不被自动回复吞掉；版本元数据保留，社区身份、命令前缀和 edition fallback 题被移除。
+- typed catalogue、占位符和三语一致性保持；内置 fallback 题改为出厂 rules/provisioning，而非按 build tag 选择。
+
+**阶段归属冲突：** 阶段一验收与架构不变量要求每个阶段都不依赖特定群，阶段四的目标又已排除全局默认；这与本阶段现有的“改为每群取值”描述冲突。在维护者裁定阶段四的切换归属前，不能把这 12 个来源当作可延后的独立多租户实现。
+
+#### 依赖
+
+依赖：维护者已裁定阶段四与阶段八的切换归属，且阶段三的群记录、阶段四的设置模型和阶段五的按群授权均已完成。
 ### 阶段九 · 安装与更新
 
 **分支** `v5/deploy`

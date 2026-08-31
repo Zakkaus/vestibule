@@ -43,6 +43,22 @@ def check_plan_phases(text: str) -> None:
         failures.append('plan: prose says "%s个阶段" but there are %d' % (m.group(1), len(sections)))
 
 
+HEADING = re.compile(r"^(#{1,6}) .*$", re.M)
+
+
+def check_headings(path: Path, text: str) -> None:
+    """A heading line carrying a second heading marker is a botched merge.
+
+    Applying a patch across a moved region produced `### A### A` on one line.
+    It renders as a heading, so it survives a read-through.
+    """
+    for m in HEADING.finditer(text):
+        line = m.group(0)
+        if "#" in line[len(m.group(1)):].lstrip():
+            failures.append("%s: heading line contains a second marker: %s"
+                            % (path.relative_to(ROOT), line[:60]))
+
+
 REF = re.compile(r"`((?:docs|web|scripts)/[A-Za-z0-9_./-]+\.(?:md|html|py|sh|ya?ml))`")
 
 
@@ -61,7 +77,10 @@ def main() -> int:
 
     candidates = list((ROOT / "docs").rglob("*.md")) + [ROOT / "README.md", ROOT / "CONTRIBUTING.md"]
     for path in candidates:
-        if path.exists() and str(path.relative_to(ROOT)) not in FORWARD_LOOKING:
+        if not path.exists():
+            continue
+        check_headings(path, path.read_text(encoding="utf-8"))
+        if str(path.relative_to(ROOT)) not in FORWARD_LOOKING:
             check_links(path)
 
     if failures:
