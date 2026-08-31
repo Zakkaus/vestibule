@@ -60,7 +60,7 @@
 ┌─────────────────────────────────────┐
 │  app  ·  单个 Go 二进制              │
 │                                     │
-│   adminhttp      :8080              │
+│   console        :8080              │
 │   verification                      │
 │   telegram                          │
 │   web/dist       go:embed           │
@@ -456,7 +456,7 @@ Telegram 限额与退避字段见 [Bot FAQ](https://core.telegram.org/bots/faq#m
 ### 五、管理员在控制台处置
 
 ```text
-浏览器            adminhttp                verification        Telegram
+浏览器            console                  verification        Telegram
    │─ 放行请求 ─────▶│                          │                 │
    │                 │─ 校验会话签名 ───────────│                 │
    │                 │─ 现查操作者是否仍是管理员 ──────────────────▶│
@@ -468,7 +468,7 @@ Telegram 限额与退避字段见 [Bot FAQ](https://core.telegram.org/bots/faq#m
    │                 │                          │─ 写操作记录 ────│
 ```
 
-`adminhttp` 只做认证、参数校验与调用。 「这个人该不该被放行」的判断在 `verification` 里， 与群内答题走的是同一个方法。
+`console` 只做认证、参数校验与调用。 「这个人该不该被放行」的判断在 `verification` 里， 与群内答题走的是同一个方法。
 
 ## 6. 数据模型
 
@@ -1210,7 +1210,7 @@ install.sh --uninstall    卸载，数据目录是否一并删除单独确认
 
 ### 哪里不该做什么
 
-- **不在 adminhttp 里判断业务。**它只做认证、参数校验与调用。
+- **不在 console 里判断业务。**它只做认证、参数校验与调用。
 - **不在 telegram 里查数据库。**它把 Update 转成领域事件即结束。
 - **不在 verification 里格式化面向用户的文案。**它返回结构化结果。
 - **不给不变量加开关。**界面偏好可以配置，不变量不可以。

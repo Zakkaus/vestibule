@@ -1006,7 +1006,7 @@ li::marker { color: var(--border); }
 ┌─────────────────────────────────────┐
 │  app  ·  单个 Go 二进制              │
 │                                     │
-│   adminhttp      :8080              │
+│   console        :8080              │
 │   verification                      │
 │   telegram                          │
 │   web/dist       go:embed           │
@@ -1601,7 +1601,7 @@ Sender {
     <div class="spec-wrap">
       <div class="cap"><span>写入路径</span><span class="hint">与群内答题共用同一个 Service</span></div>
       <div class="in">
-        <div class="seq"><span class="a">浏览器            adminhttp                verification        Telegram</span>
+        <div class="seq"><span class="a">浏览器            console                  verification        Telegram</span>
    │─ 放行请求 ─────▶│                          │                 │
    │                 │─ 校验会话签名 ───────────│                 │
    │                 │─ 现查操作者是否仍是管理员 ──────────────────▶│
@@ -1613,7 +1613,7 @@ Sender {
    │                 │                          │─ 写操作记录 ────│</div>
       </div>
     </div>
-    <p style="font-size:0.875rem;"><code>adminhttp</code> 只做认证、参数校验与调用。
+    <p style="font-size:0.875rem;"><code>console</code> 只做认证、参数校验与调用。
       「这个人该不该被放行」的判断在 <code>verification</code> 里，
       与群内答题走的是同一个方法。</p>
   </section>
@@ -2683,7 +2683,7 @@ install.sh --uninstall    卸载，数据目录是否一并删除单独确认</d
 
     <h3>哪里不该做什么</h3>
     <ul>
-      <li><strong>不在 adminhttp 里判断业务。</strong>它只做认证、参数校验与调用。</li>
+      <li><strong>不在 console 里判断业务。</strong>它只做认证、参数校验与调用。</li>
       <li><strong>不在 telegram 里查数据库。</strong>它把 Update 转成领域事件即结束。</li>
       <li><strong>不在 verification 里格式化面向用户的文案。</strong>它返回结构化结果。</li>
       <li><strong>不给不变量加开关。</strong>界面偏好可以配置，不变量不可以。</li>
