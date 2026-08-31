@@ -143,7 +143,7 @@ testdata/                   样本与固定装置
 type Gateway interface {
     // 投递。富文本被平台拒绝时退回简版；瞬时失败绝不重试，
     // 因为第一条可能已经送到了。这条是上一代用重复消息换来的。
-    DeliverChallenge(ctx, ChallengeID, Delivery) (Delivered, error)
+    DeliverChallenge(ctx, *Challenge, Delivery, rendered Rendered) (Delivered, error)
     DeliverResult(ctx, ChatID, rich, simpler string) (MessageID, error)
     Notify(ctx, ChatID, text string, ttlSeconds int)
     Alert(ctx, logChat ChatID, text string)
@@ -167,6 +167,10 @@ type Gateway interface {
     // 权限。两个，不是一个：读路径用缓存的，写之前必须用现查的。
     CachedAdmin(ctx, ChatID, UserID) (bool, error)
     FreshAdmin(ctx, ChatID, UserID) (bool, error)
+
+    // 成员状态。布尔不够：只解除本次验证下的那次禁言、不撤销管理员已有的封禁、
+    // 申请消失后判断人到底进没进群，都要看具体是哪一种。
+    Member(ctx, ChatID, UserID) (Membership, error)
 }
 
 type Store interface {
@@ -175,6 +179,7 @@ type Store interface {
     OpenByUser(ctx, UserID) ([]*Challenge, error)
     AttachDelivery(ctx, ChallengeID, Delivered) (bool, error)
     Attempt(ctx, ChallengeID, nonce string) (left int, ok bool, err error)
+    Update(ctx, ChallengeID, epoch uint32, mutate func(*Challenge)) (bool, error)
     Settle(ctx, ChallengeID, epoch uint32, from, to State, act Action) (bool, error)
     ClaimExpired(ctx, now time.Time, limit int) ([]*Challenge, error)
 
@@ -249,6 +254,21 @@ type Challenge struct {
     DeferredSince int64            // 管理员手工挂起的起点，有 48 小时上限
 }
 
+type Rendered struct {             // 核心渲染好的文本与实体，适配器不再加工
+    GroupRich   string
+    GroupPlain  string             // 平台拒绝标记时退回这一份
+    DMRich      string
+    DMPlain     string
+    Buttons     []Button
+}
+
+type Membership struct {
+    Status        string           // member creator administrator restricted left kicked
+    IsAdmin       bool
+    CanRestrict   bool
+    RestrictedTil int64            // 认出这次禁言是不是本次验证下的
+}
+
 type Action string                 // approve decline ban kick mute unmute retract
 type AckResult struct {            // 回调应答；文案本身可能就是结果
     Text  string
@@ -271,6 +291,22 @@ type AckResult struct {            // 回调应答；文案本身可能就是结
 **教训写在这里：这类契约要自下而上从被替换的代码反推，不能自上而下想。** 想出来的版本每一轮都会被实施推翻一次，而每一次推翻都是一整次派发。
 
 被推翻的具体几处：漏掉退回简版的投递、 把审计定成本地存储，而它发到日志群、漏掉带清理时限的通知、 漏掉解封、把两个权限查询合成一个、时长用了 `time.Time` 而平台收秒。
+
+### 第四轮：五处只有动手搬才会暴露
+
+又一位助手停在这里，五条都带行号，都成立。**它们有一个共同点： 隔着代码读不出来，只有真去搬才撞得到。**
+
+| 撞到什么 | 改成 |
+|---|---|
+| `DeliverChallenge` 只收 ID 与投递意图， **挑战的内容无处传**。核心按申请人姓名、语言、群模式、nonce、 恢复窗口、频道提示、管理员按钮构造消息，而适配器持有的只是客户端与队列； 让它按 ID 回查核心状态又违反包边界 | 收整条 `*Challenge` 与一份**核心已经渲染好**的 `Rendered`：群内与私聊各一对富文本与退化文本，加按钮。 **适配器不再加工文案**，这与「业务包不拼接标记」是同一条 |
+| `Membership` 在正文里被论证过，**接口里却没有**； 而且只回一个布尔不够 | 补进接口，返回状态而非布尔。只解除本次验证下的那次禁言、 不撤销管理员已有的封禁、申请消失后判断人到底进没进群， 都要看具体是哪一种 |
+| `Store` **没有非终态写回**。 首次样本提示、fallback 换题、批准失败后保留 `passing` 重试， 都是在未结算时落盘的 | `Update`，带 `epoch` 的条件写入。 少了它，重启后的判定、重试与 nonce 语义都会变 |
+| 管理员应答次序，**文档与实现冲突** | 按实现改文档。写之前必须现查管理员身份，这一步绕不过去； 而应答文案要区分「不是你的」「已经处理过了」「做完了」。 先应答就没有结果可说 |
+| 审计的归属，**同一份文档自相矛盾**： 接口里有 `Audit`，正文又说它进本地存储 | 经 `Gateway` 发日志群，与实现一致。 「进本地存储」是我想当然写下的 |
+
+**方法本身也要改。**这份契约被实施推翻了四轮，缺口数是 6、3、5，没有收敛。 原因不是核得不够仔细，是**隔着代码写签名这件事本身不成立**： 端口的形状由调用点决定，而调用点要搬到眼前才看得全。
+
+因此这一节从今往后**是「搬的时候必须承载什么」的清单，不是照着抄的签名表**。 做搬移的人按不变量推导接口 —— 核心里不出现平台类型 —— 然后把推导出来的形状写回这里。 **文档记录已经成立的事实，不预先规定尚未验证的形状。**
 
 ### Store 要覆盖核心实际持有的状态
 
@@ -315,7 +351,7 @@ type AckResult struct {            // 回调应答；文案本身可能就是结
 
 | 谁点的 | 次序 | 为什么 |
 |---|---|---|
-| 管理员按钮 | **先应答，再执行**，应答不带文案 | 结果在群里看得见。让按钮先停转，比在提示里重复一遍有用 |
+| 管理员按钮 | **先校验 nonce，再现查管理员身份，最后带文案应答** | 写之前必须现查，这一步绕不过去；而应答的文案要区分 「不是你的」「已经处理过了」「做完了」。 v3.6.7 优化的是**把这几次调用从串行改成尽早 ack 之外的部分并行**， 不是把应答提到判定之前 —— 提前就没有结果可说了 |
 | 申请人答题 | **先判定，再应答**，应答带结果文案 | 那个提示就是他唯一能看到的结果。先应答就等于把结果扔了 |
 
 因此端口给两个方法：`AckFast(ctx, InteractionID)` 不带文案、用于管理员按钮；`AckResult(ctx, InteractionID, AckResult)` 带文案、用于申请人。**一次交互只能调用其中一个**，这一条要在实现里断言。
@@ -329,7 +365,7 @@ type AckResult struct {            // 回调应答；文案本身可能就是结
 | `Alert` | 管理员告警 | **带去重与节流**：同一件事在窗口内只发一次。 没有配置告警群时退回到群内，并带更短的清理时限 |
 | `Retract` | 收回本次挑战贴出的消息 | 收一组引用，逐条删除失败只记录不阻断结算 |
 
-审计记录不走 `Gateway`：它进的是本地存储， 不是 Telegram。放在 `Store` 那一侧。
+审计经 `Gateway` 发到日志群，与上一代一致 （`internal/verify/service.go:2147`）。 早先这里写过「审计进本地存储」，那是想当然，实现里不是。
 
 ### 连接中断由装配层处理，不进端口
 
