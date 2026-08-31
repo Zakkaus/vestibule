@@ -196,6 +196,41 @@ readable sentences; whoever reads one of them first follows it. When you change 
 for the old one across `docs/` and `web/` before you commit.
 
 
+## What may happen without asking
+
+Merge a phase branch into `main` when all three of these hold, and say in the
+report that they did:
+
+1. The gate above passes, with caches cleared.
+2. The phase's acceptance script passes — `scripts/accept-phase1.sh` for phase
+   one, and its equivalent for later phases.
+3. Every check added on that branch was driven red, and the report names the
+   deliberate break that made it fail.
+
+Any one of them missing means stop and say which. **A green run nobody tried to
+break is not evidence.**
+
+There is no integration branch. One existed in earlier drafts only because
+merging to `main` needed a person each time; a branch whose sole purpose is to
+hold finished work away from the trunk is a queue, not a safeguard.
+
+Running the agents is authorised too: dispatching a slice, watching it, stopping
+one that has stalled or wandered outside its brief, and dispatching the next.
+Stopping one is a judgement, so the report says what it had produced and why it
+was stopped — a slice killed at forty minutes with nothing kept is a cost, and
+hiding it makes the next dispatch no better.
+
+Still requires a person: publishing a release and pushing a tag, since a merge
+is undone by another commit while a release has already been downloaded;
+anything touching the production bot, its token, its state directory or its
+groups, which is why there is a test bot and a test group; rewriting published
+history on `main`; and deleting data.
+
+A reversible decision inside the work is not one of these. A branch name, a file
+layout, which of two words to standardise on — decide it, record the reasoning
+where the next reader will find it, and say that a sentence overturns it. Asking
+costs a round and hands back a decision you were better placed to make.
+
 ## Pull requests
 
 - Say why the change was made and what you verified. Skip the diff narration.
