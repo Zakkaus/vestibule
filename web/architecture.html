@@ -1147,6 +1147,16 @@ type Store interface {
     TransitionChallenge(string, ChallengeTransition) (bool, error)
     DeletePending(string, PendingRef) (bool, error)
 
+    // 扫描器在一个有界事务中领取已到期记录，并把 deadline 前推到 claimUntil。
+    // now、claimUntil 和 limit 由调用点传入；不引入 Clock，也不让一次领取无限增长。
+    ClaimExpired(namespace string, now, claimUntil int64, limit int) ([]PendingRecord, error)
+
+    // 动作领取以可过期的 claim 保护；进程崩溃后会由另一名 worker 重试。
+    ClaimActions(namespace, owner string, now, claimUntil int64, limit int) ([]PendingAction, error)
+    CompleteAction(namespace, id, owner string, completedAt int64, followups []ActionIntent) (bool, error)
+    RetryAction(namespace, id, owner string, attempts int, nextTryAt int64, detail string) (bool, error)
+    FailAction(namespace, id, owner string, failedAt int64, detail string) (bool, error)
+
     LoadFailures(string) ([]FailureRecord, error)
     SaveFailures(string, func() []FailureRecord) error
     LoadAgents(string) (AgentTally, error)
@@ -1156,16 +1166,14 @@ type Store interface {
 }</div>
       </div>
     </div>
-    <p><b>这份 <code>Store</code> 是阶段三第二片落地后写回来的，不是先画好等人照抄的。</b>
-      原先这里写的是 <code>Create</code>、<code>Open</code>、<code>AttachDelivery</code>、
-      <code>Attempt</code>、<code>Settle</code>、<code>ClaimExpired</code> 那一套 ——
-      隔着代码开出来的处方，实施时一条都没用上。同一份文档在第 3 节
-      「这份契约是从八个接口反推的」已经写明这类签名表不该预先规定，
-      那一条当时没有管到这里。</p>
-    <p><code>ClaimExpired</code> 确实还要有，但它属于扫描器，是阶段三第三片的事；
-      到时候一并写回，形状同样由那一片的调用点决定。
-      失败计数、模型计数与心跳仍是快照形状：它们不是挑战的状态转换，
-      跟着改就是把第三片的活提前做了。</p>
+    <p><code>ClaimExpired</code> 是扫描器的领取操作，不是读取后由调用方逐条更新。
+      它以 <code>deadline ≤ now</code> 选择 <code>pending</code> 行，条件更新
+      <code>epoch</code> 与 <code>deadline=claimUntil</code>，再返回实际领取到的记录。
+      因为同一事务完成选择和标记，多个进程只会有一个领取者；因为 <code>limit</code> 固定，
+      慢查询不会占用无界事务。</p>
+    <p>时间保存为 Unix 秒。到期扫描间隔为 5 秒，领取 lease 为 30 秒，每批最多 32 条。
+      因此超时结算的额外延迟通常不超过一个扫描间隔，加上一次数据库与动作调度；重启后不会遗漏。
+      秒级精度是这里刻意接受的取舍，避免为每条挑战维持进程内定时器。</p>
     <p>每一处形状都有理由，而且每一条都是上一代踩过的：</p>
     <div class="tw"><table class="spec-table">
       <thead><tr><th>形状</th><th>为什么不是更直白的写法</th></tr></thead>
@@ -1188,16 +1196,16 @@ type Store interface {
         <tr><td><code>Membership</code> 一次返回身份与权限</td>
             <td>是否在群、是否管理员来自同一次查询。拆成两个方法就是两次往返，
               而每次往返在我们的部署位置上约半秒</td></tr>
-        <tr><td><code>Settle</code> 同时收状态转换与要执行的动作</td>
-            <td>状态转换与动作意图必须落在同一个事务里。分成两次调用，
-              进程在两次之间死掉就会出现「已判定但没执行」</td></tr>
-        <tr><td><code>Settle</code> 带 <code>epoch</code></td>
-            <td>停机恢复后会重新计时，旧的定时器可能仍在路上。
-              没有 epoch 就无法拒绝一次过期的结算</td></tr>
-        <tr><td><code>Create</code> 返回 <code>bool</code> 而不是靠错误区分</td>
+        <tr><td><code>TransitionChallenge</code> 同时收状态转换与动作意图</td>
+            <td>挑战状态和第一项外部动作写入同一个事务。分两次调用时，进程在中间退出会留下
+              「已判定但没有动作」；外部 API 调用不在事务内，由动作 worker 在提交后执行</td></tr>
+        <tr><td><code>TransitionChallenge</code> 以 <code>PendingRef.epoch</code> 条件更新</td>
+            <td>扫描器领取到期记录时递增 epoch。旧领取者即使继续执行，也不能结算被新领取者接管的挑战</td></tr>
+        <tr><td><code>InsertPending</code> 返回 <code>bool</code> 而不是靠错误区分</td>
             <td>重复到达由唯一索引拒绝，那不是异常，是预期内的一种结果</td></tr>
-        <tr><td><code>ClaimExpired</code> 收 <code>now</code></td>
-            <td>因此不需要 <code>Clock</code> 接口。少一个接口，测试直接传时间即可</td></tr>
+        <tr><td><code>ClaimExpired(now, claimUntil, limit)</code> 返回实际领取到的记录</td>
+            <td><code>now</code> 让测试直接固定时间；<code>claimUntil</code> 让进程崩溃后的工作可重新领取；
+              <code>limit</code> 限制一次事务。三者共同避免 <code>Clock</code> 接口和无界扫描</td></tr>
       </tbody>
     </table></div>
     <h3>端口用到的类型</h3>
@@ -1625,46 +1633,39 @@ callback_query       按钮作答</div>
     <div class="spec-wrap">
       <div class="cap"><span>启动</span><span class="hint">任一步失败即退出，不带残缺状态运行</span></div>
       <div class="in">
-        <div class="seq"><span class="a">1</span>  读配置 → 升级配置 → 校验      <span class="a">失败退出</span>
-<span class="a">2</span>  打开数据库 → 执行迁移          <span class="a">失败退出，不允许旧结构接流量</span>
-<span class="a">3</span>  组装依赖，注册后台任务
-<span class="a">4</span>  取更新拉取租约                 <span class="a">拿不到则只提供控制台，不拉取更新</span>
-<span class="a">5</span>  启动发送器
-<span class="a">6</span>  启动四个固定周期任务
-<span class="a">7</span>  启动 HTTP，此时 <span class="b">/livez</span> 已通
-<span class="a">8</span>  建立 Telegram 更新通道，通后 <span class="b">/readyz</span> 转通
-<span class="a">9</span>  异步做启动后收尾：权限预检、积压重列</div>
+        <div class="seq"><span class="a">1</span>  读配置、打开数据库并执行迁移       <span class="a">失败退出</span>
+<span class="a">2</span>  组装 Telegram、verification 与数据库 Store
+<span class="a">3</span>  原子领取 <code>update_poll_lease</code>       <span class="a">未持有则继续运行，但不注册更新 handler</span>
+<span class="a">4</span>  启动 feed、心跳、到期扫描与动作 worker
+<span class="a">5</span>  仅持有租约的进程启动 Telegram long polling
+<span class="a">6</span>  handler 注册随 long polling 创建；lookup 预热异步执行</div>
       </div>
     </div>
 
     <div class="spec-wrap">
       <div class="cap"><span>关闭</span><span class="hint">顺序不可调换</span></div>
       <div class="in">
-        <div class="seq"><span class="a">1</span>  置关闭标志                     <span class="a">进行中的操作据此提前放弃重试</span>
-<span class="a">2</span>  <span class="b">/readyz</span> 转不通                  <span class="a">先摘流量，再停处理</span>
-<span class="a">3</span>  停止拉取更新，释放租约
-<span class="a">4</span>  等待进行中的处理结束           <span class="a">并发等待，总超时到点即放弃</span>
-<span class="a">5</span>  停止各周期生产者，各自带超时
-<span class="a">6</span>  排空发送器，刷新日志与指标
-<span class="a">7</span>  <span class="b">最后关数据库</span>                <span class="a">它是所有人的依赖，必须最后关</span></div>
+        <div class="seq"><span class="a">1</span>  关闭 root context，停止新工作
+<span class="a">2</span>  取消 Telegram long polling，并按 holder 释放 <code>update_poll_lease</code>
+<span class="a">3</span>  等待已开始的 update handler 与注册任务
+<span class="a">4</span>  等待心跳、到期扫描器和动作 worker 退出
+<span class="a">5</span>  刷新 verification 与 feed 状态
+<span class="a">6</span>  <span class="b">最后关数据库</span>                <span class="a">它是所有人的依赖，必须最后关</span></div>
       </div>
     </div>
-
     <div class="tw"><table class="spec-table">
       <thead><tr><th>照抄的做法</th><th>为什么</th></tr></thead>
       <tbody>
-        <tr><td>关闭标志是一个原子变量，第一步就置</td>
-            <td>正在重试的操作能立刻知道该放弃，而不是等到超时</td></tr>
-        <tr><td>先摘流量后停处理，分两段</td>
-            <td>合成一步会让关闭瞬间到达的请求得到错误响应</td></tr>
-        <tr><td>各处停止都带超时，且并发等待</td>
-            <td>串行等待会让关闭时间等于所有任务之和</td></tr>
+        <tr><td>以固定单行原子领取更新拉取租约</td>
+            <td>Telegram 每个 token 只能有一个更新流；行只在租约过期时可被接管，避免两个 handler 并存</td></tr>
+        <tr><td>续租只接受当前 <code>holder</code></td>
+            <td>续租失败立即取消 long polling。失去所有权的进程保留其他后台任务，但不再消费更新</td></tr>
+        <tr><td>停止时先取消 polling 并释放匹配 holder 的租约，再等待 handler</td>
+            <td>新实例可尽早领取；旧实例不能在等待过程中继续拉取，也不能删除继任者的租约</td></tr>
+        <tr><td>未持有租约时不注册 Telegram handler</td>
+            <td>进程保持存活以执行非更新任务，但没有任何路径可消费重复的 update</td></tr>
         <tr><td>数据库最后关</td>
-            <td>提前关闭会让正在刷新的数据写不进去</td></tr>
-        <tr><td>数据库不是自己打开的就不关</td>
-            <td>嵌入使用时不应替调用方管理生命周期</td></tr>
-        <tr><td>可停止能力用可选接口表达</td>
-            <td>不强迫每个组件都实现停止方法</td></tr>
+            <td>扫描器、动作 worker 与状态刷新都依赖数据库，提前关闭会使已开始的写入失败</td></tr>
       </tbody>
     </table></div>
     <h4>优雅退出预算</h4>
@@ -1710,12 +1711,12 @@ callback_query       按钮作答</div>
         <tr><td>发送队列</td><td><code>App</code> 的显式消费者组件</td>
             <td>先于所有生产者</td><td>最后排空并停止</td>
             <td>429 持久化延期；网络与 5xx 退避；永久 4xx 进入 dead-letter 或禁用群</td></tr>
-        <tr><td>到期扫描</td><td>固定周期任务 slice</td>
-            <td>启动后立即扫描，再按周期执行</td><td>按 slice 逆序停止</td>
-            <td>单项失败隔离；连续的全局查询失败返回进程级错误</td></tr>
-        <tr><td>动作执行</td><td>固定周期任务 slice</td>
-            <td>与到期扫描同时注册</td><td>按 slice 逆序停止</td>
-            <td>按项退避；达到上限转人工处理，不静默丢弃</td></tr>
+        <tr><td>到期扫描</td><td><code>verification.RunExpiryScanner</code></td>
+            <td>启动即扫描，此后每 5 秒领取至多 32 条；领取 lease 为 30 秒</td><td>取消 context 后不再开始结算</td>
+            <td>查询失败只记录并等待下一轮；已领取记录仍由 lease 到期后重试</td></tr>
+        <tr><td>动作执行</td><td><code>verification.RunPendingActions</code></td>
+            <td>启动即领取 ready 动作，此后每 5 秒运行；领取 lease 为 30 秒</td><td>取消 context 后不再开始外部调用</td>
+            <td>临时错误按退避重试；永久或耗尽错误记录为 <code>failed</code></td></tr>
         <tr><td>权限同步</td><td>固定周期任务 slice</td>
             <td>与其他周期任务一同启动</td><td>按 slice 逆序停止</td>
             <td>单个故障域暂停；全局认证错误返回进程级错误</td></tr>
@@ -1997,6 +1998,32 @@ Sender {
     epoch      <span class="k-val">INTEGER</span> <span class="k-key">NOT NULL DEFAULT</span> 0  <span class="k-cm">-- 掉线恢复重发时递增</span>
 );
 
+<span class="k-cm">-- 挑战的外部副作用。首项动作与状态转换同一事务写入，后续动作由完成前项时写入。</span>
+<span class="k-key">CREATE TABLE</span> pending_action (
+    id           <span class="k-val">TEXT</span>    <span class="k-key">PRIMARY KEY</span>,
+    challenge_id <span class="k-val">TEXT</span>    <span class="k-key">NOT NULL REFERENCES</span> challenge(id) <span class="k-key">ON DELETE CASCADE</span>,
+    kind         <span class="k-val">TEXT</span>    <span class="k-key">NOT NULL</span>,
+    payload      <span class="k-val">TEXT</span>    <span class="k-key">NOT NULL</span>,
+    state        <span class="k-val">TEXT</span>    <span class="k-key">NOT NULL DEFAULT</span> <span class="k-val">'pending'</span>,
+    attempts     <span class="k-val">INTEGER</span> <span class="k-key">NOT NULL DEFAULT</span> 0,
+    next_try_at  <span class="k-val">BIGINT</span>  <span class="k-key">NOT NULL</span>,
+    claim_owner  <span class="k-val">TEXT</span>,
+    claim_until  <span class="k-val">BIGINT</span>,
+    done_at      <span class="k-val">BIGINT</span>,
+    failed_at    <span class="k-val">BIGINT</span>,
+    last_error   <span class="k-val">TEXT</span>
+);
+<span class="k-key">CREATE INDEX</span> pending_action_due
+    <span class="k-key">ON</span> pending_action (next_try_at) <span class="k-key">WHERE</span> state = <span class="k-val">'pending'</span>;
+
+<span class="k-cm">-- Telegram 每个 bot token 只能有一个更新流。固定单行足以表达这一个资源。</span>
+<span class="k-key">CREATE TABLE</span> update_poll_lease (
+    singleton  <span class="k-val">INTEGER</span> <span class="k-key">PRIMARY KEY CHECK</span> (singleton = 1),
+    holder     <span class="k-val">TEXT</span>    <span class="k-key">NOT NULL</span>,
+    expires_at <span class="k-val">BIGINT</span>  <span class="k-key">NOT NULL</span>
+);
+
+
 <span class="k-cm">-- 同一人在同一群同时只能有一条待验证记录。</span>
 <span class="k-cm">-- 重复到达在数据库层被拒绝，不依赖内存中的已见集合。</span>
 <span class="k-key">CREATE UNIQUE INDEX</span> challenge_open
@@ -2041,6 +2068,25 @@ Sender {
     <span class="k-key">PRIMARY KEY</span> (chat_id, user_id)
 );</pre>
     </div>
+
+    <h3>动作与更新拉取的持久边界</h3>
+    <div class="tw"><table class="spec-table">
+      <thead><tr><th>字段</th><th>理由</th></tr></thead>
+      <tbody>
+        <tr><td><code>pending_action.id</code></td><td>动作的稳定身份；完成、重试和失败都按此条件更新</td></tr>
+        <tr><td><code>challenge_id</code></td><td>关联触发动作的挑战；挑战删除时级联删除不再有意义的动作</td></tr>
+        <tr><td><code>kind</code>、<code>payload</code></td><td>执行器根据种类反序列化固定 JSON 负载；Store 不解释业务参数</td></tr>
+        <tr><td><code>state</code>、<code>attempts</code>、<code>next_try_at</code></td><td>表达待执行、完成、失败和下一次可执行时间；<code>pending_action_due</code> 只索引可领取行</td></tr>
+        <tr><td><code>claim_owner</code>、<code>claim_until</code></td><td>一个 worker 在 lease 内独占动作；进程崩溃后 lease 到期即可重领</td></tr>
+        <tr><td><code>done_at</code>、<code>failed_at</code>、<code>last_error</code></td><td>保留终态时刻和最后错误，区别成功、永久失败与仍可重试</td></tr>
+        <tr><td><code>update_poll_lease.singleton</code></td><td>固定为 <code>1</code>，因为系统只有一个 Telegram 更新流资源，不引入无用的通用命名空间</td></tr>
+        <tr><td><code>update_poll_lease.holder</code>、<code>expires_at</code></td><td>标识当前进程及其失效时间；续租和释放必须同时匹配 holder，过期后才允许接管</td></tr>
+      </tbody>
+    </table></div>
+    <p>挑战状态转换与首项 <code>pending_action</code> 在同一个数据库事务提交。
+      动作执行、Telegram 调用和后续动作写入发生在事务外；完成当前动作与写入后续动作仍在同一事务。
+      临时错误按退避重试，永久或耗尽错误写为 <code>failed</code>。自动清理只删除群内挑战消息，
+      私聊题目和结果不会被自动删除。</p>
 
     <h3>这四张表是搬来的，不是设计出来的</h3>
     <p>本节最初只画了 <code>chat</code>、<code>challenge</code> 和 <code>rule</code>。
@@ -2100,24 +2146,21 @@ Sender {
    <span class="k-key">SET</span> state = $2, settled_at = $3, settled_by = $4
  <span class="k-key">WHERE</span> id = $1 <span class="k-key">AND</span> state = <span class="k-val">'pending'</span>;</pre>
     </div>
-    <h3>超时不用进程内定时器</h3>
-    <p>扫描器按 <code>challenge_due</code> 索引领取到期记录。
-      代价是精度由秒级变为扫描间隔，收益是重启不丢、多实例不重复。
-      现有实现给每个待验证的人挂一个内存定时器，进程重启即全部丢失。</p>
-      <p><b>两个各自独立做出来的产品都栽在这里。</b>上一代用
-        <code>time.AfterFunc</code>，优雅停机时会在中途判一个人不通过。
-        policr-mini 用异步任务：<code>lib/policr_mini_bot/verification_helper.ex:111</code>
-        起任务，而 <code>lib/policr_mini_bot/boot_helper.ex</code>
-        只有取机器人信息与生成命令两个函数，<b>启动时不重扫未结算的验证</b>。
-        它的剩余时间把负数夹到零，<code>verification_helper.ex:575-577</code>，
-        注释写着这「通常是机器人停止后超时处理取消产生的现象」——
-        <b>它知道这个现象，选择显示成零而不是重新安排</b>。</p>
-      <p style="font-size:0.875rem;">同一份文件里另有一处：限制成员是在验证记录写进去<b>之前</b>
-        异步发出的，<code>verification_helper.ex:69-70</code>。两者之间崩一次，
-        就留下一个被禁言、没有记录、没有定时器、重启也扫不到的人。
-        我们把状态转换与动作意图放进同一个事务，正是为了不存在这个中间态。
-        <b>这不是说它写错了。</b>异步限制换来的是响应快，而它的部署形态里重启不频繁；
-        取舍不同，结论才不同。</p>
+    <h3>超时与结算不依赖进程内定时器</h3>
+    <p>扫描器启动时立即执行，之后每 5 秒按 <code>challenge_due</code> 领取到期记录。
+      一次领取最多 32 条，并把记录的 deadline 前推 30 秒作为 lease。时间以 Unix 秒保存；
+      因此实际结算可比 deadline 晚至一个扫描间隔与一次调度，但进程重启和多实例不会丢失或重复结算。</p>
+    <div class="spec-wrap">
+      <div class="cap"><span>领取、状态与动作</span><span class="hint">数据库事务不包住 Telegram 调用</span></div>
+      <div class="in">
+        <div class="flow">1. ClaimExpired(now, claimUntil, 32)  条件领取 due challenge
+2. TransitionChallenge(...)             条件变更 state，插入首项 pending_action；同一事务提交
+3. ClaimActions(...)                    worker 以 30 秒 lease 领取 ready action
+4. Telegram 调用                        成功则完成动作并写后续动作；失败则重试或记录 failed</div>
+      </div>
+    </div>
+    <p>动作执行使用指数退避，受 Telegram 的 <code>retry_after</code> 约束时采用更晚的时间。
+      永久错误与重试耗尽写入终态，而不是静默丢弃。自动删除只针对群内挑战消息；私聊中的题目和结果保留。</p>
   </section>
 
   <section id="RULE" class="stack-m">

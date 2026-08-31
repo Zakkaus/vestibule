@@ -88,9 +88,8 @@ type pending struct {
 	nonce              string   // per-pending token; a quiz button only counts if its nonce matches
 	name               string   // applicant display name, kept so a post-outage re-notify can address them
 	deadline           time.Time
-	deferredSince      time.Time // first unreachable expiry; retained across recovery and restart
-	timer              *time.Timer
-	epoch              uint64         // bumped on every (re-)arm; a timer callback carries the epoch it was armed with and no-ops if it no longer matches, so a re-arm (defer / recovery) can't be acted on by the timer it replaced
+	deferredSince      time.Time      // first unreachable expiry; retained across recovery and restart
+	epoch              uint64         // bumped on every durable deadline replacement so a stale scanner claim cannot settle a newer window
 	claimedState       ChallengeState // terminal state claimed in storage while its gateway action runs
 	persistedPath      string         // store namespace containing this pending; empty means a test-seeded record
 	lastRenotify       time.Time      // last post-outage re-notify, so repeated recoveries don't re-message the same applicant every cycle
@@ -99,6 +98,9 @@ type pending struct {
 	settleFailures     int            // consecutive unconfirmed settlements; persisted so the retry stays bounded across restarts
 	settlePendingSaid  bool           // the "still being settled" notice was already sent; retries stay silent
 	channelUnreadable  bool           // the last required-channel reading failed, so a failure here is not the applicant's
+	actionID           string         // durable action created with the terminal transition
+	actionOwner        string         // worker lease owner assigned in that same transition
+	actionAttempts     int            // failed durable executions observed by this process
 	done               bool
 	removed            bool // group removal cancels an in-flight settlement without charging the applicant
 }
@@ -158,6 +160,7 @@ type Service struct {
 	settings          *store.Settings
 	gateway           Gateway
 	stateStore        Store
+	actionOwner       string
 	lastOnline        time.Time
 	hbPath            string
 	probe             LiveProbe
@@ -226,6 +229,7 @@ func newService(settings *store.Settings, gateway Gateway, cfg *config.Config, m
 		vfail:       map[pkey]*vfailRec{},
 		settings:    settings,
 		gateway:     gateway,
+		actionOwner: "verification-" + newNonce(),
 		lastOnline:  time.Now(),
 		timeNow:     time.Now,
 	}
@@ -384,10 +388,6 @@ func (v *Service) RemoveGroup(groupID int64) {
 		}
 		if p != nil {
 			p.removed = true
-			p.done = true
-			if p.timer != nil {
-				p.timer.Stop()
-			}
 		}
 		delete(v.terminal, key)
 	}
@@ -821,9 +821,6 @@ func (v *Service) startPending(bot Gateway, gid, uid int64, p *pending) (oldMess
 		inserted, err = v.stateStore.InsertPending(v.statePath, pendingRecord(key, p))
 	}
 	if err != nil || !inserted {
-		if p.timer != nil {
-			p.timer.Stop()
-		}
 		if err != nil {
 			return challengeMessages{}, pendingStarted, err
 		}
@@ -832,9 +829,6 @@ func (v *Service) startPending(bot Gateway, gid, uid int64, p *pending) (oldMess
 	p.persistedPath = v.statePath
 	if replacing {
 		old.done = true
-		if old.timer != nil {
-			old.timer.Stop()
-		}
 		oldMessages = old.messages()
 	}
 	v.pend[key] = p
@@ -856,9 +850,6 @@ func (v *Service) finishPendingChallenge(
 		return false
 	}
 	expectedEpoch := p.epoch
-	if p.timer != nil {
-		p.timer.Stop()
-	}
 	p.groupMsgID = messages.groupMsgID
 	p.privateMsgID = messages.privateMsgID
 	p.challengeDelivered = delivered
@@ -1032,9 +1023,6 @@ func (v *Service) OnJoinRequest(ctx *HandlerContext, update Update) error {
 		v.deleteUnexposedPending(gid, uid, p)
 		return nil
 	}
-	if delivery.replacedPrivateMsgID != 0 {
-		v.deleteChallenge(c, bot, uid, delivery.replacedPrivateMsgID)
-	}
 	if !v.finishPendingChallenge(bot, gid, uid, p, delivery.messages, delivery.delivered) {
 		v.deleteChallenges(c, bot, gid, uid, delivery.messages)
 		return nil // another action handled or replaced this request while delivery was in flight
@@ -1182,9 +1170,6 @@ func (v *Service) OnMemberJoined(ctx *HandlerContext, update Update) error {
 	if !delivery.active {
 		v.deleteUnexposedPending(gid, uid, p)
 		return nil
-	}
-	if delivery.replacedPrivateMsgID != 0 {
-		v.deleteChallenge(c, bot, uid, delivery.replacedPrivateMsgID)
 	}
 	if !v.finishPendingChallenge(bot, gid, uid, p, delivery.messages, delivery.delivered) {
 		v.deleteChallenges(c, bot, gid, uid, delivery.messages)
@@ -1344,9 +1329,6 @@ func (v *Service) completeFailedDMDeliveryLocked(
 	p.fallbackPending = false
 	p.hinted = false
 	if resetExpiry {
-		if p.timer != nil {
-			p.timer.Stop()
-		}
 		delay := v.gateTimeout(prompt.gid, prompt.pending.gate)
 		p.deadline = v.wallNow().Add(delay)
 		v.armExpiry(bot, p, prompt.gid, uid, delay, challengeExpiryReason(true))
@@ -1394,9 +1376,6 @@ func (v *Service) completeDMDelivery(
 		changed = true
 	}
 	if resetDeadline {
-		if p.timer != nil {
-			p.timer.Stop()
-		}
 		delay := v.gateTimeout(prompt.gid, prompt.pending.gate)
 		p.deadline = v.wallNow().Add(delay)
 		v.armExpiry(bot, p, prompt.gid, uid, delay, challengeExpiryReason(true))
@@ -1470,11 +1449,7 @@ func (v *Service) sendDMQuestionRetainingPrevious(
 }
 
 func (v *Service) sendDMQuestion(c context.Context, bot Gateway, uid int64, prompt dmPrompt) (dmSendResult, error) {
-	result, err := v.sendDMQuestionRetainingPrevious(c, bot, uid, prompt, true)
-	if result.replacedMessageID != 0 {
-		v.deleteChallenge(c, bot, uid, result.replacedMessageID)
-	}
-	return result, err
+	return v.sendDMQuestionRetainingPrevious(c, bot, uid, prompt, true)
 }
 
 // sendDMChallengeForGroup delivers only the named pending request and lets its caller clean up the replaced message.
@@ -1493,14 +1468,12 @@ func (v *Service) sendDMChallengeForGroup(
 		privateMsgID, err := v.sendChannelPrompt(c, bot, gid, uid, prompt.lang)
 		current, _, oldPrivateMsgID := v.completeDMDelivery(bot, uid, prompt, privateMsgID, err, false, resetExpiry)
 		if !current {
-			v.deleteChallenge(c, bot, uid, privateMsgID)
 			return false, 0, 0, err
 		}
 		return true, privateMsgID, oldPrivateMsgID, err
 	}
 	result, err := v.sendDMQuestionRetainingPrevious(c, bot, uid, prompt, resetExpiry)
 	if !result.current {
-		v.deleteChallenge(c, bot, uid, result.messageID)
 		return false, 0, 0, err
 	}
 	return true, result.messageID, result.replacedMessageID, err
@@ -1601,10 +1574,7 @@ func (v *Service) SendDMChallenge(c context.Context, uid int64, languageCode str
 		if !v.challengeResendOK(groupID, uid) {
 			return
 		}
-		active, _, replacedPrivateMsgID, err := v.sendDMChallengeForGroup(c, bot, groupID, uid, true, nil)
-		if active && replacedPrivateMsgID != 0 {
-			v.deleteChallenge(c, bot, uid, replacedPrivateMsgID)
-		}
+		_, _, _, err := v.sendDMChallengeForGroup(c, bot, groupID, uid, true, nil)
 		if err != nil {
 			log.Printf("verify DM for %d in %d failed: %v", uid, groupID, err)
 		}
@@ -1632,10 +1602,7 @@ func (v *Service) SendDMChallenge(c context.Context, uid int64, languageCode str
 // DM every live challenge; kernel mode routes the next text DM as its answer.
 func (v *Service) sendQuizzes(c context.Context, bot Gateway, uid int64) {
 	for _, prompt := range v.pendingDMChallenges(uid) {
-		result, _ := v.sendDMQuestion(c, bot, uid, prompt)
-		if !result.current {
-			v.deleteChallenge(c, bot, uid, result.messageID)
-		}
+		_, _ = v.sendDMQuestion(c, bot, uid, prompt)
 	}
 }
 
@@ -1937,17 +1904,11 @@ func (v *Service) markTerminalLocked(key pkey, p *pending) {
 	v.terminal[key] = p
 }
 
-// Stop in-process timers; pending rows are already durable after each mutation.
-// Callbacks also refuse settlement during shutdown.
+// Shutdown freezes pending settlement. Deadlines remain durable for the next scanner.
 func (v *Service) stopForShutdown() {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 	v.shuttingDown = true
-	for _, p := range v.pend {
-		if p != nil && p.timer != nil {
-			p.timer.Stop()
-		}
-	}
 }
 
 // Shutdown freezes pending settlement and flushes the remaining ancillary snapshots.
@@ -1958,12 +1919,15 @@ func (v *Service) Shutdown() {
 }
 
 func (v *Service) deleteChallenge(c context.Context, bot Gateway, gid int64, msgID int) {
-	v.gatewayFor(bot).Delete(c, gid, msgID)
+	if err := v.gatewayFor(bot).Delete(c, gid, msgID); err != nil && !gatewayFailureHas(err, FailureMessageGone) {
+		log.Printf("verification: delete message %d in %d: %v", msgID, gid, err)
+	}
 }
 
-func (v *Service) deleteChallenges(c context.Context, bot Gateway, gid, uid int64, messages challengeMessages) {
+// Verification cleanup never deletes an applicant's private conversation. Group messages are
+// public challenge evidence; their durable cleanup action owns retries after settlement.
+func (v *Service) deleteChallenges(c context.Context, bot Gateway, gid, _ int64, messages challengeMessages) {
 	v.deleteChallenge(c, bot, gid, messages.groupMsgID)
-	v.deleteChallenge(c, bot, uid, messages.privateMsgID)
 }
 
 // The alert destination is a live setting, so a panel change takes effect without a restart.
@@ -2059,7 +2023,6 @@ func (v *Service) claimPendingNonceAs(
 	if !ok || p.done || p.nonce != nonce || !v.claimPendingLocked(key, p, state, reason, settledBy) {
 		return nil, false
 	}
-	p.failedAt = v.wallNow()
 	return p, true
 }
 
@@ -2074,7 +2037,6 @@ func (v *Service) approve(c context.Context, bot Gateway, gid, uid int64) bool {
 }
 
 // approveOutcome distinguishes a confirmed approval from a request that was settled
-// elsewhere, so no caller can announce a result the bot did not actually produce.
 type approveOutcome int
 
 const (
@@ -2104,13 +2066,13 @@ func (v *Service) executeApprove(c context.Context, bot Gateway, gid, uid int64,
 		if known && member {
 			v.notePassed(gid, uid)
 			v.finishTerminal(gid, uid, p)
-			v.deleteChallenges(c, bot, gid, uid, p.messages())
+			v.cleanupSettledChallenge(c, bot, gid, uid, p)
 			v.clearVerifyFails(gid, uid)
 			v.recordDecision(true)
 			return approveConfirmed
 		}
 		v.discardPending(gid, uid, p)
-		v.deleteChallenges(c, bot, gid, uid, p.messages())
+		v.cleanupSettledChallenge(c, bot, gid, uid, p)
 		return approveGone
 	}
 	// Record the pass before the terminal marker is released. Approving produces a membership
@@ -2120,7 +2082,7 @@ func (v *Service) executeApprove(c context.Context, bot Gateway, gid, uid int64,
 	v.notePassed(gid, uid)
 	v.finishTerminal(gid, uid, p)
 	v.clearVerifyFails(gid, uid) // verified successfully — reset any failure strikes
-	v.deleteChallenges(c, bot, gid, uid, p.messages())
+	v.cleanupSettledChallenge(c, bot, gid, uid, p)
 	v.recordDecision(true)
 	log.Printf("approve user=%d group=%d", uid, gid)
 	return approveConfirmed
@@ -2137,9 +2099,15 @@ func giveUpSettling(err error) bool {
 	return gatewayFailureHas(err, FailureGroupUnreachable) || gatewayFailureHas(err, FailureApplicantGone)
 }
 
-// stopRetrying reopens a failed settlement for another attempt, unless the error proves no
-// attempt can succeed — then the budget is spent immediately rather than a minute at a time.
+// stopRetrying requeues a claimed durable action unless the error proves no attempt can succeed.
+// Legacy in-memory stores retain the old reopen path for their focused compatibility tests.
 func (v *Service) stopRetrying(c context.Context, bot Gateway, gid, uid int64, p *pending, reason string, err error) {
+	if p.actionID != "" && !v.stateUnavailable(v.statePath) {
+		if !v.retrySettlementAction(p, err) {
+			v.abandonSettlement(c, bot, gid, uid, p, reason, err)
+		}
+		return
+	}
 	if giveUpSettling(err) {
 		v.abandonSettlement(c, bot, gid, uid, p, reason, err)
 		return
@@ -2150,8 +2118,7 @@ func (v *Service) stopRetrying(c context.Context, bot Gateway, gid, uid int64, p
 }
 
 // releaseAbandonedHold lifts a verification mute the bot has stopped trying to settle. Dropping
-// the verification must not leave somebody silenced with nothing left to lift it; the restriction
-// carries its own expiry, so a failure here only delays them.
+// the verification must not leave somebody silenced with nothing left to lift it.
 func (v *Service) releaseAbandonedHold(c context.Context, bot Gateway, gid, uid int64, p *pending) {
 	if p.gate != gateMute || !p.held {
 		return
@@ -2482,7 +2449,7 @@ func (v *Service) executeRelease(c context.Context, bot Gateway, gid, uid int64,
 	v.notePassed(gid, uid)
 	v.finishTerminal(gid, uid, p)
 	v.clearVerifyFails(gid, uid)
-	v.deleteChallenges(c, bot, gid, uid, p.messages())
+	v.cleanupSettledChallenge(c, bot, gid, uid, p)
 	v.recordDecision(true)
 	log.Printf("post-join verify: released user=%d group=%d", uid, gid)
 	return approveConfirmed
@@ -2543,19 +2510,19 @@ func (v *Service) finishDecline(c context.Context, bot Gateway, gid, uid int64, 
 		switch {
 		case known && member:
 			// An administrator let them in. Nothing here is the applicant's fault.
-			v.deleteChallenges(c, bot, gid, uid, p.messages())
+			v.cleanupSettledChallenge(c, bot, gid, uid, p)
 			v.clearVerifyFails(gid, uid)
 			v.discardPending(gid, uid, p)
 			return declineGoneUnknown, false
 		case !known:
-			v.deleteChallenges(c, bot, gid, uid, p.messages())
+			v.cleanupSettledChallenge(c, bot, gid, uid, p)
 			v.discardPending(gid, uid, p)
 			return declineGoneUnknown, false
 		}
 		// They are out, exactly as this decline intended, so settle it like a confirmed one.
 		outcome = declineGoneAndOut
 	}
-	v.deleteChallenges(c, bot, gid, uid, p.messages())
+	v.cleanupSettledChallenge(c, bot, gid, uid, p)
 	var count int
 	var doBan bool
 	// A gate the bot could not read is the bot's problem; the applicant does not carry it.
@@ -2651,7 +2618,7 @@ func (v *Service) executeBan(c context.Context, bot Gateway, gid, uid int64, p *
 	}
 	if p.gate == gateMute {
 		// The ban already removed them; there is no join request left to decline.
-		v.deleteChallenges(c, bot, gid, uid, p.messages())
+		v.cleanupSettledChallenge(c, bot, gid, uid, p)
 		v.recordDecision(false)
 		v.finishTerminal(gid, uid, p)
 		log.Printf("banApplicant user=%d group=%d banned=true (admin report, held member)", uid, gid)
@@ -2667,7 +2634,7 @@ func (v *Service) executeBan(c context.Context, bot Gateway, gid, uid int64, p *
 		// The ban is confirmed and the request is gone; retrying the decline cannot help.
 		log.Printf("decline after ban %d in %d: join request is already gone: %v", uid, gid, err)
 	}
-	v.deleteChallenges(c, bot, gid, uid, p.messages())
+	v.cleanupSettledChallenge(c, bot, gid, uid, p)
 	v.recordDecision(false)
 	v.finishTerminal(gid, uid, p)
 	log.Printf("banApplicant user=%d group=%d banned=true (admin report)", uid, gid)

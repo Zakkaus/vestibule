@@ -27,19 +27,41 @@ IDENTIFYING = ("user_id", "chat_id")
 
 
 def person_bearing_tables(sql: str) -> list:
-    found = []
+    """A table is about a person directly, or by referencing one that is.
+
+    The first version looked only for a user_id or chat_id column and declared
+    pending_action clean. It carries challenge_id, a foreign key into challenge,
+    whose primary key is the string chat:user:nonce — the two identifiers are
+    inside it. A row saying what the bot is about to do to somebody is about
+    that somebody, whatever the column is called.
+
+    So references are followed. A table referencing a table in scope is in
+    scope, repeatedly, until nothing new is added.
+    """
+    tables = {}
     for match in re.finditer(r"CREATE TABLE (\w+) \((.*?)\n\);", sql, re.S):
         name, body = match.group(1), match.group(2)
-        columns = []
+        columns, references = [], set()
         for line in body.split("\n"):
             line = line.strip()
             if not line or line.startswith("--"):
                 continue
+            reference = re.search(r"REFERENCES\s+(\w+)\s*\(", line)
+            if reference:
+                references.add(reference.group(1))
             if line.upper().startswith(("PRIMARY", "FOREIGN", "UNIQUE", "CHECK")):
                 continue
             columns.append(line.split()[0].rstrip(","))
-        if any(column in IDENTIFYING for column in columns):
-            found.append(name)
+        tables[name] = (columns, references)
+
+    found = {name for name, (columns, _) in tables.items()
+             if any(column in IDENTIFYING for column in columns)}
+    while True:
+        grown = {name for name, (_, references) in tables.items()
+                 if references & found}
+        if grown <= found:
+            break
+        found |= grown
     return sorted(found)
 
 

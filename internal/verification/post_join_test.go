@@ -332,9 +332,9 @@ type deleteProbe struct {
 	seen     []bool
 }
 
-func (b *deleteProbe) Delete(ctx context.Context, chatID int64, messageID int) {
+func (b *deleteProbe) Delete(ctx context.Context, chatID int64, messageID int) error {
 	b.seen = append(b.seen, b.v.recentlyPassed(b.gid, b.uid))
-	b.fakeVerifyBot.Delete(ctx, chatID, messageID)
+	return b.fakeVerifyBot.Delete(ctx, chatID, messageID)
 }
 
 // Admitting somebody must never leave a window in which the bot reads its own approval as a new

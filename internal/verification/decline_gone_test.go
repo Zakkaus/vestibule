@@ -127,8 +127,8 @@ func TestApproveGivesUpWhenJoinRequestIsGone(t *testing.T) {
 	if fb.lastSendChat == key.gid {
 		t.Error("a request an administrator already settled is not a failure worth alerting the group about")
 	}
-	if fb.deletes != 2 {
-		t.Errorf("deleted challenge messages = %d, want 2 (group and DM)", fb.deletes)
+	if fb.deletes != 1 {
+		t.Errorf("deleted group challenge messages = %d, want 1", fb.deletes)
 	}
 }
 

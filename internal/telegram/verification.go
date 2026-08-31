@@ -56,8 +56,13 @@ func (g *VerificationGateway) SendHTMLFallback(ctx context.Context, chatID int64
 	return ids.MessageID(sent), verificationError(err)
 }
 
-func (g *VerificationGateway) Delete(ctx context.Context, chatID int64, messageID int) {
-	g.connector.Delete(ctx, chatID, messageID)
+func (g *VerificationGateway) Delete(ctx context.Context, chatID int64, messageID int) error {
+	if messageID == 0 {
+		return nil
+	}
+	return verificationError(g.connector.bot.DeleteMessage(ctx, &telego.DeleteMessageParams{
+		ChatID: tu.ID(chatID), MessageID: messageID,
+	}))
 }
 
 func (g *VerificationGateway) Notify(ctx context.Context, chatID int64, text string, ttlSeconds int) {
@@ -156,6 +161,9 @@ func verificationError(err error) error {
 	}
 	if queue.IsRateLimited(err) {
 		kinds |= verification.FailureRateLimited
+	}
+	if queue.MessageAlreadyGone(err) {
+		kinds |= verification.FailureMessageGone
 	}
 	return &verification.GatewayError{
 		Cause: err, Kinds: kinds, Code: queue.ErrorCode(err), RetryAfter: queue.RetryAfter(err),

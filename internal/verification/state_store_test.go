@@ -74,6 +74,26 @@ func (testVerificationStore) DeletePending(path string, expected PendingRef) (bo
 	})
 }
 
+func (testVerificationStore) ClaimExpired(string, int64, int64, int) ([]PendingRecord, error) {
+	return nil, fmt.Errorf("test store does not implement expiry scanning")
+}
+
+func (testVerificationStore) ClaimActions(string, string, int64, int64, int) ([]PendingAction, error) {
+	return nil, nil
+}
+
+func (testVerificationStore) CompleteAction(string, string, string, int64, []ActionIntent) (bool, error) {
+	return true, nil
+}
+
+func (testVerificationStore) RetryAction(string, string, string, int, int64, string) (bool, error) {
+	return true, nil
+}
+
+func (testVerificationStore) FailAction(string, string, string, int64, string) (bool, error) {
+	return true, nil
+}
+
 func mutateTestPending(path string, mutate func(*[]PendingRecord) bool) (bool, error) {
 	testPendingWriteMu.Lock()
 	defer testPendingWriteMu.Unlock()

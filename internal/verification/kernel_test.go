@@ -420,11 +420,6 @@ func TestKernelPendingSurvivesRestart(t *testing.T) {
 	if _, ok := v.pend[pkey{-100, 8}]; !ok {
 		t.Error("the quiz pending must survive too")
 	}
-	for _, p := range v.pend {
-		if p.timer != nil {
-			p.timer.Stop()
-		}
-	}
 
 	// a state file written by an older build has no "mode" field: restore it as a quiz
 	legacy := `[{"user_id":9,"group_id":-100,"group_msg_id":1,"q_text":"q","q_opts":["a","b"],"correct_idx":0,"nonce":"z","deadline":` +
@@ -442,9 +437,7 @@ func TestKernelPendingSurvivesRestart(t *testing.T) {
 	if lp.mode != (config.ModeQuiz) {
 		t.Errorf("a record with no mode must restore as %q, got %q", config.ModeQuiz, lp.mode)
 	}
-	if lp.timer != nil {
-		lp.timer.Stop()
-	}
+
 }
 
 func TestAITrap(t *testing.T) {
@@ -1049,9 +1042,7 @@ func TestReapplyKeepsExistingAttemptsAndFallback(t *testing.T) {
 	if bot.sends != 0 || bot.deletes != 0 {
 		t.Errorf("repeat application sent/deleted = %d/%d, want no visible side effect", bot.sends, bot.deletes)
 	}
-	if p.timer != nil {
-		p.timer.Stop()
-	}
+
 }
 
 func TestOSNameWithRealKernelIsClarified(t *testing.T) {
@@ -1121,7 +1112,5 @@ func TestFreeReplyGuardsSurviveRestart(t *testing.T) {
 	if !p.prompted || !p.hinted || !p.sampleBounced || !p.noLinuxReminded || !p.osClarified || p.tries != 1 {
 		t.Errorf("every guard must survive the restart: %+v", p)
 	}
-	if p.timer != nil {
-		p.timer.Stop()
-	}
+
 }

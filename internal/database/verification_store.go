@@ -118,36 +118,7 @@ func (s *VerificationStore) UpdatePending(
 }
 
 func (s *VerificationStore) TransitionChallenge(_ string, transition verification.ChallengeTransition) (bool, error) {
-	if err := validatePendingReplacement(transition.Expected, transition.Record); err != nil {
-		return false, err
-	}
-	payload, delivery, err := encodePending(transition.Record)
-	if err != nil {
-		return false, err
-	}
-	var reason, settledAt, settledBy any
-	if transition.To != verification.ChallengePending {
-		settledAt = transition.SettledAt
-		if transition.Reason != "" {
-			reason = transition.Reason
-		}
-		if transition.SettledBy != 0 {
-			settledBy = transition.SettledBy
-		}
-	}
-	result, err := s.db.Exec(context.Background(), `
-		UPDATE challenge
-		   SET state=$1, payload=$2, delivery=$3, attempts=$4, expires_at=$5, epoch=$6,
-		       reason=$7, settled_at=$8, settled_by=$9
-		 WHERE id=$10 AND chat_id=$11 AND user_id=$12 AND state=$13 AND epoch=$14`,
-		transition.To, payload, delivery, transition.Record.Tries, transition.Record.Deadline,
-		transition.Record.Epoch, reason, settledAt, settledBy, challengeID(transition.Expected),
-		transition.Expected.GroupID, transition.Expected.UserID, transition.From, transition.Expected.Epoch)
-	if err != nil {
-		return false, fmt.Errorf("transition challenge for chat %d user %d from %s to %s: %w",
-			transition.Expected.GroupID, transition.Expected.UserID, transition.From, transition.To, err)
-	}
-	return changedRow(result)
+	return s.transitionChallenge(context.Background(), transition)
 }
 
 func (s *VerificationStore) DeletePending(_ string, expected verification.PendingRef) (bool, error) {

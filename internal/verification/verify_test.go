@@ -101,14 +101,12 @@ func TestJoinResolvesApplicantAndGroupLanguagesSeparately(t *testing.T) {
 	if p.privateMsgID == 0 {
 		t.Fatal("deep-link private challenge message ID was not retained")
 	}
-	if p.timer != nil {
-		p.timer.Stop()
-	}
+
 	if !v.approve(context.Background(), bot, groupID, userID) {
 		t.Fatal("deep-link challenge did not settle")
 	}
-	if !reflect.DeepEqual(bot.deletedChats, []int64{groupID, userID}) {
-		t.Fatalf("deep-link settlement deleted chats %v, want group and private challenges", bot.deletedChats)
+	if !reflect.DeepEqual(bot.deletedChats, []int64{groupID}) {
+		t.Fatalf("deep-link settlement deleted chats %v, want the group challenge only", bot.deletedChats)
 	}
 }
 
@@ -204,8 +202,8 @@ func TestJoinRequestDefaultPostsGroupBeforePrivateChallenge(t *testing.T) {
 	if !service.approve(context.Background(), caller, groupID, userID) {
 		t.Fatal("approved challenge was not settled")
 	}
-	if caller.deletes != 2 || !reflect.DeepEqual(caller.deletedChats, []int64{groupID, userID}) {
-		t.Fatalf("settlement deleted chats = %v, want group and private challenges", caller.deletedChats)
+	if caller.deletes != 1 || !reflect.DeepEqual(caller.deletedChats, []int64{groupID}) {
+		t.Fatalf("settlement deleted chats = %v, want the group challenge only", caller.deletedChats)
 	}
 }
 
@@ -243,8 +241,8 @@ func TestRequiredChannelPromptMessageIsRetainedForCleanup(t *testing.T) {
 	if !service.approve(context.Background(), caller, groupID, userID) {
 		t.Fatal("required-channel pending did not settle")
 	}
-	if !reflect.DeepEqual(caller.deletedChats, []int64{groupID, userID}) {
-		t.Fatalf("required-channel settlement deleted chats %v, want group and private prompts", caller.deletedChats)
+	if !reflect.DeepEqual(caller.deletedChats, []int64{groupID}) {
+		t.Fatalf("required-channel settlement deleted chats %v, want the group challenge only", caller.deletedChats)
 	}
 }
 
@@ -286,8 +284,8 @@ func TestRequiredChannelDeepLinkPromptMessageIsRetainedForCleanup(t *testing.T) 
 	if !service.approve(context.Background(), caller, groupID, userID) {
 		t.Fatal("deep-link channel pending did not settle")
 	}
-	if !reflect.DeepEqual(caller.deletedChats, []int64{groupID, userID}) {
-		t.Fatalf("deep-link channel settlement deleted chats %v, want group and private prompts", caller.deletedChats)
+	if !reflect.DeepEqual(caller.deletedChats, []int64{groupID}) {
+		t.Fatalf("deep-link channel settlement deleted chats %v, want the group challenge only", caller.deletedChats)
 	}
 }
 
@@ -636,14 +634,14 @@ func markupRejected(err error) bool {
 		strings.Contains(message, "bad request")
 }
 
-func (b *fakeVerifyBot) Delete(_ context.Context, chatID int64, messageID int) {
+func (b *fakeVerifyBot) Delete(_ context.Context, chatID int64, messageID int) error {
 	if messageID == 0 {
-		return
+		return nil
 	}
 	b.deletes++
 	b.deletedChats = append(b.deletedChats, chatID)
 	b.deletedMessageIDs = append(b.deletedMessageIDs, messageID)
-	_ = b.deleteErrAt[b.deletes]
+	return testGatewayError(b.deleteErrAt[b.deletes])
 }
 
 func (b *fakeVerifyBot) Notify(ctx context.Context, chatID int64, text string, _ int) {
@@ -1090,10 +1088,9 @@ func TestOnAdminActionTelegramFailureAfterAcknowledgement(t *testing.T) {
 			if bot.callbackAnswers[0].ShowAlert {
 				t.Error("in-progress callback acknowledgement must not claim a terminal alert")
 			}
-			if cur, ok := v.pend[key]; !ok || cur != p || p.done || p.timer == nil {
-				t.Fatalf("failure pending = %+v, want original evidence reopened and re-armed", cur)
+			if cur, ok := v.pend[key]; !ok || cur != p || p.done || p.deadline.Before(time.Now()) {
+				t.Fatalf("failure pending = %+v, want original evidence reopened with a durable retry deadline", cur)
 			}
-			t.Cleanup(func() { p.timer.Stop() })
 			if _, claimed := v.terminal[key]; claimed {
 				t.Error("failed action left the pending terminally claimed")
 			}
@@ -1180,7 +1177,7 @@ func TestApproveSuccess(t *testing.T) {
 	}
 }
 
-func TestSettlementDeletesGroupAndPrivateChallenges(t *testing.T) {
+func TestSettlementDeletesGroupChallengeOnly(t *testing.T) {
 	const gid, uid, adminID = int64(-100), int64(5), int64(9)
 	tests := []struct {
 		name string
@@ -1238,9 +1235,9 @@ func TestSettlementDeletesGroupAndPrivateChallenges(t *testing.T) {
 
 			tt.run(t, v, bot)
 
-			if bot.deletes != 2 || !reflect.DeepEqual(bot.deletedChats, []int64{gid, uid}) ||
-				!reflect.DeepEqual(bot.deletedMessageIDs, []int{42, 43}) {
-				t.Fatalf("settlement cleanup = chats %v messages %v, want both challenges despite first delete failure",
+			if bot.deletes != 1 || !reflect.DeepEqual(bot.deletedChats, []int64{gid}) ||
+				!reflect.DeepEqual(bot.deletedMessageIDs, []int{42}) {
+				t.Fatalf("settlement cleanup = chats %v messages %v, want the group challenge only",
 					bot.deletedChats, bot.deletedMessageIDs)
 			}
 		})
@@ -1265,9 +1262,7 @@ func TestApproveFailureReopens(t *testing.T) {
 	if fb.bans != 0 {
 		t.Error("a failed approve must never ban the user")
 	}
-	if p.timer != nil {
-		p.timer.Stop() // reopenPending re-armed a (far-future) timer; tidy
-	}
+
 }
 
 func TestDeclineBelowThreshold(t *testing.T) {
@@ -1331,13 +1326,12 @@ func TestBanApplicant(t *testing.T) {
 	if _, banned := v.banApplicant(context.Background(), fbFail, -100, 5); banned {
 		t.Error("a failed BanChatMember must report banned=false (honest feedback)")
 	}
-	if cur, ok := v.pend[key]; !ok || cur != failed || failed.done || failed.timer == nil {
-		t.Fatalf("failed ban pending = %+v, want retryable evidence", cur)
+	if cur, ok := v.pend[key]; !ok || cur != failed || failed.done || failed.deadline.Before(time.Now()) {
+		t.Fatalf("failed ban pending = %+v, want retryable evidence with a durable deadline", cur)
 	}
 	if fbFail.declines != 0 || fbFail.deletes != 0 {
 		t.Errorf("failed ban must not decline or delete evidence, got declines=%d deletes=%d", fbFail.declines, fbFail.deletes)
 	}
-	t.Cleanup(func() { failed.timer.Stop() })
 }
 
 func TestClaimThenExecuteApprove(t *testing.T) {
@@ -1427,7 +1421,6 @@ func TestTerminalActionBlocksReapplication(t *testing.T) {
 			} else if status != pendingStarted {
 				t.Fatalf("startPending after terminal completion = %v, want pendingStarted", status)
 			}
-			next.timer.Stop()
 		})
 	}
 }
@@ -1587,8 +1580,7 @@ func TestApproveClaimBlocksTimeoutDecline(t *testing.T) {
 func TestStopForShutdownFreezesPending(t *testing.T) {
 	v := newTestService(&config.Config{})
 	key := pkey{gid: -100, uid: 42}
-	tmr := time.AfterFunc(time.Hour, func() {}) // a live timer that stopForShutdown should stop
-	v.pend[key] = &pending{nonce: "n1", deadline: time.Now().Add(time.Hour), timer: tmr}
+	v.pend[key] = &pending{nonce: "n1", deadline: time.Now().Add(time.Hour)}
 
 	v.stopForShutdown()
 
@@ -1802,10 +1794,9 @@ func TestReopenPendingRestoresRetryable(t *testing.T) {
 	if p.done {
 		t.Error("reopenPending should re-open the pending (done=false) for retry")
 	}
-	if p.timer == nil {
-		t.Fatal("reopenPending should re-arm the timeout timer")
+	if p.deadline.Before(time.Now()) {
+		t.Fatal("reopenPending should persist a future retry deadline")
 	}
-	p.timer.Stop() // tidy: don't let it fire after the test
 
 	// a pending already replaced by a newer request must NOT be re-opened.
 	v.pend[key] = &pending{nonce: "new", deadline: time.Now().Add(time.Hour)}
@@ -1835,9 +1826,7 @@ func TestDeclineFailureAlertsAdmins(t *testing.T) {
 	if got := fb.lastSendText; got != wantAlert {
 		t.Errorf("admin alert = %q, want catalogue failure %q", got, wantAlert)
 	}
-	if p.timer != nil {
-		p.timer.Stop()
-	}
+
 }
 
 func TestDeclineFailureReopensWithoutStrikeAndUsesGroupAlertFallback(t *testing.T) {
@@ -1861,14 +1850,9 @@ func TestDeclineFailureReopensWithoutStrikeAndUsesGroupAlertFallback(t *testing.
 
 	runFakeHandler(t, newAPITestBot(t, caller), v.OnAnswer, update)
 
-	if cur, ok := v.pend[key]; !ok || cur != p || cur.done || cur.timer == nil {
-		t.Fatalf("failed decline pending = %+v, want the original request reopened and re-armed", cur)
+	if cur, ok := v.pend[key]; !ok || cur != p || cur.done || cur.deadline.Before(time.Now()) {
+		t.Fatalf("failed decline pending = %+v, want the original request reopened with a durable deadline", cur)
 	}
-	t.Cleanup(func() {
-		if p.timer != nil {
-			p.timer.Stop()
-		}
-	})
 	if _, struck := v.vfail[key]; struck {
 		t.Error("a failed decline must not record a verification strike")
 	}
@@ -2026,14 +2010,13 @@ func TestPendingCaps(t *testing.T) {
 				t.Fatalf("startPending status = %v, want %v", status, tt.wantStatus)
 			}
 			if status == pendingStarted {
-				if p.timer == nil {
-					t.Fatal("accepted pending must have an expiry timer")
+				if p.deadline.IsZero() {
+					t.Fatal("accepted pending must receive a durable expiry deadline")
 				}
-				p.timer.Stop()
 				return
 			}
-			if p.timer != nil {
-				t.Error("rejected pending must not arm an expiry timer")
+			if !p.deadline.IsZero() {
+				t.Error("rejected pending must not receive an expiry deadline")
 			}
 			if _, exists := v.pend[pkey{tt.gid, tt.uid}]; exists {
 				t.Error("rejected pending must not enter the queue")
@@ -2085,13 +2068,9 @@ func TestRemoveGroupCancelsAllPendingStateWithoutStrikes(t *testing.T) {
 	claimedKey := pkey{removedGroup, 2}
 	otherKey := pkey{otherGroup, 3}
 	live := livePending(41)
-	live.timer = time.AfterFunc(time.Hour, func() {})
 	claimed := livePending(42)
 	claimed.done = true
-	claimed.timer = time.AfterFunc(time.Hour, func() {})
 	other := livePending(43)
-	other.timer = time.AfterFunc(time.Hour, func() {})
-	t.Cleanup(func() { other.timer.Stop() })
 	v.pend[liveKey] = live
 	v.pend[claimedKey] = claimed
 	v.pend[otherKey] = other
@@ -2116,9 +2095,6 @@ func TestRemoveGroupCancelsAllPendingStateWithoutStrikes(t *testing.T) {
 	}
 	if v.pend[otherKey] != other {
 		t.Error("group removal changed another group's pending")
-	}
-	if live.timer.Stop() || claimed.timer.Stop() {
-		t.Error("group removal left an expiry timer armed")
 	}
 }
 
@@ -2246,7 +2222,7 @@ func TestDuplicateArrivalKeepsInFlightBothDelivery(t *testing.T) {
 	}
 }
 
-func TestPrivateDeliveryCompletedAfterExpiryIsDeleted(t *testing.T) {
+func TestPrivateDeliveryCompletedAfterExpiryIsRetained(t *testing.T) {
 	const gid, uid = int64(-100), int64(702)
 	v := newTestService(&config.Config{
 		Groups:         []config.GroupConfig{{ID: gid}},
@@ -2290,9 +2266,7 @@ func TestPrivateDeliveryCompletedAfterExpiryIsDeleted(t *testing.T) {
 		v.mu.Unlock()
 		t.Fatal("pending disappeared before manual expiry")
 	}
-	if p.timer != nil {
-		p.timer.Stop()
-	}
+
 	nonce, epoch := p.nonce, p.epoch
 	v.mu.Unlock()
 	v.onExpiry(context.Background(), newFakeVerifyBot(), gid, uid, nonce, epoch, "challenge-post-failed")
@@ -2303,8 +2277,8 @@ func TestPrivateDeliveryCompletedAfterExpiryIsDeleted(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("private delivery did not finish after release")
 	}
-	if caller.deletes != 1 || caller.deletedChats[0] != uid || caller.deletedMessageIDs[0] != 102 {
-		t.Fatalf("expired private message cleanup = chats %v messages %v, want [%d]/[102]",
-			caller.deletedChats, caller.deletedMessageIDs, uid)
+	if caller.deletes != 0 {
+		t.Fatalf("expired private delivery was auto-deleted: chats %v messages %v",
+			caller.deletedChats, caller.deletedMessageIDs)
 	}
 }

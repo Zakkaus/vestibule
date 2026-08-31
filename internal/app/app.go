@@ -18,7 +18,6 @@ import (
 	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
-	th "github.com/mymmrac/telego/telegohandler"
 )
 
 // Options contains process inputs read by cmd/bot.
@@ -73,20 +72,34 @@ func Run(ctx context.Context, options Options) error {
 			log.Printf("database close failed: %v", err)
 		}
 	}()
-	polling, err := startPolling(ctx, runtime)
+	runtimeCtx, cancelRuntime := context.WithCancel(ctx)
+	defer cancelRuntime()
+	polling, err := newRuntimePollingLease(runtimeCtx, runtime)
 	if err != nil {
+		return err
+	}
+	defer func() {
+		stopCtx, cancel := context.WithTimeout(context.Background(), shutdownDeadline)
+		defer cancel()
+		_ = polling.Stop(stopCtx)
+	}()
+	feedDone := startFeeds(runtimeCtx, runtime.cfg, runtime.bot, options.StateDirectory)
+	heartbeatDone := startHeartbeat(runtimeCtx, runtime.verification, runtime.heartbeatBot)
+	expiryDone := startExpiryScanner(runtimeCtx, runtime.verification)
+	actionDone := startPendingActions(runtimeCtx, runtime.verification)
+	go runtime.lookups.Warm(runtimeCtx)
+	if err := polling.Start(runtimeCtx, runtime); err != nil {
 		return fmt.Errorf("start long polling: %w", err)
 	}
-	feedDone := startFeeds(ctx, runtime.cfg, runtime.bot, options.StateDirectory)
-	heartbeatDone := startHeartbeat(ctx, runtime.verification, runtime.heartbeatBot)
-	go runtime.lookups.Warm(ctx)
 	log.Printf("verify bot @%s (%s) started — groups=%d", runtime.identity.Username, options.Version, len(runtime.settings.GroupIDs()))
 	close(startupComplete)
-	return runRuntimeLifecycle(ctx, runtimeLifecycle{
+	return runRuntimeLifecycle(runtimeCtx, runtimeLifecycle{
 		handlerDone:       polling.Done(),
 		stopHandlers:      polling.Stop,
 		waitRegistration:  runtime.registration.Wait,
 		heartbeatDone:     heartbeatDone,
+		expiryDone:        expiryDone,
+		actionDone:        actionDone,
 		flushVerification: runtime.verification.Shutdown,
 		feedDone:          feedDone,
 		notifierDone:      notifierDone,
@@ -182,15 +195,4 @@ func newRegistration(
 		},
 		verification.RemoveGroup,
 	)
-}
-
-func startPolling(ctx context.Context, runtime *services) (*telegram.Polling, error) {
-	if err := runtime.registration.EnsureOwnerClaim(); err != nil {
-		log.Printf("WARNING: owner claim is unavailable until durable settings storage is restored: %v", err)
-	}
-	runtime.updates.SetupCommands(ctx, runtime.bot)
-	return telegram.StartPolling(ctx, runtime.bot, func(handler *th.BotHandler) {
-		runtime.registration.Register(handler)
-		runtime.updates.Register(handler)
-	})
 }

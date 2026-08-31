@@ -3,9 +3,12 @@ package verification
 import "log"
 
 func pendingRecord(key pkey, p *pending) PendingRecord {
-	var deferredSince int64
+	var deferredSince, failedAt int64
 	if !p.deferredSince.IsZero() {
 		deferredSince = p.deferredSince.Unix()
+	}
+	if !p.failedAt.IsZero() {
+		failedAt = p.failedAt.Unix()
 	}
 	return PendingRecord{
 		UserID: key.uid, GroupID: key.gid,
@@ -17,7 +20,8 @@ func pendingRecord(key pkey, p *pending) PendingRecord {
 		NoLinuxReminded: p.noLinuxReminded, OSClarified: p.osClarified,
 		QText: p.qText, QOpts: append([]string(nil), p.qOpts...), CorrectIdx: p.correctIdx, Nonce: p.nonce, Name: p.name,
 		Deadline: p.deadline.Unix(), Epoch: p.epoch, DeferredSince: deferredSince, DeferralCapReached: p.deferralCapReached,
-		SettleFailures: p.settleFailures, SettlePendingSaid: p.settlePendingSaid, Gate: p.gate, Invited: p.invited, Held: p.held, HoldUntil: p.holdUntil, Passing: p.passing,
+		SettleFailures: p.settleFailures, SettlePendingSaid: p.settlePendingSaid, FailedAt: failedAt,
+		Gate: p.gate, Invited: p.invited, Held: p.held, HoldUntil: p.holdUntil, Passing: p.passing,
 		ChannelUnreadable: p.channelUnreadable,
 	}
 }
@@ -55,6 +59,7 @@ func (v *Service) transitionChallengeLocked(
 	reason string,
 	settledBy int64,
 	expectedEpoch uint64,
+	actions ...ActionIntent,
 ) (bool, error) {
 	if v.stateUnavailable(v.statePath) {
 		return true, nil
@@ -62,14 +67,11 @@ func (v *Service) transitionChallengeLocked(
 	return v.stateStore.TransitionChallenge(v.statePath, ChallengeTransition{
 		Expected: PendingRef{GroupID: key.gid, UserID: key.uid, Nonce: p.nonce, Epoch: expectedEpoch},
 		Record:   pendingRecord(key, p), From: from, To: to, Reason: reason,
-		SettledAt: v.wallNow().Unix(), SettledBy: settledBy,
+		SettledAt: v.wallNow().Unix(), SettledBy: settledBy, Actions: actions,
 	})
 }
 
 func (v *Service) forgetPendingLocked(key pkey, p *pending) {
-	if p.timer != nil {
-		p.timer.Stop()
-	}
 	p.done = true
 	if v.pend[key] == p {
 		delete(v.pend, key)

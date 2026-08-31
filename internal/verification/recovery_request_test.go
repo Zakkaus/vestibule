@@ -40,9 +40,9 @@ func TestRecoveryDropsPendingWhoseApplicantAlreadyJoined(t *testing.T) {
 	for _, id := range fb.deletedMessageIDs {
 		deleted[id] = true
 	}
-	for _, id := range []int{11, 21} {
+	for _, id := range []int{11} {
 		if !deleted[id] {
-			t.Errorf("stale challenge message %d was left behind", id)
+			t.Errorf("stale group challenge message %d was left behind", id)
 		}
 	}
 }
@@ -89,7 +89,5 @@ func TestRecoveryPastDeferralCapDoesNotRepostChallenges(t *testing.T) {
 	if fb.sends != 0 {
 		t.Errorf("sends = %d, want 0: a capped verification is settling, not restarting", fb.sends)
 	}
-	if p.timer != nil {
-		p.timer.Stop()
-	}
+
 }
