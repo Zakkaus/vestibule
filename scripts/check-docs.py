@@ -29,6 +29,29 @@ REF = re.compile(r"`((?:docs|web|scripts)/[A-Za-z0-9_./-]+\.(?:md|html|py|sh|ya?
 failures: list[str] = []
 
 
+def check_phase_count(path: Path, text: str, real: int) -> None:
+    """Any document stating how many phases there are must state the real number.
+
+    The plan was checked and nothing else was, so the README went on saying nine
+    after the count reached eleven. A number is wrong in whichever file it sits.
+    """
+    for m in re.finditer(r"([零一二三四五六七八九十]+)个阶段", text):
+        stated = CN_NUM.get(m.group(1))
+        if stated in (None, 1) or stated == real:
+            continue  # "一个阶段一个分支" states a ratio, not a total
+        failures.append('%s: says "%s个阶段" but there are %d'
+                        % (path.relative_to(ROOT), m.group(1), real))
+    for m in re.finditer(r"\b(nine|ten|eleven|twelve|thirteen)\s+phases\b", text, re.I):
+        word = {"nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13}[m.group(1).lower()]
+        if word != real:
+            failures.append('%s: says "%s phases" but there are %d'
+                            % (path.relative_to(ROOT), m.group(1), real))
+
+
+def phase_count(text: str) -> int:
+    return len(re.findall(r"^### 阶段([零一二三四五六七八九十]+) · (.+)$", text, re.M))
+
+
 def check_plan_phases(text: str) -> None:
     """The phase table, the phase sections and any prose count must agree."""
     sections = re.findall(r"^### 阶段([零一二三四五六七八九十]+) · (.+)$", text, re.M)
@@ -41,12 +64,6 @@ def check_plan_phases(text: str) -> None:
                         % (len(rows), len(sections)))
     elif [r[0] for r in rows] != [s[0] for s in sections]:
         failures.append("plan: the phase table and the phase sections are in different orders")
-    for m in re.finditer(r"([零一二三四五六七八九十]+)个阶段", text):
-        stated = CN_NUM.get(m.group(1))
-        if stated in (None, 1) or stated == len(sections):
-            continue  # "一个阶段一个分支" states a ratio, not a total
-        failures.append('plan: prose says "%s个阶段" but there are %d'
-                        % (m.group(1), len(sections)))
 
 
 def check_headings(path: Path, text: str) -> None:
@@ -111,10 +128,13 @@ def check_screen_coverage() -> None:
 
 
 def main() -> int:
+    phases = 0
     if not PLAN.exists():
         failures.append("docs/PLAN-v5.md is missing")
     else:
-        check_plan_phases(PLAN.read_text(encoding="utf-8"))
+        plan_text = PLAN.read_text(encoding="utf-8")
+        phases = phase_count(plan_text)
+        check_plan_phases(plan_text)
 
     documents = list((ROOT / "docs").rglob("*.md")) + [ROOT / "README.md", ROOT / "CONTRIBUTING.md"]
     for path in documents:
@@ -123,6 +143,7 @@ def main() -> int:
         text = path.read_text(encoding="utf-8")
         check_headings(path, text)
         check_home_paths(path, text)
+        check_phase_count(path, text, phases)
         if str(path.relative_to(ROOT)) not in FORWARD_LOOKING:
             check_links(path, text)
 

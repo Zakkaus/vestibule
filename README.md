@@ -10,9 +10,10 @@ literally where an applicant is: outside the group, holding.
 
 ## Status
 
-**Being rewritten.** The current tree is `gentoo-zh-verify-bot` v4.5.6 carried over and
-renamed; its behaviour is identical. None of the nine phases in `docs/PLAN-v5.md` have
-started.
+**Being rewritten.** The tree started as `gentoo-zh-verify-bot` v4.5.6 carried over and
+renamed. Behaviour is unchanged so far: the rewrite is repackaging first, and every phase
+so far has moved code without altering what it decides. `docs/PLAN-v5.md` has the eleven
+phases, what each one accepts, and what it deliberately does not do.
 
 The previous generation is still running in production and will not be replaced until this
 one is ready.
