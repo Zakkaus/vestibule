@@ -379,8 +379,10 @@ Telegram 限额与退避字段见 [Bot FAQ](https://core.telegram.org/bots/faq#m
    │                 │─ 写入待验证记录 ────────▶│                 │
    │                 │  唯一索引冲突 → 重复到达，保持原挑战，结束      │
    │                 │                          │                 │
-   │◀─ 私聊发出挑战 ─│                          │                 │
-   │                 │  私聊不可达 → 群内说明未送达，到期自动拒绝          │
+   │◀─ 按本群设定发出 │                          │                 │
+   │   挑战：群内、私 │                          │                 │
+   │   聊或两者      │                          │                 │
+   │                 │  一处都没送达 → 群内说明未送达，到期自动拒绝        │
    │                 │─────────────────────────────── 合并入口消息 ▶│
    │                 │                          │                 │
    │─ 提交答案 ─────▶│                          │                 │
@@ -389,6 +391,8 @@ Telegram 限额与退避字段见 [Bot FAQ](https://core.telegram.org/bots/faq#m
    │                 │─ 批准加群 ──────────────────────────────────▶│
    │                 │─ 删除挑战消息 ──────────────────────────────▶│
 ```
+
+**发到哪几处是每群的设定，不是流程写死的。**默认两者都发： 群内那条让在场的人看得见有人在验证，私聊那条是申请人真正作答的地方。 机器人无法主动私聊没有交互过的人，**所以私聊送不到是常态而不是故障**， 群内那条这时就是唯一的通路。三种取值下「一处都没送达」的处理相同： 在群内说明未送达，到期自动拒绝，不当作通过。
 
 ### 二、先入群后限制
 
@@ -399,7 +403,7 @@ Telegram 限额与退避字段见 [Bot FAQ](https://core.telegram.org/bots/faq#m
    │─ 已进入群 ─────▶│                          │                 │
    │                 │─ 收回发言权限 ──────────────────────────────▶│
    │                 │─ 写入待验证记录 ────────▶│                 │
-   │◀─ 私聊发出挑战 ─│                          │                 │
+   │◀─ 按本群设定发出 │                          │                 │
    │─ 提交答案 ─────▶│                          │                 │
    │                 │─ 条件更新 ──────────────▶│                 │
    │                 │─ 恢复发言权限 ──────────────────────────────▶│
@@ -464,8 +468,11 @@ CREATE TABLE challenge (
     chat_id    BIGINT NOT NULL REFERENCES chat(id) ON DELETE CASCADE,
     user_id    BIGINT NOT NULL,
     state      TEXT   NOT NULL,   -- pending|approved|declined|banned|expired|superseded
-    kind       TEXT   NOT NULL,   -- rule|pow|captcha|membership
+    kind       TEXT   NOT NULL,   -- rule|pow|captcha|membership（判定机制，非界面选项）
+                                    -- membership 只用于「去关注再回来」这一类；
+                                    -- 免验证在任何挑战之前求值，命中即跳过，不建记录
     payload    TEXT   NOT NULL,   -- 题面、诱饵、nonce、难度
+    delivery   TEXT   NOT NULL,   -- 实际送到哪几处，各自的消息 id
     attempts   INTEGER NOT NULL DEFAULT 0,
     expires_at BIGINT NOT NULL,
     settled_at BIGINT,
@@ -480,12 +487,12 @@ CREATE UNIQUE INDEX challenge_open
 CREATE INDEX challenge_due
     ON challenge (expires_at) WHERE state = 'pending';
 
--- 题库、自动回复、显示名黑名单共用一张表，用 collection 区分。
+-- 题库、自动回复、显示名黑名单、反垃圾共用一张表，用 collection 区分。
 -- 条件类型只有一套，因此匹配与导出导入各只有一份实现。
 CREATE TABLE rule (
     id         TEXT   PRIMARY KEY,
     chat_id    BIGINT NOT NULL REFERENCES chat(id) ON DELETE CASCADE,
-    collection TEXT   NOT NULL,   -- challenge|autoreply|namefilter
+    collection TEXT   NOT NULL,   -- challenge|autoreply|namefilter|antispam
     ordinal    INTEGER NOT NULL,
     enabled    BOOLEAN NOT NULL DEFAULT TRUE,
     definition TEXT   NOT NULL    -- 题面、条件、回复内容，三语
@@ -766,10 +773,19 @@ Telegram Mini App 的 `initData`， 校验 HMAC 签名与签发时间，并记�
 | GET /api/chats/{id}/queue | 等待队列 |
 | GET /api/chats/{id}/settings | 带每项来源：出厂默认或本群设定 |
 | PATCH /api/chats/{id}/settings | 只提交改动过的字段，带版本号做冲突检测 |
-| GET · PUT /api/chats/{id}/rules | 题库与自动回复共用，`collection` 区分。PUT 整份替换用于导入 |
+| GET · PUT /api/chats/{id}/rules | 题库、自动回复、显示名黑名单与反垃圾共用，`collection` 区分。PUT 整份替换用于导入 |
 | POST /api/chats/{id}/rules/test | 试答，调用线上同一份判定代码 |
 | GET /api/chats/{id}/audit | 操作记录，含撤销 |
-| GET /verify/{token} | **唯一的公开面。**令牌一次性、带签名与有效期，不复用管理会话 |
+| GET /api/chats/{id}/stats | 统计屏。区间与粒度由查询参数给，服务端聚合，不把明细发给前端 |
+| GET /api/chats/{id}/packages | 已装的配置包与可装的包 |
+| POST /api/chats/{id}/packages | 装一个包。先返回它将改动哪些项，确认后才落库 |
+| GET · PATCH /api/me/preferences | 看的人自己的偏好，不属于任何群 |
+| GET /api/status | 诊断屏。版本、三项验证前置、证书续期、队列积压。**只有运维可见** |
+| POST /api/status/upgrade | 发起升级，只写目标版本，执行在宿主侧。同上，只有运维 |
+| GET /verify/{token} | **长期存在的唯一公开面。**令牌一次性、带签名与有效期，不复用管理会话 |
+| GET · POST /setup/{token} | **只在认领之前存在。**安装脚本打印的一次性链接落在这里， 用来填令牌、给出绑定口令、等第一个群出现。**认领成功后这条路由不再注册**， 之后任何人访问都是 404，不是隐藏 |
+
+**这张表是穷举的。**界面上多一个屏，这里就要多一行； 没有对应行的屏是还没设计，不是省略。两份文档的一致性照这条核对： 设计文档里的每一个屏，都要能在这里找到它取数与写入的那一行。
 
 ### 错误
 
