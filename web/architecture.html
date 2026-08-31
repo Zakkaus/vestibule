@@ -1173,8 +1173,7 @@ type Store interface {
       都进入同一关闭路径。后台任务统一实现 <code>Run(context.Context) error</code>，
       但不引入动态 registry 或 <code>run.Group</code>。</p>
     <p style="font-size:0.875rem;"><code>cmd/bot</code> 只处理进程参数、信号 context 与退出码，
-      不保存业务对象，也不直接执行 SQL。调研依据：
-      <code>/home/zakk/code/memory/verify-bot/research/H-runtime.md:17-29,114-208</code>。</p>
+      不保存业务对象，也不直接执行 SQL。</p>
 
 
     <h3>拉取更新时必须声明要哪几种</h3>
@@ -1283,8 +1282,6 @@ callback_query       按钮作答</div>
       发送器是消费者，不随周期生产者一起停止；生产者停止后，它保留到
       <code>T+27s</code> 排空。业务状态没有 write-behind 内存缓冲，
       inbox 与 outbox 始终以数据库为准。</p>
-    <p style="font-size:0.875rem;">调研依据：
-      <code>/home/zakk/code/memory/verify-bot/research/H-runtime.md:580-661</code>。</p>
 
     <h3>后台任务</h3>
     <p>六个长期任务都在 <code>app.New</code> 构造期固定注册，不提供运行时插件 registry。
@@ -1320,8 +1317,6 @@ callback_query       按钮作答</div>
     <p><b>恢复只放在单项处理边界。</b>记录定位字段和 stack 后，把该项写成可重试或终态，
       再继续下一项。顶层任务循环、发送调度器与 supervisor 不恢复；这些位置的 panic
       或意外返回可能已经破坏锁、事务、堆或在途标记，必须让进程退出。</p>
-    <p style="font-size:0.875rem;">调研依据：
-      <code>/home/zakk/code/memory/verify-bot/research/H-runtime.md:185-208,359-384,663-677</code>。</p>
 
     <h3>发送队列</h3>
     <p>消息先在业务事务内写入 durable outbox。内存 channel、最小堆和缓存只保存有上限的唤醒信息，
@@ -1379,8 +1374,7 @@ Sender {
       <code>blocked_until</code> 一起持久化为 <code>retry_after</code> 加 0 至 250 毫秒抖动，
       worker 随即释放。所有 Telegram 消息发送必须经过 <code>Sender</code>；权限查询等非消息 API
       可有独立并发上限，但仍必须设置请求超时并处理 429。</p>
-    <p style="font-size:0.875rem;">调研依据：
-      <code>/home/zakk/code/memory/verify-bot/research/H-runtime.md:386-463</code>；
+    <p style="font-size:0.875rem;">
       Telegram 限额与退避字段见
       <a href="https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this">Bot FAQ</a>
       和 <a href="https://core.telegram.org/bots/api#responseparameters">ResponseParameters</a>。</p>
@@ -1410,10 +1404,8 @@ Sender {
       避免重启清空暂停期。</p>
     <p>当前状态机不引入通用断路器库。只有出现并发 probe、滑动窗口统计或跨进程协调时，
       才重新评估成熟实现。</p>
-    <p style="font-size:0.875rem;">调研依据：
-      <code>/home/zakk/code/memory/verify-bot/research/H-runtime.md:465-576</code>；
-      故障域取键依据：
-      <code>/home/zakk/code/memory/verify-bot/research/G-maintenance.md:219-227</code>。</p>
+    <p style="font-size:0.875rem;">
+      故障域取键依据：</p>
 
   </section>
 
@@ -2242,8 +2234,6 @@ styles/globals.css       token 层，<b>全项目唯一可以写颜色的地方<
     </table></div>
     <p>新增边界时必须同时增加一个能因违规而失败的检查，并用故意违规证明失败发生在目标断言。
       检查的稳定合同是“拒绝哪条边”，不是当前脚本、命令或作业的名字。</p>
-    <p style="font-size:0.875rem;">调研依据：
-      <code>/home/zakk/code/memory/verify-bot/research/G-maintenance.md:18-43</code>。</p>
 
     <h3>兼容表面</h3>
     <div class="tw"><table class="spec-table">
@@ -2267,8 +2257,6 @@ styles/globals.css       token 层，<b>全项目唯一可以写颜色的地方<
     </table></div>
     <p>稳定性必须由目录、路由版本、迁移历史与兼容固定装置体现，
       不能只在文字中标为 internal 或 public。</p>
-    <p style="font-size:0.875rem;">调研依据：
-      <code>/home/zakk/code/memory/verify-bot/research/G-maintenance.md:45-66</code>。</p>
 
     <h3>弃用与向后兼容</h3>
     <p>以下流程只适用于已发布的 HTTP、配置和持久数据表面。
@@ -2287,8 +2275,6 @@ styles/globals.css       token 层，<b>全项目唯一可以写颜色的地方<
       <li>删除运行时代码后仍保留旧配置迁移固定装置与全部已发布 migration，
         使跨版本升级继续可验证。</li>
     </ol>
-    <p style="font-size:0.875rem;">调研依据：
-      <code>/home/zakk/code/memory/verify-bot/research/G-maintenance.md:68-94</code>。</p>
 
     <h3>版本与发布</h3>
     <p>应用版本采用 SemVer：用户可见的兼容功能进入 minor，兼容缺陷修复进入 patch，
@@ -2304,8 +2290,6 @@ styles/globals.css       token 层，<b>全项目唯一可以写颜色的地方<
       破坏性迁移执行前必须备份。</p>
     <p>发布验证至少覆盖空库升级、上一发布版本数据库升级，以及兼容范围内的一次降级启动。
       这些是场景合同，不把当前执行命令或流水线作业名写进架构书。</p>
-    <p style="font-size:0.875rem;">调研依据：
-      <code>/home/zakk/code/memory/verify-bot/research/G-maintenance.md:96-129</code>。</p>
 
 
     <h3>文档与代码的一致</h3>
@@ -2317,8 +2301,7 @@ styles/globals.css       token 层，<b>全项目唯一可以写颜色的地方<
     <p>正文只保存不变量、边界、选择理由与稳定的场景合同。
       可判定的约束由 lint、编译和行为固定装置执行；具体命令名、作业名与实现行号不写入正文，
       避免流程调整后文档仍指向旧入口。</p>
-    <p style="font-size:0.875rem;">调研依据：
-      <code>/home/zakk/code/memory/verify-bot/research/G-maintenance.md:256-287</code>。
+    <p style="font-size:0.875rem;">
       界面相关规定仍只放在 <a href="design.html">设计语言</a>，不在这里重复。</p>
   </section>
 

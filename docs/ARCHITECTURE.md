@@ -196,7 +196,7 @@ type Store interface {
 
 **选择显式 `App` 编排。**`internal/app.App` 是唯一生命周期所有者；`app.New` 只升级并校验配置、迁移数据库和组装依赖， 不启动 goroutine。`App.Run` 按固定顺序启动组件，任何关键组件在非退出阶段返回 都进入同一关闭路径。后台任务统一实现 `Run(context.Context) error`， 但不引入动态 registry 或 `run.Group`。
 
-`cmd/bot` 只处理进程参数、信号 context 与退出码， 不保存业务对象，也不直接执行 SQL。调研依据： `/home/zakk/code/memory/verify-bot/research/H-runtime.md:17-29,114-208`。
+`cmd/bot` 只处理进程参数、信号 context 与退出码， 不保存业务对象，也不直接执行 SQL。
 
 ### 拉取更新时必须声明要哪几种
 
@@ -269,8 +269,6 @@ callback_query       按钮作答
 
 某一阶段失败或超时后仍继续执行后续清理，不能因前一项失败而跳过数据库关闭。 发送器是消费者，不随周期生产者一起停止；生产者停止后，它保留到 `T+27s` 排空。业务状态没有 write-behind 内存缓冲， inbox 与 outbox 始终以数据库为准。
 
-调研依据： `/home/zakk/code/memory/verify-bot/research/H-runtime.md:580-661`。
-
 ### 后台任务
 
 六个长期任务都在 `app.New` 构造期固定注册，不提供运行时插件 registry。 发送器与更新入口是具有特殊启停顺序的显式组件；其余四项放进固定的周期任务 slice， 由同一个 managed-task 适配器提供独立 context、`Done`、 `Err` 与有超时的停止方法。
@@ -287,8 +285,6 @@ callback_query       按钮作答
 每个周期任务同步完成一次迭代后才重置 timer，同一任务不重叠； 一次执行过慢后，不并发执行积压周期。新增长期任务时，必须同时补入固定注册表、 启动与退出表、就绪和指标定义，以及生命周期测试。
 
 **恢复只放在单项处理边界。**记录定位字段和 stack 后，把该项写成可重试或终态， 再继续下一项。顶层任务循环、发送调度器与 supervisor 不恢复；这些位置的 panic 或意外返回可能已经破坏锁、事务、堆或在途标记，必须让进程退出。
-
-调研依据： `/home/zakk/code/memory/verify-bot/research/H-runtime.md:185-208,359-384,663-677`。
 
 ### 发送队列
 
@@ -336,7 +332,7 @@ Sender {
 
 收到 429 后不占用 worker 等待。当前行的 `available_at` 与对应 bucket 的 `blocked_until` 一起持久化为 `retry_after` 加 0 至 250 毫秒抖动， worker 随即释放。所有 Telegram 消息发送必须经过 `Sender`；权限查询等非消息 API 可有独立并发上限，但仍必须设置请求超时并处理 429。
 
-调研依据： `/home/zakk/code/memory/verify-bot/research/H-runtime.md:386-463`； Telegram 限额与退避字段见 [Bot FAQ](https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this) 和 [ResponseParameters](https://core.telegram.org/bots/api#responseparameters)。
+Telegram 限额与退避字段见 [Bot FAQ](https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this) 和 [ResponseParameters](https://core.telegram.org/bots/api#responseparameters)。
 
 ### 断路器
 
@@ -357,7 +353,7 @@ Sender {
 
 当前状态机不引入通用断路器库。只有出现并发 probe、滑动窗口统计或跨进程协调时， 才重新评估成熟实现。
 
-调研依据： `/home/zakk/code/memory/verify-bot/research/H-runtime.md:465-576`； 故障域取键依据： `/home/zakk/code/memory/verify-bot/research/G-maintenance.md:219-227`。
+故障域取键依据：
 
 ## 4. 群的两种模式
 
@@ -967,8 +963,6 @@ Grafana 把前端指南拆成九份，**按维护者任务分**，不按组件�
 
 新增边界时必须同时增加一个能因违规而失败的检查，并用故意违规证明失败发生在目标断言。 检查的稳定合同是“拒绝哪条边”，不是当前脚本、命令或作业的名字。
 
-调研依据： `/home/zakk/code/memory/verify-bot/research/G-maintenance.md:18-43`。
-
 ### 兼容表面
 
 | 表面 | 稳定性 | 维护合同 |
@@ -982,8 +976,6 @@ Grafana 把前端指南拆成九份，**按维护者任务分**，不按组件�
 
 稳定性必须由目录、路由版本、迁移历史与兼容固定装置体现， 不能只在文字中标为 internal 或 public。
 
-调研依据： `/home/zakk/code/memory/verify-bot/research/G-maintenance.md:45-66`。
-
 ### 弃用与向后兼容
 
 以下流程只适用于已发布的 HTTP、配置和持久数据表面。 内部 Go 接口采用一次变更内的完整切换。
@@ -996,8 +988,6 @@ Grafana 把前端指南拆成九份，**按维护者任务分**，不按组件�
 - 只有可关闭功能才在删除前经历一个默认关闭的 minor； 普通字段改名不人为增加关闭期。
 - 删除运行时代码后仍保留旧配置迁移固定装置与全部已发布 migration， 使跨版本升级继续可验证。
 
-调研依据： `/home/zakk/code/memory/verify-bot/research/G-maintenance.md:68-94`。
-
 ### 版本与发布
 
 应用版本采用 SemVer：用户可见的兼容功能进入 minor，兼容缺陷修复进入 patch， 稳定 HTTP API 的破坏性修改进入 major；内部包重构本身不决定版本号。 有用户可见内容时，每六周最多发布一个 minor；没有内容则跳过， patch 与安全版本按需发布。当前 v5 的阶段合并与一次性发布次序仍以 `docs/PLAN-v5.md` 为准。
@@ -1008,8 +998,6 @@ Grafana 把前端指南拆成九份，**按维护者任务分**，不按组件�
 
 发布验证至少覆盖空库升级、上一发布版本数据库升级，以及兼容范围内的一次降级启动。 这些是场景合同，不把当前执行命令或流水线作业名写进架构书。
 
-调研依据： `/home/zakk/code/memory/verify-bot/research/G-maintenance.md:96-129`。
-
 ### 文档与代码的一致
 
 本项目继续同时维护 `docs/ARCHITECTURE.md` 与 `web/architecture.html`；两份文档表达同一结论，并在同一次变更中更新。
@@ -1018,7 +1006,7 @@ Grafana 把前端指南拆成九份，**按维护者任务分**，不按组件�
 
 正文只保存不变量、边界、选择理由与稳定的场景合同。 可判定的约束由 lint、编译和行为固定装置执行；具体命令名、作业名与实现行号不写入正文， 避免流程调整后文档仍指向旧入口。
 
-调研依据： `/home/zakk/code/memory/verify-bot/research/G-maintenance.md:256-287`。 界面相关规定仍只放在 [设计语言](design.html)，不在这里重复。
+界面相关规定仍只放在 [设计语言](design.html)，不在这里重复。
 
 ## 15. 安装与更新
 
