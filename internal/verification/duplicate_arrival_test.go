@@ -1,10 +1,9 @@
 package verification
 
 import (
-	"testing"
-	"time"
-
+	"context"
 	"github.com/Zakkaus/vestibule/internal/config"
+	"testing"
 )
 
 // Telegram redelivered eight join requests in one day, each about five seconds after the first.
@@ -46,8 +45,8 @@ func TestRedeliveredJoinRequestKeepsTheChallengeOnScreen(t *testing.T) {
 	}
 }
 
-// A genuine re-application is not a redelivery, and must still get a fresh challenge.
-func TestReapplicationAfterTheWindowStillReplacesTheChallenge(t *testing.T) {
+// A new challenge may open only after the previous row has left pending state.
+func TestReapplicationAfterSettlementStartsFreshChallenge(t *testing.T) {
 	const (
 		groupID int64 = -1009000000921
 		userID  int64 = 921
@@ -67,20 +66,13 @@ func TestReapplicationAfterTheWindowStillReplacesTheChallenge(t *testing.T) {
 	}}
 
 	runFakeHandler(t, newAPITestBot(t, bot), v.OnJoinRequest, update)
-	firstSends := bot.sends
-
-	// Age the pending past the window the redelivery guard covers.
-	v.mu.Lock()
-	if p, ok := v.pend[pkey{groupID, userID}]; ok {
-		p.startedAt = p.startedAt.Add(-duplicateArrivalWindow - time.Second)
+	if !v.approve(context.Background(), bot, groupID, userID) {
+		t.Fatal("first challenge did not settle")
 	}
-	v.mu.Unlock()
+	sendsBeforeReapply := bot.sends
 
 	runFakeHandler(t, newAPITestBot(t, bot), v.OnJoinRequest, update)
-	if bot.sends <= firstSends {
-		t.Error("a re-application after the window posted no new challenge")
-	}
-	if bot.deletes == 0 {
-		t.Error("a re-application after the window left the superseded challenge on screen")
+	if bot.sends <= sendsBeforeReapply {
+		t.Error("a re-application after settlement posted no fresh challenge")
 	}
 }

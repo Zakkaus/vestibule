@@ -348,9 +348,6 @@ type lifecycleShutdown struct {
 func newLifecycleShutdown(t *testing.T, fixture *lifecycleVerificationFixture) *lifecycleShutdown {
 	t.Helper()
 	pendingPath := filepath.Join(fixture.stateDirectory, "pending.json")
-	if err := os.Remove(pendingPath); err != nil {
-		t.Fatal(err)
-	}
 	root, cancel := context.WithCancel(context.Background())
 	shutdown := &lifecycleShutdown{
 		fixture: fixture, cancel: cancel, pendingPath: pendingPath,
@@ -476,7 +473,7 @@ func assertLifecycleShutdownOrder(t *testing.T, shutdown *lifecycleShutdown) {
 func assertLifecycleFlushes(t *testing.T, shutdown *lifecycleShutdown) {
 	t.Helper()
 	if _, err := os.Stat(shutdown.pendingPath); err != nil {
-		t.Fatalf("verification shutdown did not flush pending state: %v", err)
+		t.Fatalf("verification per-record state disappeared before restart: %v", err)
 	}
 	<-shutdown.actualFeedFlushed
 	if _, err := os.Stat(shutdown.feedPath); err != nil {

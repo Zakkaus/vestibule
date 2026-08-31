@@ -23,7 +23,7 @@ type pendingDelivery struct {
 	ChallengeDelivered bool `json:"challenge_delivered,omitempty"`
 }
 
-// VerificationStore persists verification snapshots in the shared database.
+// VerificationStore persists challenge rows and the remaining ancillary verification state.
 type VerificationStore struct {
 	db *Database
 }
@@ -36,7 +36,7 @@ func NewVerificationStore(db *Database) *VerificationStore {
 
 func (s *VerificationStore) LoadPending(_ string) ([]verification.PendingRecord, error) {
 	rows, err := s.db.Query(context.Background(), `
-		SELECT chat_id, user_id, payload, delivery, attempts, expires_at
+		SELECT chat_id, user_id, payload, delivery, attempts, expires_at, epoch
 		FROM challenge WHERE state='pending' ORDER BY chat_id, user_id`)
 	if err != nil {
 		return nil, fmt.Errorf("load pending challenges: %w", err)
@@ -58,10 +58,10 @@ func (s *VerificationStore) LoadPending(_ string) ([]verification.PendingRecord,
 
 func scanPending(row interface{ Scan(...any) error }) (verification.PendingRecord, error) {
 	var record verification.PendingRecord
-	var groupID, userID, deadline int64
+	var groupID, userID, deadline, epoch int64
 	var attempts int
 	var payload, deliveryJSON string
-	if err := row.Scan(&groupID, &userID, &payload, &deliveryJSON, &attempts, &deadline); err != nil {
+	if err := row.Scan(&groupID, &userID, &payload, &deliveryJSON, &attempts, &deadline, &epoch); err != nil {
 		return record, fmt.Errorf("scan pending challenge: %w", err)
 	}
 	if err := json.Unmarshal([]byte(payload), &record); err != nil {
@@ -75,61 +75,161 @@ func scanPending(row interface{ Scan(...any) error }) (verification.PendingRecor
 	record.UserID = userID
 	record.Tries = attempts
 	record.Deadline = deadline
+	if epoch < 0 {
+		// Every conditional write matches on the epoch. A negative one converts to a
+		// number no write will ever match, so the challenge becomes unsettleable and
+		// silently so. Refuse to load it instead.
+		return record, fmt.Errorf("pending challenge for chat %d user %d has a negative epoch %d",
+			groupID, userID, epoch)
+	}
+	record.Epoch = uint64(epoch)
 	record.GroupMsgID = delivery.GroupMessageID
 	record.PrivateMsgID = delivery.PrivateMessageID
 	record.ChallengeDelivered = delivery.ChallengeDelivered
 	return record, nil
 }
 
-func (s *VerificationStore) SavePending(_ string, snapshot func() []verification.PendingRecord) error {
-	snapshotWriteMu.Lock()
-	defer snapshotWriteMu.Unlock()
-	records := snapshot()
-	return s.db.DoTxn(context.Background(), nil, func(ctx context.Context) error {
-		return replacePending(ctx, s.db, records)
-	})
+func (s *VerificationStore) InsertPending(_ string, record verification.PendingRecord) (bool, error) {
+	return insertPending(context.Background(), s.db, record)
 }
 
+func (s *VerificationStore) UpdatePending(
+	_ string,
+	expected verification.PendingRef,
+	record verification.PendingRecord,
+) (bool, error) {
+	if err := validatePendingReplacement(expected, record); err != nil {
+		return false, err
+	}
+	payload, delivery, err := encodePending(record)
+	if err != nil {
+		return false, err
+	}
+	result, err := s.db.Exec(context.Background(), `
+		UPDATE challenge
+		   SET payload=$1, delivery=$2, attempts=$3, expires_at=$4, epoch=$5
+		 WHERE id=$6 AND chat_id=$7 AND user_id=$8 AND state='pending' AND epoch=$9`,
+		payload, delivery, record.Tries, record.Deadline, record.Epoch,
+		challengeID(expected), expected.GroupID, expected.UserID, expected.Epoch)
+	if err != nil {
+		return false, fmt.Errorf("update pending challenge for chat %d user %d: %w", expected.GroupID, expected.UserID, err)
+	}
+	return changedRow(result)
+}
+
+func (s *VerificationStore) TransitionChallenge(_ string, transition verification.ChallengeTransition) (bool, error) {
+	if err := validatePendingReplacement(transition.Expected, transition.Record); err != nil {
+		return false, err
+	}
+	payload, delivery, err := encodePending(transition.Record)
+	if err != nil {
+		return false, err
+	}
+	var reason, settledAt, settledBy any
+	if transition.To != verification.ChallengePending {
+		settledAt = transition.SettledAt
+		if transition.Reason != "" {
+			reason = transition.Reason
+		}
+		if transition.SettledBy != 0 {
+			settledBy = transition.SettledBy
+		}
+	}
+	result, err := s.db.Exec(context.Background(), `
+		UPDATE challenge
+		   SET state=$1, payload=$2, delivery=$3, attempts=$4, expires_at=$5, epoch=$6,
+		       reason=$7, settled_at=$8, settled_by=$9
+		 WHERE id=$10 AND chat_id=$11 AND user_id=$12 AND state=$13 AND epoch=$14`,
+		transition.To, payload, delivery, transition.Record.Tries, transition.Record.Deadline,
+		transition.Record.Epoch, reason, settledAt, settledBy, challengeID(transition.Expected),
+		transition.Expected.GroupID, transition.Expected.UserID, transition.From, transition.Expected.Epoch)
+	if err != nil {
+		return false, fmt.Errorf("transition challenge for chat %d user %d from %s to %s: %w",
+			transition.Expected.GroupID, transition.Expected.UserID, transition.From, transition.To, err)
+	}
+	return changedRow(result)
+}
+
+func (s *VerificationStore) DeletePending(_ string, expected verification.PendingRef) (bool, error) {
+	result, err := s.db.Exec(context.Background(), `
+		DELETE FROM challenge
+		 WHERE id=$1 AND chat_id=$2 AND user_id=$3 AND state='pending' AND epoch=$4`,
+		challengeID(expected), expected.GroupID, expected.UserID, expected.Epoch)
+	if err != nil {
+		return false, fmt.Errorf("delete pending challenge for chat %d user %d: %w", expected.GroupID, expected.UserID, err)
+	}
+	return changedRow(result)
+}
+
+// replacePending runs only inside the one-time legacy import transaction; live writes are per row.
 func replacePending(ctx context.Context, db *Database, records []verification.PendingRecord) error {
 	if _, err := db.Exec(ctx, "DELETE FROM challenge WHERE state='pending'"); err != nil {
 		return fmt.Errorf("clear pending challenges: %w", err)
 	}
 	for _, record := range records {
-		if err := insertPending(ctx, db, record); err != nil {
+		inserted, err := insertPending(ctx, db, record)
+		if err != nil {
 			return err
+		}
+		if !inserted {
+			return fmt.Errorf("duplicate imported pending challenge for chat %d user %d", record.GroupID, record.UserID)
 		}
 	}
 	return nil
 }
 
-func insertPending(ctx context.Context, db *Database, record verification.PendingRecord) error {
+func insertPending(ctx context.Context, db *Database, record verification.PendingRecord) (bool, error) {
 	if err := ensureChat(ctx, db, record.GroupID); err != nil {
-		return err
+		return false, err
 	}
-	payload, err := json.Marshal(record)
+	payload, delivery, err := encodePending(record)
 	if err != nil {
-		return fmt.Errorf("encode pending payload: %w", err)
+		return false, err
 	}
-	delivery, err := json.Marshal(pendingDelivery{
+	result, err := db.Exec(ctx, `
+		INSERT INTO challenge
+			(id, chat_id, user_id, state, kind, payload, delivery, attempts, expires_at, epoch)
+		VALUES ($1, $2, $3, 'pending', 'rule', $4, $5, $6, $7, $8)
+		ON CONFLICT DO NOTHING`,
+		challengeID(record.Ref()), record.GroupID, record.UserID, payload, delivery, record.Tries, record.Deadline, record.Epoch)
+	if err != nil {
+		return false, fmt.Errorf("insert pending challenge for chat %d user %d: %w", record.GroupID, record.UserID, err)
+	}
+	return changedRow(result)
+}
+
+func encodePending(record verification.PendingRecord) (payload, delivery string, err error) {
+	payloadJSON, err := json.Marshal(record)
+	if err != nil {
+		return "", "", fmt.Errorf("encode pending payload: %w", err)
+	}
+	deliveryJSON, err := json.Marshal(pendingDelivery{
 		GroupMessageID: record.GroupMsgID, PrivateMessageID: record.PrivateMsgID,
 		ChallengeDelivered: record.ChallengeDelivered,
 	})
 	if err != nil {
-		return fmt.Errorf("encode pending delivery: %w", err)
+		return "", "", fmt.Errorf("encode pending delivery: %w", err)
 	}
-	_, err = db.Exec(ctx, `
-		INSERT INTO challenge
-			(id, chat_id, user_id, state, kind, payload, delivery, attempts, expires_at, epoch)
-		VALUES ($1, $2, $3, 'pending', 'rule', $4, $5, $6, $7, 0)`,
-		challengeID(record), record.GroupID, record.UserID, string(payload), string(delivery), record.Tries, record.Deadline)
-	if err != nil {
-		return fmt.Errorf("insert pending challenge for chat %d user %d: %w", record.GroupID, record.UserID, err)
+	return string(payloadJSON), string(deliveryJSON), nil
+}
+
+func validatePendingReplacement(expected verification.PendingRef, record verification.PendingRecord) error {
+	if record.GroupID != expected.GroupID || record.UserID != expected.UserID || record.Nonce != expected.Nonce {
+		return fmt.Errorf("pending replacement identity changed from %#v to %#v", expected, record.Ref())
 	}
 	return nil
 }
 
-func challengeID(record verification.PendingRecord) string {
-	return strconv.FormatInt(record.GroupID, 10) + ":" + strconv.FormatInt(record.UserID, 10) + ":" + record.Nonce
+func challengeID(ref verification.PendingRef) string {
+	return strconv.FormatInt(ref.GroupID, 10) + ":" + strconv.FormatInt(ref.UserID, 10) + ":" + ref.Nonce
+}
+
+func changedRow(result sql.Result) (bool, error) {
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("read affected challenge rows: %w", err)
+	}
+	return affected != 0, nil
 }
 
 func ensureChat(ctx context.Context, db *Database, chatID int64) error {

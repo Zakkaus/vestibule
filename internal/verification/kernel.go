@@ -307,7 +307,6 @@ func (v *Service) gradeKernelAnswer(c context.Context, bot Gateway, gid, uid int
 	verdict := kernelAnswerRule.Evaluate(text)
 	// Guard every acceptance path from the prompt's impossible example; only the first copy is free.
 	if verdict == rules.Rejected && v.markSampleBounced(gid, uid, nonce) {
-		v.save()
 		_, _ = sendHTML(c, bot, uid, challenge.SampleCopied.For(ul), nil)
 		return
 	}
@@ -329,7 +328,6 @@ func (v *Service) gradeKernelAnswer(c context.Context, bot Gateway, gid, uid int
 			return
 		}
 		if left > 0 {
-			v.save()
 			_, _ = sendHTML(c, bot, uid, heldOr(gate, challenge.FallbackWrongHeld, challenge.FallbackWrong).Render(ul, left), nil)
 			return
 		}
@@ -344,7 +342,6 @@ func (v *Service) gradeKernelAnswer(c context.Context, bot Gateway, gid, uid int
 	}
 	// Give WSL or VM users one free clarification before accepting the same real kernel.
 	if mentionsOtherOS(text) && verdict == rules.Accepted && v.markOSClarified(gid, uid, nonce) {
-		v.save()
 		_, _ = sendHTML(c, bot, uid, challenge.OSMixed.For(ul), nil)
 		return
 	}
@@ -362,15 +359,11 @@ func (v *Service) gradeKernelAnswer(c context.Context, bot Gateway, gid, uid int
 			} else {
 				qText, answers := v.sharedFallbackQuestion(gid, uid, ul)
 				if v.beginKernelFallback(bot, gid, uid, nonce, qText, answers) {
-					v.save()
 					prompt, current := v.pendingDMChallenge(gid, uid, nil)
 					if !current {
 						return
 					}
 					result, _ := v.sendDMQuestion(c, bot, uid, prompt)
-					if result.stateChanged {
-						v.save()
-					}
 					if !result.current {
 						v.deleteChallenge(c, bot, uid, result.messageID)
 					}
@@ -383,7 +376,6 @@ func (v *Service) gradeKernelAnswer(c context.Context, bot Gateway, gid, uid int
 			return
 		}
 		if left > 0 {
-			v.save() // keep the used-up tries across a restart
 			_, _ = sendHTML(c, bot, uid, heldOr(gate, challenge.KernelWrongHeld, challenge.KernelWrong).Render(ul, left), nil)
 			return
 		}
@@ -438,10 +430,12 @@ func heldOr(gate string, held, request i18n.Format) i18n.Format {
 func (v *Service) beginKernelFallback(bot Gateway, gid, uid int64, nonce, question string, answers []string) bool {
 	v.mu.Lock()
 	defer v.mu.Unlock()
-	p, ok := v.pend[pkey{gid, uid}]
+	key := pkey{gid, uid}
+	p, ok := v.pend[key]
 	if !ok || p.done || p.nonce != nonce || p.hinted || p.fallbackPending {
 		return false
 	}
+	expectedEpoch := p.epoch
 	p.hinted = true
 	p.qText = question
 	p.fbAnswers = append([]string(nil), answers...)
@@ -451,50 +445,54 @@ func (v *Service) beginKernelFallback(bot Gateway, gid, uid int64, nonce, questi
 	}
 	p.deadline = v.wallNow().Add(pendingDeliveryTimeout)
 	v.armExpiry(bot, p, gid, uid, pendingDeliveryTimeout, challengeExpiryReason(false))
-	return true
+	return v.persistPendingLocked(key, p, expectedEpoch)
 }
 
 // A malformed no-Linux declaration receives only one free reminder.
 func (v *Service) markNoLinuxReminded(gid, uid int64, nonce string) bool {
 	v.mu.Lock()
 	defer v.mu.Unlock()
-	p, ok := v.pend[pkey{gid, uid}]
+	key := pkey{gid, uid}
+	p, ok := v.pend[key]
 	if !ok || p.done || p.nonce != nonce || p.noLinuxReminded {
 		return false // gone, handled, or a newer request now holds this key
 	}
 	p.noLinuxReminded = true
-	return true
+	return v.persistPendingLocked(key, p, p.epoch)
 }
 
 // Clarify a mixed OS/kernel reply once rather than looping a valid WSL user toward a ban.
 func (v *Service) markOSClarified(gid, uid int64, nonce string) bool {
 	v.mu.Lock()
 	defer v.mu.Unlock()
-	p, ok := v.pend[pkey{gid, uid}]
+	key := pkey{gid, uid}
+	p, ok := v.pend[key]
 	if !ok || p.done || p.nonce != nonce || p.osClarified {
 		return false
 	}
 	p.osClarified = true
-	return true
+	return v.persistPendingLocked(key, p, p.epoch)
 }
 
 // The copied-example nudge is free only once.
 func (v *Service) markSampleBounced(gid, uid int64, nonce string) bool {
 	v.mu.Lock()
 	defer v.mu.Unlock()
-	p, ok := v.pend[pkey{gid, uid}]
+	key := pkey{gid, uid}
+	p, ok := v.pend[key]
 	if !ok || p.done || p.nonce != nonce || p.sampleBounced {
 		return false
 	}
 	p.sampleBounced = true
-	return true
+	return v.persistPendingLocked(key, p, p.epoch)
 }
 
 // Return the nonce charged with the failed reply so decline cannot claim a replacement.
 func (v *Service) recordKernelTry(gid, uid int64, want string) (left int, nonce string, ok bool) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
-	p, exists := v.pend[pkey{gid, uid}]
+	key := pkey{gid, uid}
+	p, exists := v.pend[key]
 	if !exists || p.done || p.nonce != want {
 		return 0, "", false // a newer request replaced this pending: never charge IT for an old reply
 	}
@@ -502,6 +500,9 @@ func (v *Service) recordKernelTry(gid, uid int64, want string) (left int, nonce 
 	left = kernelMaxTries - p.tries
 	if left < 0 {
 		left = 0
+	}
+	if !v.persistPendingLocked(key, p, p.epoch) {
+		return 0, "", false
 	}
 	return left, p.nonce, true
 }

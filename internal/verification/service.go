@@ -90,15 +90,15 @@ type pending struct {
 	deadline           time.Time
 	deferredSince      time.Time // first unreachable expiry; retained across recovery and restart
 	timer              *time.Timer
-	epoch              uint64    // bumped on every (re-)arm; a timer callback carries the epoch it was armed with and no-ops if it no longer matches, so a re-arm (defer / recovery) can't be acted on by the timer it replaced
-	startedAt          time.Time // when this challenge was put on screen; in-memory only, so a restart
-	// simply loses the duplicate-arrival window and replaces as before
-	lastRenotify       time.Time // last post-outage re-notify, so repeated recoveries don't re-message the same applicant every cycle
-	failedAt           time.Time // claim time for rolling-window strike accounting
-	deferralCapReached bool      // persisted so the operator warning and short settlement retries survive restart
-	settleFailures     int       // consecutive unconfirmed settlements; persisted so the retry stays bounded across restarts
-	settlePendingSaid  bool      // the "still being settled" notice was already sent; retries stay silent
-	channelUnreadable  bool      // the last required-channel reading failed, so a failure here is not the applicant's
+	epoch              uint64         // bumped on every (re-)arm; a timer callback carries the epoch it was armed with and no-ops if it no longer matches, so a re-arm (defer / recovery) can't be acted on by the timer it replaced
+	claimedState       ChallengeState // terminal state claimed in storage while its gateway action runs
+	persistedPath      string         // store namespace containing this pending; empty means a test-seeded record
+	lastRenotify       time.Time      // last post-outage re-notify, so repeated recoveries don't re-message the same applicant every cycle
+	failedAt           time.Time      // claim time for rolling-window strike accounting
+	deferralCapReached bool           // persisted so the operator warning and short settlement retries survive restart
+	settleFailures     int            // consecutive unconfirmed settlements; persisted so the retry stays bounded across restarts
+	settlePendingSaid  bool           // the "still being settled" notice was already sent; retries stay silent
+	channelUnreadable  bool           // the last required-channel reading failed, so a failure here is not the applicant's
 	done               bool
 	removed            bool // group removal cancels an in-flight settlement without charging the applicant
 }
@@ -330,13 +330,9 @@ func (v *Service) cancelGroupVerifications(groupID int64) {
 		if key.gid != groupID || p == nil {
 			continue
 		}
-		p.removed = true
-		p.done = true
-		if p.timer != nil {
-			p.timer.Stop()
-		}
 		targets = append(targets, releaseTarget{uid: key.uid, messages: p.messages(), held: p.gate == gateMute && p.held})
-		delete(v.pend, key)
+		p.removed = true
+		v.supersedePendingLocked(key, p)
 	}
 	v.mu.Unlock()
 	if len(targets) == 0 {
@@ -345,7 +341,6 @@ func (v *Service) cancelGroupVerifications(groupID int64) {
 	bot := v.handlerBot()
 	if bot == nil {
 		log.Printf("verification disabled for %d: cancelled %d verification(s); no Telegram handle to clean up with", groupID, len(targets))
-		v.save()
 		return
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), cancelCleanupTimeout)
@@ -359,7 +354,6 @@ func (v *Service) cancelGroupVerifications(groupID int64) {
 		}
 	}
 	log.Printf("verification disabled for %d: cancelled %d verification(s) without settling them", groupID, len(targets))
-	v.save()
 }
 
 // cancelCleanupTimeout bounds the cleanup that follows switching verification off.
@@ -373,20 +367,16 @@ func (v *Service) handlerBot() Gateway {
 // RemoveGroup cancels every verification owned by an unregistered group without settling or striking it.
 func (v *Service) RemoveGroup(groupID int64) {
 	v.mu.Lock()
-	removed := false
 	for key, p := range v.pend {
 		if key.gid != groupID {
 			continue
 		}
-		if p != nil {
-			p.removed = true
-			p.done = true
-			if p.timer != nil {
-				p.timer.Stop()
-			}
+		if p == nil {
+			delete(v.pend, key)
+			continue
 		}
-		delete(v.pend, key)
-		removed = true
+		p.removed = true
+		v.supersedePendingLocked(key, p)
 	}
 	for key, p := range v.terminal {
 		if key.gid != groupID {
@@ -400,7 +390,6 @@ func (v *Service) RemoveGroup(groupID int64) {
 			}
 		}
 		delete(v.terminal, key)
-		removed = true
 	}
 	for key := range v.challengeAt {
 		if key.gid == groupID {
@@ -408,9 +397,6 @@ func (v *Service) RemoveGroup(groupID int64) {
 		}
 	}
 	v.mu.Unlock()
-	if removed {
-		v.save()
-	}
 }
 
 // ToggleRich flips the bot-wide rich-message setting.
@@ -532,8 +518,12 @@ func (v *Service) holdMember(ctx context.Context, bot Gateway, groupID, userID i
 		return
 	}
 	v.mu.Lock()
-	p.held = true
-	p.holdUntil = until
+	key := pkey{groupID, userID}
+	if v.pend[key] == p && !p.done {
+		p.held = true
+		p.holdUntil = until
+		v.persistPendingLocked(key, p, p.epoch)
+	}
 	v.mu.Unlock()
 }
 
@@ -806,57 +796,49 @@ func (v *Service) expiryDelay(gid int64, gate, reason string) time.Duration {
 	return v.gateTimeout(gid, gate)
 }
 
-// Reserve capacity before delivery; only a confirmed challenge may install a striking timeout.
-func (v *Service) startPending(bot Gateway, gid, uid int64, p *pending) (oldMessages challengeMessages, status pendingStartStatus) {
+// Reserve capacity and persist before delivery. The open-challenge index, not the in-memory
+// map, decides whether this arrival already has a live challenge.
+func (v *Service) startPending(bot Gateway, gid, uid int64, p *pending) (oldMessages challengeMessages, status pendingStartStatus, err error) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 	key := pkey{gid, uid}
 	old, replacing := v.pend[key]
 	if inFlight := v.terminal[key]; inFlight != nil || replacing && old.done {
-		return challengeMessages{}, pendingBlockedTerminal
+		return challengeMessages{}, pendingBlockedTerminal, nil
 	}
 	if !replacing && !v.pendingCapacityOKLocked(gid) {
-		return challengeMessages{}, pendingBlockedCapacity
+		return challengeMessages{}, pendingBlockedCapacity, nil
 	}
-	// Telegram redelivers a join request seconds after the first. Replacing the challenge then
-	// posts a second one and leaves the first to be cleaned up, which is one more thing that can
-	// fail — and when it does, the group keeps an orphan challenge nobody can answer. Within this
-	// window, with a challenge already on screen and no reply yet, the repeat is the same arrival.
-	if replacing && !old.done && old.hasChallengeOnScreen() && old.tries == 0 &&
-		!old.startedAt.IsZero() && v.wallNow().Sub(old.startedAt) < duplicateArrivalWindow {
-		return challengeMessages{}, pendingDuplicateArrival
+	if v.stateUnavailable(v.statePath) && replacing {
+		// Persistence-disabled tests and legacy embeddings have no database arbiter.
+		return challengeMessages{}, pendingDuplicateArrival, nil
 	}
+	delay := pendingDeliveryTimeout
+	p.deadline = v.wallNow().Add(delay)
+	v.armExpiry(bot, p, gid, uid, delay, challengeExpiryReason(false))
+	inserted := true
+	if !v.stateUnavailable(v.statePath) {
+		inserted, err = v.stateStore.InsertPending(v.statePath, pendingRecord(key, p))
+	}
+	if err != nil || !inserted {
+		if p.timer != nil {
+			p.timer.Stop()
+		}
+		if err != nil {
+			return challengeMessages{}, pendingStarted, err
+		}
+		return challengeMessages{}, pendingDuplicateArrival, nil
+	}
+	p.persistedPath = v.statePath
 	if replacing {
 		old.done = true
 		if old.timer != nil {
 			old.timer.Stop()
 		}
 		oldMessages = old.messages()
-		// Re-applying must not replenish attempts or one-shot reminders. An active fallback is
-		// challenge progress, not a spent reminder: keep its question so an applicant without
-		// Linux is not returned to a kernel-only prompt they cannot answer.
-		p.tries, p.sampleBounced = old.tries, old.sampleBounced
-		p.noLinuxReminded, p.osClarified = old.noLinuxReminded, old.osClarified
-		if p.mode == config.ModeKernel && old.mode == config.ModeKernel && len(old.fbAnswers) > 0 {
-			p.qText = old.qText
-			p.fbAnswers = append([]string(nil), old.fbAnswers...)
-			p.hinted = true
-		}
 	}
-	delay := pendingDeliveryTimeout
-	p.deadline = v.wallNow().Add(delay)
-	p.startedAt = v.wallNow()
 	v.pend[key] = p
-	v.armExpiry(bot, p, gid, uid, delay, challengeExpiryReason(false))
-	return oldMessages, pendingStarted
-}
-
-// A redelivered update arrives within seconds; a genuine re-application takes an applicant far
-// longer than this to cancel and request again.
-const duplicateArrivalWindow = 30 * time.Second
-
-func (p *pending) hasChallengeOnScreen() bool {
-	return p.groupMsgID != 0 || p.privateMsgID != 0
+	return oldMessages, pendingStarted, nil
 }
 
 // Start a full window after delivery while preserving no-fault status on send failure.
@@ -869,9 +851,11 @@ func (v *Service) finishPendingChallenge(
 ) bool {
 	v.mu.Lock()
 	defer v.mu.Unlock()
-	if cur, ok := v.pend[pkey{gid, uid}]; !ok || cur != p || p.done {
+	key := pkey{gid, uid}
+	if cur, ok := v.pend[key]; !ok || cur != p || p.done {
 		return false
 	}
+	expectedEpoch := p.epoch
 	if p.timer != nil {
 		p.timer.Stop()
 	}
@@ -881,7 +865,7 @@ func (v *Service) finishPendingChallenge(
 	delay := v.gateTimeout(gid, p.gate)
 	p.deadline = v.wallNow().Add(delay)
 	v.armExpiry(bot, p, gid, uid, delay, challengeExpiryReason(delivered))
-	return true
+	return v.persistPendingLocked(key, p, expectedEpoch)
 }
 
 // One process-wide throttle prevents a multi-group flood from spamming operator alerts.
@@ -1025,7 +1009,10 @@ func (v *Service) OnJoinRequest(ctx *HandlerContext, update Update) error {
 	name := jr.From.DisplayName()
 	p := &pending{mode: mode, lang: applicantLang, qText: text, qOpts: opts, correctIdx: correctIdx,
 		nonce: newNonce(), name: name}
-	oldMessages, status := v.startPending(bot, gid, uid, p)
+	oldMessages, status, err := v.startPending(bot, gid, uid, p)
+	if err != nil {
+		return fmt.Errorf("persist pending challenge for user %d in group %d: %w", uid, gid, err)
+	}
 	switch status {
 	case pendingBlockedCapacity:
 		log.Printf("join %d in group %d: pending cap reached; left for manual review", uid, gid)
@@ -1042,6 +1029,7 @@ func (v *Service) OnJoinRequest(ctx *HandlerContext, update Update) error {
 
 	delivery := v.deliverPendingChallenge(c, bot, gid, uid, name, p)
 	if !delivery.active {
+		v.deleteUnexposedPending(gid, uid, p)
 		return nil
 	}
 	if delivery.replacedPrivateMsgID != 0 {
@@ -1051,7 +1039,6 @@ func (v *Service) OnJoinRequest(ctx *HandlerContext, update Update) error {
 		v.deleteChallenges(c, bot, gid, uid, delivery.messages)
 		return nil // another action handled or replaced this request while delivery was in flight
 	}
-	v.save()
 	log.Printf("join %d (@%s) in group %d: pending (%s challenge), delivery=%s, group message=%d, private message=%d",
 		uid, jr.From.Username, gid, mode, delivery.modeLabel, delivery.messages.groupMsgID, delivery.messages.privateMsgID)
 	return nil
@@ -1082,6 +1069,36 @@ func (v *Service) recentlyPassed(gid, uid int64) bool {
 	defer v.mu.Unlock()
 	at, ok := v.passed[pkey{gid, uid}]
 	return ok && v.wallNow().Sub(at) <= recentPassWindow
+}
+
+func (v *Service) startPostJoinChallenge(
+	c context.Context,
+	bot Gateway,
+	gid, uid int64,
+	p *pending,
+) (challengeMessages, bool, error) {
+	oldMessages, status, err := v.startPending(bot, gid, uid, p)
+	if err != nil {
+		return challengeMessages{}, false, fmt.Errorf("persist post-join challenge for user %d in group %d: %w", uid, gid, err)
+	}
+	switch status {
+	case pendingBlockedCapacity:
+		// A blocked applicant waits outside; a blocked member would stay inside unverified.
+		log.Printf("post-join verify: %d in %d skipped, pending cap reached; removing them until the queue drains", uid, gid)
+		v.alertPendingCap(c, bot, gid, gateMute)
+		if _, removeErr := v.removeMember(c, bot, gid, uid); removeErr != nil {
+			log.Printf("post-join verify: cannot remove %d from %d at capacity: %v", uid, gid, removeErr)
+		}
+		return challengeMessages{}, false, nil
+	case pendingDuplicateArrival:
+		log.Printf("join %d in group %d: repeat of an arrival already challenged; keeping the challenge on screen", uid, gid)
+		return challengeMessages{}, false, nil
+	case pendingBlockedTerminal:
+		log.Printf("post-join verify: %d in %d skipped, terminal action still in flight", uid, gid)
+		return challengeMessages{}, false, nil
+	default:
+		return oldMessages, true, nil
+	}
 }
 
 // OnMemberJoined verifies someone who is already inside a guarded group. Groups that ask people
@@ -1133,7 +1150,6 @@ func (v *Service) OnMemberJoined(ctx *HandlerContext, update Update) error {
 		// actually end it, keeping the progress they have made.
 		v.adoptAsHeld(gid, uid, live)
 		v.holdMember(c, bot, gid, uid, member.Chat.Type == ChatTypeSupergroup, live)
-		v.save()
 		log.Printf("post-join verify: %d entered %d while still being verified; kept the running challenge", uid, gid)
 		return nil
 	}
@@ -1151,33 +1167,20 @@ func (v *Service) OnMemberJoined(ctx *HandlerContext, update Update) error {
 	name := user.DisplayName()
 	p := &pending{gate: gateMute, invited: invited, mode: mode, lang: applicantLang,
 		qText: text, qOpts: opts, correctIdx: correctIdx, nonce: newNonce(), name: name}
-	oldMessages, status := v.startPending(bot, gid, uid, p)
-	switch status {
-	case pendingBlockedCapacity:
-		// An applicant blocked here waits outside and an administrator can still admit them. A
-		// member blocked here is already inside and would simply stay, unverified. Take them
-		// back out — no strike, they did nothing wrong — so they can return once the queue drains.
-		log.Printf("post-join verify: %d in %d skipped, pending cap reached; removing them until the queue drains", uid, gid)
-		v.alertPendingCap(c, bot, gid, gateMute)
-		if _, err := v.removeMember(c, bot, gid, uid); err != nil {
-			log.Printf("post-join verify: cannot remove %d from %d at capacity: %v", uid, gid, err)
-		}
-		return nil
-	case pendingDuplicateArrival:
-		log.Printf("join %d in group %d: repeat of an arrival already challenged; keeping the challenge on screen", uid, gid)
-		return nil
-	case pendingBlockedTerminal:
-		log.Printf("post-join verify: %d in %d skipped, terminal action still in flight", uid, gid)
+	oldMessages, started, err := v.startPostJoinChallenge(c, bot, gid, uid, p)
+	if err != nil {
+		return err
+	}
+	if !started {
 		return nil
 	}
 	v.deleteChallenges(c, bot, gid, uid, oldMessages)
-	// Persist before restricting anyone. A crash between the two would otherwise leave a member
-	// silenced by a verification no restart knows about.
-	v.save()
+	// startPending committed the record before this externally visible hold.
 	v.holdMember(c, bot, gid, uid, supergroup, p)
 
 	delivery := v.deliverPendingChallenge(c, bot, gid, uid, name, p)
 	if !delivery.active {
+		v.deleteUnexposedPending(gid, uid, p)
 		return nil
 	}
 	if delivery.replacedPrivateMsgID != 0 {
@@ -1187,7 +1190,6 @@ func (v *Service) OnMemberJoined(ctx *HandlerContext, update Update) error {
 		v.deleteChallenges(c, bot, gid, uid, delivery.messages)
 		return nil
 	}
-	v.save()
 	log.Printf("post-join verify: %d (@%s) joined %d: pending (%s challenge), held=%v, delivery=%s",
 		uid, user.Username, gid, mode, supergroup, delivery.modeLabel)
 	return nil
@@ -1282,7 +1284,6 @@ type dmSendResult struct {
 	messageID         int
 	replacedMessageID int
 	current           bool
-	stateChanged      bool
 }
 
 // owner binds a delivery to the pending it was started for. A recovery that took a snapshot
@@ -1326,6 +1327,33 @@ func definiteDMFailure(err error) bool {
 	return gatewayFailureHas(err, FailureCannotInitiateConversation) || gatewayFailureHas(err, FailureBlockedByUser) || code >= 400 && code < 500
 }
 
+func (v *Service) completeFailedDMDeliveryLocked(
+	bot Gateway,
+	uid int64,
+	prompt dmPrompt,
+	p *pending,
+	sendErr error,
+	question, resetExpiry bool,
+	expectedEpoch uint64,
+) (current, changed bool) {
+	if !question || !prompt.fallbackPending || !p.fallbackPending || !definiteDMFailure(sendErr) {
+		return true, false
+	}
+	p.qText = tgfmt.KernelQuestion(v.messages, p.lang)
+	p.fbAnswers = nil
+	p.fallbackPending = false
+	p.hinted = false
+	if resetExpiry {
+		if p.timer != nil {
+			p.timer.Stop()
+		}
+		delay := v.gateTimeout(prompt.gid, prompt.pending.gate)
+		p.deadline = v.wallNow().Add(delay)
+		v.armExpiry(bot, p, prompt.gid, uid, delay, challengeExpiryReason(true))
+	}
+	return v.persistPendingLocked(pkey{prompt.gid, uid}, p, expectedEpoch), true
+}
+
 // Bind delivery completion to the pending pointer and nonce captured before the Bot API call.
 func (v *Service) completeDMDelivery(
 	bot Gateway,
@@ -1342,23 +1370,12 @@ func (v *Service) completeDMDelivery(
 	if !ok || p != prompt.pending || p.done || p.nonce != prompt.nonce {
 		return false, false, 0
 	}
+	expectedEpoch := p.epoch
 	if sendErr != nil {
-		if question && prompt.fallbackPending && p.fallbackPending && definiteDMFailure(sendErr) {
-			p.qText = tgfmt.KernelQuestion(v.messages, p.lang)
-			p.fbAnswers = nil
-			p.fallbackPending = false
-			p.hinted = false
-			if resetExpiry {
-				if p.timer != nil {
-					p.timer.Stop()
-				}
-				delay := v.gateTimeout(prompt.gid, prompt.pending.gate)
-				p.deadline = v.wallNow().Add(delay)
-				v.armExpiry(bot, p, prompt.gid, uid, delay, challengeExpiryReason(true))
-			}
-			return true, true, 0
-		}
-		return true, false, 0
+		current, changed = v.completeFailedDMDeliveryLocked(
+			bot, uid, prompt, p, sendErr, question, resetExpiry, expectedEpoch,
+		)
+		return current, changed, 0
 	}
 	resetDeadline := false
 	if question && prompt.fallbackPending && p.fallbackPending {
@@ -1387,6 +1404,9 @@ func (v *Service) completeDMDelivery(
 	if question && p.mode == config.ModeKernel && !p.prompted {
 		p.prompted = true
 		changed = true
+	}
+	if changed && !v.persistPendingLocked(pkey{prompt.gid, uid}, p, expectedEpoch) {
+		return false, true, oldPrivateMsgID
 	}
 	return true, changed, oldPrivateMsgID
 }
@@ -1441,12 +1461,11 @@ func (v *Service) sendDMQuestionRetainingPrevious(
 		messageID, err = sendHTML(c, bot, uid,
 			v.messages.Verification.Challenge.QuizPrompt.Render(prompt.lang, html.EscapeString(prompt.text)), rows)
 	}
-	current, changed, oldPrivateMsgID := v.completeDMDelivery(bot, uid, prompt, messageID, err, true, resetExpiry)
+	current, _, oldPrivateMsgID := v.completeDMDelivery(bot, uid, prompt, messageID, err, true, resetExpiry)
 	return dmSendResult{
 		messageID:         messageID,
 		replacedMessageID: oldPrivateMsgID,
 		current:           current,
-		stateChanged:      changed,
 	}, err
 }
 
@@ -1472,10 +1491,7 @@ func (v *Service) sendDMChallengeForGroup(
 	}
 	if v.RequiredChannelID(gid) != 0 && !v.isChannelMember(c, bot, gid, uid, v.groupLanguage(gid)) {
 		privateMsgID, err := v.sendChannelPrompt(c, bot, gid, uid, prompt.lang)
-		current, changed, oldPrivateMsgID := v.completeDMDelivery(bot, uid, prompt, privateMsgID, err, false, resetExpiry)
-		if changed {
-			v.save()
-		}
+		current, _, oldPrivateMsgID := v.completeDMDelivery(bot, uid, prompt, privateMsgID, err, false, resetExpiry)
 		if !current {
 			v.deleteChallenge(c, bot, uid, privateMsgID)
 			return false, 0, 0, err
@@ -1483,9 +1499,6 @@ func (v *Service) sendDMChallengeForGroup(
 		return true, privateMsgID, oldPrivateMsgID, err
 	}
 	result, err := v.sendDMQuestionRetainingPrevious(c, bot, uid, prompt, resetExpiry)
-	if result.stateChanged {
-		v.save()
-	}
 	if !result.current {
 		v.deleteChallenge(c, bot, uid, result.messageID)
 		return false, 0, 0, err
@@ -1618,16 +1631,11 @@ func (v *Service) SendDMChallenge(c context.Context, uid int64, languageCode str
 
 // DM every live challenge; kernel mode routes the next text DM as its answer.
 func (v *Service) sendQuizzes(c context.Context, bot Gateway, uid int64) {
-	stateChanged := false
 	for _, prompt := range v.pendingDMChallenges(uid) {
 		result, _ := v.sendDMQuestion(c, bot, uid, prompt)
-		stateChanged = stateChanged || result.stateChanged
 		if !result.current {
 			v.deleteChallenge(c, bot, uid, result.messageID)
 		}
-	}
-	if stateChanged {
-		v.save()
 	}
 }
 
@@ -1803,7 +1811,7 @@ func (v *Service) OnAdminAction(ctx *HandlerContext, update Update) error {
 	case "pass":
 		gate := v.pendingGate(gid, target)
 		says := v.adminSays(gate)
-		p, ok := v.claimPending(gid, target)
+		p, ok := v.claimPendingBy(gid, target, cq.From.ID)
 		if !ok {
 			ackResult(c, bot, cq.ID, says.CannotApprove.For(l), false)
 			return nil
@@ -1821,7 +1829,7 @@ func (v *Service) OnAdminAction(ctx *HandlerContext, update Update) error {
 	case "ban":
 		gate := v.pendingGate(gid, target)
 		says := v.adminSays(gate)
-		p, ok := v.consume(gid, target)
+		p, ok := v.consumeBy(gid, target, cq.From.ID)
 		if !ok {
 			ackResult(c, bot, cq.ID, says.AlreadyHandled.For(l), false)
 			return nil
@@ -1890,8 +1898,12 @@ func (v *Service) channelWasUnreadable(gid, uid int64) bool {
 func (v *Service) markChannelReadable(gid, uid int64, known bool) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
-	if p, ok := v.pend[pkey{gid, uid}]; ok {
+	key := pkey{gid, uid}
+	if p, ok := v.pend[key]; ok {
 		p.channelUnreadable = !known
+		if !p.done {
+			v.persistPendingLocked(key, p, p.epoch)
+		}
 	}
 }
 
@@ -1925,53 +1937,8 @@ func (v *Service) markTerminalLocked(key pkey, p *pending) {
 	v.terminal[key] = p
 }
 
-// Caller holds v.mu.
-func (v *Service) releaseTerminalLocked(key pkey, p *pending) {
-	if v.terminal[key] == p {
-		delete(v.terminal, key)
-	}
-}
-
-// consume claims a terminal action while keeping it recoverable until Telegram settlement returns.
-func (v *Service) consume(gid, uid int64) (*pending, bool) {
-	v.mu.Lock()
-	defer v.mu.Unlock()
-	key := pkey{gid, uid}
-	p, ok := v.pend[key]
-	if !ok || p.done {
-		return nil, false
-	}
-	p.done = true
-	if p.timer != nil {
-		p.timer.Stop()
-	}
-	v.markTerminalLocked(key, p)
-	return p, true
-}
-
-// Nonce and timer epoch must both match, so superseded timers cannot claim a pending.
-func (v *Service) claimPendingExpiry(gid, uid int64, nonce string, epoch uint64) (*pending, bool) {
-	v.mu.Lock()
-	defer v.mu.Unlock()
-	if v.shuttingDown {
-		return nil, false
-	}
-	key := pkey{gid, uid}
-	p, ok := v.pend[key]
-	if !ok || p.done || p.nonce != nonce || p.epoch != epoch {
-		return nil, false // gone, handled, replaced, or superseded by a newer timer
-	}
-	p.done = true
-	p.failedAt = v.wallNow()
-	if p.timer != nil {
-		p.timer.Stop()
-	}
-	v.markTerminalLocked(key, p)
-	return p, true
-}
-
-// Stop all timers before the final save; callbacks also refuse settlement during shutdown.
-// Pendings therefore survive a graceful restart intact.
+// Stop in-process timers; pending rows are already durable after each mutation.
+// Callbacks also refuse settlement during shutdown.
 func (v *Service) stopForShutdown() {
 	v.mu.Lock()
 	defer v.mu.Unlock()
@@ -1983,10 +1950,9 @@ func (v *Service) stopForShutdown() {
 	}
 }
 
-// Shutdown freezes pending settlement and persists every verification state file.
+// Shutdown freezes pending settlement and flushes the remaining ancillary snapshots.
 func (v *Service) Shutdown() {
 	v.stopForShutdown()
-	v.save()
 	v.saveVerifyFails()
 	v.saveHeartbeat()
 }
@@ -2055,24 +2021,34 @@ func (v *Service) channelAccessAlert(c context.Context, bot Gateway, l i18n.Lang
 	v.adminAlert(c, bot, admin.ChannelAccessFailed.Render(l, channelID, mode))
 }
 
-// Keep claimed approvals in the map so network failure can reopen them; consume deletes final claims.
+// Keep claimed approvals in the map so network failure can reopen them.
 func (v *Service) claimPending(gid, uid int64) (*pending, bool) {
+	return v.claimPendingBy(gid, uid, 0)
+}
+
+func (v *Service) claimPendingBy(gid, uid, settledBy int64) (*pending, bool) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
-	p, ok := v.pend[pkey{gid, uid}]
-	if !ok || p.done {
+	key := pkey{gid, uid}
+	p, ok := v.pend[key]
+	if !ok || p.done || !v.claimPendingLocked(key, p, ChallengeApproved, "", settledBy) {
 		return nil, false
 	}
-	p.done = true
-	if p.timer != nil {
-		p.timer.Stop()
-	}
-	v.markTerminalLocked(pkey{gid, uid}, p)
 	return p, true
 }
 
-// Bind answer validation and claiming to the same nonce.
+// Bind answer validation and the database transition to the same nonce.
 func (v *Service) claimPendingNonce(gid, uid int64, nonce string) (*pending, bool) {
+	return v.claimPendingNonceAs(gid, uid, nonce, ChallengeApproved, "", 0)
+}
+
+func (v *Service) claimPendingNonceAs(
+	gid, uid int64,
+	nonce string,
+	state ChallengeState,
+	reason string,
+	settledBy int64,
+) (*pending, bool) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 	if v.shuttingDown {
@@ -2080,15 +2056,10 @@ func (v *Service) claimPendingNonce(gid, uid int64, nonce string) (*pending, boo
 	}
 	key := pkey{gid, uid}
 	p, ok := v.pend[key]
-	if !ok || p.done || p.nonce != nonce {
+	if !ok || p.done || p.nonce != nonce || !v.claimPendingLocked(key, p, state, reason, settledBy) {
 		return nil, false
 	}
-	p.done = true
 	p.failedAt = v.wallNow()
-	if p.timer != nil {
-		p.timer.Stop()
-	}
-	v.markTerminalLocked(key, p)
 	return p, true
 }
 
@@ -2131,17 +2102,15 @@ func (v *Service) executeApprove(c context.Context, bot Gateway, gid, uid int64,
 		log.Printf("approve %d in %d: join request is already gone: %v", uid, gid, err)
 		member, known := v.chatMemberState(c, bot, gid, uid)
 		if known && member {
-			v.notePassed(gid, uid) // before the terminal marker goes, as in the confirmed path
-		}
-		v.finishTerminal(gid, uid, p)
-		v.deleteChallenges(c, bot, gid, uid, p.messages())
-		if known && member {
+			v.notePassed(gid, uid)
+			v.finishTerminal(gid, uid, p)
+			v.deleteChallenges(c, bot, gid, uid, p.messages())
 			v.clearVerifyFails(gid, uid)
 			v.recordDecision(true)
-			v.save()
 			return approveConfirmed
 		}
-		v.save()
+		v.discardPending(gid, uid, p)
+		v.deleteChallenges(c, bot, gid, uid, p.messages())
 		return approveGone
 	}
 	// Record the pass before the terminal marker is released. Approving produces a membership
@@ -2149,17 +2118,10 @@ func (v *Service) executeApprove(c context.Context, bot Gateway, gid, uid int64,
 	// the marker goes the terminal claim blocks a second verification, and from then on this
 	// record does. Leaving a gap between them re-challenges the person just admitted.
 	v.notePassed(gid, uid)
-	v.mu.Lock()
-	key := pkey{gid, uid}
-	if cur, ok := v.pend[key]; ok && cur == p {
-		delete(v.pend, key)
-	}
-	v.releaseTerminalLocked(key, p)
-	v.mu.Unlock()
+	v.finishTerminal(gid, uid, p)
 	v.clearVerifyFails(gid, uid) // verified successfully — reset any failure strikes
 	v.deleteChallenges(c, bot, gid, uid, p.messages())
 	v.recordDecision(true)
-	v.save()
 	log.Printf("approve user=%d group=%d", uid, gid)
 	return approveConfirmed
 }
@@ -2205,9 +2167,11 @@ func (v *Service) releaseAbandonedHold(c context.Context, bot Gateway, gid, uid 
 func (v *Service) adoptAsHeld(gid, uid int64, p *pending) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
-	if cur, ok := v.pend[pkey{gid, uid}]; ok && cur == p && p.gate != gateMute {
+	key := pkey{gid, uid}
+	if cur, ok := v.pend[key]; ok && cur == p && !p.done && p.gate != gateMute {
 		log.Printf("post-join verify: %d in %d entered the group mid-verification; settling as a member from here", uid, gid)
 		p.gate = gateMute
+		v.persistPendingLocked(key, p, p.epoch)
 	}
 }
 
@@ -2224,29 +2188,31 @@ func (v *Service) abandonSettlement(c context.Context, bot Gateway, gid, uid int
 		}
 	}
 	v.discardPending(gid, uid, p)
-	v.save()
 }
 
-// Reopen a bot-caused failed settlement unless the pending was replaced or consumed.
-// Reports whether the retry was armed; false means the attempt limit is spent.
+// Reopen a bot-caused failed settlement only if the same nonce, epoch, and claimed state
+// remain current in storage. Re-arming increments epoch before the conditional rollback.
 func (v *Service) reopenPending(bot Gateway, gid, uid int64, p *pending, reason string) bool {
 	v.mu.Lock()
 	defer v.mu.Unlock()
 	key := pkey{gid, uid}
-	defer v.releaseTerminalLocked(key, p)
 	if cur, ok := v.pend[key]; !ok || cur != p || !p.done {
 		return false
 	}
+	from := p.claimedState
 	p.settleFailures++
 	if p.settleFailures >= maxSettleFailures {
 		log.Printf("WARNING: giving up on settling verification for %d in %d after %d attempts (%s); "+
 			"the join request stays with Telegram for an administrator", uid, gid, p.settleFailures, reason)
-		if p.timer != nil {
-			p.timer.Stop()
+		if from != "" {
+			if _, err := v.transitionChallengeLocked(key, p, from, ChallengeSuperseded, "", 0, p.epoch); err != nil {
+				log.Printf("verification: supersede abandoned settlement for group %d user %d: %v", gid, uid, err)
+			}
 		}
-		delete(v.pend, key)
+		v.forgetPendingLocked(key, p)
 		return false
 	}
+	expectedEpoch := p.epoch
 	p.done = false
 	// Keep the moment the applicant actually failed. Every caller here is retrying a settlement
 	// for a failure that already happened, so stamping the strike with the retry time instead
@@ -2257,6 +2223,20 @@ func (v *Service) reopenPending(bot Gateway, gid, uid int64, p *pending, reason 
 		p.deadline = v.wallNow().Add(delay)
 	}
 	v.armExpiry(bot, p, gid, uid, delay, reason)
+	changed := true
+	var err error
+	if from != "" {
+		changed, err = v.transitionChallengeLocked(key, p, from, ChallengePending, "", 0, expectedEpoch)
+	}
+	if err != nil {
+		log.Printf("verification: reopen settlement for group %d user %d: %v", gid, uid, err)
+	}
+	if err != nil || !changed {
+		v.forgetPendingLocked(key, p)
+		return false
+	}
+	p.claimedState = ""
+	v.releaseTerminalLocked(key, p)
 	return true
 }
 
@@ -2459,6 +2439,13 @@ var errRemovalLeftBanned = errors.New("removed but the ban could not be lifted; 
 // wrongAnswerReason marks a decline the applicant caused by failing the challenge.
 const wrongAnswerReason = "wrong answer"
 
+func storedDeclineReason(reason string) string {
+	if reason == wrongAnswerReason {
+		return "wrong_answer"
+	}
+	return "rejected"
+}
+
 // A request that vanished before the bot could reject it still leaves the applicant out of the
 // group, so a wrong answer still counts. A timeout does not: the request may have been rejected
 // by an administrator long before the window ran out, and nobody should carry a strike for that.
@@ -2497,7 +2484,6 @@ func (v *Service) executeRelease(c context.Context, bot Gateway, gid, uid int64,
 	v.clearVerifyFails(gid, uid)
 	v.deleteChallenges(c, bot, gid, uid, p.messages())
 	v.recordDecision(true)
-	v.save()
 	log.Printf("post-join verify: released user=%d group=%d", uid, gid)
 	return approveConfirmed
 }
@@ -2516,7 +2502,7 @@ const (
 
 // Live wrong answers use nonce claims; timeout settlement uses epoch claims so outages may defer it.
 func (v *Service) decline(c context.Context, bot Gateway, gid, uid int64, nonce, reason string) (outcome declineOutcome, banned bool) {
-	p, ok := v.claimPendingNonce(gid, uid, nonce)
+	p, ok := v.claimPendingNonceAs(gid, uid, nonce, ChallengeDeclined, storedDeclineReason(reason), 0)
 	if !ok {
 		return declineNoPending, false
 	}
@@ -2547,7 +2533,6 @@ func (v *Service) finishDecline(c context.Context, bot Gateway, gid, uid int64, 
 			log.Printf("decline %d in %d failed: %v", uid, gid, err)
 			v.settlementAlert(c, bot, gid, err, v.adminSays(p.gate).DeclineFailed.Render(v.groupLanguage(gid), uid, gid, err))
 			v.stopRetrying(c, bot, gid, uid, p, "decline-retry", err)
-			v.save()
 			return declineUnsettled, false
 		}
 		// Telegram no longer holds the request, so no retry can settle it. Whether the applicant
@@ -2560,13 +2545,11 @@ func (v *Service) finishDecline(c context.Context, bot Gateway, gid, uid int64, 
 			// An administrator let them in. Nothing here is the applicant's fault.
 			v.deleteChallenges(c, bot, gid, uid, p.messages())
 			v.clearVerifyFails(gid, uid)
-			v.finishTerminal(gid, uid, p)
-			v.save()
+			v.discardPending(gid, uid, p)
 			return declineGoneUnknown, false
 		case !known:
 			v.deleteChallenges(c, bot, gid, uid, p.messages())
-			v.finishTerminal(gid, uid, p)
-			v.save()
+			v.discardPending(gid, uid, p)
 			return declineGoneUnknown, false
 		}
 		// They are out, exactly as this decline intended, so settle it like a confirmed one.
@@ -2587,7 +2570,6 @@ func (v *Service) finishDecline(c context.Context, bot Gateway, gid, uid int64, 
 			v.recordDecision(false)
 		}
 	}
-	v.finishTerminal(gid, uid, p)
 	if doBan {
 		secs := v.verificationBanDuration(gid)
 		if err := v.applyVerificationBan(c, bot, gid, uid, secs, false); err != nil {
@@ -2611,9 +2593,16 @@ func (v *Service) finishDecline(c context.Context, bot Gateway, gid, uid int64, 
 		admin := &v.messages.Verification.Admin
 		v.failAlert(c, bot, gid, admin.BanFailed.Render(v.groupLanguage(gid), uid, gid, errRemovalLeftBanned))
 	}
-	v.save()
+	v.finishClaimedDecline(gid, uid, p, banned)
 	log.Printf("decline user=%d group=%d (%s) fails=%d banned=%v", uid, gid, reason, count, banned)
 	return outcome, banned
+}
+
+func (v *Service) finishClaimedDecline(gid, uid int64, p *pending, banned bool) {
+	if banned {
+		v.reclassifyClaimed(gid, uid, p, ChallengeBanned)
+	}
+	v.finishTerminal(gid, uid, p)
 }
 
 func (v *Service) finishTerminal(gid, uid int64, p *pending) {
@@ -2624,6 +2613,23 @@ func (v *Service) finishTerminal(gid, uid int64, p *pending) {
 	}
 	v.releaseTerminalLocked(key, p)
 	v.mu.Unlock()
+}
+func (v *Service) reclassifyClaimed(gid, uid int64, p *pending, to ChallengeState) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	from := p.claimedState
+	if from == "" || from == to {
+		return
+	}
+	key := pkey{gid, uid}
+	changed, err := v.transitionChallengeLocked(key, p, from, to, "", 0, p.epoch)
+	if err != nil {
+		log.Printf("verification: transition settled challenge for group %d user %d from %s to %s: %v", gid, uid, from, to, err)
+		return
+	}
+	if changed {
+		p.claimedState = to
+	}
 }
 
 // banApplicant preserves the request for retry when either required Telegram action is unconfirmed.
@@ -2641,7 +2647,6 @@ func (v *Service) executeBan(c context.Context, bot Gateway, gid, uid int64, p *
 		log.Printf("banApplicant %d in %d: %v", uid, gid, err)
 		v.settlementAlert(c, bot, gid, err, v.adminSays(p.gate).BanFailed.Render(v.groupLanguage(gid), uid, gid, err))
 		v.stopRetrying(c, bot, gid, uid, p, "ban-retry", err)
-		v.save()
 		return false
 	}
 	if p.gate == gateMute {
@@ -2649,7 +2654,6 @@ func (v *Service) executeBan(c context.Context, bot Gateway, gid, uid int64, p *
 		v.deleteChallenges(c, bot, gid, uid, p.messages())
 		v.recordDecision(false)
 		v.finishTerminal(gid, uid, p)
-		v.save()
 		log.Printf("banApplicant user=%d group=%d banned=true (admin report, held member)", uid, gid)
 		return true
 	}
@@ -2658,7 +2662,6 @@ func (v *Service) executeBan(c context.Context, bot Gateway, gid, uid int64, p *
 			log.Printf("decline after ban %d in %d: %v", uid, gid, err)
 			v.settlementAlert(c, bot, gid, err, v.adminSays(p.gate).DeclineFailed.Render(v.groupLanguage(gid), uid, gid, err))
 			v.stopRetrying(c, bot, gid, uid, p, "ban-retry", err)
-			v.save()
 			return false
 		}
 		// The ban is confirmed and the request is gone; retrying the decline cannot help.
@@ -2667,7 +2670,6 @@ func (v *Service) executeBan(c context.Context, bot Gateway, gid, uid int64, p *
 	v.deleteChallenges(c, bot, gid, uid, p.messages())
 	v.recordDecision(false)
 	v.finishTerminal(gid, uid, p)
-	v.save()
 	log.Printf("banApplicant user=%d group=%d banned=true (admin report)", uid, gid)
 	return true
 }
