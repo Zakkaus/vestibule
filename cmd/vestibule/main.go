@@ -23,6 +23,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/lookup"
 	"github.com/Zakkaus/vestibule/internal/moderate"
 	"github.com/Zakkaus/vestibule/internal/panel"
+	"github.com/Zakkaus/vestibule/internal/status"
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/Zakkaus/vestibule/internal/tg"
 	"github.com/Zakkaus/vestibule/internal/verify"
@@ -252,7 +253,7 @@ func main() {
 	flag.Parse()
 	// A Telegram client error carries the API URL, and the URL carries the token. Strip it once
 	// here so no log call site has to remember.
-	log.SetOutput(tg.RedactingWriter(os.Stderr))
+	log.SetOutput(status.RedactingWriter(os.Stderr))
 	if *showVersion {
 		fmt.Println(version)
 		return

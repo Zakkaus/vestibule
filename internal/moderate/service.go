@@ -11,6 +11,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -297,7 +298,7 @@ func (s *Service) OnWarn(ctx *th.Context, update telego.Update) error {
 			s.notify(requestCtx, groupID, i18n.Messages.Moderate.Warning.LimitKickFailed.For(l))
 			// A failed limit kick must reach admins even without a configured admin log.
 			s.telegram.FailAlert(requestCtx, s.adminLogChatID(), groupID,
-				i18n.Messages.Moderate.Warning.LimitKickAlert.Render(l, displayName(target), limit, displayName(msg.From)))
+				i18n.Messages.Moderate.Warning.LimitKickAlert.Render(l, tgfmt.DisplayName(target), limit, tgfmt.DisplayName(msg.From)))
 			return nil
 		}
 		s.warnings.clear(groupID, target.ID)
@@ -308,13 +309,13 @@ func (s *Service) OnWarn(ctx *th.Context, update telego.Update) error {
 		if !rejoinable {
 			outcome = i18n.Messages.Moderate.Warning.KickUnbanFailed.For(l)
 		}
-		s.notify(requestCtx, groupID, i18n.Messages.Moderate.Warning.LimitReached.Render(l, displayName(target), limit, outcome, displayName(msg.From)))
+		s.notify(requestCtx, groupID, i18n.Messages.Moderate.Warning.LimitReached.Render(l, tgfmt.DisplayName(target), limit, outcome, tgfmt.DisplayName(msg.From)))
 		s.telegram.AuditLog(requestCtx, s.adminLogChatID(),
-			i18n.Messages.Moderate.Warning.KickAlert.Render(l, groupID, target.ID, displayName(target), displayName(msg.From)))
+			i18n.Messages.Moderate.Warning.KickAlert.Render(l, groupID, target.ID, tgfmt.DisplayName(target), tgfmt.DisplayName(msg.From)))
 		log.Printf("/warn-kick user=%d group=%d by=%d", target.ID, groupID, msg.From.ID)
 		return nil
 	}
-	s.notify(requestCtx, groupID, i18n.Messages.Moderate.Warning.Issued.Render(l, displayName(target), count, limit, limit, displayName(msg.From)))
+	s.notify(requestCtx, groupID, i18n.Messages.Moderate.Warning.Issued.Render(l, tgfmt.DisplayName(target), count, limit, limit, tgfmt.DisplayName(msg.From)))
 	log.Printf("/warn user=%d group=%d count=%d by=%d", target.ID, groupID, count, msg.From.ID)
 	return nil
 }
@@ -337,7 +338,7 @@ func (s *Service) OnClearWarn(ctx *th.Context, update telego.Update) error {
 	if err := s.warnings.save(); err != nil {
 		log.Printf("moderate: warning state save failed for group %d: %v", groupID, err)
 	}
-	s.notify(requestCtx, groupID, i18n.Messages.Moderate.Warning.Cleared.Render(l, displayName(target), previous, displayName(msg.From)))
+	s.notify(requestCtx, groupID, i18n.Messages.Moderate.Warning.Cleared.Render(l, tgfmt.DisplayName(target), previous, tgfmt.DisplayName(msg.From)))
 	log.Printf("/clearwarn user=%d group=%d was=%d by=%d", target.ID, groupID, previous, msg.From.ID)
 	return nil
 }
@@ -373,7 +374,7 @@ func (s *Service) moderate(ctx *th.Context, update telego.Update, command string
 		log.Printf("%s ban user=%d in %d: %v", command, target.ID, groupID, err)
 		s.notify(requestCtx, groupID, i18n.Messages.Moderate.Ban.Failed.For(l))
 		s.telegram.FailAlert(requestCtx, s.adminLogChatID(), groupID,
-			i18n.Messages.Moderate.Ban.FailureAlert.Render(l, command, groupID, target.ID, displayName(target), displayName(msg.From)))
+			i18n.Messages.Moderate.Ban.FailureAlert.Render(l, command, groupID, target.ID, tgfmt.DisplayName(target), tgfmt.DisplayName(msg.From)))
 		return nil
 	}
 	s.telegram.Delete(requestCtx, groupID, msg.ReplyToMessage.MessageID)
@@ -381,10 +382,10 @@ func (s *Service) moderate(ctx *th.Context, update telego.Update, command string
 	if command == "/sb" {
 		verb = i18n.Messages.Moderate.Ban.PurgeVerb.For(l)
 	}
-	action := i18n.Messages.Moderate.Ban.Action.Render(l, verb, banDurationStatus(l, seconds))
-	s.notify(requestCtx, groupID, i18n.Messages.Moderate.Ban.Applied.Render(l, action, displayName(target), target.ID, displayName(msg.From)))
+	action := i18n.Messages.Moderate.Ban.Action.Render(l, verb, tgfmt.ModerationBanDurationStatus(l, seconds))
+	s.notify(requestCtx, groupID, i18n.Messages.Moderate.Ban.Applied.Render(l, action, tgfmt.DisplayName(target), target.ID, tgfmt.DisplayName(msg.From)))
 	s.telegram.AuditLog(requestCtx, s.adminLogChatID(),
-		i18n.Messages.Moderate.Ban.Alert.Render(l, command, action, groupID, target.ID, displayName(target), displayName(msg.From)))
+		i18n.Messages.Moderate.Ban.Alert.Render(l, command, action, groupID, target.ID, tgfmt.DisplayName(target), tgfmt.DisplayName(msg.From)))
 	log.Printf("%s by admin=%d target=%d group=%d ban_secs=%d", command, msg.From.ID, target.ID, groupID, seconds)
 	return nil
 }
@@ -407,7 +408,7 @@ func (s *Service) OnMute(ctx *th.Context, update telego.Update) error {
 	if arg := strings.TrimSpace(commandArg(msg.Text)); arg != "" {
 		parsed, ok := parseBanDuration(arg)
 		if !ok || parsed <= 0 {
-			s.notify(requestCtx, groupID, i18n.Messages.Moderate.Mute.Usage.Render(l, banDurationStatus(l, seconds)))
+			s.notify(requestCtx, groupID, i18n.Messages.Moderate.Mute.Usage.Render(l, tgfmt.ModerationBanDurationStatus(l, seconds)))
 			return nil
 		}
 		seconds = parsed
@@ -418,15 +419,15 @@ func (s *Service) OnMute(ctx *th.Context, update telego.Update) error {
 		failure := i18n.Messages.Moderate.Mute.Failed.For(l)
 		s.notify(requestCtx, groupID, failure)
 		alert := failure + "\n" + i18n.Messages.Moderate.Mute.Alert.Render(
-			l, banDurationStatus(l, seconds), groupID, target.ID, displayName(target), displayName(msg.From))
+			l, tgfmt.ModerationBanDurationStatus(l, seconds), groupID, target.ID, tgfmt.DisplayName(target), tgfmt.DisplayName(msg.From))
 		s.telegram.FailAlert(requestCtx, s.adminLogChatID(), groupID, alert)
 		return nil
 	}
 	s.telegram.Delete(requestCtx, groupID, msg.ReplyToMessage.MessageID)
 	s.notify(requestCtx, groupID, i18n.Messages.Moderate.Mute.Applied.Render(l,
-		displayName(target), target.ID, banDurationStatus(l, seconds), displayName(msg.From)))
+		tgfmt.DisplayName(target), target.ID, tgfmt.ModerationBanDurationStatus(l, seconds), tgfmt.DisplayName(msg.From)))
 	s.telegram.AuditLog(requestCtx, s.adminLogChatID(),
-		i18n.Messages.Moderate.Mute.Alert.Render(l, banDurationStatus(l, seconds), groupID, target.ID, displayName(target), displayName(msg.From)))
+		i18n.Messages.Moderate.Mute.Alert.Render(l, tgfmt.ModerationBanDurationStatus(l, seconds), groupID, target.ID, tgfmt.DisplayName(target), tgfmt.DisplayName(msg.From)))
 	log.Printf("/mute by admin=%d target=%d group=%d secs=%d", msg.From.ID, target.ID, groupID, seconds)
 	return nil
 }
@@ -450,7 +451,7 @@ func (s *Service) OnUnmute(ctx *th.Context, update telego.Update) error {
 		s.notify(requestCtx, groupID, i18n.Messages.Moderate.Mute.UnmuteFailed.For(l))
 		return nil
 	}
-	s.notify(requestCtx, groupID, i18n.Messages.Moderate.Mute.Unmuted.Render(l, displayName(target), target.ID, displayName(msg.From)))
+	s.notify(requestCtx, groupID, i18n.Messages.Moderate.Mute.Unmuted.Render(l, tgfmt.DisplayName(target), target.ID, tgfmt.DisplayName(msg.From)))
 	log.Printf("/unmute by admin=%d target=%d group=%d", msg.From.ID, target.ID, groupID)
 	return nil
 }
@@ -466,7 +467,7 @@ func (s *Service) OnBanTime(ctx *th.Context, update telego.Update) error {
 			if seconds > 0 {
 				kind = i18n.Messages.Moderate.BanTime.TemporaryDescription.For(l)
 			}
-			return i18n.Messages.Moderate.BanTime.Current.Render(l, banDurationStatus(l, seconds), kind, usage), nil
+			return i18n.Messages.Moderate.BanTime.Current.Render(l, tgfmt.ModerationBanDurationStatus(l, seconds), kind, usage), nil
 		}
 		seconds, ok := parseBanDuration(arg)
 		if !ok {
@@ -479,7 +480,7 @@ func (s *Service) OnBanTime(ctx *th.Context, update telego.Update) error {
 		if seconds > 0 {
 			kind = i18n.Messages.Moderate.BanTime.TemporaryDescription.For(l)
 		}
-		return i18n.Messages.Moderate.BanTime.Set.Render(l, banDurationStatus(l, seconds), kind), nil
+		return i18n.Messages.Moderate.BanTime.Set.Render(l, tgfmt.ModerationBanDurationStatus(l, seconds), kind), nil
 	})
 }
 
@@ -553,43 +554,12 @@ func parseBanDuration(arg string) (seconds int, ok bool) {
 	return config.ClampBanSeconds(value * multiplier), true
 }
 
-func banDurationText(l i18n.Lang, seconds int) string {
-	if seconds <= 0 {
-		return i18n.Messages.Moderate.Duration.Permanent.For(l)
-	}
-	switch {
-	case seconds%86400 == 0:
-		return i18n.Messages.Moderate.Duration.Days.Render(l, seconds/86400)
-	case seconds%3600 == 0:
-		return i18n.Messages.Moderate.Duration.Hours.Render(l, seconds/3600)
-	case seconds%60 == 0:
-		return i18n.Messages.Moderate.Duration.Minutes.Render(l, seconds/60)
-	default:
-		return i18n.Messages.Moderate.Duration.Seconds.Render(l, seconds)
-	}
-}
-
-func banDurationStatus(l i18n.Lang, seconds int) string {
-	effect := i18n.Messages.Moderate.Duration.PermanentEffect.For(l)
-	if seconds > 0 {
-		effect = i18n.Messages.Moderate.Duration.TemporaryEffect.For(l)
-	}
-	return i18n.Messages.Moderate.Duration.Status.Render(l, banDurationText(l, seconds), effect)
-}
-
 func commandArg(text string) string {
 	fields := strings.Fields(text)
 	if len(fields) < 2 {
 		return ""
 	}
 	return strings.Join(fields[1:], " ")
-}
-
-func displayName(user *telego.User) string {
-	if user.Username != "" {
-		return "@" + user.Username
-	}
-	return user.FirstName
 }
 
 func warningsPath(stateDirectory string) string {

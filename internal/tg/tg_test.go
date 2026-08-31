@@ -9,7 +9,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-	"unicode/utf8"
 
 	"github.com/mymmrac/telego"
 	ta "github.com/mymmrac/telego/telegoapi"
@@ -510,7 +509,7 @@ func TestErrorClassification(t *testing.T) {
 	}
 }
 
-func TestPaceAndTextUnits(t *testing.T) {
+func TestPace(t *testing.T) {
 	if !Pace(context.Background(), 0) {
 		t.Error("disabled pacing should return immediately")
 	}
@@ -518,18 +517,6 @@ func TestPaceAndTextUnits(t *testing.T) {
 	cancel()
 	if Pace(ctx, time.Hour) {
 		t.Error("cancelled pacing should return false")
-	}
-
-	text := "a😀界"
-	if got := TextUnits(text); got != 4 {
-		t.Fatalf("TextUnits(%q) = %d, want 4", text, got)
-	}
-	capped := CapText("a😀bc", 4)
-	if capped != "a😀…" || !utf8.ValidString(capped) || TextUnits(capped) > 4 {
-		t.Errorf("CapText() = %q (%d units)", capped, TextUnits(capped))
-	}
-	if got := CapText("unchanged", MessageLimit); got != "unchanged" {
-		t.Errorf("short text changed to %q", got)
 	}
 }
 

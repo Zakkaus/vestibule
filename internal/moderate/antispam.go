@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/telegram/ids"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 )
@@ -115,13 +116,6 @@ func (s *Service) UpdateChannelWhitelist(ctx context.Context, groupID, senderID 
 	return nil, nil
 }
 
-func channelSenderAlert(l i18n.Lang, banned bool, title string, senderID, groupID int64) string {
-	if banned {
-		return i18n.Messages.Moderate.Antispam.SenderBannedAlert.Render(l, title, senderID, groupID, senderID)
-	}
-	return i18n.Messages.Moderate.Antispam.SenderBanFailedAlert.Render(l, title, senderID, groupID)
-}
-
 // FilterChannelSenders drops untrusted sender-channel posts when BotFather privacy mode is disabled.
 func (s *Service) FilterChannelSenders(ctx *th.Context, update telego.Update) error {
 	msg := update.Message
@@ -151,7 +145,7 @@ func (s *Service) FilterChannelSenders(ctx *th.Context, update telego.Update) er
 				banned = true
 			}
 			s.telegram.Alert(requestCtx, s.adminLogChatID(),
-				channelSenderAlert(l, banned, sender.Title, sender.ID, msg.Chat.ID))
+				tgfmt.ChannelSenderAlert(l, banned, sender.Title, sender.ID, msg.Chat.ID))
 			log.Printf("antispam: channel sender %d (%q) in group %d deleted, banned=%v", sender.ID, sender.Title, msg.Chat.ID, banned)
 			return nil
 		}
@@ -188,7 +182,7 @@ func (s *Service) OnBC(ctx *th.Context, update telego.Update) error {
 			s.notify(requestCtx, groupID, i18n.Messages.Moderate.Antispam.Disabled.For(l))
 		}
 	case (fields[0] == "allow" || fields[0] == "deny") && len(fields) >= 2:
-		senderID, ok := parseChannelID(fields[1])
+		senderID, ok := ids.ParseChannelID(fields[1])
 		if !ok {
 			s.notify(requestCtx, groupID, i18n.Messages.Moderate.Antispam.InvalidChannelID.For(l))
 			return nil
@@ -213,24 +207,4 @@ func (s *Service) OnBC(ctx *th.Context, update telego.Update) error {
 		s.notify(requestCtx, groupID, i18n.Messages.Moderate.Antispam.Usage.For(l))
 	}
 	return nil
-}
-
-// parseChannelID canonicalizes Bot API -100 IDs and bare t.me/c IDs.
-func parseChannelID(value string) (int64, bool) {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return 0, false
-	}
-	id, err := strconv.ParseInt(value, 10, 64)
-	if err != nil {
-		return 0, false
-	}
-	if id < 0 {
-		return id, true
-	}
-	full, err := strconv.ParseInt("-100"+value, 10, 64)
-	if err != nil {
-		return 0, false
-	}
-	return full, true
 }

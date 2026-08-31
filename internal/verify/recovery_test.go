@@ -7,6 +7,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"log"
 	"reflect"
 	"strings"
@@ -386,7 +387,6 @@ func TestOnExpiryNotifiesApplicantOfRetryOutcome(t *testing.T) {
 				groupMsgID: 42,
 			}
 			fb := &fakeVerifyBot{}
-
 			v.onExpiry(context.Background(), fb, gid, uid, "n", 0, "timeout")
 
 			want := v.messages.Verification.Result.TimeoutNoWait.For(i18n.LangEN)
@@ -394,7 +394,7 @@ func TestOnExpiryNotifiesApplicantOfRetryOutcome(t *testing.T) {
 				want = v.messages.Verification.Result.TimeoutRetry.Render(i18n.LangEN, tt.retry)
 			}
 			if tt.wantBan {
-				duration := verificationBanDurationText(v.messages, i18n.LangEN, v.verificationBanDuration(gid))
+				duration := tgfmt.VerificationBanDurationText(v.messages, i18n.LangEN, v.verificationBanDuration(gid))
 				want = v.messages.Verification.Result.TimeoutBanned.Render(i18n.LangEN, duration)
 			}
 			if fb.sends != 1 || fb.lastSendChat != uid || fb.lastSendText != want {

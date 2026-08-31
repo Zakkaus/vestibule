@@ -3,6 +3,13 @@ package verify
 import (
 	"context"
 	"fmt"
+	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/telegram/ids"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
+	"github.com/mymmrac/telego"
+	tu "github.com/mymmrac/telego/telegoutil"
 	"html"
 	"log"
 	"regexp"
@@ -10,12 +17,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/Zakkaus/vestibule/internal/config"
-	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
-	"github.com/mymmrac/telego"
-	tu "github.com/mymmrac/telego/telegoutil"
 )
 
 // Tallies self-reported models from the kernel challenge's agent tripwire.
@@ -784,7 +785,7 @@ func (v *Service) deferExpiry(bot modBot, gid, uid int64, nonce string, epoch ui
 // Shared challenge rendering returns zero and alerts admins on delivery failure.
 func (v *Service) postGroupChallenge(c context.Context, bot verifyBot, gid, uid int64, name string, l i18n.Lang, voice challengeVoice) int {
 	gidStr, uidStr := strconv.FormatInt(gid, 10), strconv.FormatInt(uid, 10)
-	mention := joinerLabel(uid, name, v.NameSpoilerOn(gid))
+	mention := tgfmt.JoinerLabel(uid, name, v.NameSpoilerOn(gid))
 	link := ""
 	if v.botUsername != "" {
 		link = "https://t.me/" + v.botUsername + "?start=verify_" + gidStr
@@ -814,7 +815,6 @@ func (v *Service) postGroupChallenge(c context.Context, bot verifyBot, gid, uid 
 	} else {
 		body = template.Render(l, mention, linkText, int(v.gateTimeout(gid, voice.gate)/time.Second), channelHint)
 	}
-
 	var rows [][]telego.InlineKeyboardButton
 	if link != "" {
 		rows = append(rows, tu.InlineKeyboardRow(telego.InlineKeyboardButton{Text: group.VerifyButton.For(l), URL: link}))
@@ -823,13 +823,13 @@ func (v *Service) postGroupChallenge(c context.Context, bot verifyBot, gid, uid 
 		telego.InlineKeyboardButton{Text: adminPassLabel(admin, l, voice.gate), CallbackData: AdminCallbackPrefix + "pass:" + gidStr + ":" + uidStr + ":" + voice.nonce},
 		telego.InlineKeyboardButton{Text: adminRejectLabel(admin, l, voice.gate), CallbackData: AdminCallbackPrefix + "ban:" + gidStr + ":" + uidStr + ":" + voice.nonce},
 	))
-	sent, err := bot.SendMessage(c, htmlMessage(gid, body).WithReplyMarkup(tu.InlineKeyboard(rows...)))
+	sent, err := bot.SendMessage(c, tgfmt.HTMLMessage(gid, body).WithReplyMarkup(tu.InlineKeyboard(rows...)))
 	if err != nil {
 		log.Printf("join %d in %d: post challenge failed: %v", uid, gid, err)
 		v.adminAlert(c, bot, v.adminSays(voice.gate).ChallengePostFailed.Render(l, gid, uid, err))
 		return 0
 	}
-	return msgID(sent)
+	return ids.MessageID(sent)
 }
 
 // The administrator buttons do different things on the two gates, so they say different things.
@@ -1044,7 +1044,7 @@ func (v *Service) renotifyPending(
 	}
 	ul := p.lang
 	notice := v.messages.Verification.Recovery.Renotify.Render(ul, outageText(v.messages, ul, outage))
-	_, _ = bot.SendMessage(c, htmlMessage(uid, notice))
+	_, _ = bot.SendMessage(c, tgfmt.HTMLMessage(uid, notice))
 	delivery := v.deliverPendingChallenge(c, bot, gid, uid, name, p)
 	if !delivery.active || !delivery.delivered {
 		return
