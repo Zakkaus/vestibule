@@ -125,6 +125,7 @@ func newServices(ctx context.Context, options Options, progress chan<- struct{})
 		_ = db.Close()
 		return nil, fmt.Errorf("GetMe failed (required for the verification deep link): %w", err)
 	}
+	logPrivacyMode(me)
 	identity := verification.Identity{ID: me.ID, Username: me.Username}
 	verificationGateway := telegram.NewVerificationGateway(connector)
 	stateNamespace := options.StateDirectory
