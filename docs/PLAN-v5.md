@@ -284,7 +284,10 @@ internal/app  verification  rules  telegram  console  settings  database  status
 | 现路径 | 处置 | 目标位置 |
 |---|---|---|
 | `internal/verification/kernel.go` | 拆分 | `internal/rules/{normalize,condition}.go`、`internal/verification`、`internal/telegram/updates.go`、`internal/telegram/tgfmt` |
-| `internal/moderate/antispam.go` | 拆分 | `internal/moderate`、`internal/telegram/ids`、`internal/telegram/updates.go`、`internal/settings` |
+| `internal/moderate/antispam.go` | 拆分 | `internal/moderate`、`internal/telegram/ids`、`internal/telegram/updates.go` |
+
+`antispam.go` 里读群配置的那几处（是否开启、频道白名单）最终归 `internal/settings`，
+但那个包由**阶段四**建。本阶段不建它，那几处留在原地，等阶段四一并迁走。
 
 #### 必须保住的行为
 
