@@ -300,6 +300,30 @@ internal/app  verification  rules  telegram  console  settings  database  status
 - 归一化后仍能识别规避写法。结构信号不在本阶段的「保住」之列 —— 它还没有被写出来。
 - 反频道身份策略只影响当前群，保留 4,096 项上限、linked channel 例外、白名单边界和解除白名单后的 unban。
 
+#### 阶段三之后要补的一件：数据库错误不是文件缺失
+
+一次只读检视量出来的，落在阶段三之后、部署之前必须补。
+
+换介质时把 JSON 的 best-effort 语义一起带过来了。
+`internal/verification/state.go:438-443` 在 `LoadPending` 出错时直接返回，
+留下一个空的 `pend`，注释还写着「损坏文件已备份」——那是文件时代的说法。
+数据库时代，读不出来通常是连接瞬断，而库里那些 `pending` 行仍然在：
+新申请因 `challenge_open` 冲突无法发出挑战，旧按钮又因内存里没有 nonce 无法结算，
+**人卡在外面，而且自己好不了**。
+
+同一形状还有三处：
+`LoadFailures`、`LoadAgents`、`LoadWarnings` 出错同样退化为空状态，
+而随后的快照写入会先 `DELETE` 整张表再写回本进程看到的那些，
+历史冷却、失败次数和警告计数**静默消失**；
+`SaveFailures`、`SaveAgents`、`SaveHeartbeat` 的错误被丢弃
+（`state.go:102,283,823`）；
+`verification.New` 与 `moderate.New` 无法返回恢复错误，装配层只能继续启动。
+
+要做的：构造函数能返回错误并让 `newServices` 终止启动；
+把「出错」与「条件不匹配影响 0 行」分开处理；
+数据库写入出错时保留本地记录、上报并重试。
+现有测试证明的是旧文件语义（`state_write_failure_test.go`），要补数据库那一侧的。
+
 #### 依赖
 
 依赖：阶段一第三片已把验证核心置于端口之后，核心中不出现平台类型。
