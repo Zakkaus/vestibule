@@ -620,6 +620,13 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 **验收**：把我们社区的群配置全部删除，机器人与控制台照常工作；
 关掉全部可选模块后二进制照常启动，命令表里不残留它们的条目；
 `grep -rn '主群\|mainGroup\|isMainChat' internal cmd` 无业务分支。
+
+**这条 grep 现在已经是空的** —— 前序阶段搬移时一并移除了，
+所以它是一条回归检查，不是待办。本阶段真正剩下的是 edition：
+`internal/edition/{edition_gentoo,edition_generic}.go` 共 37 行按构建标签二选一，
+而 `internal/lookup/packages.go:30,1413`、`internal/verification/kernel.go:23`、
+`internal/telegram/dm.go:49` 仍在读它决定命令前缀、User-Agent 与题面示例后缀。
+「按 edition 决定功能」这一条要拆的就是这几处。
 **实机**：测试群与另一个临时群同时挂在同一个进程上，两边配置互不影响。
 
 #### 文件处置
@@ -628,11 +635,11 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 
 | 现路径 | 处置 | 目标位置 |
 |---|---|---|
-| `internal/bot/{commands,dm}.go` | 拆分 | `internal/telegram/updates.go`、`internal/telegram/tgfmt`、`internal/settings` |
-| `internal/i18n/{bot,catalog,verification}.go` | 拆分 | `internal/i18n`、`internal/settings`、出厂 rules/provisioning |
-| `cmd/vestibule/registration.go` | 重写 | `internal/telegram/updates.go`、`internal/database`、`internal/settings` |
-| `internal/store/{baseline,settings}.go` | 重写 | `internal/settings`、`internal/database` |
-| `internal/config/config.go` | 重写 | `internal/settings` |
+| `internal/bot/{commands,dm}.go` | 复查 | `internal/telegram/updates.go`、`internal/telegram/tgfmt`、`internal/settings` |
+| `internal/i18n/{bot,catalog,verification}.go` | 复查 | `internal/i18n`、`internal/settings`、出厂 rules/provisioning |
+| `cmd/vestibule/registration.go` | 复查 | `internal/telegram/updates.go`、`internal/database`、`internal/settings` |
+| `internal/store/{baseline,settings}.go` | 复查 | `internal/settings`、`internal/database` |
+| `internal/config/config.go` | 复查 | `internal/settings` |
 | `internal/edition/{edition_gentoo,edition_generic}.go` | 重写 | 单一的 `internal/edition` |
 | `internal/bot/edition.go` | 删除 | 无；不再由 edition 决定群功能 |
 
