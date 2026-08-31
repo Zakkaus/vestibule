@@ -34,21 +34,6 @@ func TestParseBanDuration(t *testing.T) {
 	}
 }
 
-func TestBanDurationText(t *testing.T) {
-	for seconds, want := range map[int]string{
-		0:      i18n.Messages.Moderate.Duration.Permanent.For(i18n.LangZH),
-		-1:     i18n.Messages.Moderate.Duration.Permanent.For(i18n.LangZH),
-		604800: i18n.Messages.Moderate.Duration.Days.Render(i18n.LangZH, 7),
-		43200:  i18n.Messages.Moderate.Duration.Hours.Render(i18n.LangZH, 12),
-		1800:   i18n.Messages.Moderate.Duration.Minutes.Render(i18n.LangZH, 30),
-		90:     i18n.Messages.Moderate.Duration.Seconds.Render(i18n.LangZH, 90),
-	} {
-		if got := banDurationText(i18n.LangZH, seconds); got != want {
-			t.Errorf("banDurationText(%d) = %q, want %q", seconds, got, want)
-		}
-	}
-}
-
 func TestMuteDurationPolicy(t *testing.T) {
 	if seconds, ok := parseBanDuration("30m"); !ok || seconds != 1800 {
 		t.Errorf("inline /mute 30m parse = (%d,%v), want (1800,true)", seconds, ok)

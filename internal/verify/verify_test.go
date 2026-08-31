@@ -13,6 +13,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/mymmrac/telego"
 	ta "github.com/mymmrac/telego/telegoapi"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -32,27 +33,6 @@ func newTestService(cfg *config.Config) *Service {
 		panic(fmt.Sprintf("test settings: %v", err))
 	}
 	return newService(settings, nil, &effective, &i18n.Messages)
-}
-
-func TestJoinerLabel(t *testing.T) {
-	const evil = `繁星帮<&>"` // an advert-style name with HTML metacharacters
-	on := joinerLabel(42, evil, true)
-	if !strings.HasPrefix(on, "<tg-spoiler>") || !strings.HasSuffix(on, "</tg-spoiler>") {
-		t.Errorf("spoiler-on should wrap the name in one <tg-spoiler> entity, got %q", on)
-	}
-	if strings.Contains(on, "<a ") || strings.Contains(on, "tg://user") {
-		t.Errorf("spoiler-on must NOT emit a nested mention link (parse-safety), got %q", on)
-	}
-	if strings.Contains(on, "<&>") || strings.Contains(on, "\"") {
-		t.Errorf("spoiler-on must HTML-escape the name, got %q", on)
-	}
-	off := joinerLabel(42, evil, false)
-	if !strings.Contains(off, `href="tg://user?id=42"`) {
-		t.Errorf("spoiler-off should render a clickable mention, got %q", off)
-	}
-	if strings.Contains(off, "<&>") {
-		t.Errorf("spoiler-off must HTML-escape the name, got %q", off)
-	}
 }
 
 func TestNameSpoilerDefaultAndToggle(t *testing.T) {
@@ -100,7 +80,7 @@ func TestJoinResolvesApplicantAndGroupLanguagesSeparately(t *testing.T) {
 	runFakeHandler(t, newAPITestBot(t, bot), v.OnJoinRequest, update)
 	wantGroup := v.messages.Verification.Group.Body.Render(
 		i18n.LangZH,
-		joinerLabel(userID, applicantDisplayName(&update.ChatJoinRequest.From), v.NameSpoilerOn(groupID)),
+		tgfmt.JoinerLabel(userID, tgfmt.DisplayName(&update.ChatJoinRequest.From), v.NameSpoilerOn(groupID)),
 		"",
 		int(v.timeout(groupID)/time.Second),
 		"",
@@ -992,7 +972,7 @@ func TestAdminCallbackReportsActionInProgress(t *testing.T) {
 		{
 			action: "ban",
 			wantText: func(v *Service) string {
-				duration := verificationBanDurationText(v.messages, i18n.LangZH, v.verificationBanDuration(gid))
+				duration := tgfmt.VerificationBanDurationText(v.messages, i18n.LangZH, v.verificationBanDuration(gid))
 				return i18n.Messages.Verification.Admin.Banning.Render(i18n.LangZH, duration)
 			},
 			wantBans:     1,
@@ -1068,7 +1048,7 @@ func TestOnAdminActionTelegramFailureAfterAcknowledgement(t *testing.T) {
 			telegramMethod: "banChatMember",
 			newBot:         func() *fakeVerifyBot { return &fakeVerifyBot{banErr: errTelegram} },
 			wantCallback: func(v *Service) string {
-				duration := verificationBanDurationText(v.messages, i18n.LangZH, v.verificationBanDuration(gid))
+				duration := tgfmt.VerificationBanDurationText(v.messages, i18n.LangZH, v.verificationBanDuration(gid))
 				return v.messages.Verification.Admin.Banning.Render(i18n.LangZH, duration)
 			},
 			wantAlert: func(v *Service, err error) string {
@@ -1083,7 +1063,7 @@ func TestOnAdminActionTelegramFailureAfterAcknowledgement(t *testing.T) {
 			telegramMethod: "banChatMember",
 			newBot:         func() *fakeVerifyBot { return &fakeVerifyBot{banErr: errTelegram} },
 			wantCallback: func(v *Service) string {
-				duration := verificationBanDurationText(v.messages, i18n.LangZH, v.verificationBanDuration(gid))
+				duration := tgfmt.VerificationBanDurationText(v.messages, i18n.LangZH, v.verificationBanDuration(gid))
 				return v.messages.Verification.Admin.Banning.Render(i18n.LangZH, duration)
 			},
 			wantAlert: func(v *Service, err error) string {
@@ -1098,7 +1078,7 @@ func TestOnAdminActionTelegramFailureAfterAcknowledgement(t *testing.T) {
 			telegramMethod: "declineChatJoinRequest",
 			newBot:         func() *fakeVerifyBot { return &fakeVerifyBot{declineErr: errTelegram} },
 			wantCallback: func(v *Service) string {
-				duration := verificationBanDurationText(v.messages, i18n.LangZH, v.verificationBanDuration(gid))
+				duration := tgfmt.VerificationBanDurationText(v.messages, i18n.LangZH, v.verificationBanDuration(gid))
 				return v.messages.Verification.Admin.Banning.Render(i18n.LangZH, duration)
 			},
 			wantAlert: func(v *Service, err error) string {
@@ -1180,7 +1160,7 @@ func TestFailureCopyNamesDecisionAndRetry(t *testing.T) {
 		t.Errorf("wrong-answer retry = %q, want catalogue result %q", retry, wantRetry)
 	}
 	banned := v.wrongAnswerText(gid, i18n.LangZH, gateRequest, true)
-	duration := verificationBanDurationText(v.messages, i18n.LangZH, v.verificationBanDuration(gid))
+	duration := tgfmt.VerificationBanDurationText(v.messages, i18n.LangZH, v.verificationBanDuration(gid))
 	wantBanned := i18n.Messages.Verification.Result.WrongBanned.Render(i18n.LangZH, duration)
 	if banned != wantBanned {
 		t.Errorf("ban result = %q, want catalogue result %q", banned, wantBanned)

@@ -16,6 +16,8 @@ import (
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/lookup"
 	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/telegram/ids"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/Zakkaus/vestibule/internal/tg"
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -66,7 +68,6 @@ type Service struct {
 	bot      *telego.Bot
 	feeds    []*config.FeedConfig
 	stateDir string
-
 	// Lifecycle hooks default to the production poller and permission probe.
 	poll  func(context.Context, *telego.Bot, []*config.FeedConfig, map[int64]*feedState, string, time.Time, map[int64]time.Time)
 	probe func(context.Context, *telego.Bot, []*config.FeedConfig)
@@ -379,7 +380,7 @@ func saveFeedState(path string, st feedState) {
 // context; the feed loop's parent context intentionally remains long-lived.
 // replyTo (0 = none) ties a confirmation notice to the original bug message.
 func postFeed(ctx context.Context, bot feedBot, chatID int64, text string, silent bool, replyTo int) (id int, ok, rateLimited, permanent bool) {
-	m := tg.HTMLMessage(chatID, text)
+	m := tgfmt.HTMLMessage(chatID, text)
 	if silent {
 		m = m.WithDisableNotification()
 	}
@@ -394,7 +395,7 @@ func postFeed(ctx context.Context, bot feedBot, chatID int64, text string, silen
 		return 0, false, tg.IsRateLimited(err), tg.PermanentPostError(err)
 	}
 	tg.Pace(ctx, feedSendPause)
-	return tg.MessageID(sent), true, false, false
+	return ids.MessageID(sent), true, false, false
 }
 
 // dateOnly turns "2026-02-26T04:42:47Z" into "2026-02-26".
@@ -559,7 +560,7 @@ refresh:
 		if bugResolved(b) {
 			text = formatBugResolved(b, l) // 🐞 -> ✅/❌
 		}
-		edit := tg.HTMLMessage(f.ChatID, text)
+		edit := tgfmt.HTMLMessage(f.ChatID, text)
 		opCtx, cancel := context.WithTimeout(ctx, feedTelegramTimeout)
 		_, eerr := bot.EditMessageText(opCtx, &telego.EditMessageTextParams{
 			ChatID:             tu.ID(f.ChatID),
@@ -622,11 +623,10 @@ refresh:
 		}
 	}
 }
-
 func formatNews(_ i18n.Lang, n lookup.NewsItem) string {
 	const prefix = "📰 "
 	label := n.Date + " — " + html.UnescapeString(n.Title)
-	label = tg.CapText(label, tg.MessageLimit-tg.TextUnits(prefix))
+	label = tgfmt.CapText(label, tgfmt.MessageLimit-tgfmt.TextUnits(prefix))
 	return fmt.Sprintf("%s<a href=\"%s\">%s</a>", prefix,
 		html.EscapeString(n.URL), html.EscapeString(label))
 }

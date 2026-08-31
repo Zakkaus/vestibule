@@ -14,7 +14,8 @@ import (
 
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/tg"
+	"github.com/Zakkaus/vestibule/internal/telegram/ids"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -670,7 +671,6 @@ func (v *Service) OnBbs(ctx *th.Context, update telego.Update) error {
 		b.WriteString(i18n.Messages.LookupContent.BBS.ArchCNNoMatches.For(l))
 	}
 	b.WriteString(i18n.Messages.LookupContent.BBS.OtherForums.For(l))
-
 	// Telegram rejects the whole reply when a button URL exceeds its limit.
 	qBtn := q
 	if r := []rune(qBtn); len(r) > 200 {
@@ -684,14 +684,14 @@ func (v *Service) OnBbs(ctx *th.Context, update telego.Update) error {
 		}
 		rows = append(rows, row)
 	}
-	sent, err := bot.SendMessage(c, tg.HTMLMessage(msg.Chat.ID, b.String()).
+	sent, err := bot.SendMessage(c, tgfmt.HTMLMessage(msg.Chat.ID, b.String()).
 		WithReplyMarkup(tu.InlineKeyboard(rows...)).
-		WithReplyParameters(tg.ReplyParameters(msg.MessageID)))
+		WithReplyParameters(ids.ReplyParameters(msg.MessageID)))
 	if err != nil {
 		// Preserve inline results when Telegram rejects the buttons.
 		log.Printf("/bbs send with buttons failed (%v) — retrying text-only", err)
-		sent, _ = bot.SendMessage(c, tg.HTMLMessage(msg.Chat.ID, b.String()).WithReplyParameters(tg.ReplyParameters(msg.MessageID)))
+		sent, _ = bot.SendMessage(c, tgfmt.HTMLMessage(msg.Chat.ID, b.String()).WithReplyParameters(ids.ReplyParameters(msg.MessageID)))
 	}
-	v.scheduleLookupCleanup(bot, msg.Chat.ID, msg.MessageID, tg.MessageID(sent))
+	v.scheduleLookupCleanup(bot, msg.Chat.ID, msg.MessageID, ids.MessageID(sent))
 	return nil
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/mymmrac/telego"
 	ta "github.com/mymmrac/telego/telegoapi"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -720,13 +721,12 @@ func TestBanRejectionRetainsEvidenceAndAlertsConfiguredLog(t *testing.T) {
 	}, telegram, "")
 	message := moderationCommand(groupID, "/ban")
 	runFakeHandler(t, newAPITestBot(t, telegram), service.OnBan, telego.Update{Message: message})
-
 	if telegram.bans != 1 || telegram.lastBannedUserID != message.ReplyToMessage.From.ID {
 		t.Fatalf("ban calls = %d for user %d, want one rejection for target %d", telegram.bans, telegram.lastBannedUserID, message.ReplyToMessage.From.ID)
 	}
 	assertModerationCommandCleanup(t, telegram)
 	l := i18n.LangEN
-	wantAlert := i18n.Messages.Moderate.Ban.FailureAlert.Render(l, "/ban", groupID, message.ReplyToMessage.From.ID, displayName(message.ReplyToMessage.From), displayName(message.From))
+	wantAlert := i18n.Messages.Moderate.Ban.FailureAlert.Render(l, "/ban", groupID, message.ReplyToMessage.From.ID, tgfmt.DisplayName(message.ReplyToMessage.From), tgfmt.DisplayName(message.From))
 	assertModerationNotifications(t, telegram,
 		fakeModNotification{chatID: groupID, text: i18n.Messages.Moderate.Ban.Failed.For(l)},
 		fakeModNotification{chatID: adminLogID, text: wantAlert},
@@ -753,7 +753,7 @@ func TestBanRejectionFallsBackToGroupWithoutAdminLog(t *testing.T) {
 
 	assertModerationCommandCleanup(t, telegram)
 	l := i18n.LangEN
-	wantAlert := i18n.Messages.Moderate.Ban.FailureAlert.Render(l, "/ban", groupID, message.ReplyToMessage.From.ID, displayName(message.ReplyToMessage.From), displayName(message.From))
+	wantAlert := i18n.Messages.Moderate.Ban.FailureAlert.Render(l, "/ban", groupID, message.ReplyToMessage.From.ID, tgfmt.DisplayName(message.ReplyToMessage.From), tgfmt.DisplayName(message.From))
 	assertModerationNotifications(t, telegram,
 		fakeModNotification{chatID: groupID, text: i18n.Messages.Moderate.Ban.Failed.For(l)},
 		fakeModNotification{chatID: groupID, text: wantAlert},
@@ -790,8 +790,8 @@ func TestMuteRejectionRetainsEvidenceAndAlertsConfiguredLog(t *testing.T) {
 	l := i18n.LangEN
 	wantFailure := i18n.Messages.Moderate.Mute.Failed.For(l)
 	wantAlert := wantFailure + "\n" + i18n.Messages.Moderate.Mute.Alert.Render(
-		l, banDurationStatus(l, 3600), groupID, message.ReplyToMessage.From.ID,
-		displayName(message.ReplyToMessage.From), displayName(message.From))
+		l, tgfmt.ModerationBanDurationStatus(l, 3600), groupID, message.ReplyToMessage.From.ID,
+		tgfmt.DisplayName(message.ReplyToMessage.From), tgfmt.DisplayName(message.From))
 	assertModerationNotifications(t, telegram,
 		fakeModNotification{chatID: groupID, text: wantFailure},
 		fakeModNotification{chatID: adminLogID, text: wantAlert},
@@ -821,8 +821,8 @@ func TestMuteRejectionFallsBackToGroupWithoutAdminLog(t *testing.T) {
 	l := i18n.LangEN
 	wantFailure := i18n.Messages.Moderate.Mute.Failed.For(l)
 	wantAlert := wantFailure + "\n" + i18n.Messages.Moderate.Mute.Alert.Render(
-		l, banDurationStatus(l, 3600), groupID, message.ReplyToMessage.From.ID,
-		displayName(message.ReplyToMessage.From), displayName(message.From))
+		l, tgfmt.ModerationBanDurationStatus(l, 3600), groupID, message.ReplyToMessage.From.ID,
+		tgfmt.DisplayName(message.ReplyToMessage.From), tgfmt.DisplayName(message.From))
 	assertModerationNotifications(t, telegram,
 		fakeModNotification{chatID: groupID, text: wantFailure},
 		fakeModNotification{chatID: groupID, text: wantAlert},
@@ -860,7 +860,7 @@ func TestWarnLimitRejectionRetainsCountAndAlertsConfiguredLog(t *testing.T) {
 	}
 	assertModerationCommandCleanup(t, telegram)
 	l := i18n.LangEN
-	wantAlert := i18n.Messages.Moderate.Warning.LimitKickAlert.Render(l, displayName(message.ReplyToMessage.From), 1, displayName(message.From))
+	wantAlert := i18n.Messages.Moderate.Warning.LimitKickAlert.Render(l, tgfmt.DisplayName(message.ReplyToMessage.From), 1, tgfmt.DisplayName(message.From))
 	assertModerationNotifications(t, telegram,
 		fakeModNotification{chatID: groupID, text: i18n.Messages.Moderate.Warning.LimitKickFailed.For(l)},
 		fakeModNotification{chatID: adminLogID, text: wantAlert},
@@ -891,7 +891,7 @@ func TestWarnLimitRejectionFallsBackToGroupWithoutAdminLog(t *testing.T) {
 	}
 	assertModerationCommandCleanup(t, telegram)
 	l := i18n.LangEN
-	wantAlert := i18n.Messages.Moderate.Warning.LimitKickAlert.Render(l, displayName(message.ReplyToMessage.From), 1, displayName(message.From))
+	wantAlert := i18n.Messages.Moderate.Warning.LimitKickAlert.Render(l, tgfmt.DisplayName(message.ReplyToMessage.From), 1, tgfmt.DisplayName(message.From))
 	assertModerationNotifications(t, telegram,
 		fakeModNotification{chatID: groupID, text: i18n.Messages.Moderate.Warning.LimitKickFailed.For(l)},
 		fakeModNotification{chatID: groupID, text: wantAlert},

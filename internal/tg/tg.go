@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"log"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/telegram/ids"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -48,53 +49,30 @@ func New(bot *telego.Bot) *Client {
 		linkedCache: make(map[int64]linkedChatEntry)}
 }
 
-// HTMLMessage builds the standard outbound HTML message with link previews disabled.
-func HTMLMessage(chatID int64, text string) *telego.SendMessageParams {
-	return tu.Message(tu.ID(chatID), text).
-		WithParseMode(telego.ModeHTML).
-		WithLinkPreviewOptions(&telego.LinkPreviewOptions{IsDisabled: true})
-}
-
-// ReplyParameters binds a response to msgID and returns nil for an unbound response.
-func ReplyParameters(msgID int) *telego.ReplyParameters {
-	if msgID == 0 {
-		return nil
-	}
-	return &telego.ReplyParameters{MessageID: msgID}
-}
-
-// MessageID returns a sent message ID or zero when Telegram returned no message.
-func MessageID(message *telego.Message) int {
-	if message == nil {
-		return 0
-	}
-	return message.MessageID
-}
-
 // ReplyPlain sends reply-bound plain text and schedules optional group cleanup.
 func (c *Client) ReplyPlain(ctx context.Context, chatID int64, replyTo int, text string, cleanupAfter time.Duration) {
 	params := tu.Message(tu.ID(chatID), text)
-	if reply := ReplyParameters(replyTo); reply != nil {
+	if reply := ids.ReplyParameters(replyTo); reply != nil {
 		params = params.WithReplyParameters(reply)
 	}
 	sent, _ := c.bot.SendMessage(ctx, params)
-	c.ScheduleCleanup(chatID, replyTo, MessageID(sent), cleanupAfter)
+	c.ScheduleCleanup(chatID, replyTo, ids.MessageID(sent), cleanupAfter)
 }
 
 // ReplyHTML sends reply-bound HTML and schedules optional group cleanup.
 func (c *Client) ReplyHTML(ctx context.Context, chatID int64, replyTo int, text string, cleanupAfter time.Duration) *telego.Message {
-	params := HTMLMessage(chatID, text)
-	if reply := ReplyParameters(replyTo); reply != nil {
+	params := tgfmt.HTMLMessage(chatID, text)
+	if reply := ids.ReplyParameters(replyTo); reply != nil {
 		params = params.WithReplyParameters(reply)
 	}
 	sent, _ := c.bot.SendMessage(ctx, params)
-	c.ScheduleCleanup(chatID, replyTo, MessageID(sent), cleanupAfter)
+	c.ScheduleCleanup(chatID, replyTo, ids.MessageID(sent), cleanupAfter)
 	return sent
 }
 
 // SendHTMLFallback sends verification HTML, retries only rejected markup, and returns the sent message.
 func (c *Client) SendHTMLFallback(ctx context.Context, chatID int64, rich, simpler string) (*telego.Message, error) {
-	sent, err := c.bot.SendMessage(ctx, HTMLMessage(chatID, rich))
+	sent, err := c.bot.SendMessage(ctx, tgfmt.HTMLMessage(chatID, rich))
 	if err == nil {
 		return sent, nil
 	}
@@ -104,7 +82,7 @@ func (c *Client) SendHTMLFallback(ctx context.Context, chatID int64, rich, simpl
 	}
 	log.Printf("verify DM to %d rejected (%v) — retrying without the collapsed quote", chatID, err)
 	if simpler != "" && simpler != rich {
-		sent, err = c.bot.SendMessage(ctx, HTMLMessage(chatID, simpler))
+		sent, err = c.bot.SendMessage(ctx, tgfmt.HTMLMessage(chatID, simpler))
 		if err == nil {
 			return sent, nil
 		}
@@ -112,7 +90,7 @@ func (c *Client) SendHTMLFallback(ctx context.Context, chatID int64, rich, simpl
 			return nil, err
 		}
 	}
-	sent, err = c.bot.SendMessage(ctx, tu.Message(tu.ID(chatID), stripHTML(simpler)))
+	sent, err = c.bot.SendMessage(ctx, tu.Message(tu.ID(chatID), tgfmt.StripHTML(simpler)))
 	if err != nil {
 		log.Printf("verify DM to %d failed even as plain text: %v", chatID, err)
 		return nil, err
@@ -122,7 +100,7 @@ func (c *Client) SendHTMLFallback(ctx context.Context, chatID int64, rich, simpl
 
 // SendPrivateHTMLFallback retries an HTML private reply as plain text after any send failure.
 func (c *Client) SendPrivateHTMLFallback(ctx context.Context, chatID int64, text string) {
-	if _, err := c.bot.SendMessage(ctx, HTMLMessage(chatID, text)); err != nil {
+	if _, err := c.bot.SendMessage(ctx, tgfmt.HTMLMessage(chatID, text)); err != nil {
 		log.Printf("private_reply HTML send failed (%v); retrying as plain text", err)
 		_, _ = c.bot.SendMessage(ctx, tu.Message(tu.ID(chatID), text))
 	}
@@ -130,7 +108,7 @@ func (c *Client) SendPrivateHTMLFallback(ctx context.Context, chatID int64, text
 
 // SendRichOrHTML sends rich HTML when enabled and falls back to ordinary HTML on rejection.
 func (c *Client) SendRichOrHTML(ctx context.Context, chatID int64, replyTo int, richHTML, plainHTML string, rich bool, cleanupAfter time.Duration) {
-	reply := ReplyParameters(replyTo)
+	reply := ids.ReplyParameters(replyTo)
 	if rich && richHTML != "" {
 		params := (&telego.SendRichMessageParams{}).
 			WithChatID(tu.ID(chatID)).
@@ -139,16 +117,16 @@ func (c *Client) SendRichOrHTML(ctx context.Context, chatID int64, replyTo int, 
 			params = params.WithReplyParameters(reply)
 		}
 		if sent, err := c.bot.SendRichMessage(ctx, params); err == nil {
-			c.ScheduleCleanup(chatID, replyTo, MessageID(sent), cleanupAfter)
+			c.ScheduleCleanup(chatID, replyTo, ids.MessageID(sent), cleanupAfter)
 			return
 		}
 	}
-	params := HTMLMessage(chatID, plainHTML)
+	params := tgfmt.HTMLMessage(chatID, plainHTML)
 	if reply != nil {
 		params = params.WithReplyParameters(reply)
 	}
 	sent, _ := c.bot.SendMessage(ctx, params)
-	c.ScheduleCleanup(chatID, replyTo, MessageID(sent), cleanupAfter)
+	c.ScheduleCleanup(chatID, replyTo, ids.MessageID(sent), cleanupAfter)
 }
 
 // ScheduleCleanup deletes a group response and its command after cleanupAfter.
@@ -530,25 +508,4 @@ func (c *Client) reserveCleanupTimer() bool {
 			return true
 		}
 	}
-}
-
-func stripHTML(text string) string {
-	var builder strings.Builder
-	builder.Grow(len(text))
-	depth := 0
-	for _, r := range text {
-		switch {
-		case r == '<':
-			depth++
-		case r == '>' && depth > 0:
-			depth--
-		case depth == 0:
-			builder.WriteRune(r)
-		}
-	}
-	plain := builder.String()
-	for _, pair := range [][2]string{{"&lt;", "<"}, {"&gt;", ">"}, {"&quot;", "\""}, {"&#39;", "'"}, {"&amp;", "&"}} {
-		plain = strings.ReplaceAll(plain, pair[0], pair[1])
-	}
-	return plain
 }

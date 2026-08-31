@@ -14,6 +14,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/edition"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -26,20 +27,6 @@ func kernelQuestion(messages *i18n.Catalog, l i18n.Lang) string {
 
 // Three replies tolerate typos while bounding DM guess floods.
 const kernelMaxTries = 3
-
-// ModeName returns the operator-facing label for a challenge mode.
-func ModeName(l i18n.Lang, mode string) string {
-	labels := &i18n.Messages.Verification.Mode
-	switch mode {
-	case config.ModeKernel:
-		return labels.Kernel.For(l)
-	case config.ModeQuiz:
-		return labels.Quiz.For(l)
-	case config.ModeMixed:
-		return labels.Mixed.For(l)
-	}
-	return mode
-}
 
 // Accept a release alone or in known kernel context; arbitrary ASCII prose must not make
 // product or model versions valid answers.
@@ -653,7 +640,7 @@ func (v *Service) gradeKernelAnswer(c context.Context, bot modBot, gid, uid int6
 	// Guard every acceptance path from the prompt's impossible example; only the first copy is free.
 	if copiedSample(text) && v.markSampleBounced(gid, uid, nonce) {
 		v.save()
-		_, _ = bot.SendMessage(c, htmlMessage(uid, challenge.SampleCopied.For(ul)))
+		_, _ = bot.SendMessage(c, tgfmt.HTMLMessage(uid, challenge.SampleCopied.For(ul)))
 		return
 	}
 	// Fallback answers are authoritative, but a real kernel remains acceptable.
@@ -675,7 +662,7 @@ func (v *Service) gradeKernelAnswer(c context.Context, bot modBot, gid, uid int6
 		}
 		if left > 0 {
 			v.save()
-			_, _ = bot.SendMessage(c, htmlMessage(uid, heldOr(gate, challenge.FallbackWrongHeld, challenge.FallbackWrong).Render(ul, left)))
+			_, _ = bot.SendMessage(c, tgfmt.HTMLMessage(uid, heldOr(gate, challenge.FallbackWrongHeld, challenge.FallbackWrong).Render(ul, left)))
 			return
 		}
 		// Decline only the nonce charged by recordKernelTry, never a replacement pending.
@@ -690,7 +677,7 @@ func (v *Service) gradeKernelAnswer(c context.Context, bot modBot, gid, uid int6
 	// Give WSL or VM users one free clarification before accepting the same real kernel.
 	if mentionsOtherOS(text) && kernelAnswerOK(text) && v.markOSClarified(gid, uid, nonce) {
 		v.save()
-		_, _ = bot.SendMessage(c, htmlMessage(uid, challenge.OSMixed.For(ul)))
+		_, _ = bot.SendMessage(c, tgfmt.HTMLMessage(uid, challenge.OSMixed.For(ul)))
 		return
 	}
 	if !kernelAnswerOK(text) { // another system's build number is not a kernel version
@@ -701,7 +688,7 @@ func (v *Service) gradeKernelAnswer(c context.Context, bot modBot, gid, uid int6
 			// One malformed attempt gets a free format reminder.
 			if !minuteProofOK(text, time.Now()) {
 				if v.markNoLinuxReminded(gid, uid, nonce) {
-					_, _ = bot.SendMessage(c, htmlMessage(uid, challenge.NoLinuxRetry.For(ul)))
+					_, _ = bot.SendMessage(c, tgfmt.HTMLMessage(uid, challenge.NoLinuxRetry.For(ul)))
 					return
 				}
 			} else {
@@ -729,7 +716,7 @@ func (v *Service) gradeKernelAnswer(c context.Context, bot modBot, gid, uid int6
 		}
 		if left > 0 {
 			v.save() // keep the used-up tries across a restart
-			_, _ = bot.SendMessage(c, htmlMessage(uid, heldOr(gate, challenge.KernelWrongHeld, challenge.KernelWrong).Render(ul, left)))
+			_, _ = bot.SendMessage(c, tgfmt.HTMLMessage(uid, heldOr(gate, challenge.KernelWrongHeld, challenge.KernelWrong).Render(ul, left)))
 			return
 		}
 		outcome, banned := v.decline(c, bot, gid, uid, curNonce, wrongAnswerReason) // the nonce as of the charge, see above
@@ -749,7 +736,7 @@ func (v *Service) finishKernelPass(c context.Context, bot modBot, gid, uid int64
 	voice := v.voice(v.pendingGate(gid, uid))
 	if !v.isChannelMember(c, bot, gid, uid, groupLang) {
 		message := channel.First.Render(ul, v.channelLinkHTML(gid, ul))
-		_, _ = bot.SendMessage(c, htmlMessage(uid, message))
+		_, _ = bot.SendMessage(c, tgfmt.HTMLMessage(uid, message))
 		return
 	}
 	p, ok := v.claimPendingNonce(gid, uid, nonce)

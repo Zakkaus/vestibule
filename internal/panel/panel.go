@@ -11,8 +11,8 @@ import (
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/Zakkaus/vestibule/internal/tg"
-	"github.com/Zakkaus/vestibule/internal/verify"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -244,7 +244,7 @@ func (v *Panel) OnVMode(ctx *th.Context, update telego.Update) error {
 				source = i18n.Messages.Panel.VerificationMode.RuntimeSource.For(l)
 			}
 			return i18n.Messages.Panel.VerificationMode.Current.Render(
-				l, verify.ModeName(l, v.verifier.EffectiveMode(groupID)), source), nil
+				l, tgfmt.ModeName(l, v.verifier.EffectiveMode(groupID)), source), nil
 		case config.ModeKernel, config.ModeQuiz, config.ModeMixed:
 			if err := v.verifier.SetVerifyMode(groupID, arg); err != nil {
 				return "", err
@@ -252,13 +252,13 @@ func (v *Panel) OnVMode(ctx *th.Context, update telego.Update) error {
 			if arg == (config.ModeKernel) {
 				return i18n.Messages.Panel.VerificationMode.KernelSet.For(l), nil
 			}
-			return i18n.Messages.Panel.VerificationMode.Set.Render(l, verify.ModeName(l, arg)), nil
+			return i18n.Messages.Panel.VerificationMode.Set.Render(l, tgfmt.ModeName(l, arg)), nil
 		case "auto", "config", "default":
 			if err := v.verifier.SetVerifyMode(groupID, ""); err != nil {
 				return "", err
 			}
 			return i18n.Messages.Panel.VerificationMode.AutoSet.Render(
-				l, verify.ModeName(l, v.verifier.EffectiveMode(groupID))), nil
+				l, tgfmt.ModeName(l, v.verifier.EffectiveMode(groupID))), nil
 		}
 		return i18n.Messages.Panel.VerificationMode.Usage.For(l), nil
 	})

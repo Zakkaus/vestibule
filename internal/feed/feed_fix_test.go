@@ -14,7 +14,7 @@ import (
 
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/lookup"
-	"github.com/Zakkaus/vestibule/internal/tg"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/mymmrac/telego"
 	"github.com/mymmrac/telego/telegoapi"
 )
@@ -577,9 +577,9 @@ func TestFormatNewsTelegramLimit(t *testing.T) {
 		name  string
 		title string
 	}{
-		{name: "ASCII", title: strings.Repeat("a", tg.MessageLimit+500)},
-		{name: "UTF-16 surrogate pairs", title: strings.Repeat("😀", tg.MessageLimit)},
-		{name: "escaped HTML", title: strings.Repeat("&amp;<>", tg.MessageLimit)},
+		{name: "ASCII", title: strings.Repeat("a", tgfmt.MessageLimit+500)},
+		{name: "UTF-16 surrogate pairs", title: strings.Repeat("😀", tgfmt.MessageLimit)},
+		{name: "escaped HTML", title: strings.Repeat("&amp;<>", tgfmt.MessageLimit)},
 	}
 
 	for _, tt := range tests {
@@ -590,8 +590,8 @@ func TestFormatNewsTelegramLimit(t *testing.T) {
 				t.Fatalf("invalid rendered anchor: %q", got)
 			}
 			visible := "📰 " + htmlstd.UnescapeString(got[start+1:end])
-			if units := tg.TextUnits(visible); units > tg.MessageLimit {
-				t.Fatalf("rendered news uses %d Telegram text units, limit %d", units, tg.MessageLimit)
+			if units := tgfmt.TextUnits(visible); units > tgfmt.MessageLimit {
+				t.Fatalf("rendered news uses %d Telegram text units, limit %d", units, tgfmt.MessageLimit)
 			}
 			if !strings.Contains(got, "…</a>") {
 				t.Error("oversized title was not visibly truncated")

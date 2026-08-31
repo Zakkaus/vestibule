@@ -13,6 +13,7 @@ import (
 
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/mymmrac/telego"
 )
 
@@ -157,7 +158,7 @@ func testWarnStateWriteFailure(t *testing.T, adminLogID int64) {
 	assertModerationCommandCleanup(t, telegram)
 	l := i18n.LangEN
 	assertModerationNotifications(t, telegram,
-		fakeModNotification{chatID: groupID, text: i18n.Messages.Moderate.Warning.Issued.Render(l, displayName(message.ReplyToMessage.From), 1, cfg.WarnLimit, cfg.WarnLimit, displayName(message.From))},
+		fakeModNotification{chatID: groupID, text: i18n.Messages.Moderate.Warning.Issued.Render(l, tgfmt.DisplayName(message.ReplyToMessage.From), 1, cfg.WarnLimit, cfg.WarnLimit, tgfmt.DisplayName(message.From))},
 	)
 	if len(telegram.failAlerts) != 0 {
 		t.Fatalf("warning state write failure sent misleading Telegram alerts: %#v", telegram.failAlerts)

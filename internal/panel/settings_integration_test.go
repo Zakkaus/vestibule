@@ -10,6 +10,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/Zakkaus/vestibule/internal/tg"
 	"github.com/Zakkaus/vestibule/internal/verify"
 	"github.com/mymmrac/telego"
@@ -239,7 +240,7 @@ func TestRuntimeSettingsCommandHandlersPersistAndRespond(t *testing.T) {
 			text:    "/vmode MIXED",
 			handler: func(panel *Panel) th.Handler { return panel.OnVMode },
 			wantText: func(l i18n.Lang) string {
-				return i18n.Messages.Panel.VerificationMode.Set.Render(l, verify.ModeName(l, config.ModeMixed))
+				return i18n.Messages.Panel.VerificationMode.Set.Render(l, tgfmt.ModeName(l, config.ModeMixed))
 			},
 			assertState: func(t *testing.T, service *verify.Service, groupID int64) {
 				t.Helper()

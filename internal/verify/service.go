@@ -18,6 +18,8 @@ import (
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/telegram/ids"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/Zakkaus/vestibule/internal/tg"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -250,11 +252,6 @@ func loadStatsLoc(name string) *time.Location {
 	return time.FixedZone("UTC+8", 8*3600)
 }
 
-// Standard outbound HTML disables link previews.
-func htmlMessage(chatID int64, text string) *telego.SendMessageParams {
-	return tg.HTMLMessage(chatID, text)
-}
-
 // Telegram is the Bot API surface required by verification and outage recovery.
 type Telegram interface {
 	modBot
@@ -406,10 +403,6 @@ func (v *Service) SetAutoDelete(groupID int64, ttl time.Duration, on bool) error
 		}
 		overrides.LookupAutoDeleteEnabled = &on
 	})
-}
-
-func msgID(m *telego.Message) int {
-	return tg.MessageID(m)
 }
 
 // DMOrGroup reports whether a message belongs to a guarded group or a private chat.
@@ -648,23 +641,6 @@ func (v *Service) verificationBanDuration(groupID int64) int {
 	return group.BanSeconds().Value
 }
 
-func verificationBanDurationText(messages *i18n.Catalog, l i18n.Lang, seconds int) string {
-	duration := &messages.Verification.Duration
-	if seconds <= 0 {
-		return duration.Permanent.For(l)
-	}
-	switch {
-	case seconds%86400 == 0:
-		return duration.Days.Render(l, seconds/86400)
-	case seconds%3600 == 0:
-		return duration.Hours.Render(l, seconds/3600)
-	case seconds%60 == 0:
-		return duration.Minutes.Render(l, seconds/60)
-	default:
-		return duration.Seconds.Render(l, seconds)
-	}
-}
-
 func (v *Service) applyVerificationBan(ctx context.Context, bot verifyBot, groupID, userID int64, seconds int, revoke bool) error {
 	return v.verificationTransport(bot).Ban(ctx, groupID, userID, seconds, revoke)
 }
@@ -820,23 +796,6 @@ func (v *Service) applicantLanguage(groupID, userID int64, telegramCode string) 
 		return p.lang
 	}
 	return i18n.FromTelegram(telegramCode)
-}
-
-// Spoilered names use one non-nested entity so hostile names cannot break challenge HTML.
-// Admin buttons act by ID, so losing the clickable mention does not affect moderation.
-func joinerLabel(uid int64, name string, spoiler bool) string {
-	esc := html.EscapeString(name)
-	if spoiler {
-		return "<tg-spoiler>" + esc + "</tg-spoiler>"
-	}
-	return fmt.Sprintf("<a href=\"tg://user?id=%d\">%s</a>", uid, esc)
-}
-
-func applicantDisplayName(user *telego.User) string {
-	if user.Username != "" {
-		return "@" + user.Username
-	}
-	return user.FirstName
 }
 
 // chatMemberState separates "confirmed not a member" from "could not read the answer".
@@ -1193,7 +1152,7 @@ func (v *Service) OnJoinRequest(ctx *th.Context, update telego.Update) error {
 		return nil
 	}
 	mode, text, opts, correctIdx := v.newChallenge(gid, applicantLang)
-	name := applicantDisplayName(&jr.From)
+	name := tgfmt.DisplayName(&jr.From)
 	p := &pending{mode: mode, lang: applicantLang, qText: text, qOpts: opts, correctIdx: correctIdx,
 		nonce: newNonce(), name: name}
 	oldMessages, status := v.startPending(bot, gid, uid, p)
@@ -1319,7 +1278,7 @@ func (v *Service) OnMemberJoined(ctx *th.Context, update telego.Update) error {
 	}
 	supergroup := member.Chat.Type == telego.ChatTypeSupergroup
 	mode, text, opts, correctIdx := v.newChallenge(gid, applicantLang)
-	name := applicantDisplayName(&user)
+	name := tgfmt.DisplayName(&user)
 	p := &pending{gate: gateMute, invited: invited, mode: mode, lang: applicantLang,
 		qText: text, qOpts: opts, correctIdx: correctIdx, nonce: newNonce(), name: name}
 	oldMessages, status := v.startPending(bot, gid, uid, p)
@@ -1567,8 +1526,8 @@ func (v *Service) sendChannelPrompt(c context.Context, bot verifyBot, gid, uid i
 	if v.channelWasUnreadable(gid, uid) {
 		// Asking someone to join a channel they may already be in is misleading when the bot
 		// simply could not look. Say what actually happened instead.
-		sent, err := bot.SendMessage(c, htmlMessage(uid, channel.Unreadable.For(ul)))
-		return msgID(sent), err
+		sent, err := bot.SendMessage(c, tgfmt.HTMLMessage(uid, channel.Unreadable.For(ul)))
+		return ids.MessageID(sent), err
 	}
 	var rows [][]telego.InlineKeyboardButton
 	if curl := v.channelURL(gid); curl != "" {
@@ -1578,10 +1537,10 @@ func (v *Service) sendChannelPrompt(c context.Context, bot verifyBot, gid, uid i
 	}
 	rows = append(rows, tu.InlineKeyboardRow(telego.InlineKeyboardButton{Text: channel.ContinueButton.For(ul),
 		CallbackData: ChannelRecheckCallbackPrefix + strconv.FormatInt(gid, 10) + ":" + strconv.FormatInt(uid, 10)}))
-	sent, err := bot.SendMessage(c, htmlMessage(uid,
+	sent, err := bot.SendMessage(c, tgfmt.HTMLMessage(uid,
 		channel.FollowPrompt.Render(ul, v.channelLinkHTML(gid, ul))).
 		WithReplyMarkup(tu.InlineKeyboard(rows...)))
-	return msgID(sent), err
+	return ids.MessageID(sent), err
 }
 
 func (v *Service) sendDMQuestionRetainingPrevious(
@@ -1610,11 +1569,11 @@ func (v *Service) sendDMQuestionRetainingPrevious(
 			rows = append(rows, tu.InlineKeyboardRow(
 				telego.InlineKeyboardButton{Text: opt, CallbackData: fmt.Sprintf("%s%s:%s:%s:%d", AnswerCallbackPrefix, gidStr, uidStr, prompt.nonce, i)}))
 		}
-		sent, err = bot.SendMessage(c, htmlMessage(uid,
+		sent, err = bot.SendMessage(c, tgfmt.HTMLMessage(uid,
 			v.messages.Verification.Challenge.QuizPrompt.Render(prompt.lang, html.EscapeString(prompt.text))).
 			WithReplyMarkup(tu.InlineKeyboard(rows...)))
 	}
-	messageID := msgID(sent)
+	messageID := ids.MessageID(sent)
 	current, changed, oldPrivateMsgID := v.completeDMDelivery(bot, uid, prompt, messageID, err, true, resetExpiry)
 	return dmSendResult{
 		messageID:         messageID,
@@ -2002,7 +1961,7 @@ func (v *Service) OnAdminAction(ctx *th.Context, update telego.Update) error {
 			return nil
 		}
 		// Acknowledge the pending action; failures retain the request and evidence.
-		duration := verificationBanDurationText(v.messages, l, v.verificationBanDuration(gid))
+		duration := tgfmt.VerificationBanDurationText(v.messages, l, v.verificationBanDuration(gid))
 		_ = bot.AnswerCallbackQuery(c, tu.CallbackQuery(cq.ID).WithText(says.Banning.Render(l, duration)))
 		if !v.executeBan(c, bot, gid, target, p) {
 			v.verificationTransport(bot).Notify(c, gid, says.ActionFailed.For(l), adminActionNoticeTTL)
@@ -2561,7 +2520,7 @@ func (v *Service) agentCaughtText(groupID int64, l i18n.Lang, gate string, banne
 }
 
 func (v *Service) bannedResultText(groupID int64, l i18n.Lang, gate string) string {
-	duration := verificationBanDurationText(v.messages, l, v.verificationBanDuration(groupID))
+	duration := tgfmt.VerificationBanDurationText(v.messages, l, v.verificationBanDuration(groupID))
 	return v.voice(gate).WrongBanned.Render(l, duration)
 }
 
@@ -2575,7 +2534,7 @@ func durationSecondsCeil(wait time.Duration) int {
 func (v *Service) timeoutResultText(groupID, userID int64, l i18n.Lang, gate string, banned bool) string {
 	voice := v.voice(gate)
 	if banned {
-		duration := verificationBanDurationText(v.messages, l, v.verificationBanDuration(groupID))
+		duration := tgfmt.VerificationBanDurationText(v.messages, l, v.verificationBanDuration(groupID))
 		return voice.TimeoutBanned.Render(l, duration)
 	}
 	if seconds := durationSecondsCeil(v.verifyCooldownRemaining(groupID, userID)); seconds > 0 {
@@ -2746,7 +2705,7 @@ func (v *Service) finishDecline(c context.Context, bot modBot, gid, uid int64, p
 			v.settlementAlert(c, bot, gid, err, admin.AutoBanFailed.Render(v.groupLanguage(gid), uid, gid, count, err))
 		} else {
 			l := v.groupLanguage(gid)
-			duration := verificationBanDurationText(v.messages, l, secs)
+			duration := tgfmt.VerificationBanDurationText(v.messages, l, secs)
 			v.adminRecord(c, bot, v.messages.Verification.Admin.AutoBanned.Render(l, uid, gid, count, duration))
 			banned = true
 		}
