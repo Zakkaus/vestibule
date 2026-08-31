@@ -127,6 +127,39 @@ def check_screen_coverage() -> None:
                             "claims to be exhaustive" % screen)
 
 
+def check_schema_matches_migration() -> None:
+    """The architecture's schema and the migration name the same tables.
+
+    Phase 3A added four tables the document had never drawn — the JSON states
+    needed somewhere to live — and nothing noticed. The document is supposed to
+    record what is established, and a schema is the one part of it a machine can
+    hold to that.
+
+    Names only, not column-by-column equivalence: the document annotates and
+    reorders, and a checker that demands byte equality gets switched off.
+    """
+    migration = ROOT / "migrations" / "00-latest.sql"
+    arch = ROOT / "docs" / "ARCHITECTURE.md"
+    if not migration.exists() or not arch.exists():
+        return
+
+    def named(text: str) -> set:
+        pattern = r"CREATE\s+(?:UNIQUE\s+)?(TABLE|INDEX)\s+([a-z_]+)"
+        return {(kind.lower(), name) for kind, name in re.findall(pattern, text)}
+
+    in_sql = named(migration.read_text(encoding="utf-8"))
+    in_doc = named(arch.read_text(encoding="utf-8"))
+    # dbutil creates and owns this one; the document explains it in prose.
+    in_sql.discard(("table", "version"))
+
+    for kind, name in sorted(in_sql - in_doc):
+        failures.append("schema: migrations/00-latest.sql creates %s %s, "
+                        "which docs/ARCHITECTURE.md does not show" % (kind, name))
+    for kind, name in sorted(in_doc - in_sql):
+        failures.append("schema: docs/ARCHITECTURE.md shows %s %s, "
+                        "which migrations/00-latest.sql does not create" % (kind, name))
+
+
 def main() -> int:
     phases = 0
     if not PLAN.exists():
@@ -135,6 +168,8 @@ def main() -> int:
         plan_text = PLAN.read_text(encoding="utf-8")
         phases = phase_count(plan_text)
         check_plan_phases(plan_text)
+
+    check_schema_matches_migration()
 
     documents = list((ROOT / "docs").rglob("*.md")) + [
         ROOT / "README.md",
