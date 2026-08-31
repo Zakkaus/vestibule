@@ -135,10 +135,28 @@
     "actions": {
       "release": "放行",
       "releaseFor": "放行 {{user}}",
+      "releasing": "放行中…",
+      "releasingFor": "正在放行 {{user}}",
       "revoke": "撤銷",
-      "revokeFor": "撤銷 {{user}}",
+      "revokeFor": "撤銷 {{user}} 的封鎖",
+      "revoking": "撤銷中…",
+      "revokingFor": "正在撤銷 {{user}} 的封鎖",
       "details": "詳細資料",
-      "detailsFor": "查看 {{user}} 的詳細資料"
+      "detailsFor": "查看 {{user}} 的詳細資料",
+      "openingDetails": "開啟中…",
+      "openingDetailsFor": "正在開啟 {{user}} 的詳細資料"
+    },
+    "revokeDialog": {
+      "title": "撤銷 {{user}} 的封鎖",
+      "description": "{{user}} 會進入「{{group}}」，狀態改為「{{approved}}」。如需恢復封鎖，請在操作記錄中撤銷本次操作。",
+      "cancel": "取消",
+      "confirm": "撤銷並放行"
+    },
+    "feedback": {
+      "releaseSuccess": "已放行 {{user}} 進入「{{group}}」，狀態為「{{approved}}」。",
+      "revokeSuccess": "已撤銷 {{user}} 的封鎖，狀態已改為「{{approved}}」，可進入「{{group}}」。",
+      "releaseFailure": "無法放行 {{user}}。此次操作未完成，狀態已恢復為「{{pending}}」，可以重試。",
+      "detailsUnavailable": "詳細資料頁尚未完成，{{user}} 的記錄沒有變更。"
     },
     "empty": {
       "title": "還沒有人申請",
