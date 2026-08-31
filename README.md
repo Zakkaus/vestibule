@@ -30,6 +30,7 @@ one is ready.
 | Console values, screen contents, copy rules | `web/design.html` |
 | Package structure, data, flows, reliability | `web/architecture.html` and `docs/ARCHITECTURE.md` |
 | Rules: limits, invariants, language, commits, the gate | `CONTRIBUTING.md` |
+| What the software holds about people, and what an operator must state | `docs/PRIVACY.md` |
 
 The rewrite order and each phase's acceptance criteria are in `docs/PLAN-v5.md`.
 
