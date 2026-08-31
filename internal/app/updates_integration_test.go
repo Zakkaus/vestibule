@@ -14,6 +14,7 @@ import (
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 )
+
 func routeRecorder(name string, handled *[]string) th.Handler {
 	return func(_ *th.Context, _ telego.Update) error {
 		*handled = append(*handled, name)

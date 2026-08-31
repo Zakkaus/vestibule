@@ -17,8 +17,8 @@ import (
 	"github.com/Zakkaus/vestibule/internal/lookup"
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/Zakkaus/vestibule/internal/telegram/ids"
-	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/Zakkaus/vestibule/internal/telegram/queue"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
 )

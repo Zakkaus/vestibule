@@ -11,6 +11,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/mymmrac/telego"
 )
+
 func TestStartupStateAllowsMissingConfigAndNoGroups(t *testing.T) {
 	configPath := t.TempDir() + "/config.json"
 	cfg, settings, err := loadRuntimeState(configPath, t.TempDir())

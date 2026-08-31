@@ -28,7 +28,8 @@ func runRuntimeLifecycle(ctx context.Context, lifecycle runtimeLifecycle) error 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), lifecycle.deadline())
 	defer cancel()
 	log.Printf("shutdown: waiting up to %s to drain fetched updates and in-flight update handlers", lifecycle.deadline())
-	handlerErr, _ = waitForHandlerShutdown(shutdownCtx, lifecycle.handlerDone, handlerErr, handlerStopped)
+	// waitForHandlerShutdown logs the handler's error itself; nothing here reads it back.
+	_, _ = waitForHandlerShutdown(shutdownCtx, lifecycle.handlerDone, handlerErr, handlerStopped)
 	stopUpdateHandlers(shutdownCtx, lifecycle.stopHandlers)
 	waitForRegistration(shutdownCtx, lifecycle.waitRegistration)
 	waitForShutdownComponent(shutdownCtx, "Telegram heartbeat", lifecycle.heartbeatDone)

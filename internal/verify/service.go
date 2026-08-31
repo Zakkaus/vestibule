@@ -18,10 +18,10 @@ import (
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/store"
-	"github.com/Zakkaus/vestibule/internal/telegram/ids"
-	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/Zakkaus/vestibule/internal/telegram"
+	"github.com/Zakkaus/vestibule/internal/telegram/ids"
 	"github.com/Zakkaus/vestibule/internal/telegram/queue"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -236,7 +236,7 @@ type Service struct {
 	settings          *store.Settings     // authoritative runtime-settings transaction
 	tgMu              sync.Mutex          // guards telegramBot and telegramClient
 	telegramBot       *telego.Bot         // concrete handler bot wrapped by telegramClient
-	telegramClient    *telegram.Connector          // shared transport client; owns admin cache and cleanup timer counts
+	telegramClient    *telegram.Connector // shared transport client; owns admin cache and cleanup timer counts
 	lastOnline        time.Time           // last time a heartbeat confirmed the bot can reach Telegram (guarded by mu); seeded to start time so we begin "online"
 	hbPath            string              // persistence path for the online heartbeat, so a restart can estimate how long the bot was down
 	probe             liveProbe           // liveness prober (the bot) for reachable(); nil in tests => assume reachable

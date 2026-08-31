@@ -33,7 +33,6 @@ func TestStreamEndedUnexpectedly(t *testing.T) {
 	}
 }
 
-
 func TestRetentionOutageObserverUsesDurableHeartbeatOncePerOutage(t *testing.T) {
 	now := time.Date(2026, 8, 25, 12, 0, 0, 0, time.UTC)
 	path := filepath.Join(t.TempDir(), "heartbeat.json")
@@ -147,7 +146,6 @@ func lifecycleAPIResponse(value any) (*ta.Response, error) {
 	}
 	return &ta.Response{Ok: true, Result: raw}, nil
 }
-
 
 func newLifecycleBot(t *testing.T, caller ta.Caller) *telego.Bot {
 	t.Helper()
@@ -313,26 +311,26 @@ func assertRetentionOutageAlert(t *testing.T, fixture *lifecycleVerificationFixt
 }
 
 type lifecycleShutdown struct {
-	fixture                 *lifecycleVerificationFixture
-	cancel                  context.CancelFunc
-	pendingPath             string
-	feedPath                string
-	handlerDone             chan error
-	stopEntered             chan struct{}
-	releaseStop             chan struct{}
-	stopReturned            chan struct{}
-	registrationWaitEntered chan struct{}
-	releaseRegistrationWait chan struct{}
+	fixture                  *lifecycleVerificationFixture
+	cancel                   context.CancelFunc
+	pendingPath              string
+	feedPath                 string
+	handlerDone              chan error
+	stopEntered              chan struct{}
+	releaseStop              chan struct{}
+	stopReturned             chan struct{}
+	registrationWaitEntered  chan struct{}
+	releaseRegistrationWait  chan struct{}
 	registrationWaitReturned chan struct{}
-	heartbeatStopping       chan struct{}
-	releaseHeartbeat        chan struct{}
-	heartbeatDone           chan struct{}
-	actualFeedFlushed       chan struct{}
-	releaseFeed             chan struct{}
-	feedDone                chan struct{}
-	verificationFlushed     chan struct{}
-	notifierDone            chan error
-	lifecycleResult         chan error
+	heartbeatStopping        chan struct{}
+	releaseHeartbeat         chan struct{}
+	heartbeatDone            chan struct{}
+	actualFeedFlushed        chan struct{}
+	releaseFeed              chan struct{}
+	feedDone                 chan struct{}
+	verificationFlushed      chan struct{}
+	notifierDone             chan error
+	lifecycleResult          chan error
 }
 
 func newLifecycleShutdown(t *testing.T, fixture *lifecycleVerificationFixture) *lifecycleShutdown {

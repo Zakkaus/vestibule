@@ -462,7 +462,6 @@ func TestErrorClassification(t *testing.T) {
 	}
 }
 
-
 func waitForMethodCalls(t *testing.T, caller *scriptedCaller, method string, want int) {
 	t.Helper()
 	deadline := time.Now().Add(time.Second)

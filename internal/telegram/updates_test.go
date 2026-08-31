@@ -418,5 +418,3 @@ func TestDMReplyCapacityKeepsActiveCooldown(t *testing.T) {
 		t.Errorf("DM replies across capacity event = %d, want only the new user's reply", caller.sendMessages)
 	}
 }
-
-

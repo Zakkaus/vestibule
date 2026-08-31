@@ -22,8 +22,8 @@ import (
 
 // Options contains process inputs read by cmd/bot.
 type Options struct {
-	ConfigPath    string
-	Token         string
+	ConfigPath     string
+	Token          string
 	StateDirectory string
 	TelegramAPIURL string
 	GitHubToken    string

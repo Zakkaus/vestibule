@@ -9,8 +9,8 @@ import (
 
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/telegram/ids"
-	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/Zakkaus/vestibule/internal/telegram/queue"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -146,7 +146,6 @@ func (c *Connector) ScheduleCleanup(chatID int64, commandMessageID, responseMess
 func (c *Connector) Delete(ctx context.Context, chatID int64, messageID int) {
 	c.cleanup.Delete(ctx, chatID, messageID)
 }
-
 
 // Notify sends a transient plain-text notice and bounds outstanding deletion timers.
 func (c *Connector) Notify(ctx context.Context, chatID int64, text string, ttlSeconds int) {
@@ -435,4 +434,3 @@ func (c *Connector) pruneAdminCacheLocked(now time.Time) {
 		delete(c.adminCache, victim)
 	}
 }
-

@@ -37,7 +37,7 @@ Complete every step:
    of a fallback.
 4. In `internal/config/config.go`, extend `ValidLanguage`. This validator gates the top-level
    `lang`, `groups[].lang`, feed `lang`, startup validation, and persisted panel values.
-5. In `internal/bot/commands.go`, add the locale to `SetupCommands` and decide which Telegram
+5. In `internal/telegram/commands.go`, add the locale to `SetupCommands` and decide which Telegram
    `language_code` and per-chat command-menu scopes it needs. The current list registers only the
    Simplified-Chinese fallback, `zh`, and `en`, with a separate Traditional-Chinese per-chat path.
 6. In `internal/panel/codec.go`, add a compact value to the `lg` callback grammar. In

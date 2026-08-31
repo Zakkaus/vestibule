@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 )
+
 func TestSystemdNotifierUnsetIsNoop(t *testing.T) {
 	notifier, err := newSystemdNotifier("")
 	if err != nil {

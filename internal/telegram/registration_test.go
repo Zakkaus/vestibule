@@ -243,18 +243,6 @@ func (c *registrationCaller) membershipRequestsForTest() [][2]int64 {
 	return append([][2]int64(nil), c.memberRequests...)
 }
 
-func (c *registrationCaller) sentTo(chatID int64) int {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	count := 0
-	for _, message := range c.sent {
-		if message.ChatID.ID == chatID {
-			count++
-		}
-	}
-	return count
-}
-
 func (c *registrationCaller) messagesTo(chatID int64) []telego.SendMessageParams {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -277,17 +265,6 @@ func (c *registrationCaller) sendAttemptsTo(chatID int64) []telego.SendMessagePa
 		}
 	}
 	return messages
-}
-
-func (c *registrationCaller) hasCommandScope(groupID int64) bool {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	for _, chatID := range c.commandScopeIDs {
-		if chatID == groupID {
-			return true
-		}
-	}
-	return false
 }
 
 func registrationAPIResponse(value any) (*ta.Response, error) {
@@ -523,6 +500,3 @@ func plainMember(userID int64) telego.ChatMember {
 		User:   telego.User{ID: userID},
 	}
 }
-
-
-

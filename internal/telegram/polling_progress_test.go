@@ -18,7 +18,6 @@ func (f callerFunc) Call(ctx context.Context, url string, data *ta.RequestData) 
 	return f(ctx, url, data)
 }
 
-
 func TestPollingProgressCallerSignalsOnlyCompletedPolls(t *testing.T) {
 	progress := make(chan struct{}, 1)
 	calls := 0
@@ -103,4 +102,3 @@ func TestBlockedBotAPICallDoesNotPreventHandlerShutdown(t *testing.T) {
 		t.Fatal(err)
 	}
 }
-

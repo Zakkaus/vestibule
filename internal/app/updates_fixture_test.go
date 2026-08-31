@@ -42,6 +42,7 @@ func testBot(t *testing.T, caller ta.Caller) *telego.Bot {
 	}
 	return bot
 }
+
 type dispatchAPICall struct {
 	method    string
 	body      []byte
@@ -54,6 +55,7 @@ type dispatchCaller struct {
 	nextMessageID int
 	members       map[[2]int64]telego.ChatMember
 	calls         []dispatchAPICall
+	commandMenus  chan struct{}
 }
 
 func (c *dispatchCaller) Call(_ context.Context, endpoint string, data *ta.RequestData) (*ta.Response, error) {
@@ -129,15 +131,33 @@ func (c *dispatchCaller) Call(_ context.Context, endpoint string, data *ta.Reque
 		"approveChatJoinRequest", "declineChatJoinRequest":
 		c.record(dispatchAPICall{method: method, body: body})
 		return apiResponse(true)
+	case "setMyCommands":
+		return c.setMyCommands(method, body)
 	default:
 		return nil, fmt.Errorf("unexpected Telegram method %q", method)
 	}
+}
+
+func (c *dispatchCaller) setMyCommands(method string, body []byte) (*ta.Response, error) {
+	c.record(dispatchAPICall{method: method, body: body})
+	c.signalCommandMenu()
+	return apiResponse(true)
 }
 
 func (c *dispatchCaller) record(call dispatchAPICall) {
 	c.mu.Lock()
 	c.calls = append(c.calls, call)
 	c.mu.Unlock()
+}
+
+func (c *dispatchCaller) signalCommandMenu() {
+	if c.commandMenus == nil {
+		return
+	}
+	select {
+	case c.commandMenus <- struct{}{}:
+	default:
+	}
 }
 
 func (c *dispatchCaller) setMember(chatID, userID int64, member telego.ChatMember) {

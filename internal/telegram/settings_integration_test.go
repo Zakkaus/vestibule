@@ -24,7 +24,6 @@ func botTestSettingsBaseline(t *testing.T, cfg *config.Config) store.SettingsBas
 	return baseline
 }
 
-
 func TestDistroAliasVisible(t *testing.T) {
 	var description string
 	for _, command := range memberCommands(i18n.LangZH) {

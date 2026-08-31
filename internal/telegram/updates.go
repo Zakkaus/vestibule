@@ -86,19 +86,19 @@ type ModerationHandlers struct {
 
 // LookupHandlers maps Telegram lookup commands to lookup service handlers.
 type LookupHandlers struct {
-	Package   th.Handler
-	Use       th.Handler
-	Bug       th.Handler
-	News      th.Handler
-	Wiki      th.Handler
-	Forum     th.Handler
-	Distros   th.Handler
-	Arm       th.Handler
-	ArmPkgs   th.Handler
-	Kernel    th.Handler
-	Man       th.Handler
-	CVE       th.Handler
-	Repology  th.Handler
+	Package  th.Handler
+	Use      th.Handler
+	Bug      th.Handler
+	News     th.Handler
+	Wiki     th.Handler
+	Forum    th.Handler
+	Distros  th.Handler
+	Arm      th.Handler
+	ArmPkgs  th.Handler
+	Kernel   th.Handler
+	Man      th.Handler
+	CVE      th.Handler
+	Repology th.Handler
 }
 
 // HandlerSet is the protocol-facing call surface supplied by app assembly.

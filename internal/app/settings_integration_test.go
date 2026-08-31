@@ -12,6 +12,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/Zakkaus/vestibule/internal/verify"
 )
+
 const testLookupGroup int64 = -1
 
 type testLookupApplication struct {

@@ -10,6 +10,7 @@ import (
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 )
+
 func TestPrepareUpdateHandlerRegistersBeforePolling(t *testing.T) {
 	source := make(chan telego.Update, 1)
 	source <- telego.Update{UpdateID: 1}

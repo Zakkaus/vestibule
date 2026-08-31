@@ -15,6 +15,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/mymmrac/telego"
 )
+
 func TestOwnerClaimPersistenceFailureUsesClaimMessage(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "missing-config.json")
 	stateDirectory := t.TempDir()
@@ -307,185 +308,185 @@ func TestEnrollmentTransportFailuresRetainDurableState(t *testing.T) {
 }
 
 func testEnrollmentMembershipLookupFailure(t *testing.T) {
-		const (
-			actor    = int64(79)
-			groupID  = int64(-5005)
-			operator = int64(-5006)
-			title    = "Membership lookup"
-		)
-		configPath := filepath.Join(t.TempDir(), "missing-config.json")
-		stateDirectory := t.TempDir()
-		cfg, settings, err := loadRuntimeState(configPath, stateDirectory)
-		if err != nil {
-			t.Fatal(err)
-		}
-		cfg.AdminLogChatID = operator
-		now := time.Unix(2_000_000_000, 0)
-		bindTestOwner(t, settings, now)
-		nonce, err := settings.IssueEnrollmentNonce(testOwner, now, enrollmentLifetime)
-		if err != nil {
-			t.Fatal(err)
-		}
-		before := settings.Registrations()
-		caller := &registrationCaller{
-			members: map[[2]int64]telego.ChatMember{
-				{groupID, actor}: adminMember(actor),
-			},
-			memberErrors: map[[2]int64]error{
-				{groupID, testBotID}: fmt.Errorf("getChatMember unavailable"),
-			},
-		}
-		bot := newRegistrationBot(t, caller)
-		service := newRegistrationService(context.Background(), bot, settings, cfg, "verify_test_bot", testBotID, nil, nil, nil)
-		service.now = func() time.Time { return now }
+	const (
+		actor    = int64(79)
+		groupID  = int64(-5005)
+		operator = int64(-5006)
+		title    = "Membership lookup"
+	)
+	configPath := filepath.Join(t.TempDir(), "missing-config.json")
+	stateDirectory := t.TempDir()
+	cfg, settings, err := loadRuntimeState(configPath, stateDirectory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.AdminLogChatID = operator
+	now := time.Unix(2_000_000_000, 0)
+	bindTestOwner(t, settings, now)
+	nonce, err := settings.IssueEnrollmentNonce(testOwner, now, enrollmentLifetime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := settings.Registrations()
+	caller := &registrationCaller{
+		members: map[[2]int64]telego.ChatMember{
+			{groupID, actor}: adminMember(actor),
+		},
+		memberErrors: map[[2]int64]error{
+			{groupID, testBotID}: fmt.Errorf("getChatMember unavailable"),
+		},
+	}
+	bot := newRegistrationBot(t, caller)
+	service := newRegistrationService(context.Background(), bot, settings, cfg, "verify_test_bot", testBotID, nil, nil, nil)
+	service.now = func() time.Time { return now }
 
-		runRegistrationUpdate(t, bot, service, telego.Update{Message: &telego.Message{
-			Chat: telego.Chat{ID: groupID, Type: telego.ChatTypeSupergroup, Title: title},
-			From: &telego.User{ID: actor, LanguageCode: "en"},
-			Text: "/start enroll_" + nonce.Nonce,
-		}})
+	runRegistrationUpdate(t, bot, service, telego.Update{Message: &telego.Message{
+		Chat: telego.Chat{ID: groupID, Type: telego.ChatTypeSupergroup, Title: title},
+		From: &telego.User{ID: actor, LanguageCode: "en"},
+		Text: "/start enroll_" + nonce.Nonce,
+	}})
 
-		if requests := caller.membershipRequestsForTest(); !reflect.DeepEqual(requests,
-			[][2]int64{{groupID, actor}, {groupID, testBotID}}) {
-			t.Fatalf("enrollment membership requests = %v, want actor then bot", requests)
-		}
-		after := settings.Registrations()
-		assertRegistrationStateEqual(t, after, before)
-		assertRegistrationStateEqual(t, registrationStateFromDisk(t, configPath, stateDirectory), before)
-		if settings.IsGroup(groupID) {
-			t.Fatal("unreadable bot membership registered a group")
-		}
-		if left := caller.leftChats(); !reflect.DeepEqual(left, []int64{groupID}) {
-			t.Fatalf("unreadable bot membership leaves = %v, want [%d]", left, groupID)
-		}
-		refusal := caller.messagesTo(groupID)
-		wantRefusal := i18n.Messages.Bot.Registration.EnrollmentRefused.For(
-			i18n.FromStored(cfg.LangForGroup(groupID)))
-		if len(refusal) != 1 || refusal[0].Text != wantRefusal {
-			t.Fatalf("unreadable bot membership response = %+v, want catalogue text %q", refusal, wantRefusal)
-		}
-		unauthorized := caller.messagesTo(operator)
-		wantUnauthorized := i18n.Messages.Bot.Lifecycle.UnauthorizedChat.Render(
-			i18n.FromStored(cfg.LangForGroup(0)), title, groupID, telego.ChatTypeSupergroup)
-		if len(unauthorized) != 1 || unauthorized[0].Text != wantUnauthorized {
-			t.Fatalf("unreadable bot membership operator result = %+v, want catalogue text %q", unauthorized, wantUnauthorized)
-		}
+	if requests := caller.membershipRequestsForTest(); !reflect.DeepEqual(requests,
+		[][2]int64{{groupID, actor}, {groupID, testBotID}}) {
+		t.Fatalf("enrollment membership requests = %v, want actor then bot", requests)
+	}
+	after := settings.Registrations()
+	assertRegistrationStateEqual(t, after, before)
+	assertRegistrationStateEqual(t, registrationStateFromDisk(t, configPath, stateDirectory), before)
+	if settings.IsGroup(groupID) {
+		t.Fatal("unreadable bot membership registered a group")
+	}
+	if left := caller.leftChats(); !reflect.DeepEqual(left, []int64{groupID}) {
+		t.Fatalf("unreadable bot membership leaves = %v, want [%d]", left, groupID)
+	}
+	refusal := caller.messagesTo(groupID)
+	wantRefusal := i18n.Messages.Bot.Registration.EnrollmentRefused.For(
+		i18n.FromStored(cfg.LangForGroup(groupID)))
+	if len(refusal) != 1 || refusal[0].Text != wantRefusal {
+		t.Fatalf("unreadable bot membership response = %+v, want catalogue text %q", refusal, wantRefusal)
+	}
+	unauthorized := caller.messagesTo(operator)
+	wantUnauthorized := i18n.Messages.Bot.Lifecycle.UnauthorizedChat.Render(
+		i18n.FromStored(cfg.LangForGroup(0)), title, groupID, telego.ChatTypeSupergroup)
+	if len(unauthorized) != 1 || unauthorized[0].Text != wantUnauthorized {
+		t.Fatalf("unreadable bot membership operator result = %+v, want catalogue text %q", unauthorized, wantUnauthorized)
+	}
 }
 
 func testEnrollmentLeaveFailure(t *testing.T) {
-		const (
-			actor    = int64(80)
-			groupID  = int64(-5007)
-			operator = int64(-5008)
-			title    = "Leave failure"
-		)
-		configPath := filepath.Join(t.TempDir(), "missing-config.json")
-		stateDirectory := t.TempDir()
-		cfg, settings, err := loadRuntimeState(configPath, stateDirectory)
-		if err != nil {
-			t.Fatal(err)
-		}
-		cfg.AdminLogChatID = operator
-		now := time.Unix(2_000_000_000, 0)
-		bindTestOwner(t, settings, now)
-		nonce, err := settings.IssueEnrollmentNonce(testOwner, now, enrollmentLifetime)
-		if err != nil {
-			t.Fatal(err)
-		}
-		state := settings.Registrations()
-		state.UnknownGroupLeaves = []store.UnknownGroupLeave{{
-			GroupID: groupID, Title: title, ExpiresAt: now.Add(registrationPending).Unix(),
-		}}
-		if _, err := settings.CommitRegistrations(state.Revision, state); err != nil {
-			t.Fatal(err)
-		}
-		before := settings.Registrations()
-		caller := &registrationCaller{
-			members: map[[2]int64]telego.ChatMember{
-				{groupID, actor}: plainMember(actor),
-			},
-			leaveErrors: map[int64]error{
-				groupID: fmt.Errorf("leaveChat unavailable"),
-			},
-		}
-		bot := newRegistrationBot(t, caller)
-		root, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		service := newRegistrationService(root, bot, settings, cfg, "verify_test_bot", testBotID, nil, nil, nil)
-		service.now = func() time.Time { return now }
+	const (
+		actor    = int64(80)
+		groupID  = int64(-5007)
+		operator = int64(-5008)
+		title    = "Leave failure"
+	)
+	configPath := filepath.Join(t.TempDir(), "missing-config.json")
+	stateDirectory := t.TempDir()
+	cfg, settings, err := loadRuntimeState(configPath, stateDirectory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.AdminLogChatID = operator
+	now := time.Unix(2_000_000_000, 0)
+	bindTestOwner(t, settings, now)
+	nonce, err := settings.IssueEnrollmentNonce(testOwner, now, enrollmentLifetime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := settings.Registrations()
+	state.UnknownGroupLeaves = []store.UnknownGroupLeave{{
+		GroupID: groupID, Title: title, ExpiresAt: now.Add(registrationPending).Unix(),
+	}}
+	if _, err := settings.CommitRegistrations(state.Revision, state); err != nil {
+		t.Fatal(err)
+	}
+	before := settings.Registrations()
+	caller := &registrationCaller{
+		members: map[[2]int64]telego.ChatMember{
+			{groupID, actor}: plainMember(actor),
+		},
+		leaveErrors: map[int64]error{
+			groupID: fmt.Errorf("leaveChat unavailable"),
+		},
+	}
+	bot := newRegistrationBot(t, caller)
+	root, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	service := newRegistrationService(root, bot, settings, cfg, "verify_test_bot", testBotID, nil, nil, nil)
+	service.now = func() time.Time { return now }
 
-		runRegistrationUpdate(t, bot, service, telego.Update{Message: &telego.Message{
-			Chat: telego.Chat{ID: groupID, Type: telego.ChatTypeSupergroup, Title: title},
-			From: &telego.User{ID: actor, LanguageCode: "en"},
-			Text: "/start enroll_" + nonce.Nonce,
-		}})
+	runRegistrationUpdate(t, bot, service, telego.Update{Message: &telego.Message{
+		Chat: telego.Chat{ID: groupID, Type: telego.ChatTypeSupergroup, Title: title},
+		From: &telego.User{ID: actor, LanguageCode: "en"},
+		Text: "/start enroll_" + nonce.Nonce,
+	}})
 
-		after := settings.Registrations()
-		assertRegistrationStateEqual(t, after, before)
-		assertRegistrationStateEqual(t, registrationStateFromDisk(t, configPath, stateDirectory), before)
-		if len(after.UnknownGroupLeaves) != 1 || after.UnknownGroupLeaves[0].GroupID != groupID {
-			t.Fatalf("failed leave cleanup evidence = %+v, want group %d record", after.UnknownGroupLeaves, groupID)
-		}
-		if attempts := caller.leaveAttemptsForTest(); !reflect.DeepEqual(attempts, []int64{groupID}) {
-			t.Fatalf("failed leave attempts = %v, want [%d]", attempts, groupID)
-		}
-		if left := caller.leftChats(); len(left) != 0 {
-			t.Fatalf("failed leave completed leaves = %v, want none", left)
-		}
-		refusal := caller.messagesTo(groupID)
-		wantRefusal := i18n.Messages.Bot.Registration.EnrollmentRefused.For(
-			i18n.FromStored(cfg.LangForGroup(groupID)))
-		if len(refusal) != 1 || refusal[0].Text != wantRefusal {
-			t.Fatalf("failed leave response = %+v, want catalogue text %q", refusal, wantRefusal)
-		}
-		if unauthorized := caller.messagesTo(operator); len(unauthorized) != 0 {
-			t.Fatalf("failed leave operator result = %+v, want none before leaving", unauthorized)
-		}
+	after := settings.Registrations()
+	assertRegistrationStateEqual(t, after, before)
+	assertRegistrationStateEqual(t, registrationStateFromDisk(t, configPath, stateDirectory), before)
+	if len(after.UnknownGroupLeaves) != 1 || after.UnknownGroupLeaves[0].GroupID != groupID {
+		t.Fatalf("failed leave cleanup evidence = %+v, want group %d record", after.UnknownGroupLeaves, groupID)
+	}
+	if attempts := caller.leaveAttemptsForTest(); !reflect.DeepEqual(attempts, []int64{groupID}) {
+		t.Fatalf("failed leave attempts = %v, want [%d]", attempts, groupID)
+	}
+	if left := caller.leftChats(); len(left) != 0 {
+		t.Fatalf("failed leave completed leaves = %v, want none", left)
+	}
+	refusal := caller.messagesTo(groupID)
+	wantRefusal := i18n.Messages.Bot.Registration.EnrollmentRefused.For(
+		i18n.FromStored(cfg.LangForGroup(groupID)))
+	if len(refusal) != 1 || refusal[0].Text != wantRefusal {
+		t.Fatalf("failed leave response = %+v, want catalogue text %q", refusal, wantRefusal)
+	}
+	if unauthorized := caller.messagesTo(operator); len(unauthorized) != 0 {
+		t.Fatalf("failed leave operator result = %+v, want none before leaving", unauthorized)
+	}
 }
 
 func testEnrollmentResponseSendFailure(t *testing.T) {
-		const (
-			actor   = int64(81)
-			groupID = int64(-5009)
-			title   = "Response failure"
-		)
-		configPath := filepath.Join(t.TempDir(), "missing-config.json")
-		stateDirectory := t.TempDir()
-		cfg, settings, err := loadRuntimeState(configPath, stateDirectory)
-		if err != nil {
-			t.Fatal(err)
-		}
-		now := time.Unix(2_000_000_000, 0)
-		bindTestOwner(t, settings, now)
-		nonce, err := settings.IssueEnrollmentNonce(testOwner, now, enrollmentLifetime)
-		if err != nil {
-			t.Fatal(err)
-		}
-		before := settings.Registrations()
-		caller := &registrationCaller{
-			members: map[[2]int64]telego.ChatMember{
-				{groupID, actor}:     adminMember(actor),
-				{groupID, testBotID}: adminMember(testBotID),
-			},
-			sendErrors: map[int64]error{
-				actor: fmt.Errorf("sendMessage unavailable"),
-			},
-		}
-		bot := newRegistrationBot(t, caller)
-		service := newRegistrationService(context.Background(), bot, settings, cfg, "verify_test_bot", testBotID, nil, nil, nil)
-		service.now = func() time.Time { return now }
+	const (
+		actor   = int64(81)
+		groupID = int64(-5009)
+		title   = "Response failure"
+	)
+	configPath := filepath.Join(t.TempDir(), "missing-config.json")
+	stateDirectory := t.TempDir()
+	cfg, settings, err := loadRuntimeState(configPath, stateDirectory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Unix(2_000_000_000, 0)
+	bindTestOwner(t, settings, now)
+	nonce, err := settings.IssueEnrollmentNonce(testOwner, now, enrollmentLifetime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := settings.Registrations()
+	caller := &registrationCaller{
+		members: map[[2]int64]telego.ChatMember{
+			{groupID, actor}:     adminMember(actor),
+			{groupID, testBotID}: adminMember(testBotID),
+		},
+		sendErrors: map[int64]error{
+			actor: fmt.Errorf("sendMessage unavailable"),
+		},
+	}
+	bot := newRegistrationBot(t, caller)
+	service := newRegistrationService(context.Background(), bot, settings, cfg, "verify_test_bot", testBotID, nil, nil, nil)
+	service.now = func() time.Time { return now }
 
-		runRegistrationUpdate(t, bot, service, telego.Update{Message: &telego.Message{
-			Chat: telego.Chat{ID: groupID, Type: telego.ChatTypeSupergroup, Title: title},
-			From: &telego.User{ID: actor, LanguageCode: "en"},
-			Text: "/start enroll_" + nonce.Nonce,
-		}})
+	runRegistrationUpdate(t, bot, service, telego.Update{Message: &telego.Message{
+		Chat: telego.Chat{ID: groupID, Type: telego.ChatTypeSupergroup, Title: title},
+		From: &telego.User{ID: actor, LanguageCode: "en"},
+		Text: "/start enroll_" + nonce.Nonce,
+	}})
 
-		after := settings.Registrations()
-		assertResponseFailureRegistration(
-			t, settings, before, after, configPath, stateDirectory, groupID, actor, title,
-		)
-		assertResponseFailureMessages(t, caller, groupID, actor, title)
+	after := settings.Registrations()
+	assertResponseFailureRegistration(
+		t, settings, before, after, configPath, stateDirectory, groupID, actor, title,
+	)
+	assertResponseFailureMessages(t, caller, groupID, actor, title)
 }
 
 func assertResponseFailureRegistration(

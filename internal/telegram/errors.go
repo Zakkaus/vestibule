@@ -15,7 +15,6 @@ func MarkupRejected(err error) bool {
 	return strings.Contains(message, "parse") || strings.Contains(message, "entit") || strings.Contains(message, "bad request")
 }
 
-
 // CannotInitiateConversation reports the ordinary 403 returned before a user has started the bot.
 func CannotInitiateConversation(err error) bool {
 	if err == nil {
@@ -70,7 +69,6 @@ func ApplicantGone(err error) bool {
 	return code == 0 || code == 403
 }
 
-
 // IsBlocked reports Telegram 403 responses indicating that the bot cannot contact the target.
 func IsBlocked(err error) bool {
 	if err == nil {
@@ -82,4 +80,3 @@ func IsBlocked(err error) bool {
 	message := strings.ToLower(err.Error())
 	return strings.Contains(message, "bot was blocked") || strings.Contains(message, "forbidden: bot")
 }
-

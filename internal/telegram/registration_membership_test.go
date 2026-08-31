@@ -14,6 +14,7 @@ import (
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 )
+
 func TestUnknownGroupGraceExpiry(t *testing.T) {
 	newFixture := func(t *testing.T) (*registrationService, *registrationCaller) {
 		t.Helper()
