@@ -174,13 +174,16 @@ type Store interface {
     Open(ctx, ChatID, UserID) (*Challenge, error)
     OpenByUser(ctx, UserID) ([]*Challenge, error)
     AttachDelivery(ctx, ChallengeID, Delivered) (bool, error)
-    Attempted(ctx, ChallengeID) (int, error)
+    Attempt(ctx, ChallengeID, nonce string) (left int, ok bool, err error)
     Settle(ctx, ChallengeID, epoch uint32, from, to State, act Action) (bool, error)
     ClaimExpired(ctx, now time.Time, limit int) ([]*Challenge, error)
 
     Fails(ctx, ChatID, UserID) (count int, last int64, err error)
     RecordFail(ctx, ChatID, UserID, at int64) (count int, err error)
     ClearFails(ctx, ChatID, UserID) error
+    PruneFails(ctx, now time.Time, window func(ChatID) time.Duration) (removed int, err error)
+
+    Tally(ctx, day string) (approved, declined int, err error)
 }
 ```
 
@@ -279,6 +282,14 @@ type AckResult struct {            // 回调应答；文案本身可能就是结
 | `verifyfail.json` | `{group_id, user_id, count, last}`：某人在某群连续失败几次、最后一次什么时候。 驱动冷却与自动封禁，上限五万条 | **`verification`，原契约里缺**。补三个方法 |
 | `agents.json` | `{total, counts}`：诱饵命中时按对方自称的模型计数 | **`status`**。这是统计，不参与任何判定， 放进验证的 Store 会让那个接口同时管两件事 |
 | `heartbeat.json` | `{last_online}`：重启后据此估算停机了多久 | **`app`**。与「连接中断由装配层处理」是同一个决定： 核心不需要知道离线这件事，驱动扫描的那一层才需要 |
+
+第二轮自下而上核对又找出三处。**每一次核对都仍有新的缺口， 这本身就是「凭想写契约」不成立的证据**：
+
+| 核心实际做的 | 原契约 | 改成 |
+|---|---|---|
+| `recordKernelTry` 同时校验 nonce 与「是否已结算」， 再加计数并返回剩余次数 | `Attempted` 不收 nonce | **收 nonce 并返回是否接受**。不收就挡不住一条过期的回调 白白消耗掉申请人一次机会 |
+| `pruneVerifyFails` 按每群的重试窗口清理失败记录 | 三个失败方法里没有清理 | `PruneFails`。窗口按群取，因此传一个取窗口的函数进去， 而不是一个固定时长。没有它，记录会一路涨到五万条上限 |
+| `recordDecision` 与 `Stats` 每日通过/拒绝计数 | 没有 | `Tally`。**阶段三之后它应当变成对已结算记录的一次查询**， 而不是另存一份计数；这一片不换介质，所以先照搬 |
 
 另外三处形状的理由：
 
