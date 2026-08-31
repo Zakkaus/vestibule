@@ -1163,6 +1163,132 @@ type Store interface {
             <td>因此不需要 <code>Clock</code> 接口。少一个接口，测试直接传时间即可</td></tr>
       </tbody>
     </table></div>
+    <h3>端口用到的类型</h3>
+    <p>上一版只给了方法签名，<b>签名里的每一个类型都没有定义</b>。
+      派去做这一片的助手因此停下来：它无法在不自拟约定的前提下完成一次无行为变更的搬移，
+      而自拟约定正是被禁止的。类型补在这里。</p>
+    <div class="spec-wrap">
+      <div class="cap"><span>internal/verification 的领域类型</span><span class="hint">照上一代实际持有的字段</span></div>
+      <div class="in">
+        <div class="flow">type ChatID int64
+type UserID int64
+type MessageID int
+type ChallengeID string
+type InteractionID string          // Telegram 的 callback query id
+
+type State string                  // pending approved declined banned expired superseded
+type Kind  string                  // rule pow captcha membership
+type Gate  string                  // request  申请制    mute  先入群后限制
+
+type MessageRef struct { Chat ChatID; Message MessageID }
+
+type Delivery struct {             // 要送到哪几处，来自每群设定
+    Group   bool
+    Private bool
+}
+type Delivered struct {            // 实际送到了哪几处
+    GroupMsg   MessageID           // 0 表示没送到
+    PrivateMsg MessageID
+    Any        bool                // 两处都没送到时为假，到期自动拒绝
+}
+
+type Challenge struct {
+    ID        ChallengeID
+    Chat      ChatID
+    User      UserID
+    Gate      Gate
+    Kind      Kind
+    State     State
+    Invited   bool                 // 是别人拉进来的，通知里让管理员可以担保
+    Held      bool                 // 本次验证下过禁言，通过时要抬走
+    HoldUntil int64                // 那次禁言的到期时间，用来认出是不是自己下的
+    Passing   bool                 // 已答对，重试只能走批准，不能改判拒绝
+    Attempts  int
+    Nonce     string               // 认出过期的旧事件
+    Epoch     uint32               // 掉线恢复后递增，拒绝上一轮的结算
+    Lang      string
+    Payload   string               // 题面、诱饵、难度，按 Kind 解释
+    Delivered Delivered
+    ExpiresAt int64
+    DeferredSince int64            // 管理员手工挂起的起点，有 48 小时上限
+}
+
+type Action string                 // approve decline ban kick mute unmute retract
+type AckResult struct {            // 回调应答；文案本身可能就是结果
+    Text  string
+    Alert bool                     // 弹窗还是气泡
+}</div>
+      </div>
+    </div>
+
+    <h3>三处签名被实现推翻了</h3>
+    <p>把契约拿去实施时，有三处与现有行为不符。<b>照实改契约，不是照契约改行为</b>——
+      这一片的规矩是不许改判定。</p>
+    <div class="tw"><table class="spec-table">
+      <thead><tr><th>原来写的</th><th>与什么不符</th><th>改成</th></tr></thead>
+      <tbody>
+        <tr><td><code>Ban(ctx, chat, user, until)</code></td>
+            <td>自动封禁不撤回历史消息，管理员封禁撤回。
+              <code>internal/verify/service.go:2703</code> 传 <code>false</code>，
+              <code>:2750</code> 传 <code>true</code>。签名里没有这个参数，
+              <b>取任一固定值都改变行为</b></td>
+            <td><code>Ban(ctx, chat, user, until, revoke bool)</code></td></tr>
+        <tr><td><b><code>AckInteraction</code> 必须先于同一交互的任何其他调用</b></td>
+            <td>Telegram 一个回调只能应答一次，<b>而应答的文案有时就是结果</b>：
+              「不是你的」「已经处理过了」。先应答就没有结果可说了。
+              <code>internal/verify/service.go:1781-1799</code></td>
+            <td>分两种，见下</td></tr>
+        <tr><td>只有 <code>DeliverChallenge</code></td>
+            <td>核心还要发结果私聊、失败通知、管理员告警与审计记录，
+              各有各的清理与去重语义，塞进同一个方法会让它无法解释</td>
+            <td>按语义分开，见下</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>回调应答分两种，不是一条规则</h3>
+    <p>上一代 v3.6.7 专门改过这里：管理员点「踢出」「通过」时按钮要转两秒，
+      原因是应答排在三四次串行往返之后。修法不是「一律先应答」，而是分情况：</p>
+    <div class="tw"><table class="spec-table">
+      <thead><tr><th>谁点的</th><th>次序</th><th>为什么</th></tr></thead>
+      <tbody>
+        <tr><td>管理员按钮</td><td><b>先应答，再执行</b>，应答不带文案</td>
+            <td>结果在群里看得见。让按钮先停转，比在提示里重复一遍有用</td></tr>
+        <tr><td>申请人答题</td><td><b>先判定，再应答</b>，应答带结果文案</td>
+            <td>那个提示就是他唯一能看到的结果。先应答就等于把结果扔了</td></tr>
+      </tbody>
+    </table></div>
+    <p style="font-size:0.875rem;">因此端口给两个方法：<code>AckFast(ctx, InteractionID)</code>
+      不带文案、用于管理员按钮；<code>AckResult(ctx, InteractionID, AckResult)</code>
+      带文案、用于申请人。<b>一次交互只能调用其中一个</b>，这一条要在实现里断言。</p>
+
+    <h3>投递按语义分开</h3>
+    <div class="tw"><table class="spec-table">
+      <thead><tr><th>方法</th><th>送什么</th><th>它自己的语义</th></tr></thead>
+      <tbody>
+        <tr><td><code>DeliverChallenge</code></td><td>挑战</td>
+            <td>按 <code>Delivery</code> 送到群内、私聊或两者，返回实际送达处。
+              两处都没送到不是错误，是一种结果</td></tr>
+        <tr><td><code>DeliverResult</code></td><td>通过或拒绝的通知</td>
+            <td>私聊送不到就算了，不重试。群内那条有清理时限</td></tr>
+        <tr><td><code>Alert</code></td><td>管理员告警</td>
+            <td><b>带去重与节流</b>：同一件事在窗口内只发一次。
+              没有配置告警群时退回到群内，并带更短的清理时限</td></tr>
+        <tr><td><code>Retract</code></td><td>收回本次挑战贴出的消息</td>
+            <td>收一组引用，逐条删除失败只记录不阻断结算</td></tr>
+      </tbody>
+    </table></div>
+    <p style="font-size:0.875rem;">审计记录不走 <code>Gateway</code>：它进的是本地存储，
+      不是 Telegram。放在 <code>Store</code> 那一侧。</p>
+
+    <h3>连接中断由装配层处理，不进端口</h3>
+    <p>上一代用 <code>GetMe</code> 心跳判断能不能连上 Telegram，连不上时暂停验证超时，
+      避免把机器人自己的掉线判成申请人超时
+      （<code>internal/verify/state.go:609</code>、<code>:892</code>）。</p>
+    <p><b>这件事不需要端口方法。</b>超时由扫描器领取，而扫描器由 <code>app</code> 驱动：
+      平台不可达时 <code>app</code> 停止驱动它，恢复后再开始，并把 <code>epoch</code> 递增，
+      使掉线前那一轮的结算无法生效。<b>核心不需要知道「离线」这个概念</b>，
+      它只知道没有人来叫它扫描。少一个端口方法，也少一处两边状态可能不一致的地方。</p>
+
     <h3>接口上要写清不许做什么</h3>
     <p>上面那张表说的是每个方法为什么长这样，<b>但没说实现时不许做什么</b>。
       mautrix 的接口注释两样都写：某个方法「不允许返回错误，连接错误走另一条通道」，

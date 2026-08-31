@@ -178,6 +178,99 @@ type Store interface {
 | `Create` 返回 `bool` 而不是靠错误区分 | 重复到达由唯一索引拒绝，那不是异常，是预期内的一种结果 |
 | `ClaimExpired` 收 `now` | 因此不需要 `Clock` 接口。少一个接口，测试直接传时间即可 |
 
+### 端口用到的类型
+
+上一版只给了方法签名，**签名里的每一个类型都没有定义**。 派去做这一片的助手因此停下来：它无法在不自拟约定的前提下完成一次无行为变更的搬移， 而自拟约定正是被禁止的。类型补在这里。
+
+```text
+type ChatID int64
+type UserID int64
+type MessageID int
+type ChallengeID string
+type InteractionID string          // Telegram 的 callback query id
+
+type State string                  // pending approved declined banned expired superseded
+type Kind  string                  // rule pow captcha membership
+type Gate  string                  // request  申请制    mute  先入群后限制
+
+type MessageRef struct { Chat ChatID; Message MessageID }
+
+type Delivery struct {             // 要送到哪几处，来自每群设定
+    Group   bool
+    Private bool
+}
+type Delivered struct {            // 实际送到了哪几处
+    GroupMsg   MessageID           // 0 表示没送到
+    PrivateMsg MessageID
+    Any        bool                // 两处都没送到时为假，到期自动拒绝
+}
+
+type Challenge struct {
+    ID        ChallengeID
+    Chat      ChatID
+    User      UserID
+    Gate      Gate
+    Kind      Kind
+    State     State
+    Invited   bool                 // 是别人拉进来的，通知里让管理员可以担保
+    Held      bool                 // 本次验证下过禁言，通过时要抬走
+    HoldUntil int64                // 那次禁言的到期时间，用来认出是不是自己下的
+    Passing   bool                 // 已答对，重试只能走批准，不能改判拒绝
+    Attempts  int
+    Nonce     string               // 认出过期的旧事件
+    Epoch     uint32               // 掉线恢复后递增，拒绝上一轮的结算
+    Lang      string
+    Payload   string               // 题面、诱饵、难度，按 Kind 解释
+    Delivered Delivered
+    ExpiresAt int64
+    DeferredSince int64            // 管理员手工挂起的起点，有 48 小时上限
+}
+
+type Action string                 // approve decline ban kick mute unmute retract
+type AckResult struct {            // 回调应答；文案本身可能就是结果
+    Text  string
+    Alert bool                     // 弹窗还是气泡
+}
+```
+
+### 三处签名被实现推翻了
+
+把契约拿去实施时，有三处与现有行为不符。**照实改契约，不是照契约改行为**—— 这一片的规矩是不许改判定。
+
+| 原来写的 | 与什么不符 | 改成 |
+|---|---|---|
+| `Ban(ctx, chat, user, until)` | 自动封禁不撤回历史消息，管理员封禁撤回。 `internal/verify/service.go:2703` 传 `false`， `:2750` 传 `true`。签名里没有这个参数， **取任一固定值都改变行为** | `Ban(ctx, chat, user, until, revoke bool)` |
+| **`AckInteraction` 必须先于同一交互的任何其他调用** | Telegram 一个回调只能应答一次，**而应答的文案有时就是结果**： 「不是你的」「已经处理过了」。先应答就没有结果可说了。 `internal/verify/service.go:1781-1799` | 分两种，见下 |
+| 只有 `DeliverChallenge` | 核心还要发结果私聊、失败通知、管理员告警与审计记录， 各有各的清理与去重语义，塞进同一个方法会让它无法解释 | 按语义分开，见下 |
+
+### 回调应答分两种，不是一条规则
+
+上一代 v3.6.7 专门改过这里：管理员点「踢出」「通过」时按钮要转两秒， 原因是应答排在三四次串行往返之后。修法不是「一律先应答」，而是分情况：
+
+| 谁点的 | 次序 | 为什么 |
+|---|---|---|
+| 管理员按钮 | **先应答，再执行**，应答不带文案 | 结果在群里看得见。让按钮先停转，比在提示里重复一遍有用 |
+| 申请人答题 | **先判定，再应答**，应答带结果文案 | 那个提示就是他唯一能看到的结果。先应答就等于把结果扔了 |
+
+因此端口给两个方法：`AckFast(ctx, InteractionID)` 不带文案、用于管理员按钮；`AckResult(ctx, InteractionID, AckResult)` 带文案、用于申请人。**一次交互只能调用其中一个**，这一条要在实现里断言。
+
+### 投递按语义分开
+
+| 方法 | 送什么 | 它自己的语义 |
+|---|---|---|
+| `DeliverChallenge` | 挑战 | 按 `Delivery` 送到群内、私聊或两者，返回实际送达处。 两处都没送到不是错误，是一种结果 |
+| `DeliverResult` | 通过或拒绝的通知 | 私聊送不到就算了，不重试。群内那条有清理时限 |
+| `Alert` | 管理员告警 | **带去重与节流**：同一件事在窗口内只发一次。 没有配置告警群时退回到群内，并带更短的清理时限 |
+| `Retract` | 收回本次挑战贴出的消息 | 收一组引用，逐条删除失败只记录不阻断结算 |
+
+审计记录不走 `Gateway`：它进的是本地存储， 不是 Telegram。放在 `Store` 那一侧。
+
+### 连接中断由装配层处理，不进端口
+
+上一代用 `GetMe` 心跳判断能不能连上 Telegram，连不上时暂停验证超时， 避免把机器人自己的掉线判成申请人超时 （`internal/verify/state.go:609`、`:892`）。
+
+**这件事不需要端口方法。**超时由扫描器领取，而扫描器由 `app` 驱动： 平台不可达时 `app` 停止驱动它，恢复后再开始，并把 `epoch` 递增， 使掉线前那一轮的结算无法生效。**核心不需要知道「离线」这个概念**， 它只知道没有人来叫它扫描。少一个端口方法，也少一处两边状态可能不一致的地方。
+
 ### 接口上要写清不许做什么
 
 上面那张表说的是每个方法为什么长这样，**但没说实现时不许做什么**。 mautrix 的接口注释两样都写：某个方法「不允许返回错误，连接错误走另一条通道」， 某个方法「在全局缓存锁里被调用，因此不能做慢操作」。 约束写在接口旁边，实现的人不必去读调用方才知道。补上我们的：
