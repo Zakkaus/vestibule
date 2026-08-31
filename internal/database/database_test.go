@@ -38,6 +38,60 @@ func TestOpenMigratesSQLite(t *testing.T) {
 	}
 }
 
+func TestOpenConfiguresSQLitePragmas(t *testing.T) {
+	ctx := context.Background()
+	db, err := Open(ctx, testSQLiteConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	var foreignKeys, synchronous, busyTimeout int
+	if err = db.RawDB.QueryRowContext(ctx, "PRAGMA foreign_keys").Scan(&foreignKeys); err != nil {
+		t.Fatal(err)
+	}
+	if err = db.RawDB.QueryRowContext(ctx, "PRAGMA synchronous").Scan(&synchronous); err != nil {
+		t.Fatal(err)
+	}
+	if err = db.RawDB.QueryRowContext(ctx, "PRAGMA busy_timeout").Scan(&busyTimeout); err != nil {
+		t.Fatal(err)
+	}
+	var journalMode string
+	if err = db.RawDB.QueryRowContext(ctx, "PRAGMA journal_mode").Scan(&journalMode); err != nil {
+		t.Fatal(err)
+	}
+	if foreignKeys != 1 || synchronous != 1 || busyTimeout != 5000 || !strings.EqualFold(journalMode, "wal") {
+		t.Fatalf(
+			"SQLite pragmas = foreign_keys=%d synchronous=%d busy_timeout=%d journal_mode=%q",
+			foreignKeys,
+			synchronous,
+			busyTimeout,
+			journalMode,
+		)
+	}
+
+	if _, err = db.Exec(ctx, "CREATE TABLE pragma_parent (id INTEGER PRIMARY KEY)"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.Exec(ctx, "CREATE TABLE pragma_child (parent_id INTEGER REFERENCES pragma_parent(id))"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.Exec(ctx, "INSERT INTO pragma_child (parent_id) VALUES (1)"); err == nil {
+		t.Fatal("foreign key violation succeeded")
+	}
+}
+
+func TestPostgresDriverIsRegistered(t *testing.T) {
+	db, err := dbutil.NewWithDialect(
+		"postgres://vestibule@localhost/vestibule?sslmode=disable",
+		"postgres",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+}
+
 func TestOpenRejectsNewerSchema(t *testing.T) {
 	ctx := context.Background()
 	cfg := testSQLiteConfig(t)

@@ -42,6 +42,9 @@ jobs:
         run: go test -race ./...
       - name: test (gentoo edition)
         run: go test -race -tags gentoo ./...
+      - name: static SQLite release-runtime gate
+        run: scripts/test-static-sqlite.sh
+
       - name: govulncheck
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
       - name: gosec
