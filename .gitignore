@@ -1,0 +1,5 @@
+/vestibule
+/dist/
+*.test
+.env
+config.json

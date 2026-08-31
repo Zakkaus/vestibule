@@ -1,0 +1,72 @@
+**English** · [简体中文](README.zh-CN.md)
+
+# Vestibule
+
+A Telegram group join-verification and moderation bot. One instance serves many groups,
+and each group is configured by its own Telegram administrators through a web console.
+
+The name is the room you wait in before you are let inside. Under approval mode, that is
+literally where an applicant is: outside the group, holding.
+
+## Status
+
+**Being rewritten.** The current tree is `gentoo-zh-verify-bot` v4.5.6 carried over and
+renamed; its behaviour is identical. None of the nine phases in `docs/PLAN-v5.md` have
+started.
+
+The previous generation is still running in production and will not be replaced until this
+one is ready.
+
+## The three references
+
+| To decide | Read |
+|---|---|
+| Console values, screen contents, copy rules | `web/design.html` |
+| Package structure, data, flows, reliability | `web/architecture.html` and `docs/ARCHITECTURE.md` |
+| Build, commits, pre-PR checks, code style | `CONTRIBUTING.md` and `docs/development.md` |
+
+The rewrite order and each phase's acceptance criteria are in `docs/PLAN-v5.md`.
+
+Both reference documents are pages. Open them locally:
+
+```sh
+python3 -m http.server 8787 --bind 127.0.0.1 --directory web
+```
+
+They render in the tokens they document, so a broken token breaks the page.
+
+## What it has to become
+
+1. Anyone can add the bot to their own group and configure it themselves.
+2. The web console covers every setting.
+3. State lives in a database and survives concurrency and restarts without loss or double
+   settlement.
+4. One command deploys it, and a failed upgrade rolls itself back.
+
+The acceptance test is one sentence: **delete our own community's rows and the product still
+works.**
+
+## Architecture in one screen
+
+```
+cmd/bot/
+internal/
+├── app/            wiring, lifecycle, background tasks
+├── verification/   state machine and policy. Gateway and Store are declared here
+├── rules/          pure functions: normalisation, conditions, structural signals
+├── telegram/       SDK, updates, send queue, its own store
+├── console/        HTTP API, auth, embedded frontend
+├── settings/  database/  status/
+web/                frontend source
+```
+
+Interfaces are declared by the consumer, not the implementer. The console and Telegram
+updates call the same service, so there is only one set of rules.
+
+Hard limits, checked in CI: 600 lines per file, 80 lines per function, cyclomatic complexity
+15, one concern per commit. New code goes in a package the architecture document already
+declares.
+
+## Licence
+
+See `LICENSE`.

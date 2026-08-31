@@ -1,0 +1,66 @@
+{
+  "menu": {
+    "member": {
+      "arm": "Show Gentoo arm64 keyword status",
+      "arm_pkgs": "Compare arm64 support across distributions",
+      "bbs": "Search Linux forums (Chinese first)",
+      "bug": "Look up a Gentoo Bugzilla issue",
+      "cve": "Look up a vulnerability by identifier",
+      "distro": "Alias for /pkgs",
+      "help": "Show available commands",
+      "kernel": "Kernel versions currently published on kernel.org",
+      "man": "Look up a Linux manual page",
+      "news": "Browse or search Gentoo news",
+      "ping": "Show bot status and uptime",
+      "pkg": "Search Gentoo packages",
+      "pkgs": "Compare package versions across distributions",
+      "repology": "Package versions across distribution repositories",
+      "stats": "Show today's approvals and rejections",
+      "use": "Show package details and USE flags",
+      "wiki": "Search Gentoo Wiki and ArchWiki"
+    },
+    "admin": {
+      "start": "[Administrator] Enable join verification",
+      "stop": "[Administrator] Disable join verification",
+      "mute": "[Administrator] Mute the user you replied to (default: 1h)",
+      "unmute": "[Administrator] Unmute the user you replied to",
+      "purge": "[Administrator] Ban the user you replied to and delete all messages",
+      "ban": "[Administrator] Ban and remove the user you replied to",
+      "warn": "[Administrator] Warn the user you replied to (removed after %[1]d warnings)",
+      "clear_warn": "[Administrator] Clear warnings for the user you replied to",
+      "channel": "[Administrator] Manage sender-channel blocking",
+      "rich_text": "[Administrator] Toggle rich text for /{g}pkg and /{g}use",
+      "name_spoiler": "[Administrator] Toggle name hiding for new members",
+      "verification_mode": "[Administrator] Change verification mode",
+      "auto_delete": "[Administrator] Toggle automatic result deletion",
+      "ban_time": "[Administrator] Set ban duration"
+    },
+    "owner": {
+      "enroll": "Create a one-use group-enrollment link",
+      "unregister": "Unregister a runtime group"
+    }
+  },
+  "lifecycle": {
+    "unauthorized_chat": "🚪 Automatically left unauthorized chat: %[1]s (ID: %[2]d, type: %[3]s)."
+  },
+  "direct_message": {
+    "auto_reply": "👋 %[2]s\n\n• To join: submit a join request in the group. Answer a challenge sent here, or select “✅ Start verification” in any group message the bot posts.\n• Lookup commands also work in direct messages; /help lists every one of them. Direct messages are limited to %[1]d queries per minute; group chats are not rate-limited.\n• Review and administration commands only work in the group.",
+    "identity": "This bot handles join verification for the Gentoo-zh Community and provides Gentoo/Linux lookup commands.",
+    "identity_generic": "This bot handles join verification for this group and provides Linux lookup commands."
+  },
+  "registration": {
+    "owner_claimed": "Deployer ownership is now bound to this account. You can add groups.",
+    "owner_claim_refused": "This owner-claim link is invalid, used, or expired.",
+    "owner_claim_save_failed": "Could not save the owner claim. Restore write access to the service state directory, then retry the same link.",
+    "enrollment_owner_only": "Only the bot owner can create group-enrollment links.",
+    "enrollment_link": "Group-enrollment link (valid for %[1]d minutes and one use):\n%[2]s",
+    "enrollment_refused": "This group-enrollment link is invalid, used, or expired. The bot will leave this group.",
+    "registration_pending": "Registration is authorized for group “%[1]s”. Promote the bot to administrator and grant the required permissions. Registration finishes automatically after promotion.",
+    "group_registered": "Registered group “%[1]s”. Run /settings in that group.",
+    "registration_save_failed": "Could not persist group registration. The bot will leave this group; check the service state directory.",
+    "unregister_owner_only": "Only the bot owner can unregister runtime groups.",
+    "unregister_refused": "Could not unregister that group. Use /unregister <group-id> with a runtime-registered group ID.",
+    "unregister_save_failed": "Could not persist group removal. Restore write access to the service state directory, then retry.",
+    "group_unregistered": "Unregistered group “%[1]s” and removed its runtime settings."
+  }
+}
