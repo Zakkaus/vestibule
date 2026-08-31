@@ -282,7 +282,7 @@ type AckResult struct {            // 回调应答；文案本身可能就是结
 
 | 它声明的 | 是什么 | 去哪 |
 |---|---|---|
-| `verifyTransport`（11 个方法） | **上一代自己的端口，而且分得很好**：投递、清理、告警、审计、 封禁解禁、禁言解禁 | 去掉平台类型后**就是** `Gateway` 的主体 |
+| `verifyTransport`（10 个方法） | **上一代自己的端口，而且分得很好**：投递、清理、告警、审计、 封禁解禁、禁言解禁 | 去掉平台类型后**就是** `Gateway` 的主体 |
 | `adminTransport` | `CachedAdmin` 与 `FreshAdmin` 两个查询 | 两个都留。合成一个会丢掉「写前现查」与六十秒缓存的区分， 而那是 v3.6.7 量出来的 |
 | `verifyBot`、`modBot`、`Telegram` | 直接暴露 telego 参数结构体的三层包装 | 不保留。我们的不变量不允许核心出现平台类型 |
 | `liveProbe`、`heartbeatBot` | `GetMe` 探活 | 归 `app`，见「连接中断由装配层处理」 |
