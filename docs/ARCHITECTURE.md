@@ -174,23 +174,24 @@ type Gateway interface {
 }
 
 type Store interface {
-    Create(ctx, *Challenge) (bool, error)
-    Open(ctx, ChatID, UserID) (*Challenge, error)
-    OpenByUser(ctx, UserID) ([]*Challenge, error)
-    AttachDelivery(ctx, ChallengeID, Delivered) (bool, error)
-    Attempt(ctx, ChallengeID, nonce string) (left int, ok bool, err error)
-    Update(ctx, ChallengeID, epoch uint32, mutate func(*Challenge)) (bool, error)
-    Settle(ctx, ChallengeID, epoch uint32, from, to State, act Action) (bool, error)
-    ClaimExpired(ctx, now time.Time, limit int) ([]*Challenge, error)
+    LoadPending(string) ([]PendingRecord, error)
+    InsertPending(string, PendingRecord) (bool, error)
+    UpdatePending(string, PendingRef, PendingRecord) (bool, error)
+    TransitionChallenge(string, ChallengeTransition) (bool, error)
+    DeletePending(string, PendingRef) (bool, error)
 
-    Fails(ctx, ChatID, UserID) (count int, last int64, err error)
-    RecordFail(ctx, ChatID, UserID, at int64) (count int, err error)
-    ClearFails(ctx, ChatID, UserID) error
-    PruneFails(ctx, now time.Time, window func(ChatID) time.Duration) (removed int, err error)
-
-    Tally(ctx, day string) (approved, declined int, err error)
+    LoadFailures(string) ([]FailureRecord, error)
+    SaveFailures(string, func() []FailureRecord) error
+    LoadAgents(string) (AgentTally, error)
+    SaveAgents(string, func() AgentTally) error
+    LoadHeartbeat(string) (HeartbeatRecord, error)
+    SaveHeartbeat(string, HeartbeatRecord) error
 }
 ```
+
+**这份 `Store` 是阶段三第二片落地后写回来的，不是先画好等人照抄的。** 原先这里写的是 `Create`、`Open`、`AttachDelivery`、 `Attempt`、`Settle`、`ClaimExpired` 那一套 —— 隔着代码开出来的处方，实施时一条都没用上。同一份文档在第 3 节 「这份契约是从八个接口反推的」已经写明这类签名表不该预先规定， 那一条当时没有管到这里。
+
+`ClaimExpired` 确实还要有，但它属于扫描器，是阶段三第三片的事； 到时候一并写回，形状同样由那一片的调用点决定。 失败计数、模型计数与心跳仍是快照形状：它们不是挑战的状态转换， 跟着改就是把第三片的活提前做了。
 
 每一处形状都有理由，而且每一条都是上一代踩过的：
 
