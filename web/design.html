@@ -1877,8 +1877,15 @@ li::marker { color: var(--border); }
     <p>日志无法回答的一个问题：有多少人是搜到诱饵、发现搜不出结果就放弃的。
       他们和从没打算答题的机器人一样，都只留下一条超时。诱饵退回了多少人，上一代量不出来。</p>
     <p>这直接决定了本项目要记什么：<strong>每一次退回都要记下原因</strong> ——
-      超时、答错、答对但触发否决条件、外部条件不满足，分开记。
-      上一代查不出自己那道题灵不灵，是因为它只写了「退回」两个字。</p>
+      超时、答错、答对但触发否决条件、外部条件不满足，分开记。</p>
+    <p>上一代已经分了三种：<code>timeout</code>、<code>wrong answer</code>、
+      <code>challenge-post-failed</code>（<code>internal/verify/service.go:2610</code>、
+      <code>internal/verify/service.go:963</code>）。上面那个零，是这三种里
+      <code>wrong answer</code> 一次都没出现，不是它分不出来。
+      它缺的是别的两样：这三种只写进日志那一行
+      （<code>internal/verify/service.go:2765</code>），没有落进任何一张表，
+      控制台查不到；而没关注必关频道的人被记成 <code>timeout</code>
+      （<code>internal/verify/state.go:682</code>），和从没回来答的人分不开。</p>
 
     <h3>规则的形状</h3>
     <p>一道题就是：题面、输入方式、一组通过条件、一组否决条件、失败提示。
