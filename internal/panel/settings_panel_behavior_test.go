@@ -19,7 +19,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/moderate"
 	"github.com/Zakkaus/vestibule/internal/store"
-	"github.com/Zakkaus/vestibule/internal/tg"
+	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/verify"
 	"github.com/mymmrac/telego"
 	ta "github.com/mymmrac/telego/telegoapi"
@@ -268,7 +268,7 @@ func newSettingsPanelTestWithCaller(t *testing.T, path string, caller ta.Caller)
 	}
 	bot := newAPITestBot(t, caller)
 	verifier := &panelVerifierStub{}
-	telegram := tg.New(bot)
+	telegram := telegram.NewConnector(bot)
 	moderation := moderate.New(settings, telegram, cfg, "")
 	panel := New(settings, telegram, cfg, &i18n.Messages, verifier, moderation, nil, "test", time.Now())
 	return panel, settings, bot
@@ -364,7 +364,7 @@ func TestVerificationStartPayloadSelectsOnePendingGroupAndBarePayloadStillFansOu
 		}
 		caller := &panelAPICaller{messageID: 100}
 		bot := newAPITestBot(t, caller)
-		telegram := tg.New(bot)
+		telegram := telegram.NewConnector(bot)
 		verifier := verify.New(settings, telegram, cfg, &i18n.Messages, bot,
 			verify.Identity{ID: 500, Username: "settings_test_bot"}, "")
 		t.Cleanup(verifier.Shutdown)
@@ -909,7 +909,7 @@ func TestPanelPerGroupChangeIgnoresControlGroupGate(t *testing.T) {
 func TestPanelStaleSessionAfterRestartExpires(t *testing.T) {
 	panel, settings, caller, bot := newSettingsPanelTest(t, "")
 	session := addPanelSession(t, panel, settings, panelTestGroupA, "rt")
-	restarted := New(settings, tg.New(bot), panel.cfg, &i18n.Messages, &panelVerifierStub{}, nil, nil, "test", time.Now())
+	restarted := New(settings, telegram.NewConnector(bot), panel.cfg, &i18n.Messages, &panelVerifierStub{}, nil, nil, "test", time.Now())
 	invokePanelCallback(t, restarted, bot, session, panelTestGroupA, "en", "_")
 	group, _ := settings.Group(panelTestGroupA)
 	if !group.Enabled().Value {

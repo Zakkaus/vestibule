@@ -18,9 +18,10 @@ import (
 	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/telegram/ids"
+	"github.com/Zakkaus/vestibule/internal/telegram/queue"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
-	"github.com/Zakkaus/vestibule/internal/tg"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -235,7 +236,7 @@ type Service struct {
 	settings          *store.Settings     // authoritative runtime-settings transaction
 	tgMu              sync.Mutex          // guards telegramBot and telegramClient
 	telegramBot       *telego.Bot         // concrete handler bot wrapped by telegramClient
-	telegramClient    *tg.Client          // shared transport client; owns admin cache and cleanup timer counts
+	telegramClient    *telegram.Connector // shared transport client; owns admin cache and cleanup timer counts
 	lastOnline        time.Time           // last time a heartbeat confirmed the bot can reach Telegram (guarded by mu); seeded to start time so we begin "online"
 	hbPath            string              // persistence path for the online heartbeat, so a restart can estimate how long the bot was down
 	probe             liveProbe           // liveness prober (the bot) for reachable(); nil in tests => assume reachable
@@ -267,7 +268,7 @@ type Identity struct {
 }
 
 // New constructs verification with explicit state, transport, configuration, catalogue, and Bot API dependencies.
-func New(settings *store.Settings, telegram *tg.Client, cfg *config.Config, messages *i18n.Catalog, bot Telegram, identity Identity, stateDir string) *Service {
+func New(settings *store.Settings, telegram *telegram.Connector, cfg *config.Config, messages *i18n.Catalog, bot Telegram, identity Identity, stateDir string) *Service {
 	v := newService(settings, telegram, cfg, messages)
 	v.botID = identity.ID
 	v.botUsername = identity.Username
@@ -287,7 +288,7 @@ func New(settings *store.Settings, telegram *tg.Client, cfg *config.Config, mess
 	return v
 }
 
-func newService(settings *store.Settings, telegram *tg.Client, cfg *config.Config, messages *i18n.Catalog) *Service {
+func newService(settings *store.Settings, telegram *telegram.Connector, cfg *config.Config, messages *i18n.Catalog) *Service {
 	if settings == nil {
 		panic("verify: settings must not be nil")
 	}
@@ -307,12 +308,12 @@ func newService(settings *store.Settings, telegram *tg.Client, cfg *config.Confi
 	}
 }
 
-func (v *Service) telegram(bot *telego.Bot) *tg.Client {
+func (v *Service) telegram(bot *telego.Bot) *telegram.Connector {
 	v.tgMu.Lock()
 	defer v.tgMu.Unlock()
 	if v.telegramClient == nil || (v.telegramBot != nil && v.telegramBot != bot) {
 		v.telegramBot = bot
-		v.telegramClient = tg.New(bot)
+		v.telegramClient = telegram.NewConnector(bot)
 	}
 	return v.telegramClient
 }
@@ -338,7 +339,7 @@ func botClient(bot any) (*telego.Bot, bool) {
 // existingTransport is the last resort. Asserting instead used to panic, and the one caller that
 // hands over a wrapper is outage recovery: a panic there takes the process down mid-recovery and
 // leaves every pending applicant to time out on a challenge nobody re-sent.
-func (v *Service) existingTransport() *tg.Client {
+func (v *Service) existingTransport() *telegram.Connector {
 	v.tgMu.Lock()
 	defer v.tgMu.Unlock()
 	return v.telegramClient
@@ -852,7 +853,7 @@ func (v *Service) tryTrustedBypass(c context.Context, bot modBot, gid, uid int64
 		}
 		// Trusted membership takes priority over failure cooldown.
 		if err := bot.ApproveChatJoinRequest(c, &telego.ApproveChatJoinRequestParams{ChatID: tu.ID(gid), UserID: uid}); err != nil {
-			if tg.JoinRequestGone(err) {
+			if telegram.JoinRequestGone(err) {
 				// Already settled in Telegram's own interface; a challenge now would be noise.
 				log.Printf("trusted-bypass: join request from %d in %d is already gone: %v", uid, gid, err)
 				return true, true
@@ -883,7 +884,7 @@ func (v *Service) joinGate(c context.Context, bot modBot, gid, uid int64, applic
 	// Early retries are declined without posting another challenge.
 	if wait := v.verifyCooldownRemaining(gid, uid); wait > 0 {
 		if err := bot.DeclineChatJoinRequest(c, &telego.DeclineChatJoinRequestParams{ChatID: tu.ID(gid), UserID: uid}); err != nil {
-			if tg.JoinRequestGone(err) {
+			if telegram.JoinRequestGone(err) {
 				log.Printf("verify cooldown: join request from %d in %d is already gone: %v", uid, gid, err)
 				return true
 			}
@@ -1452,8 +1453,8 @@ func definiteDMFailure(err error) bool {
 	if err == nil {
 		return false
 	}
-	code := tg.ErrorCode(err)
-	return tg.CannotInitiateConversation(err) || tg.BotWasBlockedByUser(err) || code >= 400 && code < 500
+	code := queue.ErrorCode(err)
+	return telegram.CannotInitiateConversation(err) || telegram.BotWasBlockedByUser(err) || code >= 400 && code < 500
 }
 
 // Bind delivery completion to the pending pointer and nonce captured before the Bot API call.
@@ -1671,14 +1672,14 @@ func (v *Service) attemptPrivateChallenge(c context.Context, bot modBot, gid, ui
 			replacedPrivateMsgID: replacedPrivateMsgID,
 		}
 	}
-	if tg.IsRateLimited(err) {
-		wait := tg.RetryAfter(err)
+	if queue.IsRateLimited(err) {
+		wait := queue.RetryAfter(err)
 		// Waiting out a flood limit is only worth it if the applicant's own window outlives the
 		// wait. Sleeping past their deadline means they are declined before the question ever
 		// arrives; falling through instead lets the group challenge carry the verification.
 		if wait > 0 && wait < v.gateTimeout(gid, gateOf(owner).gate) && wait+rateLimitSendMargin <= v.deliveryBudget(gid, uid, owner) {
 			log.Printf("join %d in %d: private challenge rate-limited; retrying after %s", uid, gid, wait)
-			if !tg.Pace(c, wait) {
+			if !queue.Pace(c, wait) {
 				return privateDeliveryOutcome{result: privateUncertain}
 			}
 			active, privateMsgID, replacedPrivateMsgID, err = v.sendDMChallengeForGroup(c, bot, gid, uid, false, owner)
@@ -1695,12 +1696,12 @@ func (v *Service) attemptPrivateChallenge(c context.Context, bot modBot, gid, ui
 		}
 	}
 	switch {
-	case tg.CannotInitiateConversation(err):
+	case telegram.CannotInitiateConversation(err):
 		return privateDeliveryOutcome{result: privateRejected}
-	case tg.BotWasBlockedByUser(err):
+	case telegram.BotWasBlockedByUser(err):
 		log.Printf("join %d in %d: private challenge rejected because the bot is blocked", uid, gid)
 		return privateDeliveryOutcome{result: privateRejected}
-	case tg.ErrorCode(err) >= 400 && tg.ErrorCode(err) < 500:
+	case queue.ErrorCode(err) >= 400 && queue.ErrorCode(err) < 500:
 		log.Printf("join %d in %d: private challenge rejected by Telegram (%v)", uid, gid, err)
 		return privateDeliveryOutcome{result: privateRejected}
 	default:
@@ -2151,7 +2152,7 @@ func (v *Service) adminRecord(c context.Context, bot verifyBot, text string) {
 // A failure nobody can act on is not worth an operator notice. A deactivated applicant cannot be
 // approved, declined, or settled by an administrator either, so the group hears nothing.
 func (v *Service) settlementAlert(c context.Context, bot verifyBot, gid int64, err error, text string) {
-	if tg.ApplicantGone(err) {
+	if telegram.ApplicantGone(err) {
 		return
 	}
 	v.failAlert(c, bot, gid, text)
@@ -2252,7 +2253,7 @@ func (v *Service) executeApprove(c context.Context, bot modBot, gid, uid int64, 
 		return v.executeRelease(c, bot, gid, uid, p)
 	}
 	if err := bot.ApproveChatJoinRequest(c, &telego.ApproveChatJoinRequestParams{ChatID: tu.ID(gid), UserID: uid}); err != nil {
-		if !tg.JoinRequestGone(err) {
+		if !telegram.JoinRequestGone(err) {
 			log.Printf("approve %d in %d: %v", uid, gid, err)
 			v.settlementAlert(c, bot, gid, err, v.adminSays(p.gate).ApproveFailed.Render(v.groupLanguage(gid), uid, gid, err))
 			v.markPassing(gid, uid, p)
@@ -2306,7 +2307,7 @@ const maxSettleFailures = 10
 
 // giveUpSettling reports a failure no retry can repair, so the attempt budget is spent at once.
 func giveUpSettling(err error) bool {
-	return tg.GroupUnreachable(err) || tg.ApplicantGone(err)
+	return queue.GroupUnreachable(err) || telegram.ApplicantGone(err)
 }
 
 // stopRetrying reopens a failed settlement for another attempt, unless the error proves no
@@ -2652,7 +2653,7 @@ func (v *Service) finishDecline(c context.Context, bot modBot, gid, uid int64, p
 	if err := settle(); err != nil {
 		// A vanished join request has no counterpart when the applicant is already a member:
 		// removal either worked or is worth retrying.
-		if p.gate == gateMute || !tg.JoinRequestGone(err) {
+		if p.gate == gateMute || !telegram.JoinRequestGone(err) {
 			log.Printf("decline %d in %d failed: %v", uid, gid, err)
 			v.settlementAlert(c, bot, gid, err, v.adminSays(p.gate).DeclineFailed.Render(v.groupLanguage(gid), uid, gid, err))
 			v.stopRetrying(c, bot, gid, uid, p, "decline-retry", err)
@@ -2763,7 +2764,7 @@ func (v *Service) executeBan(c context.Context, bot modBot, gid, uid int64, p *p
 		return true
 	}
 	if err := bot.DeclineChatJoinRequest(c, &telego.DeclineChatJoinRequestParams{ChatID: tu.ID(gid), UserID: uid}); err != nil {
-		if !tg.JoinRequestGone(err) {
+		if !telegram.JoinRequestGone(err) {
 			log.Printf("decline after ban %d in %d: %v", uid, gid, err)
 			v.settlementAlert(c, bot, gid, err, v.adminSays(p.gate).DeclineFailed.Render(v.groupLanguage(gid), uid, gid, err))
 			v.stopRetrying(c, bot, gid, uid, p, "ban-retry", err)

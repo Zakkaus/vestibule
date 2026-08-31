@@ -44,7 +44,7 @@ excluded in CI (`-exclude=G304,G703,G706`):
 
 | Rule | Where | Why accepted |
 | --- | --- | --- |
-| **G304 / G703** — file path from a variable | state-file reads/writes and config load (`internal/store/json.go`, `internal/feed/feed.go`, `cmd/vestibule/main.go`, `internal/config/config.go`) | Paths come from the operator CLI (`--config`) or systemd `$STATE_DIRECTORY`, never from a Telegram user; the unit confines filesystem access. |
-| **G706** — log taint | `log.Printf` of usernames, chat titles, and paths across `internal/verify`, `internal/feed`, and `cmd/vestibule` | Values are operator config or Telegram-supplied display strings written to journald (not a fragile log parser); no command/format injection. |
+| **G304 / G703** — file path from a variable | state-file reads/writes and config load (`internal/store/json.go`, `internal/feed/feed.go`, `cmd/bot/main.go`, `internal/config/config.go`) | Paths come from the operator CLI (`--config`) or systemd `$STATE_DIRECTORY`, never from a Telegram user; the unit confines filesystem access. |
+| **G706** — log taint | `log.Printf` of usernames, chat titles, and paths across `internal/verify`, `internal/feed`, and `internal/app` | Values are operator config or Telegram-supplied display strings written to journald (not a fragile log parser); no command/format injection. |
 
 Any other gosec rule — or a path/log finding that ever reaches genuinely untrusted input — fails CI.

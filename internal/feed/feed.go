@@ -17,8 +17,8 @@ import (
 	"github.com/Zakkaus/vestibule/internal/lookup"
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/Zakkaus/vestibule/internal/telegram/ids"
+	"github.com/Zakkaus/vestibule/internal/telegram/queue"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
-	"github.com/Zakkaus/vestibule/internal/tg"
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
 )
@@ -392,9 +392,9 @@ func postFeed(ctx context.Context, bot feedBot, chatID int64, text string, silen
 	cancel()
 	if err != nil {
 		log.Printf("feed: post to %d: %v", chatID, err)
-		return 0, false, tg.IsRateLimited(err), tg.PermanentPostError(err)
+		return 0, false, queue.IsRateLimited(err), queue.PermanentPostError(err)
 	}
-	tg.Pace(ctx, feedSendPause)
+	queue.Pace(ctx, feedSendPause)
 	return ids.MessageID(sent), true, false, false
 }
 
@@ -572,7 +572,7 @@ refresh:
 		cancel()
 		edits++
 		switch {
-		case eerr == nil || tg.IsNotModified(eerr): // edited (or already current) — sync our state
+		case eerr == nil || queue.IsNotModified(eerr): // edited (or already current) — sync our state
 			tb.EditFails = 0
 			if wasUnconfirmed && !bugResolved(b) && !strings.EqualFold(b.Status, "UNCONFIRMED") && !bugSilent(f, b) {
 				// The silent UNCONFIRMED post moved OUT of UNCONFIRMED (but not straight to resolved) —
@@ -601,13 +601,13 @@ refresh:
 				// evictOne ages them out under the cap.
 				tb.State = cur
 			}
-		case tg.IsRateLimited(eerr):
+		case queue.IsRateLimited(eerr):
 			log.Printf("feed: edit tracked bug %d in %d rate-limited (%v) — pausing edits this cycle", id, f.ChatID, eerr)
 			break refresh
-		case tg.PermanentEditError(eerr):
+		case queue.PermanentEditError(eerr):
 			log.Printf("feed: drop tracked bug %d in %d (uneditable): %v", id, f.ChatID, eerr)
 			delete(st.Tracked, idStr)
-		case tg.CountablePermanentEditError(eerr):
+		case queue.CountablePermanentEditError(eerr):
 			tb.EditFails++
 			log.Printf("feed: edit tracked bug %d in %d (deterministic 400 %d/%d): %v", id, f.ChatID, tb.EditFails, maxEditFails, eerr)
 			if tb.EditFails >= maxEditFails {
@@ -618,7 +618,7 @@ refresh:
 			tb.EditFails = 0
 			log.Printf("feed: edit tracked bug %d in %d (transient, tracking retained): %v", id, f.ChatID, eerr)
 		}
-		if !tg.Pace(ctx, feedSendPause) {
+		if !queue.Pace(ctx, feedSendPause) {
 			return // shutdown mid-refresh: stop editing; pollAll still persists the advanced cursor
 		}
 	}

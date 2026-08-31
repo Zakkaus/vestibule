@@ -1,0 +1,81 @@
+package app
+
+import (
+	"context"
+	"log"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/feed"
+	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/verify"
+	"github.com/mymmrac/telego"
+)
+
+func newOutageAwareBot(
+	ctx context.Context,
+	bot *telego.Bot,
+	cfg *config.Config,
+	settings *store.Settings,
+	stateDirectory string,
+) *outageAwareBot {
+	heartbeatPath := ""
+	if stateDirectory != "" {
+		heartbeatPath = filepath.Join(stateDirectory, "heartbeat.json")
+	}
+	observer := &retentionOutageObserver{heartbeatPath: heartbeatPath}
+	observer.alert = func(outageDuration time.Duration) {
+		alertRetentionOutage(ctx, bot, cfg, settings.GroupIDs(), outageDuration)
+	}
+	return &outageAwareBot{Bot: bot, observer: observer}
+}
+
+func logRuntimeOptions(options Options) {
+	if apiURL := strings.TrimSpace(options.TelegramAPIURL); apiURL != "" {
+		log.Printf("using Bot API server %s", apiURL)
+	}
+	if options.GitHubToken != "" {
+		log.Printf("GITHUB_TOKEN set — GitHub API rate limit raised (~5000/h)")
+	}
+	if options.StateDirectory == "" {
+		log.Printf("WARNING: STATE_DIRECTORY is unset — persistence is DISABLED: settings changes are runtime-only, and pending verifications, warn counts, and feed cursors will NOT survive a restart (set StateDirectory= in the systemd unit)")
+	}
+}
+
+func logPrivacyMode(me *telego.User) {
+	if !me.CanReadAllGroupMessages {
+		log.Printf("NOTE: privacy mode is enabled for this bot, so it does not receive posts sent as a channel; the channel-sender ban (/bc) cannot act until privacy mode is turned off in @BotFather")
+	}
+}
+
+func startFeeds(ctx context.Context, cfg *config.Config, bot *telego.Bot, stateDirectory string) <-chan struct{} {
+	var feeds []*config.FeedConfig
+	for i := range cfg.Feeds {
+		if cfg.Feeds[i].ChatID != 0 {
+			feeds = append(feeds, &cfg.Feeds[i])
+		} else {
+			log.Printf("WARNING: a feed entry has chat_id=0 (missing/invalid) — it is disabled; set its chat_id to the target channel")
+		}
+	}
+	if len(feeds) == 0 {
+		return nil
+	}
+	done := make(chan struct{})
+	service := feed.New(bot, feeds, stateDirectory)
+	go func() {
+		defer close(done)
+		service.Run(ctx)
+	}()
+	return done
+}
+
+func startHeartbeat(ctx context.Context, verification *verify.Service, bot *outageAwareBot) <-chan struct{} {
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		verification.RunHeartbeat(ctx, bot)
+	}()
+	return done
+}
