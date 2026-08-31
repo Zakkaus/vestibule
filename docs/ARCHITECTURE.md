@@ -158,9 +158,15 @@ type Gateway interface {
 type Store interface {
     Create(ctx, *Challenge) (bool, error)
     Open(ctx, ChatID, UserID) (*Challenge, error)
-    AttachDelivery(ctx, ChallengeID, Delivered) error
-    Settle(ctx, ChallengeID, epoch uint64, from, to State, act Action) (bool, error)
+    OpenByUser(ctx, UserID) ([]*Challenge, error)
+    AttachDelivery(ctx, ChallengeID, Delivered) (bool, error)
+    Attempted(ctx, ChallengeID) (int, error)
+    Settle(ctx, ChallengeID, epoch uint32, from, to State, act Action) (bool, error)
     ClaimExpired(ctx, now time.Time, limit int) ([]*Challenge, error)
+
+    Fails(ctx, ChatID, UserID) (count int, last int64, err error)
+    RecordFail(ctx, ChatID, UserID, at int64) (count int, err error)
+    ClearFails(ctx, ChatID, UserID) error
 }
 ```
 
@@ -232,6 +238,25 @@ type AckResult struct {            // 回调应答；文案本身可能就是结
     Alert bool                     // 弹窗还是气泡
 }
 ```
+
+### Store 要覆盖核心实际持有的状态
+
+第一版只有五个方法，覆盖不了 `internal/verify` 真正写在盘上的那几份状态。 逐个查过它读写的四个文件之后，**其中两个根本不属于这一层**：
+
+| 文件 | 存什么 | 归谁 |
+|---|---|---|
+| `pending.json` | 待验证记录本体 | `verification`。`Create` 到 `ClaimExpired` 已覆盖 |
+| `verifyfail.json` | `{group_id, user_id, count, last}`：某人在某群连续失败几次、最后一次什么时候。 驱动冷却与自动封禁，上限五万条 | **`verification`，原契约里缺**。补三个方法 |
+| `agents.json` | `{total, counts}`：诱饵命中时按对方自称的模型计数 | **`status`**。这是统计，不参与任何判定， 放进验证的 Store 会让那个接口同时管两件事 |
+| `heartbeat.json` | `{last_online}`：重启后据此估算停机了多久 | **`app`**。与「连接中断由装配层处理」是同一个决定： 核心不需要知道离线这件事，驱动扫描的那一层才需要 |
+
+另外三处形状的理由：
+
+| 方法 | 为什么是这个形状 |
+|---|---|
+| `OpenByUser` 按人查，不按群 | 同一个人可能同时在几个群等待。跨群看他，才能判断这是不是一次批量注册 |
+| `AttachDelivery` 返回 `bool` | 投递结果回填时，那条记录可能已经被超时结算掉了。 **条件写入，落空不是错误**，是「来晚了」 |
+| `Attempted` 单独一个方法 | 答错一次要加一次计数，而这不是一次状态转换 —— 记录仍然待验证。塞进 `Settle` 会让那个方法名不副实 |
 
 ### 三处签名被实现推翻了
 

@@ -1125,9 +1125,15 @@ testdata/                   样本与固定装置</div>
 type Store interface {
     Create(ctx, *Challenge) (bool, error)
     Open(ctx, ChatID, UserID) (*Challenge, error)
-    AttachDelivery(ctx, ChallengeID, Delivered) error
-    Settle(ctx, ChallengeID, epoch uint64, from, to State, act Action) (bool, error)
+    OpenByUser(ctx, UserID) ([]*Challenge, error)
+    AttachDelivery(ctx, ChallengeID, Delivered) (bool, error)
+    Attempted(ctx, ChallengeID) (int, error)
+    Settle(ctx, ChallengeID, epoch uint32, from, to State, act Action) (bool, error)
     ClaimExpired(ctx, now time.Time, limit int) ([]*Challenge, error)
+
+    Fails(ctx, ChatID, UserID) (count int, last int64, err error)
+    RecordFail(ctx, ChatID, UserID, at int64) (count int, err error)
+    ClearFails(ctx, ChatID, UserID) error
 }</div>
       </div>
     </div>
@@ -1220,6 +1226,43 @@ type AckResult struct {            // 回调应答；文案本身可能就是结
 }</div>
       </div>
     </div>
+
+    <h3>Store 要覆盖核心实际持有的状态</h3>
+    <p>第一版只有五个方法，覆盖不了 <code>internal/verify</code> 真正写在盘上的那几份状态。
+      逐个查过它读写的四个文件之后，<b>其中两个根本不属于这一层</b>：</p>
+    <div class="tw"><table class="spec-table">
+      <thead><tr><th>文件</th><th>存什么</th><th>归谁</th></tr></thead>
+      <tbody>
+        <tr><td><code>pending.json</code></td><td>待验证记录本体</td>
+            <td><code>verification</code>。<code>Create</code> 到 <code>ClaimExpired</code> 已覆盖</td></tr>
+        <tr><td><code>verifyfail.json</code></td>
+            <td><code>{group_id, user_id, count, last}</code>：某人在某群连续失败几次、最后一次什么时候。
+              驱动冷却与自动封禁，上限五万条</td>
+            <td><b><code>verification</code>，原契约里缺</b>。补三个方法</td></tr>
+        <tr><td><code>agents.json</code></td>
+            <td><code>{total, counts}</code>：诱饵命中时按对方自称的模型计数</td>
+            <td><b><code>status</code></b>。这是统计，不参与任何判定，
+              放进验证的 Store 会让那个接口同时管两件事</td></tr>
+        <tr><td><code>heartbeat.json</code></td>
+            <td><code>{last_online}</code>：重启后据此估算停机了多久</td>
+            <td><b><code>app</code></b>。与「连接中断由装配层处理」是同一个决定：
+              核心不需要知道离线这件事，驱动扫描的那一层才需要</td></tr>
+      </tbody>
+    </table></div>
+    <p>另外三处形状的理由：</p>
+    <div class="tw"><table class="spec-table">
+      <thead><tr><th>方法</th><th>为什么是这个形状</th></tr></thead>
+      <tbody>
+        <tr><td><code>OpenByUser</code> 按人查，不按群</td>
+            <td>同一个人可能同时在几个群等待。跨群看他，才能判断这是不是一次批量注册</td></tr>
+        <tr><td><code>AttachDelivery</code> 返回 <code>bool</code></td>
+            <td>投递结果回填时，那条记录可能已经被超时结算掉了。
+              <b>条件写入，落空不是错误</b>，是「来晚了」</td></tr>
+        <tr><td><code>Attempted</code> 单独一个方法</td>
+            <td>答错一次要加一次计数，而这不是一次状态转换 ——
+              记录仍然待验证。塞进 <code>Settle</code> 会让那个方法名不副实</td></tr>
+      </tbody>
+    </table></div>
 
     <h3>三处签名被实现推翻了</h3>
     <p>把契约拿去实施时，有三处与现有行为不符。<b>照实改契约，不是照契约改行为</b>——
