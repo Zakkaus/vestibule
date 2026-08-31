@@ -12,6 +12,7 @@ do not edit them here, or the next re-copy silently reverts the edit.
 | `shadowed.py` | A declaration silently overridden by a later one in the same block |
 | `undefined-var.py` | A `var(--x)` nothing defines — the whole declaration is dropped, in silence |
 | `copy-drift.py` | A standalone page whose own copy of the component rules has drifted from the library |
+| `theme-leak.py` | A rule that changes a value by theme outside the token layer |
 
 Each takes file paths as arguments and exits non-zero on a finding. `copy-drift.py`
 takes the page first, then the library stylesheets.
