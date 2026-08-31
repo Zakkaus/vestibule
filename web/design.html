@@ -835,12 +835,13 @@ li::marker { color: var(--border); }
     <a href="#s5"><span class="mono" style="font-size:0.6875rem;opacity:0.7">05</span> 后台管什么</a>
     <a href="#s6"><span class="mono" style="font-size:0.6875rem;opacity:0.7">06</span> 验证方式</a>
     <a href="#s7a"><span class="mono" style="font-size:0.6875rem;opacity:0.7">07</span> 反垃圾</a>
-    <a href="#s7r"><span class="mono" style="font-size:0.6875rem;opacity:0.7">08</span> 机器人说的话</a>
-    <a href="#s7m"><span class="mono" style="font-size:0.6875rem;opacity:0.7">09</span> 手机与桌面</a>
-    <a href="#s7"><span class="mono" style="font-size:0.6875rem;opacity:0.7">10</span> 文字</a>
-    <a href="#s9"><span class="mono" style="font-size:0.6875rem;opacity:0.7">11</span> 一个 bot，很多群</a>
-    <a href="#s11"><span class="mono" style="font-size:0.6875rem;opacity:0.7">12</span> 图表与数据</a>
-    <a href="#s8"><span class="mono" style="font-size:0.6875rem;opacity:0.7">13</span> 默认不做的，以及在哪打开</a>
+    <a href="#spkg"><span class="mono" style="font-size:0.6875rem;opacity:0.7">08</span> 配置包</a>
+    <a href="#s7r"><span class="mono" style="font-size:0.6875rem;opacity:0.7">09</span> 机器人说的话</a>
+    <a href="#s7m"><span class="mono" style="font-size:0.6875rem;opacity:0.7">10</span> 手机与桌面</a>
+    <a href="#s7"><span class="mono" style="font-size:0.6875rem;opacity:0.7">11</span> 文字</a>
+    <a href="#s9"><span class="mono" style="font-size:0.6875rem;opacity:0.7">12</span> 一个 bot，很多群</a>
+    <a href="#s11"><span class="mono" style="font-size:0.6875rem;opacity:0.7">13</span> 图表与数据</a>
+    <a href="#s8"><span class="mono" style="font-size:0.6875rem;opacity:0.7">14</span> 默认不做的，以及在哪打开</a>
   </div>
 </div>
 
@@ -1822,10 +1823,93 @@ li::marker { color: var(--border); }
       被处置的人看到的提示写明原因与申诉方式，不是一句「你被移出了」。</p>
   </section>
 
+  <!-- ═══ 配置包 ═══ -->
+  <section id="spkg" class="stack-m">
+    <hr class="rule">
+    <div class="sechead"><span class="num">08</span><h2>配置包</h2></div>
+    <p>一个群整理好的题库、自动回复、反垃圾规则、订阅源和文案，可以打成一个包给别人用。
+      Linux 社区包、开发者群包、卖货群包，各自装一次就有一套能用的配置。</p>
+
+    <div class="card card-pad">
+      <p style="color:var(--foreground);font-size:1rem;font-weight:500;max-width:none;">
+        包是数据，不是代码。</p>
+    </div>
+    <p>这条线必须先划死。导入别人的包，等于在自己群里运行别人写的正则和回复。
+      <b>数据包最坏的情况是内容不合适，停用即可；代码插件最坏的情况是任意代码跑在别人的群里</b>，
+      那时隔离、审核与责任都要重做。这与「自动回复只能说话不能执行」是同一条边界。</p>
+
+    <h3>包里有什么</h3>
+    <div class="tw"><table class="spec-table">
+      <thead><tr><th>能装</th><th>不能装</th></tr></thead>
+      <tbody>
+        <tr><td>题库规则</td><td rowspan="6"><b>可执行代码</b>，任何形式。<br><br>
+          <b>密钥</b>与任何凭据。<br><br>
+          <b>群标识与用户标识</b>：包要能给陌生人用，带上这些既没用又泄露。<br><br>
+          <b>统计数据</b>：那是装它的人自己的。<br><br>
+          <b>新的命令</b>：命令是代码，增加命令要改程序。包只能开关已有的能力。</td></tr>
+        <tr><td>自动回复规则，含富文本与链接按钮</td></tr>
+        <tr><td>显示名与简介黑名单</td></tr>
+        <tr><td>反垃圾规则与分值</td></tr>
+        <tr><td>订阅源与过滤条件</td></tr>
+        <tr><td>消息文案，三语</td></tr>
+      </tbody>
+    </table></div>
+    <p style="font-size:0.875rem;">另带一份说明：包叫什么、谁做的、适合什么群、包含多少条规则。
+      这段说明在导入前展示，<b>不是装完才看得到</b>。</p>
+
+    <h3>导入是一次审阅，不是一次点击</h3>
+    <p>装一个陌生人的包，界面要让人看清自己在装什么。</p>
+    <div class="spec-wrap">
+      <div class="cap"><span>导入预览</span><span class="hint">确认之后才写入</span></div>
+      <div class="in stack">
+        <div class="row" style="gap:0.6rem;align-items:baseline;">
+          <b style="font-size:1rem;">Linux 社区包</b>
+          <span class="badge plain">由 Gentoo 中文社区维护</span>
+          <span class="badge plain">v3</span>
+        </div>
+        <div class="tw"><table>
+          <thead><tr><th>内容</th><th>条数</th><th>需要注意的</th></tr></thead>
+          <tbody>
+            <tr><td>题库</td><td class="num">12</td><td>—</td></tr>
+            <tr><td>自动回复</td><td class="num">8</td><td><span class="badge pending"><span class="dot"></span>含 3 个外部链接</span></td></tr>
+            <tr><td>反垃圾规则</td><td class="num">6</td><td><span class="badge pending"><span class="dot"></span>含 2 条正则</span></td></tr>
+            <tr><td>订阅源</td><td class="num">4</td><td>—</td></tr>
+            <tr><td>文案</td><td class="num">9</td><td>会覆盖你改过的 2 条</td></tr>
+          </tbody>
+        </table></div>
+        <div class="row" style="gap:0.5rem;">
+          <button class="btn btn-outline btn-sm" type="button">逐条查看</button>
+          <button class="btn btn-primary btn-sm" type="button">装入，先只记录不处置</button>
+        </div>
+      </div>
+    </div>
+    <div class="tw"><table class="spec-table">
+      <thead><tr><th>规定</th><th>为什么</th></tr></thead>
+      <tbody>
+        <tr><td><b>外部链接显示完整域名</b></td><td>缩短的链接看不出去哪，装包的人有权知道自己在往群里放什么</td></tr>
+        <tr><td><b>正则单独标出并计数</b></td><td>它是包里唯一有计算成本的东西，也是最容易误伤的</td></tr>
+        <tr><td><b>覆盖你改过的内容要点名</b></td><td>不点名就等于悄悄丢掉你自己的修改</td></tr>
+        <tr><td><b>装入后先进「只记录不处置」</b></td><td>先看一周它命中了什么，再提档。这与反垃圾那一屏是同一条建议</td></tr>
+        <tr><td><b>每条规则记住它来自哪个包</b></td><td>不满意可以整包停用或移除，不必逐条找</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>不自动更新</h3>
+    <p>上游改了包，<b>你的群不会跟着变</b>。控制台显示「有新版本」和它改了什么，
+      装不装由人决定。自动更新意味着别人可以在任何时刻改变你群里的规则，
+      这个权力不该交出去。</p>
+
+    <h3>先有包，再谈分发</h3>
+    <p>一个包就是一个文件，通过任何渠道传播都行。<b>现在不做包索引，也不做市场。</b>
+      在还没有几个真正能用的包之前先建市场，得到的是一个空货架加一堆要维护的机制。</p>
+    <p style="font-size:0.875rem;">等包多到「找不到合适的」成为真问题时，再考虑索引。
+      到那时需要解决的是署名、版本和举报，那是另一套设计，不要提前写。</p>
+  </section>
+
   <!-- ═══ 07 自动回复 ═══ -->
   <section id="s7r" class="stack-m">
     <hr class="rule">
-    <div class="sechead"><span class="num">08</span><h2>机器人说的话</h2></div>
+    <div class="sechead"><span class="num">09</span><h2>机器人说的话</h2></div>
     <p>机器人发言有三个来源：成员提问触发的自动回复、群内事件触发的进出提示、
       外部内容触发的订阅推送。三者都提供默认文案且均可修改。
       判断这组功能是否可用的标准只有一条：
@@ -2181,7 +2265,7 @@ li::marker { color: var(--border); }
   <!-- ═══ 07 手机与桌面 ═══ -->
   <section id="s7m" class="stack-m">
     <hr class="rule">
-    <div class="sechead"><span class="num">09</span><h2>手机与桌面</h2></div>
+    <div class="sechead"><span class="num">10</span><h2>手机与桌面</h2></div>
     <p>控制台在手机上不降级为只读。值班者通常在手机上接到通知并完成放行，
       因此队列这条路径必须在手机上可用；其余屏使用频率低，但都须可达。</p>
 
@@ -2258,7 +2342,7 @@ li::marker { color: var(--border); }
   <!-- SEC_TEXT -->
   <section id="s7" class="stack-m">
     <hr class="rule">
-    <div class="sechead"><span class="num">10</span><h2>文字</h2></div>
+    <div class="sechead"><span class="num">11</span><h2>文字</h2></div>
     <p>先写结论，再说必要理由。每段不超过四句。简体是源文案，繁体用台湾用语，
       英文最宽，按钮留量按英文的渲染宽度定，不按字节数。</p>
 
@@ -2311,7 +2395,7 @@ li::marker { color: var(--border); }
   <!-- ═══ 09 一个 bot 很多群 ═══ -->
   <section id="s9" class="stack-m">
     <hr class="rule">
-    <div class="sechead"><span class="num">11</span><h2>一个 bot，很多群</h2></div>
+    <div class="sechead"><span class="num">12</span><h2>一个 bot，很多群</h2></div>
     <p>这是一个公开的机器人，谁都可以拉进自己的群，拉进去就是他自己的机器人，
       他自己配。<b>我们社区不是特别版，只是其中一套设定。</b></p>
     <div class="card card-pad">
@@ -2488,7 +2572,7 @@ li::marker { color: var(--border); }
   <!-- ═══ 11 图表与数据 ═══ -->
   <section id="s11" class="stack-m">
     <hr class="rule">
-    <div class="sechead"><span class="num">12</span><h2>图表与数据</h2></div>
+    <div class="sechead"><span class="num">13</span><h2>图表与数据</h2></div>
     <p>统计屏的规矩只有一条：<b>图看趋势，表看数字，两个都给。</b>
       图上读不出精确值，表上看不出走向，缺哪个都不行。
       表在图下面，不折叠，因为需要精确值的人往往正在写事故记录。</p>
@@ -2613,7 +2697,7 @@ li::marker { color: var(--border); }
   <!-- ═══ 08 默认不做的 ═══ -->
   <section id="s8" class="stack-m">
     <hr class="rule">
-    <div class="sechead"><span class="num">13</span><h2>默认不做的，以及在哪打开</h2></div>
+    <div class="sechead"><span class="num">14</span><h2>默认不做的，以及在哪打开</h2></div>
     <p>下面这些是默认取值，不是禁令。默认带着观点，因为不带观点的默认等于没有默认；
       但这个机器人别人也要部署，别人的社区有别人的样子。开关全在
       <code>/preferences</code>，打开之后仍然受一条约束管着，写在最右边。</p>
