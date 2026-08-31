@@ -136,7 +136,11 @@ def main() -> int:
         phases = phase_count(plan_text)
         check_plan_phases(plan_text)
 
-    documents = list((ROOT / "docs").rglob("*.md")) + [ROOT / "README.md", ROOT / "CONTRIBUTING.md"]
+    documents = list((ROOT / "docs").rglob("*.md")) + [
+        ROOT / "README.md",
+        ROOT / "README.zh-CN.md",   # it drifted to "八个阶段尚未开始" while unchecked
+        ROOT / "CONTRIBUTING.md",
+    ]
     for path in documents:
         if not path.exists():
             continue

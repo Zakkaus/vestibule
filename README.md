@@ -15,6 +15,11 @@ renamed. Behaviour is unchanged so far: the rewrite is repackaging first, and ev
 so far has moved code without altering what it decides. `docs/PLAN-v5.md` has the eleven
 phases, what each one accepts, and what it deliberately does not do.
 
+Phase zero and phase one are complete. The verification core is `internal/verification`,
+it imports no Telegram, and it reaches the outside through three ports derived from its own
+call sites: `Gateway`, `LiveProbe` and `Store`. Phase six is underway in slices, one branch
+per console screen.
+
 The previous generation is still running in production and will not be replaced until this
 one is ready.
 

@@ -1169,9 +1169,11 @@ type Store interface {
         <tr><td><code>Retract</code> 收一组消息引用</td>
             <td>结算时要收掉这次挑战贴出的全部消息。逐条删就会删一半失败一半，
               留下半截现场</td></tr>
-        <tr><td><code>AckInteraction</code> 是独立一项，<b>且必须先于任何其他调用</b></td>
+        <tr><td>应答是独立一项，<b>不并进结算</b>，并且分成
+              <code>AckFast</code> 与 <code>AckResult</code> 两个方法</td>
             <td>上一代按钮转两秒，原因是回调应答排在三四次串行往返之后。
-              把它并进结算就必然又排到后面</td></tr>
+              并进结算就必然又排到后面。但也不能一律提前 ——
+              申请人那条路上，应答的文案就是结果。见「回调应答分两种，不是一条规则」</td></tr>
         <tr><td><code>Mute</code> 与 <code>Unmute</code> 成对；
             <code>Kick</code> 与 <code>Ban</code> 分开</td>
             <td>禁言档的验证通过后要抬走自己下的那次禁言，没有解除就是过了还是哑的。
@@ -1284,7 +1286,10 @@ type AckResult struct {            // 回调应答；文案本身可能就是结
             <td>不保留。我们的不变量不允许核心出现平台类型</td></tr>
         <tr><td><code>liveProbe</code>、<code>heartbeatBot</code></td>
             <td><code>GetMe</code> 探活</td>
-            <td>归 <code>app</code>，见「连接中断由装配层处理」</td></tr>
+            <td>落地时留成了核心的第三个端口 <code>LiveProbe</code>，只有
+              <code>Probe</code> 一个方法。原打算归 <code>app</code>，
+              但停机暂停、恢复重发和重启后的停机窗口估算都还在核心手里，
+              搬走探活就要连这些一起搬，那是阶段三的事</td></tr>
         <tr><td><code>botUnwrapper</code></td>
             <td>取出底层客户端的逃生口</td>
             <td>不保留。它存在的理由是包装层太多</td></tr>
@@ -1336,6 +1341,36 @@ type AckResult struct {            // 回调应答；文案本身可能就是结
       做搬移的人按不变量推导接口 —— 核心里不出现平台类型 —— 然后把推导出来的形状写回这里。
       <b>文档记录已经成立的事实，不预先规定尚未验证的形状。</b></p>
 
+    <h3>第八轮：搬完了，这是推导出来的形状</h3>
+    <p>改成清单之后的那一次派发把这一片搬完了。下面是<b>从调用点推导出来</b>的三个端口，
+      不是写在前面等人照抄的。</p>
+    <div class="tw"><table class="spec-table">
+      <thead><tr><th>端口</th><th>方法数</th><th>为什么是这个数</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">Gateway</td><td class="mono">18</td>
+            <td>上一代的 <code>verifyTransport</code> 与 <code>adminTransport</code>
+              加起来只有十个。多出来的八个是当年<b>绕过自己那两个端口、直接调机器人</b>的地方：
+              直接发送、富文本被拒后的退化链、失败告警、完整成员状态，
+              以及两种应答。这八个正是隔着代码看不见的部分</td></tr>
+        <tr><td class="mono">LiveProbe</td><td class="mono">1</td>
+            <td>只有 <code>Probe</code>。原打算把探活整个归 <code>app</code>，
+              但停机暂停、恢复重发和重启后的停机窗口估算都还在核心，
+              所以这一片只把平台身份挡在外面</td></tr>
+        <tr><td class="mono">Store</td><td class="mono">8</td>
+            <td>四份 JSON 快照各一读一写。这一片不换介质、不动文件名与字段、
+              不调锁次序 —— 那些是阶段三的事，所以接口是现状的形状，
+              不是数据库的形状</td></tr>
+      </tbody>
+    </table></div>
+    <p>编译期断言写在各自的实现旁边：<code>telegram.VerificationGateway</code>、
+      <code>database.VerificationJSONStore</code>、<code>app.outageAwareBot</code>。
+      <code>internal/verification</code> 里没有 telego，
+      <code>scripts/boundaries.txt</code> 守着这一条。</p>
+    <p><b>那八个多出来的方法说明了改成清单是对的。</b>
+      前七轮都试图先写签名，而这八个方法在旧代码里没有任何接口声明过它们 ——
+      它们只以「直接调机器人」的形式存在。隔着代码读，读到的是那两个端口；
+      搬到眼前，才看得见绕过端口的那些调用。</p>
+
     <h3>Store 要覆盖核心实际持有的状态</h3>
     <p>第一版只有五个方法，覆盖不了 <code>internal/verify</code> 真正写在盘上的那几份状态。
       逐个查过它读写的四个文件之后，<b>其中两个根本不属于这一层</b>：</p>
@@ -1351,7 +1386,9 @@ type AckResult struct {            // 回调应答；文案本身可能就是结
         <tr><td><code>agents.json</code></td>
             <td><code>{total, counts}</code>：诱饵命中时按对方自称的模型计数</td>
             <td><b><code>status</code></b>。这是统计，不参与任何判定，
-              放进验证的 Store 会让那个接口同时管两件事</td></tr>
+              放进验证的 Store 会让那个接口同时管两件事。
+              <b>这是阶段三的去处</b>：阶段一第三片不换介质也不动锁次序，
+              落地的 <code>Store</code> 仍完整承载这四份 JSON</td></tr>
         <tr><td><code>heartbeat.json</code></td>
             <td><code>{last_online}</code>：重启后据此估算停机了多久</td>
             <td><b><code>app</code></b>。与「连接中断由装配层处理」是同一个决定：
@@ -1405,10 +1442,12 @@ type AckResult struct {            // 回调应答；文案本身可能就是结
               <code>:2750</code> 传 <code>true</code>。签名里没有这个参数，
               <b>取任一固定值都改变行为</b></td>
             <td><code>Ban(ctx, chat, user, until, revoke bool)</code></td></tr>
-        <tr><td><b><code>AckInteraction</code> 必须先于同一交互的任何其他调用</b></td>
+        <tr><td><b>一次交互只应答一次，且 <code>AckFast</code> 与 <code>AckResult</code>
+              只能调用其中一个</b></td>
             <td>Telegram 一个回调只能应答一次，<b>而应答的文案有时就是结果</b>：
-              「不是你的」「已经处理过了」。先应答就没有结果可说了。
-              <code>internal/verify/service.go:1781-1799</code></td>
+              「不是你的」「已经处理过了」。所以次序按交互类型定，不是一律提前，
+              见下一节。<code>internal/verify/service.go:1781-1799</code>
+              （上一代路径）</td>
             <td>分两种，见下</td></tr>
         <tr><td>只有 <code>DeliverChallenge</code></td>
             <td>核心还要发结果私聊、失败通知、管理员告警与审计记录，
@@ -1479,8 +1518,10 @@ type AckResult struct {            // 回调应答；文案本身可能就是结
         <tr><td><code>Store</code> 的实现不许发起网络调用</td>
             <td>它是数据层。一旦它自己去问 Telegram，
               「先写库再执行动作」这条次序就无从保证</td></tr>
-        <tr><td><code>AckInteraction</code> 必须先于同一次交互中的任何其他调用</td>
-            <td>排在几次往返之后，按钮就转好几秒。上一代正是这么慢下来的</td></tr>
+        <tr><td>应答不排在几次串行往返之后</td>
+            <td>排在后面按钮就转好几秒，上一代正是这么慢下来的。
+              但申请人那条路要先判定再应答，因为文案就是结果 ——
+              约束是「不串在后面」，不是「一律最先」</td></tr>
         <tr><td><code>ClaimExpired</code> 必须受 <code>limit</code> 约束，
             实现不得忽略它</td>
             <td>积压之后一次领走全部到期记录，一轮扫描要发成百上千条消息，
