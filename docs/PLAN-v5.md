@@ -123,7 +123,7 @@
 | 三 | `v5/database` | 数据层换 dbutil，状态入库，待执行动作表，实例租约 |
 | 四 | `v5/config` | 配置换 configupgrade，分成三层 |
 | 五 | `v5/console-api` | 接口契约、`internal/console`、Mini App 认证与授权 |
-| 六 | `v5/console-ui` | 前端骨架与一条通路：进入、选群、看队列、放行一个人 |
+| 六 | `v5/console-*` | 前端骨架与一条通路：进入、选群、看队列、放行一个人。按屏分片，见该节 |
 | 七 | `v5/console-screens` | 其余各屏 |
 | 八 | `v5/multitenant` | 去掉全局默认，配置按群隔离 |
 | 九 | `v5/deploy` | 一次部署、健康检查、失败自动回退 |
@@ -416,7 +416,14 @@ internal/app  verification  rules  telegram  console  settings  database  status
 
 ### 阶段六 · 前端与一条通路
 
-**分支** `v5/console-ui`
+**分支** 按屏分片，每片一支一个 PR：`v5/console-entry`、`v5/console-groups`、
+`v5/console-queue`，其余屏依此类推。
+
+**为什么分片**：这一阶段的产出是屏，一屏一条独立的通路，彼此不共享状态。
+合成一支意味着最后一屏没写完之前无一处可合，而屏与屏之间没有这种依赖。
+分片的代价是这一阶段跨多个 PR，不再是「一阶段一分支」；
+换来的是每一屏落地时都能单独验、单独回退。与阶段一的三片同理，边界不同：
+那里按依赖方向切，这里按屏切。
 
 **次序固定**：先定契约，再写后端，再写前端。契约先定，两端各自对着它开发。
 
