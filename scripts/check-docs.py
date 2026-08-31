@@ -59,6 +59,21 @@ def check_headings(path: Path, text: str) -> None:
                             % (path.relative_to(ROOT), line[:60]))
 
 
+HOME_PATH = re.compile(r"(?<![\w/])/(?:home|Users)/[A-Za-z0-9._-]+/")
+
+
+def check_home_paths(path: Path, text: str) -> None:
+    """A public repository must not carry someone's working directory.
+
+    Research notes arrived cited as "/home/<user>/code/memory/...". A reader
+    cannot open that, so it is not evidence, and it publishes a directory
+    layout for nothing.
+    """
+    for m in set(HOME_PATH.findall(text)):
+        failures.append("%s: contains an absolute home path (%s...)"
+                        % (path.relative_to(ROOT), m))
+
+
 REF = re.compile(r"`((?:docs|web|scripts)/[A-Za-z0-9_./-]+\.(?:md|html|py|sh|ya?ml))`")
 
 
@@ -76,10 +91,15 @@ def main() -> int:
         check_plan_phases(PLAN.read_text(encoding="utf-8"))
 
     candidates = list((ROOT / "docs").rglob("*.md")) + [ROOT / "README.md", ROOT / "CONTRIBUTING.md"]
+    candidates += sorted((ROOT / "web").glob("*.html"))
     for path in candidates:
         if not path.exists():
             continue
-        check_headings(path, path.read_text(encoding="utf-8"))
+        text = path.read_text(encoding="utf-8")
+        check_home_paths(path, text)
+        if path.suffix == ".html":
+            continue
+        check_headings(path, text)
         if str(path.relative_to(ROOT)) not in FORWARD_LOOKING:
             check_links(path)
 

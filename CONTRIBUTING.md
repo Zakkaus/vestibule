@@ -32,13 +32,15 @@ Work outside the current phase does not get merged, however good it is.
 
 ## When you are stuck, look at what others shipped
 
-Three sources, checked out under `/home/zakk/code/refs/`:
+Three sources, in descending order of weight:
 
 | Source | What it answers |
 |---|---|
-| `gentoo-zh-verify-bot` | Why the previous generation does what it does. A lot of it was bought with production incidents; a check that looks redundant usually has a reason |
-| `policr-mini` | What a mature peer product decided, and what it got wrong |
-| `mautrix-go`, `mautrix-telegram` | How a high-quality Go program of the same shape handles lifecycle, concurrency and error layering |
+| [Zakkaus/gentoo-zh-verify-bot](https://github.com/Zakkaus/gentoo-zh-verify-bot) | Why the previous generation does what it does. A lot of it was bought with production incidents; a check that looks redundant usually has a reason |
+| [Hentioe/policr-mini](https://github.com/Hentioe/policr-mini) | What a mature peer product decided, and what it got wrong |
+| [mautrix/go](https://github.com/mautrix/go), [mautrix/telegram](https://github.com/mautrix/telegram) | How a high-quality Go program of the same shape handles lifecycle, concurrency and error layering |
+
+Cite them as `repository/path/file.go:line` so a reader can open the same line.
 
 **They are practice, not authority.** Their value is that someone shipped this and lived with
 the consequences — that is evidence about cost, not proof of correctness. Ask why they did it
