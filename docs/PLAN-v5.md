@@ -261,7 +261,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 
 **分支** `v5/rules`
 
-`internal/rules` 成为纯函数包：归一化流水线、封闭的条件类型集合、结构信号计分。
+`internal/rules` 成为纯函数包：归一化流水线与封闭的条件类型集合。
 **禁止导入数据库与网络相关的包**，由阶段零的包边界检查看住。
 
 三个作用对象共用同一套条件类型：验证答案、消息文本、显示名与个人简介。
@@ -274,24 +274,30 @@ internal/app  verification  rules  telegram  console  settings  database  status
 
 #### 文件处置
 
-**3 个来源文件，1,245 行。** `state.go` 只计清点标出的结构信号段 `21–177`。
+**2 个来源文件。** 原先还列了 `state.go:21–177`，说它是结构信号。核过之后两条都不成立：
+
+- 那一段在两代里都是 **AI tripwire 的自称模型计数**，清点表第 24 行也这么写。
+  它属于 `agents.json` 那一份状态，去处见阶段三，不在本阶段。
+- **结构信号在两代代码里都不存在**，是架构文档里的新设计，没有来源文件可搬。
+  哪个阶段写它见「待决」。
 
 | 现路径 | 处置 | 目标位置 |
 |---|---|---|
-| `internal/verify/kernel.go` | 拆分 | `internal/rules/{normalize,condition}.go`、`internal/verification`、`internal/telegram/updates.go`、`internal/telegram/tgfmt` |
-| `internal/verify/state.go:21–177` | 拆分 | `internal/rules/signals.go` |
+| `internal/verification/kernel.go` | 拆分 | `internal/rules/{normalize,condition}.go`、`internal/verification`、`internal/telegram/updates.go`、`internal/telegram/tgfmt` |
 | `internal/moderate/antispam.go` | 拆分 | `internal/moderate`、`internal/telegram/ids`、`internal/telegram/updates.go`、`internal/settings` |
 
 #### 必须保住的行为
 
 - 内核版本题仍接受真实命令输出并剥离回显；Windows 和 macOS 转入 fallback；全角分钟证明、nonce 绑定和三次尝试不变。
 - 同一用户跨群使用 fallback 不误扣次数，同题库可复用、不同题库不串题；线上判定和控制台试答调用同一纯函数入口。
-- 归一化后仍能识别规避写法，结构信号保持输入清洗与计数上限，不以关键词表替代既有信号。
+- 归一化后仍能识别规避写法。结构信号不在本阶段的「保住」之列 —— 它还没有被写出来。
 - 反频道身份策略只影响当前群，保留 4,096 项上限、linked channel 例外、白名单边界和解除白名单后的 unban。
 
 #### 依赖
 
-依赖：阶段一第三片已建立无 `telego` 依赖的 `rules` 包和验证端口，且旧 handler 已改为调用领域入口。
+依赖：阶段一第三片已把验证核心置于端口之后，核心中不出现平台类型。
+`internal/rules` 由本阶段创建 —— 阶段一第三片没有建它，也没有承诺建；
+`scripts/boundaries.txt` 早已为它预留了纯函数边界，包一旦出现即刻生效。
 
 
 ### 阶段三 · 数据层
@@ -693,6 +699,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 | 控制台域名 | 阶段五 | Mini App 的配置与证书都要它 |
 | 隐私说明的内容与位置 | 阶段七 | 公开实例保存他人群组数据，须在明处说明 |
 | 公开实例用哪个机器人账号 | 阶段十 | `@GentooZhVerifyBot` 带社区名，给所有人用不合适；换号涉及老群迁移 |
+| 结构信号归哪个阶段写 | 阶段二 | 它是纯计分，形状上属于 `rules`；但阶段二写的是重新分包，不含新功能。放进阶段二就是在一个搬移阶段里夹一件新功能，另起一段又要排进十一个阶段之间。计划书原先把它列成一次搬移，掩盖了这个选择 |
 
 ### 两条原本要维护者定的，我按证据定了
 
