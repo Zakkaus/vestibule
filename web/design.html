@@ -1846,7 +1846,8 @@ li::marker { color: var(--border); }
           <b>密钥</b>与任何凭据。<br><br>
           <b>群标识与用户标识</b>：包要能给陌生人用，带上这些既没用又泄露。<br><br>
           <b>统计数据</b>：那是装它的人自己的。<br><br>
-          <b>新的命令</b>：命令是代码，增加命令要改程序。包只能开关已有的能力。</td></tr>
+          <b>带逻辑的命令</b>：能声明的只有「取数、挑字段、渲染」。
+          版本比较、跨源合并这类仍然是 Go 代码。</td></tr>
         <tr><td>自动回复规则，含富文本与链接按钮</td></tr>
         <tr><td>显示名与简介黑名单</td></tr>
         <tr><td>反垃圾规则与分值</td></tr>
@@ -1893,6 +1894,66 @@ li::marker { color: var(--border); }
         <tr><td><b>每条规则记住它来自哪个包</b></td><td>不满意可以整包停用或移除，不必逐条找</td></tr>
       </tbody>
     </table></div>
+
+    <h3>包可以带命令，但只带声明式的那一类</h3>
+    <p>「让别人扩展命令」听起来需要一套插件运行时，其实不必。
+      看一眼现有命令的形状就知道该怎么分：</p>
+    <div class="tw"><table class="spec-table">
+      <thead><tr><th>命令</th><th>行数</th><th>它在做什么</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">repology · kernel · manpage · cve</td><td class="num">103–151</td>
+            <td>取一次数、挑几个字段、渲染成一条消息</td></tr>
+        <tr><td class="mono">pkgs</td><td class="num">1593</td>
+            <td>版本自然排序、9999 规则、多源合并、十五处渲染</td></tr>
+        <tr><td class="mono">distros</td><td class="num">941</td><td>生命周期判定、发行版家族归并</td></tr>
+      </tbody>
+    </table></div>
+    <p><b>薄的那类是配置，厚的那类是程序。</b>所以包能带的是前者：
+      一条声明式命令写清叫什么、参数怎么取、请求发到哪、从响应里挑哪几个字段、渲染成什么样。
+      它<b>仍然是数据</b>，因此不需要沙箱、不需要脚本运行时，也没有越过上面那条线。</p>
+
+    <div class="spec-wrap">
+      <div class="cap"><span>一条声明式命令</span><span class="hint">数据，不是代码</span></div>
+      <div class="in stack">
+        <div class="setting">
+          <span class="k"><svg class="i"><use href="#i-help"/></svg>命令与说明</span>
+          <span class="d">名字、别名、帮助文字，三语。名字与内置命令冲突时拒绝装入。</span>
+          <span class="c"><span class="row" style="flex:none;gap:0.4rem;">
+            <input class="field" type="text" value="/aur" aria-label="命令" style="inline-size:6rem;">
+          </span></span>
+        </div>
+        <div class="setting">
+          <span class="k"><svg class="i"><use href="#i-rss"/></svg>请求</span>
+          <span class="d">网址模板里放参数占位。<b>只能 https</b>，走机器人自己的取数通道，
+            受同一套并发、超时与响应体积上限。</span>
+          <span class="c"><span class="badge plain">GET</span></span>
+        </div>
+        <div class="setting">
+          <span class="k"><svg class="i"><use href="#i-file"/></svg>取字段</span>
+          <span class="d">从响应里按路径挑几个字段，命名后交给模板。挑不到就是没找到。</span>
+          <span class="c"><span class="badge plain">4 个字段</span></span>
+        </div>
+        <div class="setting">
+          <span class="k"><svg class="i"><use href="#i-msg"/></svg>渲染</span>
+          <span class="d">用这些字段填一条消息，支持富文本与链接按钮，与自动回复同一套。</span>
+          <span class="c"><button class="btn btn-outline btn-sm" type="button">
+            <svg class="i"><use href="#i-check"/></svg>试一下</button></span>
+        </div>
+        <div class="setting">
+          <span class="k"><svg class="i"><use href="#i-clock"/></svg>缓存与失败</span>
+          <span class="d">缓存多久；没找到与上游故障分别说什么。
+            <b>两者必须分开</b>，把故障说成没找到会让人以为查错了。</span>
+          <span class="c"><input class="field field-narrow" type="number" value="600" aria-label="缓存秒数"></span>
+        </div>
+      </div>
+    </div>
+
+    <p><b>它做不到什么，要写在明处。</b>版本比较、跨源合并、生命周期判定这类逻辑
+      声明不出来。需要这些的命令仍然是 Go 代码，走提交合并请求这条路。
+      <b>不为了「什么都能声明」去发明一门表达式语言</b> ——
+      那条路的终点是一个没人愿意调试的小语言。</p>
+    <p style="font-size:0.875rem;">装入前列出这个包要注册哪些命令、各自请求哪个域名。
+      命令会出现在 <code>/help</code> 里，装的人应当先知道自己在给群里加什么。</p>
 
     <h3>不自动更新</h3>
     <p>上游改了包，<b>你的群不会跟着变</b>。控制台显示「有新版本」和它改了什么，
