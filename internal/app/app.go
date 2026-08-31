@@ -98,6 +98,10 @@ func newServices(ctx context.Context, options Options, progress chan<- struct{})
 	logRuntimeOptions(options)
 	alertPersistenceProblem(ctx, bot, cfg, settings)
 	heartbeatBot := newOutageAwareBot(ctx, bot, cfg, settings, options.StateDirectory)
+	// Uptime counts from before the GetMe round trip, as it did previously.
+	// Measuring it afterwards silently shortens every uptime an operator reads
+	// by however long that call took.
+	startedAt := time.Now()
 	me, err := heartbeatBot.GetMe(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("GetMe failed (required for the verification deep link): %w", err)
@@ -108,7 +112,7 @@ func newServices(ctx context.Context, options Options, progress chan<- struct{})
 	moderation := moderate.New(settings, connector, cfg, options.StateDirectory)
 	administration := panel.New(
 		settings, connector, cfg, &i18n.Messages,
-		verification, moderation, lookups, options.Version, time.Now(),
+		verification, moderation, lookups, options.Version, startedAt,
 	)
 	updates := telegram.NewUpdates(cfg, settings, connector, telegramHandlers(verification, administration, moderation, lookups))
 	registration := newRegistration(ctx, bot, cfg, settings, identity, moderation, verification, updates)
