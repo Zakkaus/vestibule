@@ -22,11 +22,11 @@ import (
 type Verification interface {
 	AgentStatsText(l i18n.Lang) string
 	ControlGroupID() int64
-	DMOrGroup(msg *telego.Message) bool
-	KernelAnswerDM(ctx context.Context, update telego.Update) bool
+	DMOrGroup(chatID int64, private bool) bool
+	KernelAnswerDM(userID int64, text string, private bool) bool
 	EffectiveMode(groupID int64) string
 	IsEnabled(groupID int64) bool
-	SendDMChallenge(ctx context.Context, bot *telego.Bot, userID int64, languageCode string, groupID int64)
+	SendDMChallenge(ctx context.Context, userID int64, languageCode string, groupID int64)
 	SetAutoDelete(groupID int64, ttl time.Duration, enabled bool) error
 	SetEnabled(groupID int64, enabled bool) error
 	SetVerifyMode(groupID int64, mode string) error
@@ -170,7 +170,7 @@ func (v *Panel) OnStart(ctx *th.Context, update telego.Update) error {
 			return nil
 		}
 		if msg.From != nil {
-			v.verifier.SendDMChallenge(ctx.Context(), ctx.Bot(), msg.From.ID, msg.From.LanguageCode, verificationStartGroup(msg.Text))
+			v.verifier.SendDMChallenge(ctx.Context(), msg.From.ID, msg.From.LanguageCode, verificationStartGroup(msg.Text))
 		}
 		return nil
 	}
@@ -354,7 +354,7 @@ func (v *Panel) notify(ctx context.Context, _ *telego.Bot, chatID int64, text st
 // OnHelp reports member commands and group administration commands when authorized.
 func (v *Panel) OnHelp(ctx *th.Context, update telego.Update) error {
 	msg := update.Message
-	if msg == nil || msg.From == nil || !v.verifier.DMOrGroup(msg) { // /help is free (no external request)
+	if msg == nil || msg.From == nil || !v.verifier.DMOrGroup(msg.Chat.ID, msg.Chat.Type == telego.ChatTypePrivate) { // /help is free (no external request)
 		return nil
 	}
 	bot := ctx.Bot()
@@ -383,7 +383,7 @@ func (v *Panel) OnHelp(ctx *th.Context, update telego.Update) error {
 // Informational commands are unrestricted; only external lookups are rate-limited.
 func (v *Panel) memberCmd(ctx *th.Context, update telego.Update, fn func(groupID int64, l i18n.Lang) string) error {
 	msg := update.Message
-	if msg == nil || msg.From == nil || !v.verifier.DMOrGroup(msg) {
+	if msg == nil || msg.From == nil || !v.verifier.DMOrGroup(msg.Chat.ID, msg.Chat.Type == telego.ChatTypePrivate) {
 		return nil
 	}
 	bot := ctx.Bot()

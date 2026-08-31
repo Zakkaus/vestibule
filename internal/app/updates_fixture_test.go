@@ -16,7 +16,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/panel"
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/Zakkaus/vestibule/internal/telegram"
-	"github.com/Zakkaus/vestibule/internal/verify"
+	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
 	ta "github.com/mymmrac/telego/telegoapi"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -292,19 +292,20 @@ func (c *dispatchCaller) callbackAnswers() []telego.AnswerCallbackQueryParams {
 }
 
 type dispatchFixture struct {
-	groupID         int64
-	requiredChannel int64
-	botID           int64
-	bot             *telego.Bot
-	cfg             *config.Config
-	connector       *telegram.Connector
-	caller          *dispatchCaller
-	settings        *store.Settings
-	verification    *verify.Service
-	administration  *panel.Panel
-	moderation      *moderate.Service
-	lookups         *lookup.Service
-	application     *telegram.Updates
+	groupID             int64
+	requiredChannel     int64
+	botID               int64
+	bot                 *telego.Bot
+	cfg                 *config.Config
+	connector           *telegram.Connector
+	caller              *dispatchCaller
+	settings            *store.Settings
+	verification        *verification.Service
+	verificationGateway *telegram.VerificationGateway
+	administration      *panel.Panel
+	moderation          *moderate.Service
+	lookups             *lookup.Service
+	application         *telegram.Updates
 }
 
 func newDispatchFixture(t *testing.T, requiredChannel int64) *dispatchFixture {
@@ -340,30 +341,32 @@ func newDispatchFixture(t *testing.T, requiredChannel int64) *dispatchFixture {
 	telegramBot := testBot(t, caller)
 	connector := telegram.NewConnector(telegramBot)
 	stateDirectory := t.TempDir()
-	verification := verify.New(
-		settings, connector, cfg, &i18n.Messages, telegramBot,
-		verify.Identity{ID: botID, Username: "dispatch_bot"}, stateDirectory,
+	verification := newTestVerifier(
+		settings, connector, cfg,
+		verification.Identity{ID: botID, Username: "dispatch_bot"}, stateDirectory,
 	)
+	verificationGateway := telegram.NewVerificationGateway(connector)
 	moderation := moderate.New(settings, connector, cfg, stateDirectory)
 	lookups := lookup.New(settings, connector, cfg, "")
 	administration := panel.New(
 		settings, connector, cfg, &i18n.Messages, verification, moderation, lookups, "test", time.Now(),
 	)
-	application := telegram.NewUpdates(cfg, settings, connector, telegramHandlers(verification, administration, moderation, lookups))
+	application := telegram.NewUpdates(cfg, settings, connector, telegramHandlers(verification, verificationGateway, administration, moderation, lookups))
 	return &dispatchFixture{
-		groupID:         groupID,
-		requiredChannel: requiredChannel,
-		botID:           botID,
-		bot:             telegramBot,
-		caller:          caller,
-		cfg:             cfg,
-		connector:       connector,
-		settings:        settings,
-		verification:    verification,
-		administration:  administration,
-		moderation:      moderation,
-		lookups:         lookups,
-		application:     application,
+		groupID:             groupID,
+		requiredChannel:     requiredChannel,
+		botID:               botID,
+		bot:                 telegramBot,
+		caller:              caller,
+		cfg:                 cfg,
+		connector:           connector,
+		settings:            settings,
+		verification:        verification,
+		verificationGateway: verificationGateway,
+		administration:      administration,
+		moderation:          moderation,
+		lookups:             lookups,
+		application:         application,
 	}
 }
 

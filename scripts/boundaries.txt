@@ -1,5 +1,5 @@
 # Package directory and forbidden import prefix, separated by whitespace.
-internal/verify github.com/mymmrac/telego
+internal/verification github.com/mymmrac/telego
 # internal/rules does not exist yet; reserve its pure-function boundary now.
 internal/rules database
 internal/rules net

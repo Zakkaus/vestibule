@@ -8,23 +8,37 @@ import (
 	"time"
 
 	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/database"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
-	"github.com/Zakkaus/vestibule/internal/verify"
+	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 )
 
-func newAdminTestApplication(cfg *config.Config, settings *store.Settings, bot *telego.Bot) (*Panel, *verify.Service) {
-	telegram := telegram.NewConnector(bot)
-	verification := verify.New(settings, telegram, cfg, &i18n.Messages, bot, verify.Identity{}, "")
+func newAdminTestApplication(cfg *config.Config, settings *store.Settings, bot *telego.Bot) (*Panel, *verification.Service) {
+	connector := telegram.NewConnector(bot)
+	verification := newPanelTestVerifier(settings, connector, cfg, verification.Identity{}, "")
 	administration := New(
-		settings, telegram, cfg, &i18n.Messages,
+		settings, connector, cfg, &i18n.Messages,
 		verification, nil, nil, "", time.Time{},
 	)
 	return administration, verification
+}
+
+func newPanelTestVerifier(
+	settings *store.Settings,
+	connector *telegram.Connector,
+	cfg *config.Config,
+	identity verification.Identity,
+	stateDirectory string,
+) *verification.Service {
+	return verification.New(
+		settings, telegram.NewVerificationGateway(connector), database.NewVerificationJSONStore(),
+		cfg, &i18n.Messages, nil, identity, stateDirectory,
+	)
 }
 
 func TestStopCommandWritesInvokingGroup(t *testing.T) {
@@ -79,7 +93,7 @@ func TestRuntimeRegisteredGroupUsesLiveCommandGuards(t *testing.T) {
 		Chat:      telego.Chat{ID: groupID, Type: telego.ChatTypeSupergroup},
 		From:      &telego.User{ID: 7, LanguageCode: "fr"},
 	}
-	if !verification.DMOrGroup(message) {
+	if !verification.DMOrGroup(message.Chat.ID, message.Chat.Type == telego.ChatTypePrivate) {
 		t.Error("runtime group was rejected by the shared message guard")
 	}
 
@@ -205,7 +219,7 @@ func TestRuntimeSettingsCommandHandlersPersistAndRespond(t *testing.T) {
 		text        string
 		handler     func(*Panel) th.Handler
 		wantText    func(i18n.Lang) string
-		assertState func(*testing.T, *verify.Service, int64)
+		assertState func(*testing.T, *verification.Service, int64)
 	}{
 		{
 			name:    "stop",
@@ -214,7 +228,7 @@ func TestRuntimeSettingsCommandHandlersPersistAndRespond(t *testing.T) {
 			wantText: func(l i18n.Lang) string {
 				return i18n.Messages.Panel.Verification.Stopped.For(l)
 			},
-			assertState: func(t *testing.T, service *verify.Service, groupID int64) {
+			assertState: func(t *testing.T, service *verification.Service, groupID int64) {
 				t.Helper()
 				if service.IsEnabled(groupID) {
 					t.Fatal("/stop handler left verification enabled")
@@ -228,7 +242,7 @@ func TestRuntimeSettingsCommandHandlersPersistAndRespond(t *testing.T) {
 			wantText: func(l i18n.Lang) string {
 				return i18n.Messages.Panel.NameSpoiler.Disabled.For(l)
 			},
-			assertState: func(t *testing.T, service *verify.Service, groupID int64) {
+			assertState: func(t *testing.T, service *verification.Service, groupID int64) {
 				t.Helper()
 				if service.NameSpoilerOn(groupID) {
 					t.Fatal("/spoiler handler did not disable default name hiding")
@@ -242,7 +256,7 @@ func TestRuntimeSettingsCommandHandlersPersistAndRespond(t *testing.T) {
 			wantText: func(l i18n.Lang) string {
 				return i18n.Messages.Panel.VerificationMode.Set.Render(l, tgfmt.ModeName(l, config.ModeMixed))
 			},
-			assertState: func(t *testing.T, service *verify.Service, groupID int64) {
+			assertState: func(t *testing.T, service *verification.Service, groupID int64) {
 				t.Helper()
 				if got := service.EffectiveMode(groupID); got != config.ModeMixed {
 					t.Fatalf("/vmode handler mode = %q, want %q", got, config.ModeMixed)

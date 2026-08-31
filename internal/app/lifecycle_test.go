@@ -18,7 +18,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/Zakkaus/vestibule/internal/telegram"
-	"github.com/Zakkaus/vestibule/internal/verify"
+	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
 	ta "github.com/mymmrac/telego/telegoapi"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -196,7 +196,7 @@ type lifecycleVerificationFixture struct {
 	caller         *lifecycleCaller
 	bot            *telego.Bot
 	connector      *telegram.Connector
-	verification   *verify.Service
+	verification   *verification.Service
 	answer         telego.Update
 }
 
@@ -254,22 +254,22 @@ func newLifecycleVerificationFixture(t *testing.T) *lifecycleVerificationFixture
 	caller := &lifecycleCaller{botID: botID}
 	bot := newLifecycleBot(t, caller)
 	connector := telegram.NewConnector(bot)
-	verification := verify.New(
-		settings, connector, cfg, &i18n.Messages, bot,
-		verify.Identity{ID: botID, Username: "lifecycle_bot"}, stateDirectory,
+	verification := newTestVerifier(
+		settings, connector, cfg,
+		verification.Identity{ID: botID, Username: "lifecycle_bot"}, stateDirectory,
 	)
 	join := telego.Update{ChatJoinRequest: &telego.ChatJoinRequest{
 		Chat:       telego.Chat{ID: groupID, Type: telego.ChatTypeSupergroup},
 		From:       telego.User{ID: applicantID, FirstName: "Applicant", LanguageCode: "en"},
 		UserChatID: applicantID,
 	}}
-	lifecycleHandleUpdate(t, bot, verification.OnJoinRequest, join)
+	lifecycleHandleUpdate(t, bot, telegram.NewVerificationHandlers(verification, telegram.NewVerificationGateway(connector)).JoinRequest, join)
 	answer := telego.Update{Message: &telego.Message{
 		Chat: telego.Chat{ID: applicantID, Type: telego.ChatTypePrivate},
 		From: &telego.User{ID: applicantID, LanguageCode: "en"},
 		Text: "6.12.3",
 	}}
-	if !verification.KernelAnswerDM(context.Background(), answer) {
+	if !verification.KernelAnswerDM(applicantID, answer.Message.Text, true) {
 		t.Fatal("lifecycle fixture did not establish a gradeable verification")
 	}
 	return &lifecycleVerificationFixture{
@@ -483,16 +483,16 @@ func assertRestartedVerification(t *testing.T, fixture *lifecycleVerificationFix
 	if err != nil {
 		t.Fatal(err)
 	}
-	restarted := verify.New(
-		settings, fixture.connector, cfg, &i18n.Messages, fixture.bot,
-		verify.Identity{ID: fixture.botID, Username: "lifecycle_bot"}, fixture.stateDirectory,
+	restarted := newTestVerifier(
+		settings, fixture.connector, cfg,
+		verification.Identity{ID: fixture.botID, Username: "lifecycle_bot"}, fixture.stateDirectory,
 	)
 	defer restarted.Shutdown()
-	if !restarted.KernelAnswerDM(context.Background(), fixture.answer) {
+	if !restarted.KernelAnswerDM(fixture.applicantID, fixture.answer.Message.Text, true) {
 		t.Fatal("verification state did not survive the stop/start cycle")
 	}
 	before := fixture.caller.approvalCount()
-	lifecycleHandleUpdate(t, fixture.bot, restarted.OnKernelAnswer, fixture.answer)
+	lifecycleHandleUpdate(t, fixture.bot, telegram.NewVerificationHandlers(restarted, telegram.NewVerificationGateway(fixture.connector)).KernelAnswer, fixture.answer)
 	if got := fixture.caller.approvalCount() - before; got != 1 {
 		t.Fatalf("restarted verification approvals = %d, want 1", got)
 	}

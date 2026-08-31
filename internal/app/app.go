@@ -9,13 +9,14 @@ import (
 	"time"
 
 	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/database"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/lookup"
 	"github.com/Zakkaus/vestibule/internal/moderate"
 	"github.com/Zakkaus/vestibule/internal/panel"
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/Zakkaus/vestibule/internal/telegram"
-	"github.com/Zakkaus/vestibule/internal/verify"
+	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 )
@@ -32,16 +33,17 @@ type Options struct {
 }
 
 type services struct {
-	cfg          *config.Config
-	settings     *store.Settings
-	bot          *telego.Bot
-	heartbeatBot *outageAwareBot
-	lookups      *lookup.Service
-	verification *verify.Service
-	moderation   *moderate.Service
-	updates      *telegram.Updates
-	registration *telegram.Registration
-	identity     verify.Identity
+	cfg                 *config.Config
+	settings            *store.Settings
+	bot                 *telego.Bot
+	heartbeatBot        *outageAwareBot
+	lookups             *lookup.Service
+	verification        *verification.Service
+	verificationGateway *telegram.VerificationGateway
+	moderation          *moderate.Service
+	updates             *telegram.Updates
+	registration        *telegram.Registration
+	identity            verification.Identity
 }
 
 // Run assembles the service graph, starts polling, and drains it on cancellation.
@@ -107,18 +109,20 @@ func newServices(ctx context.Context, options Options, progress chan<- struct{})
 		return nil, fmt.Errorf("GetMe failed (required for the verification deep link): %w", err)
 	}
 	logPrivacyMode(me)
-	identity := verify.Identity{ID: me.ID, Username: me.Username}
-	verification := verify.New(settings, connector, cfg, &i18n.Messages, bot, identity, options.StateDirectory)
+	identity := verification.Identity{ID: me.ID, Username: me.Username}
+	verificationGateway := telegram.NewVerificationGateway(connector)
+	verificationStore := database.NewVerificationJSONStore()
+	verification := verification.New(settings, verificationGateway, verificationStore, cfg, &i18n.Messages, heartbeatBot, identity, options.StateDirectory)
 	moderation := moderate.New(settings, connector, cfg, options.StateDirectory)
 	administration := panel.New(
 		settings, connector, cfg, &i18n.Messages,
 		verification, moderation, lookups, options.Version, startedAt,
 	)
-	updates := telegram.NewUpdates(cfg, settings, connector, telegramHandlers(verification, administration, moderation, lookups))
+	updates := telegram.NewUpdates(cfg, settings, connector, telegramHandlers(verification, verificationGateway, administration, moderation, lookups))
 	registration := newRegistration(ctx, bot, cfg, settings, identity, moderation, verification, updates)
 	return &services{
 		cfg: cfg, settings: settings, bot: bot, heartbeatBot: heartbeatBot,
-		lookups: lookups, verification: verification, moderation: moderation,
+		lookups: lookups, verification: verification, verificationGateway: verificationGateway, moderation: moderation,
 		updates: updates, registration: registration, identity: identity,
 	}, nil
 }
@@ -140,9 +144,9 @@ func newRegistration(
 	bot *telego.Bot,
 	cfg *config.Config,
 	settings *store.Settings,
-	identity verify.Identity,
+	identity verification.Identity,
 	moderation *moderate.Service,
-	verification *verify.Service,
+	verification *verification.Service,
 	updates *telegram.Updates,
 ) *telegram.Registration {
 	return telegram.NewRegistration(

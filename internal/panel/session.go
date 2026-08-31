@@ -258,9 +258,7 @@ func (v *Panel) kernelPending(userID int64) bool {
 	if v.verifier == nil {
 		return false
 	}
-	return v.verifier.KernelAnswerDM(context.Background(), telego.Update{Message: &telego.Message{
-		Chat: telego.Chat{ID: userID, Type: "private"}, From: &telego.User{ID: userID}, Text: "x",
-	}})
+	return v.verifier.KernelAnswerDM(userID, "x", true)
 }
 
 // PanelInputDM matches only an exact live ForceReply prompt or a canceled-prompt tombstone.

@@ -7,10 +7,12 @@ import (
 	"time"
 
 	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/database"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/lookup"
 	"github.com/Zakkaus/vestibule/internal/store"
-	"github.com/Zakkaus/vestibule/internal/verify"
+	"github.com/Zakkaus/vestibule/internal/telegram"
+	"github.com/Zakkaus/vestibule/internal/verification"
 )
 
 const testLookupGroup int64 = -1
@@ -18,7 +20,7 @@ const testLookupGroup int64 = -1
 type testLookupApplication struct {
 	cfg      *config.Config
 	settings *store.Settings
-	verifier *verify.Service
+	verifier *verification.Service
 }
 
 func newTestApplication(t *testing.T, ttl *int) *testLookupApplication {
@@ -29,8 +31,24 @@ func newTestApplication(t *testing.T, ttl *int) *testLookupApplication {
 	if err != nil {
 		panic(err)
 	}
-	verifier := verify.New(settings, nil, cfg, &i18n.Messages, nil, verify.Identity{}, "")
+	verifier := newTestVerifier(settings, nil, cfg, verification.Identity{}, "")
 	return &testLookupApplication{cfg: cfg, settings: settings, verifier: verifier}
+}
+
+func newTestVerifier(
+	settings *store.Settings,
+	connector *telegram.Connector,
+	cfg *config.Config,
+	identity verification.Identity,
+	stateDirectory string,
+) *verification.Service {
+	var gateway verification.Gateway
+	if connector != nil {
+		gateway = telegram.NewVerificationGateway(connector)
+	}
+	return verification.New(
+		settings, gateway, database.NewVerificationJSONStore(), cfg, &i18n.Messages, nil, identity, stateDirectory,
+	)
 }
 
 func testLookupService(v *testLookupApplication) *lookup.Service {
