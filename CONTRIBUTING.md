@@ -147,6 +147,11 @@ python3 scripts/check-docs.py
 
 **Both build tags must pass.** Running only the default one misses the generic edition.
 
+A phase's acceptance is a script, not a paragraph. `scripts/accept-phase1.sh` is phase
+one's, clause by clause in the plan's own order. Read as prose it proved nothing; as a
+script it refuses an empty package, a platform type in the core, and a rise in the
+number of baselined violations the phase-zero gate is holding.
+
 Chinese documents and user-visible copy go through the prose checker before the PR —
 `docs/`, `web/design.html` and `web/architecture.html`. The plan went unchecked for
 several rounds because nobody had named it, and it had seven findings when it was
