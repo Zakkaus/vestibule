@@ -40,9 +40,11 @@ holding a user or chat identifier and this document does not name it.
 | `verification_failure` | an applicant | user id, group id, how many times they failed, when last |
 | `warning_counter` | a member | user id, group id, how many warnings they hold |
 | `rule` | nobody directly | a group's questions, replies and filters — which can name people if an administrator writes them that way |
+| `pending_action` | an applicant or member | what the bot is about to do about one challenge and has not finished — the action, its retries, its last error. It names no user directly; it points at a `challenge`, whose id is `chat:user:nonce`, so the two identifiers are inside it |
 
-Two tables hold no personal data: `agent_tally` counts self-reported model names
-from the challenge's tripwire, and `verification_runtime` holds two numbers.
+Three tables hold no personal data: `agent_tally` counts self-reported model names
+from the challenge's tripwire, `verification_runtime` holds two numbers, and
+`update_poll_lease` records which process is currently reading from Telegram.
 
 **It does not store:** message text, phone numbers, email addresses, IP
 addresses, location, or anything Telegram did not send with the events above. It

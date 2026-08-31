@@ -35,9 +35,10 @@
 | `verification_failure` | 申请人 | 用户 ID、群 ID、失败次数、最后一次失败的时间 |
 | `warning_counter` | 群成员 | 用户 ID、群 ID、当前警告数 |
 | `rule` | 不直接指向人 | 某个群的题目、回复与过滤规则 —— 管理员若自己在里面写了名字，那就有 |
+| `pending_action` | 申请人或群成员 | 机器人就某一次挑战将要做、尚未做完的动作：动作本身、重试次数、上一次的错误。它不直接写用户 ID，而是指向一条 `challenge`，那条记录的 id 形如 `chat:user:nonce`，两个标识就编在里面 |
 
-两张表不含个人数据：`agent_tally` 统计挑战里那道埋伏中，对方自称的模型名；
-`verification_runtime` 存两个数字。
+三张表不含个人数据：`agent_tally` 统计挑战里那道埋伏中，对方自称的模型名；
+`verification_runtime` 存两个数字；`update_poll_lease` 记录当前是哪个进程在从 Telegram 读取更新。
 
 **它不保存**：消息正文、手机号、电子邮件地址、IP 地址、位置，
 以及任何 Telegram 没有随上述事件一并发来的字段。它不读取自己不是管理员的群里的消息；

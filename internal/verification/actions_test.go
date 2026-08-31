@@ -180,6 +180,35 @@ func TestDurableDeleteTreatsMissingGroupMessageAsComplete(t *testing.T) {
 	}
 }
 
+// A shutdown must not settle somebody on its way out. The previous generation
+// hung a time.AfterFunc on each pending verification and declined people during
+// a graceful stop, which is the failure this scanner replaces; replacing the
+// mechanism does not by itself preserve the property, so it is asserted here.
+func TestScanExpiredDeclinesNobodyOnceShutdownStarted(t *testing.T) {
+	const gid, uid = int64(-100), int64(7)
+	now := time.Unix(1_700_000_000, 0)
+	v := newTestService(&config.Config{TimeoutSeconds: 240})
+	v.timeNow = func() time.Time { return now }
+	p := &pending{nonce: "due", deadline: now, groupMsgID: 52, privateMsgID: 53}
+	state := &actionTestStore{pending: []PendingRecord{pendingRecord(pkey{gid, uid}, p)}}
+	v.stateStore = state
+	v.statePath = "scan-shutdown-test"
+	bot := &fakeVerifyBot{}
+	v.gateway = bot
+	v.pend[pkey{gid, uid}] = p
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	v.ScanExpired(ctx)
+
+	if bot.declines != 0 {
+		t.Fatalf("declines during shutdown = %d, want 0", bot.declines)
+	}
+	if _, exists := v.pend[pkey{gid, uid}]; !exists {
+		t.Fatal("shutdown dropped a pending verification instead of leaving it for the next run")
+	}
+}
+
 func TestScanExpiredClaimsDueChallengeWithoutLocalTimer(t *testing.T) {
 	const gid, uid = int64(-100), int64(7)
 	now := time.Unix(1_700_000_000, 0)
