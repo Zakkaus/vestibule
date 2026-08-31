@@ -88,7 +88,7 @@ func TestWarningGoldenCompatibility(t *testing.T) {
 			}
 			if test.roundTrip {
 				out := filepath.Join(t.TempDir(), "warns.json")
-				service.warnings.path = out
+				service.warnings.store = newWarningJSONStore(out)
 				if err := service.warnings.save(); err != nil {
 					t.Fatal(err)
 				}
@@ -108,8 +108,8 @@ func TestWarningReadErrorDisablesWrites(t *testing.T) {
 		t.Fatal(err)
 	}
 	service := newTestService(t, &config.Config{}, newFakeMod(), stateDirectory)
-	if service.warnings.path != "" {
-		t.Errorf("write path remains %q after read failure", service.warnings.path)
+	if service.warnings.store != nil {
+		t.Error("warning store remains enabled after read failure")
 	}
 }
 
@@ -183,7 +183,7 @@ func TestWarnCounterBound(t *testing.T) {
 		{name: "key order breaks equal-count ties", evicted: warningKey{groupID: -200, userID: 1}, evictedCount: 2},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			state := newWarningState("")
+			state := newWarningState(nil)
 			for index := range warnCounterMax {
 				state.counters[warningKey{groupID: -100, userID: int64(index + 1)}] = 2
 			}
@@ -235,8 +235,8 @@ func warningFixtureWithUnknown(t *testing.T, fixture []byte) []byte {
 
 func assertStableWarningJSON(t *testing.T, want, got []byte) {
 	t.Helper()
-	decode := func(data []byte) []warningRecord {
-		var records []warningRecord
+	decode := func(data []byte) []WarningRecord {
+		var records []WarningRecord
 		if err := json.Unmarshal(data, &records); err != nil {
 			t.Fatal(err)
 		}

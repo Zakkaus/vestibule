@@ -370,9 +370,9 @@ type HeartbeatRecord struct {
 // ErrStoreReadOnly marks a state file that could not be read without risking later overwrite.
 var ErrStoreReadOnly = errors.New("verification state is read-only")
 
-// Store persists the four JSON snapshots verification currently owns. Snapshot callbacks execute
-// under the implementation's process-wide write lock, preserving the existing lock order. Store
-// implementations must not perform network I/O.
+// Store persists the four verification snapshots. Snapshot callbacks execute under the
+// implementation's process-wide write lock, preserving the existing lock order. Implementations
+// must not perform network I/O; database implementations ignore the legacy path arguments.
 type Store interface {
 	LoadPending(string) ([]PendingRecord, error)
 	SavePending(string, func() []PendingRecord) error

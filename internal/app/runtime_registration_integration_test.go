@@ -82,7 +82,7 @@ func newRuntimeRegistrationFixture(
 	verification := newTestVerifier(settings, connector, cfg, identity, "")
 	verificationGateway := telegram.NewVerificationGateway(connector)
 	t.Cleanup(verification.Shutdown)
-	moderation := moderate.New(settings, connector, cfg, "")
+	moderation := moderate.New(settings, connector, cfg, nil)
 	lookups := lookup.New(settings, connector, cfg, "")
 	administration := panel.New(
 		settings, connector, cfg, &i18n.Messages,

@@ -1,5 +1,4 @@
-// Package database owns durable state adapters. The verification adapter remains JSON-backed until
-// the phase-three database migration.
+// VerificationJSONStore is the retained legacy adapter; runtime state uses VerificationStore.
 package database
 
 import (

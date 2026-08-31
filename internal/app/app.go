@@ -26,6 +26,8 @@ type Options struct {
 	ConfigPath     string
 	Token          string
 	StateDirectory string
+	DatabaseType   string
+	DatabaseURI    string
 	TelegramAPIURL string
 	GitHubToken    string
 	NotifySocket   string
@@ -34,6 +36,7 @@ type Options struct {
 
 type services struct {
 	cfg                 *config.Config
+	database            *database.Database
 	settings            *store.Settings
 	bot                 *telego.Bot
 	heartbeatBot        *outageAwareBot
@@ -65,6 +68,11 @@ func Run(ctx context.Context, options Options) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		if err := runtime.database.Close(); err != nil {
+			log.Printf("database close failed: %v", err)
+		}
+	}()
 	polling, err := startPolling(ctx, runtime)
 	if err != nil {
 		return fmt.Errorf("start long polling: %w", err)
@@ -91,29 +99,40 @@ func newServices(ctx context.Context, options Options, progress chan<- struct{})
 	if err != nil {
 		return nil, err
 	}
+	db, err := database.Open(ctx, database.Config{
+		Type: options.DatabaseType, URI: options.DatabaseURI, StateDirectory: options.StateDirectory,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("database: %w", err)
+	}
 	bot, err := newBot(options, progress)
 	if err != nil {
+		_ = db.Close()
 		return nil, err
 	}
 	connector := telegram.NewConnector(bot)
 	lookups := lookup.New(settings, connector, cfg, options.GitHubToken)
 	logRuntimeOptions(options)
 	alertPersistenceProblem(ctx, bot, cfg, settings)
-	heartbeatBot := newOutageAwareBot(ctx, bot, cfg, settings, options.StateDirectory)
+	verificationStore := database.NewVerificationStore(db)
+	heartbeatBot := newOutageAwareBot(ctx, bot, cfg, settings, verificationStore)
 	// Uptime counts from before the GetMe round trip, as it did previously.
 	// Measuring it afterwards silently shortens every uptime an operator reads
 	// by however long that call took.
 	startedAt := time.Now()
 	me, err := heartbeatBot.GetMe(ctx)
 	if err != nil {
+		_ = db.Close()
 		return nil, fmt.Errorf("GetMe failed (required for the verification deep link): %w", err)
 	}
-	logPrivacyMode(me)
 	identity := verification.Identity{ID: me.ID, Username: me.Username}
 	verificationGateway := telegram.NewVerificationGateway(connector)
-	verificationStore := database.NewVerificationJSONStore()
-	verification := verification.New(settings, verificationGateway, verificationStore, cfg, &i18n.Messages, heartbeatBot, identity, options.StateDirectory)
-	moderation := moderate.New(settings, connector, cfg, options.StateDirectory)
+	stateNamespace := options.StateDirectory
+	if stateNamespace == "" {
+		stateNamespace = "database"
+	}
+	verification := verification.New(settings, verificationGateway, verificationStore, cfg, &i18n.Messages, heartbeatBot, identity, stateNamespace)
+	moderation := moderate.New(settings, connector, cfg, database.NewWarningStore(db))
 	administration := panel.New(
 		settings, connector, cfg, &i18n.Messages,
 		verification, moderation, lookups, options.Version, startedAt,
@@ -121,7 +140,8 @@ func newServices(ctx context.Context, options Options, progress chan<- struct{})
 	updates := telegram.NewUpdates(cfg, settings, connector, telegramHandlers(verification, verificationGateway, administration, moderation, lookups))
 	registration := newRegistration(ctx, bot, cfg, settings, identity, moderation, verification, updates)
 	return &services{
-		cfg: cfg, settings: settings, bot: bot, heartbeatBot: heartbeatBot,
+		database: db,
+		cfg:      cfg, settings: settings, bot: bot, heartbeatBot: heartbeatBot,
 		lookups: lookups, verification: verification, verificationGateway: verificationGateway, moderation: moderation,
 		updates: updates, registration: registration, identity: identity,
 	}, nil

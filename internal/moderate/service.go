@@ -50,13 +50,13 @@ type Service struct {
 	warnings warningState
 }
 
-// New constructs a moderation service and restores warns.json from stateDirectory.
-func New(settings *store.Settings, telegram Telegram, cfg *config.Config, stateDirectory string) *Service {
+// New constructs a moderation service and restores its durable warning counters.
+func New(settings *store.Settings, telegram Telegram, cfg *config.Config, warningStore WarningStore) *Service {
 	s := &Service{
 		settings: settings,
 		telegram: telegram,
 		cfg:      cfg,
-		warnings: newWarningState(stateDirectory),
+		warnings: newWarningState(warningStore),
 	}
 	s.warnings.load()
 	return s

@@ -1,11 +1,10 @@
 package moderate
 
 import (
+	"errors"
 	"log"
 	"sort"
 	"sync"
-
-	"github.com/Zakkaus/vestibule/internal/store"
 )
 
 const warnCounterMax = 4096
@@ -15,36 +14,29 @@ type warningKey struct {
 	userID  int64
 }
 
-// warningRecord is the stable on-disk form of one group-user warning counter.
-type warningRecord struct {
-	GroupID int64 `json:"group_id"`
-	UserID  int64 `json:"user_id"`
-	Count   int   `json:"count"`
-}
-
 type warningState struct {
 	mu       sync.Mutex
-	path     string
+	store    WarningStore
 	counters map[warningKey]int
 }
 
-func newWarningState(stateDirectory string) warningState {
+func newWarningState(store WarningStore) warningState {
 	return warningState{
-		path:     warningsPath(stateDirectory),
+		store:    store,
 		counters: make(map[warningKey]int),
 	}
 }
 
 func (w *warningState) load() {
-	if w.path == "" {
+	if w.store == nil {
 		return
 	}
-	var records []warningRecord
-	if err := store.Load(w.path, &records); err != nil {
-		if store.ReadFailed(err) {
-			w.path = ""
+	records, err := w.store.LoadWarnings()
+	if err != nil {
+		if errors.Is(err, ErrWarningStoreReadOnly) {
+			w.store = nil
 		}
-		return // corrupt files were backed up; unreadable files remain untouched and write-disabled
+		return
 	}
 	w.mu.Lock()
 	for _, record := range records {
@@ -61,16 +53,16 @@ func (w *warningState) load() {
 }
 
 func (w *warningState) save() error {
-	if w.path == "" {
+	if w.store == nil {
 		return nil
 	}
-	return store.Save(w.path, func() any {
+	return w.store.SaveWarnings(func() []WarningRecord {
 		w.mu.Lock()
 		defer w.mu.Unlock()
-		records := make([]warningRecord, 0, len(w.counters))
+		records := make([]WarningRecord, 0, len(w.counters))
 		for key, count := range w.counters {
 			if count > 0 {
-				records = append(records, warningRecord{GroupID: key.groupID, UserID: key.userID, Count: count})
+				records = append(records, WarningRecord{GroupID: key.groupID, UserID: key.userID, Count: count})
 			}
 		}
 		return records

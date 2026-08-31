@@ -32,6 +32,8 @@ func main() {
 		ConfigPath:     *configPath,
 		Token:          os.Getenv("BOT_TOKEN"),
 		StateDirectory: os.Getenv("STATE_DIRECTORY"),
+		DatabaseType:   os.Getenv("VT_DATABASE_TYPE"),
+		DatabaseURI:    os.Getenv("VT_DATABASE_URI"),
 		TelegramAPIURL: os.Getenv("TELEGRAM_API_URL"),
 		GitHubToken:    os.Getenv("GITHUB_TOKEN"),
 		NotifySocket:   os.Getenv("NOTIFY_SOCKET"),
