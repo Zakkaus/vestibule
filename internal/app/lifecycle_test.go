@@ -39,7 +39,7 @@ func TestRetentionOutageObserverUsesDurableHeartbeatOncePerOutage(t *testing.T) 
 	writeHeartbeatRecord(t, path, now.Add(-25*time.Hour))
 	alerts := make(chan time.Duration, 2)
 	observer := retentionOutageObserver{
-		heartbeatPath: path,
+		loadHeartbeat: heartbeatFileLoader(path),
 		alert: func(outage time.Duration) {
 			alerts <- outage
 		},
@@ -75,6 +75,18 @@ func writeHeartbeatRecord(t *testing.T, path string, lastOnline time.Time) {
 	}
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func heartbeatFileLoader(path string) func() (verification.HeartbeatRecord, error) {
+	return func() (verification.HeartbeatRecord, error) {
+		var heartbeat verification.HeartbeatRecord
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return heartbeat, err
+		}
+		err = json.Unmarshal(data, &heartbeat)
+		return heartbeat, err
 	}
 }
 
@@ -285,7 +297,7 @@ func assertRetentionOutageAlert(t *testing.T, fixture *lifecycleVerificationFixt
 	heartbeatPath := filepath.Join(fixture.stateDirectory, "heartbeat.json")
 	writeHeartbeatRecord(t, heartbeatPath, time.Now().Add(-25*time.Hour))
 	alerted := make(chan time.Duration, 1)
-	observer := &retentionOutageObserver{heartbeatPath: heartbeatPath}
+	observer := &retentionOutageObserver{loadHeartbeat: heartbeatFileLoader(heartbeatPath)}
 	observer.alert = func(outage time.Duration) {
 		alertRetentionOutage(
 			context.Background(),

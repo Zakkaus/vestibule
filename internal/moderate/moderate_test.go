@@ -277,7 +277,7 @@ func testSettings(t *testing.T, cfg *config.Config) *store.Settings {
 
 func newTestService(t *testing.T, cfg *config.Config, telegram *fakeModBot, stateDirectory string) *Service {
 	t.Helper()
-	return New(testSettings(t, cfg), telegram, cfg, stateDirectory)
+	return New(testSettings(t, cfg), telegram, cfg, newWarningJSONStore(warningsPath(stateDirectory)))
 }
 
 func newAPITestBot(t *testing.T, caller ta.Caller) *telego.Bot {

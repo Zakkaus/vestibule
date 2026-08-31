@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"log"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -19,13 +18,16 @@ func newOutageAwareBot(
 	bot *telego.Bot,
 	cfg *config.Config,
 	settings *store.Settings,
-	stateDirectory string,
+	stateStore verification.Store,
 ) *outageAwareBot {
-	heartbeatPath := ""
-	if stateDirectory != "" {
-		heartbeatPath = filepath.Join(stateDirectory, "heartbeat.json")
+	observer := &retentionOutageObserver{
+		loadHeartbeat: func() (verification.HeartbeatRecord, error) {
+			if stateStore == nil {
+				return verification.HeartbeatRecord{}, nil
+			}
+			return stateStore.LoadHeartbeat("")
+		},
 	}
-	observer := &retentionOutageObserver{heartbeatPath: heartbeatPath}
 	observer.alert = func(outageDuration time.Duration) {
 		alertRetentionOutage(ctx, bot, cfg, settings.GroupIDs(), outageDuration)
 	}
@@ -40,7 +42,11 @@ func logRuntimeOptions(options Options) {
 		log.Printf("GITHUB_TOKEN set — GitHub API rate limit raised (~5000/h)")
 	}
 	if options.StateDirectory == "" {
-		log.Printf("WARNING: STATE_DIRECTORY is unset — persistence is DISABLED: settings changes are runtime-only, and pending verifications, warn counts, and feed cursors will NOT survive a restart (set StateDirectory= in the systemd unit)")
+		if strings.TrimSpace(options.DatabaseURI) == "" {
+			log.Printf("WARNING: STATE_DIRECTORY is unset — persistence is DISABLED: settings changes are runtime-only, and pending verifications, warn counts, and feed cursors will NOT survive a restart (set StateDirectory= in the systemd unit)")
+		} else {
+			log.Printf("WARNING: STATE_DIRECTORY is unset — settings changes and feed cursors will NOT survive a restart; pending verifications and warn counts use the configured database")
+		}
 	}
 }
 

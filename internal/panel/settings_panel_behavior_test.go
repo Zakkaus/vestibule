@@ -268,7 +268,7 @@ func newSettingsPanelTestWithCaller(t *testing.T, path string, caller ta.Caller)
 	bot := newAPITestBot(t, caller)
 	verifier := &panelVerifierStub{}
 	telegram := telegram.NewConnector(bot)
-	moderation := moderate.New(settings, telegram, cfg, "")
+	moderation := moderate.New(settings, telegram, cfg, nil)
 	panel := New(settings, telegram, cfg, &i18n.Messages, verifier, moderation, nil, "test", time.Now())
 	return panel, settings, bot
 }

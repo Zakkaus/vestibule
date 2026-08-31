@@ -2,9 +2,7 @@ package app
 
 import (
 	"context"
-	"encoding/json"
 	"log"
-	"os"
 	"sync"
 	"time"
 
@@ -19,7 +17,7 @@ import (
 const telegramUpdateRetention = 24 * time.Hour
 
 type retentionOutageObserver struct {
-	heartbeatPath string
+	loadHeartbeat func() (verification.HeartbeatRecord, error)
 	alert         func(time.Duration)
 
 	mu       sync.Mutex
@@ -27,7 +25,14 @@ type retentionOutageObserver struct {
 }
 
 func (o *retentionOutageObserver) observe(now time.Time) {
-	outage, ok := heartbeatOutage(o.heartbeatPath, now)
+	if o.loadHeartbeat == nil {
+		return
+	}
+	heartbeat, err := o.loadHeartbeat()
+	if err != nil {
+		return
+	}
+	outage, ok := heartbeatOutage(heartbeat.LastOnline, now)
 	if !ok {
 		return
 	}
@@ -48,21 +53,11 @@ func (o *retentionOutageObserver) observe(now time.Time) {
 	}
 }
 
-func heartbeatOutage(path string, now time.Time) (time.Duration, bool) {
-	if path == "" {
+func heartbeatOutage(lastOnlineUnix int64, now time.Time) (time.Duration, bool) {
+	if lastOnlineUnix <= 0 {
 		return 0, false
 	}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return 0, false
-	}
-	var heartbeat struct {
-		LastOnline int64 `json:"last_online"`
-	}
-	if json.Unmarshal(data, &heartbeat) != nil || heartbeat.LastOnline <= 0 {
-		return 0, false
-	}
-	lastOnline := time.Unix(heartbeat.LastOnline, 0)
+	lastOnline := time.Unix(lastOnlineUnix, 0)
 	if lastOnline.After(now) {
 		return 0, false
 	}
