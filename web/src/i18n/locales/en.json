@@ -135,10 +135,28 @@
     "actions": {
       "release": "Release",
       "releaseFor": "Release {{user}}",
+      "releasing": "Releasing…",
+      "releasingFor": "Releasing {{user}}",
       "revoke": "Revoke",
-      "revokeFor": "Revoke {{user}}",
+      "revokeFor": "Revoke the ban on {{user}}",
+      "revoking": "Revoking…",
+      "revokingFor": "Revoking the ban on {{user}}",
       "details": "Details",
-      "detailsFor": "View details for {{user}}"
+      "detailsFor": "View details for {{user}}",
+      "openingDetails": "Opening…",
+      "openingDetailsFor": "Opening details for {{user}}"
+    },
+    "revokeDialog": {
+      "title": "Revoke the ban on {{user}}",
+      "description": "{{user}} will enter “{{group}}” with status “{{approved}}.” To restore the ban, undo this action in the activity log.",
+      "cancel": "Cancel",
+      "confirm": "Revoke and release"
+    },
+    "feedback": {
+      "releaseSuccess": "Released {{user}}. They can now enter “{{group}}” with status “{{approved}}.”",
+      "revokeSuccess": "Revoked the ban on {{user}}. They can now enter “{{group}}” with status “{{approved}}.”",
+      "releaseFailure": "Could not release {{user}}. The action did not complete; the row returned to “{{pending}}” and can be retried.",
+      "detailsUnavailable": "The details page is not implemented yet. {{user}}’s record has not changed."
     },
     "empty": {
       "title": "No one has applied yet",

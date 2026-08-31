@@ -5,6 +5,12 @@ import {
 } from "../../lib/challenge";
 
 export type QueueActionId = "release" | "revoke" | "details";
+export type QueueFeedbackId =
+  | "releaseSuccess"
+  | "revokeSuccess"
+  | "releaseFailure"
+  | "detailsUnavailable";
+
 
 export type QueueRecord = {
   id: string;
@@ -13,6 +19,7 @@ export type QueueRecord = {
   result: ChallengeResultDefinition;
   occurredAt: string;
   remainingSeconds?: number;
+  simulatedFailureAction?: QueueActionId;
 };
 
 export type QueueFilter = {
@@ -75,24 +82,58 @@ export const queueActions: Readonly<
     {
       labelKey: string;
       ariaLabelKey: string;
+      pendingLabelKey: string;
+      pendingAriaLabelKey: string;
       variant: "primary" | "ghost";
+      optimisticResult: ChallengeResultDefinition | null;
+      confirmation: {
+        titleKey: string;
+        descriptionKey: string;
+        cancelKey: string;
+        confirmKey: string;
+      } | null;
+      completionFeedback: QueueFeedbackId;
+      failureFeedback: QueueFeedbackId | null;
     }
   >
 > = {
   release: {
     labelKey: "queue.actions.release",
     ariaLabelKey: "queue.actions.releaseFor",
-    variant: "primary"
+    pendingLabelKey: "queue.actions.releasing",
+    pendingAriaLabelKey: "queue.actions.releasingFor",
+    variant: "primary",
+    optimisticResult: challengeResults.approved,
+    confirmation: null,
+    completionFeedback: "releaseSuccess",
+    failureFeedback: "releaseFailure"
   },
   revoke: {
     labelKey: "queue.actions.revoke",
     ariaLabelKey: "queue.actions.revokeFor",
-    variant: "ghost"
+    pendingLabelKey: "queue.actions.revoking",
+    pendingAriaLabelKey: "queue.actions.revokingFor",
+    variant: "ghost",
+    optimisticResult: challengeResults.approved,
+    confirmation: {
+      titleKey: "queue.revokeDialog.title",
+      descriptionKey: "queue.revokeDialog.description",
+      cancelKey: "queue.revokeDialog.cancel",
+      confirmKey: "queue.revokeDialog.confirm"
+    },
+    completionFeedback: "revokeSuccess",
+    failureFeedback: null
   },
   details: {
     labelKey: "queue.actions.details",
     ariaLabelKey: "queue.actions.detailsFor",
-    variant: "ghost"
+    pendingLabelKey: "queue.actions.openingDetails",
+    pendingAriaLabelKey: "queue.actions.openingDetailsFor",
+    variant: "ghost",
+    optimisticResult: null,
+    confirmation: null,
+    completionFeedback: "detailsUnavailable",
+    failureFeedback: null
   }
 };
 
@@ -113,6 +154,15 @@ const defaultQueueFixture: QueueFixture = {
       result: challengeResults.pending,
       occurredAt: "2026-08-31T14:09:00+08:00",
       remainingSeconds: 161
+    },
+    {
+      id: "challenge-50",
+      user: "@retry_release",
+      groupKey: "groups.names.gentooZh",
+      result: challengeResults.pending,
+      occurredAt: "2026-08-31T14:08:00+08:00",
+      remainingSeconds: 219,
+      simulatedFailureAction: "release"
     },
     {
       id: "challenge-44",

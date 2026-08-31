@@ -135,10 +135,28 @@
     "actions": {
       "release": "放行",
       "releaseFor": "放行 {{user}}",
+      "releasing": "放行中…",
+      "releasingFor": "正在放行 {{user}}",
       "revoke": "撤销",
-      "revokeFor": "撤销 {{user}}",
+      "revokeFor": "撤销 {{user}} 的封禁",
+      "revoking": "撤销中…",
+      "revokingFor": "正在撤销 {{user}} 的封禁",
       "details": "详情",
-      "detailsFor": "查看 {{user}} 的详情"
+      "detailsFor": "查看 {{user}} 的详情",
+      "openingDetails": "打开中…",
+      "openingDetailsFor": "正在打开 {{user}} 的详情"
+    },
+    "revokeDialog": {
+      "title": "撤销 {{user}} 的封禁",
+      "description": "{{user}} 会进入「{{group}}」，状态改为「{{approved}}」。如需恢复封禁，请在操作记录中撤销本次操作。",
+      "cancel": "取消",
+      "confirm": "撤销并放行"
+    },
+    "feedback": {
+      "releaseSuccess": "已放行 {{user}} 进入「{{group}}」，状态为「{{approved}}」。",
+      "revokeSuccess": "已撤销 {{user}} 的封禁，状态已改为「{{approved}}」，可进入「{{group}}」。",
+      "releaseFailure": "没能放行 {{user}}。此次操作未完成，状态已恢复为「{{pending}}」，可以重试。",
+      "detailsUnavailable": "详情页尚未实现，{{user}} 的记录没有改变。"
     },
     "empty": {
       "title": "还没有人申请",
