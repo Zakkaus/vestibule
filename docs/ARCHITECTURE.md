@@ -726,8 +726,42 @@ CREATE TABLE rule (
     ordinal    INTEGER NOT NULL,
     enabled    BOOLEAN NOT NULL DEFAULT TRUE,
     definition TEXT   NOT NULL    -- 题面、条件、回复内容，三语
+
+-- 以下四张表承载上一代那四份 JSON 状态。它们不在本节最初的设计里，
+-- 是阶段三第一片换介质时按现有状态的实际形状定下来的。
+CREATE TABLE verification_failure (
+    chat_id BIGINT  NOT NULL REFERENCES chat(id) ON DELETE CASCADE,
+    user_id BIGINT  NOT NULL,
+    count   INTEGER NOT NULL,
+    last_at BIGINT  NOT NULL,   -- 冷却窗口从这里算
+    PRIMARY KEY (chat_id, user_id)
+);
+
+CREATE TABLE agent_tally (        -- 诱饵命中时对方自称的模型，只是统计
+    model TEXT    PRIMARY KEY,
+    count INTEGER NOT NULL
+);
+
+CREATE TABLE verification_runtime (  -- 单值运行状态：命中总数、上次在线时间
+    key   TEXT   PRIMARY KEY,
+    value BIGINT NOT NULL
+);
+
+CREATE TABLE warning_counter (    -- 群与用户双键，有界驱逐仍在内存里做
+    chat_id BIGINT  NOT NULL REFERENCES chat(id) ON DELETE CASCADE,
+    user_id BIGINT  NOT NULL,
+    count   INTEGER NOT NULL,
+    PRIMARY KEY (chat_id, user_id)
 );
 ```
+
+### 这四张表是搬来的，不是设计出来的
+
+本节最初只画了 `chat`、`challenge` 和 `rule`。 真去换介质时，上一代那四份 JSON 还得有地方放：失败计数与冷却、 诱饵命中的模型计数、两个单值运行状态、以及警告计数。
+
+`agent_tally` 与 `warning_counter` 的最终去处不在这里 —— 前者是统计、该归 `status`，后者归 `moderate` 自己的那一层。 放在这里是因为阶段三第一片只换介质、不动归属， 搬家和拆包一起做就分不清失败来自哪一件。
+
+还有一张 `version` 表，由 `dbutil` 自己建和维护， 记结构版本与兼容下限。**旧二进制连新库被拒绝**就是靠它 —— 迁移不声明兼容下限，`dbutil` 便把下限设成目标版本， 更老的程序收到 `ErrUnsupportedDatabaseVersion` 并拒绝启动。
 
 ### 为什么退回要分原因
 

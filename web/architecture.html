@@ -2006,8 +2006,47 @@ Sender {
     ordinal    <span class="k-val">INTEGER</span> <span class="k-key">NOT NULL</span>,
     enabled    <span class="k-val">BOOLEAN</span> <span class="k-key">NOT NULL DEFAULT</span> <span class="k-val">TRUE</span>,
     definition <span class="k-val">TEXT</span>   <span class="k-key">NOT NULL</span>    <span class="k-cm">-- 题面、条件、回复内容，三语</span>
+
+<span class="k-cm">-- 以下四张表承载上一代那四份 JSON 状态。它们不在本节最初的设计里，</span>
+<span class="k-cm">-- 是阶段三第一片换介质时按现有状态的实际形状定下来的。</span>
+<span class="k-key">CREATE TABLE</span> verification_failure (
+    chat_id <span class="k-val">BIGINT</span>  <span class="k-key">NOT NULL REFERENCES</span> chat(id) <span class="k-key">ON DELETE CASCADE</span>,
+    user_id <span class="k-val">BIGINT</span>  <span class="k-key">NOT NULL</span>,
+    count   <span class="k-val">INTEGER</span> <span class="k-key">NOT NULL</span>,
+    last_at <span class="k-val">BIGINT</span>  <span class="k-key">NOT NULL</span>,   <span class="k-cm">-- 冷却窗口从这里算</span>
+    <span class="k-key">PRIMARY KEY</span> (chat_id, user_id)
+);
+
+<span class="k-key">CREATE TABLE</span> agent_tally (        <span class="k-cm">-- 诱饵命中时对方自称的模型，只是统计</span>
+    model <span class="k-val">TEXT</span>    <span class="k-key">PRIMARY KEY</span>,
+    count <span class="k-val">INTEGER</span> <span class="k-key">NOT NULL</span>
+);
+
+<span class="k-key">CREATE TABLE</span> verification_runtime (  <span class="k-cm">-- 单值运行状态：命中总数、上次在线时间</span>
+    key   <span class="k-val">TEXT</span>   <span class="k-key">PRIMARY KEY</span>,
+    value <span class="k-val">BIGINT</span> <span class="k-key">NOT NULL</span>
+);
+
+<span class="k-key">CREATE TABLE</span> warning_counter (    <span class="k-cm">-- 群与用户双键，有界驱逐仍在内存里做</span>
+    chat_id <span class="k-val">BIGINT</span>  <span class="k-key">NOT NULL REFERENCES</span> chat(id) <span class="k-key">ON DELETE CASCADE</span>,
+    user_id <span class="k-val">BIGINT</span>  <span class="k-key">NOT NULL</span>,
+    count   <span class="k-val">INTEGER</span> <span class="k-key">NOT NULL</span>,
+    <span class="k-key">PRIMARY KEY</span> (chat_id, user_id)
 );</pre>
     </div>
+
+    <h3>这四张表是搬来的，不是设计出来的</h3>
+    <p>本节最初只画了 <code>chat</code>、<code>challenge</code> 和 <code>rule</code>。
+      真去换介质时，上一代那四份 JSON 还得有地方放：失败计数与冷却、
+      诱饵命中的模型计数、两个单值运行状态、以及警告计数。</p>
+    <p><code>agent_tally</code> 与 <code>warning_counter</code> 的最终去处不在这里 ——
+      前者是统计、该归 <code>status</code>，后者归 <code>moderate</code> 自己的那一层。
+      放在这里是因为阶段三第一片只换介质、不动归属，
+      搬家和拆包一起做就分不清失败来自哪一件。</p>
+    <p>还有一张 <code>version</code> 表，由 <code>dbutil</code> 自己建和维护，
+      记结构版本与兼容下限。<b>旧二进制连新库被拒绝</b>就是靠它 ——
+      迁移不声明兼容下限，<code>dbutil</code> 便把下限设成目标版本，
+      更老的程序收到 <code>ErrUnsupportedDatabaseVersion</code> 并拒绝启动。</p>
 
     <h3>为什么退回要分原因</h3>
     <p><code>state</code> 已经把超时和拒绝分成 <code>expired</code> 与 <code>declined</code>。
