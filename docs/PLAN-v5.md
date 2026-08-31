@@ -168,7 +168,7 @@
 |---|---|
 | 1A · 无状态边界 | 先迁 `lookup`、`i18n`、日志脱敏、标识与格式化职责；不改变持久状态和对外动作时序。 |
 | 1B · Telegram 与装配边界 | 将 Update 路由、Gateway 实现、命令注册和生命周期装配移到 `telegram`、`app` 与 `cmd/bot`；核心只经端口调用外部服务。 |
-| 1C · 核心端口边界 | 将验证流程置于 `verification`，以 `Store`、`Gateway`、`Clock` 隔离现有状态；不在本片更换数据库介质，状态迁移留给阶段三。 |
+| 1C · 核心端口边界 | 将验证流程置于 `verification`，以 `Store` 与 `Gateway` 两个端口隔离现有状态；不在本片更换数据库介质，状态迁移留给阶段三。 |
 
 每片结束均须使两个构建标签可编译、两套测试全绿。
 
@@ -185,9 +185,12 @@
 internal/app  verification  rules  telegram  console  settings  database  status
 ```
 
-`verification/ports.go` 里定义 `Gateway`、`Store`、`Clock`，
+`verification/ports.go` 里定义 `Gateway` 与 `Store`，
 由 `telegram` 与数据层实现，**接口定义在使用方**。
 用编译期断言把实现钉在接口上。
+
+**签名照架构文档「端口的签名」一节，逐条都有理由，不要另拟。**
+没有 `Clock`：`ClaimExpired` 直接收 `now`，少一个接口，测试传值即可。
 
 **测试跟着走。** 25569 行测试里有相当一部分是生产事故换来的行为规格，
 它们是资产不是负担。锁具体实现的那些会在重排时碎，
