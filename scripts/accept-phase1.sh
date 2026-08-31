@@ -57,11 +57,18 @@ if [ -f scripts/lint.sh ]; then
     printf '%s\n' "$out" | grep FAIL | sed 's/^/    /'
   else
     held=$(printf '%s' "$out" | grep -oE 'holding [0-9]+' | grep -oE '[0-9]+')
-    base=${PHASE0_HELD:-26}
-    if [ -n "$held" ] && [ "$held" -gt "$base" ]; then
-      bad "held violations $held, was $base"
+    # A ratchet, not a constant. The ceiling lives in scripts/held.txt and only
+    # ever moves down: written as a literal here it would let a number that had
+    # fallen creep back up unnoticed, which is the hardcoded-value failure this
+    # project refuses everywhere else.
+    base=$(cat scripts/held.txt 2>/dev/null || echo 0)
+    held=${held:-0}
+    if [ "$held" -gt "$base" ]; then
+      bad "held violations rose to $held, ceiling is $base"
+    elif [ "$held" -lt "$base" ]; then
+      bad "held violations fell to $held; lower the ceiling in scripts/held.txt"
     else
-      ok "phase-zero gate, holding ${held:-0} (was $base)"
+      ok "phase-zero gate, holding $held (ceiling $base)"
     fi
   fi
 else
