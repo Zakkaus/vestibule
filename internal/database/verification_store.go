@@ -75,6 +75,13 @@ func scanPending(row interface{ Scan(...any) error }) (verification.PendingRecor
 	record.UserID = userID
 	record.Tries = attempts
 	record.Deadline = deadline
+	if epoch < 0 {
+		// Every conditional write matches on the epoch. A negative one converts to a
+		// number no write will ever match, so the challenge becomes unsettleable and
+		// silently so. Refuse to load it instead.
+		return record, fmt.Errorf("pending challenge for chat %d user %d has a negative epoch %d",
+			groupID, userID, epoch)
+	}
 	record.Epoch = uint64(epoch)
 	record.GroupMsgID = delivery.GroupMessageID
 	record.PrivateMsgID = delivery.PrivateMessageID
