@@ -385,12 +385,21 @@ internal/app  verification  rules  telegram  console  settings  database  status
 
 **分支** `v5/config`
 
-换 `go.mau.fi/util/configupgrade`。现有 schema v1、v2、v3 折叠成一组
+换 `go.mau.fi/util/configupgrade`。现有 schema 折叠成一组
 「旧路径 → 当前路径」复制规则，删除逐版本分支。
+
+**是四条路径，不是三条。** `internal/store/settings.go:374-386` 有四个分支：
+没有 `version` 字段的旧文件（解码为 0）走 `migrateLegacy`，
+v1 走 `migrateVersionOne` 再 `migrateVersionTwo`，v2 走 `migrateVersionTwo`，
+v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最老的那批配置读坏。
 新增 `internal/settings/defaults.yaml`，完整带注释。
 
-**验收**：准备三份分别为 v1、v2、v3 的真实配置文件，各跑一次升级，
+**验收**：四种版本各一份配置文件，各执行一次升级，
 确认用户改过的值全部保留，新字段取默认值。
+
+样例目前只有一份：`testdata/state/settings.json` 没有 `version` 字段，正是第 0 种。
+另外三份要按 `internal/store/settings.go` 里各版本的实际形状造出来，
+每一份都要带上用户改过的值，否则「改过的值保留」这一条无从验起。
 
 **已知代价**：拼错但语法合法的未知键会在写回时消失。
 评审要求每个 struct 字段同时具备示例项与复制规则。
