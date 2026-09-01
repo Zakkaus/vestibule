@@ -36,18 +36,20 @@ type ConsoleService interface {
 
 // Config injects policy services into the HTTP adapter. The adapter owns no database access.
 type Config struct {
-	Authenticator *auth.Manager
-	Verification  ConsoleService
-	Settings      SettingsService
-	Health        *status.Health
+	Authenticator   *auth.Manager
+	Verification    ConsoleService
+	Settings        SettingsService
+	ProcessSettings ProcessSettingsService
+	Health          *status.Health
 }
 
 // Server owns listener admission and HTTP handler draining separately for ordered shutdown.
 type Server struct {
-	authenticator *auth.Manager
-	verification  ConsoleService
-	settings      SettingsService
-	health        *status.Health
+	authenticator   *auth.Manager
+	verification    ConsoleService
+	settings        SettingsService
+	processSettings ProcessSettingsService
+	health          *status.Health
 
 	mu         sync.Mutex
 	listener   net.Listener
@@ -56,10 +58,11 @@ type Server struct {
 
 func New(config Config) *Server {
 	return &Server{
-		authenticator: config.Authenticator,
-		verification:  config.Verification,
-		settings:      config.Settings,
-		health:        config.Health,
+		authenticator:   config.Authenticator,
+		verification:    config.Verification,
+		settings:        config.Settings,
+		processSettings: config.ProcessSettings,
+		health:          config.Health,
 	}
 }
 
@@ -132,12 +135,23 @@ func (s *Server) serveHTTP(writer http.ResponseWriter, request *http.Request) {
 		s.live(writer)
 	case request.Method == http.MethodGet && request.URL.Path == "/readyz":
 		s.ready(writer, request)
+	case request.Method == http.MethodGet && strings.HasPrefix(request.URL.Path, "/enter/"):
+		s.enter(writer, request)
+	case strings.HasPrefix(request.URL.Path, "/api/"):
+		s.apiRoute(writer, request)
+	default:
+		writeError(writer, http.StatusNotFound, "not_found")
+	}
+}
+
+func (s *Server) apiRoute(writer http.ResponseWriter, request *http.Request) {
+	switch {
 	case request.Method == http.MethodGet && request.URL.Path == "/api/session":
 		s.currentSession(writer, request)
 	case request.Method == http.MethodPost && request.URL.Path == "/api/session":
 		s.createSession(writer, request)
-	case request.Method == http.MethodGet && strings.HasPrefix(request.URL.Path, "/enter/"):
-		s.enter(writer, request)
+	case request.Method == http.MethodGet && request.URL.Path == "/api/process/settings":
+		s.readProcessSettings(writer, request)
 	case request.Method == http.MethodGet && request.URL.Path == "/api/chats":
 		s.chats(writer, request)
 	case strings.HasPrefix(request.URL.Path, "/api/chats/"):

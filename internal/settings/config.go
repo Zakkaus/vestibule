@@ -312,7 +312,8 @@ type Config struct {
 	// Feed accepts the legacy singular feed form and is merged into Feeds.
 	Feed *FeedConfig `json:"feed"`
 	// Questions is the global verification quiz pool.
-	Questions []Question `json:"questions"`
+	Questions              []Question `json:"questions"`
+	processSettingsSources processSettingsSources
 }
 
 // OwnerClaimLifetime returns the configured first-owner claim lifetime.
