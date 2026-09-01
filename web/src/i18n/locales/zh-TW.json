@@ -326,6 +326,86 @@
       "saveUnavailable": "無法儲存管理與處罰設定。請重試。"
     }
   },
+  "feeds": {
+    "navigation": "訂閱推送",
+    "title": "訂閱推送",
+    "description": "查看整個處理程序使用的訂閱目標、新聞來源，以及儲存庫與分支設定。這些值不會隨目前群組變更。",
+    "loading": {
+      "title": "正在載入訂閱推送設定",
+      "description": "正在讀取處理程序層級設定及其來源…"
+    },
+    "accessDenied": {
+      "title": "沒有權限查看處理程序設定",
+      "description": "此畫面僅供維運人員使用。群組管理員只能查看自己管理群組的設定，不能讀取整個處理程序的訂閱設定。"
+    },
+    "unavailable": {
+      "title": "無法讀取訂閱推送設定",
+      "retry": "重試"
+    },
+    "readOnly": {
+      "title": "由設定檔管理",
+      "badge": "唯讀",
+      "description": "這些值來自程式預設設定或啟動設定檔。此畫面沒有寫入路徑；控制台只顯示介面回傳的目前值與來源。"
+    },
+    "source": {
+      "value": "來源：{{source}}",
+      "factoryDefault": "出廠預設",
+      "userFile": "由設定檔管理"
+    },
+    "feed": {
+      "title": "訂閱目標",
+      "description": "每一項對應一個接收 Bugzilla 或新聞推送的群組或頻道。",
+      "itemTitle": "目標 {{number}}",
+      "destination": "接收群組或頻道",
+      "language": "推送語言",
+      "interval": "擷取間隔",
+      "bugzilla": "Bugzilla 推送",
+      "news": "新聞推送",
+      "bugProduct": "Bugzilla 產品",
+      "bugComponent": "Bugzilla 元件",
+      "silentBugs": "Bugzilla 一律靜默",
+      "allProducts": "所有產品",
+      "allComponents": "所有元件",
+      "emptyTitle": "未設定訂閱目標",
+      "emptyDescription": "目前處理程序不會向任何群組或頻道傳送 Bugzilla 或新聞推送。"
+    },
+    "newsURL": {
+      "title": "新聞來源網址",
+      "description": "處理程序擷取新聞項目時使用的全域網址。",
+      "empty": "未設定新聞來源網址"
+    },
+    "overlays": {
+      "title": "儲存庫與分支",
+      "description": "介面回傳的 GitHub overlay 儲存庫及其分支。",
+      "repository": "儲存庫",
+      "branch": "分支",
+      "defaultBranch": "master（預設）",
+      "emptyTitle": "未設定儲存庫",
+      "emptyDescription": "目前處理程序沒有 overlay 儲存庫與分支設定。"
+    },
+    "languages": {
+      "default": "簡體中文（預設）",
+      "zh": "簡體中文",
+      "zhHant": "繁體中文",
+      "en": "英文"
+    },
+    "values": {
+      "enabled": "啟用",
+      "disabled": "停用",
+      "enabledByDefault": "啟用（預設）",
+      "disabledByDefault": "停用（預設）",
+      "seconds_one": "{{count}} 秒",
+      "seconds_other": "{{count}} 秒"
+    },
+    "errors": {
+      "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
+      "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
+      "settingsUnavailable": "處理程序設定服務暫時無法使用。請重試。",
+      "loadUnavailable": "暫時無法讀取處理程序設定。請重試。",
+      "invalidResponse": "處理程序設定回應不完整，無法安全顯示。請重試。",
+      "network": "連線已中斷。重新讀取後再確認設定。"
+    }
+  },
   "bypass": {
     "navigation": "免驗證來源",
     "title": "免驗證來源",

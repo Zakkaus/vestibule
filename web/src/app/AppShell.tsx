@@ -37,6 +37,10 @@ const navigationItems = [
     labelKey: "questions.navigation"
   },
   {
+    path: "/feeds",
+    labelKey: "feeds.navigation"
+  },
+  {
     path: "/groups",
     labelKey: "navigation.groups"
   },
