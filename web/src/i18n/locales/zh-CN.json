@@ -326,6 +326,105 @@
       "saveUnavailable": "无法保存管理与处罚设置。请重试。"
     }
   },
+  "bypass": {
+    "navigation": "免验证来源",
+    "title": "免验证来源",
+    "description": "管理当前群的信任群、必关频道和频道身份白名单。",
+    "loading": {
+      "title": "正在载入免验证来源设置",
+      "description": "正在读取当前群的有效设置和设置来源…"
+    },
+    "groupRequired": {
+      "title": "先选择一个群",
+      "description": "选择已获授权的群后，才能管理它的免验证来源。",
+      "select": "选择群"
+    },
+    "noGroups": {
+      "title": "此账号尚未获任何群授权",
+      "description": "免验证来源只对已获授权的群开放。"
+    },
+    "unavailable": {
+      "title": "无法读取免验证来源设置",
+      "retry": "重试"
+    },
+    "source": {
+      "factory": "出厂默认",
+      "file": "由文件管理",
+      "chat": "本群设定",
+      "pending": "未保存",
+      "restoring": "待恢复默认"
+    },
+    "trusted": {
+      "title": "信任群",
+      "label": "信任这些群的成员",
+      "description": "确认是任一信任群成员的申请人会跳过验证。查不到成员身份时仍会继续验证。每行一个 Telegram 群 ID。"
+    },
+    "requiredChannel": {
+      "title": "必关频道",
+      "sectionDescription": "申请人必须是此频道成员，才能通过此条件。",
+      "id": {
+        "label": "必关频道 ID",
+        "description": "留空或填 0 会关闭此条件。启用后，必须填写以 @ 开头的显示名或频道邀请链接。"
+      },
+      "display": {
+        "label": "频道显示名",
+        "description": "公开频道填写以 @ 开头的显示名，机器人会在申请提示中使用它。私有频道可留空，但必须填写邀请链接。"
+      },
+      "invite": {
+        "label": "频道邀请链接",
+        "description": "私有频道填写可访问的邀请链接。公开频道可以留空。"
+      },
+      "failOpen": {
+        "label": "无法检查频道时仍放行",
+        "description": "机器人既无法读取申请人，也无法读取自己在必关频道中的成员身份时，决定是否放行已完成其余验证的申请。",
+        "enabled": "当前会放行已完成其余验证的申请。机器人无法检查频道时，未关注频道的人也可能进入；必关频道验证会失去作用。",
+        "disabled": "当前会拒绝申请。机器人临时失去频道权限或 Telegram 查询失败时，正常申请人也可能被误拒，需要稍后重新申请。"
+      }
+    },
+    "channelWhitelist": {
+      "title": "频道白名单",
+      "label": "允许这些频道身份发言",
+      "description": "这些频道身份可以在受保护群中发言。它不是成员白名单。每行一个 Telegram 频道 ID。"
+    },
+    "memberWhitelist": {
+      "title": "成员白名单",
+      "description": "当前设置接口没有成员白名单字段。频道白名单只允许频道身份发言，不会让成员跳过验证。"
+    },
+    "validation": {
+      "integer": "请输入整数频道 ID，或留空关闭此条件。",
+      "list": "每行填写一个非 0 的整数 Telegram ID，且不能重复。",
+      "reachableChannel": "必关频道已启用时，必须填写以 @ 开头的显示名或频道邀请链接。"
+    },
+    "save": {
+      "label": "保存免验证来源设置",
+      "unsaved_one": "{{count}} 项改动未保存",
+      "unsaved_other": "{{count}} 项改动未保存"
+    },
+    "actions": {
+      "restore": "恢复默认",
+      "cancelRestore": "取消恢复",
+      "discard": "放弃",
+      "save": "保存",
+      "saving": "正在保存…"
+    },
+    "feedback": {
+      "saved": "免验证来源设置已保存。",
+      "conflict": "别人改过这些设置了。已重新载入最新值，请重新应用仍需要的更改。"
+    },
+    "errors": {
+      "authenticationExpired": "会话已过期。请从 Telegram 重新打开控制台。",
+      "authenticationInvalid": "无法验证此控制台会话。请从 Telegram 重新打开控制台。",
+      "accessDenied": "你已不再拥有此群的管理权限。",
+      "accessUnavailable": "暂时无法确认你对此群的管理权限。请重试。",
+      "chatNotFound": "此群已不再可在控制台中管理。",
+      "csrfInvalid": "此页的安全令牌已过期。刷新页面后再重试。",
+      "invalidSettings": "一个或多个设置无效。检查后重新保存。",
+      "settingsUnavailable": "免验证来源设置暂时不可用。请重试。",
+      "loadUnavailable": "暂时无法读取免验证来源设置。请重试。",
+      "saveUnavailable": "暂时无法保存免验证来源设置。请重试。",
+      "network": "连接已中断。重新读取设置后，再决定是否重试。"
+    }
+  },
   "audit": {
     "navigation": "操作记录",
     "title": "操作记录",

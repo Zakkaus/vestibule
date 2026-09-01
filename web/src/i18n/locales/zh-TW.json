@@ -326,6 +326,105 @@
       "saveUnavailable": "無法儲存管理與處罰設定。請重試。"
     }
   },
+  "bypass": {
+    "navigation": "免驗證來源",
+    "title": "免驗證來源",
+    "description": "管理目前群組的信任群組、必關頻道和頻道身分白名單。",
+    "loading": {
+      "title": "正在載入免驗證來源設定",
+      "description": "正在讀取目前群組的有效設定與設定來源…"
+    },
+    "groupRequired": {
+      "title": "請先選擇群組",
+      "description": "選擇已取得授權的群組後，才能管理其免驗證來源。",
+      "select": "選擇群組"
+    },
+    "noGroups": {
+      "title": "此帳號尚未取得任何群組授權",
+      "description": "免驗證來源只對已取得授權的群組開放。"
+    },
+    "unavailable": {
+      "title": "無法讀取免驗證來源設定",
+      "retry": "重試"
+    },
+    "source": {
+      "factory": "出廠預設",
+      "file": "由檔案管理",
+      "chat": "此群組設定",
+      "pending": "尚未儲存",
+      "restoring": "將還原預設"
+    },
+    "trusted": {
+      "title": "信任群組",
+      "label": "信任這些群組的成員",
+      "description": "確認是任一信任群組成員的申請人會跳過驗證。無法讀取成員身分時仍會繼續驗證。每行一個 Telegram 群組 ID。"
+    },
+    "requiredChannel": {
+      "title": "必關頻道",
+      "sectionDescription": "申請人必須是此頻道成員，才能通過此條件。",
+      "id": {
+        "label": "必關頻道 ID",
+        "description": "留白或填入 0 會關閉此條件。啟用後，必須填寫以 @ 開頭的顯示名稱或頻道邀請連結。"
+      },
+      "display": {
+        "label": "頻道顯示名稱",
+        "description": "公開頻道填寫以 @ 開頭的顯示名稱，機器人會在申請提示中使用它。私人頻道可留白，但必須填寫邀請連結。"
+      },
+      "invite": {
+        "label": "頻道邀請連結",
+        "description": "私人頻道填寫可存取的邀請連結。公開頻道可以留白。"
+      },
+      "failOpen": {
+        "label": "無法檢查頻道時仍放行",
+        "description": "機器人既無法讀取申請人，也無法讀取自己在必關頻道中的成員身分時，決定是否放行已完成其餘驗證的申請。",
+        "enabled": "目前會放行已完成其餘驗證的申請。機器人無法檢查頻道時，未關注頻道的人也可能進入；必關頻道驗證會失去作用。",
+        "disabled": "目前會拒絕申請。機器人暫時失去頻道權限或 Telegram 查詢失敗時，正常申請人也可能被誤拒，需要稍後重新申請。"
+      }
+    },
+    "channelWhitelist": {
+      "title": "頻道白名單",
+      "label": "允許這些頻道身分發言",
+      "description": "這些頻道身分可以在受保護群組中發言。它不是成員白名單。每行一個 Telegram 頻道 ID。"
+    },
+    "memberWhitelist": {
+      "title": "成員白名單",
+      "description": "目前設定介面沒有成員白名單欄位。頻道白名單只允許頻道身分發言，不會讓成員跳過驗證。"
+    },
+    "validation": {
+      "integer": "請輸入整數頻道 ID，或留白關閉此條件。",
+      "list": "每行填寫一個非 0 的整數 Telegram ID，且不能重複。",
+      "reachableChannel": "必關頻道已啟用時，必須填寫以 @ 開頭的顯示名稱或頻道邀請連結。"
+    },
+    "save": {
+      "label": "儲存免驗證來源設定",
+      "unsaved_one": "{{count}} 項變更尚未儲存",
+      "unsaved_other": "{{count}} 項變更尚未儲存"
+    },
+    "actions": {
+      "restore": "還原預設",
+      "cancelRestore": "取消還原",
+      "discard": "放棄",
+      "save": "儲存",
+      "saving": "正在儲存…"
+    },
+    "feedback": {
+      "saved": "免驗證來源設定已儲存。",
+      "conflict": "其他人已修改這些設定。已重新載入最新值，請重新套用仍需要的變更。"
+    },
+    "errors": {
+      "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
+      "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
+      "accessDenied": "你已不再擁有此群組的管理權限。",
+      "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
+      "chatNotFound": "此群組已無法在控制台中管理。",
+      "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
+      "invalidSettings": "一項或多項設定無效。檢查後重新儲存。",
+      "settingsUnavailable": "免驗證來源設定暫時無法使用。請重試。",
+      "loadUnavailable": "暫時無法讀取免驗證來源設定。請重試。",
+      "saveUnavailable": "暫時無法儲存免驗證來源設定。請重試。",
+      "network": "連線已中斷。重新讀取設定後，再決定是否重試。"
+    }
+  },
   "audit": {
     "navigation": "操作記錄",
     "title": "操作記錄",
