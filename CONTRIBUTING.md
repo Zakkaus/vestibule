@@ -149,6 +149,7 @@ go run github.com/securego/gosec/v2/cmd/gosec@v2.28.0 -exclude=G304,G703,G706 ./
 python3 scripts/gen-arch-md.py --check
 python3 scripts/check-docs.py
 python3 scripts/check-gate-list.py   # this list names every gate CI runs
+python3 scripts/check-limits.py      # the limits stated here are the ones lint.go enforces
 python3 scripts/check-privacy-tables.py   # docs/PRIVACY.md names every table holding a person
 cd web && npm ci && npm run build && cd ..
 for c in style-rules undefined-var shadowed theme-leak; do \
