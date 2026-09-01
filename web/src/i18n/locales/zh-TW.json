@@ -810,6 +810,83 @@
       "network": "連線已中斷。重新讀取題庫後，再決定是否重試。"
     }
   },
+  "diagnostics": {
+    "navigation": "診斷",
+    "title": "診斷",
+    "description": "查看此執行個體的執行狀態、Bot API 探測與設定持久化狀態。",
+    "loading": {
+      "title": "正在載入執行個體狀態",
+      "description": "正在讀取此執行個體已經上報的狀態…"
+    },
+    "accessDenied": {
+      "title": "這是執行個體狀態，不由群組管理員查看",
+      "description": "此畫面僅供維運人員使用。群組管理員可管理自己的群組，但不能讀取整個執行個體的執行狀態。"
+    },
+    "unavailable": {
+      "title": "無法讀取執行個體狀態",
+      "retry": "重試"
+    },
+    "readOnly": {
+      "title": "唯讀狀態",
+      "badge": "唯讀",
+      "description": "此畫面不會修改執行期狀態。端點只會回傳目前已上報的執行個體狀態。"
+    },
+    "sections": {
+      "health": {
+        "title": "執行就緒",
+        "description": "處理程序、設定與 Telegram 連線目前的就緒訊號。"
+      },
+      "botAPI": {
+        "title": "Bot API 探測",
+        "description": "最近一次成功探測的時間與延遲。"
+      },
+      "persistence": {
+        "title": "設定持久化",
+        "description": "設定儲存的設定、持久化與寫入狀態。"
+      },
+      "notReported": {
+        "title": "尚未上報的診斷項目",
+        "description": "這些項目屬於診斷職責，但目前的執行個體端點沒有提供狀態。"
+      }
+    },
+    "labels": {
+      "live": "存活",
+      "ready": "就緒",
+      "configReady": "設定就緒",
+      "telegramReady": "Telegram 就緒",
+      "lastHeartbeat": "上次心跳",
+      "latency": "Bot API 延遲",
+      "configured": "已設定",
+      "durable": "可持久化",
+      "writable": "可寫入",
+      "lastError": "上次失敗原因",
+      "permissionPreflight": "權限預檢",
+      "queryCache": "查詢快取",
+      "queryRateLimit": "查詢限流"
+    },
+    "values": {
+      "yes": "是",
+      "no": "否",
+      "notMeasured": "尚未量測",
+      "milliseconds": "{{value}} 毫秒",
+      "noFailure": "未記錄失敗原因",
+      "failureRecorded": "已記錄失敗",
+      "notReported": "未上報"
+    },
+    "notReported": {
+      "permissionPreflight": "沒有按群組權限結果，不能以 Telegram 就緒狀態代替。",
+      "queryCache": "沒有快取狀態或命中資料。",
+      "queryRateLimit": "查詢限流是按群組設定，不與執行個體狀態混在此畫面。"
+    },
+    "errors": {
+      "authenticationExpired": "工作階段已過期。請重新從 Telegram 進入控制台。",
+      "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
+      "unavailable": "診斷服務暫時無法使用。請重試。",
+      "loadUnavailable": "暫時無法讀取執行個體狀態。請重試。",
+      "network": "連線已中斷。請重新讀取執行個體狀態。",
+      "invalidResponse": "執行個體回傳的診斷資料不符合端點契約。請重試。"
+    }
+  },
   "stats": {
     "navigation": "統計",
     "title": "統計",

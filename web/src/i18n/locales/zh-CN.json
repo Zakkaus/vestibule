@@ -810,6 +810,83 @@
       "network": "连接已中断。重新读取题库后，再决定是否重试。"
     }
   },
+  "diagnostics": {
+    "navigation": "诊断",
+    "title": "诊断",
+    "description": "查看本实例的运行状态、Bot API 探测和设置持久化状态。",
+    "loading": {
+      "title": "正在载入实例状态",
+      "description": "正在读取此实例已经上报的状态…"
+    },
+    "accessDenied": {
+      "title": "这是实例状态，不归群管理员查看",
+      "description": "此屏仅向运维开放。群管理员可管理自己的群，但不能读取整台实例的运行状态。"
+    },
+    "unavailable": {
+      "title": "无法读取实例状态",
+      "retry": "重试"
+    },
+    "readOnly": {
+      "title": "只读状态",
+      "badge": "只读",
+      "description": "此屏不会修改运行时状态。接口只返回当前已经上报的实例状态。"
+    },
+    "sections": {
+      "health": {
+        "title": "运行就绪",
+        "description": "进程、配置和 Telegram 连接的当前就绪信号。"
+      },
+      "botAPI": {
+        "title": "Bot API 探测",
+        "description": "最近一次成功探测的时间和延迟。"
+      },
+      "persistence": {
+        "title": "设置持久化",
+        "description": "设置存储的配置、持久化和写入状态。"
+      },
+      "notReported": {
+        "title": "尚未上报的诊断项",
+        "description": "这些项属于诊断职责，但当前实例端点没有提供状态。"
+      }
+    },
+    "labels": {
+      "live": "存活",
+      "ready": "就绪",
+      "configReady": "配置就绪",
+      "telegramReady": "Telegram 就绪",
+      "lastHeartbeat": "上次心跳",
+      "latency": "Bot API 延迟",
+      "configured": "已配置",
+      "durable": "可持久化",
+      "writable": "可写入",
+      "lastError": "上次失败原因",
+      "permissionPreflight": "权限预检",
+      "queryCache": "查询缓存",
+      "queryRateLimit": "查询限流"
+    },
+    "values": {
+      "yes": "是",
+      "no": "否",
+      "notMeasured": "尚未测量",
+      "milliseconds": "{{value}} 毫秒",
+      "noFailure": "未记录失败原因",
+      "failureRecorded": "已记录失败",
+      "notReported": "未上报"
+    },
+    "notReported": {
+      "permissionPreflight": "没有按群权限结果，不能以 Telegram 就绪代替。",
+      "queryCache": "没有缓存状态或命中数据。",
+      "queryRateLimit": "查询限流是按群设置，不与实例状态混在此屏。"
+    },
+    "errors": {
+      "authenticationExpired": "会话已过期。请重新从 Telegram 进入控制台。",
+      "authenticationInvalid": "无法验证此控制台会话。请从 Telegram 重新打开控制台。",
+      "unavailable": "诊断服务暂时不可用。请重试。",
+      "loadUnavailable": "暂时无法读取实例状态。请重试。",
+      "network": "连接已中断。请重新读取实例状态。",
+      "invalidResponse": "实例返回的诊断数据不符合接口约定。请重试。"
+    }
+  },
   "stats": {
     "navigation": "统计",
     "title": "统计",

@@ -29,6 +29,10 @@ const navigationItems = [
     labelKey: "stats.navigation"
   },
   {
+    path: "/diagnostics",
+    labelKey: "diagnostics.navigation"
+  },
+  {
     path: "/verification",
     labelKey: "verification.navigation"
   },

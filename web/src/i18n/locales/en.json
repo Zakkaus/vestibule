@@ -810,6 +810,83 @@
       "network": "The connection was interrupted. Reload the question bank before deciding whether to retry."
     }
   },
+  "diagnostics": {
+    "navigation": "Diagnostics",
+    "title": "Diagnostics",
+    "description": "View this instance's runtime status, Bot API probes, and settings persistence.",
+    "loading": {
+      "title": "Loading instance status",
+      "description": "Reading this instance's reported status…"
+    },
+    "accessDenied": {
+      "title": "This is instance state, not group state",
+      "description": "This screen is available only to operators. Group managers can manage their own groups, but cannot read the runtime state of the whole instance."
+    },
+    "unavailable": {
+      "title": "Instance status cannot be loaded",
+      "retry": "Retry"
+    },
+    "readOnly": {
+      "title": "Read-only status",
+      "badge": "Read only",
+      "description": "This screen does not change runtime state. The endpoint returns only status already reported by the instance."
+    },
+    "sections": {
+      "health": {
+        "title": "Readiness",
+        "description": "Current readiness signals for the process, configuration, and Telegram connection."
+      },
+      "botAPI": {
+        "title": "Bot API probe",
+        "description": "Time and latency from the most recent successful probe."
+      },
+      "persistence": {
+        "title": "Settings persistence",
+        "description": "Configuration, durability, and write status for settings storage."
+      },
+      "notReported": {
+        "title": "Diagnostics not reported yet",
+        "description": "These items belong to diagnostics, but the current instance endpoint does not provide their state."
+      }
+    },
+    "labels": {
+      "live": "Live",
+      "ready": "Ready",
+      "configReady": "Configuration ready",
+      "telegramReady": "Telegram ready",
+      "lastHeartbeat": "Last heartbeat",
+      "latency": "Bot API latency",
+      "configured": "Configured",
+      "durable": "Durable",
+      "writable": "Writable",
+      "lastError": "Last failure reason",
+      "permissionPreflight": "Permission preflight",
+      "queryCache": "Query cache",
+      "queryRateLimit": "Query rate limit"
+    },
+    "values": {
+      "yes": "Yes",
+      "no": "No",
+      "notMeasured": "Not measured yet",
+      "milliseconds": "{{value}} ms",
+      "noFailure": "No failure reason recorded",
+      "failureRecorded": "Failure recorded",
+      "notReported": "Not reported"
+    },
+    "notReported": {
+      "permissionPreflight": "No per-group permission result is available, so Telegram readiness cannot stand in for it.",
+      "queryCache": "No cache state or hit data is available.",
+      "queryRateLimit": "Query rate limiting is configured per group and is not mixed into this instance view."
+    },
+    "errors": {
+      "authenticationExpired": "The session has expired. Open the console again from Telegram.",
+      "authenticationInvalid": "This console session cannot be verified. Open the console again from Telegram.",
+      "unavailable": "Diagnostics are temporarily unavailable. Try again.",
+      "loadUnavailable": "Instance status cannot be loaded right now. Try again.",
+      "network": "The connection was interrupted. Reload instance status.",
+      "invalidResponse": "The instance returned diagnostics data that does not match the endpoint contract. Try again."
+    }
+  },
   "stats": {
     "navigation": "Statistics",
     "title": "Statistics",
