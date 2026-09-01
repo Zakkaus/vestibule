@@ -127,6 +127,40 @@ def check_screen_coverage() -> None:
                             "claims to be exhaustive" % screen)
 
 
+def check_open_questions_have_a_future(plan_text: str) -> None:
+    """No open question waits on a phase that has already finished.
+
+    Each row of the open-questions table names the phase that will force the
+    decision, so that nothing hangs unnoticed until somebody starts building it.
+    The column cannot do that on its own: 结构信号 named phase two, phase two
+    shipped, and the question was never asked. Nothing noticed, because nothing
+    knew which phases were done.
+
+    The status column in the phase table is what makes this checkable. It is
+    maintained by hand, on merge; the value here is that the two tables cannot
+    disagree in silence.
+    """
+    done = set()
+    for match in re.finditer(r"^\| ([零一二三四五六七八九十]+) \| `[^`]+` \| [^|]* \| (\S+) \|",
+                             plan_text, re.M):
+        if match.group(2) == "完成":
+            done.add(match.group(1))
+    if not done:
+        failures.append("plan: no phase is marked 完成 — has the status column moved?")
+        return
+
+    marker = plan_text.find("### 要维护者定")
+    if marker < 0:
+        failures.append("plan: the open-questions table is gone")
+        return
+    region = plan_text[marker:plan_text.find("###", marker + 3)]
+    for match in re.finditer(r"^\| ([^|]+?) \| 阶段([零一二三四五六七八九十]+) \|", region, re.M):
+        question, phase = match.group(1).strip(), match.group(2)
+        if phase in done:
+            failures.append("plan: 「%s」 waits on 阶段%s, which is already 完成"
+                            % (question, phase))
+
+
 def check_every_inventoried_file_has_a_phase(plan_text: str) -> None:
     """Every file the inventory dispositioned is claimed by some phase.
 
@@ -260,6 +294,7 @@ def main() -> int:
         check_phase_branches_are_distinct(plan_text)
         check_phases_have_their_sections(plan_text)
         check_every_inventoried_file_has_a_phase(plan_text)
+        check_open_questions_have_a_future(plan_text)
 
     check_schema_matches_migration()
 
