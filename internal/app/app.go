@@ -104,6 +104,7 @@ func Run(ctx context.Context, options Options) error {
 		Rules:           database.NewRuleStore(runtime.database),
 		ProcessSettings: runtime.cfg,
 		Health:          runtime.health,
+		Persistence:     runtime.settings,
 	})
 	runtime.health.SetTelegramReady(true)
 	if err := console.Start(consoleAddress(options.ConsoleAddr)); err != nil {
@@ -163,7 +164,7 @@ func newServices(ctx context.Context, options Options, progress chan<- struct{})
 	logRuntimeOptions(options)
 	alertPersistenceProblem(ctx, bot, cfg, settings)
 	verificationStore := database.NewVerificationStore(db)
-	heartbeatBot := newOutageAwareBot(ctx, bot, cfg, settings, verificationStore)
+	heartbeatBot := newOutageAwareBot(ctx, bot, cfg, settings, verificationStore, health)
 	// Uptime counts from before the GetMe round trip, as it did previously.
 	// Measuring it afterwards silently shortens every uptime an operator reads
 	// by however long that call took.

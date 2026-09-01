@@ -43,6 +43,7 @@ type Config struct {
 	Rules           RulesService
 	ProcessSettings ProcessSettingsService
 	Health          *status.Health
+	Persistence     PersistenceService
 }
 
 // Server owns listener admission and HTTP handler draining separately for ordered shutdown.
@@ -53,6 +54,7 @@ type Server struct {
 	rules           RulesService
 	processSettings ProcessSettingsService
 	health          *status.Health
+	persistence     PersistenceService
 
 	mu         sync.Mutex
 	listener   net.Listener
@@ -67,6 +69,7 @@ func New(config Config) *Server {
 		rules:           config.Rules,
 		processSettings: config.ProcessSettings,
 		health:          config.Health,
+		persistence:     config.Persistence,
 	}
 }
 
@@ -156,6 +159,8 @@ func (s *Server) apiRoute(writer http.ResponseWriter, request *http.Request) {
 		s.createSession(writer, request)
 	case request.Method == http.MethodGet && request.URL.Path == "/api/process/settings":
 		s.readProcessSettings(writer, request)
+	case request.Method == http.MethodGet && request.URL.Path == "/api/status":
+		s.readDiagnostics(writer, request)
 	case request.Method == http.MethodGet && request.URL.Path == "/api/chats":
 		s.chats(writer, request)
 	case strings.HasPrefix(request.URL.Path, "/api/chats/"):

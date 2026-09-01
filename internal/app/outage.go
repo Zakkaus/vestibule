@@ -8,6 +8,7 @@ import (
 
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/settings"
+	"github.com/Zakkaus/vestibule/internal/status"
 	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -66,6 +67,7 @@ func heartbeatOutage(lastOnlineUnix int64, now time.Time) (time.Duration, bool) 
 type outageAwareBot struct {
 	*telego.Bot
 	observer *retentionOutageObserver
+	health   *status.Health
 }
 
 var _ verification.LiveProbe = (*outageAwareBot)(nil)
@@ -73,9 +75,14 @@ var _ verification.LiveProbe = (*outageAwareBot)(nil)
 func (b *outageAwareBot) Unwrap() *telego.Bot { return b.Bot }
 
 func (b *outageAwareBot) GetMe(ctx context.Context) (*telego.User, error) {
+	started := time.Now()
 	me, err := b.Bot.GetMe(ctx)
+	completed := time.Now()
 	if err == nil {
-		b.observer.observe(time.Now())
+		b.observer.observe(completed)
+		if b.health != nil {
+			b.health.RecordTelegramProbe(completed, completed.Sub(started))
+		}
 	}
 	return me, err
 }

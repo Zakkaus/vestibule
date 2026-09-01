@@ -8,6 +8,7 @@ import (
 
 	"github.com/Zakkaus/vestibule/internal/feed"
 	"github.com/Zakkaus/vestibule/internal/settings"
+	"github.com/Zakkaus/vestibule/internal/status"
 	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
 )
@@ -18,6 +19,7 @@ func newOutageAwareBot(
 	cfg *settings.Config,
 	settings *settings.Store,
 	stateStore verification.Store,
+	health *status.Health,
 ) *outageAwareBot {
 	observer := &retentionOutageObserver{
 		loadHeartbeat: func() (verification.HeartbeatRecord, error) {
@@ -30,7 +32,7 @@ func newOutageAwareBot(
 	observer.alert = func(outageDuration time.Duration) {
 		alertRetentionOutage(ctx, bot, cfg, settings.ChatIDs(), outageDuration)
 	}
-	return &outageAwareBot{Bot: bot, observer: observer}
+	return &outageAwareBot{Bot: bot, observer: observer, health: health}
 }
 
 func logRuntimeOptions(options Options) {
