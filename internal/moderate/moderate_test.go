@@ -241,7 +241,11 @@ func testSettings(t *testing.T, cfg *settings.Config) *settings.Store {
 
 func newTestService(t *testing.T, cfg *settings.Config, telegram *fakeModBot, stateDirectory string) *Service {
 	t.Helper()
-	return New(testSettings(t, cfg), telegram, cfg, newWarningJSONStore(warningsPath(stateDirectory)))
+	service, err := New(testSettings(t, cfg), telegram, cfg, newWarningJSONStore(warningsPath(stateDirectory)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return service
 }
 
 func newAPITestBot(t *testing.T, caller ta.Caller) *telego.Bot {

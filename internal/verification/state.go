@@ -80,27 +80,36 @@ func sanitizeModel(s string) string {
 // recordAgent persists one tripwire result and returns its model and the new total.
 func (v *Service) recordAgent(text string) (model string, total int) {
 	model = claimedModel(text)
-	// Snapshot under the store write lock before agentMu; reversing that order can deadlock other saves.
-	count := func() AgentTally {
-		v.agentMu.Lock()
-		defer v.agentMu.Unlock()
-		if v.agents.Counts == nil {
-			v.agents.Counts = map[string]int{}
-		}
-		if _, known := v.agents.Counts[model]; !known && len(v.agents.Counts) >= agentModelMax {
-			model = "other" // key cap reached: fold the long tail into one bucket
-		}
-		v.agents.Counts[model]++
-		v.agents.Total++
-		total = v.agents.Total
-		return AgentTally{Total: v.agents.Total, Counts: copyCounts(v.agents.Counts)}
+	v.agentMu.Lock()
+	if v.agents.Counts == nil {
+		v.agents.Counts = map[string]int{}
 	}
-	if v.agentPath == "" || v.stateStore == nil {
-		count() // no persistence configured: the in-memory tally still has to advance
-		return model, total
+	if _, known := v.agents.Counts[model]; !known && len(v.agents.Counts) >= agentModelMax {
+		model = "other"
 	}
-	_ = v.stateStore.SaveAgents(v.agentPath, count)
+	v.agents.Counts[model]++
+	v.agents.Total++
+	total = v.agents.Total
+	v.agentMu.Unlock()
+	v.saveAgents()
 	return model, total
+}
+
+func (v *Service) agentSnapshot() AgentTally {
+	v.agentMu.Lock()
+	defer v.agentMu.Unlock()
+	return AgentTally{Total: v.agents.Total, Counts: copyCounts(v.agents.Counts)}
+}
+
+func (v *Service) saveAgents() {
+	if v.agentPath == "" || v.stateStore == nil || !v.agentWritable {
+		return
+	}
+	if err := retryStoreWrite(func() error {
+		return v.stateStore.SaveAgents(v.agentPath, v.agentSnapshot)
+	}); err != nil {
+		log.Printf("verification: save automated-agent tally: %v", err)
+	}
 }
 
 // copyCounts isolates the persisted snapshot from later increments.
@@ -112,18 +121,20 @@ func copyCounts(m map[string]int) map[string]int {
 	return out
 }
 
-// Missing or corrupt state restores as an empty tally; unreadable state disables later writes.
-func (v *Service) loadAgents() {
+// Missing state restores as an empty tally; read failures disable snapshot writes.
+func (v *Service) loadAgents() error {
 	if v.agentPath == "" || v.stateStore == nil {
-		return
+		return nil
 	}
 	t, err := v.stateStore.LoadAgents(v.agentPath)
 	if err != nil {
+		v.agentWritable = false
 		if errors.Is(err, ErrStoreReadOnly) {
 			v.agentPath = ""
 		}
-		return
+		return fmt.Errorf("load automated-agent tally: %w", err)
 	}
+	v.agentWritable = true
 	v.agentMu.Lock()
 	v.agents = t
 	if v.agents.Counts == nil {
@@ -133,6 +144,7 @@ func (v *Service) loadAgents() {
 	if t.Total > 0 {
 		log.Printf("restored automated-agent tally: %d total across %d model(s)", t.Total, len(t.Counts))
 	}
+	return nil
 }
 
 // AgentStatsText returns the six busiest claimed models or an empty string before the first catch.
@@ -252,17 +264,19 @@ func (v *Service) evictOldestVerifyFailsLocked(target int) {
 	}
 }
 
-func (v *Service) loadVerifyFails() {
+func (v *Service) loadVerifyFails() error {
 	if v.vfailPath == "" || v.stateStore == nil {
-		return
+		return nil
 	}
 	recs, err := v.stateStore.LoadFailures(v.vfailPath)
 	if err != nil {
+		v.vfailWritable = false
 		if errors.Is(err, ErrStoreReadOnly) {
 			v.vfailPath = ""
 		}
-		return // corrupt files were backed up; unreadable files remain untouched and write-disabled
+		return fmt.Errorf("load verification failures: %w", err)
 	}
+	v.vfailWritable = true
 	v.mu.Lock()
 	for _, r := range recs {
 		if r.Count > 0 {
@@ -274,25 +288,33 @@ func (v *Service) loadVerifyFails() {
 	if n > 0 {
 		log.Printf("restored %d verification-strike record(s)", n)
 	}
+	return nil
 }
 
 func (v *Service) saveVerifyFails() {
-	if v.vfailPath == "" || v.stateStore == nil {
+	if v.vfailPath == "" || v.stateStore == nil || !v.vfailWritable {
 		return
 	}
-	_ = v.stateStore.SaveFailures(v.vfailPath, func() []FailureRecord {
-		v.mu.Lock()
-		defer v.mu.Unlock()
-		v.pruneVerifyFailsLocked(v.wallNow())
-		v.evictOldestVerifyFailsLocked(vfailMax)
-		recs := make([]FailureRecord, 0, len(v.vfail))
-		for k, r := range v.vfail {
-			if r.count > 0 {
-				recs = append(recs, FailureRecord{GroupID: k.gid, UserID: k.uid, Count: r.count, Last: r.last.Unix()})
+	err := retryStoreWrite(func() error {
+		return v.stateStore.SaveFailures(v.vfailPath, func() []FailureRecord {
+			v.mu.Lock()
+			defer v.mu.Unlock()
+			v.pruneVerifyFailsLocked(v.wallNow())
+			v.evictOldestVerifyFailsLocked(vfailMax)
+			recs := make([]FailureRecord, 0, len(v.vfail))
+			for k, r := range v.vfail {
+				if r.count > 0 {
+					recs = append(recs, FailureRecord{
+						GroupID: k.gid, UserID: k.uid, Count: r.count, Last: r.last.Unix(),
+					})
+				}
 			}
-		}
-		return recs
+			return recs
+		})
 	})
+	if err != nil {
+		log.Printf("verification: save verification failures: %v", err)
+	}
 }
 
 // Caller holds v.mu.
@@ -430,127 +452,28 @@ func restoredChallengeNeedsRenotify(persisted, renotify bool) bool {
 	return persisted && renotify
 }
 
-func (v *Service) load(bot Gateway) {
+func (v *Service) load(bot Gateway) error {
 	if v.stateUnavailable(v.statePath) {
-		return
+		return nil
 	}
-	lastOnline := v.loadHeartbeat()
-	recs, err := v.stateStore.LoadPending(v.statePath)
+	lastOnline, records, err := v.loadRecoveryState()
 	if err != nil {
-		if errors.Is(err, ErrStoreReadOnly) {
-			v.statePath = ""
-		}
-		return // corrupt files were backed up; unreadable files remain untouched and write-disabled
+		return err
 	}
 	now := v.wallNow()
-	var downtime time.Duration
-	if !lastOnline.IsZero() {
-		if d := now.Sub(lastOnline); d > 0 {
-			downtime = d
-		}
-	}
+	downtime := recoveryDowntime(now, lastOnline)
 	longOutage := downtime > outageRecovery
-	var refresh []renotifyItem
-	for _, r := range recs {
-		gid, uid := r.GroupID, r.UserID
-		if !v.settings.IsGroup(gid) {
-			log.Printf("state load: skip pending for unknown group %d (user %d)", gid, uid)
-			v.supersedePendingRecord(r)
-			continue
-		}
-		mode := r.Mode
-		if mode == "" {
-			mode = (settings.ModeQuiz) // a record written before kernel mode existed always held a quiz
-		}
-		// Kernel challenges have no options; quiz payloads must remain winnable.
-		if mode == (settings.ModeQuiz) && (len(r.QOpts) < 2 || r.CorrectIdx < 0 || r.CorrectIdx >= len(r.QOpts)) {
-			log.Printf("state load: skip pending with invalid question payload (group %d user %d)", gid, uid)
-			v.supersedePendingRecord(r)
-			continue
-		}
-		var deferredSince time.Time
-		if r.DeferredSince != 0 {
-			deferredSince = time.Unix(r.DeferredSince, 0)
-		}
-		p := &pending{
-			groupMsgID: r.GroupMsgID, privateMsgID: r.PrivateMsgID,
-			challengeDelivered: r.ChallengeDelivered || r.GroupMsgID != 0 || r.PrivateMsgID != 0,
-			mode:               mode, lang: i18n.FromStored(r.Lang), storedLang: r.Lang, preserveStoredLang: true,
-			fbAnswers: r.FbAnswers, fallbackPending: r.FallbackPending, prompted: r.Prompted,
-			tries: r.Tries, hinted: r.Hinted, sampleBounced: r.SampleBounced,
-			noLinuxReminded: r.NoLinuxReminded, osClarified: r.OSClarified,
-			qText: r.QText, qOpts: r.QOpts, correctIdx: r.CorrectIdx,
-			nonce: r.Nonce, name: r.Name, deadline: time.Unix(r.Deadline, 0), epoch: r.Epoch,
-			deferredSince: deferredSince, deferralCapReached: r.DeferralCapReached, settleFailures: r.SettleFailures, gate: r.Gate, invited: r.Invited, held: r.Held, holdUntil: r.HoldUntil, passing: r.Passing, channelUnreadable: r.ChannelUnreadable,
-			settlePendingSaid: r.SettlePendingSaid,
-		}
-		delay := p.deadline.Sub(now)
-		reason := challengeExpiryReason(p.challengeDelivered && !p.fallbackPending)
-		renotify := false
-		if !p.deferralCapReached && !p.deferredSince.IsZero() &&
-			!now.Before(p.deferredSince.Add(maxVerificationDeferral)) {
-			p.deferralCapReached = true
-			logDeferralCapReached(gid, uid)
-		}
-		switch {
-		case p.deferralCapReached:
-			reason = deferredExpiryReason
-			if delay <= 0 || delay > noFaultGrace {
-				delay = noFaultGrace
-				p.deadline = now.Add(delay)
-			}
-		case longOutage:
-			// The outage consumed the window, so refresh and do not strike on this lapse. The
-			// normal window assumes the applicant just clicked join; after an outage they applied
-			// long ago, so give them a window they can realistically notice.
-			delay = max(v.gateTimeout(gid, p.gate), recoveryWindow)
-			p.deadline = now.Add(delay)
-			p.lastRenotify = now // mark re-notified so a runtime recovery right after doesn't re-message
-			reason = "recovered"
-			renotify = true
-		case delay <= 0:
-			// Short-restart lapses receive a strike-free grace window.
-			delay = noFaultGrace
-			p.deadline = now.Add(delay)
-			reason = "restart-lapsed"
-		case delay < time.Second:
-			delay = time.Second
-		}
-		v.mu.Lock()
-		key := pkey{gid, uid}
-		if _, replacing := v.pend[key]; !replacing && !v.pendingCapacityOKLocked(gid) {
-			v.supersedePendingRecord(r)
-			v.mu.Unlock()
-			log.Printf("state load: pending cap reached; leaving user %d in group %d for manual review", uid, gid)
-			v.alertPendingCap(context.Background(), bot, gid, r.Gate)
-			continue
-		}
-		v.pend[key] = p
-		p.persistedPath = v.statePath
-		expectedEpoch := p.epoch
-		// Publish the entry before persisting even a near-zero durable deadline.
-		v.armExpiry(bot, p, gid, uid, delay, reason)
-		persisted := v.persistPendingLocked(key, p, expectedEpoch)
-		v.mu.Unlock()
-		if restoredChallengeNeedsRenotify(persisted, renotify) {
-			refresh = append(refresh, renotifyItem{gid, uid, r.Name, p.messages(), p})
+	refresh := make([]renotifyItem, 0)
+	for _, record := range records {
+		if item, renotify := v.restorePendingRecord(bot, record, now, longOutage); renotify {
+			refresh = append(refresh, item)
 		}
 	}
-	if len(recs) > 0 {
-		log.Printf("restored %d pending verification(s)", len(recs))
+	if len(records) > 0 {
+		log.Printf("restored %d pending verification(s)", len(records))
 	}
-	// A real outage replaces stale restored challenges, bounded by renotifyCap.
-	if longOutage && len(refresh) > 0 {
-		capped := 0
-		if len(refresh) > renotifyCap {
-			capped = len(refresh) - renotifyCap
-			refresh = refresh[:renotifyCap]
-		}
-		for _, it := range refresh {
-			v.renotifyPending(context.Background(), bot, it.gid, it.uid, it.name, it.oldMessages, it.p, downtime)
-		}
-		log.Printf("recovery: re-notified %d restored verification(s) after ~%s down%s", len(refresh), downtime.Round(time.Second), capNote(capped))
-	}
+	v.renotifyRestored(bot, refresh, downtime)
+	return nil
 }
 
 const (
@@ -622,7 +545,7 @@ func (v *Service) onExpiry(c context.Context, bot Gateway, gid, uid int64, nonce
 	if capped {
 		reason = deferredExpiryReason
 	}
-	p, ok := v.claimPendingExpiry(gid, uid, nonce, epoch, reason)
+	p, ok := v.claimExpiredPending(gid, uid, nonce, epoch, reason)
 	if !ok {
 		return
 	}
@@ -632,13 +555,7 @@ func (v *Service) onExpiry(c context.Context, bot Gateway, gid, uid int64, nonce
 	if reason == "timeout" && v.RequiredChannelID(gid) != 0 && !p.channelUnreadable {
 		v.isChannelMember(c, bot, gid, uid, v.groupLanguage(gid))
 	}
-	if p.passing {
-		// This applicant answered correctly; the only thing left is an admission the bot could
-		// not complete. Retrying that is right. Declining them would be a lie and, for a held
-		// member, would remove somebody who passed.
-		if v.executeApprove(c, bot, gid, uid, p) == approveConfirmed {
-			_, _ = sendText(c, bot, uid, v.voice(p.gate).Passed.For(p.lang))
-		}
+	if v.retryPassingExpiry(c, bot, gid, uid, p) {
 		return
 	}
 	outcome, banned := v.finishDecline(c, bot, gid, uid, p, reason)
@@ -658,6 +575,26 @@ func (v *Service) onExpiry(c context.Context, bot Gateway, gid, uid int64, nonce
 		}
 	})
 	_, _ = sendText(c, bot, uid, text)
+}
+
+func (v *Service) claimExpiredPending(gid, uid int64, nonce string, epoch uint64, reason string) (*pending, bool) {
+	p, ok, err := v.claimPendingExpiry(gid, uid, nonce, epoch, reason)
+	if err != nil {
+		log.Printf("verification: claim expired challenge for group %d user %d: %v", gid, uid, err)
+		return nil, false
+	}
+	return p, ok
+}
+
+func (v *Service) retryPassingExpiry(c context.Context, bot Gateway, gid, uid int64, p *pending) bool {
+	if !p.passing {
+		return false
+	}
+	// A passing applicant needs an admission retry, never a decline.
+	if v.executeApprove(c, bot, gid, uid, p) == approveConfirmed {
+		_, _ = sendText(c, bot, uid, v.voice(p.gate).Passed.For(p.lang))
+	}
+	return true
 }
 
 // claimSettlePendingNotice spends the one-shot "still being settled" notice for this pending.
@@ -804,7 +741,7 @@ func adminRejectLabel(admin *i18n.VerificationAdminCatalog, l i18n.Lang, gate st
 
 // Persist reachability so restart recovery can estimate downtime.
 func (v *Service) saveHeartbeat() {
-	if v.hbPath == "" || v.stateStore == nil {
+	if v.hbPath == "" || v.stateStore == nil || !v.heartbeatWritable {
 		return
 	}
 	v.mu.Lock()
@@ -813,25 +750,32 @@ func (v *Service) saveHeartbeat() {
 	if t.IsZero() {
 		return
 	}
-	_ = v.stateStore.SaveHeartbeat(v.hbPath, HeartbeatRecord{LastOnline: t.Unix()})
+	record := HeartbeatRecord{LastOnline: t.Unix()}
+	if err := retryStoreWrite(func() error {
+		return v.stateStore.SaveHeartbeat(v.hbPath, record)
+	}); err != nil {
+		log.Printf("verification: save heartbeat: %v", err)
+	}
 }
 
-// Missing or unreadable heartbeat state returns zero time.
-func (v *Service) loadHeartbeat() time.Time {
+// Missing heartbeat state returns zero time; read failures disable heartbeat writes.
+func (v *Service) loadHeartbeat() (time.Time, error) {
 	if v.hbPath == "" || v.stateStore == nil {
-		return time.Time{}
+		return time.Time{}, nil
 	}
 	r, err := v.stateStore.LoadHeartbeat(v.hbPath)
 	if err != nil {
+		v.heartbeatWritable = false
 		if errors.Is(err, ErrStoreReadOnly) {
 			v.hbPath = ""
 		}
-		return time.Time{}
+		return time.Time{}, fmt.Errorf("load heartbeat: %w", err)
 	}
+	v.heartbeatWritable = true
 	if r.LastOnline == 0 {
-		return time.Time{}
+		return time.Time{}, nil
 	}
-	return time.Unix(r.LastOnline, 0)
+	return time.Unix(r.LastOnline, 0), nil
 }
 
 // RunHeartbeat probes the gateway until ctx is cancelled and refreshes pending challenges after outages.

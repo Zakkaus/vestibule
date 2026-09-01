@@ -101,7 +101,7 @@ func TestStateWriteFailuresKeepRuntimeStateButLoseRestartRecovery(t *testing.T) 
 		bot := newFakeVerifyBot()
 
 		output := captureStateWriteLog(t, func() {
-			outcome, banned := v.decline(context.Background(), bot, gid, uid, "n", "timeout")
+			outcome, banned, _ := v.decline(context.Background(), bot, gid, uid, "n", "timeout")
 			handled, settled := outcome != declineNoPending, outcome.settled()
 			if !handled || !settled || banned {
 				t.Fatalf("runtime decline = handled:%v settled:%v banned:%v", handled, settled, banned)
@@ -148,7 +148,11 @@ func TestStateWriteFailuresKeepRuntimeStateButLoseRestartRecovery(t *testing.T) 
 
 		fresh := newTestService(&settings.Config{})
 		fresh.hbPath = path
-		if restored := fresh.loadHeartbeat(); !restored.IsZero() {
+		restored, err := fresh.loadHeartbeat()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !restored.IsZero() {
 			t.Fatalf("fresh service restored heartbeat from failed write: %v", restored)
 		}
 	})

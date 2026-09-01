@@ -153,15 +153,18 @@ type Service struct {
 	challengeAt       map[pkey]time.Time
 	vfail             map[pkey]*vfailRec
 	vfailPath         string
+	vfailWritable     bool
 	agentMu           sync.Mutex
 	agents            AgentTally
 	agentPath         string
+	agentWritable     bool
 	settings          *settings.Store
 	gateway           Gateway
 	stateStore        Store
 	actionOwner       string
 	lastOnline        time.Time
 	hbPath            string
+	heartbeatWritable bool
 	probe             LiveProbe
 	passed            map[pkey]time.Time
 	timeNow           func() time.Time
@@ -195,22 +198,29 @@ func New(
 	probe LiveProbe,
 	identity Identity,
 	stateDir string,
-) *Service {
+) (*Service, error) {
 	v := newService(settings, gateway, cfg, messages)
 	v.stateStore = stateStore
 	v.botID = identity.ID
 	v.botUsername = identity.Username
 	v.probe = probe
-	if stateDir != "" && stateStore != nil {
-		v.hbPath = filepath.Join(stateDir, "heartbeat.json")
-		v.statePath = filepath.Join(stateDir, "pending.json")
-		v.load(gateway)
-		v.vfailPath = filepath.Join(stateDir, "verifyfail.json")
-		v.loadVerifyFails()
-		v.agentPath = filepath.Join(stateDir, "agents.json")
-		v.loadAgents()
+	if stateDir == "" || stateStore == nil {
+		return v, nil
 	}
-	return v
+	v.hbPath = filepath.Join(stateDir, "heartbeat.json")
+	v.statePath = filepath.Join(stateDir, "pending.json")
+	v.vfailPath = filepath.Join(stateDir, "verifyfail.json")
+	v.agentPath = filepath.Join(stateDir, "agents.json")
+	if err := v.loadVerifyFails(); err != nil {
+		return nil, fmt.Errorf("restore verification failures: %w", err)
+	}
+	if err := v.loadAgents(); err != nil {
+		return nil, fmt.Errorf("restore automated-agent tally: %w", err)
+	}
+	if err := v.load(gateway); err != nil {
+		return nil, fmt.Errorf("restore pending verifications: %w", err)
+	}
+	return v, nil
 }
 
 func newService(settings *settings.Store, gateway Gateway, cfg *settings.Config, messages *i18n.Catalog) *Service {
@@ -218,19 +228,22 @@ func newService(settings *settings.Store, gateway Gateway, cfg *settings.Config,
 		panic("verification: settings must not be nil")
 	}
 	return &Service{
-		cfg:         cfg,
-		loc:         loadStatsLoc(cfg.StatsTimezone),
-		messages:    messages,
-		pend:        make(map[pkey]*pending),
-		terminal:    make(map[pkey]*pending),
-		chanAlert:   map[int64]time.Time{},
-		challengeAt: map[pkey]time.Time{},
-		vfail:       map[pkey]*vfailRec{},
-		settings:    settings,
-		gateway:     gateway,
-		actionOwner: "verification-" + newNonce(),
-		lastOnline:  time.Now(),
-		timeNow:     time.Now,
+		cfg:               cfg,
+		loc:               loadStatsLoc(cfg.StatsTimezone),
+		messages:          messages,
+		pend:              make(map[pkey]*pending),
+		terminal:          make(map[pkey]*pending),
+		chanAlert:         map[int64]time.Time{},
+		challengeAt:       map[pkey]time.Time{},
+		vfail:             map[pkey]*vfailRec{},
+		vfailWritable:     true,
+		agentWritable:     true,
+		heartbeatWritable: true,
+		settings:          settings,
+		gateway:           gateway,
+		actionOwner:       "verification-" + newNonce(),
+		lastOnline:        time.Now(),
+		timeNow:           time.Now,
 	}
 }
 
@@ -809,7 +822,10 @@ func (v *Service) startPending(bot Gateway, gid, uid int64, p *pending) (oldMess
 	v.armExpiry(bot, p, gid, uid, delay, challengeExpiryReason(false))
 	inserted := true
 	if !v.stateUnavailable(v.statePath) {
-		inserted, err = v.stateStore.InsertPending(v.statePath, pendingRecord(key, p))
+		record := pendingRecord(key, p)
+		inserted, err = retryStoreChange(func() (bool, error) {
+			return v.stateStore.InsertPending(v.statePath, record)
+		})
 	}
 	if err != nil || !inserted {
 		if err != nil {
@@ -1638,85 +1654,6 @@ func (v *Service) OnChannelRecheck(ctx *HandlerContext, update Update) error {
 	return nil
 }
 
-// OnAnswer settles one nonce-bound quiz callback.
-func (v *Service) OnAnswer(ctx *HandlerContext, update Update) error {
-	cq := update.CallbackQuery
-	if cq == nil {
-		return nil
-	}
-	bot := ctx.Gateway()
-	c := ctx.Context()
-	// Accept legacy nonce-less buttons only for restored nonce-less pendings.
-	parts := strings.Split(strings.TrimPrefix(cq.Data, AnswerCallbackPrefix), ":")
-	var nonce, idxStr string
-	switch len(parts) {
-	case 4:
-		nonce, idxStr = parts[2], parts[3]
-	case 3:
-		nonce, idxStr = "", parts[2]
-	default:
-		ackFast(c, bot, cq.ID)
-		return nil
-	}
-	gid, _ := strconv.ParseInt(parts[0], 10, 64)
-	owner, _ := strconv.ParseInt(parts[1], 10, 64)
-	choice, err := strconv.Atoi(idxStr)
-	if err != nil {
-		ackFast(c, bot, cq.ID)
-		return nil
-	}
-	ul := v.applicantLanguage(gid, owner, cq.From.LanguageCode)
-	groupLang := v.groupLanguage(gid)
-	result := &(*v.messages).Verification.Result
-	channel := &(*v.messages).Verification.Channel
-	if cq.From.ID != owner {
-		ackResult(c, bot, cq.ID, result.NotYours.For(ul), true)
-		return nil
-	}
-
-	v.mu.Lock()
-	p, ok := v.pend[pkey{gid, owner}]
-	done := !ok || p.done
-	correctIdx, curNonce := -1, ""
-	if ok {
-		correctIdx, curNonce = p.correctIdx, p.nonce
-	}
-	v.mu.Unlock()
-	if done {
-		ackResult(c, bot, cq.ID, result.AlreadyHandled.For(ul), false)
-		return nil
-	}
-	if nonce != curNonce {
-		// A stale button from a previous (overwritten) request — don't let it answer this quiz.
-		ackResult(c, bot, cq.ID, result.StaleQuestion.For(ul), true)
-		return nil
-	}
-
-	if choice != correctIdx {
-		gate := v.pendingGate(gid, owner)
-		outcome, banned := v.decline(c, bot, gid, owner, nonce, wrongAnswerReason)
-		text := v.voice(gate).AlreadyHandled.For(ul)
-		if outcome != declineNoPending {
-			text = v.declineResultText(outcome, ul, gate, func() string { return v.wrongAnswerText(gid, ul, gate, banned) })
-		}
-		ackResult(c, bot, cq.ID, text, true)
-		return nil
-	}
-	if !v.isChannelMember(c, bot, gid, owner, groupLang) {
-		ackResult(c, bot, cq.ID, channel.NotFollowedYet.Render(ul, v.channelDisplay(gid)), true)
-		return nil
-	}
-	p, claimed := v.claimPendingNonce(gid, owner, nonce)
-	if claimed && v.executeApprove(c, bot, gid, owner, p) == approveConfirmed {
-		text := v.voice(v.pendingGate(gid, owner)).Passed.For(ul)
-		ackResult(c, bot, cq.ID, text, false)
-		_, _ = sendText(c, bot, owner, text)
-	} else {
-		ackResult(c, bot, cq.ID, result.AlreadyHandled.For(ul), true)
-	}
-	return nil
-}
-
 func (v *Service) isGroupAdmin(ctx context.Context, bot Gateway, chatID, userID int64) bool {
 	ok, err := v.gatewayFor(bot).FreshAdmin(ctx, chatID, userID)
 	if err != nil {
@@ -1724,84 +1661,6 @@ func (v *Service) isGroupAdmin(ctx context.Context, bot Gateway, chatID, userID 
 		return false
 	}
 	return ok
-}
-
-// Verification keeps no permanent record in the group: the failure notice for an
-// administrator button is cleaned up like the challenge it belongs to.
-const adminActionNoticeTTL = 240
-
-// OnAdminAction settles one administrator approval or ban callback.
-func (v *Service) OnAdminAction(ctx *HandlerContext, update Update) error {
-	cq := update.CallbackQuery
-	if cq == nil {
-		return nil
-	}
-	bot := ctx.Gateway()
-	c := ctx.Context()
-	parts := strings.SplitN(strings.TrimPrefix(cq.Data, AdminCallbackPrefix), ":", 4)
-	if len(parts) < 3 {
-		ackFast(c, bot, cq.ID)
-		return nil
-	}
-	action := parts[0]
-	gid, _ := strconv.ParseInt(parts[1], 10, 64)
-	target, _ := strconv.ParseInt(parts[2], 10, 64)
-	// The nonce ties the button to the verification it was posted for. A button left behind by a
-	// failed deletion would otherwise settle whatever verification is running now — one the
-	// administrator never looked at. Buttons posted before this existed carry no nonce and keep
-	// the old behaviour; they disappear with the verification they belong to.
-	nonce := ""
-	if len(parts) == 4 {
-		nonce = parts[3]
-	}
-
-	l := v.groupLanguage(gid)
-	admin := &v.messages.Verification.Admin
-	if nonce != "" && !v.pendingHasNonce(gid, target, nonce) {
-		ackResult(c, bot, cq.ID, admin.AlreadyHandled.For(l), true)
-		return nil
-	}
-	if !v.isGroupAdmin(c, bot, gid, cq.From.ID) {
-		ackResult(c, bot, cq.ID, admin.OnlyGroupAdmin.For(l), true)
-		return nil
-	}
-	switch action {
-	case "pass":
-		gate := v.pendingGate(gid, target)
-		says := v.adminSays(gate)
-		p, ok := v.claimPendingBy(gid, target, cq.From.ID)
-		if !ok {
-			ackResult(c, bot, cq.ID, says.CannotApprove.For(l), false)
-			return nil
-		}
-		// Acknowledge the pending action; failures reopen the request, tell the group, and alert admins.
-		ackResult(c, bot, cq.ID, says.Approving.For(l), false)
-		switch v.executeApprove(c, bot, gid, target, p) {
-		case approveFailed:
-			v.gatewayFor(bot).Notify(c, gid, says.ActionFailed.For(l), adminActionNoticeTTL)
-		case approveGone:
-			// Someone settled the request in Telegram itself; do not claim the button did it.
-			v.gatewayFor(bot).Notify(c, gid, says.AlreadyHandled.For(l), adminActionNoticeTTL)
-		case approveConfirmed:
-		}
-	case "ban":
-		gate := v.pendingGate(gid, target)
-		says := v.adminSays(gate)
-		p, ok := v.consumeBy(gid, target, cq.From.ID)
-		if !ok {
-			ackResult(c, bot, cq.ID, says.AlreadyHandled.For(l), false)
-			return nil
-		}
-		// Acknowledge the pending action; failures retain the request and evidence.
-		duration := verificationBanDurationText(v.messages, l, v.verificationBanDuration(gid))
-		ackResult(c, bot, cq.ID, says.Banning.Render(l, duration), false)
-		if !v.executeBan(c, bot, gid, target, p) {
-			v.gatewayFor(bot).Notify(c, gid, says.ActionFailed.For(l), adminActionNoticeTTL)
-		}
-	default:
-		ackFast(c, bot, cq.ID)
-	}
-	return nil
 }
 
 // Required-channel lookup also renders a throttled operator alert when the gate is unavailable.
@@ -1980,51 +1839,14 @@ func (v *Service) channelAccessAlert(c context.Context, bot Gateway, groupID int
 	v.adminAlert(c, bot, groupID, admin.ChannelAccessFailed.Render(l, channelID, mode))
 }
 
-// Keep claimed approvals in the map so network failure can reopen them.
-func (v *Service) claimPending(gid, uid int64) (*pending, bool) {
-	return v.claimPendingBy(gid, uid, 0)
-}
-
-func (v *Service) claimPendingBy(gid, uid, settledBy int64) (*pending, bool) {
-	v.mu.Lock()
-	defer v.mu.Unlock()
-	key := pkey{gid, uid}
-	p, ok := v.pend[key]
-	if !ok || p.done || !v.claimPendingLocked(key, p, ChallengeApproved, "", settledBy) {
-		return nil, false
-	}
-	return p, true
-}
-
-// Bind answer validation and the database transition to the same nonce.
-func (v *Service) claimPendingNonce(gid, uid int64, nonce string) (*pending, bool) {
-	return v.claimPendingNonceAs(gid, uid, nonce, ChallengeApproved, "", 0)
-}
-
-func (v *Service) claimPendingNonceAs(
-	gid, uid int64,
-	nonce string,
-	state ChallengeState,
-	reason string,
-	settledBy int64,
-) (*pending, bool) {
-	v.mu.Lock()
-	defer v.mu.Unlock()
-	if v.shuttingDown {
-		return nil, false
-	}
-	key := pkey{gid, uid}
-	p, ok := v.pend[key]
-	if !ok || p.done || p.nonce != nonce || !v.claimPendingLocked(key, p, state, reason, settledBy) {
-		return nil, false
-	}
-	return p, true
-}
-
 // Claim before approval so its timeout cannot decline or strike concurrently.
 // Callback handlers may acknowledge between claimPending and executeApprove.
 func (v *Service) approve(c context.Context, bot Gateway, gid, uid int64) bool {
-	p, ok := v.claimPending(gid, uid)
+	p, ok, err := v.claimPending(gid, uid)
+	if err != nil {
+		log.Printf("verification: approve claim for group %d user %d: %v", gid, uid, err)
+		return false
+	}
 	if !ok {
 		return false
 	}
@@ -2167,14 +1989,21 @@ func (v *Service) reopenPending(bot Gateway, gid, uid int64, p *pending, reason 
 		log.Printf("WARNING: giving up on settling verification for %d in %d after %d attempts (%s); "+
 			"the join request stays with Telegram for an administrator", uid, gid, p.settleFailures, reason)
 		if from != "" {
-			if _, err := v.transitionChallengeLocked(key, p, from, ChallengeSuperseded, "", 0, p.epoch); err != nil {
+			changed, err := v.transitionChallengeLocked(key, p, from, ChallengeSuperseded, "", 0, p.epoch)
+			if err != nil {
 				log.Printf("verification: supersede abandoned settlement for group %d user %d: %v", gid, uid, err)
+				return false
+			}
+			if !changed {
+				v.forgetPendingLocked(key, p)
+				return false
 			}
 		}
 		v.forgetPendingLocked(key, p)
 		return false
 	}
 	expectedEpoch := p.epoch
+	originalDeadline := p.deadline
 	p.done = false
 	// Keep the moment the applicant actually failed. Every caller here is retrying a settlement
 	// for a failure that already happened, so stamping the strike with the retry time instead
@@ -2192,8 +2021,12 @@ func (v *Service) reopenPending(bot Gateway, gid, uid int64, p *pending, reason 
 	}
 	if err != nil {
 		log.Printf("verification: reopen settlement for group %d user %d: %v", gid, uid, err)
+		p.done = true
+		p.epoch = expectedEpoch
+		p.deadline = originalDeadline
+		return false
 	}
-	if err != nil || !changed {
+	if !changed {
 		v.forgetPendingLocked(key, p)
 		return false
 	}
@@ -2463,12 +2296,18 @@ const (
 )
 
 // Live wrong answers use nonce claims; timeout settlement uses epoch claims so outages may defer it.
-func (v *Service) decline(c context.Context, bot Gateway, gid, uid int64, nonce, reason string) (outcome declineOutcome, banned bool) {
-	p, ok := v.claimPendingNonceAs(gid, uid, nonce, ChallengeDeclined, storedDeclineReason(reason), 0)
-	if !ok {
-		return declineNoPending, false
+func (v *Service) decline(
+	c context.Context,
+	bot Gateway,
+	gid, uid int64,
+	nonce, reason string,
+) (declineOutcome, bool, error) {
+	p, ok, err := v.claimPendingNonceAs(gid, uid, nonce, ChallengeDeclined, storedDeclineReason(reason), 0)
+	if err != nil || !ok {
+		return declineNoPending, false, err
 	}
-	return v.finishDecline(c, bot, gid, uid, p, reason)
+	outcome, banned := v.finishDecline(c, bot, gid, uid, p, reason)
+	return outcome, banned, nil
 }
 
 // settled reports the outcomes that let a caller state a definite verification result.
@@ -2596,7 +2435,11 @@ func (v *Service) reclassifyClaimed(gid, uid int64, p *pending, to ChallengeStat
 
 // banApplicant preserves the request for retry when either required Telegram action is unconfirmed.
 func (v *Service) banApplicant(c context.Context, bot Gateway, gid, uid int64) (handled, banned bool) {
-	p, ok := v.consume(gid, uid)
+	p, ok, err := v.consume(gid, uid)
+	if err != nil {
+		log.Printf("verification: ban claim for group %d user %d: %v", gid, uid, err)
+		return false, false
+	}
 	if !ok {
 		return false, false
 	}

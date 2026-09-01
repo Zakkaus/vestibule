@@ -209,7 +209,10 @@ func (v *Service) cleanupSettledChallenge(c context.Context, bot Gateway, gid, u
 }
 
 func (v *Service) completePendingAction(action PendingAction, owner string, followups []ActionIntent) {
-	changed, err := v.stateStore.CompleteAction(v.statePath, action.ID, owner, v.wallNow().Unix(), followups)
+	completedAt := v.wallNow().Unix()
+	changed, err := retryStoreChange(func() (bool, error) {
+		return v.stateStore.CompleteAction(v.statePath, action.ID, owner, completedAt, followups)
+	})
 	if err != nil {
 		log.Printf("verification: complete action %s: %v", action.ID, err)
 		return
@@ -236,7 +239,10 @@ func (v *Service) retryOrFailPendingAction(action PendingAction, owner string, e
 	}
 	now := v.wallNow()
 	delay := actionRetryDelay(attempts, err)
-	changed, retryErr := v.stateStore.RetryAction(v.statePath, action.ID, owner, attempts, now.Add(delay).Unix(), err.Error())
+	nextTryAt := now.Add(delay).Unix()
+	changed, retryErr := retryStoreChange(func() (bool, error) {
+		return v.stateStore.RetryAction(v.statePath, action.ID, owner, attempts, nextTryAt, err.Error())
+	})
 	if retryErr != nil {
 		log.Printf("verification: retry action %s: %v", action.ID, retryErr)
 		return false
@@ -252,7 +258,10 @@ func (v *Service) failPendingAction(action PendingAction, owner string, err erro
 	if action.ID == "" || v.stateUnavailable(v.statePath) {
 		return
 	}
-	changed, failErr := v.stateStore.FailAction(v.statePath, action.ID, owner, v.wallNow().Unix(), err.Error())
+	failedAt := v.wallNow().Unix()
+	changed, failErr := retryStoreChange(func() (bool, error) {
+		return v.stateStore.FailAction(v.statePath, action.ID, owner, failedAt, err.Error())
+	})
 	if failErr != nil {
 		log.Printf("verification: fail action %s: %v", action.ID, failErr)
 		return

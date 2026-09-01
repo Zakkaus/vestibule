@@ -123,7 +123,7 @@ func TestDurableSettlementRetriesGroupDeletionWithoutDeletingDM(t *testing.T) {
 	p := &pending{nonce: "durable", deadline: now.Add(time.Hour), groupMsgID: 42, privateMsgID: 43}
 	v.pend[pkey{gid, uid}] = p
 
-	claimed, ok := v.claimPendingNonce(gid, uid, p.nonce)
+	claimed, ok, _ := v.claimPendingNonce(gid, uid, p.nonce)
 	if !ok || claimed.actionID == "" {
 		t.Fatal("terminal transition did not create a claimed durable action")
 	}

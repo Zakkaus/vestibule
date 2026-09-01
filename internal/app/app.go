@@ -149,8 +149,19 @@ func newServices(ctx context.Context, options Options, progress chan<- struct{})
 	if stateNamespace == "" {
 		stateNamespace = "database"
 	}
-	verification := verification.New(settings, verificationGateway, verificationStore, cfg, &i18n.Messages, heartbeatBot, identity, stateNamespace)
-	moderation := moderate.New(settings, connector, cfg, database.NewWarningStore(db))
+	moderation, err := moderate.New(settings, connector, cfg, database.NewWarningStore(db))
+	if err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("moderation: %w", err)
+	}
+	verification, err := verification.New(
+		settings, verificationGateway, verificationStore, cfg, &i18n.Messages,
+		heartbeatBot, identity, stateNamespace,
+	)
+	if err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("verification: %w", err)
+	}
 	administration := panel.New(
 		settings, connector, cfg, &i18n.Messages,
 		verification, moderation, lookups, options.Version, startedAt,

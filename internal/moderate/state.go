@@ -1,13 +1,18 @@
 package moderate
 
 import (
-	"errors"
+	"fmt"
 	"log"
 	"sort"
 	"sync"
+	"time"
 )
 
-const warnCounterMax = 4096
+const (
+	warnCounterMax          = 4096
+	warningWriteMaxAttempts = 3
+	warningWriteRetryDelay  = 10 * time.Millisecond
+)
 
 type warningKey struct {
 	groupID int64
@@ -18,6 +23,7 @@ type warningState struct {
 	mu       sync.Mutex
 	store    WarningStore
 	counters map[warningKey]int
+	loadErr  error
 }
 
 func newWarningState(store WarningStore) warningState {
@@ -27,17 +33,16 @@ func newWarningState(store WarningStore) warningState {
 	}
 }
 
-func (w *warningState) load() {
+func (w *warningState) load() error {
 	if w.store == nil {
-		return
+		return nil
 	}
 	records, err := w.store.LoadWarnings()
 	if err != nil {
-		if errors.Is(err, ErrWarningStoreReadOnly) {
-			w.store = nil
-		}
-		return
+		w.loadErr = err
+		return err
 	}
+	w.loadErr = nil
 	w.mu.Lock()
 	for _, record := range records {
 		if record.Count > 0 {
@@ -50,23 +55,37 @@ func (w *warningState) load() {
 	if count > 0 {
 		log.Printf("restored %d warning counter(s)", count)
 	}
+	return nil
 }
 
 func (w *warningState) save() error {
 	if w.store == nil {
 		return nil
 	}
-	return w.store.SaveWarnings(func() []WarningRecord {
-		w.mu.Lock()
-		defer w.mu.Unlock()
-		records := make([]WarningRecord, 0, len(w.counters))
-		for key, count := range w.counters {
-			if count > 0 {
-				records = append(records, WarningRecord{GroupID: key.groupID, UserID: key.userID, Count: count})
+	if w.loadErr != nil {
+		return fmt.Errorf("warning snapshot disabled after load failure: %w", w.loadErr)
+	}
+	var err error
+	for attempt := 1; attempt <= warningWriteMaxAttempts; attempt++ {
+		err = w.store.SaveWarnings(func() []WarningRecord {
+			w.mu.Lock()
+			defer w.mu.Unlock()
+			records := make([]WarningRecord, 0, len(w.counters))
+			for key, count := range w.counters {
+				if count > 0 {
+					records = append(records, WarningRecord{GroupID: key.groupID, UserID: key.userID, Count: count})
+				}
 			}
+			return records
+		})
+		if err == nil {
+			return nil
 		}
-		return records
-	})
+		if attempt < warningWriteMaxAttempts {
+			time.Sleep(time.Duration(attempt) * warningWriteRetryDelay)
+		}
+	}
+	return fmt.Errorf("warning state write failed after %d attempts: %w", warningWriteMaxAttempts, err)
 }
 
 func (w *warningState) increment(groupID, userID int64) int {

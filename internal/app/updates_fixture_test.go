@@ -341,11 +341,14 @@ func newDispatchFixture(t *testing.T, requiredChannel int64) *dispatchFixture {
 	connector := telegram.NewConnector(telegramBot)
 	stateDirectory := t.TempDir()
 	verification := newTestVerifier(
-		settings, connector, cfg,
+		t, settings, connector, cfg,
 		verification.Identity{ID: botID, Username: "dispatch_bot"}, stateDirectory,
 	)
 	verificationGateway := telegram.NewVerificationGateway(connector)
-	moderation := moderate.New(settings, connector, cfg, nil)
+	moderation, err := moderate.New(settings, connector, cfg, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	lookups := lookup.New(settings, connector, cfg, "")
 	administration := panel.New(
 		settings, connector, cfg, &i18n.Messages, verification, moderation, lookups, "test", time.Now(),
