@@ -38,6 +38,7 @@ type ConsoleService interface {
 type Config struct {
 	Authenticator *auth.Manager
 	Verification  ConsoleService
+	Settings      SettingsService
 	Health        *status.Health
 }
 
@@ -45,6 +46,7 @@ type Config struct {
 type Server struct {
 	authenticator *auth.Manager
 	verification  ConsoleService
+	settings      SettingsService
 	health        *status.Health
 
 	mu         sync.Mutex
@@ -53,7 +55,12 @@ type Server struct {
 }
 
 func New(config Config) *Server {
-	return &Server{authenticator: config.Authenticator, verification: config.Verification, health: config.Health}
+	return &Server{
+		authenticator: config.Authenticator,
+		verification:  config.Verification,
+		settings:      config.Settings,
+		health:        config.Health,
+	}
 }
 
 // Handler returns the router for focused tests and for the production HTTP server.
@@ -258,6 +265,8 @@ func (s *Server) chatRoute(writer http.ResponseWriter, request *http.Request) {
 		s.queueRoute(writer, request, chatID, parts[2:])
 	case "audit":
 		s.auditRoute(writer, request, chatID, parts[2:])
+	case "settings":
+		s.settingsRoute(writer, request, chatID, parts[2:])
 	default:
 		writeError(writer, http.StatusNotFound, "not_found")
 	}
