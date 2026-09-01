@@ -1,0 +1,258 @@
+package api
+
+import (
+	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strconv"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/Zakkaus/vestibule/internal/console/auth"
+	"github.com/Zakkaus/vestibule/internal/database"
+	"github.com/Zakkaus/vestibule/internal/status"
+	"github.com/Zakkaus/vestibule/internal/verification"
+)
+
+const apiTestToken = "123:api-test-token"
+
+type apiTestAdminChecker struct {
+	allowed bool
+	err     error
+	calls   int
+}
+
+func (c *apiTestAdminChecker) FreshAdmin(context.Context, int64, int64) (bool, error) {
+	c.calls++
+	return c.allowed, c.err
+}
+
+type apiTestQueueService struct {
+	groups          []int64
+	entries         []verification.ConsoleQueueEntry
+	settleErr       error
+	settlementCalls int
+	telegramActions int
+}
+
+func (s *apiTestQueueService) ConsoleGroups() []int64 {
+	return append([]int64(nil), s.groups...)
+}
+
+func (s *apiTestQueueService) ConsoleQueue(context.Context, int64) ([]verification.ConsoleQueueEntry, error) {
+	return append([]verification.ConsoleQueueEntry(nil), s.entries...), nil
+}
+
+func (s *apiTestQueueService) SettleConsole(context.Context, verification.ConsoleSettlement) (verification.ConsoleQueueEntry, error) {
+	s.settlementCalls++
+	return verification.ConsoleQueueEntry{}, s.settleErr
+}
+
+func TestPostSessionRejectsReplayedInitData(t *testing.T) {
+	now := time.Unix(1_800_000_000, 0)
+	manager, err := auth.New(auth.Config{BotToken: apiTestToken, Now: func() time.Time { return now }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := New(Config{Authenticator: manager})
+	initData := apiSignedInitData(now, 9)
+	if response := postInitData(server, initData); response.Code != http.StatusCreated {
+		t.Fatalf("first session status = %d, want 201", response.Code)
+	}
+	response := postInitData(server, initData)
+	if response.Code != http.StatusConflict || decodeError(response) != "init_data_replayed" {
+		t.Fatalf("replay status=%d code=%s, want 409 and init_data_replayed", response.Code, decodeError(response))
+	}
+	t.Logf("same initData replay -> %d", response.Code)
+}
+
+func TestEnterRedeemsOperatorLinkOnce(t *testing.T) {
+	now := time.Unix(1_800_000_000, 0)
+	manager, err := auth.New(auth.Config{
+		BotToken: apiTestToken, Now: func() time.Time { return now }, OperatorAllowed: func(id int64) bool { return id == 9 },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	token, _, err := manager.IssueOperatorLink(9)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := New(Config{Authenticator: manager})
+	first := enterLink(server, token)
+	cookies := first.Result().Cookies()
+	if first.Code != http.StatusSeeOther || first.Header().Get("Location") != "/" || len(cookies) != 1 {
+		t.Fatalf("first enter response = %d %q cookies=%d", first.Code, first.Header().Get("Location"), len(cookies))
+	}
+	if !cookies[0].Secure || !cookies[0].HttpOnly || cookies[0].SameSite != http.SameSiteLaxMode {
+		t.Fatalf("session cookie lacks required protections: %#v", cookies[0])
+	}
+	second := enterLink(server, token)
+	if second.Code != http.StatusSeeOther || second.Header().Get("Location") != "/?state=redeemed" {
+		t.Fatalf("second enter response = %d %q", second.Code, second.Header().Get("Location"))
+	}
+}
+
+func TestPostSettlementRejectsMembershipLookupFailure(t *testing.T) {
+	checker := &apiTestAdminChecker{err: errors.New("getChatMember unavailable")}
+	queue := &apiTestQueueService{groups: []int64{-100}}
+	server, cookies, csrf := apiTestServer(t, checker, queue, nil)
+	response := postSettlement(server, cookies, csrf, -100, "-100:42:nonce")
+	if response.Code != http.StatusServiceUnavailable || decodeError(response) != "chat_access_unavailable" ||
+		queue.settlementCalls != 0 {
+		t.Fatalf("status=%d code=%s settlement_calls=%d, want 503, chat_access_unavailable, and 0",
+			response.Code, decodeError(response), queue.settlementCalls)
+	}
+	t.Logf("getChatMember query failure -> %d; settlement calls=%d", response.Code, queue.settlementCalls)
+}
+
+func TestPostSettlementReturnsConflictWithoutTelegramAction(t *testing.T) {
+	checker := &apiTestAdminChecker{allowed: true}
+	queue := &apiTestQueueService{groups: []int64{-100}, settleErr: verification.ErrConsoleChallengeConflict}
+	server, cookies, csrf := apiTestServer(t, checker, queue, nil)
+	response := postSettlement(server, cookies, csrf, -100, "-100:42:expired")
+	if response.Code != http.StatusConflict || decodeError(response) != "challenge_conflict" || queue.telegramActions != 0 {
+		t.Fatalf("status=%d code=%s telegram_actions=%d, want 409, challenge_conflict, and 0",
+			response.Code, decodeError(response), queue.telegramActions)
+	}
+	t.Logf("POST stale challenge -> %d; Telegram actions=%d", response.Code, queue.telegramActions)
+}
+
+func TestPostSettlementRequiresCSRF(t *testing.T) {
+	checker := &apiTestAdminChecker{allowed: true}
+	queue := &apiTestQueueService{groups: []int64{-100}}
+	server, cookies, _ := apiTestServer(t, checker, queue, nil)
+	response := postSettlement(server, cookies, "", -100, "-100:42:nonce")
+	if response.Code != http.StatusForbidden || decodeError(response) != "csrf_invalid" || queue.settlementCalls != 0 {
+		t.Fatalf("status=%d code=%s settlement_calls=%d, want 403, csrf_invalid, and 0",
+			response.Code, decodeError(response), queue.settlementCalls)
+	}
+}
+
+func TestQueueResponseUsesChallengeVocabulary(t *testing.T) {
+	now := time.Now().UTC().Truncate(time.Second)
+	checker := &apiTestAdminChecker{allowed: true}
+	queue := &apiTestQueueService{groups: []int64{-100}, entries: []verification.ConsoleQueueEntry{{
+		ID: "-100:42:nonce", GroupID: -100, UserID: 42, Name: "Applicant", State: verification.ChallengePending,
+		CreatedAt: now, ExpiresAt: now.Add(time.Minute),
+	}}}
+	server, cookies, _ := apiTestServer(t, checker, queue, nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/chats/-100/queue", nil)
+	for _, cookie := range cookies {
+		request.AddCookie(cookie)
+	}
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, request)
+	var payload struct {
+		Items []queueResponse `json:"items"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if response.Code != http.StatusOK || len(payload.Items) != 1 || payload.Items[0].Result.State != verification.ChallengePending ||
+		payload.Items[0].Result.Reason != nil || payload.Items[0].OccurredAt == nil || payload.Items[0].RemainingSeconds == nil {
+		t.Fatalf("queue response = %#v", payload)
+	}
+}
+
+func TestHealthKeepsLivenessWhenDatabaseFails(t *testing.T) {
+	databaseHandle, err := database.Open(context.Background(), database.Config{StateDirectory: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := databaseHandle.Close(); err != nil {
+		t.Fatal(err)
+	}
+	health := status.NewHealth(databaseHandle.RawDB.PingContext)
+	health.SetConfigReady(true)
+	health.SetTelegramReady(true)
+	server := New(Config{Health: health})
+	live := getPath(server, "/livez")
+	ready := getPath(server, "/readyz")
+	if live.Code != http.StatusOK || ready.Code == http.StatusOK {
+		t.Fatalf("livez=%d readyz=%d, want 200 and non-200", live.Code, ready.Code)
+	}
+	t.Logf("database unavailable -> /livez=%d /readyz=%d", live.Code, ready.Code)
+}
+
+func apiTestServer(t *testing.T, checker auth.AdminChecker, queue QueueService, health *status.Health) (*Server, []*http.Cookie, string) {
+	t.Helper()
+	now := time.Unix(1_800_000_000, 0)
+	manager, err := auth.New(auth.Config{BotToken: apiTestToken, Now: func() time.Time { return now }, AdminChecker: checker})
+	if err != nil {
+		t.Fatal(err)
+	}
+	grant, err := manager.IssueManagerSession(apiSignedInitData(now, 9))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cookies := httptest.NewRecorder()
+	manager.SetCookies(cookies, grant)
+	return New(Config{Authenticator: manager, Verification: queue, Health: health}), cookies.Result().Cookies(), grant.CSRFToken
+}
+
+func postSettlement(server *Server, cookies []*http.Cookie, csrf string, chatID int64, challengeID string) *httptest.ResponseRecorder {
+	body := `{"expected":{"state":"pending","reason":null},"result":{"state":"approved","reason":null}}`
+	request := httptest.NewRequest(http.MethodPost, "/api/chats/"+strconv.FormatInt(chatID, 10)+"/queue/"+challengeID, strings.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-CSRF-Token", csrf)
+	for _, cookie := range cookies {
+		request.AddCookie(cookie)
+	}
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, request)
+	return response
+}
+
+func postInitData(server *Server, initData string) *httptest.ResponseRecorder {
+	body, _ := json.Marshal(map[string]string{"init_data": initData})
+	request := httptest.NewRequest(http.MethodPost, "/api/session", strings.NewReader(string(body)))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, request)
+	return response
+}
+
+func enterLink(server *Server, token string) *httptest.ResponseRecorder {
+	response := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/enter/"+token, nil)
+	server.Handler().ServeHTTP(response, request)
+	return response
+}
+
+func getPath(server *Server, path string) *httptest.ResponseRecorder {
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, path, nil))
+	return response
+}
+
+func apiSignedInitData(now time.Time, userID int64) string {
+	values := url.Values{
+		"auth_date": {strconv.FormatInt(now.Unix(), 10)},
+		"user":      {`{"id":` + strconv.FormatInt(userID, 10) + `}`},
+	}
+	parts := []string{"auth_date=" + values.Get("auth_date"), "user=" + values.Get("user")}
+	secret := hmac.New(sha256.New, []byte("WebAppData"))
+	_, _ = secret.Write([]byte(apiTestToken))
+	check := hmac.New(sha256.New, secret.Sum(nil))
+	_, _ = check.Write([]byte(strings.Join(parts, "\n")))
+	values.Set("hash", hex.EncodeToString(check.Sum(nil)))
+	return values.Encode()
+}
+
+func decodeError(response *httptest.ResponseRecorder) string {
+	var payload struct {
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	_ = json.Unmarshal(response.Body.Bytes(), &payload)
+	return payload.Error.Code
+}

@@ -29,6 +29,7 @@ func recordingHandlers(fixture *dispatchFixture, handled *[]string) telegram.Han
 		fixture.administration,
 		fixture.moderation,
 		fixture.lookups,
+		nil,
 	)
 	recordVerificationHandlers(&handlers.Verification, handled)
 	recordPanelHandlers(&handlers.Panel, handled)

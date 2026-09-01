@@ -37,6 +37,8 @@ func main() {
 		TelegramAPIURL: os.Getenv("TELEGRAM_API_URL"),
 		GitHubToken:    os.Getenv("GITHUB_TOKEN"),
 		NotifySocket:   os.Getenv("NOTIFY_SOCKET"),
+		ConsoleAddr:    os.Getenv("CONSOLE_ADDR"),
+		ConsoleURL:     os.Getenv("CONSOLE_URL"),
 		Version:        version,
 	}); err != nil {
 		log.Fatal(err)

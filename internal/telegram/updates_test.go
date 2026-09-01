@@ -30,6 +30,7 @@ func TestHandlerOrder(t *testing.T) {
 		"panel.chat_shared",
 		"panel.input",
 		"verify.kernel_answer",
+		"console.open",
 		"bot.private_dm",
 		"moderate.sb",
 		"moderate.ban",

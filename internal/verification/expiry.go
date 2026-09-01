@@ -106,6 +106,10 @@ func pendingFromRecord(record PendingRecord) *pending {
 	if record.FailedAt != 0 {
 		failedAt = time.Unix(record.FailedAt, 0)
 	}
+	var createdAt time.Time
+	if record.CreatedAt != 0 {
+		createdAt = time.Unix(record.CreatedAt, 0)
+	}
 	return &pending{
 		groupMsgID: record.GroupMsgID, privateMsgID: record.PrivateMsgID,
 		challengeDelivered: record.ChallengeDelivered || record.GroupMsgID != 0 || record.PrivateMsgID != 0,
@@ -114,7 +118,7 @@ func pendingFromRecord(record PendingRecord) *pending {
 		tries: record.Tries, hinted: record.Hinted, sampleBounced: record.SampleBounced,
 		noLinuxReminded: record.NoLinuxReminded, osClarified: record.OSClarified,
 		qText: record.QText, qOpts: record.QOpts, correctIdx: record.CorrectIdx,
-		nonce: record.Nonce, name: record.Name, deadline: time.Unix(record.Deadline, 0), epoch: record.Epoch,
+		nonce: record.Nonce, name: record.Name, createdAt: createdAt, deadline: time.Unix(record.Deadline, 0), epoch: record.Epoch,
 		failedAt: failedAt, deferredSince: deferredSince, deferralCapReached: record.DeferralCapReached,
 		settleFailures: record.SettleFailures, gate: record.Gate, invited: record.Invited, held: record.Held,
 		holdUntil: record.HoldUntil, passing: record.Passing, channelUnreadable: record.ChannelUnreadable,

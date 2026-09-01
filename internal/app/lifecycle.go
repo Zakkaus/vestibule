@@ -19,20 +19,22 @@ type runtimeLifecycle struct {
 	flushVerification func()
 	feedDone          <-chan struct{}
 	notifierDone      <-chan error
+	stopAdmission     func() error
+	shutdownHTTP      func(context.Context) error
 	shutdownDeadline  time.Duration
 }
 
 func runRuntimeLifecycle(ctx context.Context, lifecycle runtimeLifecycle) error {
 	handlerErr, handlerStopped := waitForRuntimeStop(ctx, lifecycle.handlerDone)
-	if handlerStopped && streamEndedUnexpectedly(ctx.Err()) {
-		return unexpectedHandlerError(handlerErr)
-	}
+	unexpectedStop := handlerStopped && streamEndedUnexpectedly(ctx.Err())
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), lifecycle.deadline())
 	defer cancel()
+	stopHTTPAdmission(lifecycle.stopAdmission)
 	log.Printf("shutdown: stopping update polling and releasing its lease before draining handlers")
 	stopUpdateHandlers(shutdownCtx, lifecycle.stopHandlers)
 	// waitForHandlerShutdown logs the handler's error itself; nothing here reads it back.
 	_, _ = waitForHandlerShutdown(shutdownCtx, lifecycle.handlerDone, handlerErr, handlerStopped)
+	waitForHTTPShutdown(shutdownCtx, lifecycle.shutdownHTTP)
 	waitForRegistration(shutdownCtx, lifecycle.waitRegistration)
 	waitForShutdownComponent(shutdownCtx, "Telegram heartbeat", lifecycle.heartbeatDone)
 	waitForShutdownComponent(shutdownCtx, "verification expiry scanner", lifecycle.expiryDone)
@@ -43,6 +45,9 @@ func runRuntimeLifecycle(ctx context.Context, lifecycle runtimeLifecycle) error 
 	}
 	waitForShutdownComponent(shutdownCtx, "feed state flush", lifecycle.feedDone)
 	waitForNotifier(shutdownCtx, lifecycle.notifierDone)
+	if unexpectedStop {
+		return unexpectedHandlerError(handlerErr)
+	}
 	return nil
 }
 
@@ -101,6 +106,24 @@ func stopUpdateHandlers(ctx context.Context, stop func(context.Context) error) {
 	}
 	if err := stop(ctx); err != nil {
 		log.Printf("shutdown: update handlers did not stop cleanly: %v", err)
+	}
+}
+
+func stopHTTPAdmission(stop func() error) {
+	if stop == nil {
+		return
+	}
+	if err := stop(); err != nil {
+		log.Printf("shutdown: console HTTP admission did not stop cleanly: %v", err)
+	}
+}
+
+func waitForHTTPShutdown(ctx context.Context, shutdown func(context.Context) error) {
+	if shutdown == nil {
+		return
+	}
+	if err := shutdown(ctx); err != nil {
+		log.Printf("shutdown: console HTTP did not drain cleanly: %v", err)
 	}
 }
 

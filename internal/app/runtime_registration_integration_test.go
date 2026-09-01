@@ -90,7 +90,7 @@ func newRuntimeRegistrationFixture(
 		settings, connector, cfg, &i18n.Messages,
 		verification, moderation, lookups, "test", time.Now(),
 	)
-	updates := telegram.NewUpdates(cfg, settings, connector, telegramHandlers(verification, verificationGateway, administration, moderation, lookups))
+	updates := telegram.NewUpdates(cfg, settings, connector, telegramHandlers(verification, verificationGateway, administration, moderation, lookups, nil))
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	return &runtimeRegistrationFixture{

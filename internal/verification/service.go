@@ -86,6 +86,7 @@ type pending struct {
 	fbAnswers          []string // kernel mode: once the short-answer fallback replaced the kernel question, the answers it is graded against
 	nonce              string   // per-pending token; a quiz button only counts if its nonce matches
 	name               string   // applicant display name, kept so a post-outage re-notify can address them
+	createdAt          time.Time
 	deadline           time.Time
 	deferredSince      time.Time      // first unreachable expiry; retained across recovery and restart
 	epoch              uint64         // bumped on every durable deadline replacement so a stale scanner claim cannot settle a newer window
@@ -1006,7 +1007,7 @@ func (v *Service) OnJoinRequest(ctx *HandlerContext, update Update) error {
 	mode, text, opts, correctIdx := v.newChallenge(gid, applicantLang)
 	name := jr.From.DisplayName()
 	p := &pending{mode: mode, lang: applicantLang, qText: text, qOpts: opts, correctIdx: correctIdx,
-		nonce: newNonce(), name: name}
+		nonce: newNonce(), name: name, createdAt: v.wallNow()}
 	oldMessages, status, err := v.startPending(bot, gid, uid, p)
 	if err != nil {
 		return fmt.Errorf("persist pending challenge for user %d in group %d: %w", uid, gid, err)
@@ -1161,7 +1162,7 @@ func (v *Service) OnMemberJoined(ctx *HandlerContext, update Update) error {
 	mode, text, opts, correctIdx := v.newChallenge(gid, applicantLang)
 	name := user.DisplayName()
 	p := &pending{gate: gateMute, invited: invited, mode: mode, lang: applicantLang,
-		qText: text, qOpts: opts, correctIdx: correctIdx, nonce: newNonce(), name: name}
+		qText: text, qOpts: opts, correctIdx: correctIdx, nonce: newNonce(), name: name, createdAt: v.wallNow()}
 	oldMessages, started, err := v.startPostJoinChallenge(c, bot, gid, uid, p)
 	if err != nil {
 		return err
