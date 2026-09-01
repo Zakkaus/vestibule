@@ -252,5 +252,75 @@
       "title": "界面",
       "description": "主题和语言保存在当前设备，不会更改群配置。"
     }
+  },
+  "audit": {
+    "navigation": "操作记录",
+    "title": "操作记录",
+    "tableLabel": "验证判定历史",
+    "columns": {
+      "user": "用户",
+      "group": "群",
+      "result": "判定",
+      "reason": "原因",
+      "actor": "操作人",
+      "time": "判定时间",
+      "actions": "操作"
+    },
+    "actor": {
+      "automatic": "系统"
+    },
+    "loading": {
+      "title": "正在载入操作记录",
+      "description": "正在读取已结算的验证判定…"
+    },
+    "groupRequired": {
+      "title": "先选择一个群",
+      "description": "选择已获授权的群后，才能查看它的操作记录。",
+      "select": "选择群"
+    },
+    "noGroups": {
+      "title": "此账号尚未获任何群授权",
+      "description": "操作记录只会显示已获授权的群。"
+    },
+    "unavailable": {
+      "title": "无法读取操作记录",
+      "retry": "重试"
+    },
+    "actions": {
+      "undo": "撤销封禁",
+      "undoFor": "撤销对 {{user}} 的封禁",
+      "undoing": "正在撤销…",
+      "undoingFor": "正在撤销对 {{user}} 的封禁"
+    },
+    "undoState": {
+      "pending": "等待撤销",
+      "completed": "已撤销",
+      "failed": "撤销失败"
+    },
+    "feedback": {
+      "undoSuccess": "已撤销对 {{user}} 的封禁。原判定仍保留在操作记录中。",
+      "undoPending": "已提交对 {{user}} 的封禁撤销，系统将继续重试。",
+      "undoFailure": "无法撤销对 {{user}} 的封禁。原判定仍保留在操作记录中。"
+    },
+    "errors": {
+      "authenticationExpired": "会话已过期。请从 Telegram 重新打开控制台。",
+      "authenticationInvalid": "无法验证此控制台会话。请从 Telegram 重新打开控制台。",
+      "auditConflict": "提交撤销前，记录已经变化。封禁没有改变。",
+      "auditNotFound": "此操作记录已不存在。",
+      "auditNotUndoable": "当前账号不能撤销这项封禁。",
+      "auditUnavailable": "暂时无法读取操作记录。请重试。",
+      "accessDenied": "你已不再拥有此群的管理权限。",
+      "accessUnavailable": "暂时无法确认你对此群的管理权限。请重试。",
+      "chatNotFound": "此群已不再可在控制台中管理。",
+      "csrfInvalid": "此页的安全令牌已过期。刷新页面后再重试。",
+      "invalidAudit": "此操作记录不能撤销。",
+      "network": "连接已中断。刷新操作记录后，再决定是否重试。",
+      "loadUnavailable": "操作记录暂时不可用。",
+      "undoUnavailable": "暂时无法撤销这项封禁。请重试。"
+    },
+    "empty": {
+      "title": "还没有已结算的判定",
+      "description": "验证判定结算后会显示在这里，并保留原始历史。"
+    }
   }
 }

@@ -252,5 +252,75 @@
       "title": "Interface",
       "description": "Theme and language are stored on this device and do not change group configuration."
     }
+  },
+  "audit": {
+    "navigation": "Activity log",
+    "title": "Activity log",
+    "tableLabel": "Challenge decision history",
+    "columns": {
+      "user": "User",
+      "group": "Group",
+      "result": "Decision",
+      "reason": "Reason",
+      "actor": "Actor",
+      "time": "Decided at",
+      "actions": "Actions"
+    },
+    "actor": {
+      "automatic": "Automatic"
+    },
+    "loading": {
+      "title": "Loading activity log",
+      "description": "Reading settled challenge decisions…"
+    },
+    "groupRequired": {
+      "title": "Select a group first",
+      "description": "Select an authorized group to read its activity log.",
+      "select": "Select group"
+    },
+    "noGroups": {
+      "title": "This account has not been authorized for any group",
+      "description": "Activity log appear only for authorized groups."
+    },
+    "unavailable": {
+      "title": "Activity log cannot be read",
+      "retry": "Try again"
+    },
+    "actions": {
+      "undo": "Undo ban",
+      "undoFor": "Undo the ban for {{user}}",
+      "undoing": "Undoing…",
+      "undoingFor": "Undoing the ban for {{user}}"
+    },
+    "undoState": {
+      "pending": "Undo pending",
+      "completed": "Undone",
+      "failed": "Undo failed"
+    },
+    "feedback": {
+      "undoSuccess": "The ban for {{user}} was undone. The original decision remains in the audit record.",
+      "undoPending": "The ban undo for {{user}} was queued and will be retried.",
+      "undoFailure": "The ban for {{user}} could not be undone. The original decision remains in the audit record."
+    },
+    "errors": {
+      "authenticationExpired": "The session has expired. Open the console again from Telegram.",
+      "authenticationInvalid": "This console session cannot be verified. Open the console again from Telegram.",
+      "auditConflict": "The record changed before the undo. No ban was changed.",
+      "auditNotFound": "This audit record no longer exists.",
+      "auditNotUndoable": "This ban cannot be undone by the current account.",
+      "auditUnavailable": "Activity log cannot be read right now. Try again.",
+      "accessDenied": "You no longer administer this group.",
+      "accessUnavailable": "Your administration access cannot be verified right now. Try again.",
+      "chatNotFound": "This group can no longer be managed in the console.",
+      "csrfInvalid": "The security token for this page has expired. Refresh the page and try again.",
+      "invalidAudit": "This audit record cannot be undone.",
+      "network": "The connection was interrupted. Refresh the activity log before deciding whether to retry.",
+      "loadUnavailable": "Activity log are temporarily unavailable.",
+      "undoUnavailable": "The ban cannot be undone right now. Try again."
+    },
+    "empty": {
+      "title": "No settled decisions yet",
+      "description": "Settled challenge decisions appear here without changing their original history."
+    }
   }
 }

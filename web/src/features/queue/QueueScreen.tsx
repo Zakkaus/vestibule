@@ -70,6 +70,7 @@ function QueueFeedbackNotice({ feedback }: Readonly<{ feedback: QueueFeedback }>
 
   return (
     <div
+      data-record-feedback
       data-queue-feedback
       data-tone={feedback.tone}
       role={feedback.tone === "error" ? "alert" : "status"}
@@ -88,7 +89,7 @@ function QueueEmptyState() {
   const { t } = useTranslation();
 
   return (
-    <section data-slot="card" data-queue-empty aria-labelledby="queue-empty-title">
+    <section data-slot="card" data-record-empty data-queue-empty aria-labelledby="queue-empty-title">
       <h2 id="queue-empty-title">{t("queue.empty.title")}</h2>
       <p>{t("queue.empty.description")}</p>
     </section>
@@ -99,7 +100,7 @@ function QueueLoadingState() {
   const { t } = useTranslation();
 
   return (
-    <section data-slot="card" data-queue-empty aria-live="polite" aria-labelledby="queue-loading-title">
+    <section data-slot="card" data-record-empty data-queue-empty aria-live="polite" aria-labelledby="queue-loading-title">
       <h2 id="queue-loading-title">{t("queue.loading.title")}</h2>
       <p>{t("queue.loading.description")}</p>
     </section>
@@ -110,7 +111,7 @@ function QueueGroupRequiredState() {
   const { t } = useTranslation();
 
   return (
-    <section data-slot="card" data-queue-empty aria-labelledby="queue-group-required-title">
+    <section data-slot="card" data-record-empty data-queue-empty aria-labelledby="queue-group-required-title">
       <h2 id="queue-group-required-title">{t("queue.groupRequired.title")}</h2>
       <p>{t("queue.groupRequired.description")}</p>
       <Link to="/groups" data-slot="button" data-variant="primary" data-size="sm">
@@ -124,7 +125,7 @@ function QueueNoGroupsState() {
   const { t } = useTranslation();
 
   return (
-    <section data-slot="card" data-queue-empty aria-labelledby="queue-no-groups-title">
+    <section data-slot="card" data-record-empty data-queue-empty aria-labelledby="queue-no-groups-title">
       <h2 id="queue-no-groups-title">{t("queue.noGroups.title")}</h2>
       <p>{t("queue.noGroups.description")}</p>
     </section>
@@ -138,7 +139,7 @@ function QueueUnavailableState({
   const { t } = useTranslation();
 
   return (
-    <section data-slot="card" data-queue-empty data-queue-unavailable role="alert" aria-labelledby="queue-unavailable-title">
+    <section data-slot="card" data-record-empty data-queue-empty data-queue-unavailable role="alert" aria-labelledby="queue-unavailable-title">
       <h2 id="queue-unavailable-title">{t("queue.unavailable.title")}</h2>
       <p>{t(queueErrorMessageKey(error, "queue.errors.loadUnavailable"))}</p>
       <button type="button" data-slot="button" data-variant="outline" data-size="sm" onClick={onRetry}>
@@ -158,7 +159,7 @@ function QueueFilteredEmptyState({ filter, onClear }: QueueFilteredEmptyStatePro
   const group = filter.groupLabelKey ? t(filter.groupLabelKey) : filter.groupKey;
 
   return (
-    <section data-slot="card" data-queue-empty aria-labelledby="queue-filtered-empty-title">
+    <section data-slot="card" data-record-empty data-queue-empty aria-labelledby="queue-filtered-empty-title">
       <h2 id="queue-filtered-empty-title">{t("queue.filteredEmpty.title")}</h2>
       <p>
         {t("queue.filteredEmpty.currentCondition", {
@@ -438,6 +439,7 @@ export function QueueScreen() {
 
   return (
     <section
+      data-record-page
       data-queue-page
       data-queue-state={dataState}
       aria-busy={queueState.kind === "loading" ? true : undefined}

@@ -89,8 +89,8 @@ export function QueueTable({ records, pendingActions, dateFormatter, onRelease }
 
   return (
     <>
-      <div data-queue-table-scroll>
-        <table data-queue-table aria-label={t("queue.tableLabel")}>
+      <div data-record-table-scroll data-queue-table-scroll>
+        <table data-record-table data-queue-table aria-label={t("queue.tableLabel")}>
           <thead>
             <tr>
               <th scope="col">{t("queue.columns.user")}</th>
@@ -108,13 +108,13 @@ export function QueueTable({ records, pendingActions, dateFormatter, onRelease }
                 data-result={record.result.id}
                 data-action-state={pending ? "pending" : "idle"}
               >
-                <td data-queue-user>{record.user}</td>
-                <td data-queue-group>{group}</td>
-                <td data-queue-result>
+                <td data-record-user data-queue-user>{record.user}</td>
+                <td data-record-group data-queue-group>{group}</td>
+                <td data-record-result data-queue-result>
                   <QueueResult record={record} remainingTime={remainingTime} />
                 </td>
-                <td data-queue-time>{occurredAt}</td>
-                <td data-queue-action>
+                <td data-record-time data-queue-time>{occurredAt}</td>
+                <td data-record-action data-queue-action>
                   <QueueReleaseAction record={record} pending={pending} onRelease={onRelease} />
                 </td>
               </tr>
@@ -123,30 +123,31 @@ export function QueueTable({ records, pendingActions, dateFormatter, onRelease }
         </table>
       </div>
 
-      <ul data-queue-card-list aria-label={t("queue.tableLabel")}>
+      <ul data-record-card-list data-queue-card-list aria-label={t("queue.tableLabel")}>
         {rows.map(({ record, pending, remainingTime, group, occurredAt }) => (
           <li
             key={record.id}
             data-slot="card"
+            data-record-card-row={record.id}
             data-queue-card-row={record.id}
             data-result={record.result.id}
             data-action-state={pending ? "pending" : "idle"}
           >
-            <div data-queue-card-header>
-              <strong data-queue-user>{record.user}</strong>
+            <div data-record-card-header data-queue-card-header>
+              <strong data-record-user data-queue-user>{record.user}</strong>
               <QueueResult record={record} remainingTime={remainingTime} />
             </div>
-            <dl data-queue-card-details>
+            <dl data-record-card-details data-queue-card-details>
               <div>
                 <dt>{t("queue.columns.group")}</dt>
-                <dd data-queue-card-group>{group}</dd>
+                <dd data-record-group data-queue-card-group>{group}</dd>
               </div>
               <div>
                 <dt>{t("queue.columns.time")}</dt>
-                <dd data-queue-time>{occurredAt}</dd>
+                <dd data-record-time data-queue-time>{occurredAt}</dd>
               </div>
             </dl>
-            <div data-queue-card-action>
+            <div data-record-card-action data-queue-card-action>
               <QueueReleaseAction record={record} pending={pending} onRelease={onRelease} />
             </div>
           </li>

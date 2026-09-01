@@ -1,3 +1,8 @@
+import {
+  nonEmptyStringFromPayload,
+  objectFromPayload
+} from "./api";
+
 export const challengeStates = [
   "pending",
   "approved",
@@ -97,3 +102,41 @@ export const challengeResults = {
     tone: "neutral"
   }
 } as const satisfies Record<ChallengeResultId, ChallengeResultDefinition>;
+
+const settledChallengeResults = {
+  pending: challengeResults.pending,
+  approved: challengeResults.approved,
+  banned: challengeResults.banned,
+  expired: challengeResults.expired,
+  superseded: challengeResults.superseded
+} as const satisfies Readonly<
+  Record<Exclude<ChallengeState, "declined">, ChallengeResultDefinition>
+>;
+
+const declinedChallengeResults = {
+  wrong_answer: challengeResults.declinedWrongAnswer,
+  rejected: challengeResults.declinedRejected,
+  external_unmet: challengeResults.declinedExternalUnmet
+} as const satisfies Readonly<Record<DeclineReason, ChallengeResultDefinition>>;
+
+export function challengeResultFromPayload(
+  value: unknown
+): ChallengeResultDefinition | undefined {
+  const result = objectFromPayload(value);
+  const state = result ? nonEmptyStringFromPayload(result.state) : undefined;
+
+  if (!result || !state || !("reason" in result)) {
+    return undefined;
+  }
+
+  if (state === "declined") {
+    const reason = result.reason;
+    return typeof reason === "string" && reason in declinedChallengeResults
+      ? declinedChallengeResults[reason as DeclineReason]
+      : undefined;
+  }
+
+  return result.reason === null && state in settledChallengeResults
+    ? settledChallengeResults[state as Exclude<ChallengeState, "declined">]
+    : undefined;
+}

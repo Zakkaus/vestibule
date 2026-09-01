@@ -21,6 +21,10 @@ const navigationItems = [
     labelKey: "navigation.queue"
   },
   {
+    path: "/audit",
+    labelKey: "audit.navigation"
+  },
+  {
     path: "/groups",
     labelKey: "navigation.groups"
   },
