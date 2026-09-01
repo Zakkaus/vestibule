@@ -1098,6 +1098,7 @@ policr-mini 选了另一条：把 Telegram 的权限镜像进 `permissions` 表�
 | GET /livez | 进程事件循环存活即 200，不探测依赖，避免依赖抖动引发重启风暴 |
 | GET /readyz | 配置校验完成、数据库已迁移、Telegram 通道建立才 200 |
 | POST /api/session | 校验 `initData`，签发群管理员会话 |
+| GET /api/session | 把当前会话的 CSRF 令牌交给已经持有 Cookie 的浏览器。**运维那条路需要它**：一次性链接只写 Cookie 再跳转，令牌没有别的出口，于是那种会话能读却不能写。签发令牌只在这一处，不另设可读 Cookie |
 | GET /enter/{token} | 运维入口。机器人发的一次性链接落在这里，换成会话后重定向。**令牌用过即失效**，整条链与 Telegram 的登录服务无关 |
 | GET /api/chats | 群与频道屏。该管理员可管理的群，由 getChatMember 求交集得出，不存租户表 |
 | GET /api/chats/{id}/overview | 首页四层所需数据，一次返回 |
