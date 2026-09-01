@@ -17,6 +17,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/feed"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/settings"
+	"github.com/Zakkaus/vestibule/internal/status"
 	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
@@ -91,6 +92,21 @@ func TestRetentionOutageObserverUsesDurableHeartbeatOncePerOutage(t *testing.T) 
 	observer.observe(now)
 	if got := <-alerts; got != 26*time.Hour {
 		t.Fatalf("outage after recovery = %v, want 26h", got)
+	}
+}
+
+func TestOutageAwareBotRecordsSuccessfulProbe(t *testing.T) {
+	fixture := newLifecycleVerificationFixture(t)
+	health := status.NewHealth(nil)
+	bot := &outageAwareBot{
+		Bot: fixture.bot, observer: &retentionOutageObserver{}, health: health,
+	}
+	if _, err := bot.GetMe(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	probe := health.Snapshot().TelegramProbe
+	if probe == nil || probe.At.IsZero() || probe.Latency < 0 {
+		t.Fatalf("recorded probe = %+v, want a successful non-negative probe", probe)
 	}
 }
 
