@@ -809,5 +809,92 @@
       "saveUnavailable": "暂时无法保存题库。请重试。",
       "network": "连接已中断。重新读取题库后，再决定是否重试。"
     }
+  },
+  "stats": {
+    "navigation": "统计",
+    "title": "统计",
+    "description": "查看当前群的入群结果趋势、通过率和各验证方式的拦截量。",
+    "loading": {
+      "title": "正在载入统计",
+      "description": "正在按所选日期和时区汇总入群结果…"
+    },
+    "groupRequired": {
+      "title": "先选择一个群",
+      "description": "选择已获授权的群后，才能查看统计。",
+      "select": "选择群"
+    },
+    "noGroups": {
+      "title": "此账号尚未获任何群授权",
+      "description": "统计只对已获授权的群开放。"
+    },
+    "unavailable": {
+      "title": "无法读取统计",
+      "retry": "重试"
+    },
+    "filters": {
+      "title": "统计范围",
+      "from": "开始日期",
+      "to": "结束日期（不含）",
+      "timezone": "时区",
+      "timezoneDescription": "时区默认值由当前浏览器提供（{{timezone}}）。统计按输入的 IANA 时区划分日界；它不是机器人进程的 stats_timezone 设置。",
+      "apply": "更新统计",
+      "errors": {
+        "from": "请输入有效的开始日期。",
+        "to": "请输入有效的结束日期。",
+        "range": "结束日期不能早于开始日期。",
+        "timezone": "请输入有效的 IANA 时区名称。"
+      }
+    },
+    "range": {
+      "applied": "统计范围：{{from}} 至 {{to}}，结束日期不含；时区 {{timezone}}。"
+    },
+    "zero": "所选日期范围内没有入群结果。趋势图和每日结果表仍会显示数值为零的日期。",
+    "summary": {
+      "title": "汇总",
+      "challenges": "挑战",
+      "approved": "通过",
+      "declined": "拒绝",
+      "banned": "封禁",
+      "expired": "超时",
+      "passRate": "通过率"
+    },
+    "trend": {
+      "title": "入群结果趋势",
+      "description": "柱表示挑战量，线表示通过率。精确数字见下方每日结果表。",
+      "chartDescription": "入群结果趋势图，精确数字见下方每日结果表。",
+      "legendLabel": "图例",
+      "challenges": "挑战量",
+      "passRate": "通过率",
+      "noDays": "所选范围不包含任何日期。"
+    },
+    "daily": {
+      "title": "每日结果",
+      "description": "图看趋势，表看数字。",
+      "date": "日期",
+      "challenges": "挑战",
+      "approved": "通过",
+      "declined": "拒绝",
+      "banned": "封禁",
+      "expired": "超时",
+      "passRate": "通过率"
+    },
+    "interceptions": {
+      "title": "各验证方式的拦截量",
+      "description": "验证方式名称直接来自统计接口。",
+      "kind": "验证方式",
+      "count": "拦截量",
+      "empty": "所选日期范围内没有拦截结果。"
+    },
+    "errors": {
+      "authenticationExpired": "会话已过期。请从 Telegram 重新打开控制台。",
+      "authenticationInvalid": "无法验证此控制台会话。请在 Telegram 中重新打开控制台。",
+      "accessDenied": "你已不再拥有此群的管理权限。",
+      "accessUnavailable": "暂时无法确认你对此群的管理权限。请重试。",
+      "chatNotFound": "此群已不再可在控制台中管理。",
+      "invalidQuery": "统计查询无效。修改范围后再重试。",
+      "unavailable": "统计暂时不可用。请重试。",
+      "loadUnavailable": "暂时无法读取统计。请重试。",
+      "network": "连接已中断。更新统计后，再决定是否重试。"
+    }
   }
 }

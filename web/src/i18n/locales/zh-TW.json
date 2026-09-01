@@ -809,5 +809,92 @@
       "saveUnavailable": "暫時無法儲存題庫。請重試。",
       "network": "連線已中斷。重新讀取題庫後，再決定是否重試。"
     }
+  },
+  "stats": {
+    "navigation": "統計",
+    "title": "統計",
+    "description": "查看目前群組的加入結果趨勢、通過率和各驗證方式的攔截量。",
+    "loading": {
+      "title": "正在載入統計",
+      "description": "正在按所選日期和時區彙總加入結果…"
+    },
+    "groupRequired": {
+      "title": "請先選擇群組",
+      "description": "選擇已獲授權的群組後，才能查看統計。",
+      "select": "選擇群組"
+    },
+    "noGroups": {
+      "title": "此帳號尚未取得任何群組授權",
+      "description": "統計只對已獲授權的群組開放。"
+    },
+    "unavailable": {
+      "title": "無法讀取統計",
+      "retry": "重試"
+    },
+    "filters": {
+      "title": "統計範圍",
+      "from": "開始日期",
+      "to": "結束日期（不含）",
+      "timezone": "時區",
+      "timezoneDescription": "時區預設值由目前瀏覽器提供（{{timezone}}）。統計按輸入的 IANA 時區劃分日界；它不是機器人程序的 stats_timezone 設定。",
+      "apply": "更新統計",
+      "errors": {
+        "from": "請輸入有效的開始日期。",
+        "to": "請輸入有效的結束日期。",
+        "range": "結束日期不能早於開始日期。",
+        "timezone": "請輸入有效的 IANA 時區名稱。"
+      }
+    },
+    "range": {
+      "applied": "統計範圍：{{from}} 至 {{to}}，結束日期不含；時區 {{timezone}}。"
+    },
+    "zero": "所選日期範圍內沒有加入結果。趨勢圖和每日結果表仍會顯示數值為零的日期。",
+    "summary": {
+      "title": "彙總",
+      "challenges": "挑戰",
+      "approved": "通過",
+      "declined": "拒絕",
+      "banned": "封禁",
+      "expired": "逾時",
+      "passRate": "通過率"
+    },
+    "trend": {
+      "title": "加入結果趨勢",
+      "description": "柱表示挑戰量，線表示通過率。精確數字見下方每日結果表。",
+      "chartDescription": "加入結果趨勢圖，精確數字見下方每日結果表。",
+      "legendLabel": "圖例",
+      "challenges": "挑戰量",
+      "passRate": "通過率",
+      "noDays": "所選範圍不包含任何日期。"
+    },
+    "daily": {
+      "title": "每日結果",
+      "description": "圖看趨勢，表看數字。",
+      "date": "日期",
+      "challenges": "挑戰",
+      "approved": "通過",
+      "declined": "拒絕",
+      "banned": "封禁",
+      "expired": "逾時",
+      "passRate": "通過率"
+    },
+    "interceptions": {
+      "title": "各驗證方式的攔截量",
+      "description": "驗證方式名稱直接來自統計介面。",
+      "kind": "驗證方式",
+      "count": "攔截量",
+      "empty": "所選日期範圍內沒有攔截結果。"
+    },
+    "errors": {
+      "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
+      "authenticationInvalid": "無法驗證此控制台工作階段。請在 Telegram 中重新開啟控制台。",
+      "accessDenied": "你已不再擁有此群組的管理權限。",
+      "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
+      "chatNotFound": "此群組已無法在控制台中管理。",
+      "invalidQuery": "統計查詢無效。修改範圍後再重試。",
+      "unavailable": "統計暫時無法使用。請重試。",
+      "loadUnavailable": "暫時無法讀取統計。請重試。",
+      "network": "連線已中斷。更新統計後，再決定是否重試。"
+    }
   }
 }

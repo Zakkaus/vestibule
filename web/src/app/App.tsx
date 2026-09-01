@@ -10,6 +10,7 @@ import { QueueScreen } from "../features/queue";
 import { PreferencesScreen } from "../features/preferences";
 import { VerificationScreen } from "../features/verification";
 import { QuestionsScreen } from "../features/questions";
+import { StatsScreen } from "../features/stats";
 import { AppShell } from "./AppShell";
 
 const entryHandle = {
@@ -38,6 +39,11 @@ const router = createBrowserRouter([
       {
         path: "audit",
         element: <AuditScreen />,
+        handle: consoleHandle
+      },
+      {
+        path: "stats",
+        element: <StatsScreen />,
         handle: consoleHandle
       },
       {

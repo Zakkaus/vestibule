@@ -809,5 +809,92 @@
       "saveUnavailable": "The question bank cannot be saved right now. Try again.",
       "network": "The connection was interrupted. Reload the question bank before deciding whether to retry."
     }
+  },
+  "stats": {
+    "navigation": "Statistics",
+    "title": "Statistics",
+    "description": "Review this group's join outcome trend, pass rate, and interceptions by verification method.",
+    "loading": {
+      "title": "Loading statistics",
+      "description": "Aggregating join outcomes for the selected dates and time zone…"
+    },
+    "groupRequired": {
+      "title": "Select a group first",
+      "description": "Select an authorized group before viewing its statistics.",
+      "select": "Select group"
+    },
+    "noGroups": {
+      "title": "This account has not been authorized for any group",
+      "description": "Statistics are available only for authorized groups."
+    },
+    "unavailable": {
+      "title": "Statistics cannot be read",
+      "retry": "Try again"
+    },
+    "filters": {
+      "title": "Statistics range",
+      "from": "Start date",
+      "to": "End date (excluded)",
+      "timezone": "Time zone",
+      "timezoneDescription": "The default is provided by this browser ({{timezone}}). Statistics use the entered IANA time zone for calendar-day boundaries; it is not the bot process's stats_timezone setting.",
+      "apply": "Update statistics",
+      "errors": {
+        "from": "Enter a valid start date.",
+        "to": "Enter a valid end date.",
+        "range": "The end date cannot be earlier than the start date.",
+        "timezone": "Enter a valid IANA time zone name."
+      }
+    },
+    "range": {
+      "applied": "Reported range: {{from}} through {{to}} (end date excluded), time zone {{timezone}}."
+    },
+    "zero": "No join outcomes fell in this date range. Zero-valued days remain in the trend and daily table.",
+    "summary": {
+      "title": "Summary",
+      "challenges": "Challenges",
+      "approved": "Approved",
+      "declined": "Declined",
+      "banned": "Banned",
+      "expired": "Expired",
+      "passRate": "Pass rate"
+    },
+    "trend": {
+      "title": "Join outcome trend",
+      "description": "Bars show challenge volume and the line shows pass rate. Exact values appear in the daily results table.",
+      "chartDescription": "Join outcome trend chart. Exact values appear in the daily results table.",
+      "legendLabel": "Chart legend",
+      "challenges": "Challenge volume",
+      "passRate": "Pass rate",
+      "noDays": "The selected range contains no calendar days."
+    },
+    "daily": {
+      "title": "Daily results",
+      "description": "The chart shows direction; this table gives exact values.",
+      "date": "Date",
+      "challenges": "Challenges",
+      "approved": "Approved",
+      "declined": "Declined",
+      "banned": "Banned",
+      "expired": "Expired",
+      "passRate": "Pass rate"
+    },
+    "interceptions": {
+      "title": "Interceptions by verification method",
+      "description": "Method names come directly from the statistics response.",
+      "kind": "Verification method",
+      "count": "Interceptions",
+      "empty": "No interceptions occurred in this date range."
+    },
+    "errors": {
+      "authenticationExpired": "The session has expired. Open the console again from Telegram.",
+      "authenticationInvalid": "This console session cannot be verified. Open the console again from Telegram.",
+      "accessDenied": "You no longer administer this group.",
+      "accessUnavailable": "Your administration access cannot be verified right now. Try again.",
+      "chatNotFound": "This group can no longer be managed in the console.",
+      "invalidQuery": "The statistics query is invalid. Change the range and try again.",
+      "unavailable": "Statistics are temporarily unavailable. Try again.",
+      "loadUnavailable": "Statistics cannot be read right now. Try again.",
+      "network": "The connection was interrupted. Update the statistics before deciding whether to retry."
+    }
   }
 }
