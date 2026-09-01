@@ -87,7 +87,9 @@ body {
 
 [data-entry-copy],
 [data-page-heading] p,
-[data-mode-note] {
+[data-mode-note],
+[data-live-group-note],
+[data-group-state] p {
   margin: 0;
   color: var(--muted-foreground);
 }
@@ -137,14 +139,14 @@ body {
   flex-wrap: wrap;
   align-items: end;
   justify-content: end;
-  gap: var(--sp-3);
+  gap: var(--sp-2);
   margin-inline-start: auto;
 }
 
 [data-group-switcher] {
   display: grid;
   gap: var(--sp-1);
-  min-inline-size: min(100%, var(--field-w));
+  min-inline-size: min(100%, calc(var(--field-w) - var(--sp-5)));
   font-size: 0.75rem;
   color: var(--muted-foreground);
 }
@@ -174,11 +176,37 @@ body {
   gap: var(--sp-3);
 }
 
+[data-group-state] {
+  display: grid;
+  min-block-size: var(--sp-9);
+  align-content: center;
+  gap: var(--sp-3);
+}
+
+[data-group-state] h2,
+[data-group-state] p {
+  margin: 0;
+}
+
+[data-group-actions],
+[data-group-state-actions] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: end;
+  gap: var(--sp-2);
+}
+
 [data-group-row] {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
   gap: var(--sp-5);
+}
+
+[data-group-row] > [data-group-actions] {
+  align-self: center;
+  justify-self: end;
 }
 
 [data-group-row][data-selected] {

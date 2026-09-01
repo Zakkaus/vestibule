@@ -91,9 +91,59 @@
   },
   "groups": {
     "title": "Groups and channels",
-    "description": "Every row keeps the current Telegram mode and verification prerequisites visible, so a group that cannot receive applications is not shown as healthy.",
+    "description": "Only groups this account may manage appear here. Select a group to continue to its waiting queue.",
     "managedCount_one": "{{count}} manageable group",
     "managedCount_other": "{{count}} manageable groups",
+    "groupOption": "Group {{id}}",
+    "authorized": "Authorized",
+    "liveGroupNote": "After you select this group, later operations stay within its boundary.",
+    "loading": {
+      "title": "Loading groups…",
+      "description": "Checking which groups this account may manage."
+    },
+    "empty": {
+      "title": "No manageable groups",
+      "description": "Account {{accountId}} has not been granted management access to any group. Ask a group owner to grant access."
+    },
+    "error": {
+      "authenticationExpired": {
+        "title": "Session expired",
+        "description": "Open the console again from the Telegram bot menu, or request a new operator link from the bot."
+      },
+      "authenticationInvalid": {
+        "title": "Session could not be verified",
+        "description": "Make sure you opened the console from an entry point provided by the Telegram bot."
+      },
+      "initDataReplayed": {
+        "title": "This launch request was already used",
+        "description": "Close this page, then open the console again from the Telegram bot menu."
+      },
+      "authenticationUnavailable": {
+        "title": "Authentication service unavailable",
+        "description": "Load the group list again after the service recovers."
+      },
+      "verificationUnavailable": {
+        "title": "Group list unavailable",
+        "description": "The verification service is not ready, so manageable groups cannot be confirmed."
+      },
+      "network": {
+        "title": "Console unreachable",
+        "description": "Check the network connection, then load the group list again."
+      },
+      "response": {
+        "title": "Group list could not be loaded",
+        "description": "The console returned data that cannot be used."
+      },
+      "unknown": {
+        "title": "Group list could not be loaded",
+        "description": "The service refused the group-list request."
+      }
+    },
+    "actions": {
+      "openQueue": "View waiting queue",
+      "openQueueFor": "View the waiting queue for group {{id}}",
+      "retry": "Load again"
+    },
     "mode": {
       "approval": "Approval required",
       "joinRestrict": "Join, then restrict",
