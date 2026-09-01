@@ -125,7 +125,13 @@ export async function renderCell(
   await page.emulateMedia({
     colorScheme: cell.theme === "system" ? "dark" : "light"
   });
-  await page.goto(cell.route.urlPath);
+  await page.evaluate(async (urlPath) => {
+    history.pushState({}, "", urlPath);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
+  }, cell.route.urlPath);
   await page.locator("[data-app-shell]").waitFor({ state: "visible" });
 
   const controls = page.locator("[data-utility-controls]").first();
