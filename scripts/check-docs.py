@@ -173,11 +173,13 @@ def check_open_questions_have_a_future(plan_text: str) -> None:
     maintained by hand, on merge; the value here is that the two tables cannot
     disagree in silence.
     """
-    done = set()
+    done, started = set(), set()
     for match in re.finditer(r"^\| ([零一二三四五六七八九十]+) \| `[^`]+` \| [^|]* \| (\S+) \|",
                              plan_text, re.M):
         if match.group(2) == "完成":
             done.add(match.group(1))
+        elif match.group(2) == "进行中":
+            started.add(match.group(1))
     if not done:
         failures.append("plan: no phase is marked 完成 — has the status column moved?")
         return
@@ -187,11 +189,19 @@ def check_open_questions_have_a_future(plan_text: str) -> None:
         failures.append("plan: the open-questions table is gone")
         return
     region = plan_text[marker:plan_text.find("###", marker + 3)]
-    for match in re.finditer(r"^\| ([^|]+?) \| 阶段([零一二三四五六七八九十]+) \|", region, re.M):
-        question, phase = match.group(1).strip(), match.group(2)
+    for match in re.finditer(r"^\| ([^|]+?) \| 阶段([零一二三四五六七八九十]+)([^|]*) \|",
+                             region, re.M):
+        question, phase, note = match.group(1).strip(), match.group(2), match.group(3)
         if phase in done:
             failures.append("plan: 「%s」 waits on 阶段%s, which is already 完成"
                             % (question, phase))
+        elif phase in started and "阻塞" not in note:
+            # 完成 is too late to learn that a question was never asked. Once the
+            # phase is underway the answer is due, and the only thing a document
+            # can check is whether somebody has said out loud that the work can
+            # continue without it.
+            failures.append("plan: 「%s」 waits on 阶段%s, which is 进行中, and the row "
+                            "does not say whether it blocks" % (question, phase))
 
 
 def check_every_inventoried_file_has_a_phase(plan_text: str) -> None:
