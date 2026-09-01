@@ -405,8 +405,17 @@ func TestHealthKeepsLivenessWhenDatabaseFails(t *testing.T) {
 	t.Logf("database unavailable -> /livez=%d /readyz=%d", live.Code, ready.Code)
 }
 
-func apiTestServer(t *testing.T, checker auth.AdminChecker, queue ConsoleService, health *status.Health) (*Server, []*http.Cookie, string) {
+func apiTestServer(
+	t *testing.T,
+	checker auth.AdminChecker,
+	queue ConsoleService,
+	health *status.Health,
+	settingServices ...SettingsService,
+) (*Server, []*http.Cookie, string) {
 	t.Helper()
+	if len(settingServices) > 1 {
+		t.Fatal("apiTestServer accepts at most one settings service")
+	}
 	now := time.Unix(1_800_000_000, 0)
 	manager, err := auth.New(auth.Config{BotToken: apiTestToken, Now: func() time.Time { return now }, AdminChecker: checker})
 	if err != nil {
@@ -416,9 +425,14 @@ func apiTestServer(t *testing.T, checker auth.AdminChecker, queue ConsoleService
 	if err != nil {
 		t.Fatal(err)
 	}
+	var settingsService SettingsService
+	if len(settingServices) == 1 {
+		settingsService = settingServices[0]
+	}
 	cookies := httptest.NewRecorder()
 	manager.SetCookies(cookies, grant)
-	return New(Config{Authenticator: manager, Verification: queue, Health: health}), cookies.Result().Cookies(), grant.CSRFToken
+	config := Config{Authenticator: manager, Verification: queue, Settings: settingsService, Health: health}
+	return New(config), cookies.Result().Cookies(), grant.CSRFToken
 }
 
 func getAuthenticatedPath(server *Server, cookies []*http.Cookie, path string) *httptest.ResponseRecorder {
