@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AuditScreen } from "../features/audit";
 import { BypassScreen } from "../features/bypass";
 import { CapabilitiesScreen } from "../features/capabilities";
+import { DiagnosticsScreen } from "../features/diagnostics";
 import { EntryScreen } from "../features/entry";
 import { FeedsScreen } from "../features/feeds";
 import { GroupListScreen } from "../features/groups";
@@ -46,6 +47,11 @@ const router = createBrowserRouter([
       {
         path: "stats",
         element: <StatsScreen />,
+        handle: consoleHandle
+      },
+      {
+        path: "diagnostics",
+        element: <DiagnosticsScreen />,
         handle: consoleHandle
       },
       {

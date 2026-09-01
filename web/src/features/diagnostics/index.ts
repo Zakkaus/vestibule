@@ -1,0 +1,1 @@
+export { DiagnosticsScreen } from "./DiagnosticsScreen";
