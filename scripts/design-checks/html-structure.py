@@ -95,6 +95,20 @@ def main(argv: list[str]) -> int:
     if not argv:
         print(__doc__, file=sys.stderr)
         return 2
+    # A path that cannot be read is not a finding about the library. Without this
+    # the open below raises, Python exits 1, and that is the same code a real
+    # violation uses — so one mistyped argument reads as a failing check. The test
+    # is the read itself rather than is_file(): the two agree on a missing path and
+    # part company on one whose mode or encoding stops the open that follows.
+    unreadable = []
+    for a in argv:
+        try:
+            Path(a).read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as e:
+            unreadable.append("%s (%s)" % (a, getattr(e, "strerror", None) or e.__class__.__name__))
+    if unreadable:
+        print("html-structure: cannot read " + ", ".join(unreadable), file=sys.stderr)
+        return 2
     for arg in argv:
         check(Path(arg))
     if failures:

@@ -111,7 +111,7 @@ jobs:
             python3 "scripts/design-checks/$c.py" web/dist/assets/*.css
           done
           for c in coverage-floor comment-boundaries padding-ratio peer-consistency percentage-min shorthand-across-layers; do
-            python3 "scripts/design-checks/$c.py" web/src/styles/tokens.css web/src/styles/components.css web/src/styles/shell.css
+            python3 "scripts/design-checks/$c.py" web/src/styles/tokens.css web/src/styles/components.css web/src/styles/shell.css web/src/app/app.css
           done
           for f in tokens components shell; do
             diff -q "$HOME/design-system/app/$f.css" "web/src/styles/$f.css" \

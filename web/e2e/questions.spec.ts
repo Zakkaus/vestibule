@@ -155,7 +155,7 @@ test("question bank adds and edits an item, then sends only the complete questio
   await added.getByLabel("题面").fill("Pick the rolling-release distribution");
   await added.getByLabel("选项 1", { exact: true }).fill("Debian");
   await added.getByLabel("选项 2", { exact: true }).fill("Gentoo");
-  await added.getByRole("radio", { name: "将选项 2 设为正确答案" }).check();
+  await added.getByRole("button", { name: "将选项 2 设为正确答案" }).click();
   await page.getByRole("button", { name: "保存更改" }).click();
   await patchRequested;
   await expect(page.getByRole("button", { name: "正在保存…" })).toHaveAttribute(
@@ -256,7 +256,7 @@ test("switching custom fallback questions to built-ins clears the array override
     }
   );
 
-  await page.getByRole("radio", { name: "内置本地化题目" }).check();
+  await page.getByRole("button", { name: "内置本地化题目" }).click();
   await page.getByRole("button", { name: "保存更改" }).click();
   await expect(page.locator('[data-questions-feedback="saved"]')).toBeVisible();
   expect(requestBody).toEqual({

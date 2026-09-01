@@ -92,14 +92,18 @@ function QuestionOptionRow({
 
   return (
     <div data-question-option-row>
-      <input
-        type="radio"
-        name={`question-${question.id}-answer`}
-        checked={question.answer === optionIndex}
-        disabled={disabled}
+      <button
+        type="button"
+        data-slot="button"
+        data-variant="outline"
+        data-size="sm"
+        aria-pressed={question.answer === optionIndex}
         aria-label={t("questions.questionBank.correctAnswerFor", { number: optionIndex + 1 })}
-        onChange={() => onChange({ ...question, answer: optionIndex })}
-      />
+        disabled={disabled}
+        onClick={() => onChange({ ...question, answer: optionIndex })}
+      >
+        {t("questions.actions.selectCorrectAnswer")}
+      </button>
       <div data-question-option-field>
         <label htmlFor={optionID}>
           {t("questions.questionBank.option", { number: optionIndex + 1 })}
@@ -128,6 +132,7 @@ function QuestionOptionRow({
         {t("questions.actions.removeOption")}
       </button>
     </div>
+
   );
 }
 
@@ -195,9 +200,15 @@ function QuestionItem({
   const { t } = useTranslation();
 
   return (
-    <fieldset data-question-item>
-      <legend>{t("questions.questionBank.itemTitle", { number })}</legend>
-      <div data-question-item-actions>
+    <section
+      data-slot="card"
+      data-question-item
+      aria-labelledby={`question-${question.id}-title`}
+    >
+      <header data-question-item-heading>
+        <h3 id={`question-${question.id}-title`}>
+          {t("questions.questionBank.itemTitle", { number })}
+        </h3>
         <button
           type="button"
           data-slot="button"
@@ -208,7 +219,7 @@ function QuestionItem({
         >
           {t("questions.actions.deleteQuestion")}
         </button>
-      </div>
+      </header>
       <QuestionPrompt
         question={question}
         errorKey={errors?.q}
@@ -221,7 +232,7 @@ function QuestionItem({
         disabled={disabled}
         onChange={onChange}
       />
-    </fieldset>
+    </section>
   );
 }
 

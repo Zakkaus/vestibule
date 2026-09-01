@@ -90,9 +90,16 @@ function FallbackQuestionItem({
   const answersErrorID = `fallback-answers-${question.id}-error`;
 
   return (
-    <fieldset data-question-item data-fallback-item>
-      <legend>{t("questions.fallback.itemTitle", { number })}</legend>
-      <div data-question-item-actions>
+    <section
+      data-slot="card"
+      data-question-item
+      data-fallback-item
+      aria-labelledby={`fallback-question-${question.id}-title`}
+    >
+      <header data-question-item-heading>
+        <h3 id={`fallback-question-${question.id}-title`}>
+          {t("questions.fallback.itemTitle", { number })}
+        </h3>
         <button
           type="button"
           data-slot="button"
@@ -103,7 +110,7 @@ function FallbackQuestionItem({
         >
           {t("questions.actions.deleteFallback")}
         </button>
-      </div>
+      </header>
       <div data-question-field>
         <label htmlFor={promptID}>{t("questions.fallback.prompt")}</label>
         <textarea
@@ -155,7 +162,7 @@ function FallbackQuestionItem({
           {t("questions.actions.addAnswer")}
         </button>
       </fieldset>
-    </fieldset>
+    </section>
   );
 }
 
