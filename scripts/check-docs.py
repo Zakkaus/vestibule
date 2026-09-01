@@ -26,6 +26,21 @@ HEADING = re.compile(r"^(#{1,6}) .*$", re.M)
 HOME_PATH = re.compile(r"(?<![\w/])/(?:home|Users)/[A-Za-z0-9._-]+/")
 REF = re.compile(r"`((?:docs|web|scripts)/[A-Za-z0-9_./-]+\.(?:md|html|py|sh|ya?ml))`")
 
+# CONTRIBUTING.md opens by declaring itself the single statement of the rules.
+# A second document that restates who may merge, push, release or tag does not
+# stay a copy: the plan carried "未经维护者点头不合并、不发 PR、不 push" for
+# several phases after CONTRIBUTING had granted exactly those three, and both
+# sentences read as true. Restating is what drifts, so any other document that
+# speaks about permission for those actions has to point here instead.
+GOVERNED = re.compile(
+    r"合并|合入 ?`?main|推送|push\b|pull request|发 ?PR|打标签|发布 ?v?\d|发布新版"
+    r"|一次发布|release\b|\btag\b")
+PERMISSION = re.compile(
+    r"点头|授权|不许|不得|未经|自行"
+    r"|without asking|approval|permission|may not|must not")
+AUTHORITY = "What may happen without asking"
+BULLET = re.compile(r"^\s*(?:[-*+]|\d+\.)\s")
+
 failures: list[str] = []
 
 
@@ -283,6 +298,53 @@ def check_schema_matches_migration() -> None:
                         "which migrations/00-latest.sql does not create" % (kind, name))
 
 
+def list_items(text: str) -> list[str]:
+    """Split into list items, each carrying its own continuation lines."""
+    items: list[str] = []
+    current: list[str] = []
+    for line in text.split("\n"):
+        if BULLET.match(line) or not line.strip():
+            if current:
+                items.append("\n".join(current))
+            current = [line] if line.strip() else []
+        else:
+            current.append(line)
+    if current:
+        items.append("\n".join(current))
+    return items
+
+
+def check_rules_are_stated_once(documents: list[Path]) -> None:
+    contributing = ROOT / "CONTRIBUTING.md"
+    if not contributing.exists():
+        failures.append("CONTRIBUTING.md is missing, and it holds the rules")
+        return
+    if AUTHORITY not in contributing.read_text(encoding="utf-8"):
+        failures.append("CONTRIBUTING: the 「%s」 section is gone, so nothing "
+                        "defines what may be merged without asking" % AUTHORITY)
+    scanned = 0
+    for path in documents:
+        if path == contributing or not path.exists():
+            continue
+        scanned += 1
+        # Scoped to one list item, not the paragraph around it. The first
+        # version exempted a whole block whenever any line in it cited
+        # CONTRIBUTING, so the contradicting bullet went unreported once a
+        # sibling bullet carried the citation — driving it red is what showed
+        # that, since the probe came back green.
+        for item in list_items(path.read_text(encoding="utf-8")):
+            if "CONTRIBUTING" in item:
+                continue
+            for line in item.split("\n"):
+                if PERMISSION.search(line) and GOVERNED.search(line):
+                    failures.append(
+                        "%s: states who may merge, push, release or tag without "
+                        "pointing at CONTRIBUTING.md: %s"
+                        % (path.relative_to(ROOT), line.strip()[:70]))
+    if scanned == 0:
+        failures.append("check_rules_are_stated_once read no documents at all")
+
+
 def main() -> int:
     phases = 0
     if not PLAN.exists():
@@ -313,6 +375,7 @@ def main() -> int:
         if str(path.relative_to(ROOT)) not in FORWARD_LOOKING:
             check_links(path, text)
 
+    check_rules_are_stated_once(documents)
     check_screen_coverage()
 
     if failures:
