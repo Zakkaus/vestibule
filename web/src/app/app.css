@@ -1457,6 +1457,7 @@ body {
 
 [data-feeds-page],
 [data-feeds-content] {
+[data-stats-page] {
   display: grid;
   gap: var(--sp-5);
 }
@@ -1502,6 +1503,27 @@ body {
 [data-feeds-state-card] h2,
 [data-feeds-readonly] h2,
 [data-feeds-section-heading] h2 {
+[data-stats-state-card] {
+  display: grid;
+  justify-items: start;
+  gap: var(--sp-3);
+  inline-size: min(100%, 42rem);
+  min-block-size: var(--sp-9);
+}
+
+[data-stats-state-card] h2,
+[data-stats-state-card] p,
+[data-stats-section-heading] h2,
+[data-stats-section-heading] p,
+[data-stats-results-heading] p,
+[data-stats-timezone-note],
+[data-stats-empty],
+[data-stats-zero-state] {
+  margin: 0;
+}
+
+[data-stats-state-card] h2,
+[data-stats-section-heading] h2 {
   font-size: 1.0625rem;
   font-weight: 600;
   line-height: 1.4;
@@ -1510,6 +1532,27 @@ body {
 [data-feed-item] h3,
 [data-overlay-item] h3 {
   font-size: 1rem;
+[data-stats-state-card] p,
+[data-stats-section-heading] p,
+[data-stats-results-heading] p,
+[data-stats-timezone-note],
+[data-stats-empty] {
+  color: var(--muted-foreground);
+}
+
+[data-stats-filters] {
+  display: grid;
+  inline-size: min(100%, 64rem);
+  gap: var(--sp-3);
+}
+
+[data-stats-filters] fieldset {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+[data-stats-filters] legend {
+  font-size: 1.0625rem;
   font-weight: 600;
   line-height: 1.4;
 }
@@ -1566,6 +1609,17 @@ body {
 
 [data-feed-value] dt,
 [data-overlay-value] dt {
+[data-stats-filter-fields] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.5fr) auto;
+  align-items: end;
+  gap: var(--sp-3);
+}
+
+[data-stats-field] {
+  display: grid;
+  min-inline-size: 0;
+  gap: var(--sp-1);
   color: var(--muted-foreground);
   font-size: 0.8125rem;
 }
@@ -1580,6 +1634,126 @@ body {
 
 [data-news-url-value] {
   min-inline-size: 0;
+[data-stats-field] [data-slot="input"] {
+  inline-size: 100%;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-stats-timezone-note] {
+  font-size: 0.8125rem;
+}
+
+[data-stats-results] {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+[data-stats-results-heading],
+[data-stats-summary],
+[data-stats-chart-section],
+[data-stats-table-section] {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+[data-stats-section-heading] {
+  display: grid;
+  gap: var(--sp-1);
+}
+
+[data-stats-kpis] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: var(--sp-3);
+}
+
+[data-stats-kpi] {
+  display: grid;
+  min-inline-size: 0;
+  gap: var(--sp-1);
+  margin: 0;
+}
+
+[data-stats-kpi] dt {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+[data-stats-kpi] dd {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+[data-stats-chart-section],
+[data-stats-table-section] {
+  gap: var(--sp-4);
+}
+
+[data-stats-chart-scroll],
+[data-stats-table-scroll] {
+  min-inline-size: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+[data-stats-chart-svg] {
+  display: block;
+  min-inline-size: 40rem;
+  inline-size: 100%;
+  block-size: auto;
+  font-family: var(--font-sans);
+}
+
+[data-stats-chart-label] {
+  fill: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+[data-stats-chart-legend] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+[data-stats-chart-series] {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+[data-stats-chart-series]::before {
+  content: "";
+  inline-size: var(--sp-2);
+  block-size: var(--sp-2);
+  border-radius: var(--radius-full);
+  background: var(--fill-info);
+}
+
+[data-stats-chart-series="pass-rate"]::before {
+  background: var(--fill-ok);
+}
+
+[data-stats-trend-table] {
+  min-inline-size: 48rem;
+}
+
+[data-stats-interceptions-table] {
+  min-inline-size: 28rem;
+}
+
+[data-stats-number] {
+  text-align: end;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-stats-kind] {
   overflow-wrap: anywhere;
 }
 
@@ -1593,5 +1767,12 @@ body {
   [data-feed-value] dd,
   [data-overlay-value] dd {
     text-align: start;
+  [data-stats-filter-fields] {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  [data-stats-filter-fields] [data-slot="button"] {
+    inline-size: 100%;
   }
 }
