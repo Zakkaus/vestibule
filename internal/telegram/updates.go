@@ -156,6 +156,7 @@ type HandlerSet struct {
 	Panel        PanelHandlers
 	Moderation   ModerationHandlers
 	Lookup       LookupHandlers
+	Console      th.Handler
 }
 
 type handlerRoute struct {
@@ -196,7 +197,9 @@ func (u *Updates) Register(handler *th.BotHandler) {
 	}))
 	handler.Use(u.handlers.Moderation.FilterChannelSenders)
 	for _, route := range u.handlerRoutes() {
-		handler.Handle(route.handler, route.predicates...)
+		if route.handler != nil {
+			handler.Handle(route.handler, route.predicates...)
+		}
 	}
 }
 
@@ -212,6 +215,7 @@ func (u *Updates) handlerRoutes() []handlerRoute {
 		{name: "panel.chat_shared", handler: p.ChatShared, predicates: []th.Predicate{p.ChatSharedDM}},
 		{name: "panel.input", handler: p.Input, predicates: []th.Predicate{p.InputDM}},
 		{name: "verify.kernel_answer", handler: v.KernelAnswer, predicates: []th.Predicate{v.KernelAnswerDM}},
+		{name: "console.open", handler: u.handlers.Console, predicates: []th.Predicate{th.And(th.CommandEqual("console"), privateMessage)}},
 		{name: "bot.private_dm", handler: u.dm.onPrivateDM, predicates: []th.Predicate{privateNonStart}},
 		{name: "moderate.sb", handler: m.Purge, predicates: []th.Predicate{th.CommandEqual("sb")}},
 		{name: "moderate.ban", handler: m.Ban, predicates: []th.Predicate{th.CommandEqual("ban")}},

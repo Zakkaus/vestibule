@@ -8,12 +8,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Zakkaus/vestibule/internal/console/api"
+	"github.com/Zakkaus/vestibule/internal/console/auth"
 	"github.com/Zakkaus/vestibule/internal/database"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/lookup"
 	"github.com/Zakkaus/vestibule/internal/moderate"
 	"github.com/Zakkaus/vestibule/internal/panel"
 	"github.com/Zakkaus/vestibule/internal/settings"
+	"github.com/Zakkaus/vestibule/internal/status"
 	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
@@ -29,6 +32,8 @@ type Options struct {
 	TelegramAPIURL string
 	GitHubToken    string
 	NotifySocket   string
+	ConsoleAddr    string
+	ConsoleURL     string
 	Version        string
 }
 
@@ -44,6 +49,8 @@ type services struct {
 	moderation          *moderate.Service
 	updates             *telegram.Updates
 	registration        *telegram.Registration
+	consoleAuth         *auth.Manager
+	health              *status.Health
 	identity            verification.Identity
 }
 
@@ -90,6 +97,12 @@ func Run(ctx context.Context, options Options) error {
 	if err := polling.Start(runtimeCtx, runtime); err != nil {
 		return fmt.Errorf("start long polling: %w", err)
 	}
+	console := api.New(api.Config{Authenticator: runtime.consoleAuth, Verification: runtime.verification, Health: runtime.health})
+	runtime.health.SetTelegramReady(true)
+	if err := console.Start(consoleAddress(options.ConsoleAddr)); err != nil {
+		runtime.health.SetTelegramReady(false)
+		return fmt.Errorf("start console HTTP: %w", err)
+	}
 	log.Printf("verify bot @%s (%s) started — groups=%d", runtime.identity.Username, options.Version, len(runtime.settings.ChatIDs()))
 	close(startupComplete)
 	return runRuntimeLifecycle(runtimeCtx, runtimeLifecycle{
@@ -102,6 +115,8 @@ func Run(ctx context.Context, options Options) error {
 		flushVerification: runtime.verification.Shutdown,
 		feedDone:          feedDone,
 		notifierDone:      notifierDone,
+		stopAdmission:     console.StopAdmission,
+		shutdownHTTP:      console.Shutdown,
 		shutdownDeadline:  shutdownDeadline,
 	})
 }
@@ -113,6 +128,9 @@ func newServices(ctx context.Context, options Options, progress chan<- struct{})
 	if err != nil {
 		return nil, fmt.Errorf("database: %w", err)
 	}
+	health := status.NewHealth(func(checkCtx context.Context) error {
+		return db.RawDB.PingContext(checkCtx)
+	})
 	cfg, settings, err := loadRuntimeState(
 		options.ConfigPath,
 		options.StateDirectory,
@@ -122,12 +140,18 @@ func newServices(ctx context.Context, options Options, progress chan<- struct{})
 		_ = db.Close()
 		return nil, err
 	}
+	health.SetConfigReady(true)
 	bot, err := newBot(options, progress)
 	if err != nil {
 		_ = db.Close()
 		return nil, err
 	}
 	connector := telegram.NewConnector(bot)
+	consoleAuth, consoleHandler, err := newConsoleAuthentication(options, settings, connector, bot)
+	if err != nil {
+		_ = db.Close()
+		return nil, err
+	}
 	lookups := lookup.New(settings, connector, cfg, options.GitHubToken)
 	logRuntimeOptions(options)
 	alertPersistenceProblem(ctx, bot, cfg, settings)
@@ -166,13 +190,14 @@ func newServices(ctx context.Context, options Options, progress chan<- struct{})
 		settings, connector, cfg, &i18n.Messages,
 		verification, moderation, lookups, options.Version, startedAt,
 	)
-	updates := telegram.NewUpdates(cfg, settings, connector, telegramHandlers(verification, verificationGateway, administration, moderation, lookups))
+	updates := telegram.NewUpdates(cfg, settings, connector,
+		telegramHandlers(verification, verificationGateway, administration, moderation, lookups, consoleHandler))
 	registration := newRegistration(ctx, bot, cfg, settings, identity, moderation, verification, updates)
 	return &services{
 		database: db,
 		cfg:      cfg, settings: settings, bot: bot, heartbeatBot: heartbeatBot,
 		lookups: lookups, verification: verification, verificationGateway: verificationGateway, moderation: moderation,
-		updates: updates, registration: registration, identity: identity,
+		updates: updates, registration: registration, consoleAuth: consoleAuth, health: health, identity: identity,
 	}, nil
 }
 

@@ -347,6 +347,7 @@ type PendingRecord struct {
 	CorrectIdx         int      `json:"correct_idx"`
 	Nonce              string   `json:"nonce"`
 	Name               string   `json:"name,omitempty"`
+	CreatedAt          int64    `json:"created_at,omitempty"`
 	Deadline           int64    `json:"deadline"`
 	Epoch              uint64   `json:"epoch,omitempty"`
 	DeferredSince      int64    `json:"deferred_since,omitempty"`

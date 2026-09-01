@@ -6,6 +6,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/panel"
 	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/verification"
+	th "github.com/mymmrac/telego/telegohandler"
 )
 
 func telegramHandlers(
@@ -14,6 +15,7 @@ func telegramHandlers(
 	administration *panel.Panel,
 	moderation *moderate.Service,
 	lookups *lookup.Service,
+	console th.Handler,
 ) telegram.HandlerSet {
 	return telegram.HandlerSet{
 		Verification: telegram.NewVerificationHandlers(verification, verificationGateway),
@@ -52,5 +54,6 @@ func telegramHandlers(
 			CVE:      lookups.OnCVE,
 			Repology: lookups.OnRepology,
 		},
+		Console: console,
 	}
 }

@@ -353,7 +353,7 @@ func newDispatchFixture(t *testing.T, requiredChannel int64) *dispatchFixture {
 	administration := panel.New(
 		settings, connector, cfg, &i18n.Messages, verification, moderation, lookups, "test", time.Now(),
 	)
-	application := telegram.NewUpdates(cfg, settings, connector, telegramHandlers(verification, verificationGateway, administration, moderation, lookups))
+	application := telegram.NewUpdates(cfg, settings, connector, telegramHandlers(verification, verificationGateway, administration, moderation, lookups, nil))
 	return &dispatchFixture{
 		groupID:             groupID,
 		requiredChannel:     requiredChannel,

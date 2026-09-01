@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"sync"
@@ -29,6 +30,35 @@ func TestStreamEndedUnexpectedly(t *testing.T) {
 	}
 	if streamEndedUnexpectedly(context.Canceled) {
 		t.Error("a cancelled ctx is a graceful shutdown => no restart")
+	}
+}
+
+func TestRuntimeLifecycleStopsHTTPAdmissionBeforePolling(t *testing.T) {
+	root, cancel := context.WithCancel(context.Background())
+	cancel()
+	handlerDone := make(chan error)
+	var sequence []string
+	err := runRuntimeLifecycle(root, runtimeLifecycle{
+		handlerDone: handlerDone,
+		stopAdmission: func() error {
+			sequence = append(sequence, "http-admission")
+			return nil
+		},
+		stopHandlers: func(context.Context) error {
+			sequence = append(sequence, "polling")
+			close(handlerDone)
+			return nil
+		},
+		shutdownHTTP: func(context.Context) error {
+			sequence = append(sequence, "http-drain")
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"http-admission", "polling", "http-drain"}; !reflect.DeepEqual(sequence, want) {
+		t.Fatalf("shutdown sequence = %v, want %v", sequence, want)
 	}
 }
 

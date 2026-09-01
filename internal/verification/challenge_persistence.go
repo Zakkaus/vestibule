@@ -3,12 +3,15 @@ package verification
 import "log"
 
 func pendingRecord(key pkey, p *pending) PendingRecord {
-	var deferredSince, failedAt int64
+	var deferredSince, failedAt, createdAt int64
 	if !p.deferredSince.IsZero() {
 		deferredSince = p.deferredSince.Unix()
 	}
 	if !p.failedAt.IsZero() {
 		failedAt = p.failedAt.Unix()
+	}
+	if !p.createdAt.IsZero() {
+		createdAt = p.createdAt.Unix()
 	}
 	return PendingRecord{
 		UserID: key.uid, GroupID: key.gid,
@@ -19,7 +22,7 @@ func pendingRecord(key pkey, p *pending) PendingRecord {
 		Tries: p.tries, Hinted: p.hinted, SampleBounced: p.sampleBounced,
 		NoLinuxReminded: p.noLinuxReminded, OSClarified: p.osClarified,
 		QText: p.qText, QOpts: append([]string(nil), p.qOpts...), CorrectIdx: p.correctIdx, Nonce: p.nonce, Name: p.name,
-		Deadline: p.deadline.Unix(), Epoch: p.epoch, DeferredSince: deferredSince, DeferralCapReached: p.deferralCapReached,
+		CreatedAt: createdAt, Deadline: p.deadline.Unix(), Epoch: p.epoch, DeferredSince: deferredSince, DeferralCapReached: p.deferralCapReached,
 		SettleFailures: p.settleFailures, SettlePendingSaid: p.settlePendingSaid, FailedAt: failedAt,
 		Gate: p.gate, Invited: p.invited, Held: p.held, HoldUntil: p.holdUntil, Passing: p.passing,
 		ChannelUnreadable: p.channelUnreadable,
