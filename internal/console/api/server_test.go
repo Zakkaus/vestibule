@@ -95,6 +95,13 @@ type apiTestQueueService struct {
 	settleErr       error
 	settlementCalls int
 	telegramActions int
+	auditEntries    []verification.ConsoleAuditEntry
+	auditEntry      verification.ConsoleAuditEntry
+	auditErr        error
+	undoErr         error
+	auditCalls      int
+	undoCalls       int
+	lastUndo        verification.ConsoleAuditUndo
 }
 
 func (s *apiTestQueueService) ConsoleGroups() []int64 {
@@ -108,6 +115,24 @@ func (s *apiTestQueueService) ConsoleQueue(context.Context, int64) ([]verificati
 func (s *apiTestQueueService) SettleConsole(context.Context, verification.ConsoleSettlement) (verification.ConsoleQueueEntry, error) {
 	s.settlementCalls++
 	return s.settledEntry, s.settleErr
+}
+
+func (s *apiTestQueueService) ConsoleAudit(
+	context.Context,
+	int64,
+	int64,
+) ([]verification.ConsoleAuditEntry, error) {
+	s.auditCalls++
+	return append([]verification.ConsoleAuditEntry(nil), s.auditEntries...), s.auditErr
+}
+
+func (s *apiTestQueueService) UndoConsoleAudit(
+	_ context.Context,
+	undo verification.ConsoleAuditUndo,
+) (verification.ConsoleAuditEntry, error) {
+	s.undoCalls++
+	s.lastUndo = undo
+	return s.auditEntry, s.undoErr
 }
 
 func TestPostSessionRejectsReplayedInitData(t *testing.T) {
@@ -380,7 +405,7 @@ func TestHealthKeepsLivenessWhenDatabaseFails(t *testing.T) {
 	t.Logf("database unavailable -> /livez=%d /readyz=%d", live.Code, ready.Code)
 }
 
-func apiTestServer(t *testing.T, checker auth.AdminChecker, queue QueueService, health *status.Health) (*Server, []*http.Cookie, string) {
+func apiTestServer(t *testing.T, checker auth.AdminChecker, queue ConsoleService, health *status.Health) (*Server, []*http.Cookie, string) {
 	t.Helper()
 	now := time.Unix(1_800_000_000, 0)
 	manager, err := auth.New(auth.Config{BotToken: apiTestToken, Now: func() time.Time { return now }, AdminChecker: checker})

@@ -1,5 +1,6 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
+import { AuditScreen } from "../features/audit";
 import { EntryScreen } from "../features/entry";
 import { GroupListScreen } from "../features/groups";
 import { QueueScreen } from "../features/queue";
@@ -27,6 +28,11 @@ const router = createBrowserRouter([
       {
         path: "queue",
         element: <QueueScreen />,
+        handle: consoleHandle
+      },
+      {
+        path: "audit",
+        element: <AuditScreen />,
         handle: consoleHandle
       },
       {

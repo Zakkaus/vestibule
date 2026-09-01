@@ -2,13 +2,17 @@
 """Hold the seams between phases that the frontend is able to cross early.
 
 A screen built against fixtures can grow a control for an endpoint that belongs
-to a later phase. It happened once: the queue screen carries a 撤销 button on
-every banned row, and the endpoints it would need — GET .../audit and
-POST .../audit/{aid}/undo — belong to the audit screen in phase seven. An agent
-sent to wire the frontend stopped and reported it, which cost a round.
+to a later phase. It happened once: the queue screen carried a 撤销 button on
+every banned row while GET .../audit and POST .../audit/{aid}/undo did not
+exist. An agent sent to wire the frontend stopped and reported it, which cost a
+round.
 
-Nothing in web/ names those endpoints today. This freezes that while it is true,
-so the next slice cannot invent them instead of stopping.
+Until the audit screen existed, nothing under web/ was allowed to name those
+endpoints. It exists now, so that rule has done its work and would only reject
+the screen it was protecting. What survives it is the reason the button was
+wrong in the first place: the design language gives the waiting queue 放行、
+拒绝、封禁 and gives 撤销 to the audit screen, which knows who placed a ban.
+The queue does not, so the queue may not reach for it.
 """
 import sys
 from pathlib import Path
@@ -17,10 +21,11 @@ ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "web"
 SOURCE_SUFFIXES = {".ts", ".tsx"}
 
-# The audit screen is phase seven's. Until its own feature directory exists,
-# no part of the console may reach for the endpoints it owns.
-LATER_PHASE_ENDPOINT = "/audit"
+AUDIT_FEATURE = WEB / "src" / "features" / "audit"
+AUDIT_ENDPOINT = "/audit"
 OWNING_FEATURE = "features/audit"
+QUEUE_FEATURE = "features/queue"
+QUEUE_FORBIDDEN = (AUDIT_ENDPOINT, "revoke")
 
 failures: list[str] = []
 
@@ -38,23 +43,45 @@ def sources() -> list[Path]:
     return found
 
 
-def main() -> int:
-    files = sources()
+def before_the_screen_exists(files: list[Path]) -> None:
     for path in files:
         if OWNING_FEATURE in path.as_posix():
             continue
-        text = path.read_text(encoding="utf-8")
-        if LATER_PHASE_ENDPOINT in text:
+        if AUDIT_ENDPOINT in path.read_text(encoding="utf-8"):
             failures.append(
                 "%s names %s, which belongs to the audit screen in phase seven; "
                 "stop and say so rather than inventing the endpoint"
-                % (path.relative_to(ROOT), LATER_PHASE_ENDPOINT))
+                % (path.relative_to(ROOT), AUDIT_ENDPOINT))
+
+
+def after_the_screen_exists(files: list[Path]) -> None:
+    queue = [path for path in files if QUEUE_FEATURE in path.as_posix()]
+    if not queue:
+        failures.append("no file under web/src/features/queue — this check would "
+                        "pass on a tree with no queue screen at all")
+        return
+    for path in queue:
+        text = path.read_text(encoding="utf-8")
+        for forbidden in QUEUE_FORBIDDEN:
+            if forbidden in text:
+                failures.append(
+                    "%s names %s; 撤销 belongs to the audit screen, which knows "
+                    "who placed the ban" % (path.relative_to(ROOT), forbidden))
+
+
+def main() -> int:
+    files = sources()
+    if AUDIT_FEATURE.is_dir():
+        after_the_screen_exists(files)
+        state = "the audit screen owns 撤销; the queue does not reach for it"
+    else:
+        before_the_screen_exists(files)
+        state = "none reaches for %s" % AUDIT_ENDPOINT
     if failures:
         for failure in failures:
             print("FAIL check-phase-seams: " + failure, file=sys.stderr)
         return 1
-    print("check-phase-seams: passed; %d sources, none reaches for %s"
-          % (len(files), LATER_PHASE_ENDPOINT))
+    print("check-phase-seams: passed; %d sources, %s" % (len(files), state))
     return 0
 
 

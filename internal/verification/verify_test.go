@@ -535,6 +535,7 @@ type fakeVerifyBot struct {
 	muteErr           error
 	unmuteErr         error
 	unbanned          [][2]int64
+	unbanOnlyIfBanned []bool
 	unmuted           [][2]int64
 	muted             []muteCall
 	deletes           int
@@ -680,9 +681,10 @@ func (b *fakeVerifyBot) Ban(_ context.Context, _, _ int64, _ int, _ bool) error 
 	return testGatewayError(b.banErr)
 }
 
-func (b *fakeVerifyBot) Unban(_ context.Context, chatID, userID int64, _ bool) error {
+func (b *fakeVerifyBot) Unban(_ context.Context, chatID, userID int64, onlyIfBanned bool) error {
 	b.unbans++
 	b.unbanned = append(b.unbanned, [2]int64{chatID, userID})
+	b.unbanOnlyIfBanned = append(b.unbanOnlyIfBanned, onlyIfBanned)
 	return testGatewayError(b.unbanErr)
 }
 

@@ -25,24 +25,26 @@ const (
 	healthProbeTimeout = 2 * time.Second
 )
 
-// QueueService is the verification use case required by the HTTP adapter.
-type QueueService interface {
+// ConsoleService is the verification use case required by the HTTP adapter.
+type ConsoleService interface {
 	ConsoleGroups() []int64
 	ConsoleQueue(context.Context, int64) ([]verification.ConsoleQueueEntry, error)
 	SettleConsole(context.Context, verification.ConsoleSettlement) (verification.ConsoleQueueEntry, error)
+	ConsoleAudit(context.Context, int64, int64) ([]verification.ConsoleAuditEntry, error)
+	UndoConsoleAudit(context.Context, verification.ConsoleAuditUndo) (verification.ConsoleAuditEntry, error)
 }
 
 // Config injects policy services into the HTTP adapter. The adapter owns no database access.
 type Config struct {
 	Authenticator *auth.Manager
-	Verification  QueueService
+	Verification  ConsoleService
 	Health        *status.Health
 }
 
 // Server owns listener admission and HTTP handler draining separately for ordered shutdown.
 type Server struct {
 	authenticator *auth.Manager
-	verification  QueueService
+	verification  ConsoleService
 	health        *status.Health
 
 	mu         sync.Mutex
@@ -238,7 +240,11 @@ func (s *Server) chats(writer http.ResponseWriter, request *http.Request) {
 
 func (s *Server) chatRoute(writer http.ResponseWriter, request *http.Request) {
 	parts := strings.Split(strings.TrimPrefix(request.URL.Path, "/api/chats/"), "/")
-	if len(parts) < 2 || parts[0] == "" || parts[1] != "queue" || (len(parts) != 2 && len(parts) != 3) {
+	if len(parts) < 2 {
+		writeError(writer, http.StatusNotFound, "not_found")
+		return
+	}
+	if parts[0] == "" || parts[1] == "" {
 		writeError(writer, http.StatusNotFound, "not_found")
 		return
 	}
@@ -247,13 +253,54 @@ func (s *Server) chatRoute(writer http.ResponseWriter, request *http.Request) {
 		writeError(writer, http.StatusBadRequest, "invalid_chat_id")
 		return
 	}
-	if len(parts) == 2 && request.Method == http.MethodGet {
-		s.queue(writer, request, chatID)
-		return
+	switch parts[1] {
+	case "queue":
+		s.queueRoute(writer, request, chatID, parts[2:])
+	case "audit":
+		s.auditRoute(writer, request, chatID, parts[2:])
+	default:
+		writeError(writer, http.StatusNotFound, "not_found")
 	}
-	if len(parts) == 3 && request.Method == http.MethodPost && parts[2] != "" {
-		s.settle(writer, request, chatID, parts[2])
-		return
+}
+
+func (s *Server) queueRoute(
+	writer http.ResponseWriter,
+	request *http.Request,
+	chatID int64,
+	rest []string,
+) {
+	switch request.Method {
+	case http.MethodGet:
+		if len(rest) == 0 {
+			s.queue(writer, request, chatID)
+			return
+		}
+	case http.MethodPost:
+		if len(rest) == 1 && rest[0] != "" {
+			s.settle(writer, request, chatID, rest[0])
+			return
+		}
+	}
+	writeError(writer, http.StatusNotFound, "not_found")
+}
+
+func (s *Server) auditRoute(
+	writer http.ResponseWriter,
+	request *http.Request,
+	chatID int64,
+	rest []string,
+) {
+	switch request.Method {
+	case http.MethodGet:
+		if len(rest) == 0 {
+			s.audit(writer, request, chatID)
+			return
+		}
+	case http.MethodPost:
+		if len(rest) == 2 && rest[0] != "" && rest[1] == "undo" {
+			s.undoAudit(writer, request, chatID, rest[0])
+			return
+		}
 	}
 	writeError(writer, http.StatusNotFound, "not_found")
 }

@@ -252,5 +252,75 @@
       "title": "介面",
       "description": "佈景主題與語言會儲存在目前裝置上，不會變更群組設定。"
     }
+  },
+  "audit": {
+    "navigation": "操作記錄",
+    "title": "操作記錄",
+    "tableLabel": "驗證判定歷史",
+    "columns": {
+      "user": "使用者",
+      "group": "群組",
+      "result": "判定",
+      "reason": "原因",
+      "actor": "操作人員",
+      "time": "判定時間",
+      "actions": "操作"
+    },
+    "actor": {
+      "automatic": "系統"
+    },
+    "loading": {
+      "title": "正在載入操作記錄",
+      "description": "正在讀取已結算的驗證判定…"
+    },
+    "groupRequired": {
+      "title": "請先選擇群組",
+      "description": "選擇已獲授權的群組後，才能查看其操作記錄。",
+      "select": "選擇群組"
+    },
+    "noGroups": {
+      "title": "此帳號尚未取得任何群組授權",
+      "description": "操作記錄只會顯示已獲授權的群組。"
+    },
+    "unavailable": {
+      "title": "無法讀取操作記錄",
+      "retry": "重試"
+    },
+    "actions": {
+      "undo": "撤銷封鎖",
+      "undoFor": "撤銷對 {{user}} 的封鎖",
+      "undoing": "正在撤銷…",
+      "undoingFor": "正在撤銷對 {{user}} 的封鎖"
+    },
+    "undoState": {
+      "pending": "等待撤銷",
+      "completed": "已撤銷",
+      "failed": "撤銷失敗"
+    },
+    "feedback": {
+      "undoSuccess": "已撤銷對 {{user}} 的封鎖。原判定仍保留在操作記錄中。",
+      "undoPending": "已提交對 {{user}} 的封鎖撤銷，系統將繼續重試。",
+      "undoFailure": "無法撤銷對 {{user}} 的封鎖。原判定仍保留在操作記錄中。"
+    },
+    "errors": {
+      "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
+      "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
+      "auditConflict": "提交撤銷前，記錄已經變更。封鎖沒有改變。",
+      "auditNotFound": "此操作記錄已不存在。",
+      "auditNotUndoable": "目前帳號不能撤銷這項封鎖。",
+      "auditUnavailable": "暫時無法讀取操作記錄。請重試。",
+      "accessDenied": "你已不再擁有此群組的管理權限。",
+      "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
+      "chatNotFound": "此群組已無法在控制台中管理。",
+      "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
+      "invalidAudit": "此操作記錄不能撤銷。",
+      "network": "連線已中斷。重新整理操作記錄後，再決定是否重試。",
+      "loadUnavailable": "操作記錄暫時無法使用。",
+      "undoUnavailable": "暫時無法撤銷這項封鎖。請重試。"
+    },
+    "empty": {
+      "title": "還沒有已結算的判定",
+      "description": "驗證判定結算後會顯示在這裡，並保留原始歷史。"
+    }
   }
 }

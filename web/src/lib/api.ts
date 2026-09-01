@@ -27,6 +27,23 @@ export interface ApiTransport {
   request<T>(path: string, options: ApiRequestOptions<T>): Promise<ApiResult<T>>;
 }
 
+export function objectFromPayload(
+  value: unknown
+): Readonly<Record<string, unknown>> | undefined {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Readonly<Record<string, unknown>>)
+    : undefined;
+}
+
+export function nonEmptyStringFromPayload(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+export function timestampFromPayload(value: unknown): string | undefined {
+  const parsed = nonEmptyStringFromPayload(value);
+  return parsed !== undefined && Number.isFinite(Date.parse(parsed)) ? parsed : undefined;
+}
+
 export class ApiError extends Error {
   readonly kind = "api" as const;
 

@@ -16,6 +16,7 @@ const (
 	actionApprove     = "settle_approve"
 	actionDecline     = "settle_decline"
 	actionBan         = "settle_ban"
+	actionUndoBan     = "undo_ban"
 	actionDeleteGroup = "delete_group_message"
 )
 
@@ -23,6 +24,11 @@ type settlementActionPayload struct {
 	Record PendingRecord  `json:"record"`
 	State  ChallengeState `json:"state"`
 	Reason string         `json:"reason"`
+}
+
+type undoBanActionPayload struct {
+	ChatID int64 `json:"chat_id"`
+	UserID int64 `json:"user_id"`
 }
 
 type deleteGroupActionPayload struct {
@@ -109,6 +115,8 @@ func (v *Service) executePendingAction(ctx context.Context, bot Gateway, owner s
 	switch action.Kind {
 	case actionApprove, actionDecline, actionBan:
 		v.executeSettlementAction(ctx, bot, owner, action)
+	case actionUndoBan:
+		v.executeUndoBanAction(ctx, bot, owner, action)
 	case actionDeleteGroup:
 		v.executeDeleteGroupAction(ctx, bot, owner, action)
 	default:
@@ -159,6 +167,24 @@ func (v *Service) installActionPending(payload settlementActionPayload, action P
 	p.actionAttempts = action.Attempts
 	v.markTerminalLocked(key, p)
 	return p
+}
+
+func (v *Service) executeUndoBanAction(ctx context.Context, bot Gateway, owner string, action PendingAction) {
+	var payload undoBanActionPayload
+	if err := json.Unmarshal([]byte(action.Payload), &payload); err != nil {
+		v.failPendingAction(action, owner, fmt.Errorf("decode ban undo action: %w", err))
+		return
+	}
+	gateway := v.gatewayFor(bot)
+	if payload.ChatID == 0 || payload.UserID <= 0 || gateway == nil {
+		v.failPendingAction(action, owner, fmt.Errorf("ban undo action has invalid target"))
+		return
+	}
+	if err := gateway.Unban(ctx, payload.ChatID, payload.UserID, true); err != nil {
+		v.retryOrFailPendingAction(action, owner, err)
+		return
+	}
+	v.completePendingAction(action, owner, nil)
 }
 
 func (v *Service) executeDeleteGroupAction(ctx context.Context, bot Gateway, owner string, action PendingAction) {
