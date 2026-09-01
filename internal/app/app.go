@@ -98,10 +98,11 @@ func Run(ctx context.Context, options Options) error {
 		return fmt.Errorf("start long polling: %w", err)
 	}
 	console := api.New(api.Config{
-		Authenticator: runtime.consoleAuth,
-		Verification:  runtime.verification,
-		Settings:      runtime.settings,
-		Health:        runtime.health,
+		Authenticator:   runtime.consoleAuth,
+		Verification:    runtime.verification,
+		Settings:        runtime.settings,
+		ProcessSettings: runtime.cfg,
+		Health:          runtime.health,
 	})
 	runtime.health.SetTelegramReady(true)
 	if err := console.Start(consoleAddress(options.ConsoleAddr)); err != nil {

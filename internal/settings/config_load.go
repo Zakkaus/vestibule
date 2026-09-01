@@ -75,6 +75,10 @@ func LoadConfig(path string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	sources, err := processSettingsSourcesFromConfig(data)
+	if err != nil {
+		return nil, fmt.Errorf("parse config: %w", err)
+	}
 	c := defaultConfig()
 	if err := json.Unmarshal(data, &c); err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)
@@ -90,6 +94,7 @@ func LoadConfig(path string) (*Config, error) {
 	if err := normalizeConfigFeeds(&c); err != nil {
 		return nil, err
 	}
+	c.processSettingsSources = sources
 	return &c, nil
 }
 
