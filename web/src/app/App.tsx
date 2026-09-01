@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { EntryScreen } from "../features/entry";
 import { GroupListScreen } from "../features/groups";
 import { QueueScreen } from "../features/queue";
+import { PreferencesScreen } from "../features/preferences";
 import { AppShell } from "./AppShell";
 
 const entryHandle = {
@@ -31,6 +32,11 @@ const router = createBrowserRouter([
       {
         path: "groups",
         element: <GroupListScreen />,
+        handle: consoleHandle
+      },
+      {
+        path: "preferences",
+        element: <PreferencesScreen />,
         handle: consoleHandle
       },
       {

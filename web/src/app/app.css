@@ -166,6 +166,30 @@ body {
   gap: var(--sp-5);
 }
 
+[data-preferences-page] {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+[data-preference-local] {
+  display: grid;
+  inline-size: min(100%, 42rem);
+  gap: var(--sp-4);
+}
+
+[data-preference-local] h2,
+[data-preference-local] p {
+  margin: 0;
+}
+
+[data-preference-local] p {
+  color: var(--muted-foreground);
+}
+
+[data-preference-local] [data-utility-controls] {
+  justify-content: start;
+}
+
 [data-page-heading] {
   display: grid;
   gap: var(--sp-2);
