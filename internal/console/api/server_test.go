@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -24,14 +25,67 @@ import (
 const apiTestToken = "123:api-test-token"
 
 type apiTestAdminChecker struct {
-	allowed bool
-	err     error
-	calls   int
+	mu              sync.Mutex
+	allowed         bool
+	err             error
+	cache           map[[2]int64]struct{}
+	cachedCalls     int
+	freshCalls      int
+	telegramQueries int
 }
 
-func (c *apiTestAdminChecker) FreshAdmin(context.Context, int64, int64) (bool, error) {
-	c.calls++
-	return c.allowed, c.err
+type apiTestAdminCounts struct {
+	cachedCalls     int
+	freshCalls      int
+	telegramQueries int
+}
+
+func (c *apiTestAdminChecker) CachedAdmin(_ context.Context, chatID, userID int64) (bool, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.cachedCalls++
+	key := [2]int64{chatID, userID}
+	if _, ok := c.cache[key]; ok {
+		return true, nil
+	}
+	return c.queryLocked(key)
+}
+
+func (c *apiTestAdminChecker) FreshAdmin(_ context.Context, chatID, userID int64) (bool, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.freshCalls++
+	return c.queryLocked([2]int64{chatID, userID})
+}
+
+func (c *apiTestAdminChecker) queryLocked(key [2]int64) (bool, error) {
+	c.telegramQueries++
+	if c.err != nil {
+		return false, c.err
+	}
+	if c.allowed {
+		if c.cache == nil {
+			c.cache = make(map[[2]int64]struct{})
+		}
+		c.cache[key] = struct{}{}
+	} else {
+		delete(c.cache, key)
+	}
+	return c.allowed, nil
+}
+
+func (c *apiTestAdminChecker) setAllowed(allowed bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.allowed = allowed
+}
+
+func (c *apiTestAdminChecker) counts() apiTestAdminCounts {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return apiTestAdminCounts{
+		cachedCalls: c.cachedCalls, freshCalls: c.freshCalls, telegramQueries: c.telegramQueries,
+	}
 }
 
 type apiTestQueueService struct {
@@ -111,6 +165,50 @@ func TestPostSettlementRejectsMembershipLookupFailure(t *testing.T) {
 			response.Code, decodeError(response), queue.settlementCalls)
 	}
 	t.Logf("getChatMember query failure -> %d; settlement calls=%d", response.Code, queue.settlementCalls)
+}
+
+func TestPostSettlementUsesFreshAdminAfterCachedRead(t *testing.T) {
+	checker := &apiTestAdminChecker{allowed: true}
+	queue := &apiTestQueueService{groups: []int64{-100}}
+	server, cookies, csrf := apiTestServer(t, checker, queue, nil)
+	read := getAuthenticatedPath(server, cookies, "/api/chats/-100/queue")
+	if read.Code != http.StatusOK {
+		t.Fatalf("read status = %d, want 200", read.Code)
+	}
+	checker.setAllowed(false)
+	write := postSettlement(server, cookies, csrf, -100, "-100:42:nonce")
+	counts := checker.counts()
+	if write.Code != http.StatusForbidden || decodeError(write) != "chat_access_denied" ||
+		counts.cachedCalls != 1 || counts.freshCalls != 1 || counts.telegramQueries != 2 ||
+		queue.settlementCalls != 0 {
+		t.Fatalf("write status=%d code=%s cached_reads=%d fresh_writes=%d Telegram_queries=%d settlement_calls=%d",
+			write.Code, decodeError(write), counts.cachedCalls, counts.freshCalls, counts.telegramQueries,
+			queue.settlementCalls)
+	}
+	t.Logf("write_status=%d code=%s cached_reads=%d fresh_writes=%d Telegram_queries=%d settlement_calls=%d",
+		write.Code, decodeError(write), counts.cachedCalls, counts.freshCalls, counts.telegramQueries,
+		queue.settlementCalls)
+}
+
+func TestChatsReusesPositiveAdminCache(t *testing.T) {
+	checker := &apiTestAdminChecker{allowed: true}
+	queue := &apiTestQueueService{groups: []int64{-100}}
+	server, cookies, _ := apiTestServer(t, checker, queue, nil)
+	first := getAuthenticatedPath(server, cookies, "/api/chats")
+	firstCounts := checker.counts()
+	second := getAuthenticatedPath(server, cookies, "/api/chats")
+	secondCounts := checker.counts()
+	if first.Code != http.StatusOK || second.Code != http.StatusOK || firstCounts.telegramQueries != 1 ||
+		secondCounts.telegramQueries != firstCounts.telegramQueries || secondCounts.cachedCalls != 2 ||
+		secondCounts.freshCalls != 0 {
+		t.Fatalf("statuses=%d,%d first_queries=%d second_query_delta=%d cached_calls=%d fresh_calls=%d",
+			first.Code, second.Code, firstCounts.telegramQueries,
+			secondCounts.telegramQueries-firstCounts.telegramQueries,
+			secondCounts.cachedCalls, secondCounts.freshCalls)
+	}
+	t.Logf("first_queries=%d second_query_delta=%d total_queries=%d",
+		firstCounts.telegramQueries, secondCounts.telegramQueries-firstCounts.telegramQueries,
+		secondCounts.telegramQueries)
 }
 
 func TestPostSettlementReturnsConflictWithoutTelegramAction(t *testing.T) {
@@ -196,6 +294,16 @@ func apiTestServer(t *testing.T, checker auth.AdminChecker, queue QueueService, 
 	cookies := httptest.NewRecorder()
 	manager.SetCookies(cookies, grant)
 	return New(Config{Authenticator: manager, Verification: queue, Health: health}), cookies.Result().Cookies(), grant.CSRFToken
+}
+
+func getAuthenticatedPath(server *Server, cookies []*http.Cookie, path string) *httptest.ResponseRecorder {
+	request := httptest.NewRequest(http.MethodGet, path, nil)
+	for _, cookie := range cookies {
+		request.AddCookie(cookie)
+	}
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, request)
+	return response
 }
 
 func postSettlement(server *Server, cookies []*http.Cookie, csrf string, chatID int64, challengeID string) *httptest.ResponseRecorder {

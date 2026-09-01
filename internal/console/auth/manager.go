@@ -12,10 +12,11 @@ import (
 )
 
 const (
-	sessionCookieName = "vestibule_console_session"
-	defaultSessionTTL = 8 * time.Hour
-	defaultLinkTTL    = 10 * time.Minute
-	defaultMaxEntries = 4096
+	sessionCookieName          = "vestibule_console_session"
+	defaultSessionTTL          = 8 * time.Hour
+	defaultLinkTTL             = 10 * time.Minute
+	defaultMaxEntries          = 4096
+	accessibleChatsConcurrency = 8
 )
 
 var (
@@ -60,8 +61,19 @@ type Grant struct {
 	CSRFToken string
 }
 
-// AdminChecker is the Telegram read required immediately before console data or mutation access.
+// AccessIntent makes the authorization freshness requirement explicit at each call site.
+type AccessIntent uint8
+
+const (
+	// WriteAccess always rechecks Telegram so a revoked administrator cannot mutate state.
+	WriteAccess AccessIntent = iota
+	// ReadAccess may reuse a recent positive Telegram result.
+	ReadAccess
+)
+
+// AdminChecker provides cached-positive reads and cache-bypassing writes.
 type AdminChecker interface {
+	CachedAdmin(context.Context, int64, int64) (bool, error)
 	FreshAdmin(context.Context, int64, int64) (bool, error)
 }
 
@@ -283,12 +295,21 @@ func (m *Manager) ValidateCSRF(request *http.Request, session Session) error {
 	return nil
 }
 
-// AuthorizeChat asks Telegram at the point of access rather than mirroring permission state locally.
-func (m *Manager) AuthorizeChat(ctx context.Context, session Session, chatID int64) error {
+// AuthorizeChat verifies the session principal with the freshness required by intent.
+func (m *Manager) AuthorizeChat(ctx context.Context, session Session, chatID int64, intent AccessIntent) error {
 	if m.adminChecker == nil || session.Principal.TelegramID <= 0 || chatID == 0 {
 		return ErrAccessUnavailable
 	}
-	allowed, err := m.adminChecker.FreshAdmin(ctx, chatID, session.Principal.TelegramID)
+	var allowed bool
+	var err error
+	switch intent {
+	case WriteAccess:
+		allowed, err = m.adminChecker.FreshAdmin(ctx, chatID, session.Principal.TelegramID)
+	case ReadAccess:
+		allowed, err = m.adminChecker.CachedAdmin(ctx, chatID, session.Principal.TelegramID)
+	default:
+		return ErrAccessUnavailable
+	}
 	if err != nil {
 		return ErrAccessUnavailable
 	}
@@ -298,11 +319,29 @@ func (m *Manager) AuthorizeChat(ctx context.Context, session Session, chatID int
 	return nil
 }
 
-// AccessibleChats filters configured groups through a fresh Telegram membership read per group.
+// AccessibleChats filters configured groups through bounded cached-positive membership reads.
 func (m *Manager) AccessibleChats(ctx context.Context, session Session, candidates []int64) []int64 {
+	permitted := make([]bool, len(candidates))
+	jobs := make(chan int)
+	workerCount := min(len(candidates), accessibleChatsConcurrency)
+	var workers sync.WaitGroup
+	workers.Add(workerCount)
+	for range workerCount {
+		go func() {
+			defer workers.Done()
+			for index := range jobs {
+				permitted[index] = m.AuthorizeChat(ctx, session, candidates[index], ReadAccess) == nil
+			}
+		}()
+	}
+	for index := range candidates {
+		jobs <- index
+	}
+	close(jobs)
+	workers.Wait()
 	allowed := make([]int64, 0, len(candidates))
-	for _, chatID := range candidates {
-		if m.AuthorizeChat(ctx, session, chatID) == nil {
+	for index, chatID := range candidates {
+		if permitted[index] {
 			allowed = append(allowed, chatID)
 		}
 	}

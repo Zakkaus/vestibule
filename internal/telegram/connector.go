@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	adminCacheTTL = 30 * time.Second
+	adminCacheTTL = time.Minute
 	adminCacheMax = 4096
 )
 

@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -8,6 +9,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -64,6 +66,102 @@ func TestManagerCapsAllCredentialLifetimesAtEightHours(t *testing.T) {
 			t.Fatalf("%s lifetime = %s, want %s", name, got, defaultSessionTTL)
 		}
 	}
+}
+
+type blockingAdminChecker struct {
+	mu          sync.Mutex
+	started     chan struct{}
+	release     <-chan struct{}
+	inFlight    int
+	maxInFlight int
+	cachedCalls int
+	freshCalls  int
+}
+
+func (c *blockingAdminChecker) CachedAdmin(context.Context, int64, int64) (bool, error) {
+	return c.check(true)
+}
+
+func (c *blockingAdminChecker) FreshAdmin(context.Context, int64, int64) (bool, error) {
+	return c.check(false)
+}
+
+func (c *blockingAdminChecker) check(cached bool) (bool, error) {
+	c.mu.Lock()
+	c.inFlight++
+	if c.inFlight > c.maxInFlight {
+		c.maxInFlight = c.inFlight
+	}
+	if cached {
+		c.cachedCalls++
+	} else {
+		c.freshCalls++
+	}
+	c.mu.Unlock()
+	c.started <- struct{}{}
+	<-c.release
+	c.mu.Lock()
+	c.inFlight--
+	c.mu.Unlock()
+	return true, nil
+}
+
+func (c *blockingAdminChecker) counts() (maxInFlight, cachedCalls, freshCalls int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.maxInFlight, c.cachedCalls, c.freshCalls
+}
+
+func TestAccessibleChatsBoundsConcurrentChecks(t *testing.T) {
+	const (
+		checkLimit     = 8
+		candidateCount = 64
+	)
+	release := make(chan struct{})
+	checker := &blockingAdminChecker{
+		started: make(chan struct{}, candidateCount),
+		release: release,
+	}
+	manager, err := New(Config{BotToken: "123:token", AdminChecker: checker})
+	if err != nil {
+		t.Fatal(err)
+	}
+	candidates := make([]int64, candidateCount)
+	for index := range candidates {
+		candidates[index] = -int64(index + 1)
+	}
+	done := make(chan []int64, 1)
+	go func() {
+		done <- manager.AccessibleChats(context.Background(), Session{
+			Principal: Principal{TelegramID: 42},
+		}, candidates)
+	}()
+	started := 0
+	for started < checkLimit {
+		select {
+		case <-checker.started:
+			started++
+		case <-time.After(250 * time.Millisecond):
+			close(release)
+			<-done
+			t.Fatalf("concurrent checks started = %d, want %d before release", started, checkLimit)
+		}
+	}
+	exceeded := false
+	select {
+	case <-checker.started:
+		exceeded = true
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(release)
+	allowed := <-done
+	maxInFlight, cachedCalls, freshCalls := checker.counts()
+	if exceeded || maxInFlight > checkLimit || len(allowed) != candidateCount ||
+		cachedCalls != candidateCount || freshCalls != 0 {
+		t.Fatalf("max_in_flight=%d limit=%d allowed=%d cached_calls=%d fresh_calls=%d",
+			maxInFlight, checkLimit, len(allowed), cachedCalls, freshCalls)
+	}
+	t.Logf("candidates=%d max_in_flight=%d limit=%d", candidateCount, maxInFlight, checkLimit)
 }
 
 func signedInitData(t *testing.T, botToken string, now time.Time, userID int64) string {
