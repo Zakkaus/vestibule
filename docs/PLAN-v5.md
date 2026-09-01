@@ -477,8 +477,8 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 **本阶段做哪几个端点。** 架构文档第 11 节的路由表有二十余条，
 那是整个控制台最终的样子，不是这一阶段的工作量。这一阶段做：
 
-- 两条认证路径:`POST /api/session` 与 `GET /enter/{token}`
-- 已经建好的三屏所需的:`GET /api/chats`、`GET /api/chats/{id}/queue`、
+- 两条认证路径：`POST /api/session` 与 `GET /enter/{token}`
+- 已经建好的三屏所需的：`GET /api/chats`、`GET /api/chats/{id}/queue`、
   `POST /api/chats/{id}/queue/{cid}`
 - `GET /livez` 与 `GET /readyz` —— 阶段九的验收「健康检查通过」等的就是它们，
   而它们属于这一层
