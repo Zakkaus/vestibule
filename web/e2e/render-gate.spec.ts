@@ -37,6 +37,17 @@ if (unsupportedThemes.length > 0 || missingThemes.length > 0) {
   );
 }
 
+// Every route added to the console adds six cells to this matrix, and each cell
+// is a navigation plus a layout measurement. A fixed per-test timeout therefore
+// stops being enough at some screen count rather than at some defect: six routes
+// timed out on CI while passing on a faster machine here. The budget comes from
+// the matrix instead, so the next five screens do not each rediscover this.
+const perCellBudgetMs = 4_000;
+
+function matrixTimeoutMs(): number {
+  return Math.max(30_000, matrixCells().length * perCellBudgetMs);
+}
+
 function matrixCells(): RenderCell[] {
   const cells: RenderCell[] = [];
 
@@ -149,6 +160,7 @@ function focusProblems(observation: FocusObservation): string[] {
 test("render gate rejects page overflow while allowing scoped horizontal scrollers", async ({
   page
 }) => {
+  test.setTimeout(matrixTimeoutMs());
   const widestLocale = await widestLocaleFor(page);
 
   for (const cell of matrixCells()) {
@@ -172,6 +184,7 @@ test("render gate rejects page overflow while allowing scoped horizontal scrolle
 });
 
 test("render gate rejects visible placeholders and unresolved i18n keys", async ({ page }) => {
+  test.setTimeout(matrixTimeoutMs());
   const widestLocale = await widestLocaleFor(page);
 
   for (const cell of matrixCells()) {
@@ -187,6 +200,7 @@ test("render gate rejects visible placeholders and unresolved i18n keys", async 
 test("render gate rejects transparent, inherited, or light-leaking theme surfaces", async ({
   page
 }) => {
+  test.setTimeout(matrixTimeoutMs());
   const widestLocale = await widestLocaleFor(page);
   const lightSurfaces: Record<string, ThemeSurface | undefined> = {};
 
