@@ -40,6 +40,7 @@ type Config struct {
 	Authenticator   *auth.Manager
 	Verification    ConsoleService
 	Settings        SettingsService
+	Rules           RulesService
 	ProcessSettings ProcessSettingsService
 	Health          *status.Health
 }
@@ -49,6 +50,7 @@ type Server struct {
 	authenticator   *auth.Manager
 	verification    ConsoleService
 	settings        SettingsService
+	rules           RulesService
 	processSettings ProcessSettingsService
 	health          *status.Health
 
@@ -62,6 +64,7 @@ func New(config Config) *Server {
 		authenticator:   config.Authenticator,
 		verification:    config.Verification,
 		settings:        config.Settings,
+		rules:           config.Rules,
 		processSettings: config.ProcessSettings,
 		health:          config.Health,
 	}
@@ -284,6 +287,8 @@ func (s *Server) chatRoute(writer http.ResponseWriter, request *http.Request) {
 		s.statsRoute(writer, request, chatID, parts[2:])
 	case "settings":
 		s.settingsRoute(writer, request, chatID, parts[2:])
+	case "rules":
+		s.rulesRoute(writer, request, chatID, parts[2:])
 	default:
 		writeError(writer, http.StatusNotFound, "not_found")
 	}

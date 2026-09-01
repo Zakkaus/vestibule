@@ -101,6 +101,7 @@ func Run(ctx context.Context, options Options) error {
 		Authenticator:   runtime.consoleAuth,
 		Verification:    runtime.verification,
 		Settings:        runtime.settings,
+		Rules:           database.NewRuleStore(runtime.database),
 		ProcessSettings: runtime.cfg,
 		Health:          runtime.health,
 	})
