@@ -395,5 +395,118 @@
       "title": "No settled decisions yet",
       "description": "Settled challenge decisions appear here without changing their original history."
     }
+  },
+  "verification": {
+    "navigation": "Verification methods",
+    "title": "Verification methods",
+    "description": "These settings affect only the current group. Saving checks the revision so another administrator's changes are not overwritten.",
+    "loading": {
+      "title": "Loading verification settings",
+      "description": "Reading the current settings for this group…"
+    },
+    "groupRequired": {
+      "title": "Select a group first",
+      "description": "Select an authorized group before changing its verification settings.",
+      "select": "Select group"
+    },
+    "noGroups": {
+      "title": "This account has not been authorized for any group",
+      "description": "Verification settings are available only for authorized groups."
+    },
+    "unavailable": {
+      "title": "Verification settings cannot be read",
+      "retry": "Try again"
+    },
+    "delivery": {
+      "title": "Delivery channel",
+      "description": "Choose where the challenge is sent.",
+      "label": "Challenge delivery",
+      "group": "Group only",
+      "dm": "Private message first",
+      "both": "Group and private message",
+      "groupDescription": "Post the challenge only in the guarded group.",
+      "dmDescription": "Try a private challenge first. Post in the group only after a definite rejection.",
+      "bothDescription": "Post in the group before attempting a private challenge."
+    },
+    "challenge": {
+      "title": "Challenge type",
+      "description": "Choose the verification strategy.",
+      "label": "Verification strategy",
+      "kernel": "Kernel version",
+      "quiz": "Multiple choice",
+      "mixed": "Choose per applicant",
+      "kernelDescription": "Require applicants to type a Linux kernel version.",
+      "quizDescription": "Show applicants shuffled multiple-choice questions.",
+      "mixedDescription": "Choose kernel-version or multiple-choice verification for each applicant."
+    },
+    "timing": {
+      "title": "Timing and enforcement",
+      "description": "Set the challenge deadline, retry delay, and automatic actions.",
+      "timeout": {
+        "label": "Verification timeout",
+        "description": "Enter an integer from 30 to 1,800 seconds."
+      },
+      "maxFails": {
+        "label": "Automatic-ban failure limit",
+        "description": "Zero or a negative value disables automatic bans."
+      },
+      "retry": {
+        "label": "Retry cooldown",
+        "description": "Zero or a negative value disables the cooldown. Positive values are limited to 366 days."
+      },
+      "ban": {
+        "label": "Ban duration after rejection",
+        "description": "Use 0 for permanent. Other values must be from 30 seconds to 366 days."
+      },
+      "mute": {
+        "label": "Mute duration",
+        "description": "Enter an integer from 30 seconds to 366 days."
+      }
+    },
+    "invited": {
+      "title": "Invited members",
+      "description": "Decide whether members invited by another member are verified.",
+      "label": "Verify invited members",
+      "settingDescription": "When disabled, people invited by another member are not verified."
+    },
+    "source": {
+      "value": "Source: {{source}}",
+      "factoryDefault": "Factory default",
+      "userFile": "Configuration file",
+      "chatOverride": "Group override"
+    },
+    "save": {
+      "dirty": "There are unsaved changes.",
+      "clean": "There are no changes to save."
+    },
+    "actions": {
+      "restore": "Restore inherited value",
+      "save": "Save changes",
+      "saving": "Saving…"
+    },
+    "feedback": {
+      "saved": "Verification settings were saved.",
+      "conflict": "Another administrator changed these settings. The latest values were loaded; reapply any changes you still need."
+    },
+    "validation": {
+      "integer": "Enter an integer.",
+      "timeout": "Enter an integer from 30 to 1,800.",
+      "retry": "Positive values cannot exceed 31,622,400 seconds.",
+      "ban": "Enter 0, or an integer from 30 to 31,622,400.",
+      "mute": "Enter an integer from 30 to 31,622,400."
+    },
+    "errors": {
+      "authenticationExpired": "The session has expired. Open the console again from Telegram.",
+      "authenticationInvalid": "This console session cannot be verified. Open the console again from Telegram.",
+      "accessDenied": "You no longer administer this group.",
+      "accessUnavailable": "Your administration access cannot be verified right now. Try again.",
+      "chatNotFound": "This group can no longer be managed in the console.",
+      "csrfInvalid": "The security token for this page has expired. Refresh the page and try again.",
+      "invalidSettings": "One or more settings are invalid. Check them and save again.",
+      "settingsUnavailable": "Verification settings are temporarily unavailable. Try again.",
+      "loadUnavailable": "Verification settings cannot be read right now. Try again.",
+      "saveUnavailable": "Verification settings cannot be saved right now. Try again.",
+      "network": "The connection was interrupted. Reload the settings before deciding whether to retry."
+    }
   }
 }

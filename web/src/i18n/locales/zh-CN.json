@@ -395,5 +395,118 @@
       "title": "还没有已结算的判定",
       "description": "验证判定结算后会显示在这里，并保留原始历史。"
     }
+  },
+  "verification": {
+    "navigation": "验证方式",
+    "title": "验证方式",
+    "description": "这些设置只影响当前群。保存时会检查版本，避免覆盖其他管理员的更改。",
+    "loading": {
+      "title": "正在载入验证设置",
+      "description": "正在读取此群当前的验证设置…"
+    },
+    "groupRequired": {
+      "title": "先选择一个群",
+      "description": "选择已获授权的群后，才能修改它的验证设置。",
+      "select": "选择群"
+    },
+    "noGroups": {
+      "title": "此账号尚未获任何群授权",
+      "description": "验证设置只对已获授权的群开放。"
+    },
+    "unavailable": {
+      "title": "无法读取验证设置",
+      "retry": "重试"
+    },
+    "delivery": {
+      "title": "投递渠道",
+      "description": "选择挑战发送到哪里。",
+      "label": "挑战投递",
+      "group": "仅群内",
+      "dm": "私聊优先",
+      "both": "群内和私聊",
+      "groupDescription": "挑战只发到受保护的群内。",
+      "dmDescription": "先尝试私聊验证；明确拒绝时才在群内发送挑战。",
+      "bothDescription": "先在群内发送挑战，再尝试私聊。"
+    },
+    "challenge": {
+      "title": "挑战类型",
+      "description": "选择验证策略。",
+      "label": "验证策略",
+      "kernel": "内核版本",
+      "quiz": "选择题",
+      "mixed": "按申请人选择",
+      "kernelDescription": "要求申请人输入 Linux 内核版本。",
+      "quizDescription": "向申请人显示随机选择题。",
+      "mixedDescription": "为每位申请人选择内核版本或选择题。"
+    },
+    "timing": {
+      "title": "时间与处置",
+      "description": "设置挑战截止时间、重试间隔和自动处置。",
+      "timeout": {
+        "label": "验证超时",
+        "description": "请输入 30 至 1,800 之间的整数秒。"
+      },
+      "maxFails": {
+        "label": "自动封禁失败次数",
+        "description": "0 或负数会关闭自动封禁。"
+      },
+      "retry": {
+        "label": "重试冷却",
+        "description": "0 或负数会关闭冷却；正数最长 366 天。"
+      },
+      "ban": {
+        "label": "拒绝后封禁时长",
+        "description": "0 表示永久；其他值必须在 30 秒至 366 天之间。"
+      },
+      "mute": {
+        "label": "禁言时长",
+        "description": "请输入 30 秒至 366 天之间的整数。"
+      }
+    },
+    "invited": {
+      "title": "被邀请成员",
+      "description": "决定由其他成员邀请入群的成员是否需要验证。",
+      "label": "验证被邀请成员",
+      "settingDescription": "关闭后，由其他成员邀请入群的成员无需验证。"
+    },
+    "source": {
+      "value": "来源：{{source}}",
+      "factoryDefault": "出厂默认",
+      "userFile": "配置文件",
+      "chatOverride": "此群覆盖"
+    },
+    "save": {
+      "dirty": "有未保存的更改。",
+      "clean": "没有待保存的更改。"
+    },
+    "actions": {
+      "restore": "恢复继承值",
+      "save": "保存更改",
+      "saving": "正在保存…"
+    },
+    "feedback": {
+      "saved": "已保存验证设置。",
+      "conflict": "其他管理员已经更改了设置。已载入最新值；请重新应用需要的更改。"
+    },
+    "validation": {
+      "integer": "请输入整数。",
+      "timeout": "请输入 30 至 1,800 之间的整数。",
+      "retry": "正数不能超过 31,622,400 秒。",
+      "ban": "请输入 0，或 30 至 31,622,400 之间的整数。",
+      "mute": "请输入 30 至 31,622,400 之间的整数。"
+    },
+    "errors": {
+      "authenticationExpired": "会话已过期。请从 Telegram 重新打开控制台。",
+      "authenticationInvalid": "无法验证此控制台会话。请从 Telegram 重新打开控制台。",
+      "accessDenied": "你已不再拥有此群的管理权限。",
+      "accessUnavailable": "暂时无法确认你对此群的管理权限。请重试。",
+      "chatNotFound": "此群已不再可在控制台中管理。",
+      "csrfInvalid": "此页的安全令牌已过期。刷新页面后再重试。",
+      "invalidSettings": "一个或多个设置无效。检查后重新保存。",
+      "settingsUnavailable": "验证设置暂时不可用。请重试。",
+      "loadUnavailable": "暂时无法读取验证设置。请重试。",
+      "saveUnavailable": "暂时无法保存验证设置。请重试。",
+      "network": "连接已中断。重新读取设置后，再决定是否重试。"
+    }
   }
 }

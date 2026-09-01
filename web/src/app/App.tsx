@@ -6,6 +6,7 @@ import { GroupListScreen } from "../features/groups";
 import { ModerationScreen } from "../features/moderation";
 import { QueueScreen } from "../features/queue";
 import { PreferencesScreen } from "../features/preferences";
+import { VerificationScreen } from "../features/verification";
 import { AppShell } from "./AppShell";
 
 const entryHandle = {
@@ -34,6 +35,11 @@ const router = createBrowserRouter([
       {
         path: "audit",
         element: <AuditScreen />,
+        handle: consoleHandle
+      },
+      {
+        path: "verification",
+        element: <VerificationScreen />,
         handle: consoleHandle
       },
       {
