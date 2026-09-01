@@ -316,7 +316,8 @@ internal/app  verification  rules  telegram  console  settings  database  status
 而随后的快照写入会先 `DELETE` 整张表再写回本进程看到的那些，
 历史冷却、失败次数和警告计数**静默消失**；
 `SaveFailures`、`SaveAgents`、`SaveHeartbeat` 的错误被丢弃
-（`state.go:102,283,823`）；
+（`state.go:283,102,816`）；`moderate` 那边的 `LoadWarnings` 是同一形状
+（`internal/moderate/state.go:34-39`）；
 `verification.New` 与 `moderate.New` 无法返回恢复错误，装配层只能继续启动。
 
 要做的：构造函数能返回错误并让 `newServices` 终止启动；
