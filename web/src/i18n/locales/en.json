@@ -326,6 +326,105 @@
       "saveUnavailable": "Moderation settings cannot be saved right now. Try again."
     }
   },
+  "bypass": {
+    "navigation": "Verification bypass sources",
+    "title": "Verification bypass sources",
+    "description": "Manage trusted groups, the required channel, and sender-channel allowlist for this group.",
+    "loading": {
+      "title": "Loading verification bypass sources",
+      "description": "Reading this group's effective values and their sources…"
+    },
+    "groupRequired": {
+      "title": "Select a group first",
+      "description": "Select an authorized group before managing its verification bypass sources.",
+      "select": "Select group"
+    },
+    "noGroups": {
+      "title": "This account has not been authorized for any group",
+      "description": "Verification bypass sources are available only for authorized groups."
+    },
+    "unavailable": {
+      "title": "Verification bypass sources cannot be read",
+      "retry": "Try again"
+    },
+    "source": {
+      "factory": "Factory default",
+      "file": "Managed by file",
+      "chat": "This group",
+      "pending": "Unsaved",
+      "restoring": "Restore pending"
+    },
+    "trusted": {
+      "title": "Trusted groups",
+      "label": "Trust members of these groups",
+      "description": "An applicant confirmed as a member of any trusted group skips verification. An unreadable membership check continues with verification. Enter one Telegram group ID per line."
+    },
+    "requiredChannel": {
+      "title": "Required channel",
+      "sectionDescription": "Applicants must be members of this channel to pass this condition.",
+      "id": {
+        "label": "Required channel ID",
+        "description": "Leave blank or enter 0 to disable this condition. When enabled, provide an @ display name or a channel invite URL."
+      },
+      "display": {
+        "label": "Channel display name",
+        "description": "For a public channel, enter an @ display name that the bot can use in the application prompt. A private channel can leave this blank, but needs an invite URL."
+      },
+      "invite": {
+        "label": "Channel invite URL",
+        "description": "Enter an accessible invite URL for a private channel. A public channel can leave this blank."
+      },
+      "failOpen": {
+        "label": "Admit applicants when the channel cannot be checked",
+        "description": "When the bot cannot read membership for both the applicant and itself in the required channel, choose whether to admit an applicant who passed every other check.",
+        "enabled": "Applicants who passed every other check are admitted. When the bot cannot check the channel, people who never joined it can enter; required-channel verification no longer protects the group.",
+        "disabled": "Applications are rejected. A temporary channel-permission loss or Telegram lookup failure can also reject legitimate applicants, who must apply again later."
+      }
+    },
+    "channelWhitelist": {
+      "title": "Channel allowlist",
+      "label": "Allow these sender channels to post",
+      "description": "These sender-channel identities can post in protected groups. This is not a member allowlist. Enter one Telegram channel ID per line."
+    },
+    "memberWhitelist": {
+      "title": "Member allowlist",
+      "description": "The settings API has no member-allowlist field. The channel allowlist permits sender channels to post; it does not let members skip verification."
+    },
+    "validation": {
+      "integer": "Enter an integer channel ID, or leave this blank to disable the condition.",
+      "list": "Enter one non-zero integer Telegram ID per line, without duplicates.",
+      "reachableChannel": "An enabled required channel needs an @ display name or a channel invite URL."
+    },
+    "save": {
+      "label": "Save verification bypass sources",
+      "unsaved_one": "{{count}} unsaved change",
+      "unsaved_other": "{{count}} unsaved changes"
+    },
+    "actions": {
+      "restore": "Restore default",
+      "cancelRestore": "Cancel restore",
+      "discard": "Discard",
+      "save": "Save",
+      "saving": "Saving…"
+    },
+    "feedback": {
+      "saved": "Verification bypass sources saved.",
+      "conflict": "Someone else changed these settings. The latest values have been reloaded; apply the changes you still need."
+    },
+    "errors": {
+      "authenticationExpired": "The session has expired. Reopen the console from Telegram.",
+      "authenticationInvalid": "The console session cannot be verified. Reopen the console from Telegram.",
+      "accessDenied": "You no longer administer this group.",
+      "accessUnavailable": "Your administration access cannot be verified right now. Try again.",
+      "chatNotFound": "This group can no longer be managed in the console.",
+      "csrfInvalid": "This page's security token has expired. Refresh the page and try again.",
+      "invalidSettings": "One or more settings are invalid. Review the changes and save again.",
+      "settingsUnavailable": "Verification bypass sources are unavailable. Try again.",
+      "loadUnavailable": "Verification bypass sources cannot be read right now. Try again.",
+      "saveUnavailable": "Verification bypass sources cannot be saved right now. Try again.",
+      "network": "The connection was interrupted. Reload the settings before deciding whether to try again."
+    }
+  },
   "audit": {
     "navigation": "Activity log",
     "title": "Activity log",

@@ -1,6 +1,7 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
 import { AuditScreen } from "../features/audit";
+import { BypassScreen } from "../features/bypass";
 import { EntryScreen } from "../features/entry";
 import { GroupListScreen } from "../features/groups";
 import { ModerationScreen } from "../features/moderation";
@@ -40,6 +41,11 @@ const router = createBrowserRouter([
       {
         path: "verification",
         element: <VerificationScreen />,
+        handle: consoleHandle
+      },
+      {
+        path: "bypass",
+        element: <BypassScreen />,
         handle: consoleHandle
       },
       {

@@ -29,6 +29,10 @@ const navigationItems = [
     labelKey: "verification.navigation"
   },
   {
+    path: "/bypass",
+    labelKey: "bypass.navigation"
+  },
+  {
     path: "/groups",
     labelKey: "navigation.groups"
   },
