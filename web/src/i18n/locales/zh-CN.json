@@ -28,6 +28,14 @@
   },
   "entry": {
     "nextSteps": "下一步",
+    "loading": {
+      "title": "正在打开控制台",
+      "description": "正在确认当前会话。"
+    },
+    "unavailable": {
+      "title": "暂时无法打开控制台",
+      "description": "控制台没有返回可用的会话状态。请稍后从 Telegram 打开机器人的菜单，或向机器人索取新的链接。"
+    },
     "noSession": {
       "title": "从 Telegram 打开控制台",
       "description": "群管理员请在 Telegram 中打开 {{botUsername}} 的菜单。运维请向 {{botUsername}} 索取一次性链接。",

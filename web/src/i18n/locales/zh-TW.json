@@ -28,6 +28,14 @@
   },
   "entry": {
     "nextSteps": "下一步",
+    "loading": {
+      "title": "正在開啟控制台",
+      "description": "正在確認目前的工作階段。"
+    },
+    "unavailable": {
+      "title": "暫時無法開啟控制台",
+      "description": "控制台沒有傳回可用的工作階段狀態。請稍後從 Telegram 開啟機器人的選單，或向機器人索取新的連結。"
+    },
     "noSession": {
       "title": "從 Telegram 開啟控制台",
       "description": "群組管理員請在 Telegram 中開啟 {{botUsername}} 的選單。維運人員請向 {{botUsername}} 索取一次性連結。",
