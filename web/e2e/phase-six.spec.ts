@@ -476,6 +476,16 @@ test("keyboard selection carries the group boundary to the queue", async ({ page
       });
       return;
     }
+    // Pressing Enter lands on /queue, which fetches. Whether that request
+    // arrives before this test ends is a race, and without this branch the
+    // handler below turns a slow machine into a failure.
+    if (path === `/api/chats/${selectedGroupId}/queue` && request.method() === "GET") {
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: [] })
+      });
+      return;
+    }
     throw new Error(`Unexpected API request: ${request.method()} ${path}`);
   });
 
@@ -500,6 +510,14 @@ test("keyboard selection carries the group boundary to the queue", async ({ page
   expect(focusedGroupId).toBe(selectedGroupId);
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(new RegExp(`/queue\\?group=${selectedGroupId}$`));
+  // Wait for the queue to settle, not just for the URL. The URL changes before
+  // the queue fetch goes out, so ending here leaves that request racing the end
+  // of the test — it arrived on CI and not on this machine, and the handler
+  // above turned it into a failure.
+  await expect(page.locator("[data-queue-page]")).toHaveAttribute(
+    "data-queue-state",
+    "empty"
+  );
 });
 
 test("widest locale keeps group controls inside the desktop header", async ({ page }) => {
