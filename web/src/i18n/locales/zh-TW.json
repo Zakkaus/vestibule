@@ -395,5 +395,118 @@
       "title": "還沒有已結算的判定",
       "description": "驗證判定結算後會顯示在這裡，並保留原始歷史。"
     }
+  },
+  "verification": {
+    "navigation": "驗證方式",
+    "title": "驗證方式",
+    "description": "這些設定只影響目前群組。儲存時會檢查版本，避免覆蓋其他管理員的變更。",
+    "loading": {
+      "title": "正在載入驗證設定",
+      "description": "正在讀取此群組目前的驗證設定…"
+    },
+    "groupRequired": {
+      "title": "請先選擇群組",
+      "description": "選擇已獲授權的群組後，才能修改它的驗證設定。",
+      "select": "選擇群組"
+    },
+    "noGroups": {
+      "title": "此帳號尚未取得任何群組授權",
+      "description": "驗證設定只對已獲授權的群組開放。"
+    },
+    "unavailable": {
+      "title": "無法讀取驗證設定",
+      "retry": "重試"
+    },
+    "delivery": {
+      "title": "投遞管道",
+      "description": "選擇挑戰傳送到哪裡。",
+      "label": "挑戰投遞",
+      "group": "僅群組內",
+      "dm": "私人訊息優先",
+      "both": "群組內和私人訊息",
+      "groupDescription": "挑戰只傳送到受保護的群組內。",
+      "dmDescription": "先嘗試私人訊息驗證；明確拒絕時才在群組內傳送挑戰。",
+      "bothDescription": "先在群組內傳送挑戰，再嘗試私人訊息。"
+    },
+    "challenge": {
+      "title": "挑戰類型",
+      "description": "選擇驗證策略。",
+      "label": "驗證策略",
+      "kernel": "核心版本",
+      "quiz": "選擇題",
+      "mixed": "按申請人選擇",
+      "kernelDescription": "要求申請人輸入 Linux 核心版本。",
+      "quizDescription": "向申請人顯示隨機選擇題。",
+      "mixedDescription": "為每位申請人選擇核心版本或選擇題。"
+    },
+    "timing": {
+      "title": "時間與處置",
+      "description": "設定挑戰截止時間、重試間隔和自動處置。",
+      "timeout": {
+        "label": "驗證逾時",
+        "description": "請輸入 30 至 1,800 之間的整數秒。"
+      },
+      "maxFails": {
+        "label": "自動封鎖失敗次數",
+        "description": "0 或負數會關閉自動封鎖。"
+      },
+      "retry": {
+        "label": "重試冷卻",
+        "description": "0 或負數會關閉冷卻；正數最長 366 天。"
+      },
+      "ban": {
+        "label": "拒絕後封鎖時長",
+        "description": "0 表示永久；其他值必須在 30 秒至 366 天之間。"
+      },
+      "mute": {
+        "label": "禁言時長",
+        "description": "請輸入 30 秒至 366 天之間的整數。"
+      }
+    },
+    "invited": {
+      "title": "被邀請成員",
+      "description": "決定由其他成員邀請加入群組的成員是否需要驗證。",
+      "label": "驗證被邀請成員",
+      "settingDescription": "關閉後，由其他成員邀請加入群組的成員無需驗證。"
+    },
+    "source": {
+      "value": "來源：{{source}}",
+      "factoryDefault": "出廠預設",
+      "userFile": "設定檔",
+      "chatOverride": "此群組覆寫"
+    },
+    "save": {
+      "dirty": "有未儲存的變更。",
+      "clean": "沒有待儲存的變更。"
+    },
+    "actions": {
+      "restore": "恢復繼承值",
+      "save": "儲存變更",
+      "saving": "正在儲存…"
+    },
+    "feedback": {
+      "saved": "已儲存驗證設定。",
+      "conflict": "其他管理員已經變更設定。已載入最新值；請重新套用仍需要的變更。"
+    },
+    "validation": {
+      "integer": "請輸入整數。",
+      "timeout": "請輸入 30 至 1,800 之間的整數。",
+      "retry": "正數不能超過 31,622,400 秒。",
+      "ban": "請輸入 0，或 30 至 31,622,400 之間的整數。",
+      "mute": "請輸入 30 至 31,622,400 之間的整數。"
+    },
+    "errors": {
+      "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
+      "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
+      "accessDenied": "你已不再擁有此群組的管理權限。",
+      "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
+      "chatNotFound": "此群組已無法在控制台中管理。",
+      "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
+      "invalidSettings": "一或多個設定無效。檢查後重新儲存。",
+      "settingsUnavailable": "驗證設定暫時無法使用。請重試。",
+      "loadUnavailable": "暫時無法讀取驗證設定。請重試。",
+      "saveUnavailable": "暫時無法儲存驗證設定。請重試。",
+      "network": "連線已中斷。重新讀取設定後，再決定是否重試。"
+    }
   }
 }
