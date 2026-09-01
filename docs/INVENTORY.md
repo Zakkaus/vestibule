@@ -1,6 +1,14 @@
-<!-- The per-file source of truth for the rewrite. The plan cites it; it lived
-     outside the repository until an agent working from the plan reported that it
-     could not open what the plan told it to follow. -->
+<!-- The per-file account of the tree the rewrite started from. The plan cites it;
+     it lived outside the repository until an agent working from the plan reported
+     that it could not open what the plan told it to follow.
+
+     Frozen on purpose. Every phase's source column traces back here, so updating
+     this as the rewrite proceeds would destroy the traceability it exists for.
+     The counts below describe the tree at the start, not today's — today has more
+     files, because splitting them is most of what the rewrite does.
+
+     Scope is Go source. deploy/ carries no Go code and is dispositioned in the
+     plan directly. -->
 
 # v5 代码清点与逐文件去向
 

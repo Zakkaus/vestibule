@@ -127,6 +127,50 @@ def check_screen_coverage() -> None:
                             "claims to be exhaustive" % screen)
 
 
+def check_every_inventoried_file_has_a_phase(plan_text: str) -> None:
+    """Every file the inventory dispositioned is claimed by some phase.
+
+    docs/INVENTORY.md is the frozen per-file account of the tree the rewrite
+    started from. A file listed there and named by no phase is work nobody has
+    scheduled — it will surface at the end, as the thing that was always somebody
+    else's.
+
+    At the time this was written the count was zero, which is the reason to
+    freeze it: an invariant is cheapest to hold from the moment it is true.
+
+    Only the direction that matters is checked. A phase may cite something the
+    inventory does not hold — deploy/ carries no Go code, and phases after the
+    first name post-move paths by the plan's own rule — and those are not
+    defects.
+    """
+    inventory = ROOT / "docs" / "INVENTORY.md"
+    if not inventory.exists():
+        return
+
+    def expand(path: str) -> list:
+        match = re.match(r"^(.*)\{([^}]*)\}(.*)$", path)
+        if not match:
+            return [path]
+        before, inner, after = match.groups()
+        return [before + part.strip() + after for part in inner.split(",")]
+
+    listed = set()
+    for match in re.finditer(r"^\| `([^`]+)`", inventory.read_text(encoding="utf-8"), re.M):
+        for path in expand(match.group(1).split(":")[0]):
+            if path.endswith(".go") and not path.endswith("_test.go"):
+                listed.add(path)
+
+    claimed = set()
+    for section in re.findall(r"#### 文件处置(.*?)(?=####|\Z)", plan_text, re.S):
+        for match in re.finditer(r"^\| `([^`]+)` \|", section, re.M):
+            for path in expand(match.group(1).split(":")[0]):
+                claimed.add(path)
+
+    for path in sorted(listed - claimed):
+        failures.append("plan: docs/INVENTORY.md dispositions %s and no phase claims it"
+                        % path)
+
+
 def check_phases_have_their_sections(text: str) -> None:
     """A phase that touches files says which files, what survives, and what it waits on.
 
@@ -215,6 +259,7 @@ def main() -> int:
         check_plan_phases(plan_text)
         check_phase_branches_are_distinct(plan_text)
         check_phases_have_their_sections(plan_text)
+        check_every_inventoried_file_has_a_phase(plan_text)
 
     check_schema_matches_migration()
 
