@@ -16,15 +16,31 @@ import re
 import sys
 from pathlib import Path
 
-# 0 and the pill value are shapes, not steps on the scale.
-RADIUS_OK = re.compile(r"^(0|50%|9{3,4}px|var\(|calc\(|inherit|initial|unset)")
+# 0 and 50% are shapes, not steps on the scale. The pill used to be here too, as
+# a literal `9999px`, and that hole let 20 literal pills accumulate across five
+# files in two different spellings. It is `--radius-full` now, so nothing but a
+# token, a calc, or a shape gets through.
+RADIUS_OK = re.compile(r"^(0|50%|var\(|calc\(|inherit|initial|unset)")
+
+# Physical box properties where a logical one exists. Non-negotiable 8 says logical
+# by default, and this library had converted the ones people look at — `.ico`, the
+# nav rail — while 85 `width`/`height` declarations sat in the shell and the
+# component layer untouched, because nothing counted them. Media query features
+# (`@media (min-width: …)`) are conditions, not declarations, and stay physical.
+PHYSICAL = re.compile(
+    r"(?:^|[;{])\s*((?:min-|max-)?(?:width|height)|"
+    r"(?:margin|padding)-(?:left|right|top|bottom)|top|bottom|left|right)\s*:")
 HEX = re.compile(r"#([0-9a-fA-F]{3,8})\b")
 FUNC = re.compile(r"\b(rgba?|hsla?|oklch|oklab|lch|lab)\(([^()]*(?:\([^()]*\)[^()]*)*)\)")
 STATUS_RULE = re.compile(r"\.status-[a-z]+[^{]*\{[^}]*\}", re.S)
+# A palette scope is a token layer too: it redeclares seeds and surface values
+# under an attribute instead of under :root, and hue is exactly what it exists
+# to carry.
 TOKEN_BLOCK = re.compile(
     r":root[^{]*\{[^}]*\}"
     r"|@media[^{]*prefers-color-scheme[^{]*\{(?:[^{}]|\{[^{}]*\})*\}"
-    r"|\[data-theme[^{]*\{[^}]*\}", re.S)
+    r"|\[data-theme[^{]*\{[^}]*\}"
+    r"|\[data-palette[^{]*\{[^}]*\}", re.S)
 
 failures: list[str] = []
 
@@ -107,6 +123,13 @@ def check(path: Path) -> None:
                                 % (path.name, m.group(1), m.group(2).strip(),
                                    css.count("\n", 0, m.start()) + 1))
                 break
+
+    # Strip media/container conditions before looking for physical properties:
+    # `@media (min-width: 60rem)` is a condition, not a declaration.
+    no_conditions = re.sub(r"@(?:media|container)[^{]*", lambda m: " " * len(m.group(0)), css)
+    for m in PHYSICAL.finditer(no_conditions):
+        failures.append("%s: physical %s on stylesheet line %d — a logical property exists"
+                        % (path.name, m.group(1), css.count("\n", 0, m.start()) + 1))
 
     for m in re.finditer(r"border-radius\s*:\s*([^;}]+)", css):
         for part in m.group(1).split():

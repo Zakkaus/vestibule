@@ -14,6 +14,23 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* `fieldset` and `legend` carry defaults no other element has, and they only appear
+   once someone groups controls — so a library that never uses one ships the defaults
+   unnoticed. Three of them:
+
+   `margin-inline: 2px`, which puts a `<fieldset class="card">` two pixels right of a
+   `<div class="card">` carrying the same class, and everything inside it follows.
+
+   A border and padding of its own, which draw a second frame inside whatever surface
+   it was given.
+
+   And the legend's notch: it is the one element the browser cuts into a border, which
+   is right for 1996 and wrong for every card layout since. Floating it drops it out of
+   the notch and into ordinary block flow. */
+fieldset { margin-inline: 0; padding: 0; border: 0; min-inline-size: 0; }
+fieldset > legend { float: inline-start; inline-size: 100%; padding-inline: 0; }
+fieldset > legend + * { clear: both; }
+
 body {
   margin: 0;
   background: var(--background);
@@ -168,7 +185,9 @@ a[data-slot="card"]:active, [data-slot="card"][data-clickable]:active {
   border-block-end: var(--hairline) solid var(--border);
 }
 [data-slot="table-cell"] {
-  padding: var(--sp-3) var(--sp-3);
+  /* The same ratio the header takes. One table reading 8/12 in its head and
+     12/12 in its body is the pair a reader sees side by side. */
+  padding: var(--sp-2) var(--sp-3);
   border-block-end: var(--hairline) solid var(--border);
 }
 [data-slot="table-row"] { transition: background-color var(--dur-press) ease; }
@@ -345,6 +364,9 @@ a[data-slot="card"]:active, [data-slot="card"][data-clickable]:active {
    conspicuous kind of wrong, and it survived here because the token looked like
    it was doing the work. */
 [data-slot="input"], [data-slot="select-trigger"] { block-size: var(--control-h); padding-block: 0; }
+/* Stated rather than inherited from the rule above: an input carried no radius of
+   its own and took whichever one happened to also match it. */
+[data-slot="input"] { border-radius: var(--radius-lg); }
 
 /* Coarse pointers get the 44px target the mobile section asks for. Declaring it
    here rather than in the phone shell means it also applies to a touch laptop. */
@@ -403,7 +425,10 @@ a[data-slot="card"]:active, [data-slot="card"][data-clickable]:active {
   background: var(--background);
   color: var(--foreground);
   border: 1px solid var(--input);
-  border-radius: var(--radius-md);
+  /* The same rung a button takes. These sit side by side in a toolbar, and a row
+     whose corners disagree reads as unfinished even when the heights match — which
+     they already did, because heights had a check and corners did not. */
+  border-radius: var(--radius-lg);
   padding: var(--sp-2) var(--sp-3);
 }
 [data-slot="select-trigger"]::after {
@@ -448,7 +473,11 @@ a[data-slot="card"]:active, [data-slot="card"][data-clickable]:active {
 }
 [data-slot="tabs-trigger"] {
   font: inherit; background: none; border: 0;
-  padding: var(--sp-3) var(--sp-1);
+  /* Horizontal exceeds vertical on anything holding a line of text: the line box
+     already carries its own leading, so equal padding reads tight at the sides and
+     loose above. This had it the other way round at 12 and 4, and adjacent tab
+     labels nearly touched. */
+  padding: var(--sp-2) var(--sp-4);
   color: var(--muted-foreground);
   text-decoration: none;
   border-block-end: 2px solid transparent;

@@ -30,6 +30,9 @@ IGNORE_PREFIXES = ("sr-", "u-", "is-", "has-")
 # theme mechanism. One entry, and it carries its reason.
 IGNORE_ATTRS = {
     "data-theme",
+    # Palette scopes are cycled by a button that holds the name in a variable,
+    # so no literal reaches setAttribute either.
+    "data-palette",
     # Read as content, never used as a styling hook. The palette samples carry
     # the token name and the sentence describing where it may appear, and the
     # accent picker carries its hue; a script reads all three to build the swatch.
@@ -38,7 +41,7 @@ IGNORE_ATTRS = {
 }
 
 DEF = re.compile(r"\.([a-zA-Z][\w-]*)(?=[\s,:.>{\[])")
-USE = re.compile(r'class="([^"]*)"')
+USE = re.compile(r'''class=(?:"(?P<d>[^"]*)"|'(?P<s>[^']*)')''')
 # An attribute-based component system needs the same check in both directions.
 # A checker written for class= alone does not see data-slot, and this library is
 # mostly data-slot: textarea and select-trigger were both missing from one of the
@@ -111,7 +114,8 @@ def main(argv: list[str]) -> int:
         css, html = read(path)
         for name in DEF.findall(css):
             defined.setdefault(name, arg)
-        for attr in USE.findall(html):
+        for m_ in USE.finditer(html):
+            attr = m_.group('d') if m_.group('d') is not None else m_.group('s')
             for name in attr.split():
                 used.setdefault(name, arg)
         for pair in ATTR_DEF.findall(css):

@@ -3,3 +3,6 @@
 *.test
 .env
 config.json
+
+# Python bytecode from the vendored checks
+__pycache__/

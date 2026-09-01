@@ -167,6 +167,15 @@ python3 scripts/check-console-copy.py  # no user-facing text written into a comp
 python3 scripts/check-privacy-tables.py   # docs/PRIVACY.md names every table holding a person
 python3 scripts/check-phase-seams.py     # no screen reaches for a later phase's endpoints
 
+# The vendored copies must stay byte-identical to the design system they came
+# from. CI cannot run this — the source lives on a developer's machine, not in
+# the repository — so it is a local gate with the root spelled out. Drift runs
+# both ways: a copy someone edited has to be restored, a source that moved
+# forward has to be re-copied. Read the direction before acting on it.
+CHECKS=~/code/skills/web-ui/examples/design-language
+python3 "$CHECKS/checks/vendored.py" --source "$CHECKS/checks" scripts/design-checks/*.py
+python3 "$CHECKS/checks/vendored.py" --source "$CHECKS/app"    web/src/styles/*.css
+
 # The prose checker, the way CI runs it. Naming the gate was not enough: this
 # document said CI runs it and gave no command, so it stayed a habit locally
 # and a plan reached a pull request with a finding in it.
@@ -174,9 +183,11 @@ python3 ~/.claude/skills/chinese-skill/scripts/chinese_lint.py \
   docs/PRIVACY.zh-CN.md docs/PLAN-v5.md docs/ARCHITECTURE.md docs/README.md \
   web/design.html web/architecture.html
 cd web && npm ci && npm run build && cd ..
-for c in style-rules undefined-var shadowed theme-leak; do \
+for c in coverage-floor style-rules undefined-var shadowed theme-leak comment-boundaries percentage-min; do \
   python3 "scripts/design-checks/$c.py" web/dist/assets/*.css; done
-for c in html-structure style-rules css-coverage shadowed undefined-var theme-leak; do \
+for c in coverage-floor comment-boundaries padding-ratio peer-consistency percentage-min shorthand-across-layers; do \
+  python3 "scripts/design-checks/$c.py" web/src/styles/tokens.css web/src/styles/components.css web/src/styles/shell.css; done
+for c in html-structure coverage-floor style-rules css-coverage shadowed undefined-var theme-leak comment-boundaries percentage-min; do \
   python3 "scripts/design-checks/$c.py" web/design.html web/architecture.html; done
 cd web && npm run e2e && cd ..  # the console journey and the render gate, in Chromium
 ```

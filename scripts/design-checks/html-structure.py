@@ -66,18 +66,18 @@ def check(path: Path) -> None:
         failures.append("%s: <%s> opened on line %d is never closed" % (name, tag, line))
 
     ids: dict[str, int] = {}
-    for m in re.finditer(r'\bid="([^"]+)"', text):
+    for m in re.finditer(r'''\bid=(?:"(?P<d>[^"]+)"|'(?P<s>[^']+)')''', text):
         line = text.count("\n", 0, m.start()) + 1
-        if m.group(1) in ids:
+        if (m.group('d') or m.group('s')) in ids:
             failures.append("%s: line %d: id %r already used on line %d"
-                            % (name, line, m.group(1), ids[m.group(1)]))
+                            % (name, line, (m.group('d') or m.group('s')), ids[(m.group('d') or m.group('s'))]))
         else:
-            ids[m.group(1)] = line
+            ids[(m.group('d') or m.group('s'))] = line
 
-    for m in re.finditer(r'href="#([^"]+)"', text):
-        if m.group(1) and m.group(1) not in ids:
+    for m in re.finditer(r'''href=(?:"#(?P<d>[^"]+)"|'#(?P<s>[^']+)')''', text):
+        if (m.group('d') or m.group('s')) and (m.group('d') or m.group('s')) not in ids:
             failures.append("%s: line %d: anchor #%s has no target"
-                            % (name, text.count("\n", 0, m.start()) + 1, m.group(1)))
+                            % (name, text.count("\n", 0, m.start()) + 1, (m.group('d') or m.group('s'))))
 
     # Blank the script and style blocks but keep their newlines, or every line
     # number after the first one is wrong.
