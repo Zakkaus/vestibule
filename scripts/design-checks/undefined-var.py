@@ -51,6 +51,32 @@ def stylesheet(path: Path) -> str:
 
 
 DEF = re.compile(r"(--[\w-]+)\s*:")
+# A name is not "defined" everywhere just because it is defined somewhere. A token
+# declared only inside a dark block and read from an unconditional rule resolves to
+# nothing in light mode, and the whole declaration is dropped — the same failure the
+# set difference below exists to catch, one scope down. So collect the names that
+# appear ONLY under a theme condition and report a reference from outside one.
+THEME_BLOCK = re.compile(r"@media[^{]*prefers-color-scheme[^{]*\{|\[data-theme=")
+
+
+def theme_spans(css: str) -> list[tuple[int, int]]:
+    """Character ranges governed by a theme condition, by brace matching."""
+    spans = []
+    for m in THEME_BLOCK.finditer(css):
+        i = css.find("{", m.start())
+        if i < 0:
+            continue
+        depth, j = 0, i
+        while j < len(css):
+            if css[j] == "{":
+                depth += 1
+            elif css[j] == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+            j += 1
+        spans.append((m.start(), j))
+    return spans
 # A reference with a comma has a fallback; those are deliberate and allowed.
 USE = re.compile(r"var\(\s*(--[\w-]+)\s*(,)?")
 
@@ -61,20 +87,32 @@ def main(argv: list[str]) -> int:
         return 2
 
     defined: set[str] = set()
-    uses: list[tuple[str, str, int]] = []
+    theme_only: set[str] = set()
+    unconditional: set[str] = set()
+    uses: list[tuple[str, str, int, bool]] = []
     for arg in argv:
         path = Path(arg)
         css = stylesheet(path)
         defined |= set(DEF.findall(css))
+        spans = theme_spans(css)
+        for m in DEF.finditer(css):
+            bucket = theme_only if any(a <= m.start() < b for a, b in spans) else unconditional
+            bucket.add(m.group(1))
         for m in USE.finditer(css):
             if m.group(2):                     # has a fallback
                 continue
-            uses.append((m.group(1), path.name, css.count("\n", 0, m.start()) + 1))
+            in_theme = any(a <= m.start() < b for a, b in spans)
+            uses.append((m.group(1), path.name, css.count("\n", 0, m.start()) + 1, in_theme))
 
-    for name, where, line in uses:
+    for name, where, line, in_theme in uses:
         if name not in defined and name not in EXTENSION_POINTS:
             failures.append("%s: line %d reads %s, which nothing defines — "
                             "the whole declaration is dropped" % (where, line, name))
+        elif (not in_theme and name in theme_only and name not in unconditional
+              and name not in EXTENSION_POINTS):
+            failures.append("%s: line %d reads %s from an unconditional rule, but %s is "
+                            "declared only inside a theme block — it resolves to nothing "
+                            "in the other theme" % (where, line, name, name))
 
     if failures:
         for f in sorted(set(failures)):

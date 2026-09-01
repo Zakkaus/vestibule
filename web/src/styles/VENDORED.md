@@ -4,12 +4,12 @@ Copied verbatim from the shared design system's `app/` directory. **Do not edit
 them here.** A local change is invisible at the next sync and turns into a
 conflict nobody can explain; take the improvement upstream instead.
 
-Copied 2026-08-31 23:38 AEST. Checksums at that moment:
+Copied 2026-09-01 20:54 AEST. Checksums at that moment:
 
 ```
-9c4374cee10f5a0dfc4dfeb3345debc628c2ec7f8ddf8ef1e997d47d80775d7b  tokens.css
-ef227eb8251d5b0c3bb1baaccdf103ed604dee368ae55acf03eaebf6e0b1dc5e  components.css
-d9849f3fae4d8d0f08f9cbcd1100217c562b487f3c65f90650dcbc1b6b83994d  shell.css
+5af84e445428dba07fb7e81bc8ed6722da30d376e6aacac669ec0a96ce2470f3  tokens.css
+a29f24429583c0dfb9b99f105cc0a6dc6dddf1716386f8d72c517257b33149a8  components.css
+99767f2dd32ea0ac57bb4b7f994736cf5727ae7ee1937c7acdb02717f5a7fd12  shell.css
 ```
 
 Compare against the source to see whether either side has moved since:

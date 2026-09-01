@@ -28,6 +28,8 @@ ROOT_ONLY = re.compile(r"^:root$"
                        r"|^\[data-theme=\"[a-z]+\"\]$"
                        r"|^html$|^:root,\s*\[data-theme=\"[a-z]+\"\]$")
 
+NON_CUSTOM = re.compile(r"(?:^|;|\{)\s*(?!--)[a-zA-Z-]+\s*:")
+
 failures: list[str] = []
 
 
@@ -39,7 +41,7 @@ def stylesheet(path: Path) -> str:
 
 
 def rules(css: str, inside_theme: bool = False, offset: int = 0):
-    """Yield (selector, line, inside a theme media query) for every rule."""
+    """Yield (selector, line, inside a theme media query, body) for every rule."""
     i = 0
     while i < len(css):
         brace = css.find("{", i)
@@ -60,15 +62,22 @@ def rules(css: str, inside_theme: bool = False, offset: int = 0):
                 yield from rules(body, inside_theme or bool(THEME.search(head)),
                                  offset + css.count("\n", 0, brace + 1))
         else:
-            yield head, line, inside_theme
+            yield head, line, inside_theme, body
         i = j
 
 
 def check(path: Path) -> None:
     css = stylesheet(path)
-    for selector, line, in_theme in rules(css):
+    for selector, line, in_theme, body in rules(css):
         themed = in_theme or bool(THEME.search(selector))
         if not themed:
+            continue
+        # A block declaring nothing but custom properties IS the token layer,
+        # whatever its selector reads like. Enumerating selector shapes instead
+        # flagged every palette preset — `[data-palette="nord"][data-theme="dark"]`
+        # declares --background and --card and nothing else, which is the thing
+        # this check wants people to do.
+        if not NON_CUSTOM.search(body):
             continue
         if all(ROOT_ONLY.match(part.strip()) for part in selector.split(",")):
             continue

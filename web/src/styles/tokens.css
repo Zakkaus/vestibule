@@ -142,9 +142,16 @@
 
 
   /* Control heights. A control shorter than this cannot hold its own padding. */
-  --control-h: 2.5rem;
+  /* The height a control renders at, declared rather than floored. These are the
+     values the library actually rendered before the height was declared: 40 and 48
+     were the minimums, and padding plus a 16px line pushed both two pixels past
+     them. Declaring the minimum made every control two pixels shorter than the
+     page it came from — the equal-height fix was right, the number was the old
+     floor rather than the old result. `--control-h-sm` needs no change: at 14px
+     and 8px padding it computed to exactly its own floor. */
+  --control-h: 2.625rem;
   --control-h-sm: 2rem;
-  --control-h-lg: 3rem;
+  --control-h-lg: 3.125rem;
 
 
 
