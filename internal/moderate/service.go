@@ -50,15 +50,17 @@ type Service struct {
 }
 
 // New constructs a moderation service and restores its durable warning counters.
-func New(settings *settings.Store, telegram Telegram, cfg *settings.Config, warningStore WarningStore) *Service {
+func New(settings *settings.Store, telegram Telegram, cfg *settings.Config, warningStore WarningStore) (*Service, error) {
 	s := &Service{
 		settings: settings,
 		telegram: telegram,
 		cfg:      cfg,
 		warnings: newWarningState(warningStore),
 	}
-	s.warnings.load()
-	return s
+	if err := s.warnings.load(); err != nil {
+		return nil, fmt.Errorf("restore warning counters: %w", err)
+	}
+	return s, nil
 }
 
 // SetupReport is one complete startup permission result for a guarded group.

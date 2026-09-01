@@ -49,7 +49,10 @@ func (v *Service) updatePendingLocked(key pkey, p *pending, expectedEpoch uint64
 		return true, nil
 	}
 	expected := PendingRef{GroupID: key.gid, UserID: key.uid, Nonce: p.nonce, Epoch: expectedEpoch}
-	return v.stateStore.UpdatePending(v.statePath, expected, pendingRecord(key, p))
+	record := pendingRecord(key, p)
+	return retryStoreChange(func() (bool, error) {
+		return v.stateStore.UpdatePending(v.statePath, expected, record)
+	})
 }
 
 func (v *Service) transitionChallengeLocked(
@@ -64,10 +67,13 @@ func (v *Service) transitionChallengeLocked(
 	if v.stateUnavailable(v.statePath) {
 		return true, nil
 	}
-	return v.stateStore.TransitionChallenge(v.statePath, ChallengeTransition{
+	transition := ChallengeTransition{
 		Expected: PendingRef{GroupID: key.gid, UserID: key.uid, Nonce: p.nonce, Epoch: expectedEpoch},
 		Record:   pendingRecord(key, p), From: from, To: to, Reason: reason,
 		SettledAt: v.wallNow().Unix(), SettledBy: settledBy, Actions: actions,
+	}
+	return retryStoreChange(func() (bool, error) {
+		return v.stateStore.TransitionChallenge(v.statePath, transition)
 	})
 }
 
@@ -84,8 +90,10 @@ func (v *Service) supersedePendingLocked(key pkey, p *pending) {
 	if p.claimedState != "" {
 		from = p.claimedState
 	}
-	if _, err := v.transitionChallengeLocked(key, p, from, ChallengeSuperseded, "", 0, p.epoch); err != nil {
+	_, err := v.transitionChallengeLocked(key, p, from, ChallengeSuperseded, "", 0, p.epoch)
+	if err != nil {
 		log.Printf("verification: supersede pending for group %d user %d: %v", key.gid, key.uid, err)
+		return
 	}
 	v.forgetPendingLocked(key, p)
 }
@@ -94,14 +102,18 @@ func (v *Service) persistPendingLocked(key pkey, p *pending, expectedEpoch uint6
 	var changed bool
 	var err error
 	if !v.stateUnavailable(v.statePath) && p.persistedPath != v.statePath {
-		changed, err = v.stateStore.InsertPending(v.statePath, pendingRecord(key, p))
+		record := pendingRecord(key, p)
+		changed, err = retryStoreChange(func() (bool, error) {
+			return v.stateStore.InsertPending(v.statePath, record)
+		})
 	} else {
 		changed, err = v.updatePendingLocked(key, p, expectedEpoch)
 	}
 	if err != nil {
 		log.Printf("verification: update pending for group %d user %d: %v", key.gid, key.uid, err)
+		return false
 	}
-	if err != nil || !changed {
+	if !changed {
 		v.forgetPendingLocked(key, p)
 		return false
 	}
@@ -117,7 +129,10 @@ func (v *Service) deleteUnexposedPending(gid, uid int64, p *pending) {
 		return
 	}
 	if !v.stateUnavailable(v.statePath) {
-		_, err := v.stateStore.DeletePending(v.statePath, pendingRecord(key, p).Ref())
+		ref := pendingRecord(key, p).Ref()
+		_, err := retryStoreChange(func() (bool, error) {
+			return v.stateStore.DeletePending(v.statePath, ref)
+		})
 		if err != nil {
 			log.Printf("verification: delete undeliverable pending for group %d user %d: %v", gid, uid, err)
 			return
@@ -131,9 +146,12 @@ func (v *Service) supersedePendingRecord(record PendingRecord) {
 	if v.stateUnavailable(v.statePath) {
 		return
 	}
-	_, err := v.stateStore.TransitionChallenge(v.statePath, ChallengeTransition{
+	transition := ChallengeTransition{
 		Expected: record.Ref(), Record: record, From: ChallengePending, To: ChallengeSuperseded,
 		SettledAt: v.wallNow().Unix(),
+	}
+	_, err := retryStoreChange(func() (bool, error) {
+		return v.stateStore.TransitionChallenge(v.statePath, transition)
 	})
 	if err != nil {
 		log.Printf("verification: supersede unrestorable pending for group %d user %d: %v", record.GroupID, record.UserID, err)

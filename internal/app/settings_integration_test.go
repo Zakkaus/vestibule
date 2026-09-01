@@ -31,24 +31,30 @@ func newTestApplication(t *testing.T, ttl *int) *testLookupApplication {
 	if err != nil {
 		panic(err)
 	}
-	verifier := newTestVerifier(settings, nil, cfg, verification.Identity{}, "")
+	verifier := newTestVerifier(t, settings, nil, cfg, verification.Identity{}, "")
 	return &testLookupApplication{cfg: cfg, settings: settings, verifier: verifier}
 }
 
 func newTestVerifier(
+	t *testing.T,
 	settings *settings.Store,
 	connector *telegram.Connector,
 	cfg *settings.Config,
 	identity verification.Identity,
 	stateDirectory string,
 ) *verification.Service {
+	t.Helper()
 	var gateway verification.Gateway
 	if connector != nil {
 		gateway = telegram.NewVerificationGateway(connector)
 	}
-	return verification.New(
+	service, err := verification.New(
 		settings, gateway, database.NewVerificationJSONStore(), cfg, &i18n.Messages, nil, identity, stateDirectory,
 	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return service
 }
 
 func testLookupService(v *testLookupApplication) *lookup.Service {

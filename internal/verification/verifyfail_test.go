@@ -167,13 +167,13 @@ func TestClaimPendingNonce(t *testing.T) {
 	key := pkey{-100, 42}
 	p := &pending{nonce: "NEW"}
 	v.pend[key] = p
-	if _, ok := v.claimPendingNonce(key.gid, key.uid, "OLD"); ok {
+	if _, ok, _ := v.claimPendingNonce(key.gid, key.uid, "OLD"); ok {
 		t.Fatal("stale nonce claimed the replacement pending")
 	}
 	if p.done {
 		t.Fatal("stale nonce marked the replacement done")
 	}
-	got, ok := v.claimPendingNonce(key.gid, key.uid, "NEW")
+	got, ok, _ := v.claimPendingNonce(key.gid, key.uid, "NEW")
 	if !ok || got != p || !p.done {
 		t.Fatalf("matching nonce claim = (%p, %v), pending done=%v", got, ok, p.done)
 	}

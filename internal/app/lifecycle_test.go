@@ -266,7 +266,7 @@ func newLifecycleVerificationFixture(t *testing.T) *lifecycleVerificationFixture
 	bot := newLifecycleBot(t, caller)
 	connector := telegram.NewConnector(bot)
 	verification := newTestVerifier(
-		settings, connector, cfg,
+		t, settings, connector, cfg,
 		verification.Identity{ID: botID, Username: "lifecycle_bot"}, stateDirectory,
 	)
 	join := telego.Update{ChatJoinRequest: &telego.ChatJoinRequest{
@@ -487,7 +487,7 @@ func assertRestartedVerification(t *testing.T, fixture *lifecycleVerificationFix
 		t.Fatal(err)
 	}
 	restarted := newTestVerifier(
-		settings, fixture.connector, cfg,
+		t, settings, fixture.connector, cfg,
 		verification.Identity{ID: fixture.botID, Username: "lifecycle_bot"}, fixture.stateDirectory,
 	)
 	defer restarted.Shutdown()

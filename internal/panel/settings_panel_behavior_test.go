@@ -266,7 +266,10 @@ func newSettingsPanelTestWithCaller(t *testing.T, path string, caller ta.Caller)
 	bot := newAPITestBot(t, caller)
 	verifier := &panelVerifierStub{}
 	telegram := telegram.NewConnector(bot)
-	moderation := moderate.New(settings, telegram, cfg, nil)
+	moderation, err := moderate.New(settings, telegram, cfg, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	panel := New(settings, telegram, cfg, &i18n.Messages, verifier, moderation, nil, "test", time.Now())
 	return panel, settings, bot
 }
@@ -360,7 +363,7 @@ func TestVerificationStartPayloadSelectsOnePendingGroupAndBarePayloadStillFansOu
 		caller := &panelAPICaller{messageID: 100}
 		bot := newAPITestBot(t, caller)
 		connector := telegram.NewConnector(bot)
-		verifier := newPanelTestVerifier(settings, connector, cfg,
+		verifier := newPanelTestVerifier(t, settings, connector, cfg,
 			verification.Identity{ID: 500, Username: "settings_test_bot"}, "")
 		t.Cleanup(verifier.Shutdown)
 		panel := New(settings, connector, cfg, &i18n.Messages, verifier, nil, nil, "test", time.Now())

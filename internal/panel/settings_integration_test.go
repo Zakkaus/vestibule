@@ -17,9 +17,10 @@ import (
 	th "github.com/mymmrac/telego/telegohandler"
 )
 
-func newAdminTestApplication(cfg *settings.Config, settings *settings.Store, bot *telego.Bot) (*Panel, *verification.Service) {
+func newAdminTestApplication(t *testing.T, cfg *settings.Config, settings *settings.Store, bot *telego.Bot) (*Panel, *verification.Service) {
+	t.Helper()
 	connector := telegram.NewConnector(bot)
-	verification := newPanelTestVerifier(settings, connector, cfg, verification.Identity{}, "")
+	verification := newPanelTestVerifier(t, settings, connector, cfg, verification.Identity{}, "")
 	administration := New(
 		settings, connector, cfg, &i18n.Messages,
 		verification, nil, nil, "", time.Time{},
@@ -28,16 +29,22 @@ func newAdminTestApplication(cfg *settings.Config, settings *settings.Store, bot
 }
 
 func newPanelTestVerifier(
+	t *testing.T,
 	settings *settings.Store,
 	connector *telegram.Connector,
 	cfg *settings.Config,
 	identity verification.Identity,
 	stateDirectory string,
 ) *verification.Service {
-	return verification.New(
+	service, err := verification.New(
 		settings, telegram.NewVerificationGateway(connector), database.NewVerificationJSONStore(),
 		cfg, &i18n.Messages, nil, identity, stateDirectory,
 	)
+	if err != nil {
+		t.Helper()
+		t.Fatal(err)
+	}
+	return service
 }
 
 func TestStopCommandWritesInvokingGroup(t *testing.T) {
@@ -57,7 +64,7 @@ func TestStopCommandWritesInvokingGroup(t *testing.T) {
 	fake := newFakeAdminBot()
 	fake.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
 	bot := newAPITestBot(t, fake)
-	administration, verification := newAdminTestApplication(cfg, settings, bot)
+	administration, verification := newAdminTestApplication(t, cfg, settings, bot)
 	runFakeHandler(t, bot, administration.OnStop, telego.Update{Message: &telego.Message{
 		MessageID: 1,
 		Chat:      telego.Chat{ID: groupB, Type: "supergroup"},
@@ -79,7 +86,7 @@ func TestRuntimeRegisteredGroupUsesLiveCommandGuards(t *testing.T) {
 	fake := newFakeAdminBot()
 	fake.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
 	bot := newAPITestBot(t, fake)
-	administration, verification := newAdminTestApplication(cfg, store, bot)
+	administration, verification := newAdminTestApplication(t, cfg, store, bot)
 	defer verification.Shutdown()
 	registration := store.Registrations()
 	registration.RegisteredGroups = []settings.RegisteredGroup{{ID: groupID, RegisteredBy: 42}}
@@ -140,7 +147,7 @@ func TestRuntimeGroupsMutateOnlyTheirOwnSettings(t *testing.T) {
 	fake := newFakeAdminBot()
 	fake.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
 	bot := newAPITestBot(t, fake)
-	administration, verification := newAdminTestApplication(cfg, store, bot)
+	administration, verification := newAdminTestApplication(t, cfg, store, bot)
 	defer verification.Shutdown()
 	registration := store.Registrations()
 	registration.RegisteredGroups = []settings.RegisteredGroup{
@@ -174,7 +181,7 @@ func TestHelpUsesProcessPrivateQueryRate(t *testing.T) {
 	}
 	fake := newFakeAdminBot()
 	bot := newAPITestBot(t, fake)
-	administration, verification := newAdminTestApplication(cfg, settings, bot)
+	administration, verification := newAdminTestApplication(t, cfg, settings, bot)
 	defer verification.Shutdown()
 	runFakeHandler(t, bot, administration.OnHelp, telego.Update{Message: &telego.Message{
 		Chat: telego.Chat{ID: 7, Type: telego.ChatTypePrivate},
@@ -197,7 +204,7 @@ func TestSettingsCommandReportsWriteFailure(t *testing.T) {
 	fake := newFakeAdminBot()
 	fake.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
 	bot := newAPITestBot(t, fake)
-	administration, verification := newAdminTestApplication(cfg, settings, bot)
+	administration, verification := newAdminTestApplication(t, cfg, settings, bot)
 	runFakeHandler(t, bot, administration.OnStop, telego.Update{Message: &telego.Message{
 		MessageID: 1,
 		Chat:      telego.Chat{ID: cfg.GroupIDs[0], Type: "supergroup"},
@@ -277,7 +284,7 @@ func TestRuntimeSettingsCommandHandlersPersistAndRespond(t *testing.T) {
 			fake := newFakeAdminBot()
 			fake.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
 			bot := newAPITestBot(t, fake)
-			administration, verification := newAdminTestApplication(cfg, store, bot)
+			administration, verification := newAdminTestApplication(t, cfg, store, bot)
 			t.Cleanup(verification.Shutdown)
 
 			runFakeHandler(t, bot, test.handler(administration), telego.Update{Message: &telego.Message{
@@ -296,7 +303,7 @@ func TestRuntimeSettingsCommandHandlersPersistAndRespond(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			_, restored := newAdminTestApplication(cfg, restoredSettings, bot)
+			_, restored := newAdminTestApplication(t, cfg, restoredSettings, bot)
 			t.Cleanup(restored.Shutdown)
 			test.assertState(t, restored, groupID)
 		})
@@ -314,7 +321,7 @@ func TestSettingsCommandUsesFreshAdminMembership(t *testing.T) {
 	fake := newFakeAdminBot()
 	fake.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
 	bot := newAPITestBot(t, fake)
-	administration, verification := newAdminTestApplication(cfg, settings, bot)
+	administration, verification := newAdminTestApplication(t, cfg, settings, bot)
 	t.Cleanup(verification.Shutdown)
 	message := &telego.Message{
 		MessageID: 1,

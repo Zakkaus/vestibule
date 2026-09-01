@@ -243,7 +243,10 @@ func TestStateCompatHeartbeat(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			v := newTestService(stateCompatConfig())
 			v.hbPath = stateCompatTempFile(t, "heartbeat.json", tt.data)
-			got := v.loadHeartbeat()
+			got, err := v.loadHeartbeat()
+			if err != nil {
+				t.Fatal(err)
+			}
 			if !got.Equal(stateCompatHeartbeat) {
 				t.Fatalf("loaded heartbeat = %v, want %v", got, stateCompatHeartbeat)
 			}

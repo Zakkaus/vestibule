@@ -102,14 +102,18 @@ func TestWarningGoldenCompatibility(t *testing.T) {
 	}
 }
 
-func TestWarningReadErrorDisablesWrites(t *testing.T) {
+func TestWarningReadErrorFailsConstruction(t *testing.T) {
 	stateDirectory := t.TempDir()
 	if err := os.Mkdir(filepath.Join(stateDirectory, "warns.json"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	service := newTestService(t, &settings.Config{}, newFakeMod(), stateDirectory)
-	if service.warnings.store != nil {
-		t.Error("warning store remains enabled after read failure")
+	service, err := New(
+		testSettings(t, &settings.Config{}), newFakeMod(), &settings.Config{},
+		newWarningJSONStore(warningsPath(stateDirectory)),
+	)
+	t.Logf("moderation constructor error=%v service_nil=%t", err, service == nil)
+	if err == nil || service != nil {
+		t.Fatalf("moderation construction after warning load failure = service %v error %v", service, err)
 	}
 }
 
@@ -167,9 +171,11 @@ func testWarnStateWriteFailure(t *testing.T, adminLogID int64) {
 		t.Fatalf("warning state write failure was not logged for %q: %q", path, output)
 	}
 
-	restarted := newTestService(t, cfg, newFakeMod(), stateDirectory)
-	if got := restarted.warnings.counters[key]; got != 0 {
-		t.Fatalf("warning count after restart = %d, want 0 after failed write", got)
+	restarted, restartErr := New(
+		testSettings(t, cfg), newFakeMod(), cfg, newWarningJSONStore(warningsPath(stateDirectory)),
+	)
+	if restartErr == nil || restarted != nil {
+		t.Fatalf("restart after unreadable warning state = service %v error %v", restarted, restartErr)
 	}
 }
 

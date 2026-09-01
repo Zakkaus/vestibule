@@ -78,10 +78,13 @@ func newRuntimeRegistrationFixture(
 	bot := testBot(t, caller)
 	connector := telegram.NewConnector(bot)
 	identity := verification.Identity{ID: botID, Username: "verify_test_bot"}
-	verification := newTestVerifier(settings, connector, cfg, identity, "")
+	verification := newTestVerifier(t, settings, connector, cfg, identity, "")
 	verificationGateway := telegram.NewVerificationGateway(connector)
 	t.Cleanup(verification.Shutdown)
-	moderation := moderate.New(settings, connector, cfg, nil)
+	moderation, err := moderate.New(settings, connector, cfg, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	lookups := lookup.New(settings, connector, cfg, "")
 	administration := panel.New(
 		settings, connector, cfg, &i18n.Messages,
