@@ -29,6 +29,10 @@ const navigationItems = [
     labelKey: "navigation.groups"
   },
   {
+    path: "/moderation",
+    labelKey: "moderation.navigation"
+  },
+  {
     path: "/preferences",
     labelKey: "navigation.preferences"
   }
