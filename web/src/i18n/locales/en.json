@@ -896,5 +896,151 @@
       "loadUnavailable": "Statistics cannot be read right now. Try again.",
       "network": "The connection was interrupted. Update the statistics before deciding whether to retry."
     }
+  },
+  "messages": {
+    "navigation": "Messages and copy",
+    "title": "Messages and copy",
+    "description": "Manage this group's stored reply rules, message presentation, and lookup auto-delete.",
+    "loading": {
+      "title": "Loading messages and copy",
+      "description": "Confirming the current group and reading available message settings…"
+    },
+    "groupRequired": {
+      "title": "Select a group first",
+      "description": "Select an authorized group before managing its messages and copy.",
+      "select": "Select group"
+    },
+    "noGroups": {
+      "title": "This account has not been authorized for any group",
+      "description": "Messages and copy are available only for authorized groups."
+    },
+    "unavailable": {
+      "title": "Messages and copy are temporarily unavailable"
+    },
+    "settings": {
+      "loading": {
+        "title": "Loading message settings",
+        "description": "Reading this group's message presentation and auto-delete settings…"
+      },
+      "unavailable": {
+        "title": "Message settings cannot be read"
+      }
+    },
+    "rules": {
+      "title": "Automatic reply rules",
+      "description": "The service interprets rule definitions. This screen preserves each definition and manages only enabled state and match order.",
+      "saveSemantics": "Changing enabled state saves one rule immediately. Moving a rule replaces its whole collection.",
+      "loading": {
+        "title": "Loading automatic reply rules",
+        "description": "Reading this group's stored rule collections…"
+      },
+      "unavailable": {
+        "title": "Automatic reply rules cannot be read"
+      },
+      "collections": {
+        "autoReply": "Automatic replies",
+        "unknown": "Unrecognized rule collection: {{collection}}"
+      },
+      "collectionDescription": "Rules are matched in the order shown here.",
+      "collectionCount": "{{count}} rules",
+      "collectionSaving": "Saving collection…",
+      "itemTitle": "Rule {{number}}",
+      "identifier": "ID: {{id}}",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "orderActions": "Change rule order",
+      "moveUp": "Move rule {{id}} up",
+      "moveDown": "Move rule {{id}} down",
+      "up": "Move up",
+      "down": "Move down",
+      "itemSaving": "Saving…",
+      "empty": {
+        "title": "There are no automatic reply rules",
+        "description": "An empty rule collection appears here."
+      },
+      "feedback": {
+        "itemSaved": "The rule's enabled state was saved.",
+        "orderSaved": "The rule order for {{collection}} was saved.",
+        "conflict": "Another administrator changed the rules. The latest rules were loaded; repeat the action against their current order."
+      }
+    },
+    "display": {
+      "title": "Message presentation",
+      "description": "Adjust display names and rich-message delivery for this group.",
+      "nameSpoiler": {
+        "label": "Spoiler applicant display names",
+        "description": "Hide the applicant's display name in public verification messages."
+      },
+      "richMessages": {
+        "label": "Enable rich messages",
+        "description": "Use rich Bot API messages with an HTML fallback."
+      }
+    },
+    "autoDelete": {
+      "title": "Lookup auto-delete",
+      "description": "Adjust automatic deletion of lookup commands and their replies.",
+      "enabled": {
+        "label": "Auto-delete lookup messages",
+        "description": "Automatically delete lookup commands and their replies."
+      },
+      "delay": {
+        "label": "Deletion delay",
+        "description": "Enter a whole number of seconds from 1 through 86,400."
+      }
+    },
+    "settingsSave": {
+      "title": "Message settings",
+      "dirty": "{{count}} message-setting changes are not saved.",
+      "clean": "There are no message-setting changes to save."
+    },
+    "source": {
+      "value": "Source: {{source}}",
+      "factoryDefault": "Factory default",
+      "userFile": "Configuration file",
+      "chatOverride": "This group override",
+      "pending": "Unsaved in this session",
+      "restoring": "Will restore inherited value"
+    },
+    "actions": {
+      "retry": "Try again",
+      "restore": "Restore inherited value",
+      "cancelRestore": "Cancel restore",
+      "saveSettings": "Save message settings",
+      "savingSettings": "Saving message settings…"
+    },
+    "settingsFeedback": {
+      "saved": "Message settings were saved.",
+      "conflict": "Another administrator changed the message settings. The latest values were loaded; reapply the changes you still need."
+    },
+    "copyGap": {
+      "title": "Copy fields are not available",
+      "description": "The API has no read or write fields for join and leave notices or verification-flow copy, so this screen does not substitute other settings for them.",
+      "joinLeave": "Join and leave notices",
+      "verification": "Verification-flow copy"
+    },
+    "validation": {
+      "integer": "Enter a whole number.",
+      "ttl": "Enter a whole number from 1 through 86,400."
+    },
+    "errors": {
+      "authenticationExpired": "The session has expired. Open the console again from Telegram.",
+      "authenticationInvalid": "This console session cannot be verified. Open the console again from Telegram.",
+      "accessDenied": "You no longer administer this group.",
+      "accessUnavailable": "Your administration access cannot be verified right now. Try again.",
+      "chatNotFound": "This group can no longer be managed in the console.",
+      "csrfInvalid": "The security token for this page has expired. Refresh the page and try again.",
+      "invalidSettings": "One or more message settings are invalid. Check them, then save again.",
+      "settingsUnavailable": "Message settings are temporarily unavailable. Try again.",
+      "loadUnavailable": "Messages and copy are temporarily unavailable. Try again.",
+      "loadSettingsUnavailable": "Message settings cannot be read right now. Try again.",
+      "saveSettingsUnavailable": "Message settings cannot be saved right now. Try again.",
+      "invalidRule": "The rule definition is invalid. Reload the rules and try again.",
+      "ruleNotFound": "This rule no longer exists. Reload the rules.",
+      "ruleConflict": "Another administrator changed the rule. Reload the rules.",
+      "rulesUnavailable": "Automatic reply rules are temporarily unavailable. Try again.",
+      "loadRulesUnavailable": "Automatic reply rules cannot be read right now. Try again.",
+      "saveRulesUnavailable": "Automatic reply rules cannot be saved right now. Try again.",
+      "network": "The connection was interrupted. Reload messages and copy before deciding whether to retry."
+    }
   }
 }

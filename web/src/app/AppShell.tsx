@@ -53,6 +53,10 @@ const navigationItems = [
     labelKey: "moderation.navigation"
   },
   {
+    path: "/messages",
+    labelKey: "messages.navigation"
+  },
+  {
     path: "/preferences",
     labelKey: "navigation.preferences"
   }

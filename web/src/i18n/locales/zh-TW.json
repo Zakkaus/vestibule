@@ -896,5 +896,151 @@
       "loadUnavailable": "暫時無法讀取統計。請重試。",
       "network": "連線已中斷。更新統計後，再決定是否重試。"
     }
+  },
+  "messages": {
+    "navigation": "訊息與文案",
+    "title": "訊息與文案",
+    "description": "管理目前群組已有的自動回覆規則、訊息顯示和查詢自動撤回。",
+    "loading": {
+      "title": "正在載入訊息與文案",
+      "description": "正在確認目前群組並讀取可用的訊息設定…"
+    },
+    "groupRequired": {
+      "title": "請先選擇群組",
+      "description": "選擇已獲授權的群組後，才能管理它的訊息與文案。",
+      "select": "選擇群組"
+    },
+    "noGroups": {
+      "title": "此帳號尚未取得任何群組授權",
+      "description": "訊息與文案只對已獲授權的群組開放。"
+    },
+    "unavailable": {
+      "title": "訊息與文案暫時無法使用"
+    },
+    "settings": {
+      "loading": {
+        "title": "正在載入訊息設定",
+        "description": "正在讀取目前群組的訊息顯示與自動撤回設定…"
+      },
+      "unavailable": {
+        "title": "無法讀取訊息設定"
+      }
+    },
+    "rules": {
+      "title": "自動回覆規則",
+      "description": "規則定義由服務端解讀。這裡會保留定義本身，只管理啟停和比對順序。",
+      "saveSemantics": "啟停會立即儲存一條規則；調整順序會取代同一規則集合。",
+      "loading": {
+        "title": "正在載入自動回覆規則",
+        "description": "正在讀取目前群組儲存的規則集合…"
+      },
+      "unavailable": {
+        "title": "無法讀取自動回覆規則"
+      },
+      "collections": {
+        "autoReply": "自動回覆",
+        "unknown": "未知規則集合：{{collection}}"
+      },
+      "collectionDescription": "規則會按這裡顯示的順序比對。",
+      "collectionCount": "共 {{count}} 條規則",
+      "collectionSaving": "正在儲存集合…",
+      "itemTitle": "規則 {{number}}",
+      "identifier": "ID：{{id}}",
+      "enabled": "已啟用",
+      "disabled": "已停用",
+      "orderActions": "調整規則順序",
+      "moveUp": "將規則 {{id}} 上移",
+      "moveDown": "將規則 {{id}} 下移",
+      "up": "上移",
+      "down": "下移",
+      "itemSaving": "正在儲存…",
+      "empty": {
+        "title": "還沒有自動回覆規則",
+        "description": "規則集合為空時會顯示在這裡。"
+      },
+      "feedback": {
+        "itemSaved": "已儲存規則啟停狀態。",
+        "orderSaved": "已儲存 {{collection}} 的規則順序。",
+        "conflict": "其他管理員已更改規則。已載入最新規則；請依目前順序重新操作。"
+      }
+    },
+    "display": {
+      "title": "訊息顯示",
+      "description": "調整目前群組訊息中的顯示名稱和富文字傳送方式。",
+      "nameSpoiler": {
+        "label": "將申請人的顯示名稱設為劇透",
+        "description": "在公開驗證訊息中隱藏申請人的顯示名稱。"
+      },
+      "richMessages": {
+        "label": "啟用富文字訊息",
+        "description": "使用帶有 HTML 備援的富文字 Bot API 訊息。"
+      }
+    },
+    "autoDelete": {
+      "title": "查詢自動撤回",
+      "description": "調整查詢指令及其回覆的自動刪除行為。",
+      "enabled": {
+        "label": "自動撤回查詢訊息",
+        "description": "自動刪除查詢指令及其回覆。"
+      },
+      "delay": {
+        "label": "撤回延遲",
+        "description": "請輸入 1 至 86,400 之間的整數秒。"
+      }
+    },
+    "settingsSave": {
+      "title": "訊息設定",
+      "dirty": "有 {{count}} 項尚未儲存的訊息設定變更。",
+      "clean": "沒有待儲存的訊息設定變更。"
+    },
+    "source": {
+      "value": "來源：{{source}}",
+      "factoryDefault": "出廠預設",
+      "userFile": "設定檔",
+      "chatOverride": "此群組覆寫",
+      "pending": "本次尚未儲存",
+      "restoring": "待恢復繼承值"
+    },
+    "actions": {
+      "retry": "重試",
+      "restore": "恢復繼承值",
+      "cancelRestore": "取消恢復",
+      "saveSettings": "儲存訊息設定",
+      "savingSettings": "正在儲存訊息設定…"
+    },
+    "settingsFeedback": {
+      "saved": "已儲存訊息設定。",
+      "conflict": "其他管理員已更改訊息設定。已載入最新值；請重新套用仍需要的變更。"
+    },
+    "copyGap": {
+      "title": "尚未提供的文案",
+      "description": "進出提示和驗證完整流程文案尚未提供讀取或儲存欄位，因此此屏不會以其他設定取代它們。",
+      "joinLeave": "進出提示",
+      "verification": "驗證完整流程文案"
+    },
+    "validation": {
+      "integer": "請輸入整數。",
+      "ttl": "請輸入 1 至 86,400 之間的整數。"
+    },
+    "errors": {
+      "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
+      "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
+      "accessDenied": "你已不再擁有此群組的管理權限。",
+      "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
+      "chatNotFound": "此群組已無法在控制台中管理。",
+      "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
+      "invalidSettings": "一或多個訊息設定無效。檢查後重新儲存。",
+      "settingsUnavailable": "訊息設定暫時無法使用。請重試。",
+      "loadUnavailable": "訊息與文案暫時無法使用。請重試。",
+      "loadSettingsUnavailable": "暫時無法讀取訊息設定。請重試。",
+      "saveSettingsUnavailable": "暫時無法儲存訊息設定。請重試。",
+      "invalidRule": "規則定義無效。請重新讀取規則後再試。",
+      "ruleNotFound": "這條規則已不存在。請重新讀取規則。",
+      "ruleConflict": "規則已被其他管理員更改。請重新讀取規則。",
+      "rulesUnavailable": "自動回覆規則暫時無法使用。請重試。",
+      "loadRulesUnavailable": "暫時無法讀取自動回覆規則。請重試。",
+      "saveRulesUnavailable": "暫時無法儲存自動回覆規則。請重試。",
+      "network": "連線已中斷。重新讀取訊息與文案後，再決定是否重試。"
+    }
   }
 }
