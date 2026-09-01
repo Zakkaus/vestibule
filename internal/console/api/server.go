@@ -249,7 +249,7 @@ func (s *Server) chatRoute(writer http.ResponseWriter, request *http.Request) {
 }
 
 func (s *Server) queue(writer http.ResponseWriter, request *http.Request, chatID int64) {
-	if _, ok := s.authorizedSession(writer, request, chatID); !ok {
+	if _, ok := s.authorizedSession(writer, request, chatID, auth.ReadAccess); !ok {
 		return
 	}
 	entries, err := s.verification.ConsoleQueue(request.Context(), chatID)
@@ -265,7 +265,7 @@ func (s *Server) queue(writer http.ResponseWriter, request *http.Request, chatID
 }
 
 func (s *Server) settle(writer http.ResponseWriter, request *http.Request, chatID int64, challengeID string) {
-	session, ok := s.authorizedSession(writer, request, chatID)
+	session, ok := s.authorizedSession(writer, request, chatID, auth.WriteAccess)
 	if !ok {
 		return
 	}
@@ -289,7 +289,7 @@ func (s *Server) settle(writer http.ResponseWriter, request *http.Request, chatI
 	writeJSON(writer, http.StatusOK, queueView(entry, time.Now()))
 }
 
-func (s *Server) authorizedSession(writer http.ResponseWriter, request *http.Request, chatID int64) (auth.Session, bool) {
+func (s *Server) authorizedSession(writer http.ResponseWriter, request *http.Request, chatID int64, intent auth.AccessIntent) (auth.Session, bool) {
 	session, ok := s.session(writer, request)
 	if !ok {
 		return auth.Session{}, false
@@ -298,7 +298,7 @@ func (s *Server) authorizedSession(writer http.ResponseWriter, request *http.Req
 		writeError(writer, http.StatusNotFound, "chat_not_found")
 		return auth.Session{}, false
 	}
-	if err := s.authenticator.AuthorizeChat(request.Context(), session, chatID); err != nil {
+	if err := s.authenticator.AuthorizeChat(request.Context(), session, chatID, intent); err != nil {
 		s.writeAuthorizationError(writer, err)
 		return auth.Session{}, false
 	}

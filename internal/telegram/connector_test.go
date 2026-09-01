@@ -257,6 +257,11 @@ func testPositiveAdminCache(t *testing.T) {
 	if ok, err := client.CachedAdmin(context.Background(), -100, 7); !ok || err != nil {
 		t.Fatalf("initial CachedAdmin = (%v, %v), want (true, nil)", ok, err)
 	}
+	remaining := time.Until(client.adminCache[adminKey{chatID: -100, userID: 7}])
+	if remaining < 59*time.Second || remaining > time.Minute {
+		t.Fatalf("positive admin cache TTL = %s, want 60s", remaining.Round(time.Second))
+	}
+	t.Logf("positive admin cache TTL = %s", remaining.Round(time.Second))
 	if ok, err := client.CachedAdmin(context.Background(), -100, 7); !ok || err != nil {
 		t.Fatalf("cached CachedAdmin = (%v, %v), want (true, nil)", ok, err)
 	}
