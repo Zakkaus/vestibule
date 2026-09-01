@@ -165,6 +165,7 @@ python3 scripts/check-gate-list.py   # this list names every gate CI runs
 python3 scripts/check-limits.py      # the limits stated here are the ones lint.go enforces
 python3 scripts/check-console-copy.py  # no user-facing text written into a component
 python3 scripts/check-privacy-tables.py   # docs/PRIVACY.md names every table holding a person
+python3 scripts/check-phase-seams.py     # no screen reaches for a later phase's endpoints
 cd web && npm ci && npm run build && cd ..
 for c in style-rules undefined-var shadowed theme-leak; do \
   python3 "scripts/design-checks/$c.py" web/dist/assets/*.css; done
