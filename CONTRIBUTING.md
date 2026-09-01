@@ -127,6 +127,19 @@ See `internal/i18n/README.md` for the catalogue layout and translation workflow.
   mention of which tool was used.
 - Mechanical churn — reformatting, import reordering — goes in its own commit.
 
+## The gate is enforced, not remembered
+
+`main` requires the `build` and `docs` checks to pass before a merge. It did not
+until a PR was merged while its prose check was still failing, leaving `main` red
+for a round — the rule was in this document and nothing was holding anyone to it.
+
+`enforce_admins` is off deliberately, so a repository admin can still merge past
+a check when there is a reason to. That is a decision someone takes knowingly;
+what it replaces is taking it by accident.
+
+To remove it:
+`gh api -X DELETE repos/Zakkaus/vestibule/branches/main/protection`
+
 ## Before opening a PR
 
 CI runs these. The release workflow runs the Go half of them before publishing binaries —
