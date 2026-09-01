@@ -45,6 +45,14 @@
   background: var(--foreground); color: var(--background);
   display: grid; place-items: center; font: 700 0.6875rem/1 var(--font-mono);
 }
+/* No optical shift here, and that is a measurement rather than an oversight. The mark
+   and the name centre their boxes to within 0.005px, but the ink does not: the Latin
+   wordmark sits 1.38px low and a CJK one 0.62px, because the offset comes from how much
+   room the font reserves above the baseline, which differs by script. One correction
+   cannot serve both, so neither gets one. If a project's wordmark is Latin only, the
+   shift is an equal and opposite pair in em -- `margin-block: -0.11em 0.11em` -- never a
+   one-sided `margin-block-start`, which a centred row gives back half of. Measure with
+   checks/ink-offset.py; the boxes and line-height will both tell you nothing is wrong. */
 .brand .name { font-size: .8rem; font-weight: 700; letter-spacing: -.01em; }
 /* A divider needs room on both sides. With no top margin it sits against the
    block above it and reads as that block's underline, not as a separator. */

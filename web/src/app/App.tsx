@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AuditScreen } from "../features/audit";
 import { EntryScreen } from "../features/entry";
 import { GroupListScreen } from "../features/groups";
+import { ModerationScreen } from "../features/moderation";
 import { QueueScreen } from "../features/queue";
 import { PreferencesScreen } from "../features/preferences";
 import { AppShell } from "./AppShell";
@@ -38,6 +39,11 @@ const router = createBrowserRouter([
       {
         path: "groups",
         element: <GroupListScreen />,
+        handle: consoleHandle
+      },
+      {
+        path: "moderation",
+        element: <ModerationScreen />,
         handle: consoleHandle
       },
       {

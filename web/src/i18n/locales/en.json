@@ -253,6 +253,79 @@
       "description": "Theme and language are stored on this device and do not change group configuration."
     }
   },
+  "moderation": {
+    "navigation": "Moderation",
+    "title": "Moderation",
+    "description": "Set the warning limit, sender-channel protection, and moderation log destination for this group.",
+    "loading": {
+      "title": "Loading moderation settings",
+      "description": "Reading this group's effective values and their sources…"
+    },
+    "groupRequired": {
+      "title": "Select a group first",
+      "description": "Select an authorized group before managing its moderation settings.",
+      "select": "Select group"
+    },
+    "noGroups": {
+      "title": "This account has not been authorized for any group",
+      "description": "Moderation settings are available only for authorized groups."
+    },
+    "unavailable": {
+      "title": "Moderation settings cannot be read",
+      "retry": "Try again"
+    },
+    "source": {
+      "factory": "Factory default",
+      "file": "Managed by file",
+      "chat": "This group",
+      "pending": "Unsaved",
+      "restoring": "Restore pending"
+    },
+    "warnLimit": {
+      "label": "Warning limit",
+      "description": "The bot removes a member after they accumulate this many warnings."
+    },
+    "antispam": {
+      "label": "Block sender-channel impersonation",
+      "description": "Delete posts from untrusted sender channels and ban that sender identity after confirming it is not this group's linked channel. This protection is on by default."
+    },
+    "adminLog": {
+      "label": "Moderation log group",
+      "description": "Leaving this blank is group ID 0: moderation records are not sent to a separate group, while failed-action alerts still go to the affected group."
+    },
+    "validation": {
+      "warnLimit": "The warning limit must be a whole number greater than 0.",
+      "adminLog": "Enter an integer group ID, or leave this blank to use group ID 0."
+    },
+    "save": {
+      "label": "Save moderation settings",
+      "unsaved_one": "{{count}} unsaved change",
+      "unsaved_other": "{{count}} unsaved changes"
+    },
+    "actions": {
+      "restore": "Restore default",
+      "cancelRestore": "Cancel restore",
+      "discard": "Discard",
+      "save": "Save",
+      "saving": "Saving…",
+      "reload": "Reload"
+    },
+    "feedback": {
+      "saved": "Moderation settings saved.",
+      "conflict": "Someone else changed these settings. Reload before saving again."
+    },
+    "errors": {
+      "authenticationRequired": "The console session is invalid. Reopen the console from Telegram.",
+      "authenticationExpired": "The session has expired. Reopen the console from Telegram.",
+      "accessDenied": "You no longer administer this group.",
+      "accessUnavailable": "Your administration access cannot be verified right now. Try again.",
+      "chatNotFound": "This group can no longer be managed in the console.",
+      "invalidSettings": "These settings did not pass validation. Review the changes and try again.",
+      "settingsUnavailable": "The settings service is unavailable. Try again.",
+      "loadUnavailable": "Moderation settings are unavailable.",
+      "saveUnavailable": "Moderation settings cannot be saved right now. Try again."
+    }
+  },
   "audit": {
     "navigation": "Activity log",
     "title": "Activity log",

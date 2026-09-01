@@ -253,6 +253,79 @@
       "description": "佈景主題與語言會儲存在目前裝置上，不會變更群組設定。"
     }
   },
+  "moderation": {
+    "navigation": "管理與處罰",
+    "title": "管理與處罰",
+    "description": "調整目前群組的警告上限、頻道身分攔截和處罰記錄去向。",
+    "loading": {
+      "title": "正在載入管理與處罰設定",
+      "description": "正在讀取目前群組的有效設定與設定來源…"
+    },
+    "groupRequired": {
+      "title": "請先選擇群組",
+      "description": "選擇已取得授權的群組後，才能管理其處罰設定。",
+      "select": "選擇群組"
+    },
+    "noGroups": {
+      "title": "此帳號尚未取得任何群組授權",
+      "description": "管理與處罰設定只對已取得授權的群組開放。"
+    },
+    "unavailable": {
+      "title": "無法讀取管理與處罰設定",
+      "retry": "重試"
+    },
+    "source": {
+      "factory": "出廠預設",
+      "file": "由檔案管理",
+      "chat": "此群組設定",
+      "pending": "尚未儲存",
+      "restoring": "將還原預設"
+    },
+    "warnLimit": {
+      "label": "警告上限",
+      "description": "同一成員累計達到此次數後，機器人會將其移出群組。"
+    },
+    "antispam": {
+      "label": "攔截頻道身分發言",
+      "description": "刪除不受信任的頻道身分發言；確認不是此群組的關聯頻道後，再封鎖該頻道身分。此項預設開啟。"
+    },
+    "adminLog": {
+      "label": "處罰記錄群組",
+      "description": "留白等同群組 ID 0：不另外傳送處罰記錄；處罰失敗通知仍傳送至目前群組。"
+    },
+    "validation": {
+      "warnLimit": "警告上限必須是大於 0 的整數。",
+      "adminLog": "請輸入整數群組 ID，或留白使用群組 ID 0。"
+    },
+    "save": {
+      "label": "儲存管理與處罰設定",
+      "unsaved_one": "{{count}} 項變更尚未儲存",
+      "unsaved_other": "{{count}} 項變更尚未儲存"
+    },
+    "actions": {
+      "restore": "還原預設",
+      "cancelRestore": "取消還原",
+      "discard": "放棄",
+      "save": "儲存",
+      "saving": "正在儲存…",
+      "reload": "重新載入"
+    },
+    "feedback": {
+      "saved": "管理與處罰設定已儲存。",
+      "conflict": "其他人已修改這些設定。請重新載入後再儲存。"
+    },
+    "errors": {
+      "authenticationRequired": "控制台工作階段無效。請從 Telegram 重新開啟控制台。",
+      "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
+      "accessDenied": "你已不再擁有此群組的管理權限。",
+      "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
+      "chatNotFound": "此群組已無法在控制台中管理。",
+      "invalidSettings": "這些設定未通過驗證。請檢查變更後重試。",
+      "settingsUnavailable": "設定服務暫時無法使用。請重試。",
+      "loadUnavailable": "管理與處罰設定暫時無法使用。",
+      "saveUnavailable": "無法儲存管理與處罰設定。請重試。"
+    }
+  },
   "audit": {
     "navigation": "操作記錄",
     "title": "操作記錄",

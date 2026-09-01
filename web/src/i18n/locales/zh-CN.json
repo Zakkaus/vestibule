@@ -253,6 +253,79 @@
       "description": "主题和语言保存在当前设备，不会更改群配置。"
     }
   },
+  "moderation": {
+    "navigation": "管理与处罚",
+    "title": "管理与处罚",
+    "description": "调整当前群的警告上限、频道身份拦截和处罚记录去向。",
+    "loading": {
+      "title": "正在载入管理与处罚设置",
+      "description": "正在读取当前群的有效设置和设置来源…"
+    },
+    "groupRequired": {
+      "title": "先选择一个群",
+      "description": "选择已获授权的群后，才能管理它的处罚设置。",
+      "select": "选择群"
+    },
+    "noGroups": {
+      "title": "此账号尚未获任何群授权",
+      "description": "管理与处罚设置只对已获授权的群开放。"
+    },
+    "unavailable": {
+      "title": "无法读取管理与处罚设置",
+      "retry": "重试"
+    },
+    "source": {
+      "factory": "出厂默认",
+      "file": "由文件管理",
+      "chat": "本群设定",
+      "pending": "未保存",
+      "restoring": "待恢复默认"
+    },
+    "warnLimit": {
+      "label": "警告上限",
+      "description": "同一成员累计达到这个次数后，机器人会将其移出群。"
+    },
+    "antispam": {
+      "label": "拦截频道马甲",
+      "description": "删除未受信任的频道身份发言；确认它不是本群关联频道后，再封禁该频道身份。此项默认开启。"
+    },
+    "adminLog": {
+      "label": "处罚记录群",
+      "description": "留空等同于群号 0：不另发处罚记录；处罚失败提醒仍发到当前群。"
+    },
+    "validation": {
+      "warnLimit": "警告上限必须是大于 0 的整数。",
+      "adminLog": "请输入整数群号，或留空使用群号 0。"
+    },
+    "save": {
+      "label": "保存管理与处罚设置",
+      "unsaved_one": "{{count}} 项改动未保存",
+      "unsaved_other": "{{count}} 项改动未保存"
+    },
+    "actions": {
+      "restore": "恢复默认",
+      "cancelRestore": "取消恢复",
+      "discard": "放弃",
+      "save": "保存",
+      "saving": "正在保存…",
+      "reload": "重新载入"
+    },
+    "feedback": {
+      "saved": "管理与处罚设置已保存。",
+      "conflict": "别人改过这些设置了。重新载入后再保存。"
+    },
+    "errors": {
+      "authenticationRequired": "控制台会话无效。请从 Telegram 重新打开控制台。",
+      "authenticationExpired": "会话已过期。请从 Telegram 重新打开控制台。",
+      "accessDenied": "你已不再拥有此群的管理权限。",
+      "accessUnavailable": "暂时无法确认你对此群的管理权限。请重试。",
+      "chatNotFound": "此群已不再可在控制台中管理。",
+      "invalidSettings": "这些设置未通过校验。请检查改动后重试。",
+      "settingsUnavailable": "设置服务暂时不可用。请重试。",
+      "loadUnavailable": "管理与处罚设置暂时不可用。",
+      "saveUnavailable": "无法保存管理与处罚设置。请重试。"
+    }
+  },
   "audit": {
     "navigation": "操作记录",
     "title": "操作记录",

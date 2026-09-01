@@ -192,11 +192,11 @@
    legible against the lighter card fill. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-  --status-ok-bg:      oklch(0.55 0.12 var(--h-ok) / 15%); --status-ok-fg:      oklch(0.70 0.12 var(--h-ok));
-  --status-info-bg:    oklch(0.55 0.10 var(--h-info) / 15%); --status-info-fg:    oklch(0.70 0.10 var(--h-info));
-  --status-pending-bg: oklch(0.60 0.12 var(--h-warn) / 15%); --status-pending-fg: oklch(0.75 0.12 var(--h-warn));
-  --status-error-bg:   oklch(0.58 0.18 var(--h-bad) / 15%); --status-error-fg:   oklch(0.72 0.18 var(--h-bad));
-  --status-neutral-bg: oklch(0.60 0    0 / 15%);   --status-neutral-fg: oklch(0.70 var(--tint-c) var(--tint-h));
+  --status-ok-bg:      oklch(0.55 0.12 var(--h-ok) / 15%); --status-ok-fg:      oklch(0.80 0.12 var(--h-ok));
+  --status-info-bg:    oklch(0.55 0.10 var(--h-info) / 15%); --status-info-fg:    oklch(0.81 0.10 var(--h-info));
+  --status-pending-bg: oklch(0.60 0.12 var(--h-warn) / 15%); --status-pending-fg: oklch(0.82 0.12 var(--h-warn));
+  --status-error-bg:   oklch(0.58 0.18 var(--h-bad) / 15%); --status-error-fg:   oklch(0.89 0.18 var(--h-bad));
+  --status-neutral-bg: oklch(0.60 0    0 / 15%);   --status-neutral-fg: oklch(0.82 var(--tint-c) var(--tint-h));
 
   --scrollbar-thumb: oklch(1 0 0 / 14%);
   --scrollbar-thumb-hover: oklch(1 0 0 / 26%);
@@ -231,8 +231,8 @@
     --muted: oklch(0.195 var(--tint-c) var(--tint-h));
     --muted-foreground: oklch(0.64 var(--tint-c) var(--tint-h));
     --accent: oklch(0.26 var(--tint-c) var(--tint-h));
-    --accent-foreground: oklch(0.95 var(--tint-c) var(--tint-h));
-    --destructive: oklch(0.60 0.19 var(--h-bad));
+    --accent-foreground: oklch(0.985 var(--tint-c) var(--tint-h));
+    --destructive: oklch(0.78 0.19 var(--h-bad));
     --border: oklch(0.36 var(--tint-c) var(--tint-h));
     --input: oklch(0.34 var(--tint-c) var(--tint-h));
     --ring: oklch(0.95 var(--tint-c) var(--tint-h));
@@ -243,11 +243,11 @@
 }
 
 :root[data-theme="dark"] {
-  --status-ok-bg:      oklch(0.55 0.12 var(--h-ok) / 15%); --status-ok-fg:      oklch(0.70 0.12 var(--h-ok));
-  --status-info-bg:    oklch(0.55 0.10 var(--h-info) / 15%); --status-info-fg:    oklch(0.70 0.10 var(--h-info));
-  --status-pending-bg: oklch(0.60 0.12 var(--h-warn) / 15%); --status-pending-fg: oklch(0.75 0.12 var(--h-warn));
-  --status-error-bg:   oklch(0.58 0.18 var(--h-bad) / 15%); --status-error-fg:   oklch(0.72 0.18 var(--h-bad));
-  --status-neutral-bg: oklch(0.60 0    0 / 15%);   --status-neutral-fg: oklch(0.70 var(--tint-c) var(--tint-h));
+  --status-ok-bg:      oklch(0.55 0.12 var(--h-ok) / 15%); --status-ok-fg:      oklch(0.80 0.12 var(--h-ok));
+  --status-info-bg:    oklch(0.55 0.10 var(--h-info) / 15%); --status-info-fg:    oklch(0.81 0.10 var(--h-info));
+  --status-pending-bg: oklch(0.60 0.12 var(--h-warn) / 15%); --status-pending-fg: oklch(0.82 0.12 var(--h-warn));
+  --status-error-bg:   oklch(0.58 0.18 var(--h-bad) / 15%); --status-error-fg:   oklch(0.89 0.18 var(--h-bad));
+  --status-neutral-bg: oklch(0.60 0    0 / 15%);   --status-neutral-fg: oklch(0.82 var(--tint-c) var(--tint-h));
 
   --scrollbar-thumb: oklch(1 0 0 / 14%);
   --scrollbar-thumb-hover: oklch(1 0 0 / 26%);
@@ -282,8 +282,8 @@
   --muted: oklch(0.195 var(--tint-c) var(--tint-h));
   --muted-foreground: oklch(0.64 var(--tint-c) var(--tint-h));
   --accent: oklch(0.26 var(--tint-c) var(--tint-h));
-  --accent-foreground: oklch(0.95 var(--tint-c) var(--tint-h));
-  --destructive: oklch(0.60 0.19 var(--h-bad));
+  --accent-foreground: oklch(0.985 var(--tint-c) var(--tint-h));
+  --destructive: oklch(0.78 0.19 var(--h-bad));
   --border: oklch(0.36 var(--tint-c) var(--tint-h));
   --input: oklch(0.34 var(--tint-c) var(--tint-h));
   --ring: oklch(0.95 var(--tint-c) var(--tint-h));
