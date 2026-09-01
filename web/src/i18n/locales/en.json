@@ -607,5 +607,126 @@
       "saveUnavailable": "Verification settings cannot be saved right now. Try again.",
       "network": "The connection was interrupted. Reload the settings before deciding whether to retry."
     }
+  },
+  "questions": {
+    "navigation": "Question bank",
+    "title": "Question bank",
+    "description": "Manage this group's multiple-choice questions, fallback text questions, and challenge language.",
+    "loading": {
+      "title": "Loading the question bank",
+      "description": "Reading this group's questions, fallback questions, and setting sources…"
+    },
+    "groupRequired": {
+      "title": "Select a group first",
+      "description": "Select an authorized group before changing its question bank.",
+      "select": "Select group"
+    },
+    "noGroups": {
+      "title": "This account has not been authorized for any group",
+      "description": "Question banks are available only for authorized groups."
+    },
+    "unavailable": {
+      "title": "The question bank cannot be read",
+      "retry": "Try again"
+    },
+    "source": {
+      "value": "Source: {{source}}",
+      "fallbackMode": "Fallback mode source: {{source}}",
+      "fallbackBank": "Custom fallback bank source: {{source}}",
+      "factoryDefault": "Factory default",
+      "userFile": "Configuration file",
+      "chatOverride": "Group override",
+      "restoring": "Will restore inherited value"
+    },
+    "concurrency": {
+      "title": "The whole bank is saved together",
+      "description": "Two administrators editing different questions at the same time still cause a revision conflict. On conflict, the page reloads the latest bank and does not write the unsaved local draft."
+    },
+    "language": {
+      "title": "Challenge language",
+      "description": "Choose the language used for questions and verification messages shown to applicants.",
+      "label": "Group challenge language",
+      "settingDescription": "Choose Simplified Chinese, Traditional Chinese, or English. Built-in fallback questions use the same language.",
+      "zh": "Simplified Chinese",
+      "zhHant": "Traditional Chinese",
+      "en": "English"
+    },
+    "questionBank": {
+      "title": "Multiple-choice questions",
+      "description": "Each question needs at least two options. The correct answer is stored as its position in the list.",
+      "count_one": "{{count}} multiple-choice question",
+      "count_other": "{{count}} multiple-choice questions",
+      "empty": "There are no multiple-choice questions. Add one before using multiple-choice verification.",
+      "itemTitle": "Multiple-choice question {{number}}",
+      "prompt": "Prompt",
+      "options": "Options and correct answer",
+      "optionsDescription": "Select the circle beside an option to make it the correct answer.",
+      "option": "Option {{number}}",
+      "correctAnswerFor": "Make option {{number}} the correct answer",
+      "confirmDelete": "Delete multiple-choice question {{number}}? After saving, it will be removed from this group's question bank."
+    },
+    "fallback": {
+      "title": "Fallback text questions",
+      "description": "Manage the fallback questions used for applicants who cannot answer the Linux question.",
+      "modeLabel": "Fallback question source",
+      "modeDescription": "Use the built-in localized questions or maintain this group's own prompts and accepted answers.",
+      "builtin": "Built-in localized questions",
+      "custom": "Custom fallback questions",
+      "builtinDescription": "The bot uses the fallback questions shipped with the program in the challenge language selected above.",
+      "count_one": "{{count}} custom fallback question",
+      "count_other": "{{count}} custom fallback questions",
+      "itemTitle": "Fallback question {{number}}",
+      "prompt": "Prompt",
+      "answers": "Accepted answers",
+      "answersDescription": "Answers use the same server-side normalization as live challenges. Enter each complete accepted reply here.",
+      "answer": "Answer {{number}}",
+      "confirmDelete": "Delete fallback question {{number}}? After saving, it will be removed from this group's fallback bank."
+    },
+    "actions": {
+      "restore": "Restore inherited value",
+      "restoreFallback": "Restore inherited fallback settings",
+      "addQuestion": "Add multiple-choice question",
+      "deleteQuestion": "Delete question",
+      "addOption": "Add option",
+      "removeOption": "Remove",
+      "removeOptionFor": "Remove option {{number}}",
+      "addFallback": "Add fallback question",
+      "deleteFallback": "Delete fallback question",
+      "addAnswer": "Add answer",
+      "removeAnswer": "Remove",
+      "removeAnswerFor": "Remove answer {{number}}",
+      "save": "Save changes",
+      "saving": "Saving…"
+    },
+    "save": {
+      "dirty": "There are unsaved question-bank changes.",
+      "clean": "There are no question-bank changes to save."
+    },
+    "feedback": {
+      "saved": "Question-bank settings were saved.",
+      "conflict": "Another administrator changed these settings. The latest question banks were reloaded, and your unsaved draft was not written. Each bank is saved as one complete list, so edits to different questions still cause a revision conflict. Reapply your changes to the latest content."
+    },
+    "validation": {
+      "questionPrompt": "Enter a question prompt.",
+      "questionOptions": "Each multiple-choice question needs at least two options.",
+      "questionAnswer": "Choose an existing option as the correct answer.",
+      "fallbackRequired": "Custom fallback mode needs at least one question.",
+      "fallbackPrompt": "Enter a fallback question prompt.",
+      "fallbackAnswers": "Each fallback question needs at least one accepted answer.",
+      "fallbackAnswerBlank": "Accepted answers cannot be blank."
+    },
+    "errors": {
+      "authenticationExpired": "The session has expired. Open the console again from Telegram.",
+      "authenticationInvalid": "This console session cannot be verified. Open the console again from Telegram.",
+      "accessDenied": "You no longer administer this group.",
+      "accessUnavailable": "Your administration access cannot be verified right now. Try again.",
+      "chatNotFound": "This group can no longer be managed in the console.",
+      "csrfInvalid": "The security token for this page has expired. Refresh the page and try again.",
+      "invalidSettings": "The question bank did not pass validation. Check its questions and answers, then save again.",
+      "settingsUnavailable": "Question-bank settings are temporarily unavailable. Try again.",
+      "loadUnavailable": "The question bank cannot be read right now. Try again.",
+      "saveUnavailable": "The question bank cannot be saved right now. Try again.",
+      "network": "The connection was interrupted. Reload the question bank before deciding whether to retry."
+    }
   }
 }

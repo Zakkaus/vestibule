@@ -607,5 +607,126 @@
       "saveUnavailable": "暂时无法保存验证设置。请重试。",
       "network": "连接已中断。重新读取设置后，再决定是否重试。"
     }
+  },
+  "questions": {
+    "navigation": "题库",
+    "title": "题库",
+    "description": "管理当前群的选择题、备用填空题和答题语言。",
+    "loading": {
+      "title": "正在载入题库",
+      "description": "正在读取此群当前的题目、备用题和设置来源…"
+    },
+    "groupRequired": {
+      "title": "先选择一个群",
+      "description": "选择已获授权的群后，才能修改它的题库。",
+      "select": "选择群"
+    },
+    "noGroups": {
+      "title": "此账号尚未获任何群授权",
+      "description": "题库只对已获授权的群开放。"
+    },
+    "unavailable": {
+      "title": "无法读取题库",
+      "retry": "重试"
+    },
+    "source": {
+      "value": "来源：{{source}}",
+      "fallbackMode": "备用题模式来源：{{source}}",
+      "fallbackBank": "自定义备用题来源：{{source}}",
+      "factoryDefault": "出厂默认",
+      "userFile": "配置文件",
+      "chatOverride": "此群覆盖",
+      "restoring": "待恢复继承值"
+    },
+    "concurrency": {
+      "title": "整份题库一起保存",
+      "description": "两位管理员同时修改不同题目也会发生版本冲突。冲突时页面会重新载入最新题库，未保存的本地草稿不会写入。"
+    },
+    "language": {
+      "title": "答题语言",
+      "description": "选择机器人向申请人显示题目和验证文案时使用的语言。",
+      "label": "群内答题语言",
+      "settingDescription": "可选简体中文、繁体中文或英语；内置备用题也使用此语言。",
+      "zh": "简体中文",
+      "zhHant": "繁体中文",
+      "en": "英语"
+    },
+    "questionBank": {
+      "title": "选择题",
+      "description": "每道题至少有两个选项。正确答案以选项在列表中的位置保存。",
+      "count_one": "共 {{count}} 道选择题",
+      "count_other": "共 {{count}} 道选择题",
+      "empty": "尚无选择题。添加第一题后才能在选择题验证中使用。",
+      "itemTitle": "选择题 {{number}}",
+      "prompt": "题面",
+      "options": "选项与正确答案",
+      "optionsDescription": "选中选项左侧的圆点，将它设为正确答案。",
+      "option": "选项 {{number}}",
+      "correctAnswerFor": "将选项 {{number}} 设为正确答案",
+      "confirmDelete": "删除选择题 {{number}}？保存后，这道题会从当前群的题库中移除。"
+    },
+    "fallback": {
+      "title": "备用填空题",
+      "description": "管理无法回答 Linux 题目的申请人所用的备用题。",
+      "modeLabel": "备用题来源",
+      "modeDescription": "使用内置本地化题目，或维护当前群自己的题面和可接受答案。",
+      "builtin": "内置本地化题目",
+      "custom": "自定义备用题",
+      "builtinDescription": "机器人会按上面的答题语言使用随程序提供的备用题目。",
+      "count_one": "共 {{count}} 道自定义备用题",
+      "count_other": "共 {{count}} 道自定义备用题",
+      "itemTitle": "备用题 {{number}}",
+      "prompt": "题面",
+      "answers": "可接受答案",
+      "answersDescription": "判定会走服务端的真实答案归一化逻辑；这里仅维护完整答案列表。",
+      "answer": "答案 {{number}}",
+      "confirmDelete": "删除备用题 {{number}}？保存后，这道题会从当前群的备用题库中移除。"
+    },
+    "actions": {
+      "restore": "恢复继承值",
+      "restoreFallback": "恢复备用题继承值",
+      "addQuestion": "添加选择题",
+      "deleteQuestion": "删除题目",
+      "addOption": "添加选项",
+      "removeOption": "移除",
+      "removeOptionFor": "移除选项 {{number}}",
+      "addFallback": "添加备用题",
+      "deleteFallback": "删除备用题",
+      "addAnswer": "添加答案",
+      "removeAnswer": "移除",
+      "removeAnswerFor": "移除答案 {{number}}",
+      "save": "保存更改",
+      "saving": "正在保存…"
+    },
+    "save": {
+      "dirty": "有未保存的题库更改。",
+      "clean": "没有待保存的题库更改。"
+    },
+    "feedback": {
+      "saved": "已保存题库设置。",
+      "conflict": "另一位管理员修改了这些设置。页面已重新载入最新题库，你未保存的草稿没有写入。每个题库都按整份列表保存，即使修改的是不同题目也会发生版本冲突；请根据最新内容重新编辑。"
+    },
+    "validation": {
+      "questionPrompt": "请输入题面。",
+      "questionOptions": "每道选择题至少需要两个选项。",
+      "questionAnswer": "请选择列表中现有的一个选项作为正确答案。",
+      "fallbackRequired": "使用自定义备用题时，至少需要一道题。",
+      "fallbackPrompt": "请输入备用题题面。",
+      "fallbackAnswers": "每道备用题至少需要一个可接受答案。",
+      "fallbackAnswerBlank": "可接受答案不能留空。"
+    },
+    "errors": {
+      "authenticationExpired": "会话已过期。请从 Telegram 重新打开控制台。",
+      "authenticationInvalid": "无法验证此控制台会话。请从 Telegram 重新打开控制台。",
+      "accessDenied": "你已不再拥有此群的管理权限。",
+      "accessUnavailable": "暂时无法确认你对此群的管理权限。请重试。",
+      "chatNotFound": "此群已不再可在控制台中管理。",
+      "csrfInvalid": "此页的安全令牌已过期。刷新页面后再重试。",
+      "invalidSettings": "题库未通过校验。检查题目和答案后重新保存。",
+      "settingsUnavailable": "题库设置暂时不可用。请重试。",
+      "loadUnavailable": "暂时无法读取题库。请重试。",
+      "saveUnavailable": "暂时无法保存题库。请重试。",
+      "network": "连接已中断。重新读取题库后，再决定是否重试。"
+    }
   }
 }

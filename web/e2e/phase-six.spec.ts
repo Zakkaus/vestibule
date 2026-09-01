@@ -496,8 +496,19 @@ test("keyboard selection carries the group boundary to the queue", async ({ page
   );
   expect(await page.evaluate(() => document.activeElement?.tagName)).toBe("BODY");
 
+  // The group row sits after everything before it in the tab order, and what
+  // comes before it grows with the console: twelve presses reached it at three
+  // screens and stopped reaching it at eight. Counting the focusable elements
+  // on the page makes the bound follow the page instead of a number that was
+  // true once.
+  const focusableCount = await page.evaluate(
+    () =>
+      document.querySelectorAll(
+        'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      ).length
+  );
   let focusedGroupId: string | null = null;
-  for (let index = 0; index < 12; index += 1) {
+  for (let index = 0; index < focusableCount + 2; index += 1) {
     await page.keyboard.press("Tab");
     focusedGroupId = await page.evaluate(
       () => document.activeElement?.getAttribute("data-select-group") ?? null
