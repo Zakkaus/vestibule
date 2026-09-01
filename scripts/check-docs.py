@@ -39,6 +39,15 @@ PERMISSION = re.compile(
     r"点头|授权|不许|不得|未经|自行"
     r"|without asking|approval|permission|may not|must not")
 AUTHORITY = "What may happen without asking"
+
+# A path:line citation in the plan is precise-looking and goes stale on its own:
+# phase four shortened internal/panel/settings_panel.go by seventeen lines and
+# phase seven went on citing 473–1398 for two phases. A citation about the tree
+# as it was before the rewrite, or about the previous generation in ~/code/refs,
+# cannot resolve here and says so on its own line.
+CITED_LINE = re.compile(
+    r"`([A-Za-z0-9_./-]+\.(?:go|ts|tsx|py|sh|md|html|json|ya?ml)):(\d+)(?:[\u2013-](\d+))?`")
+HISTORICAL = re.compile(r"上一代|原先|重写前|refs/|已删除")
 BULLET = re.compile(r"^\s*(?:[-*+]|\d+\.)\s")
 
 failures: list[str] = []
@@ -314,6 +323,28 @@ def list_items(text: str) -> list[str]:
     return items
 
 
+def check_plan_citations_resolve(plan_text: str) -> None:
+    checked = 0
+    for line in plan_text.split("\n"):
+        if HISTORICAL.search(line):
+            continue
+        for path_text, start, end in CITED_LINE.findall(line):
+            checked += 1
+            path = ROOT / path_text
+            if not path.exists():
+                failures.append("plan: cites %s:%s and that file is not in the tree"
+                                % (path_text, start))
+                continue
+            total = len(path.read_text(encoding="utf-8", errors="replace").split("\n"))
+            highest = int(end or start)
+            if highest > total:
+                failures.append("plan: cites %s:%s-%s, and the file has %d lines"
+                                % (path_text, start, end or start, total))
+    if checked == 0:
+        failures.append("plan: no path:line citation was checked — has the "
+                        "citation format changed?")
+
+
 def check_rules_are_stated_once(documents: list[Path]) -> None:
     contributing = ROOT / "CONTRIBUTING.md"
     if not contributing.exists():
@@ -357,6 +388,7 @@ def main() -> int:
         check_phases_have_their_sections(plan_text)
         check_every_inventoried_file_has_a_phase(plan_text)
         check_open_questions_have_a_future(plan_text)
+        check_plan_citations_resolve(plan_text)
 
     check_schema_matches_migration()
 

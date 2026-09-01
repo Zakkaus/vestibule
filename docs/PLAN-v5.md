@@ -418,7 +418,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 换 `go.mau.fi/util/configupgrade`。现有 schema 折叠成一组
 「旧路径 → 当前路径」复制规则，删除逐版本分支。
 
-**是四条路径，不是三条。** `internal/store/settings.go:374-386` 有四个分支：
+**是四条路径，不是三条。** 重写前的 `internal/store/settings.go:374-386` 有四个分支：
 没有 `version` 字段的旧文件（解码为 0）走 `migrateLegacy`，
 v1 走 `migrateVersionOne` 再 `migrateVersionTwo`，v2 走 `migrateVersionTwo`，
 v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最老的那批配置读坏。
@@ -631,8 +631,11 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 **等待队列屏那两个动作等这一阶段。** 设计文档说「等待队列和操作记录共用一张表」，
 而架构文档给的是两个端点：`GET .../queue` 只返回仍在等待的，
 已结算的行来自 `GET .../audit`，撤销走 `POST .../audit/{aid}/undo`。
-两者都在本阶段。阶段六把屏建起来时用的是 fixtures，
-里面的「撤销」按钮那时还没有端点可接 —— 接前端的那一片因此停了下来，是对的。
+两者都在本阶段。阶段六把屏建起来时用的是 fixtures，接前端的那一片因此停了下来，是对的。
+但缺端点只是一半：**撤销本来就不属于等待队列屏**，见前面
+「第三条，同样按证据定」。所以这一阶段做操作记录屏时把撤销做在那里，
+同时把队列屏 fixtures 里 `banned` 行上的那个按钮去掉，
+`scripts/check-phase-seams.py` 到时随之解除。
 
 **文案与语言在这一阶段一起做完，不留到最后。**
 每加一屏，三种语言的词条同时补齐，不先写中文再统一翻译。
@@ -659,7 +662,7 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 | 现路径 | 处置 | 目标位置 |
 |---|---|---|
 | `internal/i18n/panel.go` | 拆分 | Telegram 命令文案留在 `internal/i18n`；控制台屏幕文案迁至 `web/` locale |
-| `internal/panel/settings_panel.go:473–1398` | 重写 | `internal/console/api` 与 `web/` 的其余设置、规则、频道、反垃圾和统计屏 |
+| `internal/panel/settings_panel.go:473–1381` | 重写 | `internal/console/api` 与 `web/` 的其余设置、规则、频道、反垃圾和统计屏 |
 
 #### 必须保住的行为
 
