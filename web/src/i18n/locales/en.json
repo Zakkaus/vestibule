@@ -1042,5 +1042,87 @@
       "saveRulesUnavailable": "Automatic reply rules cannot be saved right now. Try again.",
       "network": "The connection was interrupted. Reload messages and copy before deciding whether to retry."
     }
+  },
+  "capabilities": {
+    "navigation": "Capabilities",
+    "title": "Capabilities",
+    "description": "Review each group-wide capability and the consequences of turning it on or off. Detailed controls remain on their owning screens, so each setting has one save path.",
+    "loading": {
+      "title": "Loading capabilities",
+      "description": "Reading the capability states for this group…"
+    },
+    "groupRequired": {
+      "title": "Select a group first",
+      "description": "Capabilities apply per group. Select the group you want to review.",
+      "select": "Select group"
+    },
+    "noGroups": {
+      "title": "No manageable groups",
+      "description": "This account does not administer any group available in the console."
+    },
+    "unavailable": {
+      "title": "Capabilities cannot be loaded"
+    },
+    "status": {
+      "enabled": "On",
+      "disabled": "Off"
+    },
+    "outcomes": {
+      "label": "Consequences of each state",
+      "enabled": "When on",
+      "disabled": "When off"
+    },
+    "source": {
+      "value": "Source: {{source}}",
+      "factoryDefault": "Factory default",
+      "userFile": "Configuration file",
+      "chatOverride": "Group override",
+      "pending": "Unsaved in this session",
+      "restoring": "Will restore inherited value"
+    },
+    "verification": {
+      "title": "Automatic join verification",
+      "summary": "Controls whether the bot starts automatic verification for new join requests and new members.",
+      "enabled": "New join requests enter automatic verification, and eligible members who join directly also receive a challenge.",
+      "disabled": "New join requests remain for administrators to review manually, and newly joined members receive no challenge; verifications already in progress continue.",
+      "details": "Configure verification methods"
+    },
+    "antispam": {
+      "title": "Sender-channel impersonation protection",
+      "summary": "Controls whether the bot intercepts posts sent through untrusted channel identities.",
+      "enabled": "When BotFather privacy mode is off, posts from untrusted channel identities are deleted; after confirming the sender is not the group's linked channel, that sender identity is banned and the moderation log is notified.",
+      "disabled": "The bot does not inspect sender-channel identities, and those messages continue through normal processing.",
+      "details": "Open moderation controls"
+    },
+    "save": {
+      "label": "Save capability changes",
+      "unsaved": "Automatic join verification has an unsaved change."
+    },
+    "actions": {
+      "retry": "Try again",
+      "reload": "Reload",
+      "restore": "Restore inherited value",
+      "cancelRestore": "Cancel restore",
+      "discard": "Discard",
+      "save": "Save changes",
+      "saving": "Saving…"
+    },
+    "feedback": {
+      "saved": "Capability settings were saved.",
+      "conflict": "Another administrator changed the capability settings. Reload the latest values before making another change."
+    },
+    "errors": {
+      "authenticationExpired": "The session has expired. Open the console again from Telegram.",
+      "authenticationInvalid": "This console session cannot be verified. Open the console again from Telegram.",
+      "accessDenied": "You no longer administer this group.",
+      "accessUnavailable": "Your administration access cannot be verified right now. Try again.",
+      "chatNotFound": "This group can no longer be managed in the console.",
+      "csrfInvalid": "The security token for this page has expired. Refresh the page and try again.",
+      "invalidSettings": "The capability settings are invalid. Reload them and try again.",
+      "settingsUnavailable": "Capability settings are temporarily unavailable. Try again.",
+      "loadUnavailable": "Capabilities cannot be loaded right now. Try again.",
+      "saveUnavailable": "Capability settings cannot be saved right now. Try again.",
+      "network": "The connection was interrupted. Reload capabilities before deciding whether to retry."
+    }
   }
 }

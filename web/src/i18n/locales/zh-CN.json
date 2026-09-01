@@ -1042,5 +1042,87 @@
       "saveRulesUnavailable": "暂时无法保存自动回复规则。请重试。",
       "network": "连接已中断。重新读取消息与文案后，再决定是否重试。"
     }
+  },
+  "capabilities": {
+    "navigation": "功能",
+    "title": "功能",
+    "description": "查看当前群的整组能力及开关后果。需要细调的能力仍在对应页面保存，避免同一项出现两个保存入口。",
+    "loading": {
+      "title": "正在载入功能",
+      "description": "正在读取当前群的功能状态…"
+    },
+    "groupRequired": {
+      "title": "先选择一个群",
+      "description": "功能按群生效。选择要查看的群后再继续。",
+      "select": "选择群"
+    },
+    "noGroups": {
+      "title": "没有可管理的群",
+      "description": "当前账号没有可在控制台中管理的群。"
+    },
+    "unavailable": {
+      "title": "无法读取功能"
+    },
+    "status": {
+      "enabled": "已开启",
+      "disabled": "已关闭"
+    },
+    "outcomes": {
+      "label": "开关后果",
+      "enabled": "开启后",
+      "disabled": "关闭后"
+    },
+    "source": {
+      "value": "来源：{{source}}",
+      "factoryDefault": "出厂默认",
+      "userFile": "配置文件",
+      "chatOverride": "此群覆盖",
+      "pending": "本次未保存",
+      "restoring": "待恢复继承值"
+    },
+    "verification": {
+      "title": "自动入群验证",
+      "summary": "决定机器人是否为新的入群申请和新成员发起自动验证。",
+      "enabled": "新的入群申请会进入自动验证；已直接入群且符合条件的新成员也会收到挑战。",
+      "disabled": "新的入群申请留给管理员手动处理，新入群成员不会收到挑战；已经开始的验证仍会继续。",
+      "details": "设置验证方式"
+    },
+    "antispam": {
+      "title": "拦截频道马甲",
+      "summary": "决定机器人是否拦截未受信任的频道身份发言。",
+      "enabled": "BotFather 隐私模式关闭时，未受信任的频道身份发言会被删除；确认它不是本群关联频道后，该频道身份会被封禁，并向处罚记录群发出提醒。",
+      "disabled": "机器人不检查频道身份，相关消息会继续交给后续处理。",
+      "details": "在管理与处罚中调整"
+    },
+    "save": {
+      "label": "保存功能更改",
+      "unsaved": "自动入群验证有未保存的更改。"
+    },
+    "actions": {
+      "retry": "重试",
+      "reload": "重新载入",
+      "restore": "恢复继承值",
+      "cancelRestore": "取消恢复",
+      "discard": "放弃",
+      "save": "保存更改",
+      "saving": "正在保存…"
+    },
+    "feedback": {
+      "saved": "功能设置已保存。",
+      "conflict": "其他管理员已经更改功能设置。重新载入最新值后再操作。"
+    },
+    "errors": {
+      "authenticationExpired": "会话已过期。请从 Telegram 重新打开控制台。",
+      "authenticationInvalid": "无法验证此控制台会话。请从 Telegram 重新打开控制台。",
+      "accessDenied": "你已不再拥有此群的管理权限。",
+      "accessUnavailable": "暂时无法确认你对此群的管理权限。请重试。",
+      "chatNotFound": "此群已不再可在控制台中管理。",
+      "csrfInvalid": "此页的安全令牌已过期。刷新页面后再重试。",
+      "invalidSettings": "功能设置无效。重新载入后再试。",
+      "settingsUnavailable": "功能设置暂时不可用。请重试。",
+      "loadUnavailable": "暂时无法读取功能。请重试。",
+      "saveUnavailable": "暂时无法保存功能设置。请重试。",
+      "network": "连接已中断。重新载入功能后再决定是否重试。"
+    }
   }
 }

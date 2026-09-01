@@ -57,6 +57,10 @@ const navigationItems = [
     labelKey: "messages.navigation"
   },
   {
+    path: "/capabilities",
+    labelKey: "capabilities.navigation"
+  },
+  {
     path: "/preferences",
     labelKey: "navigation.preferences"
   }
