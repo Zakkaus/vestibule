@@ -216,6 +216,24 @@ because nobody had named it, and had seven findings when it was finally run. Nam
 it was not enough — a document was merged with a finding in it the same day this
 became a CI step. If it is prose people follow, it goes through the checker.
 
+### Before handing a slice to someone else
+
+`python3 scripts/preflight.py <spec.md> <worktree>` reads a dispatch
+specification against the working copy it will run in: the branch it names is
+the branch that is checked out, every path it cites exists, every `path:line`
+lands on a line with something on it, and every 「section」 it points at is in
+one of the documents it cites.
+
+Four slices were refused because the specification was wrong rather than hard —
+a section cited in the wrong document, a branch name carried over from the slice
+it was copied from, a renamed path, and a line number that had moved. Each
+refusal was correct and cost a round. On the day it was written this caught two
+more: a line range ending on a closing brace, and a bare `server.go:274` that
+reads fine and cannot be resolved.
+
+It is not a CI step. It runs against files outside the repository, at the moment
+a slice is handed over.
+
 ### If you add a check, drive it red
 
 A check written and never seen to fail usually cannot fail, and a check that always passes is
