@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 type actionTestStore struct {
@@ -113,7 +113,7 @@ func (s *actionTestStore) FailAction(_ string, id, owner string, _ int64, _ stri
 func TestDurableSettlementRetriesGroupDeletionWithoutDeletingDM(t *testing.T) {
 	const gid, uid = int64(-100), int64(5)
 	now := time.Unix(1_700_000_000, 0)
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	v.timeNow = func() time.Time { return now }
 	state := &actionTestStore{}
 	v.stateStore = state
@@ -153,7 +153,7 @@ func TestDurableSettlementRetriesGroupDeletionWithoutDeletingDM(t *testing.T) {
 
 func TestDurableDeleteTreatsMissingGroupMessageAsComplete(t *testing.T) {
 	now := time.Unix(1_700_000_000, 0)
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	v.timeNow = func() time.Time { return now }
 	state := &actionTestStore{actions: map[string]testAction{
 		"gone": {
@@ -187,7 +187,7 @@ func TestDurableDeleteTreatsMissingGroupMessageAsComplete(t *testing.T) {
 func TestScanExpiredDeclinesNobodyOnceShutdownStarted(t *testing.T) {
 	const gid, uid = int64(-100), int64(7)
 	now := time.Unix(1_700_000_000, 0)
-	v := newTestService(&config.Config{TimeoutSeconds: 240})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240})
 	v.timeNow = func() time.Time { return now }
 	p := &pending{nonce: "due", deadline: now, groupMsgID: 52, privateMsgID: 53}
 	state := &actionTestStore{pending: []PendingRecord{pendingRecord(pkey{gid, uid}, p)}}
@@ -212,7 +212,7 @@ func TestScanExpiredDeclinesNobodyOnceShutdownStarted(t *testing.T) {
 func TestScanExpiredClaimsDueChallengeWithoutLocalTimer(t *testing.T) {
 	const gid, uid = int64(-100), int64(7)
 	now := time.Unix(1_700_000_000, 0)
-	v := newTestService(&config.Config{TimeoutSeconds: 240})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240})
 	v.timeNow = func() time.Time { return now }
 	p := &pending{nonce: "due", deadline: now, groupMsgID: 52, privateMsgID: 53}
 	state := &actionTestStore{pending: []PendingRecord{pendingRecord(pkey{gid, uid}, p)}}

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 func memberDM(uid int64, text string) Update {
@@ -20,7 +20,7 @@ func memberDM(uid int64, text string) Update {
 // arrival, released when they answer, and left alone by the membership update that release
 // produces.
 func TestPostJoinJourneyPasses(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100}})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100}})
 	v.botUsername = "bot"
 	fb := &fakeVerifyBot{member: &ChatMemberMember{Status: MemberStatusMember}}
 	bot := newAPITestBot(t, fb)
@@ -69,10 +69,10 @@ func TestPostJoinJourneyPasses(t *testing.T) {
 // neither re-posted nor replaced by another kernel prompt.
 func TestJoinRequestFallbackPassIsNotRepeatedAfterAdmission(t *testing.T) {
 	const gid, uid = int64(-100), int64(7)
-	v := newTestService(&config.Config{
+	v := newTestService(&settings.Config{
 		GroupIDs:     []int64{gid},
-		VerifyMode:   config.ModeKernel,
-		DeliveryMode: config.DeliveryDM,
+		VerifyMode:   settings.ModeKernel,
+		DeliveryMode: settings.DeliveryDM,
 	})
 	v.botUsername = "bot"
 	fb := newFakeVerifyBot()
@@ -126,7 +126,7 @@ func TestJoinRequestFallbackPassIsNotRepeatedAfterAdmission(t *testing.T) {
 // The same path for somebody who never answers: the window runs out and they are removed, not
 // left muted forever.
 func TestPostJoinJourneyTimesOut(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100}, TimeoutSeconds: 30})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100}, TimeoutSeconds: 30})
 	v.botUsername = "bot"
 	fb := &fakeVerifyBot{member: &ChatMemberMember{Status: MemberStatusMember}}
 	bot := newAPITestBot(t, fb)

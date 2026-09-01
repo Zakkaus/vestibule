@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram/ids"
 	"github.com/Zakkaus/vestibule/internal/telegram/queue"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
@@ -153,7 +153,7 @@ func (c *Connector) Notify(ctx context.Context, chatID int64, text string, ttlSe
 	if err != nil || message == nil || ttlSeconds < 0 {
 		return
 	}
-	duration, ok := config.SecondsToDuration(ttlSeconds)
+	duration, ok := settings.SecondsToDuration(ttlSeconds)
 	if !ok {
 		return
 	}
@@ -328,7 +328,7 @@ func MissingModRights(member telego.ChatMember) []string {
 func (c *Connector) Ban(ctx context.Context, chatID, userID int64, seconds int, revokeMessages bool) error {
 	params := &telego.BanChatMemberParams{ChatID: tu.ID(chatID), UserID: userID, RevokeMessages: revokeMessages}
 	if seconds > 0 {
-		duration, ok := config.SecondsToDuration(seconds)
+		duration, ok := settings.SecondsToDuration(seconds)
 		if !ok {
 			return errors.New("ban duration seconds exceed time.Duration")
 		}
@@ -348,7 +348,7 @@ func (c *Connector) Unban(ctx context.Context, chatID, userID int64, onlyIfBanne
 
 // Mute restricts all member permissions until the requested duration elapses.
 func (c *Connector) Mute(ctx context.Context, chatID, userID int64, seconds int) error {
-	duration, ok := config.SecondsToDuration(seconds)
+	duration, ok := settings.SecondsToDuration(seconds)
 	if !ok {
 		return errors.New("mute duration seconds exceed time.Duration")
 	}

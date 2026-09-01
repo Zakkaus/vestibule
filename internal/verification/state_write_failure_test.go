@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 func failedStateWritePath(t *testing.T, name string) string {
@@ -37,21 +37,21 @@ func requireStateWriteFailureLogged(t *testing.T, path, output string) {
 
 func TestPendingWriteFailureStopsBeforeDelivery(t *testing.T) {
 	const gid, uid = int64(-100), int64(5)
-	cfg := &config.Config{
-		Groups:         []config.GroupConfig{{ID: gid}},
+	cfg := &settings.Config{
+		Groups:         []settings.GroupConfig{{ID: gid}},
 		GroupIDs:       []int64{gid},
 		TimeoutSeconds: 240,
-		VerifyMode:     config.ModeQuiz,
+		VerifyMode:     settings.ModeQuiz,
 	}
 	v := newTestService(cfg)
-	group, ok := v.settings.Group(gid)
+	group, ok := v.settings.Settings(gid)
 	if !ok {
 		t.Fatal("test group is missing")
 	}
 	overrides := group.Overrides()
-	deliveryMode := config.DeliveryGroup
+	deliveryMode := settings.DeliveryGroup
 	overrides.DeliveryMode = &deliveryMode
-	if _, err := v.settings.CommitGroup(gid, group.Revision(), overrides); err != nil {
+	if _, err := v.settings.Update(gid, group.Revision(), overrides); err != nil {
 		t.Fatal(err)
 	}
 	path := failedStateWritePath(t, "pending.json")
@@ -87,8 +87,8 @@ func TestStateWriteFailuresKeepRuntimeStateButLoseRestartRecovery(t *testing.T) 
 	const gid, uid = int64(-100), int64(5)
 
 	t.Run("verification_strikes", func(t *testing.T) {
-		cfg := &config.Config{
-			Groups:             []config.GroupConfig{{ID: gid}},
+		cfg := &settings.Config{
+			Groups:             []settings.GroupConfig{{ID: gid}},
 			GroupIDs:           []int64{gid},
 			VerifyMaxFails:     3,
 			VerifyRetrySeconds: 600,
@@ -127,7 +127,7 @@ func TestStateWriteFailuresKeepRuntimeStateButLoseRestartRecovery(t *testing.T) 
 	})
 
 	t.Run("heartbeat", func(t *testing.T) {
-		v := newTestService(&config.Config{})
+		v := newTestService(&settings.Config{})
 		path := failedStateWritePath(t, "heartbeat.json")
 		v.hbPath = path
 		setOffline(v)
@@ -146,7 +146,7 @@ func TestStateWriteFailuresKeepRuntimeStateButLoseRestartRecovery(t *testing.T) 
 		}
 		requireStateWriteFailureLogged(t, path, output)
 
-		fresh := newTestService(&config.Config{})
+		fresh := newTestService(&settings.Config{})
 		fresh.hbPath = path
 		if restored := fresh.loadHeartbeat(); !restored.IsZero() {
 			t.Fatalf("fresh service restored heartbeat from failed write: %v", restored)
@@ -154,7 +154,7 @@ func TestStateWriteFailuresKeepRuntimeStateButLoseRestartRecovery(t *testing.T) 
 	})
 
 	t.Run("agent_tally", func(t *testing.T) {
-		v := newTestService(&config.Config{})
+		v := newTestService(&settings.Config{})
 		path := failedStateWritePath(t, "agents.json")
 		v.agentPath = path
 		var model string
@@ -172,7 +172,7 @@ func TestStateWriteFailuresKeepRuntimeStateButLoseRestartRecovery(t *testing.T) 
 		}
 		requireStateWriteFailureLogged(t, path, output)
 
-		fresh := newTestService(&config.Config{})
+		fresh := newTestService(&settings.Config{})
 		fresh.agentPath = path
 		fresh.loadAgents()
 		if fresh.agents.Total != 0 || fresh.AgentStatsText(i18n.LangEN) != "" {

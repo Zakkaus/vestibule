@@ -10,9 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -66,23 +65,23 @@ var githubToken string
 
 // Service owns lookup handlers and their private-query rate state.
 type Service struct {
-	settings  *store.Settings
+	settings  *settings.Store
 	telegram  *telegram.Connector
-	cfg       *config.Config
+	cfg       *settings.Config
 	mu        sync.Mutex
 	queryHits map[int64][]time.Time
 }
 
 // New constructs a lookup service from runtime settings, Telegram transport, configuration, and an optional GitHub token.
-func New(settings *store.Settings, telegram *telegram.Connector, cfg *config.Config, githubAPIToken string) *Service {
+func New(store *settings.Store, telegram *telegram.Connector, cfg *settings.Config, githubAPIToken string) *Service {
 	if cfg == nil {
-		cfg = &config.Config{}
+		cfg = &settings.Config{}
 	}
 	configurePkg(cfg)
 	configureNews(cfg)
 	githubToken = githubAPIToken
 	return &Service{
-		settings:  settings,
+		settings:  store,
 		telegram:  telegram,
 		cfg:       cfg,
 		queryHits: map[int64][]time.Time{},
@@ -97,8 +96,8 @@ func (s *Service) Warm(ctx context.Context) {
 // AutoDelete returns the effective lookup cleanup duration and enabled state for one group.
 func (s *Service) AutoDelete(groupID int64) (time.Duration, bool) {
 	if s.settings != nil {
-		if group, ok := s.settings.Group(groupID); ok {
-			duration, valid := config.SecondsToDuration(group.LookupTTLSeconds().Value)
+		if group, ok := s.settings.Settings(groupID); ok {
+			duration, valid := settings.SecondsToDuration(group.LookupTTLSeconds().Value)
 			return duration, group.LookupAutoDeleteEnabled().Value && valid
 		}
 	}
@@ -106,7 +105,7 @@ func (s *Service) AutoDelete(groupID int64) (time.Duration, bool) {
 	if s.cfg.LookupTTLSeconds != nil {
 		seconds = max(*s.cfg.LookupTTLSeconds, 0)
 	}
-	duration, valid := config.SecondsToDuration(seconds)
+	duration, valid := settings.SecondsToDuration(seconds)
 	return duration, seconds > 0 && valid
 }
 
@@ -117,27 +116,11 @@ func (s *Service) isGroup(groupID int64) bool {
 	return s.cfg.IsGroup(groupID)
 }
 
-func (s *Service) controlGroupID() int64 {
-	if s.settings != nil {
-		return s.settings.ControlGroupID()
-	}
-	if s.cfg.ControlGroupID != 0 {
-		return s.cfg.ControlGroupID
-	}
-	if len(s.cfg.GroupIDs) != 0 {
-		return s.cfg.GroupIDs[0]
-	}
-	if len(s.cfg.Groups) != 0 {
-		return s.cfg.Groups[0].ID
-	}
-	return 0
-}
-
 func (s *Service) lookupSettingsGroupID(chatID int64) int64 {
 	if s.settings != nil && s.settings.IsGroup(chatID) {
 		return chatID
 	}
-	return s.controlGroupID()
+	return 0
 }
 
 func (s *Service) cleanupAfter(chatID int64) time.Duration {
@@ -165,31 +148,30 @@ func (s *Service) replyLookupHTML(c context.Context, _ *telego.Bot, chatID int64
 
 // Bot API rich messages fall back to HTML on server rejection.
 func (s *Service) sendRichOrHTML(c context.Context, _ *telego.Bot, chatID int64, replyTo int, richHTML, plainHTML string) {
-	s.telegram.SendRichOrHTML(c, chatID, replyTo, richHTML, plainHTML, s.richEnabled(), s.cleanupAfter(chatID))
+	s.telegram.SendRichOrHTML(c, chatID, replyTo, richHTML, plainHTML, s.richEnabled(chatID), s.cleanupAfter(chatID))
 }
 
 const privateQueryWindow = time.Minute
 const privateQueryMapMax = 10000
 
 func (s *Service) privateQueryPerMin() int {
-	if s.settings != nil {
-		return s.settings.Global().PrivateQueryPerMin().Value
-	}
 	if s.cfg.PrivateQueryPerMin > 0 {
 		return s.cfg.PrivateQueryPerMin
 	}
 	return 3
 }
 
-func (s *Service) richEnabled() bool {
+func (s *Service) richEnabled(chatID int64) bool {
 	if s.settings != nil {
-		return s.settings.Global().RichMessages().Value
+		if group, ok := s.settings.Settings(chatID); ok {
+			return group.RichMessages().Value
+		}
 	}
 	return s.cfg.RichMessages
 }
 func (s *Service) groupLanguage(groupID int64) i18n.Lang {
 	if s.settings != nil {
-		if group, ok := s.settings.Group(groupID); ok {
+		if group, ok := s.settings.Settings(groupID); ok {
 			return i18n.FromStored(group.Lang().Value)
 		}
 	}

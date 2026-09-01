@@ -5,15 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 // A held member is a member of the group by definition. Recovery must not read that as "they
 // already got in", or every post-join verification is dropped after an outage and the member
 // stays muted with no challenge and nobody to lift it.
 func TestRecoveryKeepsHeldMembers(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	v.botUsername = "bot"
 	gid, uid := int64(-100), int64(42)
 	fb := &fakeVerifyBot{member: &ChatMemberRestricted{Status: MemberStatusRestricted, IsMember: true}}
@@ -37,7 +37,7 @@ func TestRecoveryKeepsHeldMembers(t *testing.T) {
 
 // An applicant who really did get in while the bot was offline is still dropped.
 func TestRecoveryStillDropsAdmittedApplicants(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	v.botUsername = "bot"
 	gid, uid := int64(-100), int64(43)
 	fb := &fakeVerifyBot{member: &ChatMemberMember{Status: MemberStatusMember}}

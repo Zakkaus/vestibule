@@ -15,9 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 )
 
@@ -70,7 +69,7 @@ type pending struct {
 	groupMsgID         int
 	privateMsgID       int
 	challengeDelivered bool
-	mode               string    // challenge type this applicant got: config.ModeKernel (typed answer) or config.ModeQuiz (buttons)
+	mode               string    // challenge type this applicant got: settings.ModeKernel (typed answer) or settings.ModeQuiz (buttons)
 	lang               i18n.Lang // applicant locale from Telegram; every applicant message uses it
 	storedLang         string    // original persisted tag retained for byte-stable legacy round trips
 	preserveStoredLang bool
@@ -136,7 +135,7 @@ func newNonce() string {
 
 // Service owns verification challenges, pending settlement, recovery, and verification state.
 type Service struct {
-	cfg               *config.Config
+	cfg               *settings.Config
 	botUsername       string
 	botID             int64
 	statePath         string
@@ -157,7 +156,7 @@ type Service struct {
 	agentMu           sync.Mutex
 	agents            AgentTally
 	agentPath         string
-	settings          *store.Settings
+	settings          *settings.Store
 	gateway           Gateway
 	stateStore        Store
 	actionOwner       string
@@ -188,10 +187,10 @@ type Identity struct {
 // New constructs verification with explicit state, transport, configuration, catalogue, and
 // liveness dependencies.
 func New(
-	settings *store.Settings,
+	settings *settings.Store,
 	gateway Gateway,
 	stateStore Store,
-	cfg *config.Config,
+	cfg *settings.Config,
 	messages *i18n.Catalog,
 	probe LiveProbe,
 	identity Identity,
@@ -214,7 +213,7 @@ func New(
 	return v
 }
 
-func newService(settings *store.Settings, gateway Gateway, cfg *config.Config, messages *i18n.Catalog) *Service {
+func newService(settings *settings.Store, gateway Gateway, cfg *settings.Config, messages *i18n.Catalog) *Service {
 	if settings == nil {
 		panic("verification: settings must not be nil")
 	}
@@ -242,37 +241,33 @@ func (v *Service) gatewayFor(gateway Gateway) Gateway {
 	return v.gateway
 }
 
-func (v *Service) groupSettings(groupID int64) (store.GroupView, bool) {
-	return v.settings.Group(groupID)
+func (v *Service) groupSettings(groupID int64) (settings.GroupView, bool) {
+	return v.settings.Settings(groupID)
 }
 
-// ControlGroupID returns the group used for bot-wide settings and DM status.
-func (v *Service) ControlGroupID() int64 {
-	return v.settings.ControlGroupID()
+// FirstChatID returns a deterministic chat for legacy DM-only status commands.
+func (v *Service) FirstChatID() int64 {
+	chatIDs := v.settings.ChatIDs()
+	if len(chatIDs) == 0 {
+		return 0
+	}
+	return chatIDs[0]
 }
 
-func (v *Service) updateGroupSettings(groupID int64, update func(store.GroupView, *store.GroupOverrides)) error {
-	group, ok := v.settings.Group(groupID)
+func (v *Service) updateGroupSettings(groupID int64, update func(settings.GroupView, *settings.GroupOverrides)) error {
+	group, ok := v.settings.Settings(groupID)
 	if !ok {
-		return fmt.Errorf("%w: %d", store.ErrUnknownGroup, groupID)
+		return fmt.Errorf("%w: %d", settings.ErrUnknownGroup, groupID)
 	}
 	overrides := group.Overrides()
 	update(group, &overrides)
-	_, err := v.settings.CommitGroup(groupID, group.Revision(), overrides)
-	return err
-}
-
-func (v *Service) updateGlobalSettings(update func(store.GlobalView, *store.GlobalOverrides)) error {
-	global := v.settings.Global()
-	overrides := global.Overrides()
-	update(global, &overrides)
-	_, err := v.settings.CommitGlobal(global.Revision(), overrides)
+	_, err := v.settings.Update(groupID, group.Revision(), overrides)
 	return err
 }
 
 // SetAutoDelete updates one group's lookup cleanup policy.
 func (v *Service) SetAutoDelete(groupID int64, ttl time.Duration, on bool) error {
-	return v.updateGroupSettings(groupID, func(group store.GroupView, overrides *store.GroupOverrides) {
+	return v.updateGroupSettings(groupID, func(group settings.GroupView, overrides *settings.GroupOverrides) {
 		if ttl <= 0 && on && group.LookupTTLSeconds().Value <= 0 {
 			ttl = 3 * time.Minute
 		}
@@ -299,14 +294,14 @@ func (v *Service) IsEnabled(groupID int64) bool {
 func (v *Service) DeliveryMode(groupID int64) string {
 	group, ok := v.groupSettings(groupID)
 	if !ok {
-		return config.DeliveryBoth
+		return settings.DeliveryBoth
 	}
 	return group.DeliveryMode().Value
 }
 
 // SetEnabled updates automated join verification for one group.
 func (v *Service) SetEnabled(groupID int64, enabled bool) error {
-	if err := v.updateGroupSettings(groupID, func(_ store.GroupView, overrides *store.GroupOverrides) {
+	if err := v.updateGroupSettings(groupID, func(_ settings.GroupView, overrides *settings.GroupOverrides) {
 		overrides.Enabled = &enabled
 	}); err != nil {
 		return err
@@ -399,11 +394,11 @@ func (v *Service) RemoveGroup(groupID int64) {
 	v.mu.Unlock()
 }
 
-// ToggleRich flips the bot-wide rich-message setting.
-func (v *Service) ToggleRich() (bool, error) {
+// ToggleRich flips rich-message delivery for one chat.
+func (v *Service) ToggleRich(groupID int64) (bool, error) {
 	var enabled bool
-	err := v.updateGlobalSettings(func(global store.GlobalView, overrides *store.GlobalOverrides) {
-		enabled = !global.RichMessages().Value
+	err := v.updateGroupSettings(groupID, func(group settings.GroupView, overrides *settings.GroupOverrides) {
+		enabled = !group.RichMessages().Value
 		overrides.RichMessages = &enabled
 	})
 	return enabled, err
@@ -418,7 +413,7 @@ func (v *Service) NameSpoilerOn(groupID int64) bool {
 // ToggleNameSpoiler flips applicant-name hiding for one group.
 func (v *Service) ToggleNameSpoiler(groupID int64) (bool, error) {
 	var enabled bool
-	err := v.updateGroupSettings(groupID, func(group store.GroupView, overrides *store.GroupOverrides) {
+	err := v.updateGroupSettings(groupID, func(group settings.GroupView, overrides *settings.GroupOverrides) {
 		enabled = !group.NameSpoiler().Value
 		overrides.NameSpoiler = &enabled
 	})
@@ -479,10 +474,10 @@ func (v *Service) gateTimeout(groupID int64, gate string) time.Duration {
 		return 0
 	}
 	setting := group.TimeoutSeconds()
-	if gate == gateMute && setting.Source != store.SourceRuntime {
+	if gate == gateMute && setting.Source != settings.SourceChatOverride {
 		return postJoinTimeout
 	}
-	duration, ok := config.SecondsToDuration(setting.Value)
+	duration, ok := settings.SecondsToDuration(setting.Value)
 	if !ok {
 		return 0
 	}
@@ -610,11 +605,7 @@ func (v *Service) RequiredChannelID(groupID int64) int64 {
 	if !ok {
 		return 0
 	}
-	overrides := group.Overrides()
-	if overrides.RequiredChannelID != nil {
-		return *overrides.RequiredChannelID
-	}
-	return group.Baseline().RequiredChannelID.Value
+	return group.RequiredChannelID().Value
 }
 
 func (v *Service) channelDisplay(groupID int64) string {
@@ -719,7 +710,7 @@ func (v *Service) tryTrustedBypass(c context.Context, bot Gateway, gid, uid int6
 			}
 			log.Printf("trusted-bypass: approve %d in %d failed (%v) — falling back to normal verification", uid, gid, err)
 			alert := v.messages.Verification.Admin.TrustedBypassFailed.Render(v.groupLanguage(gid), uid, src, gid, err)
-			v.adminAlert(c, bot, alert)
+			v.adminAlert(c, bot, gid, alert)
 			return false, true
 		}
 		v.clearVerifyFails(gid, uid) // a now-trusted member starts with a clean slate
@@ -933,10 +924,10 @@ func (v *Service) deliverPendingChallenge(
 	result := challengeDeliveryResult{active: true, modeLabel: v.DeliveryMode(gid)}
 	groupLang := v.groupLanguage(gid)
 	switch result.modeLabel {
-	case config.DeliveryGroup:
+	case settings.DeliveryGroup:
 		result.messages.groupMsgID = v.postGroupChallenge(c, bot, gid, uid, name, groupLang, v.voiceFor(gid, owner))
 		result.delivered = result.messages.groupMsgID != 0
-	case config.DeliveryBoth:
+	case settings.DeliveryBoth:
 		result.messages.groupMsgID = v.postGroupChallenge(c, bot, gid, uid, name, groupLang, v.voiceFor(gid, owner))
 		result.delivered = result.messages.groupMsgID != 0
 		outcome := v.attemptPrivateChallenge(c, bot, gid, uid, owner)
@@ -954,7 +945,7 @@ func (v *Service) deliverPendingChallenge(
 			result.active = false
 			v.deleteChallenges(c, bot, gid, uid, result.messages)
 		}
-	case config.DeliveryDM:
+	case settings.DeliveryDM:
 		outcome := v.attemptPrivateChallenge(c, bot, gid, uid, owner)
 		result.messages.privateMsgID = outcome.privateMsgID
 		result.replacedPrivateMsgID = outcome.replacedPrivateMsgID
@@ -1380,7 +1371,7 @@ func (v *Service) completeDMDelivery(
 		p.deadline = v.wallNow().Add(delay)
 		v.armExpiry(bot, p, prompt.gid, uid, delay, challengeExpiryReason(true))
 	}
-	if question && p.mode == config.ModeKernel && !p.prompted {
+	if question && p.mode == settings.ModeKernel && !p.prompted {
 		p.prompted = true
 		changed = true
 	}
@@ -1417,7 +1408,7 @@ func (v *Service) sendDMQuestionRetainingPrevious(
 ) (dmSendResult, error) {
 	var messageID int
 	var err error
-	if prompt.mode == config.ModeKernel {
+	if prompt.mode == settings.ModeKernel {
 		left := kernelMaxTries - prompt.tries
 		var rich, plain string
 		if prompt.fallback {
@@ -1834,10 +1825,12 @@ func (v *Service) channelGate(c context.Context, bot Gateway, gid, userID int64,
 		// Apply configured fail-open policy and alert admins instead of silently blocking everyone.
 		if v.botID != 0 {
 			if _, e2 := bot.Member(c, rc, v.botID); e2 != nil {
-				open := v.cfg.FailOpenChannel()
+				open := true
+				if group, ok := v.groupSettings(gid); ok {
+					open = group.RequiredChannelFailOpen().Value
+				}
 				log.Printf("isChannelMember: bot cannot access required channel %d (%v) for applicant %d; fail_open=%v — make the bot an admin of that channel", rc, e2, userID, open)
-				v.channelAccessAlert(c, bot, groupLang, rc)
-				// configurable: default fail-open (don't lock everyone out); strict deployments set required_channel_fail_open:false
+				v.channelAccessAlert(c, bot, gid, groupLang, rc, open)
 				return open, false
 			}
 		}
@@ -1930,18 +1923,20 @@ func (v *Service) deleteChallenges(c context.Context, bot Gateway, gid, _ int64,
 	v.deleteChallenge(c, bot, gid, messages.groupMsgID)
 }
 
-// The alert destination is a live setting, so a panel change takes effect without a restart.
-func (v *Service) adminLogChatID() int64 {
-	return v.settings.Global().AdminLogChatID().Value
+func (v *Service) adminLogChatID(groupID int64) int64 {
+	if group, ok := v.groupSettings(groupID); ok {
+		return group.AdminLogChatID().Value
+	}
+	return v.cfg.AdminLogChatID
 }
 
-func (v *Service) adminAlert(c context.Context, bot Gateway, text string) {
-	v.gatewayFor(bot).Alert(c, v.adminLogChatID(), text)
+func (v *Service) adminAlert(c context.Context, bot Gateway, groupID int64, text string) {
+	v.gatewayFor(bot).Alert(c, v.adminLogChatID(groupID), text)
 }
 
 // adminRecord logs an action that happened once, so identical repeats must all appear.
-func (v *Service) adminRecord(c context.Context, bot Gateway, text string) {
-	v.gatewayFor(bot).AuditLog(c, v.adminLogChatID(), text)
+func (v *Service) adminRecord(c context.Context, bot Gateway, groupID int64, text string) {
+	v.gatewayFor(bot).AuditLog(c, v.adminLogChatID(groupID), text)
 }
 
 // A failure nobody can act on is not worth an operator notice. A deactivated applicant cannot be
@@ -1956,13 +1951,13 @@ func (v *Service) settlementAlert(c context.Context, bot Gateway, gid int64, err
 // Failure notices fall back to the acting group when no admin-log chat is configured.
 // This keeps optimistic callback acknowledgements from hiding rare network failures.
 func (v *Service) failAlert(c context.Context, bot Gateway, gid int64, text string) {
-	v.gatewayFor(bot).FailAlert(c, v.adminLogChatID(), gid, text)
+	v.gatewayFor(bot).FailAlert(c, v.adminLogChatID(gid), gid, text)
 }
 
 // Throttle unreadable-channel alerts per channel to avoid flooding operators.
 const channelAccessAlertCooldown = 10 * time.Minute
 
-func (v *Service) channelAccessAlert(c context.Context, bot Gateway, l i18n.Lang, channelID int64) {
+func (v *Service) channelAccessAlert(c context.Context, bot Gateway, groupID int64, l i18n.Lang, channelID int64, open bool) {
 	v.mu.Lock()
 	now := time.Now()
 	if last, ok := v.chanAlert[channelID]; ok && now.Sub(last) < channelAccessAlertCooldown {
@@ -1979,10 +1974,10 @@ func (v *Service) channelAccessAlert(c context.Context, bot Gateway, l i18n.Lang
 	v.mu.Unlock()
 	admin := &v.messages.Verification.Admin
 	mode := admin.ChannelFailOpen.For(l)
-	if !v.cfg.FailOpenChannel() {
+	if !open {
 		mode = admin.ChannelFailClosed.For(l)
 	}
-	v.adminAlert(c, bot, admin.ChannelAccessFailed.Render(l, channelID, mode))
+	v.adminAlert(c, bot, groupID, admin.ChannelAccessFailed.Render(l, channelID, mode))
 }
 
 // Keep claimed approvals in the map so network failure can reopen them.
@@ -2546,7 +2541,7 @@ func (v *Service) finishDecline(c context.Context, bot Gateway, gid, uid int64, 
 		} else {
 			l := v.groupLanguage(gid)
 			duration := verificationBanDurationText(v.messages, l, secs)
-			v.adminRecord(c, bot, v.messages.Verification.Admin.AutoBanned.Render(l, uid, gid, count, duration))
+			v.adminRecord(c, bot, gid, v.messages.Verification.Admin.AutoBanned.Render(l, uid, gid, count, duration))
 			banned = true
 		}
 		if banned {
@@ -2653,12 +2648,12 @@ func cryptoIntn(n int) int {
 	return int(v.Int64())
 }
 
-func randomQuestion(questions []config.Question) config.Question {
+func randomQuestion(questions []settings.Question) settings.Question {
 	return questions[cryptoIntn(len(questions))]
 }
 
 // Shuffling prevents fixed-position clicks while preserving the correct option's new index.
-func shuffledQuestion(q config.Question) (text string, opts []string, correctIdx int) {
+func shuffledQuestion(q settings.Question) (text string, opts []string, correctIdx int) {
 	order := make([]int, len(q.Options))
 	for i := range order {
 		order[i] = i

@@ -7,16 +7,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 )
 
 type dmHandler struct {
-	cfg            *config.Config
-	settings       *store.Settings
+	cfg            *settings.Config
+	settings       *settings.Store
 	telegram       *Connector
 	mu             sync.Mutex
 	last           map[int64]time.Time
@@ -82,9 +81,6 @@ func (v *dmHandler) privateReply(l i18n.Lang) string {
 		return v.cfg.PrivateReply
 	}
 	rate := v.cfg.PrivateQueryPerMin
-	if v.settings != nil {
-		rate = v.settings.Global().PrivateQueryPerMin().Value
-	}
 	dm := i18n.Messages.Bot.DirectMessage
 	return dm.AutoReply.Render(l, rate, dm.Who(l))
 }

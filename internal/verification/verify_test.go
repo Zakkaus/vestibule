@@ -9,23 +9,23 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/rules"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 )
 
-func newTestService(cfg *config.Config) *Service {
+func newTestService(cfg *settings.Config) *Service {
 	effective := *cfg
 	if len(effective.Groups) == 0 && len(effective.GroupIDs) == 0 {
 		effective.GroupIDs = []int64{-100}
 	}
-	baseline, err := store.LoadBaseline("", &effective)
+	baseline, err := settings.LoadBaseline("", &effective)
 	if err != nil {
 		panic(fmt.Sprintf("test settings baseline: %v", err))
 	}
-	settings, err := store.NewSettings("", baseline)
+	settings, err := settings.NewStore("", baseline, nil)
 	if err != nil {
 		panic(fmt.Sprintf("test settings: %v", err))
 	}
@@ -36,7 +36,7 @@ func newTestService(cfg *config.Config) *Service {
 
 func TestNameSpoilerDefaultAndToggle(t *testing.T) {
 	const groupID int64 = -100
-	v := newTestService(&config.Config{Groups: []config.GroupConfig{{ID: groupID}}, GroupIDs: []int64{groupID}})
+	v := newTestService(&settings.Config{Groups: []settings.GroupConfig{{ID: groupID}}, GroupIDs: []int64{groupID}})
 	if !v.NameSpoilerOn(groupID) {
 		t.Error("name spoiler should default ON (spam names are often adverts)")
 	}
@@ -56,18 +56,18 @@ func TestJoinResolvesApplicantAndGroupLanguagesSeparately(t *testing.T) {
 		groupID int64 = -100
 		userID  int64 = 42
 	)
-	v := newTestService(&config.Config{
-		Groups:         []config.GroupConfig{{ID: groupID}},
+	v := newTestService(&settings.Config{
+		Groups:         []settings.GroupConfig{{ID: groupID}},
 		GroupIDs:       []int64{groupID},
 		Lang:           "zh",
-		VerifyMode:     config.ModeKernel,
+		VerifyMode:     settings.ModeKernel,
 		TimeoutSeconds: 240,
 	})
-	group, _ := v.settings.Group(groupID)
+	group, _ := v.settings.Settings(groupID)
 	overrides := group.Overrides()
-	deliveryMode := config.DeliveryGroup
+	deliveryMode := settings.DeliveryGroup
 	overrides.DeliveryMode = &deliveryMode
-	if _, err := v.settings.CommitGroup(groupID, group.Revision(), overrides); err != nil {
+	if _, err := v.settings.Update(groupID, group.Revision(), overrides); err != nil {
 		t.Fatal(err)
 	}
 	bot := newFakeVerifyBot()
@@ -129,7 +129,7 @@ func TestNoPendingDMUsesRequesterLocale(t *testing.T) {
 				{name: "scoped", groupID: -1009000000799},
 			} {
 				t.Run(target.name, func(t *testing.T) {
-					v := newTestService(&config.Config{})
+					v := newTestService(&settings.Config{})
 					caller := newFakeVerifyBot()
 					v.gateway = caller
 
@@ -151,13 +151,13 @@ func TestJoinRequestDefaultPostsGroupBeforePrivateChallenge(t *testing.T) {
 		groupID int64 = -1009000000700
 		userID  int64 = 700
 	)
-	service := newTestService(&config.Config{
-		Groups:         []config.GroupConfig{{ID: groupID}},
+	service := newTestService(&settings.Config{
+		Groups:         []settings.GroupConfig{{ID: groupID}},
 		GroupIDs:       []int64{groupID},
 		Lang:           "en",
-		VerifyMode:     config.ModeKernel,
+		VerifyMode:     settings.ModeKernel,
 		TimeoutSeconds: 240,
-		DeliveryMode:   config.DeliveryBoth,
+		DeliveryMode:   settings.DeliveryBoth,
 	})
 	service.botUsername = "settings_test_bot"
 	caller := newFakeVerifyBot()
@@ -213,12 +213,12 @@ func TestRequiredChannelPromptMessageIsRetainedForCleanup(t *testing.T) {
 		channelID int64 = -1009000000803
 		userID    int64 = 703
 	)
-	service := newTestService(&config.Config{
-		Groups:            []config.GroupConfig{{ID: groupID}},
+	service := newTestService(&settings.Config{
+		Groups:            []settings.GroupConfig{{ID: groupID}},
 		GroupIDs:          []int64{groupID},
 		Lang:              "en",
-		VerifyMode:        config.ModeKernel,
-		DeliveryMode:      config.DeliveryBoth,
+		VerifyMode:        settings.ModeKernel,
+		DeliveryMode:      settings.DeliveryBoth,
 		TimeoutSeconds:    240,
 		RequiredChannelID: channelID,
 		ChannelDisplay:    "@required",
@@ -252,12 +252,12 @@ func TestRequiredChannelDeepLinkPromptMessageIsRetainedForCleanup(t *testing.T) 
 		channelID int64 = -1009000000804
 		userID    int64 = 704
 	)
-	service := newTestService(&config.Config{
-		Groups:            []config.GroupConfig{{ID: groupID}},
+	service := newTestService(&settings.Config{
+		Groups:            []settings.GroupConfig{{ID: groupID}},
 		GroupIDs:          []int64{groupID},
 		Lang:              "en",
-		VerifyMode:        config.ModeKernel,
-		DeliveryMode:      config.DeliveryGroup,
+		VerifyMode:        settings.ModeKernel,
+		DeliveryMode:      settings.DeliveryGroup,
 		TimeoutSeconds:    240,
 		RequiredChannelID: channelID,
 		ChannelDisplay:    "@required",
@@ -330,11 +330,11 @@ func TestJoinRequestBothCountsEitherConfirmedDelivery(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			service := newTestService(&config.Config{
-				Groups:         []config.GroupConfig{{ID: groupID}},
+			service := newTestService(&settings.Config{
+				Groups:         []settings.GroupConfig{{ID: groupID}},
 				GroupIDs:       []int64{groupID},
 				Lang:           "en",
-				VerifyMode:     config.ModeKernel,
+				VerifyMode:     settings.ModeKernel,
 				TimeoutSeconds: 240,
 			})
 			caller := newFakeVerifyBot()
@@ -369,13 +369,13 @@ func TestJoinRequestDMModeDeliversPrivatelyOrFallsBackToScopedGroupLink(t *testi
 		userID  int64 = 701
 	)
 	newVerifier := func() *Service {
-		service := newTestService(&config.Config{
-			Groups:         []config.GroupConfig{{ID: groupID}},
+		service := newTestService(&settings.Config{
+			Groups:         []settings.GroupConfig{{ID: groupID}},
 			GroupIDs:       []int64{groupID},
 			Lang:           "en",
-			VerifyMode:     config.ModeKernel,
+			VerifyMode:     settings.ModeKernel,
 			TimeoutSeconds: 240,
-			DeliveryMode:   config.DeliveryDM,
+			DeliveryMode:   settings.DeliveryDM,
 		})
 		service.botUsername = "settings_test_bot"
 		return service
@@ -424,11 +424,11 @@ func TestJoinRequestDMModeDeliversPrivatelyOrFallsBackToScopedGroupLink(t *testi
 
 	t.Run("per-group setting keeps group-first behavior", func(t *testing.T) {
 		service := newVerifier()
-		group, _ := service.settings.Group(groupID)
+		group, _ := service.settings.Settings(groupID)
 		overrides := group.Overrides()
-		deliveryMode := config.DeliveryGroup
+		deliveryMode := settings.DeliveryGroup
 		overrides.DeliveryMode = &deliveryMode
-		if _, err := service.settings.CommitGroup(groupID, group.Revision(), overrides); err != nil {
+		if _, err := service.settings.Update(groupID, group.Revision(), overrides); err != nil {
 			t.Fatal(err)
 		}
 		caller := newFakeVerifyBot()
@@ -468,13 +468,13 @@ func TestJoinRequestAmbiguousDMFailureDoesNotRiskDuplicateGroupChallenge(t *test
 		groupID int64 = -1009000000702
 		userID  int64 = 702
 	)
-	service := newTestService(&config.Config{
-		Groups:         []config.GroupConfig{{ID: groupID}},
+	service := newTestService(&settings.Config{
+		Groups:         []settings.GroupConfig{{ID: groupID}},
 		GroupIDs:       []int64{groupID},
 		Lang:           "en",
-		VerifyMode:     config.ModeKernel,
+		VerifyMode:     settings.ModeKernel,
 		TimeoutSeconds: 240,
-		DeliveryMode:   config.DeliveryDM,
+		DeliveryMode:   settings.DeliveryDM,
 	})
 	caller := newFakeVerifyBot()
 	caller.sendErr = errors.New("connection reset after request write")
@@ -864,7 +864,7 @@ func TestOnAnswer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &config.Config{VerifyMaxFails: 3}
+			cfg := &settings.Config{VerifyMaxFails: 3}
 			if tt.required {
 				cfg.RequiredChannelID = -400
 			}
@@ -900,7 +900,7 @@ func TestOnAnswer(t *testing.T) {
 func TestOnAnswerTreatsZeroRowTransitionAsAlreadySettled(t *testing.T) {
 	const gid, uid = int64(-100), int64(5)
 	state := &zeroTransitionStore{}
-	v := newTestService(&config.Config{VerifyMaxFails: 3})
+	v := newTestService(&settings.Config{VerifyMaxFails: 3})
 	v.statePath = "database"
 	v.stateStore = state
 	key := pkey{gid: gid, uid: uid}
@@ -956,7 +956,7 @@ func TestAdminCallbackReportsActionInProgress(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.action, func(t *testing.T) {
-			v := newTestService(&config.Config{BanSeconds: 3600})
+			v := newTestService(&settings.Config{BanSeconds: 3600})
 			key := pkey{gid, uid}
 			v.pend[key] = livePending(42)
 			bot := newFakeVerifyBot()
@@ -1061,7 +1061,7 @@ func TestOnAdminActionTelegramFailureAfterAcknowledgement(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v := newTestService(&config.Config{AdminLogChatID: tt.adminLogChatID, BanSeconds: 3600})
+			v := newTestService(&settings.Config{AdminLogChatID: tt.adminLogChatID, BanSeconds: 3600})
 			key := pkey{gid, uid}
 			p := livePending(42)
 			v.pend[key] = p
@@ -1116,7 +1116,7 @@ func TestOnAdminActionTelegramFailureAfterAcknowledgement(t *testing.T) {
 
 func TestFailureCopyNamesDecisionAndRetry(t *testing.T) {
 	const gid = int64(-100)
-	v := newTestService(&config.Config{
+	v := newTestService(&settings.Config{
 		BanSeconds:         86400,
 		VerifyMaxFails:     3,
 		VerifyRetrySeconds: 600,
@@ -1142,8 +1142,8 @@ func TestFailureCopyNamesDecisionAndRetry(t *testing.T) {
 
 func TestBannedResultTextIgnoresConfiguredThreshold(t *testing.T) {
 	const gid = int64(-100)
-	lowerThreshold := newTestService(&config.Config{BanSeconds: 86400, VerifyMaxFails: 3})
-	higherThreshold := newTestService(&config.Config{BanSeconds: 86400, VerifyMaxFails: 4})
+	lowerThreshold := newTestService(&settings.Config{BanSeconds: 86400, VerifyMaxFails: 3})
+	higherThreshold := newTestService(&settings.Config{BanSeconds: 86400, VerifyMaxFails: 4})
 
 	for _, l := range i18n.Languages() {
 		got := lowerThreshold.wrongAnswerText(gid, l, gateRequest, true)
@@ -1155,7 +1155,7 @@ func TestBannedResultTextIgnoresConfiguredThreshold(t *testing.T) {
 }
 
 func TestApproveSuccess(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	key := pkey{-100, 5}
 	v.pend[key] = livePending(42)
 	v.vfail[key] = &vfailRec{count: 2, last: time.Now()} // had strikes; approve should clear them
@@ -1226,7 +1226,7 @@ func TestSettlementDeletesGroupChallengeOnly(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v := newTestService(&config.Config{VerifyMaxFails: 3})
+			v := newTestService(&settings.Config{VerifyMaxFails: 3})
 			v.pend[pkey{gid, uid}] = &pending{
 				nonce: "n", deadline: time.Now().Add(time.Hour), groupMsgID: 42, privateMsgID: 43,
 			}
@@ -1245,7 +1245,7 @@ func TestSettlementDeletesGroupChallengeOnly(t *testing.T) {
 }
 
 func TestApproveFailureReopens(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	key := pkey{-100, 5}
 	p := livePending(42)
 	v.pend[key] = p
@@ -1266,7 +1266,7 @@ func TestApproveFailureReopens(t *testing.T) {
 }
 
 func TestDeclineBelowThreshold(t *testing.T) {
-	v := newTestService(&config.Config{VerifyMaxFails: 3})
+	v := newTestService(&settings.Config{VerifyMaxFails: 3})
 	key := pkey{-100, 5}
 	v.pend[key] = livePending(42)
 	fb := &fakeVerifyBot{}
@@ -1287,7 +1287,7 @@ func TestDeclineBelowThreshold(t *testing.T) {
 }
 
 func TestDeclineAutoBan(t *testing.T) {
-	v := newTestService(&config.Config{VerifyMaxFails: 1}) // the first failure trips the auto-ban
+	v := newTestService(&settings.Config{VerifyMaxFails: 1}) // the first failure trips the auto-ban
 	key := pkey{-100, 5}
 	v.pend[key] = livePending(42)
 	fb := &fakeVerifyBot{}
@@ -1305,7 +1305,7 @@ func TestDeclineAutoBan(t *testing.T) {
 }
 
 func TestBanApplicant(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	key := pkey{-100, 5}
 	v.pend[key] = livePending(42)
 	fb := &fakeVerifyBot{}
@@ -1335,7 +1335,7 @@ func TestBanApplicant(t *testing.T) {
 }
 
 func TestClaimThenExecuteApprove(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	key := pkey{-100, 5}
 	v.pend[key] = livePending(42)
 
@@ -1374,7 +1374,7 @@ func TestTerminalActionBlocksReapplication(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			const gid, uid = int64(-100), int64(5)
 			key := pkey{gid, uid}
-			v := newTestService(&config.Config{TimeoutSeconds: 3600, VerifyMaxFails: 3})
+			v := newTestService(&settings.Config{TimeoutSeconds: 3600, VerifyMaxFails: 3})
 			old := &pending{nonce: "old", deadline: time.Now().Add(time.Hour)}
 			v.pend[key] = old
 			bot := newBlockingTerminalBot()
@@ -1429,7 +1429,7 @@ func TestBlockedDeclineCountsStrikeAtClaimTime(t *testing.T) {
 	const gid, uid = int64(-100), int64(5)
 	failedAt := time.Unix(2_000_000_000, 0)
 	now := failedAt
-	v := newTestService(&config.Config{VerifyMaxFails: 2, TimeoutSeconds: 3600})
+	v := newTestService(&settings.Config{VerifyMaxFails: 2, TimeoutSeconds: 3600})
 	v.timeNow = func() time.Time { return now }
 	key := pkey{gid, uid}
 	p := &pending{nonce: "current", deadline: failedAt.Add(time.Hour)}
@@ -1476,7 +1476,7 @@ func TestBlockedDeclineCountsStrikeAtClaimTime(t *testing.T) {
 
 func TestRemoveGroupCancelsBlockedDeclineWithoutStrike(t *testing.T) {
 	const gid, uid = int64(-100), int64(6)
-	v := newTestService(&config.Config{VerifyMaxFails: 1, TimeoutSeconds: 3600})
+	v := newTestService(&settings.Config{VerifyMaxFails: 1, TimeoutSeconds: 3600})
 	key := pkey{gid, uid}
 	p := &pending{nonce: "current", deadline: time.Now().Add(time.Hour)}
 	v.pend[key] = p
@@ -1523,7 +1523,7 @@ func TestRemoveGroupCancelsBlockedDeclineWithoutStrike(t *testing.T) {
 }
 
 func TestConsumeThenExecuteBan(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	key := pkey{-100, 5}
 	v.pend[key] = livePending(42)
 
@@ -1543,26 +1543,29 @@ func TestConsumeThenExecuteBan(t *testing.T) {
 	}
 }
 
-func TestFailAlertFallsBackToGroup(t *testing.T) {
-	v := newTestService(&config.Config{}) // AdminLogChatID == 0
+func TestFailAlertUsesPerChatDestination(t *testing.T) {
+	const groupID = int64(-100)
+	v := newTestService(&settings.Config{})
 	fb := &fakeVerifyBot{}
-	v.failAlert(context.Background(), fb, -555, "x")
-	if fb.lastSendChat != -555 {
+	v.failAlert(context.Background(), fb, groupID, "x")
+	if fb.lastSendChat != groupID {
 		t.Errorf("with no admin-log chat, failAlert should post to the group, got chat %d", fb.lastSendChat)
 	}
-	// The destination is a live setting: changing it in the panel must take effect at once.
 	target := int64(-999)
-	if _, err := v.settings.CommitGlobal(v.settings.Global().Revision(), store.GlobalOverrides{AdminLogChatID: &target}); err != nil {
+	group, _ := v.settings.Settings(groupID)
+	overrides := group.Overrides()
+	overrides.AdminLogChatID = &target
+	if _, err := v.settings.Update(groupID, group.Revision(), overrides); err != nil {
 		t.Fatal(err)
 	}
-	v.failAlert(context.Background(), fb, -555, "y")
-	if fb.lastSendChat != -999 {
-		t.Errorf("with an admin-log chat set, failAlert should post there, got chat %d", fb.lastSendChat)
+	v.failAlert(context.Background(), fb, groupID, "y")
+	if fb.lastSendChat != target {
+		t.Errorf("with a per-chat admin-log destination, failAlert posted to %d", fb.lastSendChat)
 	}
 }
 
 func TestApproveClaimBlocksTimeoutDecline(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	key := pkey{gid: -100, uid: 5}
 	v.pend[key] = &pending{nonce: "abc", deadline: time.Now().Add(time.Hour)}
 
@@ -1578,7 +1581,7 @@ func TestApproveClaimBlocksTimeoutDecline(t *testing.T) {
 }
 
 func TestStopForShutdownFreezesPending(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	key := pkey{gid: -100, uid: 42}
 	v.pend[key] = &pending{nonce: "n1", deadline: time.Now().Add(time.Hour)}
 
@@ -1603,7 +1606,7 @@ func TestTrustedBypass(t *testing.T) {
 	ctx := context.Background()
 	const gid, src, uid = int64(-1003265952923), int64(-1001163306055), int64(5)
 	mkV := func() *Service {
-		v := newTestService(&config.Config{Groups: []config.GroupConfig{{ID: gid, TrustedMemberGroupIDs: []int64{src}}}})
+		v := newTestService(&settings.Config{Groups: []settings.GroupConfig{{ID: gid, TrustedMemberGroupIDs: []int64{src}}}})
 		v.loc = time.UTC
 		return v
 	}
@@ -1641,7 +1644,7 @@ func TestTrustedBypass(t *testing.T) {
 		t.Errorf("a confirmed member with a failed approve must be (false,true): handled=%v trusted=%v", handled, trusted)
 	}
 
-	plain := newTestService(&config.Config{Groups: []config.GroupConfig{{ID: gid}}})
+	plain := newTestService(&settings.Config{Groups: []settings.GroupConfig{{ID: gid}}})
 	if handled, trusted := plain.tryTrustedBypass(ctx, newFakeVerifyBot(), gid, uid); handled || trusted {
 		t.Errorf("no trusted config -> (false,false): handled=%v trusted=%v", handled, trusted)
 	}
@@ -1651,7 +1654,7 @@ func TestJoinGate(t *testing.T) {
 	ctx := context.Background()
 	const gid, src, uid = int64(-1003265952923), int64(-1001163306055), int64(5)
 	mkV := func() *Service {
-		v := newTestService(&config.Config{VerifyRetrySeconds: 600, Groups: []config.GroupConfig{{ID: gid, TrustedMemberGroupIDs: []int64{src}}}})
+		v := newTestService(&settings.Config{VerifyRetrySeconds: 600, Groups: []settings.GroupConfig{{ID: gid, TrustedMemberGroupIDs: []int64{src}}}})
 		v.loc = time.UTC
 		return v
 	}
@@ -1709,8 +1712,8 @@ func TestCooldownReapplicationDMsCurrentWait(t *testing.T) {
 		uid      = int64(5)
 		cooldown = 600
 	)
-	v := newTestService(&config.Config{
-		Groups:             []config.GroupConfig{{ID: gid}},
+	v := newTestService(&settings.Config{
+		Groups:             []settings.GroupConfig{{ID: gid}},
 		GroupIDs:           []int64{gid},
 		VerifyRetrySeconds: cooldown,
 	})
@@ -1756,7 +1759,7 @@ func TestStrikesUser(t *testing.T) {
 func TestDeclineNoStrike(t *testing.T) {
 	const gid, uid = int64(-100), int64(5)
 	mkV := func() *Service {
-		v := newTestService(&config.Config{})
+		v := newTestService(&settings.Config{})
 		v.loc = time.UTC
 		return v
 	}
@@ -1785,7 +1788,7 @@ func TestDeclineNoStrike(t *testing.T) {
 }
 
 func TestReopenPendingRestoresRetryable(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	key := pkey{gid: -100, uid: 5}
 	p := &pending{nonce: "abc", deadline: time.Now().Add(time.Hour), done: true}
 	v.pend[key] = p
@@ -1809,7 +1812,7 @@ func TestReopenPendingRestoresRetryable(t *testing.T) {
 
 func TestDeclineFailureAlertsAdmins(t *testing.T) {
 	const gid, uid = int64(-100), int64(5)
-	v := newTestService(&config.Config{AdminLogChatID: -200})
+	v := newTestService(&settings.Config{AdminLogChatID: -200})
 	v.loc = time.UTC
 	p := livePending(42)
 	v.pend[pkey{gid, uid}] = p
@@ -1831,7 +1834,7 @@ func TestDeclineFailureAlertsAdmins(t *testing.T) {
 
 func TestDeclineFailureReopensWithoutStrikeAndUsesGroupAlertFallback(t *testing.T) {
 	const gid, uid = int64(-100), int64(5)
-	v := newTestService(&config.Config{VerifyMaxFails: 3})
+	v := newTestService(&settings.Config{VerifyMaxFails: 3})
 	key := pkey{gid, uid}
 	p := &pending{
 		nonce:      "current",
@@ -1886,8 +1889,8 @@ func TestSendQuizzesMarksPromptedOnlyAfterDelivery(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			const gid, uid = int64(-100), int64(5)
-			v := newTestService(&config.Config{})
-			p := &pending{mode: config.ModeKernel, lang: i18n.LangZH, qText: "kernel", nonce: "n", deadline: time.Now().Add(time.Hour)}
+			v := newTestService(&settings.Config{})
+			p := &pending{mode: settings.ModeKernel, lang: i18n.LangZH, qText: "kernel", nonce: "n", deadline: time.Now().Add(time.Hour)}
 			v.pend[pkey{gid, uid}] = p
 			v.sendQuizzes(context.Background(), tt.bot, uid)
 			if p.prompted != tt.want {
@@ -1902,17 +1905,17 @@ func TestSendQuizzesMarksPromptedOnlyAfterDelivery(t *testing.T) {
 
 func TestDeliveredKernelPromptSurvivesRestart(t *testing.T) {
 	const gid, uid = int64(-100), int64(5)
-	cfg := &config.Config{
-		Groups:         []config.GroupConfig{{ID: gid}},
+	cfg := &settings.Config{
+		Groups:         []settings.GroupConfig{{ID: gid}},
 		GroupIDs:       []int64{gid},
-		VerifyMode:     config.ModeKernel,
+		VerifyMode:     settings.ModeKernel,
 		TimeoutSeconds: 240,
 	}
 	path := t.TempDir() + "/pending.json"
 	before := newTestService(cfg)
 	before.statePath = path
 	before.pend[pkey{gid, uid}] = &pending{
-		mode:     config.ModeKernel,
+		mode:     settings.ModeKernel,
 		lang:     i18n.LangEN,
 		qText:    tgfmt.KernelQuestion(&i18n.Messages, i18n.LangEN),
 		nonce:    "n",
@@ -1941,7 +1944,7 @@ func TestDeliveredKernelPromptSurvivesRestart(t *testing.T) {
 }
 
 func TestChallengeResendCapacityKeepsActiveCooldown(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	now := time.Now()
 	const gid, activeUID = int64(-100), int64(1)
 	v.challengeAt[pkey{gid, activeUID}] = now
@@ -1958,7 +1961,7 @@ func TestChallengeResendCapacityKeepsActiveCooldown(t *testing.T) {
 }
 
 func TestChannelAccessAlertPrunesExpiredChannels(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	now := time.Now()
 	const activeChannel int64 = -1
 	v.chanAlert[activeChannel] = now
@@ -1966,7 +1969,7 @@ func TestChannelAccessAlertPrunesExpiredChannels(t *testing.T) {
 		v.chanAlert[channelID] = now.Add(-channelAccessAlertCooldown - time.Second)
 	}
 
-	v.channelAccessAlert(context.Background(), newFakeVerifyBot(), i18n.LangEN, -101)
+	v.channelAccessAlert(context.Background(), newFakeVerifyBot(), -100, i18n.LangEN, -101, true)
 
 	if _, ok := v.chanAlert[activeChannel]; !ok {
 		t.Error("pruning discarded an active channel alert cooldown")
@@ -1999,7 +2002,7 @@ func TestPendingCaps(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v := newTestService(&config.Config{TimeoutSeconds: 3600})
+			v := newTestService(&settings.Config{TimeoutSeconds: 3600})
 			tt.fill(v)
 			p := &pending{nonce: "new"}
 			_, status, err := v.startPending(&fakeVerifyBot{}, tt.gid, tt.uid, p)
@@ -2037,7 +2040,7 @@ func TestPendingCapAlertThrottled(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v := newTestService(&config.Config{AdminLogChatID: tt.adminLogID})
+			v := newTestService(&settings.Config{AdminLogChatID: tt.adminLogID})
 			fb := &fakeVerifyBot{}
 			v.alertPendingCap(context.Background(), fb, tt.groupID, gateRequest)
 			v.alertPendingCap(context.Background(), fb, -300, gateRequest)
@@ -2060,8 +2063,8 @@ func TestPendingCapAlertThrottled(t *testing.T) {
 
 func TestRemoveGroupCancelsAllPendingStateWithoutStrikes(t *testing.T) {
 	const removedGroup, otherGroup = int64(-100), int64(-200)
-	v := newTestService(&config.Config{
-		Groups:   []config.GroupConfig{{ID: removedGroup}, {ID: otherGroup}},
+	v := newTestService(&settings.Config{
+		Groups:   []settings.GroupConfig{{ID: removedGroup}, {ID: otherGroup}},
 		GroupIDs: []int64{removedGroup, otherGroup},
 	})
 	liveKey := pkey{removedGroup, 1}
@@ -2100,11 +2103,11 @@ func TestRemoveGroupCancelsAllPendingStateWithoutStrikes(t *testing.T) {
 
 func TestShutdownDoesNotReopenClaimedExpirySettlement(t *testing.T) {
 	const gid, uid = int64(-100), int64(5)
-	v := newTestService(&config.Config{TimeoutSeconds: 3600, VerifyMaxFails: 3})
+	v := newTestService(&settings.Config{TimeoutSeconds: 3600, VerifyMaxFails: 3})
 	v.statePath = t.TempDir() + "/pending.json"
 	key := pkey{gid, uid}
 	p := &pending{
-		mode:               config.ModeKernel,
+		mode:               settings.ModeKernel,
 		lang:               i18n.LangEN,
 		qText:              "question",
 		nonce:              "blocked",
@@ -2158,13 +2161,13 @@ func TestShutdownDoesNotReopenClaimedExpirySettlement(t *testing.T) {
 
 func TestDuplicateArrivalKeepsInFlightBothDelivery(t *testing.T) {
 	const gid, uid = int64(-100), int64(701)
-	v := newTestService(&config.Config{
-		Groups:         []config.GroupConfig{{ID: gid}},
+	v := newTestService(&settings.Config{
+		Groups:         []settings.GroupConfig{{ID: gid}},
 		GroupIDs:       []int64{gid},
 		Lang:           "en",
-		VerifyMode:     config.ModeKernel,
+		VerifyMode:     settings.ModeKernel,
 		TimeoutSeconds: 30,
-		DeliveryMode:   config.DeliveryBoth,
+		DeliveryMode:   settings.DeliveryBoth,
 	})
 	update := Update{ChatJoinRequest: &ChatJoinRequest{
 		Chat: Chat{ID: gid},
@@ -2224,13 +2227,13 @@ func TestDuplicateArrivalKeepsInFlightBothDelivery(t *testing.T) {
 
 func TestPrivateDeliveryCompletedAfterExpiryIsRetained(t *testing.T) {
 	const gid, uid = int64(-100), int64(702)
-	v := newTestService(&config.Config{
-		Groups:         []config.GroupConfig{{ID: gid}},
+	v := newTestService(&settings.Config{
+		Groups:         []settings.GroupConfig{{ID: gid}},
 		GroupIDs:       []int64{gid},
 		Lang:           "en",
-		VerifyMode:     config.ModeKernel,
+		VerifyMode:     settings.ModeKernel,
 		TimeoutSeconds: 30,
-		DeliveryMode:   config.DeliveryDM,
+		DeliveryMode:   settings.DeliveryDM,
 	})
 	update := Update{ChatJoinRequest: &ChatJoinRequest{
 		Chat: Chat{ID: gid},

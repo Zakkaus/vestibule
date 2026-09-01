@@ -9,12 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/lookup"
 	"github.com/Zakkaus/vestibule/internal/moderate"
 	"github.com/Zakkaus/vestibule/internal/panel"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
@@ -296,10 +295,10 @@ type dispatchFixture struct {
 	requiredChannel     int64
 	botID               int64
 	bot                 *telego.Bot
-	cfg                 *config.Config
+	cfg                 *settings.Config
 	connector           *telegram.Connector
 	caller              *dispatchCaller
-	settings            *store.Settings
+	settings            *settings.Store
 	verification        *verification.Service
 	verificationGateway *telegram.VerificationGateway
 	administration      *panel.Panel
@@ -318,22 +317,22 @@ func newDispatchFixture(t *testing.T, requiredChannel int64) *dispatchFixture {
 	if requiredChannel != 0 {
 		channelID = &requiredChannel
 	}
-	cfg := &config.Config{
-		Groups: []config.GroupConfig{{
+	cfg := &settings.Config{
+		Groups: []settings.GroupConfig{{
 			ID:                groupID,
 			Lang:              "en",
-			VerifyMode:        config.ModeKernel,
+			VerifyMode:        settings.ModeKernel,
 			RequiredChannelID: channelID,
 			ChannelDisplay:    "@required",
 		}},
 		GroupIDs:            []int64{groupID},
 		Lang:                "en",
-		VerifyMode:          config.ModeKernel,
+		VerifyMode:          settings.ModeKernel,
 		BlockChannelSenders: boolPtr(true),
 		PrivateQueryPerMin:  4,
 	}
 	cfg.PrivateReply = i18n.Messages.Bot.DirectMessage.AutoReply.Render(i18n.LangEN, cfg.PrivateQueryPerMin)
-	settings, err := store.NewSettings("", botTestSettingsBaseline(t, cfg))
+	settings, err := settings.NewStore("", botTestSettingsBaseline(t, cfg), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -8,9 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -44,14 +43,14 @@ type MemberLookup interface {
 
 // Service owns moderation handlers, policy, and warning state.
 type Service struct {
-	settings *store.Settings
+	settings *settings.Store
 	telegram Telegram
-	cfg      *config.Config
+	cfg      *settings.Config
 	warnings warningState
 }
 
 // New constructs a moderation service and restores its durable warning counters.
-func New(settings *store.Settings, telegram Telegram, cfg *config.Config, warningStore WarningStore) *Service {
+func New(settings *settings.Store, telegram Telegram, cfg *settings.Config, warningStore WarningStore) *Service {
 	s := &Service{
 		settings: settings,
 		telegram: telegram,
@@ -110,7 +109,7 @@ func (s *Service) CheckGroupSetup(ctx context.Context, bot MemberLookup, selfID,
 		}
 	}
 
-	group, ok := s.settings.Group(groupID)
+	group, ok := s.settings.Settings(groupID)
 	if ok {
 		channelID := group.RequiredChannelID().Value
 		if channelID != 0 {
@@ -150,7 +149,7 @@ func (s *Service) LogGroupSetup(ctx context.Context, bot MemberLookup, selfID, g
 				break
 			}
 		}
-		targets := []int64{registrantID, s.adminLogChatID(), groupID}
+		targets := []int64{registrantID, s.adminLogChatID(groupID), groupID}
 		seen := make(map[int64]bool, len(targets))
 		for _, target := range targets {
 			if target == 0 || seen[target] {
@@ -172,7 +171,7 @@ func (s *Service) LogGroupSetup(ctx context.Context, bot MemberLookup, selfID, g
 
 // LogGroupAdmin emits and delivers exactly one actionable setup report per guarded group.
 func (s *Service) LogGroupAdmin(ctx context.Context, bot MemberLookup, selfID int64) {
-	for _, groupID := range s.settings.GroupIDs() {
+	for _, groupID := range s.settings.ChatIDs() {
 		s.LogGroupSetup(ctx, bot, selfID, groupID)
 	}
 }
@@ -200,22 +199,24 @@ func callerRefusal(l i18n.Lang, err error, denied string) string {
 // Both moderation limits follow the group's own setting, falling back to the configured
 // default for a chat the settings store does not know.
 func (s *Service) warnLimit(groupID int64) int {
-	if group, ok := s.settings.Group(groupID); ok {
+	if group, ok := s.settings.Settings(groupID); ok {
 		return group.WarnLimit().Value
 	}
 	return s.cfg.WarnLimit
 }
 
 func (s *Service) muteSeconds(groupID int64) int {
-	if group, ok := s.settings.Group(groupID); ok {
+	if group, ok := s.settings.Settings(groupID); ok {
 		return group.MuteSeconds().Value
 	}
 	return s.cfg.MuteSeconds
 }
 
-// The alert destination is a live setting, so a panel change takes effect without a restart.
-func (s *Service) adminLogChatID() int64 {
-	return s.settings.Global().AdminLogChatID().Value
+func (s *Service) adminLogChatID(groupID int64) int64 {
+	if group, ok := s.settings.Settings(groupID); ok {
+		return group.AdminLogChatID().Value
+	}
+	return s.cfg.AdminLogChatID
 }
 
 func (s *Service) notify(ctx context.Context, chatID int64, text string) {
@@ -224,7 +225,7 @@ func (s *Service) notify(ctx context.Context, chatID int64, text string) {
 
 func (s *Service) groupLanguage(groupID int64) i18n.Lang {
 	if s.settings != nil {
-		if group, ok := s.settings.Group(groupID); ok {
+		if group, ok := s.settings.Settings(groupID); ok {
 			return i18n.FromStored(group.Lang().Value)
 		}
 	}
@@ -295,7 +296,7 @@ func (s *Service) OnWarn(ctx *th.Context, update telego.Update) error {
 			log.Printf("/warn kick %d in %d: %v", target.ID, groupID, err)
 			s.notify(requestCtx, groupID, i18n.Messages.Moderate.Warning.LimitKickFailed.For(l))
 			// A failed limit kick must reach admins even without a configured admin log.
-			s.telegram.FailAlert(requestCtx, s.adminLogChatID(), groupID,
+			s.telegram.FailAlert(requestCtx, s.adminLogChatID(groupID), groupID,
 				i18n.Messages.Moderate.Warning.LimitKickAlert.Render(l, tgfmt.DisplayName(target), limit, tgfmt.DisplayName(msg.From)))
 			return nil
 		}
@@ -308,7 +309,7 @@ func (s *Service) OnWarn(ctx *th.Context, update telego.Update) error {
 			outcome = i18n.Messages.Moderate.Warning.KickUnbanFailed.For(l)
 		}
 		s.notify(requestCtx, groupID, i18n.Messages.Moderate.Warning.LimitReached.Render(l, tgfmt.DisplayName(target), limit, outcome, tgfmt.DisplayName(msg.From)))
-		s.telegram.AuditLog(requestCtx, s.adminLogChatID(),
+		s.telegram.AuditLog(requestCtx, s.adminLogChatID(groupID),
 			i18n.Messages.Moderate.Warning.KickAlert.Render(l, groupID, target.ID, tgfmt.DisplayName(target), tgfmt.DisplayName(msg.From)))
 		log.Printf("/warn-kick user=%d group=%d by=%d", target.ID, groupID, msg.From.ID)
 		return nil
@@ -371,7 +372,7 @@ func (s *Service) moderate(ctx *th.Context, update telego.Update, command string
 	if err := s.telegram.Ban(requestCtx, groupID, target.ID, seconds, revoke); err != nil {
 		log.Printf("%s ban user=%d in %d: %v", command, target.ID, groupID, err)
 		s.notify(requestCtx, groupID, i18n.Messages.Moderate.Ban.Failed.For(l))
-		s.telegram.FailAlert(requestCtx, s.adminLogChatID(), groupID,
+		s.telegram.FailAlert(requestCtx, s.adminLogChatID(groupID), groupID,
 			i18n.Messages.Moderate.Ban.FailureAlert.Render(l, command, groupID, target.ID, tgfmt.DisplayName(target), tgfmt.DisplayName(msg.From)))
 		return nil
 	}
@@ -382,7 +383,7 @@ func (s *Service) moderate(ctx *th.Context, update telego.Update, command string
 	}
 	action := i18n.Messages.Moderate.Ban.Action.Render(l, verb, tgfmt.ModerationBanDurationStatus(l, seconds))
 	s.notify(requestCtx, groupID, i18n.Messages.Moderate.Ban.Applied.Render(l, action, tgfmt.DisplayName(target), target.ID, tgfmt.DisplayName(msg.From)))
-	s.telegram.AuditLog(requestCtx, s.adminLogChatID(),
+	s.telegram.AuditLog(requestCtx, s.adminLogChatID(groupID),
 		i18n.Messages.Moderate.Ban.Alert.Render(l, command, action, groupID, target.ID, tgfmt.DisplayName(target), tgfmt.DisplayName(msg.From)))
 	log.Printf("%s by admin=%d target=%d group=%d ban_secs=%d", command, msg.From.ID, target.ID, groupID, seconds)
 	return nil
@@ -418,13 +419,13 @@ func (s *Service) OnMute(ctx *th.Context, update telego.Update) error {
 		s.notify(requestCtx, groupID, failure)
 		alert := failure + "\n" + i18n.Messages.Moderate.Mute.Alert.Render(
 			l, tgfmt.ModerationBanDurationStatus(l, seconds), groupID, target.ID, tgfmt.DisplayName(target), tgfmt.DisplayName(msg.From))
-		s.telegram.FailAlert(requestCtx, s.adminLogChatID(), groupID, alert)
+		s.telegram.FailAlert(requestCtx, s.adminLogChatID(groupID), groupID, alert)
 		return nil
 	}
 	s.telegram.Delete(requestCtx, groupID, msg.ReplyToMessage.MessageID)
 	s.notify(requestCtx, groupID, i18n.Messages.Moderate.Mute.Applied.Render(l,
 		tgfmt.DisplayName(target), target.ID, tgfmt.ModerationBanDurationStatus(l, seconds), tgfmt.DisplayName(msg.From)))
-	s.telegram.AuditLog(requestCtx, s.adminLogChatID(),
+	s.telegram.AuditLog(requestCtx, s.adminLogChatID(groupID),
 		i18n.Messages.Moderate.Mute.Alert.Render(l, tgfmt.ModerationBanDurationStatus(l, seconds), groupID, target.ID, tgfmt.DisplayName(target), tgfmt.DisplayName(msg.From)))
 	log.Printf("/mute by admin=%d target=%d group=%d secs=%d", msg.From.ID, target.ID, groupID, seconds)
 	return nil
@@ -510,18 +511,18 @@ func (s *Service) notifySettingsFailure(ctx context.Context, groupID int64, l i1
 }
 
 func (s *Service) banDuration(groupID int64) int {
-	group, _ := s.settings.Group(groupID)
+	group, _ := s.settings.Settings(groupID)
 	return group.BanSeconds().Value
 }
 
 func (s *Service) setBanDuration(groupID int64, seconds int) error {
-	group, ok := s.settings.Group(groupID)
+	group, ok := s.settings.Settings(groupID)
 	if !ok {
-		return fmt.Errorf("%w: %d", store.ErrUnknownGroup, groupID)
+		return fmt.Errorf("%w: %d", settings.ErrUnknownGroup, groupID)
 	}
 	overrides := group.Overrides()
 	overrides.BanSeconds = &seconds
-	_, err := s.settings.CommitGroup(groupID, group.Revision(), overrides)
+	_, err := s.settings.Update(groupID, group.Revision(), overrides)
 	return err
 }
 
@@ -549,7 +550,7 @@ func parseBanDuration(arg string) (seconds int, ok bool) {
 	if err != nil || value < 0 || value > 1<<31 {
 		return 0, false
 	}
-	return config.ClampBanSeconds(value * multiplier), true
+	return settings.ClampBanSeconds(value * multiplier), true
 }
 
 func commandArg(text string) string {

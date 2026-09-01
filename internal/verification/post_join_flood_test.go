@@ -5,14 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 // Leaving and rejoining must not buy a fresh notice and a fresh question every time. One
 // verification, one challenge, however many times somebody walks through the door.
 func TestRejoiningDoesNotRepeatTheChallenge(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100}})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100}})
 	v.botUsername = "bot"
 	fb := &fakeVerifyBot{member: &ChatMemberMember{Status: MemberStatusMember}}
 	t.Cleanup(v.stopForShutdown)
@@ -36,7 +36,7 @@ func TestRejoiningDoesNotRepeatTheChallenge(t *testing.T) {
 // Rejoining must not extend the window either: the deadline belongs to the verification, not to
 // however recently the member walked back in.
 func TestRejoiningDoesNotExtendTheWindow(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100}})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100}})
 	v.botUsername = "bot"
 	fb := &fakeVerifyBot{member: &ChatMemberMember{Status: MemberStatusMember}}
 	t.Cleanup(v.stopForShutdown)
@@ -58,7 +58,7 @@ func TestRejoiningDoesNotExtendTheWindow(t *testing.T) {
 
 // The bot tells a removed member how long to wait. Coming back early is refused, not re-questioned.
 func TestCooldownIsEnforcedOnRejoin(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100}, VerifyRetrySeconds: 180})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100}, VerifyRetrySeconds: 180})
 	v.botUsername = "bot"
 	fb := &fakeVerifyBot{member: &ChatMemberMember{Status: MemberStatusMember}}
 	t.Cleanup(v.stopForShutdown)
@@ -92,7 +92,7 @@ func TestCooldownIsEnforcedOnRejoin(t *testing.T) {
 // Re-applying inside the cooldown is refused every time, but the explanation is sent once:
 // the decline is the answer, and repeating it turns a determined applicant into a DM loop.
 func TestCooldownNoticeIsThrottledOnBothGates(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100}, VerifyRetrySeconds: 180})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100}, VerifyRetrySeconds: 180})
 	fb := &fakeVerifyBot{member: &ChatMemberMember{Status: MemberStatusMember}}
 	gid, uid := int64(-100), int64(5)
 	v.recordVerifyFail(gid, uid, v.wallNow())
@@ -114,7 +114,7 @@ func TestCooldownNoticeIsThrottledOnBothGates(t *testing.T) {
 // out seconds after the administrator put them in would be the bot overruling that decision;
 // they still have to verify.
 func TestAdminAddedMemberIsNotRemovedForAnOldCooldown(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100}, VerifyRetrySeconds: 180})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100}, VerifyRetrySeconds: 180})
 	v.botUsername = "bot"
 	fb := &fakeVerifyBot{member: &ChatMemberMember{Status: MemberStatusMember}}
 	t.Cleanup(v.stopForShutdown)

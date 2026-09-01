@@ -3,7 +3,7 @@ package verification
 import (
 	"testing"
 
-	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 // Recovery may receive a wrapper around the gateway used by handlers. The core must keep the
@@ -13,7 +13,7 @@ type wrappedGateway struct {
 }
 
 func TestTransportAcceptsAWrappedGateway(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100}, Lang: "en"})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100}, Lang: "en"})
 	base := newFakeVerifyBot()
 	wrapped := wrappedGateway{Gateway: base}
 	if got := v.gatewayFor(wrapped); got != wrapped {
@@ -27,7 +27,7 @@ type opaqueGateway struct {
 }
 
 func TestTransportDoesNotPanicOnAnOpaqueGateway(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100}, Lang: "en"})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100}, Lang: "en"})
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			t.Fatalf("resolving a transport panicked: %v", recovered)

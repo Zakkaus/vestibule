@@ -15,10 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/moderate"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
@@ -37,9 +36,9 @@ type panelVerifierStub struct {
 }
 
 func (v *panelVerifierStub) AgentStatsText(i18n.Lang) string { return "" }
-func (v *panelVerifierStub) ControlGroupID() int64           { return panelTestGroupA }
+func (v *panelVerifierStub) FirstChatID() int64              { return panelTestGroupA }
 func (v *panelVerifierStub) DMOrGroup(int64, bool) bool      { return true }
-func (v *panelVerifierStub) EffectiveMode(int64) string      { return config.ModeKernel }
+func (v *panelVerifierStub) EffectiveMode(int64) string      { return settings.ModeKernel }
 func (v *panelVerifierStub) IsEnabled(int64) bool            { return true }
 func (v *panelVerifierStub) KernelAnswerDM(_ int64, text string, private bool) bool {
 	return v.kernelPending && private && strings.TrimSpace(text) != "" &&
@@ -53,7 +52,7 @@ func (v *panelVerifierStub) SetEnabled(int64, bool) error                   { re
 func (v *panelVerifierStub) SetVerifyMode(int64, string) error              { return nil }
 func (v *panelVerifierStub) Stats() (string, int, int)                      { return "", 0, 0 }
 func (v *panelVerifierStub) ToggleNameSpoiler(int64) (bool, error)          { return false, nil }
-func (v *panelVerifierStub) ToggleRich() (bool, error)                      { return false, nil }
+func (v *panelVerifierStub) ToggleRich(int64) (bool, error)                 { return false, nil }
 
 type panelAPICaller struct {
 	admin                bool
@@ -245,23 +244,22 @@ func waitForUserSessionRemoval(t *testing.T, panel *Panel, userID int64) {
 	}
 }
 
-func newSettingsPanelTest(t *testing.T, path string) (*Panel, *store.Settings, *panelAPICaller, *telego.Bot) {
+func newSettingsPanelTest(t *testing.T, path string) (*Panel, *settings.Store, *panelAPICaller, *telego.Bot) {
 	t.Helper()
 	caller := &panelAPICaller{admin: true, messageID: 100}
 	panel, settings, bot := newSettingsPanelTestWithCaller(t, path, caller)
 	return panel, settings, caller, bot
 }
 
-func newSettingsPanelTestWithCaller(t *testing.T, path string, caller ta.Caller) (*Panel, *store.Settings, *telego.Bot) {
+func newSettingsPanelTestWithCaller(t *testing.T, path string, caller ta.Caller) (*Panel, *settings.Store, *telego.Bot) {
 	t.Helper()
-	cfg := &config.Config{
-		Groups:           []config.GroupConfig{{ID: panelTestGroupA}, {ID: panelTestGroupB}},
+	cfg := &settings.Config{
+		Groups:           []settings.GroupConfig{{ID: panelTestGroupA}, {ID: panelTestGroupB}},
 		GroupIDs:         []int64{panelTestGroupA, panelTestGroupB},
-		ControlGroupID:   panelTestGroupA,
 		TimeoutSeconds:   240,
 		NotifyTTLSeconds: -1,
 	}
-	settings, err := store.NewSettings(path, testSettingsBaseline(t, cfg))
+	settings, err := settings.NewStore(path, testSettingsBaseline(t, cfg), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -273,13 +271,13 @@ func newSettingsPanelTestWithCaller(t *testing.T, path string, caller ta.Caller)
 	return panel, settings, bot
 }
 
-func addPanelSession(t *testing.T, panel *Panel, settings *store.Settings, groupID int64, screen string) *panelSession {
+func addPanelSession(t *testing.T, panel *Panel, settings *settings.Store, groupID int64, screen string) *panelSession {
 	t.Helper()
 	session, err := panel.newSettingsSession(panelTestUser, groupID, i18n.LangEN)
 	if err != nil {
 		t.Fatal(err)
 	}
-	group, ok := settings.Group(groupID)
+	group, ok := settings.Settings(groupID)
 	if !ok {
 		t.Fatalf("missing test group %d", groupID)
 	}
@@ -287,7 +285,6 @@ func addPanelSession(t *testing.T, panel *Panel, settings *store.Settings, group
 	session.chatID = panelTestUser
 	session.messageID = 90
 	session.revision = group.Revision()
-	session.globalRevision = settings.Global().Revision()
 	return session
 }
 
@@ -341,23 +338,22 @@ func TestSettingsLauncherOpensGroupPickerWithoutVerification(t *testing.T) {
 
 func TestVerificationStartPayloadSelectsOnePendingGroupAndBarePayloadStillFansOut(t *testing.T) {
 	const userID int64 = 8801
-	questionA := config.Question{Q: "Group A question", Options: []string{"A", "B"}, Answer: 0}
-	questionB := config.Question{Q: "Group B question", Options: []string{"A", "B"}, Answer: 1}
+	questionA := settings.Question{Q: "Group A question", Options: []string{"A", "B"}, Answer: 0}
+	questionB := settings.Question{Q: "Group B question", Options: []string{"A", "B"}, Answer: 1}
 
 	newFlow := func(t *testing.T) (*Panel, *verification.Service, *panelAPICaller, *telego.Bot) {
 		t.Helper()
-		cfg := &config.Config{
-			Groups: []config.GroupConfig{
-				{ID: panelTestGroupA, VerifyMode: config.ModeQuiz, Questions: []config.Question{questionA}},
-				{ID: panelTestGroupB, VerifyMode: config.ModeQuiz, Questions: []config.Question{questionB}},
+		cfg := &settings.Config{
+			Groups: []settings.GroupConfig{
+				{ID: panelTestGroupA, VerifyMode: settings.ModeQuiz, Questions: []settings.Question{questionA}},
+				{ID: panelTestGroupB, VerifyMode: settings.ModeQuiz, Questions: []settings.Question{questionB}},
 			},
 			GroupIDs:       []int64{panelTestGroupA, panelTestGroupB},
-			ControlGroupID: panelTestGroupA,
 			Lang:           "en",
-			VerifyMode:     config.ModeQuiz,
+			VerifyMode:     settings.ModeQuiz,
 			TimeoutSeconds: 240,
 		}
-		settings, err := store.NewSettings("", testSettingsBaseline(t, cfg))
+		settings, err := settings.NewStore("", testSettingsBaseline(t, cfg), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -408,8 +404,8 @@ func TestVerificationStartPayloadSelectsOnePendingGroupAndBarePayloadStillFansOu
 
 func TestPanelDeliveryModePersistsAndRejectsStaleRevision(t *testing.T) {
 	path := t.TempDir() + "/settings.json"
-	panel, settings, caller, bot := newSettingsPanelTest(t, path)
-	session := addPanelSession(t, panel, settings, panelTestGroupA, "rt")
+	panel, store, caller, bot := newSettingsPanelTest(t, path)
+	session := addPanelSession(t, panel, store, panelTestGroupA, "rt")
 
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "df", "d")
 	readOverride := func() *string {
@@ -427,26 +423,26 @@ func TestPanelDeliveryModePersistsAndRejectsStaleRevision(t *testing.T) {
 		}
 		return state.Groups[strconv.FormatInt(panelTestGroupA, 10)].DeliveryMode
 	}
-	if value := readOverride(); value == nil || *value != config.DeliveryDM {
+	if value := readOverride(); value == nil || *value != settings.DeliveryDM {
 		t.Fatalf("delivery-mode override after panel selection = %v, want persisted dm", value)
 	}
-	setting, ok := settings.Group(panelTestGroupA)
+	setting, ok := store.Settings(panelTestGroupA)
 	if !ok {
 		t.Fatal("panel group disappeared after delivery-mode selection")
 	}
-	if got := setting.DeliveryMode(); got.Value != config.DeliveryDM || got.Source != store.SourceRuntime {
+	if got := setting.DeliveryMode(); got.Value != settings.DeliveryDM || got.Source != settings.SourceChatOverride {
 		t.Fatalf("effective delivery mode after panel selection = %+v", got)
 	}
 
-	group, _ := settings.Group(panelTestGroupA)
+	group, _ := store.Settings(panelTestGroupA)
 	next := group.Overrides()
 	spoiler := !group.NameSpoiler().Value
 	next.NameSpoiler = &spoiler
-	if _, err := settings.CommitGroup(panelTestGroupA, group.Revision(), next); err != nil {
+	if _, err := store.Update(panelTestGroupA, group.Revision(), next); err != nil {
 		t.Fatal(err)
 	}
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "df", "g")
-	if value := readOverride(); value == nil || *value != config.DeliveryDM {
+	if value := readOverride(); value == nil || *value != settings.DeliveryDM {
 		t.Fatalf("stale callback changed persisted delivery mode to %v", value)
 	}
 	if caller.lastEditText != i18n.Messages.Panel.Settings.Error.ConcurrentChange.For(i18n.LangEN) {
@@ -540,7 +536,7 @@ func TestConcurrentCallbackReplayUsesRotatedTokenOnce(t *testing.T) {
 	caller.blockEditCall.Store(1)
 	panel, settings, bot := newSettingsPanelTestWithCaller(t, "", caller)
 	session := addPanelSession(t, panel, settings, panelTestGroupA, "rt")
-	group, _ := settings.Group(panelTestGroupA)
+	group, _ := settings.Settings(panelTestGroupA)
 	beforeRevision := group.Revision()
 	beforeEnabled := group.Enabled().Value
 	encoded, err := encodeCallback(callbackData{
@@ -570,7 +566,7 @@ func TestConcurrentCallbackReplayUsesRotatedTokenOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	current, _ := settings.Group(panelTestGroupA)
+	current, _ := settings.Settings(panelTestGroupA)
 	if got := current.Revision(); got != beforeRevision+1 {
 		t.Fatalf("concurrent callback revision = %d, want %d", got, beforeRevision+1)
 	}
@@ -585,7 +581,7 @@ func TestPanelInputCancelsWhenKernelStartsDuringAuthorization(t *testing.T) {
 	caller.blockMemberCall.Store(1)
 	panel, settings, bot := newSettingsPanelTestWithCaller(t, "", caller)
 	session := addPanelSession(t, panel, settings, panelTestGroupA, "vp")
-	group, _ := settings.Group(panelTestGroupA)
+	group, _ := settings.Settings(panelTestGroupA)
 	beforeRevision := group.Revision()
 	beforeTimeout := group.TimeoutSeconds().Value
 	session.pending = &pendingInput{
@@ -608,7 +604,7 @@ func TestPanelInputCancelsWhenKernelStartsDuringAuthorization(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	current, _ := settings.Group(panelTestGroupA)
+	current, _ := settings.Settings(panelTestGroupA)
 	if current.Revision() != beforeRevision || current.TimeoutSeconds().Value != beforeTimeout {
 		t.Fatalf("kernel activation changed timeout/revision to %d/%d", current.TimeoutSeconds().Value, current.Revision())
 	}
@@ -633,7 +629,7 @@ func TestPanelInputRejectsSessionReplacedDuringAuthorization(t *testing.T) {
 	caller.blockMemberCall.Store(1)
 	panel, settings, bot := newSettingsPanelTestWithCaller(t, "", caller)
 	session := addPanelSession(t, panel, settings, panelTestGroupA, "vp")
-	group, _ := settings.Group(panelTestGroupA)
+	group, _ := settings.Settings(panelTestGroupA)
 	beforeRevision := group.Revision()
 	beforeTimeout := group.TimeoutSeconds().Value
 	session.pending = &pendingInput{
@@ -664,7 +660,7 @@ func TestPanelInputRejectsSessionReplacedDuringAuthorization(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	current, _ := settings.Group(panelTestGroupA)
+	current, _ := settings.Settings(panelTestGroupA)
 	if current.Revision() != beforeRevision || current.TimeoutSeconds().Value != beforeTimeout {
 		t.Fatalf("replaced session changed timeout/revision to %d/%d", current.TimeoutSeconds().Value, current.Revision())
 	}
@@ -761,14 +757,14 @@ func TestPanelQuizAndFallbackQuestionLifecycles(t *testing.T) {
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "qq", "_")
 	submitPanelText(t, panel, bot, session, "Edited quiz")
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "sv", "_")
-	group, _ := settings.Group(panelTestGroupA)
+	group, _ := settings.Settings(panelTestGroupA)
 	if questions := group.Questions().Value; len(questions) != 1 || questions[0].Q != "Edited quiz" {
 		t.Fatalf("quiz add/edit result = %+v", questions)
 	}
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "qq", encodeUnsigned(0))
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "rm", "_")
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "ok", "_")
-	group, _ = settings.Group(panelTestGroupA)
+	group, _ = settings.Settings(panelTestGroupA)
 	if len(group.Questions().Value) != 0 {
 		t.Fatalf("quiz delete result = %+v", group.Questions().Value)
 	}
@@ -784,14 +780,14 @@ func TestPanelQuizAndFallbackQuestionLifecycles(t *testing.T) {
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "fq", "_")
 	submitPanelText(t, panel, bot, session, "Edited fallback")
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "sv", "_")
-	group, _ = settings.Group(panelTestGroupA)
+	group, _ = settings.Settings(panelTestGroupA)
 	if questions := group.FallbackQuestions().Value; len(questions) != 1 || questions[0].Q != "Edited fallback" {
 		t.Fatalf("fallback add/edit result = %+v", questions)
 	}
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "fq", encodeUnsigned(0))
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "rm", "_")
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "ok", "_")
-	group, _ = settings.Group(panelTestGroupA)
+	group, _ = settings.Settings(panelTestGroupA)
 	if !group.FallbackBuiltin().Value {
 		t.Fatal("deleting the last fallback question did not restore built-ins")
 	}
@@ -805,12 +801,12 @@ func TestPanelChatListsAndRequiredChannel(t *testing.T) {
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "kc", "_")
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "ca", "kc")
 	submitSharedChat(t, panel, bot, session, sharedChatID)
-	group, _ := settings.Group(panelTestGroupA)
+	group, _ := settings.Settings(panelTestGroupA)
 	if values := group.KnownChatIDs().Value; len(values) != 1 || values[0] != sharedChatID {
 		t.Fatalf("known chat add result = %v", values)
 	}
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "kc", encodeSigned(sharedChatID))
-	group, _ = settings.Group(panelTestGroupA)
+	group, _ = settings.Settings(panelTestGroupA)
 	if len(group.KnownChatIDs().Value) != 0 {
 		t.Fatalf("known chat remove result = %v", group.KnownChatIDs().Value)
 	}
@@ -822,13 +818,13 @@ func TestPanelChatListsAndRequiredChannel(t *testing.T) {
 		t.Fatal("private channel selection did not request an invite link")
 	}
 	submitPanelText(t, panel, bot, session, "https://t.me/+privateinvite")
-	group, _ = settings.Group(panelTestGroupA)
+	group, _ = settings.Settings(panelTestGroupA)
 	if panel.requiredChannelID(group) != sharedChatID || group.ChannelInviteURL().Value != "https://t.me/+privateinvite" {
 		t.Fatalf("required channel result = id %d invite %q", panel.requiredChannelID(group), group.ChannelInviteURL().Value)
 	}
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "ds", "_")
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "ok", "_")
-	group, _ = settings.Group(panelTestGroupA)
+	group, _ = settings.Settings(panelTestGroupA)
 	if panel.requiredChannelID(group) != 0 {
 		t.Fatalf("required channel disable result = %d", panel.requiredChannelID(group))
 	}
@@ -840,14 +836,14 @@ func TestPanelChannelWhitelistUsesModerationPolicy(t *testing.T) {
 		sharedChatID   = int64(-1009000000999)
 	)
 	panel, settings, caller, bot := newSettingsPanelTest(t, "")
-	group, _ := settings.Group(panelTestGroupA)
+	group, _ := settings.Settings(panelTestGroupA)
 	whitelist := make([]int64, whitelistLimit)
 	for index := range whitelist {
 		whitelist[index] = -1008000000000 - int64(index)
 	}
 	overrides := group.Overrides()
 	overrides.ChannelWhitelist = &whitelist
-	if _, err := settings.CommitGroup(panelTestGroupA, group.Revision(), overrides); err != nil {
+	if _, err := settings.Update(panelTestGroupA, group.Revision(), overrides); err != nil {
 		t.Fatal(err)
 	}
 
@@ -856,7 +852,7 @@ func TestPanelChannelWhitelistUsesModerationPolicy(t *testing.T) {
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "ca", "cw")
 	submitSharedChat(t, panel, bot, session, sharedChatID)
 
-	group, _ = settings.Group(panelTestGroupA)
+	group, _ = settings.Settings(panelTestGroupA)
 	values := group.ChannelWhitelist().Value
 	if len(values) != whitelistLimit {
 		t.Fatalf("panel whitelist entries = %d, want %d", len(values), whitelistLimit)
@@ -881,7 +877,7 @@ func TestPanelDemotedAdminLosesSession(t *testing.T) {
 	}
 	caller.admin = false
 	invokePanelCallback(t, panel, bot, session, panelTestGroupB, "en", "_")
-	group, _ := settings.Group(panelTestGroupB)
+	group, _ := settings.Settings(panelTestGroupB)
 	if !group.Enabled().Value {
 		t.Fatal("demoted callback changed settings")
 	}
@@ -900,7 +896,7 @@ func TestPanelPerGroupChangeIgnoresControlGroupGate(t *testing.T) {
 	panel, settings, _, bot := newSettingsPanelTest(t, "")
 	session := addPanelSession(t, panel, settings, panelTestGroupB, "rt")
 	invokePanelCallback(t, panel, bot, session, panelTestGroupB, "en", "_")
-	group, _ := settings.Group(panelTestGroupB)
+	group, _ := settings.Settings(panelTestGroupB)
 	if group.Enabled().Value {
 		t.Fatal("fresh admin could not change a non-control group's own setting")
 	}
@@ -911,7 +907,7 @@ func TestPanelStaleSessionAfterRestartExpires(t *testing.T) {
 	session := addPanelSession(t, panel, settings, panelTestGroupA, "rt")
 	restarted := New(settings, telegram.NewConnector(bot), panel.cfg, &i18n.Messages, &panelVerifierStub{}, nil, nil, "test", time.Now())
 	invokePanelCallback(t, restarted, bot, session, panelTestGroupA, "en", "_")
-	group, _ := settings.Group(panelTestGroupA)
+	group, _ := settings.Settings(panelTestGroupA)
 	if !group.Enabled().Value {
 		t.Fatal("callback from before restart changed settings")
 	}
@@ -923,15 +919,15 @@ func TestPanelStaleSessionAfterRestartExpires(t *testing.T) {
 func TestPanelStaleRevisionRefused(t *testing.T) {
 	panel, settings, caller, bot := newSettingsPanelTest(t, "")
 	session := addPanelSession(t, panel, settings, panelTestGroupA, "rt")
-	group, _ := settings.Group(panelTestGroupA)
+	group, _ := settings.Settings(panelTestGroupA)
 	next := group.Overrides()
 	spoiler := !group.NameSpoiler().Value
 	next.NameSpoiler = &spoiler
-	if _, err := settings.CommitGroup(panelTestGroupA, group.Revision(), next); err != nil {
+	if _, err := settings.Update(panelTestGroupA, group.Revision(), next); err != nil {
 		t.Fatal(err)
 	}
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "en", "_")
-	current, _ := settings.Group(panelTestGroupA)
+	current, _ := settings.Settings(panelTestGroupA)
 	if !current.Enabled().Value {
 		t.Fatal("stale callback changed settings")
 	}
@@ -941,32 +937,32 @@ func TestPanelStaleRevisionRefused(t *testing.T) {
 }
 
 func TestPanelStaleQuestionIndexRefused(t *testing.T) {
-	panel, settings, caller, bot := newSettingsPanelTest(t, "")
-	group, _ := settings.Group(panelTestGroupA)
-	questions := []config.Question{
+	panel, store, caller, bot := newSettingsPanelTest(t, "")
+	group, _ := store.Settings(panelTestGroupA)
+	questions := []settings.Question{
 		{Q: "First", Options: []string{"A", "B"}, Answer: 0},
 		{Q: "Second", Options: []string{"A", "B"}, Answer: 1},
 	}
 	next := group.Overrides()
 	next.Questions = &questions
-	result, err := settings.CommitGroup(panelTestGroupA, group.Revision(), next)
+	result, err := store.Update(panelTestGroupA, group.Revision(), next)
 	if err != nil {
 		t.Fatal(err)
 	}
-	session := addPanelSession(t, panel, settings, panelTestGroupA, "qb")
+	session := addPanelSession(t, panel, store, panelTestGroupA, "qb")
 	session.revision = result.Revision
-	group, _ = settings.Group(panelTestGroupA)
+	group, _ = store.Settings(panelTestGroupA)
 	questions = questions[:1]
 	next = group.Overrides()
 	next.Questions = &questions
-	if _, err := settings.CommitGroup(panelTestGroupA, group.Revision(), next); err != nil {
+	if _, err := store.Update(panelTestGroupA, group.Revision(), next); err != nil {
 		t.Fatal(err)
 	}
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "qq", encodeUnsigned(1))
 	if caller.lastEditText != i18n.Messages.Panel.Settings.Error.ConcurrentChange.For(i18n.LangEN) {
 		t.Fatalf("stale question message = %q", caller.lastEditText)
 	}
-	current, _ := settings.Group(panelTestGroupA)
+	current, _ := store.Settings(panelTestGroupA)
 	if len(current.Questions().Value) != 1 || current.Questions().Value[0].Q != "First" {
 		t.Fatalf("stale question callback changed bank: %+v", current.Questions().Value)
 	}
@@ -976,7 +972,7 @@ func TestPanelFailedCommitSurfaced(t *testing.T) {
 	panel, settings, caller, bot := newSettingsPanelTest(t, t.TempDir())
 	session := addPanelSession(t, panel, settings, panelTestGroupA, "rt")
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "en", "_")
-	group, _ := settings.Group(panelTestGroupA)
+	group, _ := settings.Settings(panelTestGroupA)
 	if !group.Enabled().Value {
 		t.Fatal("failed commit published a setting")
 	}
@@ -995,7 +991,7 @@ func TestPanelPostCommitRenderFailureDoesNotClaimSaveFailed(t *testing.T) {
 
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "en", "_")
 
-	group, _ := settings.Group(panelTestGroupA)
+	group, _ := settings.Settings(panelTestGroupA)
 	if group.Enabled().Value {
 		t.Fatal("runtime setting was not committed before the render failure")
 	}
@@ -1015,11 +1011,11 @@ func assertSavedRenderWarning(t *testing.T, got string) {
 
 func TestPanelCommittedCallbackRenderFailuresReportSaved(t *testing.T) {
 	t.Run("quiz save", func(t *testing.T) {
-		panel, settings, caller, bot := newSettingsPanelTest(t, "")
-		session := addPanelSession(t, panel, settings, panelTestGroupA, "qd")
+		panel, store, caller, bot := newSettingsPanelTest(t, "")
+		session := addPanelSession(t, panel, store, panelTestGroupA, "qd")
 		session.quiz = &quizDraft{
 			index: -1,
-			question: config.Question{
+			question: settings.Question{
 				Q: "Question", Options: []string{"Correct", "Wrong"}, Answer: 0,
 			},
 			revision: session.revision,
@@ -1029,7 +1025,7 @@ func TestPanelCommittedCallbackRenderFailuresReportSaved(t *testing.T) {
 
 		invokePanelCallback(t, panel, bot, session, panelTestGroupA, "sv", "_")
 
-		group, _ := settings.Group(panelTestGroupA)
+		group, _ := store.Settings(panelTestGroupA)
 		if group.Revision() != before+1 || len(group.Questions().Value) != 1 {
 			t.Fatalf("quiz save state = revision %d, questions %+v", group.Revision(), group.Questions().Value)
 		}
@@ -1037,11 +1033,11 @@ func TestPanelCommittedCallbackRenderFailuresReportSaved(t *testing.T) {
 	})
 
 	t.Run("fallback save", func(t *testing.T) {
-		panel, settings, caller, bot := newSettingsPanelTest(t, "")
-		session := addPanelSession(t, panel, settings, panelTestGroupA, "fd")
+		panel, store, caller, bot := newSettingsPanelTest(t, "")
+		session := addPanelSession(t, panel, store, panelTestGroupA, "fd")
 		session.fallback = &fallbackDraft{
 			index: -1,
-			question: config.ShortQuestion{
+			question: settings.ShortQuestion{
 				Q: "Fallback", Answers: []string{"Answer"},
 			},
 			revision: session.revision,
@@ -1051,7 +1047,7 @@ func TestPanelCommittedCallbackRenderFailuresReportSaved(t *testing.T) {
 
 		invokePanelCallback(t, panel, bot, session, panelTestGroupA, "sv", "_")
 
-		group, _ := settings.Group(panelTestGroupA)
+		group, _ := store.Settings(panelTestGroupA)
 		if group.Revision() != before+1 || len(group.FallbackQuestions().Value) != 1 {
 			t.Fatalf("fallback save state = revision %d, questions %+v", group.Revision(), group.FallbackQuestions().Value)
 		}
@@ -1060,12 +1056,12 @@ func TestPanelCommittedCallbackRenderFailuresReportSaved(t *testing.T) {
 
 	t.Run("channel change", func(t *testing.T) {
 		panel, settings, caller, bot := newSettingsPanelTest(t, "")
-		group, _ := settings.Group(panelTestGroupA)
+		group, _ := settings.Settings(panelTestGroupA)
 		display, invite := "@required", "https://t.me/+invite"
 		next := group.Overrides()
 		next.ChannelDisplay = &display
 		next.ChannelInviteURL = &invite
-		if _, err := settings.CommitGroup(panelTestGroupA, group.Revision(), next); err != nil {
+		if _, err := settings.Update(panelTestGroupA, group.Revision(), next); err != nil {
 			t.Fatal(err)
 		}
 		session := addPanelSession(t, panel, settings, panelTestGroupA, "ch")
@@ -1074,7 +1070,7 @@ func TestPanelCommittedCallbackRenderFailuresReportSaved(t *testing.T) {
 
 		invokePanelCallback(t, panel, bot, session, panelTestGroupA, "dl", "_")
 
-		group, _ = settings.Group(panelTestGroupA)
+		group, _ = settings.Settings(panelTestGroupA)
 		if group.Revision() != before+1 || group.ChannelInviteURL().Value != "" {
 			t.Fatalf("channel save state = revision %d, invite %q", group.Revision(), group.ChannelInviteURL().Value)
 		}
@@ -1083,12 +1079,12 @@ func TestPanelCommittedCallbackRenderFailuresReportSaved(t *testing.T) {
 
 	t.Run("list change", func(t *testing.T) {
 		panel, settings, caller, bot := newSettingsPanelTest(t, "")
-		group, _ := settings.Group(panelTestGroupA)
+		group, _ := settings.Settings(panelTestGroupA)
 		const knownID int64 = -1009000000601
 		known := []int64{knownID}
 		next := group.Overrides()
 		next.KnownChatIDs = &known
-		if _, err := settings.CommitGroup(panelTestGroupA, group.Revision(), next); err != nil {
+		if _, err := settings.Update(panelTestGroupA, group.Revision(), next); err != nil {
 			t.Fatal(err)
 		}
 		session := addPanelSession(t, panel, settings, panelTestGroupA, "li")
@@ -1098,7 +1094,7 @@ func TestPanelCommittedCallbackRenderFailuresReportSaved(t *testing.T) {
 
 		invokePanelCallback(t, panel, bot, session, panelTestGroupA, string(inputKnownChat), encodeSigned(knownID))
 
-		group, _ = settings.Group(panelTestGroupA)
+		group, _ = settings.Settings(panelTestGroupA)
 		if group.Revision() != before+1 || len(group.KnownChatIDs().Value) != 0 {
 			t.Fatalf("list save state = revision %d, values %v", group.Revision(), group.KnownChatIDs().Value)
 		}
@@ -1107,12 +1103,12 @@ func TestPanelCommittedCallbackRenderFailuresReportSaved(t *testing.T) {
 
 	t.Run("channel whitelist change", func(t *testing.T) {
 		panel, settings, caller, bot := newSettingsPanelTest(t, "")
-		group, _ := settings.Group(panelTestGroupA)
+		group, _ := settings.Settings(panelTestGroupA)
 		const senderID int64 = -1009000000602
 		whitelist := []int64{senderID}
 		next := group.Overrides()
 		next.ChannelWhitelist = &whitelist
-		if _, err := settings.CommitGroup(panelTestGroupA, group.Revision(), next); err != nil {
+		if _, err := settings.Update(panelTestGroupA, group.Revision(), next); err != nil {
 			t.Fatal(err)
 		}
 		session := addPanelSession(t, panel, settings, panelTestGroupA, "li")
@@ -1122,7 +1118,7 @@ func TestPanelCommittedCallbackRenderFailuresReportSaved(t *testing.T) {
 
 		invokePanelCallback(t, panel, bot, session, panelTestGroupA, string(inputChannelWhitelist), encodeSigned(senderID))
 
-		group, _ = settings.Group(panelTestGroupA)
+		group, _ = settings.Settings(panelTestGroupA)
 		if group.Revision() != before+1 || len(group.ChannelWhitelist().Value) != 0 {
 			t.Fatalf("whitelist save state = revision %d, values %v", group.Revision(), group.ChannelWhitelist().Value)
 		}
@@ -1131,14 +1127,14 @@ func TestPanelCommittedCallbackRenderFailuresReportSaved(t *testing.T) {
 
 	t.Run("confirmation", func(t *testing.T) {
 		panel, settings, caller, bot := newSettingsPanelTest(t, "")
-		group, _ := settings.Group(panelTestGroupA)
+		group, _ := settings.Settings(panelTestGroupA)
 		channelID := int64(-1009000000603)
 		display, invite := "@required", "https://t.me/+invite"
 		next := group.Overrides()
 		next.RequiredChannelID = &channelID
 		next.ChannelDisplay = &display
 		next.ChannelInviteURL = &invite
-		if _, err := settings.CommitGroup(panelTestGroupA, group.Revision(), next); err != nil {
+		if _, err := settings.Update(panelTestGroupA, group.Revision(), next); err != nil {
 			t.Fatal(err)
 		}
 		session := addPanelSession(t, panel, settings, panelTestGroupA, "cf")
@@ -1148,7 +1144,7 @@ func TestPanelCommittedCallbackRenderFailuresReportSaved(t *testing.T) {
 
 		invokePanelCallback(t, panel, bot, session, panelTestGroupA, "ok", "_")
 
-		group, _ = settings.Group(panelTestGroupA)
+		group, _ = settings.Settings(panelTestGroupA)
 		if group.Revision() != before+1 {
 			t.Fatalf("confirmation revision = %d, want %d", group.Revision(), before+1)
 		}
@@ -1162,8 +1158,8 @@ func TestPanelCommittedTextInputRenderFailuresReportSaved(t *testing.T) {
 		kind inputKind
 		text string
 	}{
-		{name: "group commit", kind: inputTimeout, text: "600"},
-		{name: "global commit", kind: inputPrivateRate, text: "9"},
+		{name: "timeout commit", kind: inputTimeout, text: "600"},
+		{name: "private-rate commit", kind: inputPrivateRate, text: "9"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -1173,21 +1169,19 @@ func TestPanelCommittedTextInputRenderFailuresReportSaved(t *testing.T) {
 				kind: test.kind, parent: "vp", promptMessageID: 71, expectedRevision: session.revision,
 			}
 			beforeGroup := session.revision
-			beforeGlobal := session.globalRevision
 			caller.editErr = errors.New("edit failed after text-input commit")
 
 			submitPanelText(t, panel, bot, session, test.text)
 
-			group, _ := settings.Group(panelTestGroupA)
-			global := settings.Global()
+			group, _ := settings.Settings(panelTestGroupA)
 			switch test.kind {
 			case inputTimeout:
 				if group.Revision() != beforeGroup+1 || group.TimeoutSeconds().Value != 600 {
 					t.Fatalf("group input state = revision %d, timeout %d", group.Revision(), group.TimeoutSeconds().Value)
 				}
 			case inputPrivateRate:
-				if global.Revision() != beforeGlobal+1 || global.PrivateQueryPerMin().Value != 9 {
-					t.Fatalf("global input state = revision %d, rate %d", global.Revision(), global.PrivateQueryPerMin().Value)
+				if group.Revision() != beforeGroup+1 || group.PrivateQueryPerMin().Value != 9 {
+					t.Fatalf("chat input state = revision %d, rate %d", group.Revision(), group.PrivateQueryPerMin().Value)
 				}
 			}
 			assertSavedRenderWarning(t, caller.lastEditText)
@@ -1219,7 +1213,7 @@ func TestPanelCommittedSharedChatRenderFailuresReportSaved(t *testing.T) {
 
 			submitSharedChat(t, panel, bot, session, test.chatID)
 
-			group, _ := settings.Group(panelTestGroupA)
+			group, _ := settings.Settings(panelTestGroupA)
 			if group.Revision() != before+1 {
 				t.Fatalf("shared-chat revision = %d, want %d", group.Revision(), before+1)
 			}

@@ -8,13 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/database"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/lookup"
 	"github.com/Zakkaus/vestibule/internal/moderate"
 	"github.com/Zakkaus/vestibule/internal/panel"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
@@ -34,9 +33,9 @@ type Options struct {
 }
 
 type services struct {
-	cfg                 *config.Config
+	cfg                 *settings.Config
 	database            *database.Database
-	settings            *store.Settings
+	settings            *settings.Store
 	bot                 *telego.Bot
 	heartbeatBot        *outageAwareBot
 	lookups             *lookup.Service
@@ -91,7 +90,7 @@ func Run(ctx context.Context, options Options) error {
 	if err := polling.Start(runtimeCtx, runtime); err != nil {
 		return fmt.Errorf("start long polling: %w", err)
 	}
-	log.Printf("verify bot @%s (%s) started — groups=%d", runtime.identity.Username, options.Version, len(runtime.settings.GroupIDs()))
+	log.Printf("verify bot @%s (%s) started — groups=%d", runtime.identity.Username, options.Version, len(runtime.settings.ChatIDs()))
 	close(startupComplete)
 	return runRuntimeLifecycle(runtimeCtx, runtimeLifecycle{
 		handlerDone:       polling.Done(),
@@ -108,15 +107,20 @@ func Run(ctx context.Context, options Options) error {
 }
 
 func newServices(ctx context.Context, options Options, progress chan<- struct{}) (*services, error) {
-	cfg, settings, err := loadRuntimeState(options.ConfigPath, options.StateDirectory)
-	if err != nil {
-		return nil, err
-	}
 	db, err := database.Open(ctx, database.Config{
 		Type: options.DatabaseType, URI: options.DatabaseURI, StateDirectory: options.StateDirectory,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("database: %w", err)
+	}
+	cfg, settings, err := loadRuntimeState(
+		options.ConfigPath,
+		options.StateDirectory,
+		database.NewSettingsStore(db),
+	)
+	if err != nil {
+		_ = db.Close()
+		return nil, err
 	}
 	bot, err := newBot(options, progress)
 	if err != nil {
@@ -176,8 +180,8 @@ func newBot(options Options, progress chan<- struct{}) (*telego.Bot, error) {
 func newRegistration(
 	ctx context.Context,
 	bot *telego.Bot,
-	cfg *config.Config,
-	settings *store.Settings,
+	cfg *settings.Config,
+	settings *settings.Store,
 	identity verification.Identity,
 	moderation *moderate.Service,
 	verification *verification.Service,

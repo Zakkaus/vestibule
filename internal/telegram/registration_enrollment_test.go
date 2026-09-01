@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/mymmrac/telego"
 )
 
@@ -59,21 +59,21 @@ func TestUnknownCleanupRecordCannotAuthorizePromotion(t *testing.T) {
 		actor   = int64(80)
 		groupID = int64(-4005)
 	)
-	cfg, settings := registrationFixture(t)
+	cfg, store := registrationFixture(t)
 	now := time.Unix(2_000_000_000, 0)
-	bindTestOwner(t, settings, now)
-	state := settings.Registrations()
-	state.UnknownGroupLeaves = []store.UnknownGroupLeave{{
+	bindTestOwner(t, store, now)
+	state := store.Registrations()
+	state.UnknownGroupLeaves = []settings.UnknownGroupLeave{{
 		GroupID: groupID, Title: "Cleanup only", ExpiresAt: now.Add(registrationPending).Unix(),
 	}}
-	if _, err := settings.CommitRegistrations(state.Revision, state); err != nil {
+	if _, err := store.CommitRegistrations(state.Revision, state); err != nil {
 		t.Fatal(err)
 	}
 	caller := &registrationCaller{members: map[[2]int64]telego.ChatMember{
 		{groupID, actor}: adminMember(actor),
 	}}
 	bot := newRegistrationBot(t, caller)
-	service := newRegistrationService(context.Background(), bot, settings, cfg, "verify_test_bot", testBotID, nil, nil, nil)
+	service := newRegistrationService(context.Background(), bot, store, cfg, "verify_test_bot", testBotID, nil, nil, nil)
 	service.now = func() time.Time { return now }
 	runRegistrationUpdate(t, bot, service, telego.Update{MyChatMember: &telego.ChatMemberUpdated{
 		Chat:          telego.Chat{ID: groupID, Type: telego.ChatTypeSupergroup, Title: "Cleanup only"},
@@ -81,7 +81,7 @@ func TestUnknownCleanupRecordCannotAuthorizePromotion(t *testing.T) {
 		OldChatMember: plainMember(testBotID),
 		NewChatMember: adminMember(testBotID),
 	}})
-	if settings.IsGroup(groupID) {
+	if store.IsGroup(groupID) {
 		t.Fatal("unknown-group cleanup record authorized registration")
 	}
 	if left := caller.leftChats(); len(left) != 1 || left[0] != groupID {
@@ -382,25 +382,25 @@ func testEnrollmentLeaveFailure(t *testing.T) {
 	)
 	configPath := filepath.Join(t.TempDir(), "missing-config.json")
 	stateDirectory := t.TempDir()
-	cfg, settings, err := loadRuntimeState(configPath, stateDirectory)
+	cfg, store, err := loadRuntimeState(configPath, stateDirectory)
 	if err != nil {
 		t.Fatal(err)
 	}
 	cfg.AdminLogChatID = operator
 	now := time.Unix(2_000_000_000, 0)
-	bindTestOwner(t, settings, now)
-	nonce, err := settings.IssueEnrollmentNonce(testOwner, now, enrollmentLifetime)
+	bindTestOwner(t, store, now)
+	nonce, err := store.IssueEnrollmentNonce(testOwner, now, enrollmentLifetime)
 	if err != nil {
 		t.Fatal(err)
 	}
-	state := settings.Registrations()
-	state.UnknownGroupLeaves = []store.UnknownGroupLeave{{
+	state := store.Registrations()
+	state.UnknownGroupLeaves = []settings.UnknownGroupLeave{{
 		GroupID: groupID, Title: title, ExpiresAt: now.Add(registrationPending).Unix(),
 	}}
-	if _, err := settings.CommitRegistrations(state.Revision, state); err != nil {
+	if _, err := store.CommitRegistrations(state.Revision, state); err != nil {
 		t.Fatal(err)
 	}
-	before := settings.Registrations()
+	before := store.Registrations()
 	caller := &registrationCaller{
 		members: map[[2]int64]telego.ChatMember{
 			{groupID, actor}: plainMember(actor),
@@ -412,7 +412,7 @@ func testEnrollmentLeaveFailure(t *testing.T) {
 	bot := newRegistrationBot(t, caller)
 	root, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	service := newRegistrationService(root, bot, settings, cfg, "verify_test_bot", testBotID, nil, nil, nil)
+	service := newRegistrationService(root, bot, store, cfg, "verify_test_bot", testBotID, nil, nil, nil)
 	service.now = func() time.Time { return now }
 
 	runRegistrationUpdate(t, bot, service, telego.Update{Message: &telego.Message{
@@ -421,7 +421,7 @@ func testEnrollmentLeaveFailure(t *testing.T) {
 		Text: "/start enroll_" + nonce.Nonce,
 	}})
 
-	after := settings.Registrations()
+	after := store.Registrations()
 	assertRegistrationStateEqual(t, after, before)
 	assertRegistrationStateEqual(t, registrationStateFromDisk(t, configPath, stateDirectory), before)
 	if len(after.UnknownGroupLeaves) != 1 || after.UnknownGroupLeaves[0].GroupID != groupID {
@@ -491,9 +491,9 @@ func testEnrollmentResponseSendFailure(t *testing.T) {
 
 func assertResponseFailureRegistration(
 	t *testing.T,
-	settings *store.Settings,
-	before store.RegistrationState,
-	after store.RegistrationState,
+	settings *settings.Store,
+	before settings.RegistrationState,
+	after settings.RegistrationState,
 	configPath string,
 	stateDirectory string,
 	groupID int64,

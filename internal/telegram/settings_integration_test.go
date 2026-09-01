@@ -6,18 +6,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
-func botTestSettingsBaseline(t *testing.T, cfg *config.Config) store.SettingsBaseline {
+func botTestSettingsBaseline(t *testing.T, cfg *settings.Config) settings.SettingsBaseline {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "config.json")
 	if err := os.WriteFile(path, []byte(`{}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	baseline, err := store.LoadBaseline(path, cfg)
+	baseline, err := settings.LoadBaseline(path, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +46,7 @@ func TestBuiltInPrivateReplyUsesCatalogue(t *testing.T) {
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := config.LoadConfig(path)
+	cfg, err := settings.LoadConfig(path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,26 +66,20 @@ func TestBuiltInPrivateReplyUsesCatalogue(t *testing.T) {
 	if isBuiltInPrivateReply(customReply) {
 		t.Fatal("custom private reply was recognized as built-in")
 	}
-	handler = dmHandler{cfg: &config.Config{PrivateReply: customReply}}
+	handler = dmHandler{cfg: &settings.Config{PrivateReply: customReply}}
 	if got := handler.privateReply(i18n.LangZHHant); got != customReply {
 		t.Errorf("custom private reply = %q, want %q", got, customReply)
 	}
 }
 
-func TestBuiltInPrivateReplyUsesLiveQueryRate(t *testing.T) {
-	cfg := &config.Config{PrivateQueryPerMin: 3}
-	settings, err := store.NewSettings("", botTestSettingsBaseline(t, cfg))
+func TestBuiltInPrivateReplyUsesProcessQueryRate(t *testing.T) {
+	const rate = 5
+	cfg := &settings.Config{PrivateQueryPerMin: rate}
+	settings, err := settings.NewStore("", botTestSettingsBaseline(t, cfg), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	service := NewUpdates(cfg, settings, nil, HandlerSet{})
-	global := settings.Global()
-	overrides := global.Overrides()
-	rate := 5
-	overrides.PrivateQueryPerMin = &rate
-	if _, err := settings.CommitGlobal(global.Revision(), overrides); err != nil {
-		t.Fatal(err)
-	}
 	got := service.dm.privateReply(i18n.LangEN)
 	want := i18n.Messages.Bot.DirectMessage.AutoReply.Render(i18n.LangEN, rate, i18n.Messages.Bot.DirectMessage.Who(i18n.LangEN))
 	if got != want {

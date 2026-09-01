@@ -6,15 +6,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 // The required channel can break after the challenge is posted. Somebody who never opened the
 // direct chat never had the gate read for them, so nothing would mark the failure as the bot's
 // and the timeout would count against them, all the way to an automatic ban.
 func TestChannelBreakingAfterTheChallengeIsNotTheApplicantsFault(t *testing.T) {
-	cfg := &config.Config{GroupIDs: []int64{-100}, RequiredChannelID: -400, VerifyMaxFails: 3}
+	cfg := &settings.Config{GroupIDs: []int64{-100}, RequiredChannelID: -400, VerifyMaxFails: 3}
 	v := newTestService(cfg)
 	v.botID = 42
 	gid, uid := int64(-100), int64(5)
@@ -36,7 +36,7 @@ func TestChannelBreakingAfterTheChallengeIsNotTheApplicantsFault(t *testing.T) {
 
 // A working gate still charges the timeout to the applicant.
 func TestWorkingChannelStillChargesTheTimeout(t *testing.T) {
-	cfg := &config.Config{GroupIDs: []int64{-100}, RequiredChannelID: -400, VerifyMaxFails: 3}
+	cfg := &settings.Config{GroupIDs: []int64{-100}, RequiredChannelID: -400, VerifyMaxFails: 3}
 	v := newTestService(cfg)
 	v.botID = 42
 	gid, uid := int64(-100), int64(6)

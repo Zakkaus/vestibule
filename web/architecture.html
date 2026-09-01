@@ -2390,68 +2390,62 @@ Sender {
   <section id="a5" class="stack-m">
     <hr class="rule">
     <div class="sechead"><span class="num">10</span><h2>配置</h2></div>
-    <p>配置分三层，各有各的位置。<b>不把它们写成一份文件。</b>
-      判断一项属于哪一层，看谁改它、多久改一次。</p>
+    <p>配置分三类，各有独立的所有者和持久位置。进程配置由运维在启动前提供；
+      每群配置由该群管理员修改；声明式资源由自托管者纳入版本控制。</p>
 
     <div class="tw"><table class="spec-table">
-      <thead><tr><th>层</th><th>谁改</th><th>放在哪</th><th>例</th></tr></thead>
+      <thead><tr><th>类型</th><th>谁改</th><th>放在哪</th><th>例</th></tr></thead>
       <tbody>
-        <tr><td>进程配置</td><td>运维，很少改</td><td>文件加环境变量</td><td>令牌、监听地址、数据库连接、Bot API 地址、日志</td></tr>
-        <tr><td>每群配置</td><td>该群管理员，随时改</td><td>数据库</td><td>验证方式、超时、封禁时长、提示文案</td></tr>
-        <tr><td>声明式资源</td><td>自托管者，进版本控制</td><td>provisioning 目录</td><td>题库、自动回复、订阅源</td></tr>
+        <tr><td>进程配置</td><td>运维，很少改</td><td><code>config.json</code> 与环境变量</td><td>数据库连接、Bot API 地址、日志、外部服务令牌</td></tr>
+        <tr><td>每群配置</td><td>该群管理员，随时改</td><td><code>chat.settings</code> 与 <code>chat.settings_revision</code></td><td>验证方式、超时、封禁时长、反垃圾规则</td></tr>
+        <tr><td>声明式资源</td><td>自托管者</td><td><code>provisioning/</code></td><td>题库、自动回复、订阅源</td></tr>
       </tbody>
     </table></div>
 
-    <h3>进程配置：默认内嵌，用户文件只写差异</h3>
+    <h3>设置实现：默认值、加载与数据库存取分开</h3>
     <div class="spec-wrap">
-      <div class="cap"><span>目录</span><span class="hint">用户文件通常只有十几行</span></div>
+      <div class="cap"><span>目录</span><span class="hint">依赖方向为默认值 → 加载 → Store → Repository</span></div>
       <div class="in">
-        <div class="flow">/etc/vestibule/
-├── config.yaml                 只写与默认不同的项
-└── provisioning/
-    ├── rules/
-    │   ├── challenges.yaml
-    │   └── autoreply.yaml
-    └── feeds/
-        └── gentoo.yaml
+        <div class="flow">internal/settings/
+├── defaults.yaml               go:embed，完整注释与全部出厂默认值
+├── defaults.go                 解析默认值，展开文件管理值，保留来源
+├── config.go                   进程配置类型、归一化与严格校验
+├── load.go                     configupgrade 白名单与四条升级路径
+└── store.go                    每群读取、稀疏覆盖、revision 与快照
 
-internal/settings/
-├── defaults.yaml               go:embed，完整、带注释、含全部默认值
-├── config.go                   struct 与 Validate
-├── upgrade.go                  旧路径到当前路径的复制规则
-└── load.go                     Do → Unmarshal → Validate</div>
+internal/database/settings.go   chat.settings 的 Repository
+migrations/01-settings.sql      settings_revision</div>
       </div>
     </div>
     <ul>
-      <li><strong>分节，不是一张平铺的表。</strong><code>server</code>、<code>database</code>、
-        <code>telegram</code>、<code>web</code>、<code>log</code> 各管一段。</li>
-      <li><strong>环境变量按机械映射覆盖。</strong><code>database.uri</code> 对应
-        <code>VT_DATABASE_URI</code>，规则可推导，不逐个登记。</li>
-      <li><strong>密钥只写引用。</strong><code>token: $file{/run/secrets/bot_token}</code>
-        或 <code>$env{BOT_TOKEN}</code>。<b>明文密钥不进配置文件</b>，
-        因为配置文件会被贴进工单、提交进仓库、发到群里求助。</li>
-      <li><strong>升级由 configupgrade 处理。</strong>以当前 <code>defaults.yaml</code> 为模板重建，
-        按白名单复制旧值，不维护版本链。</li>
+      <li><strong>没有全局默认记录，也没有控制群。</strong>新群从内嵌 factory 取得默认值；
+        用户文件中的旧式顶层值只展开到文件列出的群，不会传播给后来注册的群。</li>
+      <li><strong>进程级环境变量不进入每群设置。</strong><code>BOT_TOKEN</code>、
+        <code>VT_DATABASE_TYPE</code>、<code>VT_DATABASE_URI</code> 与
+        <code>TELEGRAM_API_URL</code> 在进程装配边界读取。</li>
+      <li><strong>设置升级由 configupgrade 处理。</strong>加载器以当前结构为模板，
+        只复制白名单字段；未知字段和废弃字段不进入规范表示。升级规则不按版本串联。</li>
+      <li><strong>所有当前字段都必须同时进入默认文件和复制规则。</strong>反射测试核对
+        <code>GroupOverrides</code>，防止新增字段只在一种加载路径生效。</li>
     </ul>
 
-    <h3>每群配置：存空表示继承</h3>
-    <p>数据库里只存与出厂默认不同的项。空值表示继承，不保存一份副本 ——
-      保存副本会让默认值改动之后无法传播。这与既有的入群验证方案做法一致。</p>
-    <p><b>接口返回来源，不只返回最终值。</b>只给一个最终值，
-      使用者无法判断它为何是这个值，也无法恢复默认。每一项返回六个字段：</p>
+    <h3>每群配置：空覆盖继承 factory</h3>
+    <p><code>chat.settings</code> 只保存稀疏覆盖。空对象表示完整继承；
+      恢复默认就是删除对应字段，不写一份默认值副本。两个群的记录、revision 与快照互不影响。</p>
+    <p><b>读取接口同时返回值与来源。</b><code>Store.Settings(chatID)</code> 返回不可变
+      <code>GroupView</code>；每个 getter 返回 <code>Setting[T]{Value, Source}</code>。
+      来源只有三种：</p>
     <div class="tw"><table class="spec-table">
-      <thead><tr><th>字段</th><th>含义</th></tr></thead>
+      <thead><tr><th>来源</th><th>含义</th><th>恢复方式</th></tr></thead>
       <tbody>
-        <tr><td class="mono">defaultValue</td><td>出厂默认</td></tr>
-        <tr><td class="mono">overrideValue</td><td>本群设定，未设定时为空</td></tr>
-        <tr><td class="mono">effectiveValue</td><td>当前实际生效的值</td></tr>
-        <tr><td class="mono">pendingValue</td><td>本次未保存的改动</td></tr>
-        <tr><td class="mono">source</td><td>default · group · provisioning</td></tr>
-        <tr><td class="mono">locked</td><td>由文件管理时为真，界面只读</td></tr>
+        <tr><td class="mono">factory default</td><td><code>defaults.yaml</code> 的出厂值</td><td>无须恢复</td></tr>
+        <tr><td class="mono">user file</td><td>启动文件为该群管理的值</td><td>修改文件并重启</td></tr>
+        <tr><td class="mono">chat override</td><td><code>chat.settings</code> 的运行时覆盖</td><td>删除该稀疏字段</td></tr>
       </tbody>
     </table></div>
-    <p style="font-size:0.875rem;">界面上三态各有各的样子：继承、已覆盖、待保存。
-      已覆盖不只靠颜色区分，同时给圆点与文字，并提供只看已覆盖的筛选和恢复默认。</p>
+    <p><code>Store.Update(chatID, expectedRevision, overrides)</code> 接收完整稀疏记录。
+      Store 先解析整份有效设置并执行值域校验，再以 compare-and-swap 写数据库。
+      revision 冲突、校验失败或数据库写入失败都不发布新快照。</p>
 
     <h3>声明式资源：可由文件管理的部分</h3>
     <p>题库、自动回复、订阅源既可以在控制台里改，也可以放进

@@ -9,16 +9,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/mymmrac/telego"
 )
 
 func TestRequesterLanguageFallbackChain(t *testing.T) {
 	const groupID int64 = -100
-	service := New(nil, nil, &config.Config{
-		Groups:   []config.GroupConfig{{ID: groupID, Lang: "zh-Hant"}},
+	service := New(nil, nil, &settings.Config{
+		Groups:   []settings.GroupConfig{{ID: groupID, Lang: "zh-Hant"}},
 		GroupIDs: []int64{groupID},
 	}, "")
 	tests := []struct {
@@ -45,19 +44,26 @@ func TestRequesterLanguageFallbackChain(t *testing.T) {
 
 func TestRuntimeRegisteredGroupUsesLiveMembership(t *testing.T) {
 	const groupID int64 = -1009000000401
-	cfg := &config.Config{Lang: "zh-Hant"}
-	baseline, err := store.LoadBaseline(filepath.Join(t.TempDir(), "missing-config.json"), cfg)
+	cfg := &settings.Config{Lang: "zh-Hant"}
+	baseline, err := settings.LoadBaseline(filepath.Join(t.TempDir(), "missing-config.json"), cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	settings, err := store.NewSettings(filepath.Join(t.TempDir(), "settings.json"), baseline)
+	store, err := settings.NewStore(filepath.Join(t.TempDir(), "settings.json"), baseline, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	service := New(settings, nil, cfg, "")
-	registration := settings.Registrations()
-	registration.RegisteredGroups = []store.RegisteredGroup{{ID: groupID, RegisteredBy: 42}}
-	if _, err := settings.CommitRegistrations(registration.Revision, registration); err != nil {
+	service := New(store, nil, cfg, "")
+	registration := store.Registrations()
+	registration.RegisteredGroups = []settings.RegisteredGroup{{ID: groupID, RegisteredBy: 42}}
+	if _, err := store.CommitRegistrations(registration.Revision, registration); err != nil {
+		t.Fatal(err)
+	}
+	group, _ := store.Settings(groupID)
+	overrides := group.Overrides()
+	language := "zh-Hant"
+	overrides.Lang = &language
+	if _, err := store.Update(groupID, group.Revision(), overrides); err != nil {
 		t.Fatal(err)
 	}
 	msg := &telego.Message{
@@ -69,9 +75,6 @@ func TestRuntimeRegisteredGroupUsesLiveMembership(t *testing.T) {
 	}
 	if !service.queryAllowed(nil, msg, i18n.LangZHHant) {
 		t.Error("runtime group lookup was not exempted from the private-query rate limit")
-	}
-	if got := service.controlGroupID(); got != groupID {
-		t.Errorf("runtime control group = %d, want %d", got, groupID)
 	}
 }
 
@@ -149,7 +152,7 @@ func TestAcquireHTTPSlotBusy(t *testing.T) {
 }
 
 func TestPrivateQueryRate(t *testing.T) {
-	service := New(nil, nil, &config.Config{PrivateQueryPerMin: 3}, "")
+	service := New(nil, nil, &settings.Config{PrivateQueryPerMin: 3}, "")
 	pass := 0
 	for range 5 {
 		if service.queryRateOK(7) {

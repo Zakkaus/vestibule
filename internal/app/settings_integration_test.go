@@ -1,16 +1,16 @@
 package app
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/database"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/lookup"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/verification"
 )
@@ -18,16 +18,16 @@ import (
 const testLookupGroup int64 = -1
 
 type testLookupApplication struct {
-	cfg      *config.Config
-	settings *store.Settings
+	cfg      *settings.Config
+	settings *settings.Store
 	verifier *verification.Service
 }
 
 func newTestApplication(t *testing.T, ttl *int) *testLookupApplication {
-	cfg := &config.Config{GroupIDs: []int64{testLookupGroup},
-		Questions:        []config.Question{{Q: "x", Options: []string{"a", "b"}, Answer: 0}},
+	cfg := &settings.Config{GroupIDs: []int64{testLookupGroup},
+		Questions:        []settings.Question{{Q: "x", Options: []string{"a", "b"}, Answer: 0}},
 		LookupTTLSeconds: ttl}
-	settings, err := store.NewSettings("", botTestSettingsBaseline(t, cfg))
+	settings, err := settings.NewStore("", botTestSettingsBaseline(t, cfg), nil)
 	if err != nil {
 		panic(err)
 	}
@@ -36,9 +36,9 @@ func newTestApplication(t *testing.T, ttl *int) *testLookupApplication {
 }
 
 func newTestVerifier(
-	settings *store.Settings,
+	settings *settings.Store,
 	connector *telegram.Connector,
-	cfg *config.Config,
+	cfg *settings.Config,
 	identity verification.Identity,
 	stateDirectory string,
 ) *verification.Service {
@@ -90,13 +90,17 @@ func TestLookupAutoDelete(t *testing.T) {
 	}
 }
 
-func botTestSettingsBaseline(t *testing.T, cfg *config.Config) store.SettingsBaseline {
+func botTestSettingsBaseline(t *testing.T, cfg *settings.Config) settings.SettingsBaseline {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "config.json")
-	if err := os.WriteFile(path, []byte(`{}`), 0o600); err != nil {
+	data := []byte(`{}`)
+	if cfg.LookupTTLSeconds != nil {
+		data = []byte(fmt.Sprintf(`{"lookup_ttl_seconds":%d}`, *cfg.LookupTTLSeconds))
+	}
+	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	baseline, err := store.LoadBaseline(path, cfg)
+	baseline, err := settings.LoadBaseline(path, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}

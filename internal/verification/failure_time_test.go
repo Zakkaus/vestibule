@@ -6,15 +6,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 // A settlement the bot has to retry does not move the moment the applicant failed. Stamping the
 // strike with the retry time instead would start their cooldown from however long the bot spent
 // retrying, which is time they did not spend failing.
 func TestRetryingASettlementKeepsTheRealFailureTime(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100}, VerifyRetrySeconds: 180})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100}, VerifyRetrySeconds: 180})
 	gid, uid := int64(-100), int64(5)
 	failedAt := v.wallNow().Add(-9 * time.Minute)
 	p := &pending{gate: gateMute, nonce: "n", lang: i18n.LangEN, failedAt: failedAt,

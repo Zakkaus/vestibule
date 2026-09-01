@@ -4,19 +4,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 // One DM reply is graded for every group the applicant is verifying for. When those groups drew
 // different fallback questions, answering one of them correctly must not spend an attempt in the
 // others — three such replies would otherwise exhaust the tries and strike an honest applicant.
 func TestReplyToAnotherGroupsFallbackDoesNotCount(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100, -200}})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100, -200}})
 	uid := int64(5)
-	v.pend[pkey{-100, uid}] = &pending{nonce: "a", mode: config.ModeKernel, lang: i18n.LangEN,
+	v.pend[pkey{-100, uid}] = &pending{nonce: "a", mode: settings.ModeKernel, lang: i18n.LangEN,
 		qText: "Question A", fbAnswers: []string{"gentoo.org"}, deadline: time.Now().Add(time.Hour)}
-	v.pend[pkey{-200, uid}] = &pending{nonce: "b", mode: config.ModeKernel, lang: i18n.LangEN,
+	v.pend[pkey{-200, uid}] = &pending{nonce: "b", mode: settings.ModeKernel, lang: i18n.LangEN,
 		qText: "Question B", fbAnswers: []string{"gentoozh.org"}, deadline: time.Now().Add(time.Hour)}
 
 	if !v.answersAnotherFallback(-100, uid, "gentoozh.org") {
@@ -32,9 +32,9 @@ func TestReplyToAnotherGroupsFallbackDoesNotCount(t *testing.T) {
 
 // Groups drawing from the same bank reuse one question, so the common case never diverges.
 func TestFallbackQuestionReusedAcrossGroupsWithTheSameBank(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100, -200}})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100, -200}})
 	uid := int64(6)
-	v.pend[pkey{-200, uid}] = &pending{nonce: "b", mode: config.ModeKernel, lang: i18n.LangEN,
+	v.pend[pkey{-200, uid}] = &pending{nonce: "b", mode: settings.ModeKernel, lang: i18n.LangEN,
 		qText: "Question B", fbAnswers: []string{"gentoozh.org"}, deadline: time.Now().Add(time.Hour)}
 
 	text, answers := v.sharedFallbackQuestion(-100, uid, i18n.LangEN)
@@ -45,15 +45,15 @@ func TestFallbackQuestionReusedAcrossGroupsWithTheSameBank(t *testing.T) {
 
 // A group with its own configured bank never inherits another group's question.
 func TestConfiguredBankIsNotSharedAcrossGroups(t *testing.T) {
-	cfg := &config.Config{
-		Groups: []config.GroupConfig{{ID: -100}, {ID: -200}},
-		FallbackQuestions: []config.ShortQuestion{
+	cfg := &settings.Config{
+		Groups: []settings.GroupConfig{{ID: -100}, {ID: -200}},
+		FallbackQuestions: []settings.ShortQuestion{
 			{Q: "Configured question", Answers: []string{"configured"}},
 		},
 	}
 	v := newTestService(cfg)
 	uid := int64(7)
-	v.pend[pkey{-200, uid}] = &pending{nonce: "b", mode: config.ModeKernel, lang: i18n.LangEN,
+	v.pend[pkey{-200, uid}] = &pending{nonce: "b", mode: settings.ModeKernel, lang: i18n.LangEN,
 		qText: "Some other question", fbAnswers: []string{"other"}, deadline: time.Now().Add(time.Hour)}
 
 	// Both groups share one configured bank here, so reuse is correct; the guard is that reuse
@@ -61,7 +61,7 @@ func TestConfiguredBankIsNotSharedAcrossGroups(t *testing.T) {
 	if !sameFallbackSource(v.fallbackSource(-100), v.fallbackSource(-200)) {
 		t.Fatal("two groups reading the same configured bank must compare equal")
 	}
-	differing := []config.ShortQuestion{{Q: "Different", Answers: []string{"x"}}}
+	differing := []settings.ShortQuestion{{Q: "Different", Answers: []string{"x"}}}
 	if sameFallbackSource(v.fallbackSource(-100), differing) {
 		t.Error("a group with a different bank must not have its question reused")
 	}

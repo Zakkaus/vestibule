@@ -8,22 +8,21 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/mymmrac/telego"
 )
 
-func panelTestGroup(t *testing.T, settings *store.Settings) store.GroupView {
+func panelTestGroup(t *testing.T, settings *settings.Store) settings.GroupView {
 	t.Helper()
-	group, ok := settings.Group(panelTestGroupA)
+	group, ok := settings.Settings(panelTestGroupA)
 	if !ok {
 		t.Fatalf("missing test group %d", panelTestGroupA)
 	}
 	return group
 }
 
-func assertGroupOverrides(t *testing.T, settings *store.Settings, want store.GroupOverrides) store.GroupView {
+func assertGroupOverrides(t *testing.T, settings *settings.Store, want settings.GroupOverrides) settings.GroupView {
 	t.Helper()
 	group := panelTestGroup(t, settings)
 	if got := group.Overrides(); !reflect.DeepEqual(got, want) {
@@ -32,16 +31,7 @@ func assertGroupOverrides(t *testing.T, settings *store.Settings, want store.Gro
 	return group
 }
 
-func assertGlobalOverrides(t *testing.T, settings *store.Settings, want store.GlobalOverrides) store.GlobalView {
-	t.Helper()
-	global := settings.Global()
-	if got := global.Overrides(); !reflect.DeepEqual(got, want) {
-		t.Fatalf("global overrides = %+v, want only %+v", got, want)
-	}
-	return global
-}
-
-func expectedRuntimeScreen(panel *Panel, group store.GroupView, language i18n.Lang) string {
+func expectedRuntimeScreen(panel *Panel, group settings.GroupView, language i18n.Lang) string {
 	return i18n.Messages.Panel.Settings.Screen.Runtime.Render(language, group.ID(),
 		panel.sourcedBool(language, group.Enabled()), panel.sourcedMode(language, group.VerifyMode()),
 		panel.sourcedDeliveryMode(language, group.DeliveryMode()), panel.sourcedBool(language, group.NameSpoiler()),
@@ -50,29 +40,27 @@ func expectedRuntimeScreen(panel *Panel, group store.GroupView, language i18n.La
 		panel.sourcedLanguage(language, group.Lang()))
 }
 
-func expectedVerificationScreen(panel *Panel, settings *store.Settings, group store.GroupView, language i18n.Lang) string {
-	global := settings.Global()
+func expectedVerificationScreen(panel *Panel, _ *settings.Store, group settings.GroupView, language i18n.Lang) string {
 	return i18n.Messages.Panel.Settings.Screen.Verification.Render(language, group.ID(),
 		panel.sourcedSeconds(language, group.TimeoutSeconds(), false), panel.sourcedLimit(language, group.VerifyMaxFails()),
 		panel.sourcedLimit(language, group.VerifyRetrySeconds()),
 		panel.sourcedBool(language, group.VerifyInvited()),
-		i18n.Messages.Panel.Settings.Value.Sourced.Render(language, strconv.Itoa(global.PrivateQueryPerMin().Value),
-			panel.sourceText(language, global.PrivateQueryPerMin().Source)))
+		i18n.Messages.Panel.Settings.Value.Sourced.Render(language, strconv.Itoa(group.PrivateQueryPerMin().Value),
+			panel.sourceText(language, group.PrivateQueryPerMin().Source)))
 }
 
-func expectedModerationScreen(panel *Panel, settings *store.Settings, group store.GroupView, language i18n.Lang) string {
-	global := settings.Global()
+func expectedModerationScreen(panel *Panel, _ *settings.Store, group settings.GroupView, language i18n.Lang) string {
 	return i18n.Messages.Panel.Settings.Screen.Moderation.Render(language, group.ID(),
 		panel.sourcedBool(language, group.AntispamEnabled()),
 		panel.sourcedSeconds(language, group.MuteSeconds(), false),
 		panel.sourcedLimit(language, group.WarnLimit()),
-		panel.sourcedBool(language, global.RichMessages()),
+		panel.sourcedBool(language, group.RichMessages()),
 		i18n.Messages.Panel.Settings.Value.Sourced.Render(language,
-			panel.alertChatText(language, global.AdminLogChatID().Value),
-			panel.sourceText(language, global.AdminLogChatID().Source)))
+			panel.alertChatText(language, group.AdminLogChatID().Value),
+			panel.sourceText(language, group.AdminLogChatID().Source)))
 }
 
-func expectedListScreen(panel *Panel, group store.GroupView, language i18n.Lang, kind inputKind) string {
+func expectedListScreen(panel *Panel, group settings.GroupView, language i18n.Lang, kind inputKind) string {
 	values := panel.listValues(group, kind)
 	lines := make([]string, 0, len(values))
 	for _, id := range values {
@@ -81,7 +69,7 @@ func expectedListScreen(panel *Panel, group store.GroupView, language i18n.Lang,
 	return i18n.Messages.Panel.Settings.Screen.List.Render(language, panel.listName(language, kind), group.ID(), len(values), strings.Join(lines, "\n"))
 }
 
-func expectedQuizBankScreen(group store.GroupView, language i18n.Lang) string {
+func expectedQuizBankScreen(group settings.GroupView, language i18n.Lang) string {
 	questions := group.Questions().Value
 	lines := make([]string, 0, len(questions))
 	for index, question := range questions {
@@ -92,7 +80,7 @@ func expectedQuizBankScreen(group store.GroupView, language i18n.Lang) string {
 		language, group.ID(), len(questions), strings.Join(lines, "\n"))
 }
 
-func expectedFallbackBankScreen(group store.GroupView, language i18n.Lang) string {
+func expectedFallbackBankScreen(group settings.GroupView, language i18n.Lang) string {
 	questions := group.FallbackQuestions().Value
 	lines := make([]string, 0, len(questions))
 	for index, question := range questions {
@@ -107,7 +95,7 @@ func expectedFallbackBankScreen(group store.GroupView, language i18n.Lang) strin
 		language, group.ID(), bank, len(questions), strings.Join(lines, "\n"))
 }
 
-func expectedChannelScreen(panel *Panel, group store.GroupView, language i18n.Lang) string {
+func expectedChannelScreen(panel *Panel, group settings.GroupView, language i18n.Lang) string {
 	display := panel.channelDisplayValue(group)
 	if display == "" {
 		display = i18n.Messages.Panel.Settings.Common.None.For(language)
@@ -119,13 +107,13 @@ func expectedChannelScreen(panel *Panel, group store.GroupView, language i18n.La
 	return i18n.Messages.Panel.Settings.Screen.Channel.Render(language, group.ID(), panel.requiredChannelID(group), display, invite)
 }
 
-func bumpPanelGroupRevision(t *testing.T, settings *store.Settings) store.GroupOverrides {
+func bumpPanelGroupRevision(t *testing.T, settings *settings.Store) settings.GroupOverrides {
 	t.Helper()
 	group := panelTestGroup(t, settings)
 	next := group.Overrides()
 	value := !group.Enabled().Value
 	next.Enabled = &value
-	if _, err := settings.CommitGroup(group.ID(), group.Revision(), next); err != nil {
+	if _, err := settings.Update(group.ID(), group.Revision(), next); err != nil {
 		t.Fatal(err)
 	}
 	return next
@@ -155,14 +143,14 @@ func action(groupID int64, field, value string) string {
 
 func testSettingsScreenContracts(t *testing.T) {
 	const trustedID int64 = -1009000000711
-	question := config.Question{Q: "Question", Options: []string{"A", "B"}, Answer: 0}
-	fallbackQuestion := config.ShortQuestion{Q: "Fallback question", Answers: []string{"Answer"}}
+	question := settings.Question{Q: "Question", Options: []string{"A", "B"}, Answer: 0}
+	fallbackQuestion := settings.ShortQuestion{Q: "Fallback question", Answers: []string{"Answer"}}
 	channelID := int64(-1009000000712)
 	channelDisplay := "@public_channel"
 	channelInvite := "https://t.me/public_channel"
 	trusted := []int64{trustedID}
-	questions := []config.Question{question}
-	fallbackQuestions := []config.ShortQuestion{fallbackQuestion}
+	questions := []settings.Question{question}
+	fallbackQuestions := []settings.ShortQuestion{fallbackQuestion}
 	customFallback := false
 
 	panel, settings, _, bot := newSettingsPanelTest(t, "")
@@ -175,7 +163,7 @@ func testSettingsScreenContracts(t *testing.T) {
 	next.RequiredChannelID = &channelID
 	next.ChannelDisplay = &channelDisplay
 	next.ChannelInviteURL = &channelInvite
-	if _, err := settings.CommitGroup(group.ID(), group.Revision(), next); err != nil {
+	if _, err := settings.Update(group.ID(), group.Revision(), next); err != nil {
 		t.Fatal(err)
 	}
 	group = panelTestGroup(t, settings)
@@ -367,127 +355,127 @@ func TestPanelRuntimeControlsMutateOnlyTargetRenderAndRejectStale(t *testing.T) 
 	tests := []struct {
 		name           string
 		field, value   string
-		seed           func(*testing.T, *store.Settings)
-		setExpected    func(*store.GroupOverrides, store.GroupView)
-		checkEffective func(*testing.T, store.GroupView)
+		seed           func(*testing.T, *settings.Store)
+		setExpected    func(*settings.GroupOverrides, settings.GroupView)
+		checkEffective func(*testing.T, settings.GroupView)
 		language       i18n.Lang
 	}{
 		{
 			name: "group delivery", field: "df", value: "g", language: i18n.LangEN,
-			setExpected: func(next *store.GroupOverrides, _ store.GroupView) {
-				value := config.DeliveryGroup
+			setExpected: func(next *settings.GroupOverrides, _ settings.GroupView) {
+				value := settings.DeliveryGroup
 				next.DeliveryMode = &value
 			},
-			checkEffective: func(t *testing.T, group store.GroupView) {
-				if got := group.DeliveryMode(); got.Value != config.DeliveryGroup || got.Source != store.SourceRuntime {
+			checkEffective: func(t *testing.T, group settings.GroupView) {
+				if got := group.DeliveryMode(); got.Value != settings.DeliveryGroup || got.Source != settings.SourceChatOverride {
 					t.Fatalf("delivery mode = %+v", got)
 				}
 			},
 		},
 		{
 			name: "DM delivery", field: "df", value: "d", language: i18n.LangEN,
-			setExpected: func(next *store.GroupOverrides, _ store.GroupView) {
-				value := config.DeliveryDM
+			setExpected: func(next *settings.GroupOverrides, _ settings.GroupView) {
+				value := settings.DeliveryDM
 				next.DeliveryMode = &value
 			},
-			checkEffective: func(t *testing.T, group store.GroupView) {
-				if got := group.DeliveryMode(); got.Value != config.DeliveryDM || got.Source != store.SourceRuntime {
+			checkEffective: func(t *testing.T, group settings.GroupView) {
+				if got := group.DeliveryMode(); got.Value != settings.DeliveryDM || got.Source != settings.SourceChatOverride {
 					t.Fatalf("delivery mode = %+v", got)
 				}
 			},
 		},
 		{
 			name: "both delivery", field: "df", value: "b", language: i18n.LangEN,
-			setExpected: func(next *store.GroupOverrides, _ store.GroupView) {
+			setExpected: func(next *settings.GroupOverrides, _ settings.GroupView) {
 				next.DeliveryMode = nil
 			},
-			checkEffective: func(t *testing.T, group store.GroupView) {
-				if got := group.DeliveryMode(); got.Value != config.DeliveryBoth || got.Source != store.SourceDefault {
+			checkEffective: func(t *testing.T, group settings.GroupView) {
+				if got := group.DeliveryMode(); got.Value != settings.DeliveryBoth || got.Source != settings.SourceFactory {
 					t.Fatalf("delivery mode = %+v", got)
 				}
 			},
 		},
 		{
 			name: "kernel mode", field: "vm", value: "k", language: i18n.LangEN,
-			seed: func(t *testing.T, settings *store.Settings) {
-				group := panelTestGroup(t, settings)
+			seed: func(t *testing.T, store *settings.Store) {
+				group := panelTestGroup(t, store)
 				next := group.Overrides()
-				value := config.ModeQuiz
+				value := settings.ModeQuiz
 				next.VerifyMode = &value
-				if _, err := settings.CommitGroup(group.ID(), group.Revision(), next); err != nil {
+				if _, err := store.Update(group.ID(), group.Revision(), next); err != nil {
 					t.Fatal(err)
 				}
 			},
-			setExpected: func(next *store.GroupOverrides, _ store.GroupView) {
+			setExpected: func(next *settings.GroupOverrides, _ settings.GroupView) {
 				next.VerifyMode = nil
 			},
-			checkEffective: func(t *testing.T, group store.GroupView) {
-				if got := group.VerifyMode().Value; got != config.ModeKernel {
+			checkEffective: func(t *testing.T, group settings.GroupView) {
+				if got := group.VerifyMode().Value; got != settings.ModeKernel {
 					t.Fatalf("verify mode = %q", got)
 				}
 			},
 		},
 		{
 			name: "quiz mode", field: "vm", value: "q", language: i18n.LangEN,
-			setExpected: func(next *store.GroupOverrides, _ store.GroupView) {
-				value := config.ModeQuiz
+			setExpected: func(next *settings.GroupOverrides, _ settings.GroupView) {
+				value := settings.ModeQuiz
 				next.VerifyMode = &value
 			},
-			checkEffective: func(t *testing.T, group store.GroupView) {
-				if got := group.VerifyMode().Value; got != config.ModeQuiz {
+			checkEffective: func(t *testing.T, group settings.GroupView) {
+				if got := group.VerifyMode().Value; got != settings.ModeQuiz {
 					t.Fatalf("verify mode = %q", got)
 				}
 			},
 		},
 		{
 			name: "mixed mode", field: "vm", value: "m", language: i18n.LangEN,
-			setExpected: func(next *store.GroupOverrides, _ store.GroupView) {
-				value := config.ModeMixed
+			setExpected: func(next *settings.GroupOverrides, _ settings.GroupView) {
+				value := settings.ModeMixed
 				next.VerifyMode = &value
 			},
-			checkEffective: func(t *testing.T, group store.GroupView) {
-				if got := group.VerifyMode().Value; got != config.ModeMixed {
+			checkEffective: func(t *testing.T, group settings.GroupView) {
+				if got := group.VerifyMode().Value; got != settings.ModeMixed {
 					t.Fatalf("verify mode = %q", got)
 				}
 			},
 		},
 		{
 			name: "name spoiler", field: "ns", value: "_", language: i18n.LangEN,
-			setExpected: func(next *store.GroupOverrides, group store.GroupView) {
+			setExpected: func(next *settings.GroupOverrides, group settings.GroupView) {
 				value := !group.NameSpoiler().Value
 				next.NameSpoiler = &value
 			},
-			checkEffective: func(t *testing.T, group store.GroupView) {
-				if group.NameSpoiler().Source != store.SourceRuntime {
+			checkEffective: func(t *testing.T, group settings.GroupView) {
+				if group.NameSpoiler().Source != settings.SourceChatOverride {
 					t.Fatalf("name spoiler = %+v", group.NameSpoiler())
 				}
 			},
 		},
 		{
 			name: "lookup auto-delete", field: "ld", value: "_", language: i18n.LangEN,
-			setExpected: func(next *store.GroupOverrides, group store.GroupView) {
+			setExpected: func(next *settings.GroupOverrides, group settings.GroupView) {
 				value := !group.LookupAutoDeleteEnabled().Value
 				next.LookupAutoDeleteEnabled = &value
 			},
-			checkEffective: func(t *testing.T, group store.GroupView) {
-				if group.LookupAutoDeleteEnabled().Source != store.SourceRuntime {
+			checkEffective: func(t *testing.T, group settings.GroupView) {
+				if group.LookupAutoDeleteEnabled().Source != settings.SourceChatOverride {
 					t.Fatalf("lookup auto-delete = %+v", group.LookupAutoDeleteEnabled())
 				}
 			},
 		},
 		{
 			name: "Simplified Chinese language", field: "lg", value: "z", language: i18n.LangZH,
-			seed: func(t *testing.T, settings *store.Settings) {
+			seed: func(t *testing.T, settings *settings.Store) {
 				group := panelTestGroup(t, settings)
 				next := group.Overrides()
 				value := "en"
 				next.Lang = &value
-				if _, err := settings.CommitGroup(group.ID(), group.Revision(), next); err != nil {
+				if _, err := settings.Update(group.ID(), group.Revision(), next); err != nil {
 					t.Fatal(err)
 				}
 			},
-			setExpected: func(next *store.GroupOverrides, _ store.GroupView) { next.Lang = nil },
-			checkEffective: func(t *testing.T, group store.GroupView) {
+			setExpected: func(next *settings.GroupOverrides, _ settings.GroupView) { next.Lang = nil },
+			checkEffective: func(t *testing.T, group settings.GroupView) {
 				if got := group.Lang().Value; got != "zh" {
 					t.Fatalf("language = %q", got)
 				}
@@ -495,8 +483,8 @@ func TestPanelRuntimeControlsMutateOnlyTargetRenderAndRejectStale(t *testing.T) 
 		},
 		{
 			name: "Traditional Chinese language", field: "lg", value: "h", language: i18n.LangZHHant,
-			setExpected: func(next *store.GroupOverrides, _ store.GroupView) { value := "zh-Hant"; next.Lang = &value },
-			checkEffective: func(t *testing.T, group store.GroupView) {
+			setExpected: func(next *settings.GroupOverrides, _ settings.GroupView) { value := "zh-Hant"; next.Lang = &value },
+			checkEffective: func(t *testing.T, group settings.GroupView) {
 				if got := group.Lang().Value; got != "zh-Hant" {
 					t.Fatalf("language = %q", got)
 				}
@@ -504,8 +492,8 @@ func TestPanelRuntimeControlsMutateOnlyTargetRenderAndRejectStale(t *testing.T) 
 		},
 		{
 			name: "English language", field: "lg", value: "e", language: i18n.LangEN,
-			setExpected: func(next *store.GroupOverrides, _ store.GroupView) { value := "en"; next.Lang = &value },
-			checkEffective: func(t *testing.T, group store.GroupView) {
+			setExpected: func(next *settings.GroupOverrides, _ settings.GroupView) { value := "en"; next.Lang = &value },
+			checkEffective: func(t *testing.T, group settings.GroupView) {
 				if got := group.Lang().Value; got != "en" {
 					t.Fatalf("language = %q", got)
 				}
@@ -550,14 +538,13 @@ func TestPanelNumericControlsMutateOnlyTargetRenderAndRejectStale(t *testing.T) 
 		name         string
 		screen       string
 		field, input string
-		setGroup     func(*store.GroupOverrides)
-		setGlobal    func(*store.GlobalOverrides)
-		check        func(*testing.T, *store.Settings)
+		setGroup     func(*settings.GroupOverrides)
+		check        func(*testing.T, *settings.Store)
 	}{
 		{
 			name: "ban duration", screen: "rt", field: "bd", input: "2h",
-			setGroup: func(next *store.GroupOverrides) { value := 7200; next.BanSeconds = &value },
-			check: func(t *testing.T, settings *store.Settings) {
+			setGroup: func(next *settings.GroupOverrides) { value := 7200; next.BanSeconds = &value },
+			check: func(t *testing.T, settings *settings.Store) {
 				if got := panelTestGroup(t, settings).BanSeconds().Value; got != 7200 {
 					t.Fatalf("ban seconds = %d", got)
 				}
@@ -565,8 +552,8 @@ func TestPanelNumericControlsMutateOnlyTargetRenderAndRejectStale(t *testing.T) 
 		},
 		{
 			name: "lookup TTL", screen: "rt", field: "lt", input: "7",
-			setGroup: func(next *store.GroupOverrides) { value := 420; next.LookupTTLSeconds = &value },
-			check: func(t *testing.T, settings *store.Settings) {
+			setGroup: func(next *settings.GroupOverrides) { value := 420; next.LookupTTLSeconds = &value },
+			check: func(t *testing.T, settings *settings.Store) {
 				if got := panelTestGroup(t, settings).LookupTTLSeconds().Value; got != 420 {
 					t.Fatalf("lookup TTL = %d", got)
 				}
@@ -574,8 +561,8 @@ func TestPanelNumericControlsMutateOnlyTargetRenderAndRejectStale(t *testing.T) 
 		},
 		{
 			name: "mute duration", screen: "md", field: "ms", input: "2h",
-			setGroup: func(next *store.GroupOverrides) { value := 7200; next.MuteSeconds = &value },
-			check: func(t *testing.T, settings *store.Settings) {
+			setGroup: func(next *settings.GroupOverrides) { value := 7200; next.MuteSeconds = &value },
+			check: func(t *testing.T, settings *settings.Store) {
 				if got := panelTestGroup(t, settings).MuteSeconds().Value; got != 7200 {
 					t.Fatalf("mute seconds = %d", got)
 				}
@@ -583,8 +570,8 @@ func TestPanelNumericControlsMutateOnlyTargetRenderAndRejectStale(t *testing.T) 
 		},
 		{
 			name: "warning limit", screen: "md", field: "wl", input: "5",
-			setGroup: func(next *store.GroupOverrides) { value := 5; next.WarnLimit = &value },
-			check: func(t *testing.T, settings *store.Settings) {
+			setGroup: func(next *settings.GroupOverrides) { value := 5; next.WarnLimit = &value },
+			check: func(t *testing.T, settings *settings.Store) {
 				if got := panelTestGroup(t, settings).WarnLimit().Value; got != 5 {
 					t.Fatalf("warn limit = %d", got)
 				}
@@ -592,8 +579,8 @@ func TestPanelNumericControlsMutateOnlyTargetRenderAndRejectStale(t *testing.T) 
 		},
 		{
 			name: "verification timeout", screen: "vp", field: "to", input: "300",
-			setGroup: func(next *store.GroupOverrides) { value := 300; next.TimeoutSeconds = &value },
-			check: func(t *testing.T, settings *store.Settings) {
+			setGroup: func(next *settings.GroupOverrides) { value := 300; next.TimeoutSeconds = &value },
+			check: func(t *testing.T, settings *settings.Store) {
 				if got := panelTestGroup(t, settings).TimeoutSeconds().Value; got != 300 {
 					t.Fatalf("timeout = %d", got)
 				}
@@ -601,8 +588,8 @@ func TestPanelNumericControlsMutateOnlyTargetRenderAndRejectStale(t *testing.T) 
 		},
 		{
 			name: "verification max fails", screen: "vp", field: "mf", input: "5",
-			setGroup: func(next *store.GroupOverrides) { value := 5; next.VerifyMaxFails = &value },
-			check: func(t *testing.T, settings *store.Settings) {
+			setGroup: func(next *settings.GroupOverrides) { value := 5; next.VerifyMaxFails = &value },
+			check: func(t *testing.T, settings *settings.Store) {
 				if got := panelTestGroup(t, settings).VerifyMaxFails().Value; got != 5 {
 					t.Fatalf("max fails = %d", got)
 				}
@@ -610,8 +597,8 @@ func TestPanelNumericControlsMutateOnlyTargetRenderAndRejectStale(t *testing.T) 
 		},
 		{
 			name: "verification retry cooldown", screen: "vp", field: "rc", input: "90",
-			setGroup: func(next *store.GroupOverrides) { value := 90; next.VerifyRetrySeconds = &value },
-			check: func(t *testing.T, settings *store.Settings) {
+			setGroup: func(next *settings.GroupOverrides) { value := 90; next.VerifyRetrySeconds = &value },
+			check: func(t *testing.T, settings *settings.Store) {
 				if got := panelTestGroup(t, settings).VerifyRetrySeconds().Value; got != 90 {
 					t.Fatalf("retry seconds = %d", got)
 				}
@@ -619,9 +606,9 @@ func TestPanelNumericControlsMutateOnlyTargetRenderAndRejectStale(t *testing.T) 
 		},
 		{
 			name: "private query rate", screen: "vp", field: "pr", input: "9",
-			setGlobal: func(next *store.GlobalOverrides) { value := 9; next.PrivateQueryPerMin = &value },
-			check: func(t *testing.T, settings *store.Settings) {
-				if got := settings.Global().PrivateQueryPerMin().Value; got != 9 {
+			setGroup: func(next *settings.GroupOverrides) { value := 9; next.PrivateQueryPerMin = &value },
+			check: func(t *testing.T, settings *settings.Store) {
+				if got := panelTestGroup(t, settings).PrivateQueryPerMin().Value; got != 9 {
 					t.Fatalf("private rate = %d", got)
 				}
 			},
@@ -632,18 +619,11 @@ func TestPanelNumericControlsMutateOnlyTargetRenderAndRejectStale(t *testing.T) 
 		t.Run(tt.name, func(t *testing.T) {
 			panel, settings, caller, bot := newSettingsPanelTest(t, "")
 			groupWant := panelTestGroup(t, settings).Overrides()
-			globalWant := settings.Global().Overrides()
-			if tt.setGroup != nil {
-				tt.setGroup(&groupWant)
-			}
-			if tt.setGlobal != nil {
-				tt.setGlobal(&globalWant)
-			}
+			tt.setGroup(&groupWant)
 			session := addPanelSession(t, panel, settings, panelTestGroupA, tt.screen)
 			invokePanelCallback(t, panel, bot, session, panelTestGroupA, tt.field, "_")
 			submitPanelText(t, panel, bot, session, tt.input)
 			group := assertGroupOverrides(t, settings, groupWant)
-			assertGlobalOverrides(t, settings, globalWant)
 			tt.check(t, settings)
 			wantScreen := expectedRuntimeScreen(panel, group, i18n.LangEN)
 			switch tt.screen {
@@ -661,22 +641,9 @@ func TestPanelNumericControlsMutateOnlyTargetRenderAndRejectStale(t *testing.T) 
 			panel, settings, caller, bot := newSettingsPanelTest(t, "")
 			session := addPanelSession(t, panel, settings, panelTestGroupA, tt.screen)
 			invokePanelCallback(t, panel, bot, session, panelTestGroupA, tt.field, "_")
-			var groupWant store.GroupOverrides
-			globalWant := settings.Global().Overrides()
-			if tt.setGlobal != nil {
-				value := !settings.Global().RichMessages().Value
-				globalWant.RichMessages = &value
-				global := settings.Global()
-				if _, err := settings.CommitGlobal(global.Revision(), globalWant); err != nil {
-					t.Fatal(err)
-				}
-				groupWant = panelTestGroup(t, settings).Overrides()
-			} else {
-				groupWant = bumpPanelGroupRevision(t, settings)
-			}
+			groupWant := bumpPanelGroupRevision(t, settings)
 			submitPanelText(t, panel, bot, session, tt.input)
 			assertGroupOverrides(t, settings, groupWant)
-			assertGlobalOverrides(t, settings, globalWant)
 			conflict := i18n.Messages.Panel.Settings.Error.ConcurrentChange.For(i18n.LangEN)
 			if caller.lastEditText != conflict {
 				t.Fatalf("stale numeric control rendered %q, want catalogue conflict %q", caller.lastEditText, conflict)
@@ -685,32 +652,32 @@ func TestPanelNumericControlsMutateOnlyTargetRenderAndRejectStale(t *testing.T) 
 	}
 }
 
-func seedPanelChannel(t *testing.T, settings *store.Settings, channelID int64, display, invite string) store.GroupOverrides {
+func seedPanelChannel(t *testing.T, settings *settings.Store, channelID int64, display, invite string) settings.GroupOverrides {
 	t.Helper()
 	group := panelTestGroup(t, settings)
 	next := group.Overrides()
 	next.RequiredChannelID = &channelID
 	next.ChannelDisplay = &display
 	next.ChannelInviteURL = &invite
-	if _, err := settings.CommitGroup(group.ID(), group.Revision(), next); err != nil {
+	if _, err := settings.Update(group.ID(), group.Revision(), next); err != nil {
 		t.Fatal(err)
 	}
 	return panelTestGroup(t, settings).Overrides()
 }
-func seedPanelBanks(t *testing.T, settings *store.Settings) store.GroupOverrides {
+func seedPanelBanks(t *testing.T, store *settings.Store) settings.GroupOverrides {
 	t.Helper()
-	group := panelTestGroup(t, settings)
+	group := panelTestGroup(t, store)
 	next := group.Overrides()
-	questions := []config.Question{{Q: "Question", Options: []string{"A", "B"}, Answer: 0}}
-	fallbackQuestions := []config.ShortQuestion{{Q: "Fallback question", Answers: []string{"Answer"}}}
+	questions := []settings.Question{{Q: "Question", Options: []string{"A", "B"}, Answer: 0}}
+	fallbackQuestions := []settings.ShortQuestion{{Q: "Fallback question", Answers: []string{"Answer"}}}
 	custom := false
 	next.Questions = &questions
 	next.FallbackQuestions = &fallbackQuestions
 	next.FallbackBuiltin = &custom
-	if _, err := settings.CommitGroup(group.ID(), group.Revision(), next); err != nil {
+	if _, err := store.Update(group.ID(), group.Revision(), next); err != nil {
 		t.Fatal(err)
 	}
-	return panelTestGroup(t, settings).Overrides()
+	return panelTestGroup(t, store).Overrides()
 }
 
 func TestPanelTrustedGroupAndChannelControlsMutateOnlyTargetRenderAndRejectStale(t *testing.T) {
@@ -720,15 +687,15 @@ func TestPanelTrustedGroupAndChannelControlsMutateOnlyTargetRenderAndRejectStale
 	)
 
 	t.Run("trusted group add", func(t *testing.T) {
-		panel, settings, caller, bot := newSettingsPanelTest(t, "")
-		session := addPanelSession(t, panel, settings, panelTestGroupA, "ls")
+		panel, store, caller, bot := newSettingsPanelTest(t, "")
+		session := addPanelSession(t, panel, store, panelTestGroupA, "ls")
 		invokePanelCallback(t, panel, bot, session, panelTestGroupA, "tg", "_")
 		invokePanelCallback(t, panel, bot, session, panelTestGroupA, "ca", "tg")
 		submitSharedChat(t, panel, bot, session, trustedID)
-		want := store.GroupOverrides{}
+		want := settings.GroupOverrides{}
 		values := []int64{trustedID}
 		want.TrustedMemberGroupIDs = &values
-		group := assertGroupOverrides(t, settings, want)
+		group := assertGroupOverrides(t, store, want)
 		if caller.lastEditText != expectedListScreen(panel, group, i18n.LangEN, inputTrustedGroup) {
 			t.Fatalf("trusted-group list did not render catalogue value: %q", caller.lastEditText)
 		}
@@ -748,14 +715,14 @@ func TestPanelTrustedGroupAndChannelControlsMutateOnlyTargetRenderAndRejectStale
 	})
 
 	t.Run("trusted group remove and stale refusal", func(t *testing.T) {
-		newSeeded := func(t *testing.T) (*Panel, *store.Settings, *panelAPICaller, *telego.Bot, *panelSession, store.GroupOverrides) {
+		newSeeded := func(t *testing.T) (*Panel, *settings.Store, *panelAPICaller, *telego.Bot, *panelSession, settings.GroupOverrides) {
 			t.Helper()
 			panel, settings, caller, bot := newSettingsPanelTest(t, "")
 			group := panelTestGroup(t, settings)
 			seeded := group.Overrides()
 			values := []int64{trustedID}
 			seeded.TrustedMemberGroupIDs = &values
-			if _, err := settings.CommitGroup(group.ID(), group.Revision(), seeded); err != nil {
+			if _, err := settings.Update(group.ID(), group.Revision(), seeded); err != nil {
 				t.Fatal(err)
 			}
 			session := addPanelSession(t, panel, settings, panelTestGroupA, "li")
@@ -782,14 +749,14 @@ func TestPanelTrustedGroupAndChannelControlsMutateOnlyTargetRenderAndRejectStale
 	})
 
 	t.Run("public channel selection", func(t *testing.T) {
-		panel, settings, caller, bot := newSettingsPanelTest(t, "")
+		panel, store, caller, bot := newSettingsPanelTest(t, "")
 		caller.chatUsername = "public_channel"
-		session := addPanelSession(t, panel, settings, panelTestGroupA, "ch")
+		session := addPanelSession(t, panel, store, panelTestGroupA, "ch")
 		invokePanelCallback(t, panel, bot, session, panelTestGroupA, "ci", "_")
 		submitSharedChat(t, panel, bot, session, channelID)
 		display := "@" + caller.chatUsername
-		want := store.GroupOverrides{RequiredChannelID: func() *int64 { value := channelID; return &value }(), ChannelDisplay: &display}
-		group := assertGroupOverrides(t, settings, want)
+		want := settings.GroupOverrides{RequiredChannelID: func() *int64 { value := channelID; return &value }(), ChannelDisplay: &display}
+		group := assertGroupOverrides(t, store, want)
 		if caller.lastEditText != expectedChannelScreen(panel, group, i18n.LangEN) {
 			t.Fatalf("public-channel screen did not render catalogue values: %q", caller.lastEditText)
 		}
@@ -809,22 +776,22 @@ func TestPanelTrustedGroupAndChannelControlsMutateOnlyTargetRenderAndRejectStale
 	})
 
 	t.Run("private channel selection and invite", func(t *testing.T) {
-		panel, settings, caller, bot := newSettingsPanelTest(t, "")
-		session := addPanelSession(t, panel, settings, panelTestGroupA, "ch")
+		panel, store, caller, bot := newSettingsPanelTest(t, "")
+		session := addPanelSession(t, panel, store, panelTestGroupA, "ch")
 		invokePanelCallback(t, panel, bot, session, panelTestGroupA, "ci", "_")
 		submitSharedChat(t, panel, bot, session, channelID)
-		if got := panelTestGroup(t, settings).Overrides(); !reflect.DeepEqual(got, store.GroupOverrides{}) {
+		if got := panelTestGroup(t, store).Overrides(); !reflect.DeepEqual(got, settings.GroupOverrides{}) {
 			t.Fatalf("private channel committed before invite input: %+v", got)
 		}
 		const invite = "https://t.me/+privateinvite"
 		submitPanelText(t, panel, bot, session, invite)
 		display := fmt.Sprintf("Group %d", channelID)
-		want := store.GroupOverrides{
+		want := settings.GroupOverrides{
 			RequiredChannelID: func() *int64 { value := channelID; return &value }(),
 			ChannelDisplay:    &display,
 			ChannelInviteURL:  func() *string { value := invite; return &value }(),
 		}
-		group := assertGroupOverrides(t, settings, want)
+		group := assertGroupOverrides(t, store, want)
 		if caller.lastEditText != expectedChannelScreen(panel, group, i18n.LangEN) {
 			t.Fatalf("private-channel screen did not render catalogue values: %q", caller.lastEditText)
 		}
@@ -955,11 +922,11 @@ func TestPanelTrustedGroupAndChannelControlsMutateOnlyTargetRenderAndRejectStale
 			})
 		}
 
-		panel, settings, caller, bot := newSettingsPanelTest(t, "")
-		session := addPanelSession(t, panel, settings, panelTestGroupA, "rt")
+		panel, store, caller, bot := newSettingsPanelTest(t, "")
+		session := addPanelSession(t, panel, store, panelTestGroupA, "rt")
 		invokePanelCallback(t, panel, bot, session, panelTestGroupA, "bd", "_")
 		invokePanelCallback(t, panel, bot, session, panelTestGroupA, "cn", "_")
-		group := assertGroupOverrides(t, settings, store.GroupOverrides{})
+		group := assertGroupOverrides(t, store, settings.GroupOverrides{})
 		if session.pending != nil || caller.lastEditText != expectedRuntimeScreen(panel, group, i18n.LangEN) {
 			t.Fatalf("input cancel = pending %+v screen %q", session.pending, caller.lastEditText)
 		}
@@ -969,8 +936,8 @@ func TestPanelTrustedGroupAndChannelControlsMutateOnlyTargetRenderAndRejectStale
 		type destructiveCase struct {
 			name           string
 			prepare        func(*testing.T, *Panel, *telego.Bot, *panelSession)
-			updateExpected func(*store.GroupOverrides)
-			wantScreen     func(store.GroupView) string
+			updateExpected func(*settings.GroupOverrides)
+			wantScreen     func(settings.GroupView) string
 		}
 		tests := []destructiveCase{
 			{
@@ -979,8 +946,8 @@ func TestPanelTrustedGroupAndChannelControlsMutateOnlyTargetRenderAndRejectStale
 					invokePanelCallback(t, panel, bot, session, panelTestGroupA, "qq", encodeUnsigned(0))
 					invokePanelCallback(t, panel, bot, session, panelTestGroupA, "rm", "_")
 				},
-				updateExpected: func(next *store.GroupOverrides) { next.Questions = nil },
-				wantScreen: func(group store.GroupView) string {
+				updateExpected: func(next *settings.GroupOverrides) { next.Questions = nil },
+				wantScreen: func(group settings.GroupView) string {
 					return expectedQuizBankScreen(group, i18n.LangEN)
 				},
 			},
@@ -990,11 +957,11 @@ func TestPanelTrustedGroupAndChannelControlsMutateOnlyTargetRenderAndRejectStale
 					invokePanelCallback(t, panel, bot, session, panelTestGroupA, "fq", encodeUnsigned(0))
 					invokePanelCallback(t, panel, bot, session, panelTestGroupA, "rm", "_")
 				},
-				updateExpected: func(next *store.GroupOverrides) {
+				updateExpected: func(next *settings.GroupOverrides) {
 					next.FallbackQuestions = nil
 					next.FallbackBuiltin = nil
 				},
-				wantScreen: func(group store.GroupView) string {
+				wantScreen: func(group settings.GroupView) string {
 					return expectedFallbackBankScreen(group, i18n.LangEN)
 				},
 			},
@@ -1003,11 +970,11 @@ func TestPanelTrustedGroupAndChannelControlsMutateOnlyTargetRenderAndRejectStale
 				prepare: func(t *testing.T, panel *Panel, bot *telego.Bot, session *panelSession) {
 					invokePanelCallback(t, panel, bot, session, panelTestGroupA, "rb", "_")
 				},
-				updateExpected: func(next *store.GroupOverrides) {
+				updateExpected: func(next *settings.GroupOverrides) {
 					next.FallbackQuestions = nil
 					next.FallbackBuiltin = nil
 				},
-				wantScreen: func(group store.GroupView) string {
+				wantScreen: func(group settings.GroupView) string {
 					return expectedFallbackBankScreen(group, i18n.LangEN)
 				},
 			},

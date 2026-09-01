@@ -3,7 +3,7 @@ package verification
 import (
 	"testing"
 
-	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 func TestLoadStateReadErrorDisablesWrites(t *testing.T) {
@@ -21,7 +21,7 @@ func TestLoadStateReadErrorDisablesWrites(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			unreadable := t.TempDir()
-			v := newTestService(&config.Config{})
+			v := newTestService(&settings.Config{})
 			tt.set(v, unreadable)
 			tt.load(v)
 			if got := tt.path(v); got != "" {

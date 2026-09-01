@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/mymmrac/telego"
 	ta "github.com/mymmrac/telego/telegoapi"
@@ -185,7 +185,7 @@ func TestAllLookupCommandHandlersSendCatalogueAnswers(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			caller := &lookupTelegramCaller{}
 			bot := newLookupTestBot(t, caller)
-			service := New(nil, telegram.NewConnector(bot), &config.Config{}, "")
+			service := New(nil, telegram.NewConnector(bot), &settings.Config{}, "")
 			runLookupHandler(t, bot, tt.handler(service), lookupMessage(tt.text, 77, 77, telego.ChatTypePrivate))
 			if got := len(caller.methodCalls("sendMessage")); got != 1 {
 				t.Fatalf("sendMessage calls = %d, want 1", got)
@@ -257,7 +257,7 @@ func TestLookupHandlerArgumentsAndTelegramFallbacks(t *testing.T) {
 	t.Run("missing update data is ignored", func(t *testing.T) {
 		caller := &lookupTelegramCaller{}
 		bot := newLookupTestBot(t, caller)
-		service := New(nil, telegram.NewConnector(bot), &config.Config{}, "")
+		service := New(nil, telegram.NewConnector(bot), &settings.Config{}, "")
 		runLookupHandler(t, bot, service.OnPkg, telego.Update{})
 		withoutSender := lookupMessage("/pkg vim", 77, 77, telego.ChatTypePrivate)
 		withoutSender.Message.From = nil
@@ -270,7 +270,7 @@ func TestLookupHandlerArgumentsAndTelegramFallbacks(t *testing.T) {
 	t.Run("extra bug argument is rejected from the catalogue", func(t *testing.T) {
 		caller := &lookupTelegramCaller{}
 		bot := newLookupTestBot(t, caller)
-		service := New(nil, telegram.NewConnector(bot), &config.Config{}, "")
+		service := New(nil, telegram.NewConnector(bot), &settings.Config{}, "")
 		runLookupHandler(t, bot, service.OnBug, lookupMessage("/bug 123 extra", 77, 77, telego.ChatTypePrivate))
 		want := i18n.Messages.LookupContent.Bug.Usage.For(i18n.LangEN)
 		if got := sentLookupMessage(t, caller, 0).Text; got != want {
@@ -283,7 +283,7 @@ func TestLookupHandlerArgumentsAndTelegramFallbacks(t *testing.T) {
 		withFreshNews(t, items)
 		caller := &lookupTelegramCaller{}
 		bot := newLookupTestBot(t, caller)
-		service := New(nil, telegram.NewConnector(bot), &config.Config{}, "")
+		service := New(nil, telegram.NewConnector(bot), &settings.Config{}, "")
 		const arg = `"kernel update"`
 		runLookupHandler(t, bot, service.OnNews, lookupMessage("/news "+arg, 77, 77, telego.ChatTypePrivate))
 		want := renderNews(i18n.LangEN, arg, items, true)
@@ -315,9 +315,9 @@ func TestLookupHandlerArgumentsAndTelegramFallbacks(t *testing.T) {
 				"sendRichMessage": {{err: tt.err}},
 			}}
 			bot := newLookupTestBot(t, caller)
-			service := New(nil, telegram.NewConnector(bot), &config.Config{
+			service := New(nil, telegram.NewConnector(bot), &settings.Config{
 				RichMessages: true,
-				Overlays:     []config.OverlayCfg{{Name: "test", Repo: "test/repo"}},
+				Overlays:     []settings.OverlayCfg{{Name: "test", Repo: "test/repo"}},
 			}, "")
 			runLookupHandler(t, bot, service.OnPkg, lookupMessage("/pkg "+tt.query, 77, 77, telego.ChatTypePrivate))
 			if got := len(caller.methodCalls("sendRichMessage")); got != 1 {
@@ -345,7 +345,7 @@ func TestLookupHandlerArgumentsAndTelegramFallbacks(t *testing.T) {
 				"sendMessage": {{err: sendErr}, {}},
 			}}
 			bot := newLookupTestBot(t, caller)
-			service := New(nil, telegram.NewConnector(bot), &config.Config{}, "")
+			service := New(nil, telegram.NewConnector(bot), &settings.Config{}, "")
 			const query = "kernel modules"
 			runLookupHandler(t, bot, service.OnBbs, lookupMessage("/bbs "+query, 77, 77, telego.ChatTypePrivate))
 			calls := caller.methodCalls("sendMessage")
@@ -381,10 +381,9 @@ func TestLookupHandlerAuthorizationRateAndScheduledCleanup(t *testing.T) {
 	)
 	limit := 1
 	disabledTTL := 0
-	cfg := &config.Config{
-		Groups:             []config.GroupConfig{{ID: groupID, Lang: "en"}},
+	cfg := &settings.Config{
+		Groups:             []settings.GroupConfig{{ID: groupID, Lang: "en"}},
 		GroupIDs:           []int64{groupID},
-		ControlGroupID:     groupID,
 		PrivateQueryPerMin: limit,
 		LookupTTLSeconds:   &disabledTTL,
 	}
@@ -428,10 +427,9 @@ func TestLookupHandlerAuthorizationRateAndScheduledCleanup(t *testing.T) {
 	ttl := 1
 	cleanupCaller := &lookupTelegramCaller{deletes: make(chan telego.DeleteMessageParams, 2)}
 	cleanupBot := newLookupTestBot(t, cleanupCaller)
-	cleanupService := New(nil, telegram.NewConnector(cleanupBot), &config.Config{
-		Groups:           []config.GroupConfig{{ID: groupID, Lang: "en"}},
+	cleanupService := New(nil, telegram.NewConnector(cleanupBot), &settings.Config{
+		Groups:           []settings.GroupConfig{{ID: groupID, Lang: "en"}},
 		GroupIDs:         []int64{groupID},
-		ControlGroupID:   groupID,
 		LookupTTLSeconds: &ttl,
 	}, "")
 	runLookupHandler(t, cleanupBot, cleanupService.OnWiki, lookupMessage("/wiki", groupID, userID, telego.ChatTypeSupergroup))

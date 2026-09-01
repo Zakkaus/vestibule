@@ -9,9 +9,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -206,7 +205,7 @@ func (v *Panel) OnSettingsCallback(ctx *th.Context, update telego.Update) error 
 			v.answerCallback(requestCtx, bot, query.ID, notice.text, true)
 			return nil
 		}
-		if errors.Is(err, store.ErrSettingsConflict) {
+		if errors.Is(err, settings.ErrSettingsConflict) {
 			v.finishSession(requestCtx, bot, session, i18n.Messages.Panel.Settings.Error.ConcurrentChange.For(session.language))
 			v.answerCallback(requestCtx, bot, query.ID, i18n.Messages.Panel.Settings.Error.ConcurrentChange.For(session.language), true)
 			return nil
@@ -228,13 +227,13 @@ func (v *Panel) dispatchCallback(ctx context.Context, bot *telego.Bot, session *
 	if data.screen == "gl" {
 		return v.dispatchGroupList(ctx, bot, session, data)
 	}
-	group, ok := v.settings.Group(session.groupID)
+	group, ok := v.settings.Settings(session.groupID)
 	if !ok {
-		return store.ErrUnknownGroup
+		return settings.ErrUnknownGroup
 	}
 	stale := group.Revision() != session.revision
 	if stale && revisionSensitive(data) {
-		return &store.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
+		return &settings.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
 	}
 	if stale {
 		session.revision = group.Revision()
@@ -286,9 +285,9 @@ func revisionSensitive(data callbackData) bool {
 func (v *Panel) dispatchGroupList(ctx context.Context, bot *telego.Bot, session *panelSession, data callbackData) error {
 	switch data.field {
 	case "go":
-		group, ok := v.settings.Group(data.group)
+		group, ok := v.settings.Settings(data.group)
 		if !ok {
-			return store.ErrUnknownGroup
+			return settings.ErrUnknownGroup
 		}
 		botID, _, err := v.botIdentity(ctx, bot)
 		if err != nil {
@@ -301,7 +300,6 @@ func (v *Panel) dispatchGroupList(ctx context.Context, bot *telego.Bot, session 
 		}
 		session.groupID = data.group
 		session.revision = group.Revision()
-		session.globalRevision = v.settings.Global().Revision()
 		session.page = 0
 		session.screen = "gh"
 		return v.renderSession(ctx, bot, session, data.group)
@@ -330,7 +328,7 @@ func (v *Panel) dispatchGroupHome(ctx context.Context, bot *telego.Bot, session 
 	}
 }
 
-func (v *Panel) dispatchRuntime(ctx context.Context, bot *telego.Bot, session *panelSession, group store.GroupView, data callbackData) error {
+func (v *Panel) dispatchRuntime(ctx context.Context, bot *telego.Bot, session *panelSession, group settings.GroupView, data callbackData) error {
 	next := group.Overrides()
 	switch data.field {
 	case "go":
@@ -339,10 +337,10 @@ func (v *Panel) dispatchRuntime(ctx context.Context, bot *telego.Bot, session *p
 		value := !group.Enabled().Value
 		next.Enabled = &value
 	case "df":
-		value := map[string]string{"g": config.DeliveryGroup, "d": config.DeliveryDM, "b": config.DeliveryBoth}[data.value]
+		value := map[string]string{"g": settings.DeliveryGroup, "d": settings.DeliveryDM, "b": settings.DeliveryBoth}[data.value]
 		next.DeliveryMode = &value
 	case "vm":
-		value := map[string]string{"k": config.ModeKernel, "q": config.ModeQuiz, "m": config.ModeMixed}[data.value]
+		value := map[string]string{"k": settings.ModeKernel, "q": settings.ModeQuiz, "m": settings.ModeMixed}[data.value]
 		next.VerifyMode = &value
 	case "ns":
 		value := !group.NameSpoiler().Value
@@ -360,7 +358,7 @@ func (v *Panel) dispatchRuntime(ctx context.Context, bot *telego.Bot, session *p
 	default:
 		return errors.New("invalid runtime action")
 	}
-	result, err := v.settings.CommitGroup(session.groupID, session.revision, next)
+	result, err := v.settings.Update(session.groupID, session.revision, next)
 	if err != nil {
 		return err
 	}
@@ -381,7 +379,7 @@ func (v *Panel) dispatchLists(ctx context.Context, bot *telego.Bot, session *pan
 	return v.renderSession(ctx, bot, session, session.groupID)
 }
 
-func (v *Panel) dispatchList(ctx context.Context, bot *telego.Bot, session *panelSession, group store.GroupView, data callbackData) error {
+func (v *Panel) dispatchList(ctx context.Context, bot *telego.Bot, session *panelSession, group settings.GroupView, data callbackData) error {
 	switch data.field {
 	case "go":
 		return v.navigate(ctx, bot, session, data.value)
@@ -412,7 +410,7 @@ func (v *Panel) dispatchList(ctx context.Context, bot *telego.Bot, session *pane
 			kept = append(kept, value)
 		}
 		if !found {
-			return &store.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
+			return &settings.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
 		}
 		if session.listKind == inputChannelWhitelist {
 			if err := v.updateChannelWhitelist(ctx, bot, session, id, false); err != nil {
@@ -421,7 +419,7 @@ func (v *Panel) dispatchList(ctx context.Context, bot *telego.Bot, session *pane
 			return v.renderAfterCommit(ctx, bot, session)
 		}
 		setListOverride(&next, session.listKind, kept)
-		result, err := v.settings.CommitGroup(session.groupID, session.revision, next)
+		result, err := v.settings.Update(session.groupID, session.revision, next)
 		if err != nil {
 			return err
 		}
@@ -437,14 +435,14 @@ func (v *Panel) dispatchVerificationParameters(ctx context.Context, bot *telego.
 		return v.navigate(ctx, bot, session, data.value)
 	}
 	if data.field == "vi" {
-		group, ok := v.settings.Group(session.groupID)
+		group, ok := v.settings.Settings(session.groupID)
 		if !ok {
-			return store.ErrUnknownGroup
+			return settings.ErrUnknownGroup
 		}
 		next := group.Overrides()
 		value := !group.VerifyInvited().Value
 		next.VerifyInvited = &value
-		result, err := v.settings.CommitGroup(session.groupID, session.revision, next)
+		result, err := v.settings.Update(session.groupID, session.revision, next)
 		if err != nil {
 			return err
 		}
@@ -452,9 +450,6 @@ func (v *Panel) dispatchVerificationParameters(ctx context.Context, bot *telego.
 		return v.renderAfterCommit(ctx, bot, session)
 	}
 	kind := map[string]inputKind{"to": inputTimeout, "mf": inputMaxFails, "rc": inputRetryCooldown, "pr": inputPrivateRate}[data.field]
-	if kind == inputPrivateRate && session.groupID != v.settings.ControlGroupID() {
-		return &panelNoticeError{text: i18n.Messages.Panel.Settings.Error.ControlGroupOnly.For(session.language)}
-	}
 	return v.armTextInput(ctx, bot, session, kind, "vp")
 }
 
@@ -587,9 +582,9 @@ func (v *Panel) buildGroupList(ctx context.Context, bot *telego.Bot, session *pa
 }
 
 func (v *Panel) buildGroupHome(ctx context.Context, bot *telego.Bot, session *panelSession, token string) (string, *telego.InlineKeyboardMarkup, error) {
-	group, ok := v.settings.Group(session.groupID)
+	group, ok := v.settings.Settings(session.groupID)
 	if !ok {
-		return "", nil, store.ErrUnknownGroup
+		return "", nil, settings.ErrUnknownGroup
 	}
 	title := strconv.FormatInt(session.groupID, 10)
 	if chat, err := bot.GetChat(ctx, &telego.GetChatParams{ChatID: tu.ID(session.groupID)}); err == nil && chat != nil && chat.Title != "" {
@@ -627,9 +622,9 @@ func (v *Panel) buildGroupHome(ctx context.Context, bot *telego.Bot, session *pa
 }
 
 func (v *Panel) buildRuntime(session *panelSession, token string) (string, *telego.InlineKeyboardMarkup, error) {
-	group, ok := v.settings.Group(session.groupID)
+	group, ok := v.settings.Settings(session.groupID)
 	if !ok {
-		return "", nil, store.ErrUnknownGroup
+		return "", nil, settings.ErrUnknownGroup
 	}
 	text := i18n.Messages.Panel.Settings.Screen.Runtime.Render(session.language, session.groupID,
 		v.sourcedBool(session.language, group.Enabled()), v.sourcedMode(session.language, group.VerifyMode()),
@@ -658,9 +653,9 @@ func (v *Panel) buildRuntime(session *panelSession, token string) (string, *tele
 }
 
 func (v *Panel) buildLists(session *panelSession, token string) (string, *telego.InlineKeyboardMarkup, error) {
-	group, ok := v.settings.Group(session.groupID)
+	group, ok := v.settings.Settings(session.groupID)
 	if !ok {
-		return "", nil, store.ErrUnknownGroup
+		return "", nil, settings.ErrUnknownGroup
 	}
 	text := i18n.Messages.Panel.Settings.Screen.Lists.Render(session.language, session.groupID,
 		len(group.ChannelWhitelist().Value), len(group.TrustedMemberGroupIDs().Value), len(group.KnownChatIDs().Value))
@@ -674,9 +669,9 @@ func (v *Panel) buildLists(session *panelSession, token string) (string, *telego
 }
 
 func (v *Panel) buildList(session *panelSession, token string) (string, *telego.InlineKeyboardMarkup, error) {
-	group, ok := v.settings.Group(session.groupID)
+	group, ok := v.settings.Settings(session.groupID)
 	if !ok {
-		return "", nil, store.ErrUnknownGroup
+		return "", nil, settings.ErrUnknownGroup
 	}
 	values := v.listValues(group, session.listKind)
 	name := v.listName(session.language, session.listKind)
@@ -729,17 +724,15 @@ func (v *Panel) buildList(session *panelSession, token string) (string, *telego.
 }
 
 func (v *Panel) buildVerificationParameters(session *panelSession, token string) (string, *telego.InlineKeyboardMarkup, error) {
-	group, ok := v.settings.Group(session.groupID)
+	group, ok := v.settings.Settings(session.groupID)
 	if !ok {
-		return "", nil, store.ErrUnknownGroup
+		return "", nil, settings.ErrUnknownGroup
 	}
-	global := v.settings.Global()
-	session.globalRevision = global.Revision()
 	text := i18n.Messages.Panel.Settings.Screen.Verification.Render(session.language, session.groupID,
 		v.sourcedSeconds(session.language, group.TimeoutSeconds(), false), v.sourcedLimit(session.language, group.VerifyMaxFails()),
 		v.sourcedLimit(session.language, group.VerifyRetrySeconds()),
 		v.sourcedBool(session.language, group.VerifyInvited()),
-		i18n.Messages.Panel.Settings.Value.Sourced.Render(session.language, strconv.Itoa(global.PrivateQueryPerMin().Value), v.sourceText(session.language, global.PrivateQueryPerMin().Source)))
+		i18n.Messages.Panel.Settings.Value.Sourced.Render(session.language, strconv.Itoa(group.PrivateQueryPerMin().Value), v.sourceText(session.language, group.PrivateQueryPerMin().Source)))
 	buttons := []panelButton{
 		{text: i18n.Messages.Panel.Settings.Field.Timeout.For(session.language), field: "to", value: "_"},
 		{text: i18n.Messages.Panel.Settings.Field.MaxFails.For(session.language), field: "mf", value: "_"},
@@ -751,22 +744,19 @@ func (v *Panel) buildVerificationParameters(session *panelSession, token string)
 	return v.screenWithSingleButtons(text, token, session, buttons)
 }
 
-// Moderation gathers the settings that shape how the bot polices an existing member,
-// plus the two bot-wide switches an operator changes from the control group.
+// Moderation gathers settings that shape how the bot polices this chat.
 func (v *Panel) buildModeration(session *panelSession, token string) (string, *telego.InlineKeyboardMarkup, error) {
-	group, ok := v.settings.Group(session.groupID)
+	group, ok := v.settings.Settings(session.groupID)
 	if !ok {
-		return "", nil, store.ErrUnknownGroup
+		return "", nil, settings.ErrUnknownGroup
 	}
-	global := v.settings.Global()
-	session.globalRevision = global.Revision()
 	text := i18n.Messages.Panel.Settings.Screen.Moderation.Render(session.language, session.groupID,
 		v.sourcedBool(session.language, group.AntispamEnabled()),
 		v.sourcedSeconds(session.language, group.MuteSeconds(), false),
 		v.sourcedLimit(session.language, group.WarnLimit()),
-		v.sourcedBool(session.language, global.RichMessages()),
+		v.sourcedBool(session.language, group.RichMessages()),
 		i18n.Messages.Panel.Settings.Value.Sourced.Render(session.language,
-			v.alertChatText(session.language, global.AdminLogChatID().Value), v.sourceText(session.language, global.AdminLogChatID().Source)))
+			v.alertChatText(session.language, group.AdminLogChatID().Value), v.sourceText(session.language, group.AdminLogChatID().Source)))
 	buttons := []panelButton{
 		{text: i18n.Messages.Panel.Settings.Field.Antispam.For(session.language), field: "as", value: "_"},
 		{text: i18n.Messages.Panel.Settings.Field.MuteDuration.For(session.language), field: "ms", value: "_"},
@@ -788,7 +778,7 @@ func (v *Panel) alertChatText(l i18n.Lang, chatID int64) string {
 	return strconv.FormatInt(chatID, 10)
 }
 
-func (v *Panel) dispatchModeration(ctx context.Context, bot *telego.Bot, session *panelSession, group store.GroupView, data callbackData) error {
+func (v *Panel) dispatchModeration(ctx context.Context, bot *telego.Bot, session *panelSession, group settings.GroupView, data callbackData) error {
 	switch data.field {
 	case "go":
 		return v.navigate(ctx, bot, session, data.value)
@@ -796,7 +786,7 @@ func (v *Panel) dispatchModeration(ctx context.Context, bot *telego.Bot, session
 		next := group.Overrides()
 		value := !group.AntispamEnabled().Value
 		next.AntispamEnabled = &value
-		result, err := v.settings.CommitGroup(session.groupID, session.revision, next)
+		result, err := v.settings.Update(session.groupID, session.revision, next)
 		if err != nil {
 			return err
 		}
@@ -807,17 +797,14 @@ func (v *Panel) dispatchModeration(ctx context.Context, bot *telego.Bot, session
 	case "wl":
 		return v.armTextInput(ctx, bot, session, inputWarnLimit, "md")
 	case "rx":
-		return v.commitGlobalFromModeration(ctx, bot, session, func(o *store.GlobalOverrides) {
-			value := !v.settings.Global().RichMessages().Value
+		return v.commitGroupFromModeration(ctx, bot, session, func(o *settings.GroupOverrides) {
+			value := !group.RichMessages().Value
 			o.RichMessages = &value
 		})
 	case "al":
-		if session.groupID != v.settings.ControlGroupID() {
-			return &panelNoticeError{text: i18n.Messages.Panel.Settings.Error.ControlGroupOnly.For(session.language)}
-		}
 		return v.armChatInput(ctx, bot, session, inputAlertChat, "md")
 	case "ac":
-		return v.commitGlobalFromModeration(ctx, bot, session, func(o *store.GlobalOverrides) {
+		return v.commitGroupFromModeration(ctx, bot, session, func(o *settings.GroupOverrides) {
 			cleared := int64(0)
 			o.AdminLogChatID = &cleared
 		})
@@ -826,29 +813,28 @@ func (v *Panel) dispatchModeration(ctx context.Context, bot *telego.Bot, session
 	}
 }
 
-// Both bot-wide switches on this screen are gated on the control group and share one commit.
-func (v *Panel) commitGlobalFromModeration(ctx context.Context, bot *telego.Bot, session *panelSession, apply func(*store.GlobalOverrides)) error {
-	if session.groupID != v.settings.ControlGroupID() {
-		return &panelNoticeError{text: i18n.Messages.Panel.Settings.Error.ControlGroupOnly.For(session.language)}
+func (v *Panel) commitGroupFromModeration(ctx context.Context, bot *telego.Bot, session *panelSession, apply func(*settings.GroupOverrides)) error {
+	group, ok := v.settings.Settings(session.groupID)
+	if !ok {
+		return settings.ErrUnknownGroup
 	}
-	global := v.settings.Global()
-	if global.Revision() != session.globalRevision {
-		return store.ErrSettingsConflict
+	if group.Revision() != session.revision {
+		return settings.ErrSettingsConflict
 	}
-	overrides := global.Overrides()
+	overrides := group.Overrides()
 	apply(&overrides)
-	result, err := v.settings.CommitGlobal(session.globalRevision, overrides)
+	result, err := v.settings.Update(session.groupID, session.revision, overrides)
 	if err != nil {
 		return err
 	}
-	session.globalRevision = result.Revision
+	session.revision = result.Revision
 	return v.renderAfterCommit(ctx, bot, session)
 }
 
 func (v *Panel) buildContent(session *panelSession, token string) (string, *telego.InlineKeyboardMarkup, error) {
-	group, ok := v.settings.Group(session.groupID)
+	group, ok := v.settings.Settings(session.groupID)
 	if !ok {
-		return "", nil, store.ErrUnknownGroup
+		return "", nil, settings.ErrUnknownGroup
 	}
 	fallback := i18n.Messages.Panel.Settings.Value.Custom.For(session.language)
 	if group.FallbackBuiltin().Value {
@@ -873,18 +859,18 @@ func (v *Panel) buildContent(session *panelSession, token string) (string, *tele
 }
 
 func (v *Panel) buildQuizBank(session *panelSession, token string) (string, *telego.InlineKeyboardMarkup, error) {
-	group, ok := v.settings.Group(session.groupID)
+	group, ok := v.settings.Settings(session.groupID)
 	if !ok {
-		return "", nil, store.ErrUnknownGroup
+		return "", nil, settings.ErrUnknownGroup
 	}
 	questions := group.Questions().Value
 	return v.buildQuestionBank(session, token, questions, false)
 }
 
 func (v *Panel) buildFallbackBank(session *panelSession, token string) (string, *telego.InlineKeyboardMarkup, error) {
-	group, ok := v.settings.Group(session.groupID)
+	group, ok := v.settings.Settings(session.groupID)
 	if !ok {
-		return "", nil, store.ErrUnknownGroup
+		return "", nil, settings.ErrUnknownGroup
 	}
 	questions := group.FallbackQuestions().Value
 	rows := make([][]telego.InlineKeyboardButton, 0, panelPageSize+4)
@@ -923,7 +909,7 @@ func (v *Panel) buildFallbackBank(session *panelSession, token string) (string, 
 	return text, &telego.InlineKeyboardMarkup{InlineKeyboard: rows}, err
 }
 
-func (v *Panel) buildQuestionBank(session *panelSession, token string, questions []config.Question, _ bool) (string, *telego.InlineKeyboardMarkup, error) {
+func (v *Panel) buildQuestionBank(session *panelSession, token string, questions []settings.Question, _ bool) (string, *telego.InlineKeyboardMarkup, error) {
 	rows := make([][]telego.InlineKeyboardButton, 0, panelPageSize+3)
 	maxPage := 0
 	if len(questions) > 0 {
@@ -1031,9 +1017,9 @@ func (v *Panel) buildFallbackDetail(session *panelSession, token string) (string
 }
 
 func (v *Panel) buildChannel(session *panelSession, token string) (string, *telego.InlineKeyboardMarkup, error) {
-	group, ok := v.settings.Group(session.groupID)
+	group, ok := v.settings.Settings(session.groupID)
 	if !ok {
-		return "", nil, store.ErrUnknownGroup
+		return "", nil, settings.ErrUnknownGroup
 	}
 	display := v.channelDisplayValue(group)
 	if display == "" {
@@ -1136,7 +1122,7 @@ func (v *Panel) eligibleGroups(ctx context.Context, bot *telego.Bot, userID, aut
 		return nil, err
 	}
 	var groups []eligibleGroup
-	for _, groupID := range v.settings.GroupIDs() {
+	for _, groupID := range v.settings.ChatIDs() {
 		member, err := bot.GetChatMember(ctx, &telego.GetChatMemberParams{ChatID: tu.ID(groupID), UserID: botID})
 		if err != nil || member == nil || member.MemberStatus() == telego.MemberStatusLeft || member.MemberStatus() == telego.MemberStatusBanned {
 			continue
@@ -1220,18 +1206,18 @@ func (v *Panel) persistenceText(language i18n.Lang) string {
 	}
 }
 
-func (v *Panel) sourceText(language i18n.Lang, source store.Source) string {
+func (v *Panel) sourceText(language i18n.Lang, source settings.Source) string {
 	switch source {
-	case store.SourceRuntime:
+	case settings.SourceChatOverride:
 		return i18n.Messages.Panel.Settings.Source.Runtime.For(language)
-	case store.SourceConfig:
+	case settings.SourceUserFile:
 		return i18n.Messages.Panel.Settings.Source.Config.For(language)
 	default:
 		return i18n.Messages.Panel.Settings.Source.Default.For(language)
 	}
 }
 
-func (v *Panel) sourcedBool(language i18n.Lang, setting store.Setting[bool]) string {
+func (v *Panel) sourcedBool(language i18n.Lang, setting settings.Setting[bool]) string {
 	value := i18n.Messages.Panel.Settings.Common.Off.For(language)
 	if setting.Value {
 		value = i18n.Messages.Panel.Settings.Common.On.For(language)
@@ -1239,16 +1225,16 @@ func (v *Panel) sourcedBool(language i18n.Lang, setting store.Setting[bool]) str
 	return i18n.Messages.Panel.Settings.Value.Sourced.Render(language, value, v.sourceText(language, setting.Source))
 }
 
-func (v *Panel) sourcedMode(language i18n.Lang, setting store.Setting[string]) string {
+func (v *Panel) sourcedMode(language i18n.Lang, setting settings.Setting[string]) string {
 	return i18n.Messages.Panel.Settings.Value.Sourced.Render(language, v.modeText(language, setting.Value), v.sourceText(language, setting.Source))
 }
 
-func (v *Panel) sourcedDeliveryMode(language i18n.Lang, setting store.Setting[string]) string {
+func (v *Panel) sourcedDeliveryMode(language i18n.Lang, setting settings.Setting[string]) string {
 	return i18n.Messages.Panel.Settings.Value.Sourced.Render(
 		language, v.deliveryModeText(language, setting.Value), v.sourceText(language, setting.Source))
 }
 
-func (v *Panel) sourcedLanguage(language i18n.Lang, setting store.Setting[string]) string {
+func (v *Panel) sourcedLanguage(language i18n.Lang, setting settings.Setting[string]) string {
 	value := map[string]string{
 		"zh":      i18n.Messages.Panel.Settings.Field.LanguageZH.For(language),
 		"zh-Hant": i18n.Messages.Panel.Settings.Field.LanguageZHHant.For(language),
@@ -1257,7 +1243,7 @@ func (v *Panel) sourcedLanguage(language i18n.Lang, setting store.Setting[string
 	return i18n.Messages.Panel.Settings.Value.Sourced.Render(language, value, v.sourceText(language, setting.Source))
 }
 
-func (v *Panel) sourcedSeconds(language i18n.Lang, setting store.Setting[int], permanent bool) string {
+func (v *Panel) sourcedSeconds(language i18n.Lang, setting settings.Setting[int], permanent bool) string {
 	value := i18n.Messages.Panel.Settings.Value.Seconds.Render(language, setting.Value)
 	if permanent && setting.Value <= 0 {
 		value = i18n.Messages.Panel.Settings.Value.Permanent.For(language)
@@ -1265,7 +1251,7 @@ func (v *Panel) sourcedSeconds(language i18n.Lang, setting store.Setting[int], p
 	return i18n.Messages.Panel.Settings.Value.Sourced.Render(language, value, v.sourceText(language, setting.Source))
 }
 
-func (v *Panel) sourcedLimit(language i18n.Lang, setting store.Setting[int]) string {
+func (v *Panel) sourcedLimit(language i18n.Lang, setting settings.Setting[int]) string {
 	value := i18n.Messages.Panel.Settings.Common.Off.For(language)
 	if setting.Value > 0 {
 		value = strconv.Itoa(setting.Value)
@@ -1275,9 +1261,9 @@ func (v *Panel) sourcedLimit(language i18n.Lang, setting store.Setting[int]) str
 
 func (v *Panel) modeText(language i18n.Lang, mode string) string {
 	switch mode {
-	case config.ModeQuiz:
+	case settings.ModeQuiz:
 		return i18n.Messages.Panel.Settings.Mode.Quiz.For(language)
-	case config.ModeMixed:
+	case settings.ModeMixed:
 		return i18n.Messages.Panel.Settings.Mode.Mixed.For(language)
 	default:
 		return i18n.Messages.Panel.Settings.Mode.Kernel.For(language)
@@ -1286,27 +1272,24 @@ func (v *Panel) modeText(language i18n.Lang, mode string) string {
 
 func (v *Panel) deliveryModeText(language i18n.Lang, mode string) string {
 	switch mode {
-	case config.DeliveryGroup:
+	case settings.DeliveryGroup:
 		return i18n.Messages.Panel.Settings.Delivery.Group.For(language)
-	case config.DeliveryDM:
+	case settings.DeliveryDM:
 		return i18n.Messages.Panel.Settings.Delivery.DM.For(language)
 	default:
 		return i18n.Messages.Panel.Settings.Delivery.Both.For(language)
 	}
 }
 
-func (v *Panel) requiredChannelID(group store.GroupView) int64 {
-	if value := group.Overrides().RequiredChannelID; value != nil {
-		return *value
-	}
-	return group.Baseline().RequiredChannelID.Value
+func (v *Panel) requiredChannelID(group settings.GroupView) int64 {
+	return group.RequiredChannelID().Value
 }
 
-func (v *Panel) channelDisplayValue(group store.GroupView) string {
+func (v *Panel) channelDisplayValue(group settings.GroupView) string {
 	return group.ChannelDisplay().Value
 }
 
-func (v *Panel) listValues(group store.GroupView, kind inputKind) []int64 {
+func (v *Panel) listValues(group settings.GroupView, kind inputKind) []int64 {
 	switch kind {
 	case inputChannelWhitelist:
 		return group.ChannelWhitelist().Value
@@ -1319,7 +1302,7 @@ func (v *Panel) listValues(group store.GroupView, kind inputKind) []int64 {
 	}
 }
 
-func setListOverride(overrides *store.GroupOverrides, kind inputKind, values []int64) {
+func setListOverride(overrides *settings.GroupOverrides, kind inputKind, values []int64) {
 	values = append([]int64(nil), values...)
 	switch kind {
 	case inputTrustedGroup:

@@ -4,15 +4,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 // A recovery snapshot must not deliver into a pending created after it. Without the owner
 // binding the recovery writes its message ID into the replacement, then deletes that message
 // as an orphan, leaving a fresh applicant with a full window and no challenge to answer.
 func TestDeliveryBoundToItsOwnPending(t *testing.T) {
-	v := newTestService(&config.Config{TimeoutSeconds: 240})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240})
 	gid, uid := int64(-100), int64(5)
 	old := &pending{nonce: "old", lang: i18n.LangEN, deadline: time.Now().Add(time.Hour)}
 	fresh := &pending{nonce: "fresh", lang: i18n.LangEN, deadline: time.Now().Add(time.Hour)}

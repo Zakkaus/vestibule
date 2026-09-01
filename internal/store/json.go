@@ -60,12 +60,6 @@ func Write(path string, value any) error {
 	return writeLocked(path, value)
 }
 
-func writeBytes(path string, data []byte) error {
-	writeMu.Lock()
-	defer writeMu.Unlock()
-	return writeBytesLocked(path, data)
-}
-
 // ReadFailed reports whether Load could not safely preserve an existing path for later writes.
 func ReadFailed(err error) bool {
 	_, ok := err.(*readError)

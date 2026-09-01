@@ -11,9 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/moderate"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/mymmrac/telego"
 	ta "github.com/mymmrac/telego/telegoapi"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -167,14 +166,14 @@ type handlerRoute struct {
 
 // Updates owns first-match routing, command menus, and bounded direct-message throttling.
 type Updates struct {
-	cfg      *config.Config
-	settings *store.Settings
+	cfg      *settings.Config
+	settings *settings.Store
 	handlers HandlerSet
 	dm       *dmHandler
 }
 
 // NewUpdates creates the Telegram update router without starting polling.
-func NewUpdates(cfg *config.Config, settings *store.Settings, connector *Connector, handlers HandlerSet) *Updates {
+func NewUpdates(cfg *settings.Config, settings *settings.Store, connector *Connector, handlers HandlerSet) *Updates {
 	return &Updates{
 		cfg:      cfg,
 		settings: settings,

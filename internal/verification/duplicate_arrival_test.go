@@ -2,7 +2,7 @@ package verification
 
 import (
 	"context"
-	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"testing"
 )
 
@@ -14,13 +14,13 @@ func TestRedeliveredJoinRequestKeepsTheChallengeOnScreen(t *testing.T) {
 		groupID int64 = -1009000000920
 		userID  int64 = 920
 	)
-	v := newTestService(&config.Config{
-		Groups:         []config.GroupConfig{{ID: groupID}},
+	v := newTestService(&settings.Config{
+		Groups:         []settings.GroupConfig{{ID: groupID}},
 		GroupIDs:       []int64{groupID},
 		Lang:           "en",
-		VerifyMode:     config.ModeKernel,
+		VerifyMode:     settings.ModeKernel,
 		TimeoutSeconds: 240,
-		DeliveryMode:   config.DeliveryBoth,
+		DeliveryMode:   settings.DeliveryBoth,
 	})
 	bot := newFakeVerifyBot()
 	update := Update{ChatJoinRequest: &ChatJoinRequest{
@@ -51,13 +51,13 @@ func TestReapplicationAfterSettlementStartsFreshChallenge(t *testing.T) {
 		groupID int64 = -1009000000921
 		userID  int64 = 921
 	)
-	v := newTestService(&config.Config{
-		Groups:         []config.GroupConfig{{ID: groupID}},
+	v := newTestService(&settings.Config{
+		Groups:         []settings.GroupConfig{{ID: groupID}},
 		GroupIDs:       []int64{groupID},
 		Lang:           "en",
-		VerifyMode:     config.ModeKernel,
+		VerifyMode:     settings.ModeKernel,
 		TimeoutSeconds: 240,
-		DeliveryMode:   config.DeliveryBoth,
+		DeliveryMode:   settings.DeliveryBoth,
 	})
 	bot := newFakeVerifyBot()
 	update := Update{ChatJoinRequest: &ChatJoinRequest{
