@@ -326,6 +326,86 @@
       "saveUnavailable": "无法保存管理与处罚设置。请重试。"
     }
   },
+  "feeds": {
+    "navigation": "订阅推送",
+    "title": "订阅推送",
+    "description": "查看整个进程使用的订阅目标、新闻源以及仓库与分支配置。这些值不随当前群变化。",
+    "loading": {
+      "title": "正在载入订阅推送配置",
+      "description": "正在读取进程级配置及其来源…"
+    },
+    "accessDenied": {
+      "title": "没有权限查看进程设置",
+      "description": "此屏仅向运维开放。群管理员只能查看自己所管理群的配置，不能读取整个进程的订阅设置。"
+    },
+    "unavailable": {
+      "title": "无法读取订阅推送配置",
+      "retry": "重试"
+    },
+    "readOnly": {
+      "title": "由配置文件管理",
+      "badge": "只读",
+      "description": "这些值来自程序默认配置或启动配置文件。此屏没有写入路径；控制台只展示接口返回的当前值和来源。"
+    },
+    "source": {
+      "value": "来源：{{source}}",
+      "factoryDefault": "出厂默认",
+      "userFile": "由文件管理"
+    },
+    "feed": {
+      "title": "订阅目标",
+      "description": "每项对应一个接收 Bugzilla 或新闻推送的群或频道。",
+      "itemTitle": "目标 {{number}}",
+      "destination": "接收群或频道",
+      "language": "推送语言",
+      "interval": "抓取间隔",
+      "bugzilla": "Bugzilla 推送",
+      "news": "新闻推送",
+      "bugProduct": "Bugzilla 产品",
+      "bugComponent": "Bugzilla 组件",
+      "silentBugs": "Bugzilla 始终静默",
+      "allProducts": "全部产品",
+      "allComponents": "全部组件",
+      "emptyTitle": "未配置订阅目标",
+      "emptyDescription": "当前进程不会向任何群或频道发送 Bugzilla 或新闻推送。"
+    },
+    "newsURL": {
+      "title": "新闻源地址",
+      "description": "进程抓取新闻项目时使用的全局地址。",
+      "empty": "未配置新闻源地址"
+    },
+    "overlays": {
+      "title": "仓库与分支",
+      "description": "接口返回的 GitHub overlay 仓库及其分支。",
+      "repository": "仓库",
+      "branch": "分支",
+      "defaultBranch": "master（默认）",
+      "emptyTitle": "未配置仓库",
+      "emptyDescription": "当前进程没有 overlay 仓库与分支配置。"
+    },
+    "languages": {
+      "default": "简体中文（默认）",
+      "zh": "简体中文",
+      "zhHant": "繁体中文",
+      "en": "英语"
+    },
+    "values": {
+      "enabled": "开启",
+      "disabled": "关闭",
+      "enabledByDefault": "开启（默认）",
+      "disabledByDefault": "关闭（默认）",
+      "seconds_one": "{{count}} 秒",
+      "seconds_other": "{{count}} 秒"
+    },
+    "errors": {
+      "authenticationExpired": "会话已过期。请从 Telegram 重新打开控制台。",
+      "authenticationInvalid": "无法验证此控制台会话。请从 Telegram 重新打开控制台。",
+      "settingsUnavailable": "进程设置服务暂时不可用。请重试。",
+      "loadUnavailable": "暂时无法读取进程设置。请重试。",
+      "invalidResponse": "进程设置响应不完整，无法安全显示。请重试。",
+      "network": "连接已中断。重新读取后再确认配置。"
+    }
+  },
   "bypass": {
     "navigation": "免验证来源",
     "title": "免验证来源",

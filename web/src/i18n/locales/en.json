@@ -326,6 +326,86 @@
       "saveUnavailable": "Moderation settings cannot be saved right now. Try again."
     }
   },
+  "feeds": {
+    "navigation": "Feed delivery",
+    "title": "Feed delivery",
+    "description": "View the process-wide delivery targets, news source, and repository and branch configuration. These values do not change with the selected group.",
+    "loading": {
+      "title": "Loading feed delivery settings",
+      "description": "Reading the process-wide values and their sources…"
+    },
+    "accessDenied": {
+      "title": "You do not have permission to view process settings",
+      "description": "This screen is available only to operators. Group managers can view settings only for groups they manage; they cannot read process-wide feed settings."
+    },
+    "unavailable": {
+      "title": "Feed delivery settings cannot be loaded",
+      "retry": "Try again"
+    },
+    "readOnly": {
+      "title": "Managed by configuration files",
+      "badge": "Read only",
+      "description": "These values come from program defaults or startup configuration files. This screen has no write path; the console only displays the current values and sources returned by the API."
+    },
+    "source": {
+      "value": "Source: {{source}}",
+      "factoryDefault": "Factory default",
+      "userFile": "Managed by file"
+    },
+    "feed": {
+      "title": "Delivery targets",
+      "description": "Each item identifies a group or channel that receives Bugzilla or news posts.",
+      "itemTitle": "Target {{number}}",
+      "destination": "Receiving group or channel",
+      "language": "Delivery language",
+      "interval": "Polling interval",
+      "bugzilla": "Bugzilla posts",
+      "news": "News posts",
+      "bugProduct": "Bugzilla product",
+      "bugComponent": "Bugzilla component",
+      "silentBugs": "Always-silent Bugzilla posts",
+      "allProducts": "All products",
+      "allComponents": "All components",
+      "emptyTitle": "No delivery targets configured",
+      "emptyDescription": "This process does not send Bugzilla or news posts to any group or channel."
+    },
+    "newsURL": {
+      "title": "News source URL",
+      "description": "The process-wide URL used to retrieve news items.",
+      "empty": "No news source URL configured"
+    },
+    "overlays": {
+      "title": "Repositories and branches",
+      "description": "The GitHub overlay repositories and branches returned by the API.",
+      "repository": "Repository",
+      "branch": "Branch",
+      "defaultBranch": "master (default)",
+      "emptyTitle": "No repositories configured",
+      "emptyDescription": "This process has no overlay repository or branch configuration."
+    },
+    "languages": {
+      "default": "Simplified Chinese (default)",
+      "zh": "Simplified Chinese",
+      "zhHant": "Traditional Chinese",
+      "en": "English"
+    },
+    "values": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "enabledByDefault": "Enabled by default",
+      "disabledByDefault": "Disabled by default",
+      "seconds_one": "{{count}} second",
+      "seconds_other": "{{count}} seconds"
+    },
+    "errors": {
+      "authenticationExpired": "The session has expired. Reopen the console from Telegram.",
+      "authenticationInvalid": "This console session cannot be verified. Reopen the console from Telegram.",
+      "settingsUnavailable": "The process settings service is unavailable. Try again.",
+      "loadUnavailable": "Process settings cannot be read right now. Try again.",
+      "invalidResponse": "The process settings response is incomplete and cannot be displayed safely. Try again.",
+      "network": "The connection was interrupted. Reload the settings before relying on them."
+    }
+  },
   "bypass": {
     "navigation": "Verification bypass sources",
     "title": "Verification bypass sources",
