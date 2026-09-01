@@ -91,9 +91,59 @@
   },
   "groups": {
     "title": "群与频道",
-    "description": "每一行都显示 Telegram 当前模式与验证前置，避免把无法收到申请的群当成正常。",
+    "description": "这里仅列出当前账号有权管理的群。选择一个群，继续查看它的等待队列。",
     "managedCount_one": "{{count}} 个可管理的群",
     "managedCount_other": "{{count}} 个可管理的群",
+    "groupOption": "群 {{id}}",
+    "authorized": "已授权",
+    "liveGroupNote": "选择这个群后，后续操作都会限定在这个群内。",
+    "loading": {
+      "title": "正在读取群列表…",
+      "description": "正在确认当前账号可管理的群。"
+    },
+    "empty": {
+      "title": "没有可管理的群",
+      "description": "账号 {{accountId}} 尚未获得任何群的管理授权。请联系群主授予权限。"
+    },
+    "error": {
+      "authenticationExpired": {
+        "title": "会话已过期",
+        "description": "请从 Telegram 机器人的菜单重新打开控制台，或向机器人获取新的运维链接。"
+      },
+      "authenticationInvalid": {
+        "title": "无法验证会话",
+        "description": "请确认从 Telegram 机器人提供的入口打开控制台。"
+      },
+      "initDataReplayed": {
+        "title": "这次打开请求已被使用",
+        "description": "请关闭当前页面，再从 Telegram 机器人的菜单重新打开控制台。"
+      },
+      "authenticationUnavailable": {
+        "title": "认证服务暂时不可用",
+        "description": "服务恢复后可重新读取群列表。"
+      },
+      "verificationUnavailable": {
+        "title": "群列表暂时不可用",
+        "description": "验证服务尚未就绪，因此无法确认可管理的群。"
+      },
+      "network": {
+        "title": "无法连接控制台",
+        "description": "请检查网络连接后重新读取群列表。"
+      },
+      "response": {
+        "title": "无法读取群列表",
+        "description": "控制台返回的数据无法使用。"
+      },
+      "unknown": {
+        "title": "无法读取群列表",
+        "description": "服务拒绝了群列表请求。"
+      }
+    },
+    "actions": {
+      "openQueue": "查看等待队列",
+      "openQueueFor": "查看群 {{id}} 的等待队列",
+      "retry": "重新读取"
+    },
     "mode": {
       "approval": "审批制",
       "joinRestrict": "先入群后限制",

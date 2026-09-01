@@ -26,7 +26,9 @@ const navigationItems = [
   }
 ] as const;
 
-function ConsoleNavigation() {
+function ConsoleNavigation({
+  selectedGroupSearch
+}: Readonly<{ selectedGroupSearch: string }>) {
   const { t } = useTranslation();
   const location = useLocation();
 
@@ -41,7 +43,7 @@ function ConsoleNavigation() {
             <Link
               key={item.path}
               className="nav-item"
-              to={item.path}
+              to={{ pathname: item.path, search: selectedGroupSearch }}
               aria-current={isActive ? "page" : undefined}
               data-active={isActive ? "" : undefined}
             >
@@ -57,6 +59,10 @@ function ConsoleNavigation() {
 export function AppShell() {
   const { t } = useTranslation();
   const location = useLocation();
+  const selectedGroupId = new URLSearchParams(location.search).get("group");
+  const selectedGroupSearch = selectedGroupId
+    ? `?${new URLSearchParams({ group: selectedGroupId }).toString()}`
+    : "";
   const currentNavigationItem = navigationItems.find((item) => item.path === location.pathname);
   const matches = useMatches();
   const routeHandle = matches.at(-1)?.handle as RouteHandle | undefined;
@@ -80,17 +86,20 @@ export function AppShell() {
   return (
     <div data-app-shell data-shell-variant={shellVariant} className="shell">
       <aside className="shell-aside" data-admin>
-        <Link className="brand" to="/groups">
+        <Link
+          className="brand"
+          to={{ pathname: "/groups", search: selectedGroupSearch }}
+        >
           <span className="name">{t("app.name")}</span>
         </Link>
         <div className="rule" />
-        <ConsoleNavigation />
+        <ConsoleNavigation selectedGroupSearch={selectedGroupSearch} />
       </aside>
       <div className="shell-main">
         <header className="shell-header" data-console-header>
           <details data-mobile-navigation>
             <summary>{t("shell.mobileNavigation")}</summary>
-            <ConsoleNavigation />
+            <ConsoleNavigation selectedGroupSearch={selectedGroupSearch} />
           </details>
           <span data-header-title>
             {currentNavigationItem ? t(currentNavigationItem.labelKey) : t("app.name")}

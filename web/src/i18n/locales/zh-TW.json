@@ -91,9 +91,59 @@
   },
   "groups": {
     "title": "群組與頻道",
-    "description": "每一列都顯示 Telegram 目前模式與驗證前置，避免把收不到申請的群組當成正常。",
+    "description": "這裡只列出目前帳號有權管理的群組。選擇一個群組，繼續查看它的等待佇列。",
     "managedCount_one": "{{count}} 個可管理的群組",
     "managedCount_other": "{{count}} 個可管理的群組",
+    "groupOption": "群組 {{id}}",
+    "authorized": "已授權",
+    "liveGroupNote": "選擇這個群組後，後續操作都會限定在此群組內。",
+    "loading": {
+      "title": "正在讀取群組清單…",
+      "description": "正在確認目前帳號可管理的群組。"
+    },
+    "empty": {
+      "title": "沒有可管理的群組",
+      "description": "帳號 {{accountId}} 尚未取得任何群組的管理權限。請聯絡群主授予權限。"
+    },
+    "error": {
+      "authenticationExpired": {
+        "title": "工作階段已過期",
+        "description": "請從 Telegram 機器人的選單重新開啟控制台，或向機器人取得新的維運連結。"
+      },
+      "authenticationInvalid": {
+        "title": "無法驗證工作階段",
+        "description": "請確認從 Telegram 機器人提供的入口開啟控制台。"
+      },
+      "initDataReplayed": {
+        "title": "這次開啟請求已被使用",
+        "description": "請關閉目前頁面，再從 Telegram 機器人的選單重新開啟控制台。"
+      },
+      "authenticationUnavailable": {
+        "title": "驗證服務暫時無法使用",
+        "description": "服務恢復後可重新讀取群組清單。"
+      },
+      "verificationUnavailable": {
+        "title": "群組清單暫時無法使用",
+        "description": "驗證服務尚未就緒，因此無法確認可管理的群組。"
+      },
+      "network": {
+        "title": "無法連線至控制台",
+        "description": "請檢查網路連線後重新讀取群組清單。"
+      },
+      "response": {
+        "title": "無法讀取群組清單",
+        "description": "控制台傳回的資料無法使用。"
+      },
+      "unknown": {
+        "title": "無法讀取群組清單",
+        "description": "服務拒絕了群組清單請求。"
+      }
+    },
+    "actions": {
+      "openQueue": "查看等待佇列",
+      "openQueueFor": "查看群組 {{id}} 的等待佇列",
+      "retry": "重新讀取"
+    },
     "mode": {
       "approval": "審核制",
       "joinRestrict": "先加入再限制",

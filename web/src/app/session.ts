@@ -3,8 +3,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import {
   createApiTransport,
   type ApiRequestError,
-  type ApiTransport,
-  type CsrfSession
+  type ApiTransport
 } from "../lib/api";
 
 export type ConsoleRole = "manager" | "operator";
@@ -25,8 +24,8 @@ export type ConsoleChat = Readonly<{
 export type ConsoleSessionState =
   | Readonly<{ state: "loading" }>
   | Readonly<{ state: "checking-groups"; session: ConsoleSession }>
-  | Readonly<{ state: "ready"; session: ConsoleSession }>
-  | Readonly<{ state: "no-groups"; session: ConsoleSession }>
+  | Readonly<{ state: "ready"; session: ConsoleSession; chats: readonly ConsoleChat[] }>
+  | Readonly<{ state: "no-groups"; session: ConsoleSession; chats: readonly ConsoleChat[] }>
   | Readonly<{ state: "blocked"; error: ApiRequestError }>
   | Readonly<{
       state: "groups-unavailable";
@@ -122,6 +121,7 @@ function telegramInitData(): string | undefined {
 class ConsoleSessionStore {
   private snapshot: ConsoleSessionState = { state: "loading" };
   private bootstrap: Promise<void> | undefined;
+  private groupsLoad: Promise<void> | undefined;
   private readonly listeners = new Set<() => void>();
   readonly api: ApiTransport = createApiTransport(() => this.currentSession());
 
@@ -139,7 +139,12 @@ class ConsoleSessionStore {
     return this.bootstrap;
   }
 
-  private currentSession(): CsrfSession | undefined {
+  retryGroups(): Promise<void> {
+    const session = this.currentSession();
+    return session ? this.startGroupsLoad(session) : Promise.resolve();
+  }
+
+  private currentSession(): ConsoleSession | undefined {
     const { snapshot } = this;
     return "session" in snapshot ? snapshot.session : undefined;
   }
@@ -170,7 +175,19 @@ class ConsoleSessionStore {
       return;
     }
 
-    const session = sessionResult.data;
+    await this.startGroupsLoad(sessionResult.data);
+  }
+
+  private startGroupsLoad(session: ConsoleSession): Promise<void> {
+    if (!this.groupsLoad) {
+      this.groupsLoad = this.loadGroups(session).finally(() => {
+        this.groupsLoad = undefined;
+      });
+    }
+    return this.groupsLoad;
+  }
+
+  private async loadGroups(session: ConsoleSession): Promise<void> {
     this.publish({ state: "checking-groups", session });
     const chats = await this.api.request("/api/chats", { parse: chatsFromPayload });
 
@@ -180,13 +197,19 @@ class ConsoleSessionStore {
     }
 
     this.publish(
-      chats.data.length === 0 ? { state: "no-groups", session } : { state: "ready", session }
+      chats.data.length === 0
+        ? { state: "no-groups", session, chats: chats.data }
+        : { state: "ready", session, chats: chats.data }
     );
   }
 }
 
 export const consoleSessionStore = new ConsoleSessionStore();
 export const consoleApi = consoleSessionStore.api;
+
+export function retryConsoleGroups(): Promise<void> {
+  return consoleSessionStore.retryGroups();
+}
 
 export function useConsoleSession(): ConsoleSessionState {
   const snapshot = useSyncExternalStore(

@@ -1,3 +1,5 @@
+import type { ConsoleSessionState } from "../../app/session";
+
 import {
   challengeResults,
   type ChallengeResultDefinition
@@ -183,8 +185,15 @@ export const groupFixtures: readonly GroupFixture[] = [
   }
 ];
 
-export function resolveGroupSelection(value: string | null): string {
-  if (value !== null && groupFixtures.some((group) => group.id === value)) {
+export function isGroupFixtureFallback(session: ConsoleSessionState): boolean {
+  return import.meta.env.DEV && session.state === "blocked" && session.error.kind === "non-json";
+}
+
+export function resolveGroupSelection(
+  value: string | null,
+  groups: readonly { readonly id: string }[]
+): string {
+  if (value !== null && groups.some((group) => group.id === value)) {
     return value;
   }
 
