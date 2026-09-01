@@ -265,11 +265,11 @@ func publicSession(session Session) Session {
 	return Session{Principal: session.Principal, ExpiresAt: session.ExpiresAt, token: session.token, csrf: session.csrf}
 }
 
-// SessionFromRequest validates the HttpOnly session cookie and removes expired credentials.
-func (m *Manager) SessionFromRequest(request *http.Request) (Session, error) {
+// GrantFromRequest validates the HttpOnly session cookie and returns its existing browser grant.
+func (m *Manager) GrantFromRequest(request *http.Request) (Grant, error) {
 	cookie, err := request.Cookie(sessionCookieName)
 	if err != nil || cookie.Value == "" {
-		return Session{}, ErrSessionMissing
+		return Grant{}, ErrSessionMissing
 	}
 	now := m.now()
 	m.mu.Lock()
@@ -277,13 +277,14 @@ func (m *Manager) SessionFromRequest(request *http.Request) (Session, error) {
 	m.pruneLocked(now)
 	record, found := m.sessions[cookie.Value]
 	if !found {
-		return Session{}, ErrSessionExpired
+		return Grant{}, ErrSessionExpired
 	}
 	if !record.session.ExpiresAt.After(now) {
 		m.removeSessionLocked(cookie.Value, record.session.Principal.TelegramID)
-		return Session{}, ErrSessionExpired
+		return Grant{}, ErrSessionExpired
 	}
-	return publicSession(record.session), nil
+	session := publicSession(record.session)
+	return Grant{Session: session, CSRFToken: session.csrf}, nil
 }
 
 // ValidateCSRF requires the token returned to the browser application for a session-changing call.

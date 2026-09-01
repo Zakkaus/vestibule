@@ -91,6 +91,7 @@ func (c *apiTestAdminChecker) counts() apiTestAdminCounts {
 type apiTestQueueService struct {
 	groups          []int64
 	entries         []verification.ConsoleQueueEntry
+	settledEntry    verification.ConsoleQueueEntry
 	settleErr       error
 	settlementCalls int
 	telegramActions int
@@ -106,7 +107,7 @@ func (s *apiTestQueueService) ConsoleQueue(context.Context, int64) ([]verificati
 
 func (s *apiTestQueueService) SettleConsole(context.Context, verification.ConsoleSettlement) (verification.ConsoleQueueEntry, error) {
 	s.settlementCalls++
-	return verification.ConsoleQueueEntry{}, s.settleErr
+	return s.settledEntry, s.settleErr
 }
 
 func TestPostSessionRejectsReplayedInitData(t *testing.T) {
@@ -152,6 +153,105 @@ func TestEnterRedeemsOperatorLinkOnce(t *testing.T) {
 	if second.Code != http.StatusSeeOther || second.Header().Get("Location") != "/?state=redeemed" {
 		t.Fatalf("second enter response = %d %q", second.Code, second.Header().Get("Location"))
 	}
+}
+
+func TestGetSessionRejectsMissingCookieWithoutIssuingSession(t *testing.T) {
+	manager, err := auth.New(auth.Config{BotToken: apiTestToken})
+	if err != nil {
+		t.Fatal(err)
+	}
+	response := getPath(New(Config{Authenticator: manager}), "/api/session")
+	cookies := response.Result().Cookies()
+	errorCode := decodeError(response)
+	if response.Code != http.StatusUnauthorized || errorCode != "authentication_expired" ||
+		len(cookies) != 1 || cookies[0].Value != "" || cookies[0].MaxAge != -1 {
+		t.Fatalf("status=%d code=%s cookies=%#v, want 401, authentication_expired, and only a clearing cookie",
+			response.Code, errorCode, cookies)
+	}
+	t.Logf("GET /api/session no_cookie -> status=%d body=%s set_cookie=%q",
+		response.Code, strings.TrimSpace(response.Body.String()), response.Header().Get("Set-Cookie"))
+}
+
+func TestGetSessionRejectsExpiredCookie(t *testing.T) {
+	clock := time.Unix(1_800_000_000, 0)
+	manager, err := auth.New(auth.Config{
+		BotToken: apiTestToken, Now: func() time.Time { return clock }, SessionTTL: time.Minute,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	grant, err := manager.IssueManagerSession(apiSignedInitData(clock, 9))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cookieWriter := httptest.NewRecorder()
+	manager.SetCookies(cookieWriter, grant)
+	clock = clock.Add(time.Minute)
+	response := getAuthenticatedPath(New(Config{Authenticator: manager}), cookieWriter.Result().Cookies(), "/api/session")
+	cookies := response.Result().Cookies()
+	errorCode := decodeError(response)
+	if response.Code != http.StatusUnauthorized || errorCode != "authentication_expired" ||
+		len(cookies) != 1 || cookies[0].Value != "" || cookies[0].MaxAge != -1 {
+		t.Fatalf("status=%d code=%s cookies=%#v, want 401, authentication_expired, and only a clearing cookie",
+			response.Code, errorCode, cookies)
+	}
+	t.Logf("GET /api/session expired_cookie -> status=%d body=%s set_cookie=%q",
+		response.Code, strings.TrimSpace(response.Body.String()), response.Header().Get("Set-Cookie"))
+}
+
+func TestOperatorCanSettleAfterReadingCurrentSession(t *testing.T) {
+	now := time.Unix(1_800_000_000, 0)
+	checker := &apiTestAdminChecker{allowed: true}
+	queue := &apiTestQueueService{
+		groups: []int64{-100},
+		settledEntry: verification.ConsoleQueueEntry{
+			ID: "-100:42:nonce", GroupID: -100, UserID: 42, Name: "Applicant",
+			State: verification.ChallengeApproved, CreatedAt: now, ExpiresAt: now.Add(time.Minute),
+		},
+	}
+	manager, err := auth.New(auth.Config{
+		BotToken: apiTestToken, Now: func() time.Time { return now }, AdminChecker: checker,
+		OperatorAllowed: func(id int64) bool { return id == 9 },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	token, _, err := manager.IssueOperatorLink(9)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := New(Config{Authenticator: manager, Verification: queue})
+	entered := enterLink(server, token)
+	cookies := entered.Result().Cookies()
+	if entered.Code != http.StatusSeeOther || entered.Header().Get("Location") != "/" || len(cookies) != 1 {
+		t.Fatalf("enter status=%d location=%q cookies=%d, want 303, /, and one cookie",
+			entered.Code, entered.Header().Get("Location"), len(cookies))
+	}
+	current := getAuthenticatedPath(server, cookies, "/api/session")
+	var session sessionResponse
+	if err := json.Unmarshal(current.Body.Bytes(), &session); err != nil {
+		t.Fatal(err)
+	}
+	if current.Code != http.StatusOK || session.Subject.TelegramID != "9" ||
+		session.Subject.Role != auth.RoleOperator || session.CSRFToken == "" {
+		t.Fatalf("GET session status=%d payload=%#v", current.Code, session)
+	}
+	requireNoSetCookie(t, current)
+	withCSRF := postSettlement(server, cookies, session.CSRFToken, -100, "-100:42:nonce")
+	withoutCSRF := postSettlement(server, cookies, "", -100, "-100:42:nonce")
+	withoutCSRFCode := decodeError(withoutCSRF)
+	if withCSRF.Code != http.StatusOK || withoutCSRF.Code != http.StatusForbidden ||
+		withoutCSRFCode != "csrf_invalid" || queue.settlementCalls != 1 {
+		t.Fatalf("with_csrf=%d without_csrf=%d code=%s settlement_calls=%d",
+			withCSRF.Code, withoutCSRF.Code, withoutCSRFCode, queue.settlementCalls)
+	}
+	t.Logf("GET /enter/{token} -> status=%d location=%q cookies=%d",
+		entered.Code, entered.Header().Get("Location"), len(cookies))
+	t.Logf("GET /api/session -> status=%d body=%s", current.Code, strings.TrimSpace(current.Body.String()))
+	t.Logf("POST settlement with X-CSRF-Token -> status=%d body=%s",
+		withCSRF.Code, strings.TrimSpace(withCSRF.Body.String()))
+	t.Logf("POST settlement without X-CSRF-Token -> status=%d body=%s",
+		withoutCSRF.Code, strings.TrimSpace(withoutCSRF.Body.String()))
 }
 
 func TestPostSettlementRejectsMembershipLookupFailure(t *testing.T) {
@@ -304,6 +404,13 @@ func getAuthenticatedPath(server *Server, cookies []*http.Cookie, path string) *
 	response := httptest.NewRecorder()
 	server.Handler().ServeHTTP(response, request)
 	return response
+}
+
+func requireNoSetCookie(t *testing.T, response *httptest.ResponseRecorder) {
+	t.Helper()
+	if header := response.Header().Get("Set-Cookie"); header != "" {
+		t.Fatalf("unexpected Set-Cookie header: %q", header)
+	}
 }
 
 func postSettlement(server *Server, cookies []*http.Cookie, csrf string, chatID int64, challengeID string) *httptest.ResponseRecorder {

@@ -123,6 +123,8 @@ func (s *Server) serveHTTP(writer http.ResponseWriter, request *http.Request) {
 		s.live(writer)
 	case request.Method == http.MethodGet && request.URL.Path == "/readyz":
 		s.ready(writer, request)
+	case request.Method == http.MethodGet && request.URL.Path == "/api/session":
+		s.currentSession(writer, request)
 	case request.Method == http.MethodPost && request.URL.Path == "/api/session":
 		s.createSession(writer, request)
 	case request.Method == http.MethodGet && strings.HasPrefix(request.URL.Path, "/enter/"):
@@ -156,6 +158,14 @@ func (s *Server) ready(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 	writeError(writer, http.StatusServiceUnavailable, "not_ready")
+}
+
+func (s *Server) currentSession(writer http.ResponseWriter, request *http.Request) {
+	grant, ok := s.sessionGrant(writer, request)
+	if !ok {
+		return
+	}
+	writeJSON(writer, http.StatusOK, newSessionResponse(grant))
 }
 
 func (s *Server) createSession(writer http.ResponseWriter, request *http.Request) {
@@ -306,19 +316,27 @@ func (s *Server) authorizedSession(writer http.ResponseWriter, request *http.Req
 }
 
 func (s *Server) session(writer http.ResponseWriter, request *http.Request) (auth.Session, bool) {
-	if s.authenticator == nil {
-		writeError(writer, http.StatusServiceUnavailable, "authentication_unavailable")
+	grant, ok := s.sessionGrant(writer, request)
+	if !ok {
 		return auth.Session{}, false
 	}
-	session, err := s.authenticator.SessionFromRequest(request)
+	return grant.Session, true
+}
+
+func (s *Server) sessionGrant(writer http.ResponseWriter, request *http.Request) (auth.Grant, bool) {
+	if s.authenticator == nil {
+		writeError(writer, http.StatusServiceUnavailable, "authentication_unavailable")
+		return auth.Grant{}, false
+	}
+	grant, err := s.authenticator.GrantFromRequest(request)
 	if err != nil {
 		if errors.Is(err, auth.ErrSessionMissing) || errors.Is(err, auth.ErrSessionExpired) {
 			s.authenticator.ClearCookies(writer)
 		}
 		s.writeAuthError(writer, err)
-		return auth.Session{}, false
+		return auth.Grant{}, false
 	}
-	return session, true
+	return grant, true
 }
 
 func (s *Server) writeAuthError(writer http.ResponseWriter, err error) {
