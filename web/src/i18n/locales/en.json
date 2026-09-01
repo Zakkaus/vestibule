@@ -28,6 +28,14 @@
   },
   "entry": {
     "nextSteps": "Next steps",
+    "loading": {
+      "title": "Opening the console",
+      "description": "Checking the current session."
+    },
+    "unavailable": {
+      "title": "The console is temporarily unavailable",
+      "description": "The console did not return a usable session state. Open the bot menu in Telegram later, or request a new link from the bot."
+    },
     "noSession": {
       "title": "Open the console from Telegram",
       "description": "Group administrators open the bot menu inside Telegram. Operators request a one-time link from {{botUsername}}.",
