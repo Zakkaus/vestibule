@@ -6,6 +6,7 @@ import { EntryScreen } from "../features/entry";
 import { FeedsScreen } from "../features/feeds";
 import { GroupListScreen } from "../features/groups";
 import { ModerationScreen } from "../features/moderation";
+import { MessagesScreen } from "../features/messages";
 import { QueueScreen } from "../features/queue";
 import { PreferencesScreen } from "../features/preferences";
 import { VerificationScreen } from "../features/verification";
@@ -74,6 +75,11 @@ const router = createBrowserRouter([
       {
         path: "moderation",
         element: <ModerationScreen />,
+        handle: consoleHandle
+      },
+      {
+        path: "messages",
+        element: <MessagesScreen />,
         handle: consoleHandle
       },
       {

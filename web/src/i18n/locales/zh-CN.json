@@ -896,5 +896,151 @@
       "loadUnavailable": "暂时无法读取统计。请重试。",
       "network": "连接已中断。更新统计后，再决定是否重试。"
     }
+  },
+  "messages": {
+    "navigation": "消息与文案",
+    "title": "消息与文案",
+    "description": "管理当前群已有的自动回复规则、消息显示和查询自动撤回。",
+    "loading": {
+      "title": "正在载入消息与文案",
+      "description": "正在确认当前群并读取可用的消息设置…"
+    },
+    "groupRequired": {
+      "title": "先选择一个群",
+      "description": "选择已获授权的群后，才能管理它的消息与文案。",
+      "select": "选择群"
+    },
+    "noGroups": {
+      "title": "此账号尚未获任何群授权",
+      "description": "消息与文案只对已获授权的群开放。"
+    },
+    "unavailable": {
+      "title": "消息与文案暂时不可用"
+    },
+    "settings": {
+      "loading": {
+        "title": "正在载入消息设置",
+        "description": "正在读取当前群的消息显示与自动撤回设置…"
+      },
+      "unavailable": {
+        "title": "无法读取消息设置"
+      }
+    },
+    "rules": {
+      "title": "自动回复规则",
+      "description": "规则定义由服务端解释。这里保留定义本身，只管理启停和匹配顺序。",
+      "saveSemantics": "启停会立即保存一条规则；调整顺序会替换同一规则集合。",
+      "loading": {
+        "title": "正在载入自动回复规则",
+        "description": "正在读取当前群保存的规则集合…"
+      },
+      "unavailable": {
+        "title": "无法读取自动回复规则"
+      },
+      "collections": {
+        "autoReply": "自动回复",
+        "unknown": "未知规则集合：{{collection}}"
+      },
+      "collectionDescription": "规则按这里显示的顺序匹配。",
+      "collectionCount": "共 {{count}} 条规则",
+      "collectionSaving": "正在保存集合…",
+      "itemTitle": "规则 {{number}}",
+      "identifier": "ID：{{id}}",
+      "enabled": "已启用",
+      "disabled": "已停用",
+      "orderActions": "调整规则顺序",
+      "moveUp": "将规则 {{id}} 上移",
+      "moveDown": "将规则 {{id}} 下移",
+      "up": "上移",
+      "down": "下移",
+      "itemSaving": "正在保存…",
+      "empty": {
+        "title": "还没有自动回复规则",
+        "description": "规则集合为空时会显示在这里。"
+      },
+      "feedback": {
+        "itemSaved": "已保存规则启停状态。",
+        "orderSaved": "已保存 {{collection}} 的规则顺序。",
+        "conflict": "其他管理员已经更改规则。已载入最新规则；请根据最新顺序重新操作。"
+      }
+    },
+    "display": {
+      "title": "消息显示",
+      "description": "调整当前群消息中的显示名和富文本发送方式。",
+      "nameSpoiler": {
+        "label": "剧透申请人显示名",
+        "description": "在公开验证消息中隐藏申请人的显示名。"
+      },
+      "richMessages": {
+        "label": "启用富文本消息",
+        "description": "使用带 HTML 回退的富文本 Bot API 消息。"
+      }
+    },
+    "autoDelete": {
+      "title": "查询自动撤回",
+      "description": "调整查询命令及其回复的自动删除行为。",
+      "enabled": {
+        "label": "自动撤回查询消息",
+        "description": "自动删除查询命令及其回复。"
+      },
+      "delay": {
+        "label": "撤回延时",
+        "description": "请输入 1 至 86,400 之间的整数秒。"
+      }
+    },
+    "settingsSave": {
+      "title": "消息设置",
+      "dirty": "有 {{count}} 项未保存的消息设置更改。",
+      "clean": "没有待保存的消息设置更改。"
+    },
+    "source": {
+      "value": "来源：{{source}}",
+      "factoryDefault": "出厂默认",
+      "userFile": "配置文件",
+      "chatOverride": "此群覆盖",
+      "pending": "本次未保存",
+      "restoring": "待恢复继承值"
+    },
+    "actions": {
+      "retry": "重试",
+      "restore": "恢复继承值",
+      "cancelRestore": "取消恢复",
+      "saveSettings": "保存消息设置",
+      "savingSettings": "正在保存消息设置…"
+    },
+    "settingsFeedback": {
+      "saved": "已保存消息设置。",
+      "conflict": "其他管理员已经更改消息设置。已载入最新值；请重新应用需要的更改。"
+    },
+    "copyGap": {
+      "title": "尚未提供的文案",
+      "description": "进出提示和验证全流程文案尚未提供读取或保存字段，因此此屏不使用其他设置替代它们。",
+      "joinLeave": "进出提示",
+      "verification": "验证全流程文案"
+    },
+    "validation": {
+      "integer": "请输入整数。",
+      "ttl": "请输入 1 至 86,400 之间的整数。"
+    },
+    "errors": {
+      "authenticationExpired": "会话已过期。请从 Telegram 重新打开控制台。",
+      "authenticationInvalid": "无法验证此控制台会话。请从 Telegram 重新打开控制台。",
+      "accessDenied": "你已不再拥有此群的管理权限。",
+      "accessUnavailable": "暂时无法确认你对此群的管理权限。请重试。",
+      "chatNotFound": "此群已不再可在控制台中管理。",
+      "csrfInvalid": "此页的安全令牌已过期。刷新页面后再重试。",
+      "invalidSettings": "一个或多个消息设置无效。检查后重新保存。",
+      "settingsUnavailable": "消息设置暂时不可用。请重试。",
+      "loadUnavailable": "消息与文案暂时不可用。请重试。",
+      "loadSettingsUnavailable": "暂时无法读取消息设置。请重试。",
+      "saveSettingsUnavailable": "暂时无法保存消息设置。请重试。",
+      "invalidRule": "规则定义无效。请重新读取规则后再试。",
+      "ruleNotFound": "这条规则已不存在。请重新读取规则。",
+      "ruleConflict": "规则已被其他管理员更改。请重新读取规则。",
+      "rulesUnavailable": "自动回复规则暂时不可用。请重试。",
+      "loadRulesUnavailable": "暂时无法读取自动回复规则。请重试。",
+      "saveRulesUnavailable": "暂时无法保存自动回复规则。请重试。",
+      "network": "连接已中断。重新读取消息与文案后，再决定是否重试。"
+    }
   }
 }
