@@ -160,6 +160,16 @@ cd web && npm run e2e && cd ..  # the console journey and the render gate, in Ch
 
 **Both build tags must pass.** Running only the default one misses the generic edition.
 
+`scripts/baseline.txt` is phase zero's snapshot of the violations that already
+existed. **A row may leave it; none may join.** A row leaves when the violation is
+cleared, or when the code moves and the same violation appears at a new path
+unchanged — a rename is a move, not new debt. Anything else is new code, and new
+code meets the limits: 600 lines a file, 80 a function, complexity 15.
+
+This was not written down, and a rewrite duly replaced twenty-two old rows with
+twenty-seven new ones — a 1,440-line file and a function at complexity 79 — while
+every gate stayed green. `scripts/check-baseline-ratchet.py` refuses it now.
+
 A phase that removes baselined violations owns three edits, not one: clear the
 violations, delete their rows from `scripts/baseline.txt`, and lower
 `scripts/held.txt` to the new count. The gate names which rows went stale and

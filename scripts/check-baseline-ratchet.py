@@ -75,13 +75,33 @@ def main():
             kind, path, name = key
             risen.append(f"  {kind} {path} {name}: {was} -> {value}")
 
-    if risen:
-        print("FAIL check-baseline-ratchet: a held violation may not grow")
-        for line in sorted(risen):
-            print(line)
-        print("\nA baselined row records debt that is due. Raising its number books")
-        print("more debt under a gate that exists to make debt fall. Bring the value")
-        print("back to at most what it was, or pay it off and remove the row.")
+    # A row that leaves one path and appears at another with the same shape is a
+    # move — a package renamed, a file split — and phase 1C did exactly that for
+    # every row it owned. A row with no counterpart is new debt.
+    departed = {(kind, name, value) for (kind, path, name), value in before.items()
+                if (kind, path, name) not in after}
+    arrived = []
+    for (kind, path, name), value in sorted(after.items()):
+        if (kind, path, name) in before:
+            continue
+        if (kind, name, value) in departed:
+            continue
+        arrived.append(f"  {kind} {path} {name}: {value}")
+
+    if risen or arrived:
+        if risen:
+            print("FAIL check-baseline-ratchet: a held violation may not grow")
+            for line in sorted(risen):
+                print(line)
+        if arrived:
+            print("FAIL check-baseline-ratchet: new code may not be added to the baseline")
+            for line in arrived:
+                print(line)
+        print("\nThe baseline is phase zero's snapshot of debt that already existed.")
+        print("A row may leave it, by the violation being cleared or the code moving")
+        print("elsewhere unchanged. Nothing joins it: new code meets the limits —")
+        print("600 lines a file, 80 a function, complexity 15 — or it is not new code")
+        print("that is ready.")
         return 1
 
     print(f"check-baseline-ratchet: passed; {len(after)} rows, none grew since {base}")
