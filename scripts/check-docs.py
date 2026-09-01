@@ -48,6 +48,15 @@ AUTHORITY = "What may happen without asking"
 CITED_LINE = re.compile(
     r"`([A-Za-z0-9_./-]+\.(?:go|ts|tsx|py|sh|md|html|json|ya?ml)):(\d+)(?:[\u2013-](\d+))?`")
 HISTORICAL = re.compile(r"上一代|原先|重写前|refs/|已删除")
+
+# The plan states how many screens are left. That number is the difference
+# between the design language's table and the routes that exist, and it went
+# wrong the first time it was written: it counted the entry screen, which is
+# not one of the fifteen, and so said twelve where thirteen were left.
+SCREEN_ROW = re.compile(r"<tr>(.*?)</tr>", re.S)
+SCREEN_CELL = re.compile(r"<t[dh][^>]*>(.*?)</t[dh]>", re.S)
+CONSOLE_ROUTE = re.compile(r'path:\s*"([a-z-]+)"')
+REMAINING = re.compile(r"列了 (\d+) 个屏.*?还剩 (\d+) 个", re.S)
 BULLET = re.compile(r"^\s*(?:[-*+]|\d+\.)\s")
 
 failures: list[str] = []
@@ -345,6 +354,38 @@ def check_plan_citations_resolve(plan_text: str) -> None:
                         "citation format changed?")
 
 
+def check_remaining_screens(plan_text: str) -> None:
+    design = ROOT / "web" / "design.html"
+    app = ROOT / "web" / "src" / "app" / "App.tsx"
+    if not design.exists() or not app.exists():
+        failures.append("plan: cannot count screens — design.html or App.tsx is missing")
+        return
+    text = design.read_text(encoding="utf-8")
+    start = text.find("各屏职责")
+    end = text.find("</table>", start) if start != -1 else -1
+    if start == -1 or end == -1:
+        failures.append("design: the 各屏职责 table is gone, so the screen count "
+                        "cannot be checked")
+        return
+    screens = 0
+    for row in SCREEN_ROW.findall(text[start:end]):
+        cells = SCREEN_CELL.findall(row)
+        if len(cells) >= 2 and re.sub(r"<[^>]+>", "", cells[0]).strip() not in ("", "屏"):
+            screens += 1
+    built = len(CONSOLE_ROUTE.findall(app.read_text(encoding="utf-8")))
+    stated = REMAINING.search(plan_text)
+    if not stated:
+        failures.append("plan: no longer says how many screens are listed and how "
+                        "many are left")
+        return
+    if int(stated.group(1)) != screens:
+        failures.append("plan: says the design lists %s screens, the table has %d"
+                        % (stated.group(1), screens))
+    if int(stated.group(2)) != screens - built:
+        failures.append("plan: says %s screens are left; %d listed minus %d routed "
+                        "is %d" % (stated.group(2), screens, built, screens - built))
+
+
 def check_rules_are_stated_once(documents: list[Path]) -> None:
     contributing = ROOT / "CONTRIBUTING.md"
     if not contributing.exists():
@@ -389,6 +430,7 @@ def main() -> int:
         check_every_inventoried_file_has_a_phase(plan_text)
         check_open_questions_have_a_future(plan_text)
         check_plan_citations_resolve(plan_text)
+        check_remaining_screens(plan_text)
 
     check_schema_matches_migration()
 
