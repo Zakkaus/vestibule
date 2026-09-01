@@ -660,7 +660,7 @@
       "itemTitle": "選擇題 {{number}}",
       "prompt": "題面",
       "options": "選項與正確答案",
-      "optionsDescription": "選取選項左側的圓點，將它設為正確答案。",
+      "optionsDescription": "使用選項旁的按鈕將其設為正確答案。",
       "option": "選項 {{number}}",
       "correctAnswerFor": "將選項 {{number}} 設為正確答案",
       "confirmDelete": "刪除選擇題 {{number}}？儲存後，這道題會從目前群組的題庫中移除。"
@@ -688,6 +688,7 @@
       "addQuestion": "新增選擇題",
       "deleteQuestion": "刪除題目",
       "addOption": "新增選項",
+      "selectCorrectAnswer": "設為正確答案",
       "removeOption": "移除",
       "removeOptionFor": "移除選項 {{number}}",
       "addFallback": "新增備用題",

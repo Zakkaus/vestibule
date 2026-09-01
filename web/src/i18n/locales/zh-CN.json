@@ -660,7 +660,7 @@
       "itemTitle": "选择题 {{number}}",
       "prompt": "题面",
       "options": "选项与正确答案",
-      "optionsDescription": "选中选项左侧的圆点，将它设为正确答案。",
+      "optionsDescription": "使用选项旁的按钮将其设为正确答案。",
       "option": "选项 {{number}}",
       "correctAnswerFor": "将选项 {{number}} 设为正确答案",
       "confirmDelete": "删除选择题 {{number}}？保存后，这道题会从当前群的题库中移除。"
@@ -688,6 +688,7 @@
       "addQuestion": "添加选择题",
       "deleteQuestion": "删除题目",
       "addOption": "添加选项",
+      "selectCorrectAnswer": "设为正确答案",
       "removeOption": "移除",
       "removeOptionFor": "移除选项 {{number}}",
       "addFallback": "添加备用题",

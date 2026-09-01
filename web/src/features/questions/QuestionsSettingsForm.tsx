@@ -263,28 +263,30 @@ function FallbackMode({
       <legend>{t("questions.fallback.modeLabel")}</legend>
       <p id={descriptionID}>{t("questions.fallback.modeDescription")}</p>
       <div data-fallback-mode-options>
-        <label>
-          <input
-            type="radio"
-            name="questions-fallback-mode"
-            value="builtin"
-            checked={draft.fallbackBuiltin}
-            disabled={saving}
-            onChange={() => chooseMode(true)}
-          />
-          <span>{t("questions.fallback.builtin")}</span>
-        </label>
-        <label>
-          <input
-            type="radio"
-            name="questions-fallback-mode"
-            value="custom"
-            checked={!draft.fallbackBuiltin}
-            disabled={saving}
-            onChange={() => chooseMode(false)}
-          />
-          <span>{t("questions.fallback.custom")}</span>
-        </label>
+        <button
+          type="button"
+          data-slot="button"
+          data-variant="outline"
+          data-size="sm"
+          aria-pressed={draft.fallbackBuiltin}
+          aria-describedby={descriptionID}
+          disabled={saving}
+          onClick={() => chooseMode(true)}
+        >
+          {t("questions.fallback.builtin")}
+        </button>
+        <button
+          type="button"
+          data-slot="button"
+          data-variant="outline"
+          data-size="sm"
+          aria-pressed={!draft.fallbackBuiltin}
+          aria-describedby={descriptionID}
+          disabled={saving}
+          onClick={() => chooseMode(false)}
+        >
+          {t("questions.fallback.custom")}
+        </button>
       </div>
     </fieldset>
   );

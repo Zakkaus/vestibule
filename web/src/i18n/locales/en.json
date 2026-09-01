@@ -660,7 +660,7 @@
       "itemTitle": "Multiple-choice question {{number}}",
       "prompt": "Prompt",
       "options": "Options and correct answer",
-      "optionsDescription": "Select the circle beside an option to make it the correct answer.",
+      "optionsDescription": "Use the button beside an option to mark it as correct.",
       "option": "Option {{number}}",
       "correctAnswerFor": "Make option {{number}} the correct answer",
       "confirmDelete": "Delete multiple-choice question {{number}}? After saving, it will be removed from this group's question bank."
@@ -688,6 +688,7 @@
       "addQuestion": "Add multiple-choice question",
       "deleteQuestion": "Delete question",
       "addOption": "Add option",
+      "selectCorrectAnswer": "Mark as correct",
       "removeOption": "Remove",
       "removeOptionFor": "Remove option {{number}}",
       "addFallback": "Add fallback question",

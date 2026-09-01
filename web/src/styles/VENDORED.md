@@ -4,7 +4,7 @@ Copied verbatim from the shared design system's `app/` directory. **Do not edit
 them here.** A local change is invisible at the next sync and turns into a
 conflict nobody can explain; take the improvement upstream instead.
 
-Copied 2026-09-01 22:24 AEST. Checksums at that moment:
+Copied 2026-09-02 01:54 AEST. Checksums at that moment:
 
 ```
 bb09e3ae814d4278df07972728bac10380c38f604363d47ecda65d9e9d088816  tokens.css
