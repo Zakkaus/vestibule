@@ -190,31 +190,49 @@
     "status": {
       "pending": "等待中 {{time}}"
     },
+    "timeUnavailable": "时间未知",
+    "loading": {
+      "title": "正在载入等待队列",
+      "description": "正在读取等待中的申请…"
+    },
+    "groupRequired": {
+      "title": "先选择一个群",
+      "description": "选择已获授权的群后，才能查看它的等待队列。",
+      "select": "选择群"
+    },
+    "noGroups": {
+      "title": "此账号尚未获任何群授权",
+      "description": "等待队列只会显示已获授权的群。"
+    },
+    "unavailable": {
+      "title": "无法读取等待队列",
+      "retry": "重试"
+    },
     "actions": {
       "release": "放行",
       "releaseFor": "放行 {{user}}",
       "releasing": "放行中…",
-      "releasingFor": "正在放行 {{user}}",
-      "revoke": "撤销",
-      "revokeFor": "撤销 {{user}} 的封禁",
-      "revoking": "撤销中…",
-      "revokingFor": "正在撤销 {{user}} 的封禁",
-      "details": "详情",
-      "detailsFor": "查看 {{user}} 的详情",
-      "openingDetails": "打开中…",
-      "openingDetailsFor": "正在打开 {{user}} 的详情"
-    },
-    "revokeDialog": {
-      "title": "撤销 {{user}} 的封禁",
-      "description": "{{user}} 会进入「{{group}}」，状态改为「{{approved}}」。如需恢复封禁，请在操作记录中撤销本次操作。",
-      "cancel": "取消",
-      "confirm": "撤销并放行"
+      "releasingFor": "正在放行 {{user}}"
     },
     "feedback": {
-      "releaseSuccess": "已放行 {{user}} 进入「{{group}}」，状态为「{{approved}}」。",
-      "revokeSuccess": "已撤销 {{user}} 的封禁，状态已改为「{{approved}}」，可进入「{{group}}」。",
-      "releaseFailure": "没能放行 {{user}}。此次操作未完成，状态已恢复为「{{pending}}」，可以重试。",
-      "detailsUnavailable": "详情页尚未实现，{{user}} 的记录没有改变。"
+      "releaseSuccess": "已放行 {{user}}，现在可以进入「{{group}}」。",
+      "releaseFailure": "未能放行 {{user}}。该申请仍在等待中，可以重试。"
+    },
+    "errors": {
+      "authenticationExpired": "会话已过期。请从 Telegram 重新打开控制台。",
+      "authenticationInvalid": "无法验证此控制台会话。请从 Telegram 重新打开控制台。",
+      "accessDenied": "你已不再拥有此群的管理权限。",
+      "accessUnavailable": "暂时无法确认你对此群的管理权限。请重试。",
+      "chatNotFound": "此群已不再可在控制台中管理。",
+      "challengeConflict": "此申请已由其他管理员处理，等待队列已更新。",
+      "csrfInvalid": "此页的安全令牌已过期。刷新页面后再重试。",
+      "invalidSettlement": "此申请当前不能放行。刷新等待队列后再重试。",
+      "loadUnavailable": "等待队列暂时不可用。",
+      "network": "连接已中断。刷新等待队列后，再决定是否重试。",
+      "queueUnavailable": "暂时无法读取等待队列。请重试。",
+      "settlementUnavailable": "暂时无法放行此申请。请重试。",
+      "targetProtected": "此申请人是群管理员，不能在这里放行。",
+      "targetUnavailable": "暂时无法确认此申请人的群成员状态。请重试。"
     },
     "empty": {
       "title": "还没有人申请",

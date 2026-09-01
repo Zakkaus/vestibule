@@ -1,272 +1,86 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
-import { StatusBadge, type StatusTone } from "../../components/StatusBadge";
+import { consoleApi, useConsoleSession } from "../../app/session";
+import type { StatusTone } from "../../components/StatusBadge";
+import type { ApiRequestError } from "../../lib/api";
 import { challengeResults } from "../../lib/challenge";
-import type {
-  QueueActionId,
-  QueueFeedbackId,
-  QueueFilter,
-  QueueRecord
-} from "./fixtures";
-import {
-  queueActions,
-  queueFixtureFor,
-  queueResultPresentations
-} from "./fixtures";
+import { loadQueue, releaseQueueRecord, type QueueRecord } from "./api";
+import { queueFixtureFor, type QueueFilter, type QueueFixture } from "./fixtures";
+import { QueueTable, type PendingQueueActions } from "./QueueTable";
 
-const ACTION_DELAY_MS = 700;
+const FIXTURE_ACTION_DELAY_MS = 700;
 const FEEDBACK_DURATION_MS = 5_000;
 
-type PendingActions = Partial<Record<string, QueueActionId>>;
+const errorMessageKeys: Readonly<Record<string, string>> = {
+  authentication_expired: "queue.errors.authenticationExpired",
+  authentication_invalid: "queue.errors.authenticationInvalid",
+  chat_access_denied: "queue.errors.accessDenied",
+  chat_access_unavailable: "queue.errors.accessUnavailable",
+  chat_not_found: "queue.errors.chatNotFound",
+  challenge_conflict: "queue.errors.challengeConflict",
+  csrf_invalid: "queue.errors.csrfInvalid",
+  invalid_settlement: "queue.errors.invalidSettlement",
+  queue_unavailable: "queue.errors.queueUnavailable",
+  settlement_unavailable: "queue.errors.settlementUnavailable",
+  target_protected: "queue.errors.targetProtected",
+  target_unavailable: "queue.errors.targetUnavailable"
+};
 
-type QueueFeedback = {
+const accessRevocationCodes: Readonly<Record<string, true>> = {
+  authentication_expired: true,
+  authentication_invalid: true,
+  chat_access_denied: true,
+  chat_not_found: true
+};
+
+type QueueScreenState =
+  | Readonly<{ kind: "loading" }>
+  | Readonly<{ kind: "fixture"; fixture: QueueFixture }>
+  | Readonly<{ kind: "loaded" }>
+  | Readonly<{ kind: "unavailable"; error: ApiRequestError }>
+  | Readonly<{ kind: "group-required" }>
+  | Readonly<{ kind: "no-groups" }>;
+
+type QueueFeedback = Readonly<{
   id: number;
-  kind: QueueFeedbackId;
+  messageKey: string;
+  tone: StatusTone;
   record: QueueRecord;
-};
+}>;
 
-type QueueConfirmation = {
-  actionId: QueueActionId;
-  record: QueueRecord;
-};
-
-type QueueTableProps = {
-  records: readonly QueueRecord[];
-  pendingActions: PendingActions;
-  dateFormatter: Intl.DateTimeFormat;
-  onAction: (record: QueueRecord, actionId: QueueActionId) => void;
-};
-
-function formatRemainingTime(seconds: number): string {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-
-  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-}
-
-function QueueTable({
-  records,
-  pendingActions,
-  dateFormatter,
-  onAction
-}: QueueTableProps) {
-  const { t } = useTranslation();
-
-  return (
-    <div data-queue-table-scroll>
-      <table data-queue-table aria-label={t("queue.tableLabel")}>
-        <thead>
-          <tr>
-            <th scope="col">{t("queue.columns.user")}</th>
-            <th scope="col">{t("queue.columns.group")}</th>
-            <th scope="col">{t("queue.columns.result")}</th>
-            <th scope="col">{t("queue.columns.time")}</th>
-            <th scope="col" aria-label={t("queue.columns.actions")} />
-          </tr>
-        </thead>
-        <tbody>
-          {records.map((record) => {
-            const presentation = queueResultPresentations[record.result.id];
-            const pendingActionId = pendingActions[record.id];
-            const actionId = pendingActionId ?? presentation.action;
-            const action = actionId ? queueActions[actionId] : null;
-            const remainingTime =
-              presentation.showsRemainingTime && record.remainingSeconds !== undefined
-                ? formatRemainingTime(record.remainingSeconds)
-                : null;
-
-            return (
-              <tr
-                key={record.id}
-                data-queue-row={record.id}
-                data-result={record.result.id}
-                data-action-state={pendingActionId ? "pending" : "idle"}
-              >
-                <td data-queue-user>{record.user}</td>
-                <td data-queue-group>{t(record.groupKey)}</td>
-                <td data-queue-result>
-                  <StatusBadge tone={record.result.tone}>
-                    {remainingTime
-                      ? t("queue.status.pending", { time: remainingTime })
-                      : t(record.result.labelKey)}
-                  </StatusBadge>
-                </td>
-                <td data-queue-time>{dateFormatter.format(new Date(record.occurredAt))}</td>
-                <td data-queue-action>
-                  {action && actionId ? (
-                    <button
-                      type="button"
-                      data-slot="button"
-                      data-variant={action.variant}
-                      data-size="sm"
-                      data-queue-action-id={actionId}
-                      aria-disabled={pendingActionId ? true : undefined}
-                      aria-label={t(
-                        pendingActionId ? action.pendingAriaLabelKey : action.ariaLabelKey,
-                        { user: record.user }
-                      )}
-                      onClick={() => onAction(record, actionId)}
-                    >
-                      {t(pendingActionId ? action.pendingLabelKey : action.labelKey)}
-                    </button>
-                  ) : null}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-const queueFeedbackPresentations: Readonly<
-  Record<QueueFeedbackId, { messageKey: string; tone: StatusTone }>
-> = {
-  releaseSuccess: {
-    messageKey: "queue.feedback.releaseSuccess",
-    tone: "ok"
-  },
-  revokeSuccess: {
-    messageKey: "queue.feedback.revokeSuccess",
-    tone: "ok"
-  },
-  releaseFailure: {
-    messageKey: "queue.feedback.releaseFailure",
-    tone: "error"
-  },
-  detailsUnavailable: {
-    messageKey: "queue.feedback.detailsUnavailable",
-    tone: "info"
+function queueErrorMessageKey(error: ApiRequestError, fallback: string): string {
+  if (error.kind === "network") {
+    return "queue.errors.network";
   }
-};
 
-function QueueFeedbackNotice({ feedback }: { feedback: QueueFeedback }) {
+  if (error.kind === "api") {
+    return errorMessageKeys[error.code] ?? fallback;
+  }
+
+  return fallback;
+}
+
+function QueueFeedbackNotice({ feedback }: Readonly<{ feedback: QueueFeedback }>) {
   const { t } = useTranslation();
-  const presentation = queueFeedbackPresentations[feedback.kind];
+  const group = feedback.record.groupLabelKey
+    ? t(feedback.record.groupLabelKey)
+    : feedback.record.groupKey;
 
   return (
     <div
       data-queue-feedback
-      data-feedback-kind={feedback.kind}
-      data-tone={presentation.tone}
-      role={presentation.tone === "error" ? "alert" : "status"}
+      data-tone={feedback.tone}
+      role={feedback.tone === "error" ? "alert" : "status"}
       aria-atomic="true"
     >
-      {t(presentation.messageKey, {
+      {t(feedback.messageKey, {
         user: feedback.record.user,
-        group: t(feedback.record.groupKey),
-        approved: t(challengeResults.approved.labelKey),
-        pending: t(challengeResults.pending.labelKey)
+        group,
+        approved: t(challengeResults.approved.labelKey)
       })}
     </div>
-  );
-}
-
-type QueueConfirmationDialogProps = {
-  confirmation: QueueConfirmation | null;
-  onCancel: () => void;
-  onConfirm: (confirmation: QueueConfirmation) => void;
-};
-
-function QueueConfirmationDialog({
-  confirmation,
-  onCancel,
-  onConfirm
-}: QueueConfirmationDialogProps) {
-  const { t } = useTranslation();
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const action = confirmation ? queueActions[confirmation.actionId] : null;
-  const copy = action?.confirmation ?? null;
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-
-    if (!dialog) {
-      return;
-    }
-
-    if (confirmation && copy && !dialog.open) {
-      dialog.showModal();
-    } else if ((!confirmation || !copy) && dialog.open) {
-      dialog.close();
-    }
-  }, [confirmation, copy]);
-
-  function cancel(): void {
-    if (dialogRef.current?.open) {
-      dialogRef.current.close();
-    }
-
-    onCancel();
-  }
-
-  function confirm(): void {
-    if (!confirmation) {
-      return;
-    }
-
-    if (dialogRef.current?.open) {
-      dialogRef.current.close();
-    }
-
-    onConfirm(confirmation);
-  }
-
-  return (
-    <dialog
-      ref={dialogRef}
-      data-queue-confirmation
-      aria-labelledby="queue-confirmation-title"
-      aria-describedby="queue-confirmation-description"
-      onCancel={(event) => {
-        event.preventDefault();
-        cancel();
-      }}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) {
-          cancel();
-        }
-      }}
-    >
-      {confirmation && copy ? (
-        <div data-slot="card" data-queue-dialog-content>
-          <h2 id="queue-confirmation-title">
-            {t(copy.titleKey, { user: confirmation.record.user })}
-          </h2>
-          <p id="queue-confirmation-description">
-            {t(copy.descriptionKey, {
-              user: confirmation.record.user,
-              group: t(confirmation.record.groupKey),
-              approved: t(challengeResults.approved.labelKey)
-            })}
-          </p>
-          <div data-queue-dialog-actions>
-            <button
-              type="button"
-              data-slot="button"
-              data-variant="ghost"
-              data-size="sm"
-              onClick={cancel}
-            >
-              {t(copy.cancelKey)}
-            </button>
-            <button
-              type="button"
-              data-slot="button"
-              data-variant="destructive"
-              data-emphasis="solid"
-              data-size="sm"
-              onClick={confirm}
-            >
-              {t(copy.confirmKey)}
-            </button>
-          </div>
-        </div>
-      ) : null}
-    </dialog>
   );
 }
 
@@ -281,20 +95,74 @@ function QueueEmptyState() {
   );
 }
 
-type QueueFilteredEmptyStateProps = {
+function QueueLoadingState() {
+  const { t } = useTranslation();
+
+  return (
+    <section data-slot="card" data-queue-empty aria-live="polite" aria-labelledby="queue-loading-title">
+      <h2 id="queue-loading-title">{t("queue.loading.title")}</h2>
+      <p>{t("queue.loading.description")}</p>
+    </section>
+  );
+}
+
+function QueueGroupRequiredState() {
+  const { t } = useTranslation();
+
+  return (
+    <section data-slot="card" data-queue-empty aria-labelledby="queue-group-required-title">
+      <h2 id="queue-group-required-title">{t("queue.groupRequired.title")}</h2>
+      <p>{t("queue.groupRequired.description")}</p>
+      <Link to="/groups" data-slot="button" data-variant="primary" data-size="sm">
+        {t("queue.groupRequired.select")}
+      </Link>
+    </section>
+  );
+}
+
+function QueueNoGroupsState() {
+  const { t } = useTranslation();
+
+  return (
+    <section data-slot="card" data-queue-empty aria-labelledby="queue-no-groups-title">
+      <h2 id="queue-no-groups-title">{t("queue.noGroups.title")}</h2>
+      <p>{t("queue.noGroups.description")}</p>
+    </section>
+  );
+}
+
+function QueueUnavailableState({
+  error,
+  onRetry
+}: Readonly<{ error: ApiRequestError; onRetry: () => void }>) {
+  const { t } = useTranslation();
+
+  return (
+    <section data-slot="card" data-queue-empty data-queue-unavailable role="alert" aria-labelledby="queue-unavailable-title">
+      <h2 id="queue-unavailable-title">{t("queue.unavailable.title")}</h2>
+      <p>{t(queueErrorMessageKey(error, "queue.errors.loadUnavailable"))}</p>
+      <button type="button" data-slot="button" data-variant="outline" data-size="sm" onClick={onRetry}>
+        {t("queue.unavailable.retry")}
+      </button>
+    </section>
+  );
+}
+
+type QueueFilteredEmptyStateProps = Readonly<{
   filter: QueueFilter;
   onClear: () => void;
-};
+}>;
 
 function QueueFilteredEmptyState({ filter, onClear }: QueueFilteredEmptyStateProps) {
   const { t } = useTranslation();
+  const group = filter.groupLabelKey ? t(filter.groupLabelKey) : filter.groupKey;
 
   return (
     <section data-slot="card" data-queue-empty aria-labelledby="queue-filtered-empty-title">
       <h2 id="queue-filtered-empty-title">{t("queue.filteredEmpty.title")}</h2>
       <p>
         {t("queue.filteredEmpty.currentCondition", {
-          group: t(filter.groupKey),
+          group,
           result: t(filter.result.labelKey)
         })}
       </p>
@@ -309,16 +177,22 @@ function QueueFilteredEmptyState({ filter, onClear }: QueueFilteredEmptyStatePro
 
 export function QueueScreen() {
   const { i18n, t } = useTranslation();
+  const session = useConsoleSession();
   const [searchParams, setSearchParams] = useSearchParams();
   const fixture = queueFixtureFor(searchParams.get("fixture"));
-  const [records, setRecords] = useState<QueueRecord[]>(() => [...fixture.records]);
-  const [pendingActions, setPendingActions] = useState<PendingActions>({});
-  const [confirmation, setConfirmation] = useState<QueueConfirmation | null>(null);
-  const [feedback, setFeedback] = useState<QueueFeedback[]>([]);
+  const selectedGroupId = searchParams.get("group");
+  const chatID =
+    selectedGroupId !== null && /^-?\d+$/.test(selectedGroupId) ? selectedGroupId : undefined;
+  const [queueState, setQueueState] = useState<QueueScreenState>({ kind: "loading" });
+  const [records, setRecords] = useState<readonly QueueRecord[]>([]);
+  const [pendingActions, setPendingActions] = useState<PendingQueueActions>({});
+  const [feedback, setFeedback] = useState<QueueFeedback | null>(null);
+  const [reloadVersion, setReloadVersion] = useState(0);
   const inFlightRecordIdsRef = useRef(new Set<string>());
-  const actionTimerIdsRef = useRef(new Set<number>());
-  const feedbackTimerIdsRef = useRef(new Set<number>());
+  const activeScopeRef = useRef("");
   const feedbackSequenceRef = useRef(0);
+  const feedbackTimerRef = useRef<number | undefined>(undefined);
+  const fixtureTimerIdsRef = useRef(new Set<number>());
   const dateFormatter = useMemo(
     () =>
       new Intl.DateTimeFormat(i18n.resolvedLanguage ?? i18n.language, {
@@ -332,76 +206,144 @@ export function QueueScreen() {
   );
 
   useEffect(() => {
-    actionTimerIdsRef.current.forEach((timerId) => window.clearTimeout(timerId));
-    feedbackTimerIdsRef.current.forEach((timerId) => window.clearTimeout(timerId));
-    actionTimerIdsRef.current.clear();
-    feedbackTimerIdsRef.current.clear();
-    inFlightRecordIdsRef.current.clear();
-    setRecords([...fixture.records]);
-    setPendingActions({});
-    setConfirmation(null);
-    setFeedback([]);
+    const scope = `${session.state}:${chatID ?? ""}`;
+    activeScopeRef.current = scope;
+    let active = true;
+
+    setRecords([]);
+
+    if (session.state === "loading" || session.state === "checking-groups") {
+      setQueueState({ kind: "loading" });
+      return () => {
+        active = false;
+      };
+    }
+
+    if (session.state === "blocked" && session.error.kind === "non-json") {
+      setRecords([...fixture.records]);
+      setQueueState({ kind: "fixture", fixture });
+      return () => {
+        active = false;
+      };
+    }
+
+    if (session.state === "blocked" || session.state === "groups-unavailable") {
+      setQueueState({ kind: "unavailable", error: session.error });
+      return () => {
+        active = false;
+      };
+    }
+
+    if (session.state === "no-groups") {
+      setQueueState({ kind: "no-groups" });
+      return () => {
+        active = false;
+      };
+    }
+
+    if (!chatID) {
+      setQueueState({ kind: "group-required" });
+      return () => {
+        active = false;
+      };
+    }
+
+    setQueueState({ kind: "loading" });
+    void loadQueue(consoleApi, chatID).then((result) => {
+      if (!active || activeScopeRef.current !== scope) {
+        return;
+      }
+
+      if (result.ok) {
+        setRecords(result.data);
+        setQueueState({ kind: "loaded" });
+        return;
+      }
+
+      setQueueState({ kind: "unavailable", error: result.error });
+    });
 
     return () => {
-      actionTimerIdsRef.current.forEach((timerId) => window.clearTimeout(timerId));
-      feedbackTimerIdsRef.current.forEach((timerId) => window.clearTimeout(timerId));
-      actionTimerIdsRef.current.clear();
-      feedbackTimerIdsRef.current.clear();
+      active = false;
+    };
+  }, [chatID, fixture, reloadVersion, session]);
+
+  useEffect(() => {
+    if (feedbackTimerRef.current !== undefined) {
+      window.clearTimeout(feedbackTimerRef.current);
+      feedbackTimerRef.current = undefined;
+    }
+    fixtureTimerIdsRef.current.forEach((timerID) => window.clearTimeout(timerID));
+    fixtureTimerIdsRef.current.clear();
+    inFlightRecordIdsRef.current.clear();
+    setPendingActions({});
+    setFeedback(null);
+
+    return () => {
+      if (feedbackTimerRef.current !== undefined) {
+        window.clearTimeout(feedbackTimerRef.current);
+        feedbackTimerRef.current = undefined;
+      }
+      fixtureTimerIdsRef.current.forEach((timerID) => window.clearTimeout(timerID));
+      fixtureTimerIdsRef.current.clear();
       inFlightRecordIdsRef.current.clear();
     };
-  }, [fixture]);
+  }, [chatID, session.state]);
 
-  function showFeedback(kind: QueueFeedbackId, record: QueueRecord): void {
-    const feedbackId = ++feedbackSequenceRef.current;
-    setFeedback((currentFeedback) => [
-      ...currentFeedback,
-      { id: feedbackId, kind, record }
-    ]);
+  function showFeedback(
+    messageKey: string,
+    tone: StatusTone,
+    record: QueueRecord,
+    dismissAfter: number | undefined
+  ): void {
+    if (feedbackTimerRef.current !== undefined) {
+      window.clearTimeout(feedbackTimerRef.current);
+      feedbackTimerRef.current = undefined;
+    }
 
-    const timerId = window.setTimeout(() => {
-      feedbackTimerIdsRef.current.delete(timerId);
-      setFeedback((currentFeedback) =>
-        currentFeedback.filter((item) => item.id !== feedbackId)
-      );
-    }, FEEDBACK_DURATION_MS);
-    feedbackTimerIdsRef.current.add(timerId);
+    const id = ++feedbackSequenceRef.current;
+    setFeedback({ id, messageKey, tone, record });
+
+    if (dismissAfter !== undefined) {
+      const timerID = window.setTimeout(() => {
+        if (feedbackSequenceRef.current === id) {
+          setFeedback(null);
+        }
+        feedbackTimerRef.current = undefined;
+      }, dismissAfter);
+      feedbackTimerRef.current = timerID;
+    }
   }
 
-  function startAction(record: QueueRecord, actionId: QueueActionId): void {
-    if (inFlightRecordIdsRef.current.has(record.id)) {
+  function finishAction(recordID: string, scope: string): void {
+    if (activeScopeRef.current !== scope) {
       return;
     }
 
-    const action = queueActions[actionId];
-    const shouldFail = record.simulatedFailureAction === actionId;
+    inFlightRecordIdsRef.current.delete(recordID);
+    setPendingActions((currentActions) => {
+      const nextActions = { ...currentActions };
+      delete nextActions[recordID];
+      return nextActions;
+    });
+  }
 
-    if (shouldFail && action.failureFeedback === null) {
-      throw new Error(`Queue fixture cannot fail the ${actionId} action`);
-    }
-
-    inFlightRecordIdsRef.current.add(record.id);
-    setPendingActions((currentActions) => ({
-      ...currentActions,
-      [record.id]: actionId
-    }));
-
-    const optimisticResult = action.optimisticResult;
-    if (optimisticResult) {
-      setRecords((currentRecords) =>
-        currentRecords.map((currentRecord) =>
-          currentRecord.id === record.id
-            ? {
-                ...currentRecord,
-                result: optimisticResult,
-                remainingSeconds: undefined
-              }
-            : currentRecord
-        )
-      );
-    }
-
-    const timerId = window.setTimeout(() => {
-      actionTimerIdsRef.current.delete(timerId);
+  function releaseFixtureRecord(record: QueueRecord, scope: string, fixtureData: QueueFixture): void {
+    const shouldFail =
+      fixtureData.records.find((fixtureRecord) => fixtureRecord.id === record.id)
+        ?.simulatedFailureAction === "release";
+    setRecords((currentRecords) =>
+      currentRecords.map((currentRecord) =>
+        currentRecord.id === record.id
+          ? { ...currentRecord, result: challengeResults.approved, remainingSeconds: undefined }
+          : currentRecord
+      )
+    );
+    const timerID = window.setTimeout(() => {
+      fixtureTimerIdsRef.current.delete(timerID);
+      if (activeScopeRef.current !== scope) {
+        return;
+      }
 
       if (shouldFail) {
         setRecords((currentRecords) =>
@@ -409,33 +351,71 @@ export function QueueScreen() {
             currentRecord.id === record.id ? record : currentRecord
           )
         );
+        showFeedback("queue.feedback.releaseFailure", "error", record, undefined);
+      } else {
+        showFeedback("queue.feedback.releaseSuccess", "ok", record, FEEDBACK_DURATION_MS);
       }
-
-      setPendingActions((currentActions) => {
-        const nextActions = { ...currentActions };
-        delete nextActions[record.id];
-        return nextActions;
-      });
-      inFlightRecordIdsRef.current.delete(record.id);
-      showFeedback(
-        shouldFail ? action.failureFeedback! : action.completionFeedback,
-        record
-      );
-    }, ACTION_DELAY_MS);
-    actionTimerIdsRef.current.add(timerId);
+      finishAction(record.id, scope);
+    }, FIXTURE_ACTION_DELAY_MS);
+    fixtureTimerIdsRef.current.add(timerID);
   }
 
-  function handleAction(record: QueueRecord, actionId: QueueActionId): void {
+  function releaseRecord(record: QueueRecord): void {
     if (inFlightRecordIdsRef.current.has(record.id)) {
       return;
     }
 
-    if (queueActions[actionId].confirmation) {
-      setConfirmation({ actionId, record });
+    const scope = activeScopeRef.current;
+    inFlightRecordIdsRef.current.add(record.id);
+    setPendingActions((currentActions) => ({ ...currentActions, [record.id]: true }));
+    setFeedback(null);
+
+    if (queueState.kind === "fixture") {
+      releaseFixtureRecord(record, scope, queueState.fixture);
       return;
     }
 
-    startAction(record, actionId);
+    if (queueState.kind !== "loaded" || !chatID) {
+      finishAction(record.id, scope);
+      return;
+    }
+
+    void releaseQueueRecord(consoleApi, chatID, record)
+      .then((result) => {
+        if (activeScopeRef.current !== scope) {
+          return;
+        }
+
+        if (result.ok) {
+          setRecords((currentRecords) =>
+            currentRecords.map((currentRecord) =>
+              currentRecord.id === record.id ? result.data : currentRecord
+            )
+          );
+          showFeedback("queue.feedback.releaseSuccess", "ok", result.data, FEEDBACK_DURATION_MS);
+          return;
+        }
+
+        const error = result.error;
+        showFeedback(
+          queueErrorMessageKey(error, "queue.errors.settlementUnavailable"),
+          "error",
+          record,
+          undefined
+        );
+
+        if (error.kind === "api" && error.code === "challenge_conflict") {
+          setReloadVersion((currentVersion) => currentVersion + 1);
+        }
+
+        if (error.kind === "api" && accessRevocationCodes[error.code] === true) {
+          setRecords([]);
+          setQueueState({ kind: "unavailable", error });
+        }
+      })
+      .finally(() => {
+        finishAction(record.id, scope);
+      });
   }
 
   function clearFixture(): void {
@@ -447,41 +427,52 @@ export function QueueScreen() {
     });
   }
 
+  const dataState =
+    queueState.kind === "fixture"
+      ? queueState.fixture.id
+      : queueState.kind === "loaded"
+        ? records.length === 0
+          ? "empty"
+          : "populated"
+        : queueState.kind;
+
   return (
-    <section data-queue-page data-queue-state={fixture.id} aria-labelledby="queue-title">
+    <section
+      data-queue-page
+      data-queue-state={dataState}
+      aria-busy={queueState.kind === "loading" ? true : undefined}
+      aria-labelledby="queue-title"
+    >
       <header data-page-heading>
         <h1 id="queue-title">{t("queue.title")}</h1>
       </header>
 
-      {records.length > 0 ? (
+      {queueState.kind === "loading" ? <QueueLoadingState /> : null}
+      {queueState.kind === "group-required" ? <QueueGroupRequiredState /> : null}
+      {queueState.kind === "no-groups" ? <QueueNoGroupsState /> : null}
+      {queueState.kind === "unavailable" ? (
+        <QueueUnavailableState
+          error={queueState.error}
+          onRetry={() => setReloadVersion((currentVersion) => currentVersion + 1)}
+        />
+      ) : null}
+      {(queueState.kind === "fixture" || queueState.kind === "loaded") && records.length > 0 ? (
         <QueueTable
           records={records}
           pendingActions={pendingActions}
           dateFormatter={dateFormatter}
-          onAction={handleAction}
+          onRelease={releaseRecord}
         />
-      ) : fixture.filter ? (
-        <QueueFilteredEmptyState filter={fixture.filter} onClear={clearFixture} />
-      ) : (
+      ) : null}
+      {queueState.kind === "fixture" && records.length === 0 && queueState.fixture.filter ? (
+        <QueueFilteredEmptyState filter={queueState.fixture.filter} onClear={clearFixture} />
+      ) : null}
+      {(queueState.kind === "fixture" || queueState.kind === "loaded") && records.length === 0 &&
+      !(queueState.kind === "fixture" && queueState.fixture.filter) ? (
         <QueueEmptyState />
-      )}
-
-      {feedback.length > 0 ? (
-        <div data-queue-feedback-stack>
-          {feedback.map((item) => (
-            <QueueFeedbackNotice key={item.id} feedback={item} />
-          ))}
-        </div>
       ) : null}
 
-      <QueueConfirmationDialog
-        confirmation={confirmation}
-        onCancel={() => setConfirmation(null)}
-        onConfirm={(confirmedAction) => {
-          setConfirmation(null);
-          startAction(confirmedAction.record, confirmedAction.actionId);
-        }}
-      />
+      {feedback ? <QueueFeedbackNotice feedback={feedback} /> : null}
     </section>
   );
 }

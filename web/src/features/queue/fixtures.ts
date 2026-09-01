@@ -1,140 +1,23 @@
 import {
   challengeResults,
-  type ChallengeResultDefinition,
-  type ChallengeResultId
+  type ChallengeResultDefinition
 } from "../../lib/challenge";
+import type { QueueRecord } from "./api";
 
-export type QueueActionId = "release" | "revoke" | "details";
-export type QueueFeedbackId =
-  | "releaseSuccess"
-  | "revokeSuccess"
-  | "releaseFailure"
-  | "detailsUnavailable";
-
-
-export type QueueRecord = {
-  id: string;
-  user: string;
-  groupKey: string;
-  result: ChallengeResultDefinition;
-  occurredAt: string;
-  remainingSeconds?: number;
-  simulatedFailureAction?: QueueActionId;
+export type QueueFixtureRecord = QueueRecord & {
+  readonly simulatedFailureAction?: "release";
 };
 
 export type QueueFilter = {
   groupKey: string;
+  groupLabelKey?: string;
   result: ChallengeResultDefinition;
 };
 
 export type QueueFixture = {
   id: string;
-  records: readonly QueueRecord[];
+  records: readonly QueueFixtureRecord[];
   filter?: QueueFilter;
-};
-
-export const queueResultPresentations: Readonly<
-  Record<
-    ChallengeResultId,
-    {
-      action: QueueActionId | null;
-      showsRemainingTime: boolean;
-    }
-  >
-> = {
-  pending: {
-    action: "release",
-    showsRemainingTime: true
-  },
-  approved: {
-    action: "details",
-    showsRemainingTime: false
-  },
-  declinedWrongAnswer: {
-    action: null,
-    showsRemainingTime: false
-  },
-  declinedRejected: {
-    action: null,
-    showsRemainingTime: false
-  },
-  declinedExternalUnmet: {
-    action: null,
-    showsRemainingTime: false
-  },
-  banned: {
-    action: "revoke",
-    showsRemainingTime: false
-  },
-  expired: {
-    action: "details",
-    showsRemainingTime: false
-  },
-  superseded: {
-    action: null,
-    showsRemainingTime: false
-  }
-};
-
-export const queueActions: Readonly<
-  Record<
-    QueueActionId,
-    {
-      labelKey: string;
-      ariaLabelKey: string;
-      pendingLabelKey: string;
-      pendingAriaLabelKey: string;
-      variant: "primary" | "ghost";
-      optimisticResult: ChallengeResultDefinition | null;
-      confirmation: {
-        titleKey: string;
-        descriptionKey: string;
-        cancelKey: string;
-        confirmKey: string;
-      } | null;
-      completionFeedback: QueueFeedbackId;
-      failureFeedback: QueueFeedbackId | null;
-    }
-  >
-> = {
-  release: {
-    labelKey: "queue.actions.release",
-    ariaLabelKey: "queue.actions.releaseFor",
-    pendingLabelKey: "queue.actions.releasing",
-    pendingAriaLabelKey: "queue.actions.releasingFor",
-    variant: "primary",
-    optimisticResult: challengeResults.approved,
-    confirmation: null,
-    completionFeedback: "releaseSuccess",
-    failureFeedback: "releaseFailure"
-  },
-  revoke: {
-    labelKey: "queue.actions.revoke",
-    ariaLabelKey: "queue.actions.revokeFor",
-    pendingLabelKey: "queue.actions.revoking",
-    pendingAriaLabelKey: "queue.actions.revokingFor",
-    variant: "ghost",
-    optimisticResult: challengeResults.approved,
-    confirmation: {
-      titleKey: "queue.revokeDialog.title",
-      descriptionKey: "queue.revokeDialog.description",
-      cancelKey: "queue.revokeDialog.cancel",
-      confirmKey: "queue.revokeDialog.confirm"
-    },
-    completionFeedback: "revokeSuccess",
-    failureFeedback: null
-  },
-  details: {
-    labelKey: "queue.actions.details",
-    ariaLabelKey: "queue.actions.detailsFor",
-    pendingLabelKey: "queue.actions.openingDetails",
-    pendingAriaLabelKey: "queue.actions.openingDetailsFor",
-    variant: "ghost",
-    optimisticResult: null,
-    confirmation: null,
-    completionFeedback: "detailsUnavailable",
-    failureFeedback: null
-  }
 };
 
 const defaultQueueFixture: QueueFixture = {
@@ -143,68 +26,86 @@ const defaultQueueFixture: QueueFixture = {
     {
       id: "challenge-42",
       user: "@someone",
-      groupKey: "groups.names.gentooZh",
+      groupKey: "-1001163306055",
+      groupLabelKey: "groups.names.gentooZh",
       result: challengeResults.approved,
-      occurredAt: "2026-08-31T14:02:00+08:00"
+      occurredAt: "2026-08-31T14:02:00+08:00",
+      expiresAt: "2026-08-31T14:32:00+08:00"
     },
     {
       id: "challenge-43",
       user: "@another",
-      groupKey: "groups.names.gentooZh",
+      groupKey: "-1001163306055",
+      groupLabelKey: "groups.names.gentooZh",
       result: challengeResults.pending,
       occurredAt: "2026-08-31T14:09:00+08:00",
+      expiresAt: "2026-08-31T14:11:41+08:00",
       remainingSeconds: 161
     },
     {
       id: "challenge-50",
       user: "@retry_release",
-      groupKey: "groups.names.gentooZh",
+      groupKey: "-1001163306055",
+      groupLabelKey: "groups.names.gentooZh",
       result: challengeResults.pending,
       occurredAt: "2026-08-31T14:08:00+08:00",
+      expiresAt: "2026-08-31T14:11:47+08:00",
       remainingSeconds: 219,
       simulatedFailureAction: "release"
     },
     {
       id: "challenge-44",
       user: "@spam_ad_01",
-      groupKey: "groups.names.archZh",
+      groupKey: "-1001834029912",
+      groupLabelKey: "groups.names.archZh",
       result: challengeResults.banned,
-      occurredAt: "2026-08-31T13:47:00+08:00"
+      occurredAt: "2026-08-31T13:47:00+08:00",
+      expiresAt: "2026-08-31T14:17:00+08:00"
     },
     {
       id: "challenge-45",
       user: "@lurker",
-      groupKey: "groups.names.oldOt",
+      groupKey: "-1001965172048",
+      groupLabelKey: "groups.names.oldOt",
       result: challengeResults.expired,
-      occurredAt: "2026-08-30T21:15:00+08:00"
+      occurredAt: "2026-08-30T21:15:00+08:00",
+      expiresAt: "2026-08-30T21:45:00+08:00"
     },
     {
       id: "challenge-46",
       user: "@wrong_answer",
-      groupKey: "groups.names.archZh",
+      groupKey: "-1001834029912",
+      groupLabelKey: "groups.names.archZh",
       result: challengeResults.declinedWrongAnswer,
-      occurredAt: "2026-08-30T20:41:00+08:00"
+      occurredAt: "2026-08-30T20:41:00+08:00",
+      expiresAt: "2026-08-30T21:11:00+08:00"
     },
     {
       id: "challenge-47",
       user: "@policy_veto",
-      groupKey: "groups.names.gentooZh",
+      groupKey: "-1001163306055",
+      groupLabelKey: "groups.names.gentooZh",
       result: challengeResults.declinedRejected,
-      occurredAt: "2026-08-30T19:36:00+08:00"
+      occurredAt: "2026-08-30T19:36:00+08:00",
+      expiresAt: "2026-08-30T20:06:00+08:00"
     },
     {
       id: "challenge-48",
       user: "@external_check",
-      groupKey: "groups.names.oldOt",
+      groupKey: "-1001965172048",
+      groupLabelKey: "groups.names.oldOt",
       result: challengeResults.declinedExternalUnmet,
-      occurredAt: "2026-08-30T18:22:00+08:00"
+      occurredAt: "2026-08-30T18:22:00+08:00",
+      expiresAt: "2026-08-30T18:52:00+08:00"
     },
     {
       id: "challenge-49",
       user: "@reapplied_user",
-      groupKey: "groups.names.gentooZh",
+      groupKey: "-1001163306055",
+      groupLabelKey: "groups.names.gentooZh",
       result: challengeResults.superseded,
-      occurredAt: "2026-08-30T17:08:00+08:00"
+      occurredAt: "2026-08-30T17:08:00+08:00",
+      expiresAt: "2026-08-30T17:38:00+08:00"
     }
   ]
 };
@@ -219,7 +120,8 @@ export const queueFixtures: readonly QueueFixture[] = [
     id: "filtered-empty",
     records: [],
     filter: {
-      groupKey: "groups.names.oldOt",
+      groupKey: "-1001965172048",
+      groupLabelKey: "groups.names.oldOt",
       result: challengeResults.banned
     }
   }

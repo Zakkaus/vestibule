@@ -405,6 +405,17 @@ body {
   white-space: nowrap;
 }
 
+[data-queue-card-list] {
+  display: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-queue-card-action]:empty {
+  display: none;
+}
+
 [data-queue-empty] {
   display: grid;
   justify-items: start;
@@ -424,52 +435,6 @@ body {
   color: var(--muted-foreground);
 }
 
-[data-queue-confirmation] {
-  inline-size: min(32rem, calc(100vi - var(--sp-6)));
-  max-inline-size: none;
-  max-block-size: calc(100dvb - var(--sp-6));
-  margin: auto;
-  padding: 0;
-  overflow: visible;
-  border: 0;
-  background: transparent;
-  color: inherit;
-}
-
-[data-queue-confirmation]::backdrop {
-  backdrop-filter: blur(6px);
-  background: var(--scrim);
-}
-
-[data-queue-dialog-content] {
-  display: grid;
-  gap: var(--sp-4);
-  max-block-size: calc(100dvb - var(--sp-6));
-  overflow: auto;
-}
-
-[data-queue-dialog-content] h2,
-[data-queue-dialog-content] p {
-  margin: 0;
-}
-
-[data-queue-dialog-content] h2 {
-  font-size: 1.125rem;
-  line-height: 1.4;
-}
-
-[data-queue-dialog-content] p {
-  color: var(--muted-foreground);
-  font-size: 0.875rem;
-  line-height: 1.6;
-}
-
-[data-queue-dialog-actions] {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: end;
-  gap: var(--sp-2);
-}
 
 [data-queue-feedback-stack] {
   position: fixed;
@@ -623,6 +588,74 @@ body {
   [data-app-shell][data-shell-variant="console"] .shell-content {
     padding-block: var(--sp-3);
     padding-inline: var(--sp-3);
+  }
+
+  [data-queue-table-scroll] {
+    display: none;
+  }
+
+  [data-queue-card-list] {
+    display: grid;
+    gap: var(--sp-3);
+  }
+
+  [data-queue-card-row] {
+    display: grid;
+    gap: var(--sp-3);
+    padding-block: var(--sp-4);
+    padding-inline: var(--sp-4);
+    border: var(--hairline) solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+    box-shadow: var(--card-shadow);
+  }
+
+  [data-queue-card-header] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-3);
+  }
+
+  [data-queue-card-header] [data-queue-user] {
+    min-inline-size: 0;
+    overflow-wrap: anywhere;
+  }
+
+  [data-queue-card-details] {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-3);
+    margin: 0;
+  }
+
+  [data-queue-card-details] div {
+    display: grid;
+    gap: var(--sp-1);
+    min-inline-size: 0;
+  }
+
+  [data-queue-card-details] dt {
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  [data-queue-card-details] dd {
+    min-inline-size: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  [data-queue-card-action] {
+    display: grid;
+    padding-block-start: var(--sp-3);
+    border-block-start: var(--hairline) solid var(--border);
+  }
+
+  [data-queue-card-action] [data-slot="button"] {
+    inline-size: 100%;
+    min-block-size: var(--control-h);
   }
 
   [data-group-row] {
