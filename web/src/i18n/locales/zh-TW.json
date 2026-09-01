@@ -607,5 +607,126 @@
       "saveUnavailable": "暫時無法儲存驗證設定。請重試。",
       "network": "連線已中斷。重新讀取設定後，再決定是否重試。"
     }
+  },
+  "questions": {
+    "navigation": "題庫",
+    "title": "題庫",
+    "description": "管理目前群組的選擇題、備用填空題和答題語言。",
+    "loading": {
+      "title": "正在載入題庫",
+      "description": "正在讀取此群組目前的題目、備用題和設定來源…"
+    },
+    "groupRequired": {
+      "title": "請先選擇群組",
+      "description": "選擇已獲授權的群組後，才能修改它的題庫。",
+      "select": "選擇群組"
+    },
+    "noGroups": {
+      "title": "此帳號尚未取得任何群組授權",
+      "description": "題庫只對已獲授權的群組開放。"
+    },
+    "unavailable": {
+      "title": "無法讀取題庫",
+      "retry": "重試"
+    },
+    "source": {
+      "value": "來源：{{source}}",
+      "fallbackMode": "備用題模式來源：{{source}}",
+      "fallbackBank": "自訂備用題來源：{{source}}",
+      "factoryDefault": "出廠預設",
+      "userFile": "設定檔",
+      "chatOverride": "此群組覆寫",
+      "restoring": "待還原繼承值"
+    },
+    "concurrency": {
+      "title": "整份題庫一起儲存",
+      "description": "兩位管理員同時修改不同題目也會發生版本衝突。衝突時頁面會重新載入最新題庫，尚未儲存的本機草稿不會寫入。"
+    },
+    "language": {
+      "title": "答題語言",
+      "description": "選擇機器人向申請人顯示題目和驗證文案時使用的語言。",
+      "label": "群組內答題語言",
+      "settingDescription": "可選簡體中文、繁體中文或英文；內建備用題也使用此語言。",
+      "zh": "簡體中文",
+      "zhHant": "繁體中文",
+      "en": "英文"
+    },
+    "questionBank": {
+      "title": "選擇題",
+      "description": "每道題至少有兩個選項。正確答案以選項在清單中的位置儲存。",
+      "count_one": "共 {{count}} 道選擇題",
+      "count_other": "共 {{count}} 道選擇題",
+      "empty": "尚無選擇題。新增第一道題後才能用於選擇題驗證。",
+      "itemTitle": "選擇題 {{number}}",
+      "prompt": "題面",
+      "options": "選項與正確答案",
+      "optionsDescription": "選取選項左側的圓點，將它設為正確答案。",
+      "option": "選項 {{number}}",
+      "correctAnswerFor": "將選項 {{number}} 設為正確答案",
+      "confirmDelete": "刪除選擇題 {{number}}？儲存後，這道題會從目前群組的題庫中移除。"
+    },
+    "fallback": {
+      "title": "備用填空題",
+      "description": "管理無法回答 Linux 題目的申請人所使用的備用題。",
+      "modeLabel": "備用題來源",
+      "modeDescription": "使用內建本地化題目，或維護目前群組自己的題面和可接受答案。",
+      "builtin": "內建本地化題目",
+      "custom": "自訂備用題",
+      "builtinDescription": "機器人會按上面的答題語言使用隨程式提供的備用題目。",
+      "count_one": "共 {{count}} 道自訂備用題",
+      "count_other": "共 {{count}} 道自訂備用題",
+      "itemTitle": "備用題 {{number}}",
+      "prompt": "題面",
+      "answers": "可接受答案",
+      "answersDescription": "判定會使用伺服器端實際的答案正規化邏輯；這裡只維護完整答案清單。",
+      "answer": "答案 {{number}}",
+      "confirmDelete": "刪除備用題 {{number}}？儲存後，這道題會從目前群組的備用題庫中移除。"
+    },
+    "actions": {
+      "restore": "還原繼承值",
+      "restoreFallback": "還原備用題繼承值",
+      "addQuestion": "新增選擇題",
+      "deleteQuestion": "刪除題目",
+      "addOption": "新增選項",
+      "removeOption": "移除",
+      "removeOptionFor": "移除選項 {{number}}",
+      "addFallback": "新增備用題",
+      "deleteFallback": "刪除備用題",
+      "addAnswer": "新增答案",
+      "removeAnswer": "移除",
+      "removeAnswerFor": "移除答案 {{number}}",
+      "save": "儲存變更",
+      "saving": "正在儲存…"
+    },
+    "save": {
+      "dirty": "有尚未儲存的題庫變更。",
+      "clean": "沒有待儲存的題庫變更。"
+    },
+    "feedback": {
+      "saved": "已儲存題庫設定。",
+      "conflict": "另一位管理員已修改這些設定。頁面已重新載入最新題庫，你尚未儲存的草稿沒有寫入。每個題庫都以完整清單儲存，即使修改不同題目也會發生版本衝突；請依最新內容重新編輯。"
+    },
+    "validation": {
+      "questionPrompt": "請輸入題面。",
+      "questionOptions": "每道選擇題至少需要兩個選項。",
+      "questionAnswer": "請選擇清單中現有的一個選項作為正確答案。",
+      "fallbackRequired": "使用自訂備用題時，至少需要一道題。",
+      "fallbackPrompt": "請輸入備用題題面。",
+      "fallbackAnswers": "每道備用題至少需要一個可接受答案。",
+      "fallbackAnswerBlank": "可接受答案不能留空。"
+    },
+    "errors": {
+      "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
+      "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
+      "accessDenied": "你已不再擁有此群組的管理權限。",
+      "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
+      "chatNotFound": "此群組已無法在控制台中管理。",
+      "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
+      "invalidSettings": "題庫未通過驗證。檢查題目和答案後重新儲存。",
+      "settingsUnavailable": "題庫設定暫時無法使用。請重試。",
+      "loadUnavailable": "暫時無法讀取題庫。請重試。",
+      "saveUnavailable": "暫時無法儲存題庫。請重試。",
+      "network": "連線已中斷。重新讀取題庫後，再決定是否重試。"
+    }
   }
 }

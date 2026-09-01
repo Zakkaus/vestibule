@@ -8,6 +8,7 @@ import { ModerationScreen } from "../features/moderation";
 import { QueueScreen } from "../features/queue";
 import { PreferencesScreen } from "../features/preferences";
 import { VerificationScreen } from "../features/verification";
+import { QuestionsScreen } from "../features/questions";
 import { AppShell } from "./AppShell";
 
 const entryHandle = {
@@ -46,6 +47,11 @@ const router = createBrowserRouter([
       {
         path: "bypass",
         element: <BypassScreen />,
+        handle: consoleHandle
+      },
+      {
+        path: "questions",
+        element: <QuestionsScreen />,
         handle: consoleHandle
       },
       {

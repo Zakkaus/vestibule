@@ -33,6 +33,10 @@ const navigationItems = [
     labelKey: "bypass.navigation"
   },
   {
+    path: "/questions",
+    labelKey: "questions.navigation"
+  },
+  {
     path: "/groups",
     labelKey: "navigation.groups"
   },
