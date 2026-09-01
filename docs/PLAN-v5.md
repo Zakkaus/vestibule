@@ -490,6 +490,21 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 
 **4 个文件，1,780 行**（清点时是 1,832；阶段四改过其中几处）。
 
+**先说清 `internal/panel` 现在是什么**：它不是一个 HTTP 面板，
+是 **Telegram 内联键盘的设置面板** —— `OnPing`、`OnStart`、`OnStats` 都是 Telegram handler，
+会话按用户存、token 走 callback data。仓库里**还没有任何 HTTP 服务**。
+所以这一阶段不是「把一层拆开」，是**造出控制台这一层**，
+同时把 Telegram 那侧留下该留的。
+
+按上面定的端点范围，这一阶段各文件的实际接触面：
+
+| 文件 | 本阶段 |
+|---|---|
+| `panel.go` 416 行 | 拆：Telegram 命令（`/ping`、`/start`、`/stop`、`/stats`）留在 `internal/panel`；会话与授权那部分进 `internal/console/auth` |
+| `session.go` 337 行 | 重写为 `console/auth`：Mini App 的 `initData` 校验、运维一次性链接换会话、过期与重放 |
+| `codec.go` 199 行 | 删除：它编码的是 callback data，控制台不用回调按钮 |
+| `settings_input.go` 828 行 | **本阶段基本不动。** 它的 26 个函数是题库、fallback、频道、确认这些屏的输入流程，跟着各自的屏在阶段七落地 |
+
 | 现路径 | 处置 | 目标位置 |
 |---|---|---|
 | `internal/panel/panel.go` | 拆分 | `internal/console/api`、`internal/console/auth`、`internal/telegram/updates.go`、`internal/status`、保留的 `internal/panel` |
