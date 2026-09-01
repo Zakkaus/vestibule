@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/edition"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 )
@@ -31,7 +31,7 @@ var userAgent = edition.Name
 
 var overlays []overlay
 
-func configurePkg(cfg *config.Config) {
+func configurePkg(cfg *settings.Config) {
 	if cfg.UserAgent != "" {
 		userAgent = cfg.UserAgent
 	}
@@ -718,7 +718,7 @@ func (v *Service) OnPkg(ctx *th.Context, update telego.Update) error {
 	availability := pkgLookupAvailability{official: mainOK, overlays: overlayOK}
 	plain := renderPkg(l, q, mainRes, vm, ovRes, availability)
 	rich := ""
-	if v.richEnabled() {
+	if v.richEnabled(msg.Chat.ID) {
 		rich = renderPkgRich(l, q, mainRes, vm, ovRes, availability)
 	}
 	v.sendRichOrHTML(c, bot, msg.Chat.ID, msg.MessageID, rich, plain)
@@ -1467,7 +1467,7 @@ func (v *Service) OnUse(ctx *th.Context, update telego.Update) error {
 		if info, found, _ := officialInfo(hc, atom); found {
 			url := "https://packages.gentoo.org/packages/" + atom
 			out = renderUse(l, info, "", url, false, s.ovs)
-			if v.richEnabled() {
+			if v.richEnabled(msg.Chat.ID) {
 				outRich = renderUseRich(l, info, "", url, false, s.ovs)
 			}
 		}
@@ -1478,7 +1478,7 @@ func (v *Service) OnUse(ctx *th.Context, update telego.Update) error {
 		if info, ok := overlayInfo(hc, o, atom, pkgC.overlayVer(ovName, atom)); ok {
 			url := o.treeURL(atom)
 			out = renderUse(l, info, "overlay:"+ovName, url, true, s.ovs[1:])
-			if v.richEnabled() {
+			if v.richEnabled(msg.Chat.ID) {
 				outRich = renderUseRich(l, info, "overlay:"+ovName, url, true, s.ovs[1:])
 			}
 		}

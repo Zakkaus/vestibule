@@ -8,8 +8,6 @@ cyclomatic-complexity	cmd/vestibule/registration_test.go	94	(*registrationCaller
 cyclomatic-complexity	cmd/vestibule/registration_test.go	1440	TestEnrollmentTransportFailuresRetainDurableState	37
 cyclomatic-complexity	cmd/vestibule/registration_test.go	1032	TestOwnerCanUnregisterRuntimeGroupAndDropOverrides	27
 cyclomatic-complexity	internal/bot/bot_test.go	240	TestSetupCommandsLanguageScopes	20
-cyclomatic-complexity	internal/config/config.go	698	(*Config).IsKnownChat	17
-cyclomatic-complexity	internal/config/config.go	355	LoadConfig	83
 cyclomatic-complexity	internal/feed/feed.go	775	pollAllWithSources	20
 cyclomatic-complexity	internal/feed/feed.go	674	postFeedItems	21
 cyclomatic-complexity	internal/feed/feed.go	525	refreshTracked	25
@@ -45,18 +43,7 @@ cyclomatic-complexity	internal/panel/settings_panel.go	223	(*Panel).dispatchCall
 cyclomatic-complexity	internal/panel/settings_panel.go	1352	(*Panel).inputPrompt	18
 cyclomatic-complexity	internal/panel/settings_panel_behavior_test.go	75	(*panelAPICaller).Call	19
 cyclomatic-complexity	internal/panel/settings_panel_behavior_test.go	1016	TestPanelCommittedCallbackRenderFailuresReportSaved	16
-cyclomatic-complexity	internal/store/baseline.go	51	settingsBaselineFromConfig	22
 cyclomatic-complexity	internal/store/json_test.go	170	TestSaveOrdersSnapshotAndCommit	17
-cyclomatic-complexity	internal/store/settings.go	1239	(*Settings).validateRegistrations	29
-cyclomatic-complexity	internal/store/settings.go	334	NewSettings	26
-cyclomatic-complexity	internal/store/settings.go	1131	validateEffectiveGroup	34
-cyclomatic-complexity	internal/store/settings_test.go	724	TestOwnerClaimExpiryAndEnrollmentIssuance	20
-cyclomatic-complexity	internal/store/settings_test.go	285	TestSettingsLookupAutoDeleteRetainsTTLAcrossToggle	16
-cyclomatic-complexity	internal/store/settings_test.go	536	TestSettingsMigratesCurrentAntispamGoldenToEveryEffectiveGroup	23
-cyclomatic-complexity	internal/store/settings_test.go	436	TestSettingsMigratesLegacyGoldenToEveryConfiguredGroup	28
-cyclomatic-complexity	internal/store/settings_test.go	765	TestSettingsRegistrationRoundTripAndRuntimeOnlyPolicy	22
-cyclomatic-complexity	internal/store/settings_test.go	63	TestSettingsSparseRoundTripAndRestore	59
-cyclomatic-complexity	internal/store/state_root_compat_test.go	70	TestStateCompatSettings	16
 cyclomatic-complexity	internal/tg/tg_test.go	280	TestAdminCacheAndFreshLookup	17
 cyclomatic-complexity	internal/tg/tg_test.go	477	TestErrorClassification	18
 cyclomatic-complexity	internal/verification/kernel.go	623	(*Service).gradeKernelAnswer	28
@@ -80,8 +67,6 @@ file-lines	cmd/vestibule/main_test.go	0		604
 file-lines	cmd/vestibule/registration.go	0		1044
 file-lines	cmd/vestibule/registration_test.go	0		1643
 file-lines	internal/bot/bot_test.go	0		1021
-file-lines	internal/config/config.go	0		732
-file-lines	internal/config/config_test.go	0		633
 file-lines	internal/feed/feed.go	0		975
 file-lines	internal/feed/feed_fix_test.go	0		653
 file-lines	internal/feed/feed_test.go	0		919
@@ -93,8 +78,6 @@ file-lines	internal/panel/settings_controls_test.go	0		1051
 file-lines	internal/panel/settings_input.go	0		851
 file-lines	internal/panel/settings_panel.go	0		1398
 file-lines	internal/panel/settings_panel_behavior_test.go	0		1243
-file-lines	internal/store/settings.go	0		1591
-file-lines	internal/store/settings_test.go	0		906
 file-lines	internal/verification/kernel_test.go	0		1141
 file-lines	internal/verification/recovery_test.go	0		1014
 file-lines	internal/verification/service.go	0		2719
@@ -109,7 +92,6 @@ function-lines	cmd/vestibule/registration_test.go	1032	TestOwnerCanUnregisterRun
 function-lines	cmd/vestibule/registration_test.go	320	TestRegistrationGlobalDispatch	85
 function-lines	cmd/vestibule/runtime_registration_integration_test.go	44	TestRuntimeRegistrationActivatesServicesWithoutRebuiltConfig	88
 function-lines	internal/bot/bot_test.go	817	TestGlobalDispatchRunsOnlyTheIntendedHandler	130
-function-lines	internal/config/config.go	355	LoadConfig	214
 function-lines	internal/feed/feed.go	775	pollAllWithSources	84
 function-lines	internal/feed/feed.go	525	refreshTracked	100
 function-lines	internal/feed/feed_test.go	443	TestRefreshTrackedEditBranches	88
@@ -126,10 +108,6 @@ function-lines	internal/panel/settings_controls_test.go	156	testSettingsScreenCo
 function-lines	internal/panel/settings_input.go	546	(*Panel).applyTextInput	130
 function-lines	internal/panel/settings_integration_test.go	201	TestRuntimeSettingsCommandHandlersPersistAndRespond	90
 function-lines	internal/panel/settings_panel_behavior_test.go	1016	TestPanelCommittedCallbackRenderFailuresReportSaved	142
-function-lines	internal/store/baseline.go	51	settingsBaselineFromConfig	127
-function-lines	internal/store/settings.go	334	NewSettings	118
-function-lines	internal/store/settings_test.go	536	TestSettingsMigratesCurrentAntispamGoldenToEveryEffectiveGroup	86
-function-lines	internal/store/settings_test.go	63	TestSettingsSparseRoundTripAndRestore	153
 function-lines	internal/verification/kernel.go	295	(*Service).gradeKernelAnswer	105
 function-lines	internal/verification/kernel_test.go	50	TestKernelAnswerOK	90
 function-lines	internal/verification/service.go	1102	(*Service).OnMemberJoined	105

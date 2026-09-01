@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/mymmrac/telego"
 )
@@ -25,7 +25,7 @@ const (
 func TestWarningsPersistence(t *testing.T) {
 	stateDirectory := t.TempDir()
 	telegram := newFakeMod()
-	service := newTestService(t, &config.Config{}, telegram, stateDirectory)
+	service := newTestService(t, &settings.Config{}, telegram, stateDirectory)
 	cleared := warningKey{groupID: -200, userID: 9}
 	service.warnings.counters[warningKey{groupID: -100, userID: 7}] = 1
 	service.warnings.counters[warningKey{groupID: -100, userID: 8}] = 3
@@ -39,7 +39,7 @@ func TestWarningsPersistence(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	restored := newTestService(t, &config.Config{}, newFakeMod(), stateDirectory)
+	restored := newTestService(t, &settings.Config{}, newFakeMod(), stateDirectory)
 	for _, test := range []struct {
 		key  warningKey
 		want int
@@ -82,7 +82,7 @@ func TestWarningGoldenCompatibility(t *testing.T) {
 			if err := os.WriteFile(path, test.data, 0o600); err != nil {
 				t.Fatal(err)
 			}
-			service := newTestService(t, &config.Config{}, newFakeMod(), stateDirectory)
+			service := newTestService(t, &settings.Config{}, newFakeMod(), stateDirectory)
 			if !reflect.DeepEqual(service.warnings.counters, want) {
 				t.Fatalf("loaded warnings = %#v, want %#v", service.warnings.counters, want)
 			}
@@ -107,7 +107,7 @@ func TestWarningReadErrorDisablesWrites(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(stateDirectory, "warns.json"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	service := newTestService(t, &config.Config{}, newFakeMod(), stateDirectory)
+	service := newTestService(t, &settings.Config{}, newFakeMod(), stateDirectory)
 	if service.warnings.store != nil {
 		t.Error("warning store remains enabled after read failure")
 	}
@@ -130,9 +130,9 @@ func testWarnStateWriteFailure(t *testing.T, adminLogID int64) {
 		7: &telego.ChatMemberAdministrator{},
 		8: &telego.ChatMemberMember{},
 	}
-	cfg := &config.Config{
+	cfg := &settings.Config{
 		GroupIDs:         []int64{groupID},
-		Groups:           []config.GroupConfig{{ID: groupID}},
+		Groups:           []settings.GroupConfig{{ID: groupID}},
 		AdminLogChatID:   adminLogID,
 		Lang:             "en",
 		WarnLimit:        2,
@@ -206,7 +206,7 @@ func TestGenerateWarningFixture(t *testing.T) {
 		t.Skip("set UPDATE_STATE_COMPAT_FIXTURES=1 to regenerate state compatibility fixtures")
 	}
 	stateDirectory := filepath.Join("..", "..", "testdata", "state")
-	service := newTestService(t, &config.Config{}, newFakeMod(), stateDirectory)
+	service := newTestService(t, &settings.Config{}, newFakeMod(), stateDirectory)
 	service.warnings.counters = map[warningKey]int{
 		{groupID: stateCompatGroupA, userID: 7101}: 1,
 		{groupID: stateCompatGroupA, userID: 7102}: 2,

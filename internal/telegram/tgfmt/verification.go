@@ -3,9 +3,9 @@ package tgfmt
 import (
 	"html"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/rules"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/mymmrac/telego"
 )
 
@@ -49,11 +49,11 @@ func AgentTrapLine(messages *i18n.Catalog, l i18n.Lang, nonce string, expandable
 func ModeName(l i18n.Lang, mode string) string {
 	labels := &i18n.Messages.Verification.Mode
 	switch mode {
-	case config.ModeKernel:
+	case settings.ModeKernel:
 		return labels.Kernel.For(l)
-	case config.ModeQuiz:
+	case settings.ModeQuiz:
 		return labels.Quiz.For(l)
-	case config.ModeMixed:
+	case settings.ModeMixed:
 		return labels.Mixed.For(l)
 	}
 	return mode

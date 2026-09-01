@@ -6,6 +6,7 @@ require (
 	github.com/lib/pq v1.12.3
 	github.com/mymmrac/telego v1.11.2
 	go.mau.fi/util v0.10.1-0.20260820140024-eb612d936fde
+	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.57.0
 )
 

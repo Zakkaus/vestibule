@@ -3,11 +3,11 @@ package verification
 import (
 	"testing"
 
-	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 func TestShuffledQuestion(t *testing.T) {
-	q := (config.Question{Q: "pick A", Options: []string{"A", "B", "C", "D"}, Answer: 0})
+	q := (settings.Question{Q: "pick A", Options: []string{"A", "B", "C", "D"}, Answer: 0})
 	for i := 0; i < 200; i++ {
 		text, opts, correctIdx := shuffledQuestion(q)
 		if text != q.Q {

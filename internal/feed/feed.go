@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/lookup"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/Zakkaus/vestibule/internal/telegram/ids"
 	"github.com/Zakkaus/vestibule/internal/telegram/queue"
@@ -66,15 +66,15 @@ type feedBot interface {
 // Service polls configured Bugzilla and news feeds and persists their per-chat cursors.
 type Service struct {
 	bot      *telego.Bot
-	feeds    []*config.FeedConfig
+	feeds    []*settings.FeedConfig
 	stateDir string
 	// Lifecycle hooks default to the production poller and permission probe.
-	poll  func(context.Context, *telego.Bot, []*config.FeedConfig, map[int64]*feedState, string, time.Time, map[int64]time.Time)
-	probe func(context.Context, *telego.Bot, []*config.FeedConfig)
+	poll  func(context.Context, *telego.Bot, []*settings.FeedConfig, map[int64]*feedState, string, time.Time, map[int64]time.Time)
+	probe func(context.Context, *telego.Bot, []*settings.FeedConfig)
 }
 
 // New constructs a feed service from its Telegram bot, destination configs, and state directory.
-func New(bot *telego.Bot, feeds []*config.FeedConfig, stateDir string) *Service {
+func New(bot *telego.Bot, feeds []*settings.FeedConfig, stateDir string) *Service {
 	return &Service{bot: bot, feeds: feeds, stateDir: stateDir}
 }
 
@@ -523,7 +523,7 @@ func formatNewBug(b recentBug, l i18n.Lang, baseSilent bool) (text string, silen
 // refetch for maxTrackMisses cycles, repeatedly receives a deterministic Telegram 400, or gets a
 // known permanent edit error is dropped so it cannot wedge a tracking slot. Transport, context,
 // and 5xx failures never age tracking out.
-func refreshTracked(ctx context.Context, bot feedBot, f *config.FeedConfig, l i18n.Lang, st *feedState, byID map[int]recentBug, fetchOK bool) {
+func refreshTracked(ctx context.Context, bot feedBot, f *settings.FeedConfig, l i18n.Lang, st *feedState, byID map[int]recentBug, fetchOK bool) {
 	edits := 0
 refresh:
 	for idStr, tb := range st.Tracked {
@@ -645,7 +645,7 @@ func confirmNotice(b recentBug, l i18n.Lang) string {
 // bugSilent reports whether a feed bug should be posted WITHOUT a notification:
 // UNCONFIRMED bugs are silent (a fresh report may be a false alarm); confirmed ones
 // notify. silent_bugs=true forces every bug silent regardless of status.
-func bugSilent(f *config.FeedConfig, b recentBug) bool {
+func bugSilent(f *settings.FeedConfig, b recentBug) bool {
 	if f.SilentBugs != nil && *f.SilentBugs {
 		return true
 	}
@@ -653,7 +653,7 @@ func bugSilent(f *config.FeedConfig, b recentBug) bool {
 }
 
 // matchesBug reports whether a bug passes this feed's optional product/component filter.
-func matchesBug(f *config.FeedConfig, b recentBug) bool {
+func matchesBug(f *settings.FeedConfig, b recentBug) bool {
 	if f.BugProduct != "" && !strings.EqualFold(b.Product, f.BugProduct) {
 		return false
 	}
@@ -671,7 +671,7 @@ func feedStatePath(dir string, chatID int64) string {
 }
 
 // postFeedItems posts the bugs/news that are new to this feed (filtered, localized, deduped).
-func postFeedItems(ctx context.Context, bot feedBot, f *config.FeedConfig, l i18n.Lang, st *feedState, bugs []recentBug, news []lookup.NewsItem) {
+func postFeedItems(ctx context.Context, bot feedBot, f *settings.FeedConfig, l i18n.Lang, st *feedState, bugs []recentBug, news []lookup.NewsItem) {
 	if f.BugsOn() && len(bugs) > 0 {
 		if st.LastBugID == 0 {
 			latest := bugs[0].ID
@@ -768,12 +768,12 @@ var defaultFeedSources = feedSources{
 // pollAll processes the feeds due at now. Destinations sharing a bug cursor reuse one bounded
 // upstream slice; different cursors get independent slices so neither catch-up nor baselining skips.
 // News gets its own deadline, and fetchBugsByID gives each tracked chunk its own.
-func pollAll(ctx context.Context, bot *telego.Bot, feeds []*config.FeedConfig, states map[int64]*feedState, stateDir string, now time.Time, nextDue map[int64]time.Time) {
+func pollAll(ctx context.Context, bot *telego.Bot, feeds []*settings.FeedConfig, states map[int64]*feedState, stateDir string, now time.Time, nextDue map[int64]time.Time) {
 	pollAllWithSources(ctx, bot, feeds, states, stateDir, now, nextDue, defaultFeedSources)
 }
 
-func pollAllWithSources(ctx context.Context, bot feedBot, feeds []*config.FeedConfig, states map[int64]*feedState, stateDir string, now time.Time, nextDue map[int64]time.Time, sources feedSources) {
-	var due []*config.FeedConfig
+func pollAllWithSources(ctx context.Context, bot feedBot, feeds []*settings.FeedConfig, states map[int64]*feedState, stateDir string, now time.Time, nextDue map[int64]time.Time, sources feedSources) {
+	var due []*settings.FeedConfig
 	for _, f := range feeds {
 		if !now.Before(nextDue[f.ChatID]) {
 			due = append(due, f)
@@ -861,7 +861,7 @@ func pollAllWithSources(ctx context.Context, bot feedBot, feeds []*config.FeedCo
 // so a misconfigured chat_id or a missing admin/post right is logged loudly here instead of
 // surfacing only when the first send/edit fails. Best-effort: any probe error is logged, never
 // fatal, and never blocks the feed loop.
-func probeFeedPerms(ctx context.Context, bot *telego.Bot, feeds []*config.FeedConfig) {
+func probeFeedPerms(ctx context.Context, bot *telego.Bot, feeds []*settings.FeedConfig) {
 	pctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 	me, err := bot.GetMe(pctx)

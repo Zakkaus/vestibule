@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 // Missing rights may come back, so the settlement is retried — but not forever.
 func TestSettlementRetryIsBounded(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	fb := &fakeVerifyBot{declineErr: errors.New(`api: 400 "Bad Request: not enough rights"`)}
 	key := pkey{gid: -100, uid: 3}
 	p := &pending{nonce: "n", deadline: time.Now().Add(time.Hour)}
@@ -36,7 +36,7 @@ func TestSettlementRetryIsBounded(t *testing.T) {
 
 // Being removed from the group cannot be repaired by retrying, so it is not retried at all.
 func TestRemovedFromGroupStopsSettlingAtOnce(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	fb := &fakeVerifyBot{declineErr: errors.New(`api: 403 "Forbidden: bot is not a member of the supergroup chat"`)}
 	key := pkey{gid: -100, uid: 4}
 	p := &pending{nonce: "n", deadline: time.Now().Add(time.Hour), done: true}
@@ -59,7 +59,7 @@ func TestRemovedFromGroupStopsSettlingAtOnce(t *testing.T) {
 
 // The applicant hears "still being settled" once, not once per retry.
 func TestSettlementNoticeIsSentOnce(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	key := pkey{gid: -100, uid: 5}
 	p := &pending{nonce: "n", deadline: time.Now().Add(time.Hour)}
 	v.pend[key] = p

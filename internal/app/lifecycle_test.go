@@ -13,10 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/feed"
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
@@ -203,8 +202,8 @@ type lifecycleVerificationFixture struct {
 	botID          int64
 	stateDirectory string
 	configPath     string
-	cfg            *config.Config
-	settings       *store.Settings
+	cfg            *settings.Config
+	settings       *settings.Store
 	caller         *lifecycleCaller
 	bot            *telego.Bot
 	connector      *telegram.Connector
@@ -303,7 +302,7 @@ func assertRetentionOutageAlert(t *testing.T, fixture *lifecycleVerificationFixt
 			context.Background(),
 			fixture.bot,
 			fixture.cfg,
-			fixture.settings.GroupIDs(),
+			fixture.settings.ChatIDs(),
 			outage,
 		)
 		alerted <- outage
@@ -379,13 +378,13 @@ func (s *lifecycleShutdown) startFeedGate(t *testing.T, root context.Context) st
 	t.Helper()
 	const feedChatID int64 = -1009000000952
 	off := false
-	feedConfig := &config.FeedConfig{
+	feedConfig := &settings.FeedConfig{
 		ChatID: feedChatID, Lang: "en", IntervalSeconds: 60, Bugs: &off, News: &off,
 	}
 	feedPath := filepath.Join(s.fixture.stateDirectory, fmt.Sprintf("feed-%d.json", feedChatID))
 	actualDone := make(chan struct{})
 	go func() {
-		feed.New(s.fixture.bot, []*config.FeedConfig{feedConfig}, s.fixture.stateDirectory).Run(root)
+		feed.New(s.fixture.bot, []*settings.FeedConfig{feedConfig}, s.fixture.stateDirectory).Run(root)
 		close(actualDone)
 	}()
 	waitForLifecycleFile(t, feedPath)

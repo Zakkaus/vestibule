@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/mymmrac/telego"
 )
 
@@ -53,14 +53,14 @@ type pendingInput struct {
 type quizDraft struct {
 	index    int
 	existing bool
-	question config.Question
+	question settings.Question
 	revision uint64
 }
 
 type fallbackDraft struct {
 	index    int
 	existing bool
-	question config.ShortQuestion
+	question settings.ShortQuestion
 	revision uint64
 }
 
@@ -76,26 +76,25 @@ type confirmation struct {
 }
 
 type panelSession struct {
-	mu             sync.Mutex
-	token          string
-	ownerID        int64
-	anchorGroupID  int64
-	groupID        int64
-	chatID         int64
-	messageID      int
-	language       i18n.Lang
-	screen         string
-	page           int
-	listKind       inputKind
-	revision       uint64
-	globalRevision uint64
-	pending        *pendingInput
-	quiz           *quizDraft
-	fallback       *fallbackDraft
-	channel        *channelDraft
-	confirm        *confirmation
-	createdAt      time.Time
-	expiresAt      time.Time
+	mu            sync.Mutex
+	token         string
+	ownerID       int64
+	anchorGroupID int64
+	groupID       int64
+	chatID        int64
+	messageID     int
+	language      i18n.Lang
+	screen        string
+	page          int
+	listKind      inputKind
+	revision      uint64
+	pending       *pendingInput
+	quiz          *quizDraft
+	fallback      *fallbackDraft
+	channel       *channelDraft
+	confirm       *confirmation
+	createdAt     time.Time
+	expiresAt     time.Time
 }
 
 type promptKey struct {

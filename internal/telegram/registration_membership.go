@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -46,7 +46,7 @@ func (s *registrationService) handlePendingMembership(
 	ctx context.Context,
 	membership telego.ChatMemberUpdated,
 	actor telego.User,
-	pending store.PendingRegistration,
+	pending settings.PendingRegistration,
 	now time.Time,
 ) {
 	if now.Unix() >= pending.ExpiresAt {
@@ -229,10 +229,10 @@ func (s *registrationService) authorizeOwnerMembership(
 	actorID int64,
 	title string,
 	now time.Time,
-) (botMembershipState, store.PendingRegistration, error) {
+) (botMembershipState, settings.PendingRegistration, error) {
 	unlock := s.transitions.lock(groupID)
 	defer unlock()
-	pending := store.PendingRegistration{
+	pending := settings.PendingRegistration{
 		GroupID:      groupID,
 		RegisteredBy: actorID,
 		Title:        title,
@@ -241,7 +241,7 @@ func (s *registrationService) authorizeOwnerMembership(
 	status, err := s.mutateRegistrationsWithMembership(
 		ctx,
 		groupID,
-		func(state *store.RegistrationState, membership botMembershipState) (bool, error) {
+		func(state *settings.RegistrationState, membership botMembershipState) (bool, error) {
 			if membership != botMembershipAdmin && membership != botMembershipMember {
 				return false, errBotMembershipIneligible
 			}
@@ -256,7 +256,7 @@ func (s *registrationService) authorizeOwnerMembership(
 	return status, pending, err
 }
 
-func (s *registrationService) addRegisteredGroup(state *store.RegistrationState, groupID, actorID int64, title string) {
+func (s *registrationService) addRegisteredGroup(state *settings.RegistrationState, groupID, actorID int64, title string) {
 	registered := false
 	for _, group := range state.RegisteredGroups {
 		if group.ID == groupID {
@@ -265,7 +265,7 @@ func (s *registrationService) addRegisteredGroup(state *store.RegistrationState,
 		}
 	}
 	if !registered {
-		state.RegisteredGroups = append(state.RegisteredGroups, store.RegisteredGroup{
+		state.RegisteredGroups = append(state.RegisteredGroups, settings.RegisteredGroup{
 			ID:           groupID,
 			RegisteredBy: actorID,
 			Title:        title,
@@ -273,12 +273,9 @@ func (s *registrationService) addRegisteredGroup(state *store.RegistrationState,
 	}
 	removePendingRegistration(state, groupID)
 	removeUnknownGroupLeave(state, groupID)
-	if state.ControlGroupID == 0 && len(s.settings.GroupIDs()) == 0 {
-		state.ControlGroupID = groupID
-	}
 }
 
-func (s *registrationService) putPendingRegistration(state *store.RegistrationState, pending store.PendingRegistration) {
+func (s *registrationService) putPendingRegistration(state *settings.RegistrationState, pending settings.PendingRegistration) {
 	removeUnknownGroupLeave(state, pending.GroupID)
 	for i := range state.PendingRegistrations {
 		if state.PendingRegistrations[i].GroupID == pending.GroupID {
@@ -289,16 +286,16 @@ func (s *registrationService) putPendingRegistration(state *store.RegistrationSt
 	state.PendingRegistrations = append(state.PendingRegistrations, pending)
 }
 
-func pendingRegistration(state store.RegistrationState, groupID int64) (store.PendingRegistration, bool) {
+func pendingRegistration(state settings.RegistrationState, groupID int64) (settings.PendingRegistration, bool) {
 	for _, pending := range state.PendingRegistrations {
 		if pending.GroupID == groupID {
 			return pending, true
 		}
 	}
-	return store.PendingRegistration{}, false
+	return settings.PendingRegistration{}, false
 }
 
-func removePendingRegistration(state *store.RegistrationState, groupID int64) {
+func removePendingRegistration(state *settings.RegistrationState, groupID int64) {
 	for i, pending := range state.PendingRegistrations {
 		if pending.GroupID == groupID {
 			state.PendingRegistrations = append(state.PendingRegistrations[:i], state.PendingRegistrations[i+1:]...)
@@ -310,7 +307,7 @@ func removePendingRegistration(state *store.RegistrationState, groupID int64) {
 func (s *registrationService) completePending(
 	ctx context.Context,
 	groupID int64,
-	pending store.PendingRegistration,
+	pending settings.PendingRegistration,
 ) (botMembershipState, bool, error) {
 	unlock := s.transitions.lock(groupID)
 	defer unlock()
@@ -318,7 +315,7 @@ func (s *registrationService) completePending(
 	status, err := s.mutateRegistrationsWithMembership(
 		ctx,
 		groupID,
-		func(state *store.RegistrationState, membership botMembershipState) (bool, error) {
+		func(state *settings.RegistrationState, membership botMembershipState) (bool, error) {
 			completed = false
 			if membership != botMembershipAdmin {
 				return false, nil
@@ -335,16 +332,16 @@ func (s *registrationService) completePending(
 	return status, completed, err
 }
 
-func (s *registrationService) expirePending(groupID int64, expected store.PendingRegistration) error {
+func (s *registrationService) expirePending(groupID int64, expected settings.PendingRegistration) error {
 	unlock := s.transitions.lock(groupID)
 	defer unlock()
-	return s.mutateRegistrations(func(state *store.RegistrationState) error {
+	return s.mutateRegistrations(func(state *settings.RegistrationState) error {
 		current, ok := pendingRegistration(*state, groupID)
 		if !ok || current.ExpiresAt != expected.ExpiresAt {
 			return nil
 		}
 		removePendingRegistration(state, groupID)
-		s.putUnknownGroupLeave(state, store.UnknownGroupLeave{
+		s.putUnknownGroupLeave(state, settings.UnknownGroupLeave{
 			GroupID:   groupID,
 			Title:     current.Title,
 			ExpiresAt: current.ExpiresAt,
@@ -353,16 +350,16 @@ func (s *registrationService) expirePending(groupID int64, expected store.Pendin
 	})
 }
 
-func unknownGroupLeave(state store.RegistrationState, groupID int64) (store.UnknownGroupLeave, bool) {
+func unknownGroupLeave(state settings.RegistrationState, groupID int64) (settings.UnknownGroupLeave, bool) {
 	for _, leave := range state.UnknownGroupLeaves {
 		if leave.GroupID == groupID {
 			return leave, true
 		}
 	}
-	return store.UnknownGroupLeave{}, false
+	return settings.UnknownGroupLeave{}, false
 }
 
-func (s *registrationService) putUnknownGroupLeave(state *store.RegistrationState, leave store.UnknownGroupLeave) {
+func (s *registrationService) putUnknownGroupLeave(state *settings.RegistrationState, leave settings.UnknownGroupLeave) {
 	for i := range state.UnknownGroupLeaves {
 		if state.UnknownGroupLeaves[i].GroupID == leave.GroupID {
 			if leave.ExpiresAt > state.UnknownGroupLeaves[i].ExpiresAt {
@@ -374,7 +371,7 @@ func (s *registrationService) putUnknownGroupLeave(state *store.RegistrationStat
 	state.UnknownGroupLeaves = append(state.UnknownGroupLeaves, leave)
 }
 
-func removeUnknownGroupLeave(state *store.RegistrationState, groupID int64) {
+func removeUnknownGroupLeave(state *settings.RegistrationState, groupID int64) {
 	for i, leave := range state.UnknownGroupLeaves {
 		if leave.GroupID == groupID {
 			state.UnknownGroupLeaves = append(state.UnknownGroupLeaves[:i], state.UnknownGroupLeaves[i+1:]...)
@@ -388,14 +385,14 @@ func (s *registrationService) persistUnknownLeaveIfMember(
 	groupID int64,
 	title string,
 	deadline time.Time,
-) (store.UnknownGroupLeave, botMembershipState, error) {
+) (settings.UnknownGroupLeave, botMembershipState, error) {
 	unlock := s.transitions.lock(groupID)
 	defer unlock()
-	leave := store.UnknownGroupLeave{GroupID: groupID, Title: title, ExpiresAt: deadline.Unix()}
+	leave := settings.UnknownGroupLeave{GroupID: groupID, Title: title, ExpiresAt: deadline.Unix()}
 	status, err := s.mutateRegistrationsWithMembership(
 		ctx,
 		groupID,
-		func(state *store.RegistrationState, membership botMembershipState) (bool, error) {
+		func(state *settings.RegistrationState, membership botMembershipState) (bool, error) {
 			if membership != botMembershipMember {
 				return false, nil
 			}
@@ -421,7 +418,7 @@ func (s *registrationService) unregisterGroup(groupID int64) (string, error) {
 	unlock := s.transitions.lock(groupID)
 	defer unlock()
 	title := ""
-	err := s.mutateRegistrations(func(state *store.RegistrationState) error {
+	err := s.mutateRegistrations(func(state *settings.RegistrationState) error {
 		index := -1
 		for i, group := range state.RegisteredGroups {
 			if group.ID == groupID {
@@ -435,10 +432,7 @@ func (s *registrationService) unregisterGroup(groupID int64) (string, error) {
 		}
 		state.RegisteredGroups = append(state.RegisteredGroups[:index], state.RegisteredGroups[index+1:]...)
 		removePendingRegistration(state, groupID)
-		if state.ControlGroupID == groupID {
-			state.ControlGroupID = 0
-		}
-		s.putUnknownGroupLeave(state, store.UnknownGroupLeave{
+		s.putUnknownGroupLeave(state, settings.UnknownGroupLeave{
 			GroupID:   groupID,
 			Title:     title,
 			ExpiresAt: s.now().Unix(),
@@ -456,14 +450,14 @@ func (s *registrationService) unregisterGroup(groupID int64) (string, error) {
 	return title, err
 }
 
-func (s *registrationService) mutateRegistrations(mutate func(*store.RegistrationState) error) error {
+func (s *registrationService) mutateRegistrations(mutate func(*settings.RegistrationState) error) error {
 	for {
 		current := s.settings.Registrations()
 		next := cloneRegistrationMutation(current)
 		if err := mutate(&next); err != nil {
 			return err
 		}
-		if _, err := s.settings.CommitRegistrations(current.Revision, next); errors.Is(err, store.ErrSettingsConflict) {
+		if _, err := s.settings.CommitRegistrations(current.Revision, next); errors.Is(err, settings.ErrSettingsConflict) {
 			continue
 		} else {
 			return err
@@ -474,7 +468,7 @@ func (s *registrationService) mutateRegistrations(mutate func(*store.Registratio
 func (s *registrationService) mutateRegistrationsWithMembership(
 	ctx context.Context,
 	groupID int64,
-	mutate func(*store.RegistrationState, botMembershipState) (bool, error),
+	mutate func(*settings.RegistrationState, botMembershipState) (bool, error),
 ) (botMembershipState, error) {
 	for {
 		current := s.settings.Registrations()
@@ -487,7 +481,7 @@ func (s *registrationService) mutateRegistrationsWithMembership(
 		if err != nil || !commit {
 			return membership, err
 		}
-		if _, err := s.settings.CommitRegistrations(current.Revision, next); errors.Is(err, store.ErrSettingsConflict) {
+		if _, err := s.settings.CommitRegistrations(current.Revision, next); errors.Is(err, settings.ErrSettingsConflict) {
 			continue
 		} else {
 			return membership, err
@@ -495,11 +489,11 @@ func (s *registrationService) mutateRegistrationsWithMembership(
 	}
 }
 
-func cloneRegistrationMutation(current store.RegistrationState) store.RegistrationState {
+func cloneRegistrationMutation(current settings.RegistrationState) settings.RegistrationState {
 	next := current
-	next.RegisteredGroups = append([]store.RegisteredGroup(nil), current.RegisteredGroups...)
-	next.EnrollmentNonces = append([]store.EnrollmentNonce(nil), current.EnrollmentNonces...)
-	next.PendingRegistrations = append([]store.PendingRegistration(nil), current.PendingRegistrations...)
-	next.UnknownGroupLeaves = append([]store.UnknownGroupLeave(nil), current.UnknownGroupLeaves...)
+	next.RegisteredGroups = append([]settings.RegisteredGroup(nil), current.RegisteredGroups...)
+	next.EnrollmentNonces = append([]settings.EnrollmentNonce(nil), current.EnrollmentNonces...)
+	next.PendingRegistrations = append([]settings.PendingRegistration(nil), current.PendingRegistrations...)
+	next.UnknownGroupLeaves = append([]settings.UnknownGroupLeave(nil), current.UnknownGroupLeaves...)
 	return next
 }

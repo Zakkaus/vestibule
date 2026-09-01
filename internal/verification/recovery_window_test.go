@@ -5,17 +5,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 // After an outage the applicant applied hours ago. Re-posting the ordinary challenge told them
 // they had 240 seconds, which is both the wrong window and the wrong thing to say.
 func TestRecoveredChallengeSaysSoAndStatesTheRealWindow(t *testing.T) {
 	const gid int64 = -1009000000940
-	v := newTestService(&config.Config{
-		Groups: []config.GroupConfig{{ID: gid}}, GroupIDs: []int64{gid},
-		Lang: "zh", VerifyMode: config.ModeKernel, TimeoutSeconds: 240,
+	v := newTestService(&settings.Config{
+		Groups: []settings.GroupConfig{{ID: gid}}, GroupIDs: []int64{gid},
+		Lang: "zh", VerifyMode: settings.ModeKernel, TimeoutSeconds: 240,
 	})
 	now := time.Now()
 	v.timeNow = func() time.Time { return now }

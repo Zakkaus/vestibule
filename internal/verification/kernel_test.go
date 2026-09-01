@@ -13,10 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/rules"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 )
 
@@ -170,53 +169,53 @@ func TestKernelDistributionContext(t *testing.T) {
 }
 
 func TestVerifyModeResolution(t *testing.T) {
-	cfg := &config.Config{Groups: []config.GroupConfig{{ID: -100}, {ID: -200, VerifyMode: config.ModeQuiz}}, GroupIDs: []int64{-100, -200},
-		Questions: []config.Question{{Q: "q", Options: []string{"a", "b"}, Answer: 0}}}
+	cfg := &settings.Config{Groups: []settings.GroupConfig{{ID: -100}, {ID: -200, VerifyMode: settings.ModeQuiz}}, GroupIDs: []int64{-100, -200},
+		Questions: []settings.Question{{Q: "q", Options: []string{"a", "b"}, Answer: 0}}}
 	v := newTestService(cfg)
-	if got := v.EffectiveMode(-100); got != (config.ModeKernel) {
-		t.Errorf("default mode = %q, want %q", got, config.ModeKernel)
+	if got := v.EffectiveMode(-100); got != (settings.ModeKernel) {
+		t.Errorf("default mode = %q, want %q", got, settings.ModeKernel)
 	}
-	if got := v.EffectiveMode(-200); got != (config.ModeQuiz) {
-		t.Errorf("per-group override = %q, want %q", got, config.ModeQuiz)
+	if got := v.EffectiveMode(-200); got != (settings.ModeQuiz) {
+		t.Errorf("per-group override = %q, want %q", got, settings.ModeQuiz)
 	}
-	cfg.VerifyMode = (config.ModeQuiz)
+	cfg.VerifyMode = (settings.ModeQuiz)
 	v = newTestService(cfg)
-	if got := v.EffectiveMode(-100); got != (config.ModeQuiz) {
-		t.Errorf("global verify_mode = %q, want %q", got, config.ModeQuiz)
+	if got := v.EffectiveMode(-100); got != (settings.ModeQuiz) {
+		t.Errorf("global verify_mode = %q, want %q", got, settings.ModeQuiz)
 	}
-	if err := v.SetVerifyMode(-200, config.ModeKernel); err != nil {
+	if err := v.SetVerifyMode(-200, settings.ModeKernel); err != nil {
 		t.Fatal(err)
 	}
-	if got := v.EffectiveMode(-200); got != (config.ModeKernel) {
-		t.Errorf("/vmode group override = %q, want %q", got, config.ModeKernel)
+	if got := v.EffectiveMode(-200); got != (settings.ModeKernel) {
+		t.Errorf("/vmode group override = %q, want %q", got, settings.ModeKernel)
 	}
 	if err := v.SetVerifyMode(-200, ""); err != nil {
 		t.Fatal(err)
 	}
-	if got := v.EffectiveMode(-200); got != (config.ModeQuiz) {
-		t.Errorf("after clearing the override = %q, want %q", got, config.ModeQuiz)
+	if got := v.EffectiveMode(-200); got != (settings.ModeQuiz) {
+		t.Errorf("after clearing the override = %q, want %q", got, settings.ModeQuiz)
 	}
 }
 
 func TestPickModeQuizWithoutQuestions(t *testing.T) {
-	v := newTestService(&config.Config{Groups: []config.GroupConfig{{ID: -100}}, GroupIDs: []int64{-100}, VerifyMode: config.ModeQuiz})
-	if got := v.pickMode(-100); got != (config.ModeKernel) {
-		t.Errorf("quiz mode with no questions should fall back to %q, got %q", config.ModeKernel, got)
+	v := newTestService(&settings.Config{Groups: []settings.GroupConfig{{ID: -100}}, GroupIDs: []int64{-100}, VerifyMode: settings.ModeQuiz})
+	if got := v.pickMode(-100); got != (settings.ModeKernel) {
+		t.Errorf("quiz mode with no questions should fall back to %q, got %q", settings.ModeKernel, got)
 	}
 	mode, text, opts, idx := v.newChallenge(-100, i18n.LangZH)
-	if mode != (config.ModeKernel) || text != tgfmt.KernelQuestion(&i18n.Messages, i18n.LangZH) || opts != nil || idx != -1 {
+	if mode != (settings.ModeKernel) || text != tgfmt.KernelQuestion(&i18n.Messages, i18n.LangZH) || opts != nil || idx != -1 {
 		t.Errorf("kernel challenge = (%q, %q, %v, %d), want the kernel question with no options and idx -1", mode, text, opts, idx)
 	}
 }
 
 func TestPickModeMixed(t *testing.T) {
-	v := newTestService(&config.Config{Groups: []config.GroupConfig{{ID: -100}}, GroupIDs: []int64{-100}, VerifyMode: config.ModeMixed,
-		Questions: []config.Question{{Q: "q", Options: []string{"a", "b"}, Answer: 0}}})
+	v := newTestService(&settings.Config{Groups: []settings.GroupConfig{{ID: -100}}, GroupIDs: []int64{-100}, VerifyMode: settings.ModeMixed,
+		Questions: []settings.Question{{Q: "q", Options: []string{"a", "b"}, Answer: 0}}})
 	oldReader := cryptorand.Reader
 	cryptorand.Reader = bytes.NewReader([]byte{0, 1})
 	defer func() { cryptorand.Reader = oldReader }()
 
-	for i, want := range []string{config.ModeKernel, config.ModeQuiz} {
+	for i, want := range []string{settings.ModeKernel, settings.ModeQuiz} {
 		if got := v.pickMode(-100); got != want {
 			t.Errorf("deterministic mixed draw %d = %q, want %q", i, got, want)
 		}
@@ -224,14 +223,14 @@ func TestPickModeMixed(t *testing.T) {
 }
 
 func TestKernelAnswerDMPredicate(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	dm := func(uid int64, text string) bool {
 		return v.KernelAnswerDM(uid, text, true)
 	}
 	if dm(5, "6.12.3") {
 		t.Error("no pending: must not capture the message")
 	}
-	v.pend[pkey{-100, 5}] = &pending{mode: config.ModeKernel, nonce: "n", prompted: true, deadline: time.Now().Add(time.Hour)}
+	v.pend[pkey{-100, 5}] = &pending{mode: settings.ModeKernel, nonce: "n", prompted: true, deadline: time.Now().Add(time.Hour)}
 	if !dm(5, "6.12.3") {
 		t.Error("a plain DM during a kernel verification must be treated as the answer")
 	}
@@ -244,7 +243,7 @@ func TestKernelAnswerDMPredicate(t *testing.T) {
 	if dm(6, "6.12.3") {
 		t.Error("another user's DM must not match")
 	}
-	v.pend[pkey{-100, 7}] = &pending{mode: config.ModeQuiz, nonce: "n", prompted: true, deadline: time.Now().Add(time.Hour)}
+	v.pend[pkey{-100, 7}] = &pending{mode: settings.ModeQuiz, nonce: "n", prompted: true, deadline: time.Now().Add(time.Hour)}
 	if dm(7, "6.12.3") {
 		t.Error("a quiz applicant's DM must fall through to the auto-reply")
 	}
@@ -258,8 +257,8 @@ func noLinuxNow(prefix string) string {
 
 // kernelTestV builds a Service with one kernel pending for user 5 in group -100.
 func kernelTestV() (*Service, *fakeVerifyBot) {
-	v := newTestService(&config.Config{Groups: []config.GroupConfig{{ID: -100}}, GroupIDs: []int64{-100}, VerifyMaxFails: 3})
-	v.pend[pkey{-100, 5}] = &pending{mode: config.ModeKernel, nonce: "n", prompted: true, groupMsgID: 42, deadline: time.Now().Add(time.Hour)}
+	v := newTestService(&settings.Config{Groups: []settings.GroupConfig{{ID: -100}}, GroupIDs: []int64{-100}, VerifyMaxFails: 3})
+	v.pend[pkey{-100, 5}] = &pending{mode: settings.ModeKernel, nonce: "n", prompted: true, groupMsgID: 42, deadline: time.Now().Add(time.Hour)}
 	return v, newFakeVerifyBot()
 }
 
@@ -363,7 +362,7 @@ func TestGradeKernelAnswerChannelGate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			v, bot := kernelTestV()
-			if err := v.updateGroupSettings(-100, func(_ store.GroupView, overrides *store.GroupOverrides) {
+			if err := v.updateGroupSettings(-100, func(_ settings.GroupView, overrides *settings.GroupOverrides) {
 				channelID := requiredChannel
 				display := "@required"
 				overrides.RequiredChannelID = &channelID
@@ -399,22 +398,22 @@ func TestGradeKernelAnswerChannelGate(t *testing.T) {
 
 func TestKernelPendingSurvivesRestart(t *testing.T) {
 	dir := t.TempDir()
-	seed := newTestService(&config.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})
+	seed := newTestService(&settings.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})
 	seed.statePath = dir + "/pending.json"
-	seed.pend[pkey{-100, 7}] = &pending{mode: config.ModeKernel, tries: 1, nonce: "x", name: "Carol",
+	seed.pend[pkey{-100, 7}] = &pending{mode: settings.ModeKernel, tries: 1, nonce: "x", name: "Carol",
 		qText: tgfmt.KernelQuestion(&i18n.Messages, i18n.LangZH), correctIdx: -1, deadline: time.Now().Add(time.Minute), groupMsgID: 5}
-	seed.pend[pkey{-100, 8}] = &pending{mode: config.ModeQuiz, nonce: "y", correctIdx: 0,
+	seed.pend[pkey{-100, 8}] = &pending{mode: settings.ModeQuiz, nonce: "y", correctIdx: 0,
 		qOpts: []string{"a", "b"}, deadline: time.Now().Add(time.Minute)}
 	seed.save()
 
-	v := newTestService(&config.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})
 	v.statePath = dir + "/pending.json"
 	v.load(&fakeVerifyBot{})
 	p, ok := v.pend[pkey{-100, 7}]
 	if !ok {
 		t.Fatal("a kernel pending must survive the restart (it has no options to validate)")
 	}
-	if p.mode != (config.ModeKernel) || p.tries != 1 {
+	if p.mode != (settings.ModeKernel) || p.tries != 1 {
 		t.Errorf("restored kernel pending = mode %q tries %d, want kernel / 1", p.mode, p.tries)
 	}
 	if _, ok := v.pend[pkey{-100, 8}]; !ok {
@@ -427,15 +426,15 @@ func TestKernelPendingSurvivesRestart(t *testing.T) {
 	if err := os.WriteFile(dir+"/legacy.json", []byte(legacy), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	vl := newTestService(&config.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})
+	vl := newTestService(&settings.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})
 	vl.statePath = dir + "/legacy.json"
 	vl.load(&fakeVerifyBot{})
 	lp, ok := vl.pend[pkey{-100, 9}]
 	if !ok {
 		t.Fatal("a legacy pending must still restore")
 	}
-	if lp.mode != (config.ModeQuiz) {
-		t.Errorf("a record with no mode must restore as %q, got %q", config.ModeQuiz, lp.mode)
+	if lp.mode != (settings.ModeQuiz) {
+		t.Errorf("a record with no mode must restore as %q, got %q", settings.ModeQuiz, lp.mode)
 	}
 
 }
@@ -643,8 +642,8 @@ func TestUncertainFallbackDeliveryRemainsUngraduatedAfterRestart(t *testing.T) {
 	before.gradeKernelAnswer(context.Background(), uncertain, gid, uid, noLinuxNow("not installed yet"))
 	before.Shutdown()
 
-	after := newTestService(&config.Config{
-		Groups:         []config.GroupConfig{{ID: gid}},
+	after := newTestService(&settings.Config{
+		Groups:         []settings.GroupConfig{{ID: gid}},
 		GroupIDs:       []int64{gid},
 		VerifyMaxFails: 3,
 	})
@@ -670,7 +669,7 @@ func TestUncertainFallbackDeliveryRemainsUngraduatedAfterRestart(t *testing.T) {
 }
 
 func TestFallbackAnswerMatching(t *testing.T) {
-	v := newTestService(&config.Config{FallbackQuestions: []config.ShortQuestion{{
+	v := newTestService(&settings.Config{FallbackQuestions: []settings.ShortQuestion{{
 		Q:       "Which package manager?",
 		Answers: []string{"emerge", "Portage"},
 	}}})
@@ -822,10 +821,10 @@ func TestCopiedSampleGuardCoversFallback(t *testing.T) {
 }
 
 func TestUnpromptedDMIsNotAnAnswer(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	dm := Update{Message: &Message{Chat: Chat{Type: "private", ID: 5},
 		From: &User{ID: 5}, Text: "已关注"}}
-	v.pend[pkey{-100, 5}] = &pending{mode: config.ModeKernel, nonce: "n", deadline: time.Now().Add(time.Hour)}
+	v.pend[pkey{-100, 5}] = &pending{mode: settings.ModeKernel, nonce: "n", deadline: time.Now().Add(time.Hour)}
 	if v.KernelAnswerDM(5, dm.Message.Text, true) {
 		t.Error("a DM must not be graded before the question has been sent")
 	}
@@ -863,9 +862,9 @@ func TestOtherOSNotAcceptedAsKernel(t *testing.T) {
 }
 
 func TestTripwireCountsOncePerMessage(t *testing.T) {
-	v := newTestService(&config.Config{Groups: []config.GroupConfig{{ID: -100}, {ID: -200}}, GroupIDs: []int64{-100, -200}})
-	v.pend[pkey{-100, 5}] = &pending{mode: config.ModeKernel, nonce: "aaa", prompted: true, deadline: time.Now().Add(time.Hour)}
-	v.pend[pkey{-200, 5}] = &pending{mode: config.ModeKernel, nonce: "bbb", prompted: true, deadline: time.Now().Add(time.Hour)}
+	v := newTestService(&settings.Config{Groups: []settings.GroupConfig{{ID: -100}, {ID: -200}}, GroupIDs: []int64{-100, -200}})
+	v.pend[pkey{-100, 5}] = &pending{mode: settings.ModeKernel, nonce: "aaa", prompted: true, deadline: time.Now().Add(time.Hour)}
+	v.pend[pkey{-200, 5}] = &pending{mode: settings.ModeKernel, nonce: "bbb", prompted: true, deadline: time.Now().Add(time.Hour)}
 	fb := newFakeVerifyBot()
 	for _, gid := range v.kernelPendingGroups(5) {
 		v.gradeKernelAnswer(context.Background(), fb, gid, 5, "AGENT-AAA model=deepseek-v3.2")
@@ -998,7 +997,7 @@ func TestRepliesCannotChargeAReplacedPending(t *testing.T) {
 	v, _ := kernelTestV()
 	key := pkey{-100, 5}
 	stale := v.pend[key].nonce
-	v.pend[key] = &pending{mode: config.ModeKernel, nonce: "fresh", prompted: true, deadline: time.Now().Add(time.Hour)}
+	v.pend[key] = &pending{mode: settings.ModeKernel, nonce: "fresh", prompted: true, deadline: time.Now().Add(time.Hour)}
 	if _, _, ok := v.recordKernelTry(-100, 5, stale); ok {
 		t.Error("a stale reply must not charge the replacement pending an attempt")
 	}
@@ -1015,10 +1014,10 @@ func TestRepliesCannotChargeAReplacedPending(t *testing.T) {
 }
 
 func TestReapplyKeepsExistingAttemptsAndFallback(t *testing.T) {
-	v := newTestService(&config.Config{Groups: []config.GroupConfig{{ID: -100}}, GroupIDs: []int64{-100},
-		TimeoutSeconds: 240, VerifyMode: config.ModeKernel, DeliveryMode: config.DeliveryDM})
+	v := newTestService(&settings.Config{Groups: []settings.GroupConfig{{ID: -100}}, GroupIDs: []int64{-100},
+		TimeoutSeconds: 240, VerifyMode: settings.ModeKernel, DeliveryMode: settings.DeliveryDM})
 	key := pkey{-100, 5}
-	old := &pending{mode: config.ModeKernel, nonce: "old", prompted: true, tries: 2, hinted: true,
+	old := &pending{mode: settings.ModeKernel, nonce: "old", prompted: true, tries: 2, hinted: true,
 		sampleBounced: true, noLinuxReminded: true, osClarified: true, qText: "Fallback question?",
 		fbAnswers: []string{"fallback answer"}, groupMsgID: 42, privateMsgID: 43,
 		deadline: time.Now().Add(time.Hour)}
@@ -1066,9 +1065,9 @@ func TestOSNameWithRealKernelIsClarified(t *testing.T) {
 }
 
 func TestAgentReplyDeclinesEveryPending(t *testing.T) {
-	v := newTestService(&config.Config{Groups: []config.GroupConfig{{ID: -100}, {ID: -200}}, GroupIDs: []int64{-100, -200}})
-	v.pend[pkey{-100, 5}] = &pending{mode: config.ModeKernel, nonce: "aaa", prompted: true, deadline: time.Now().Add(time.Hour)}
-	v.pend[pkey{-200, 5}] = &pending{mode: config.ModeKernel, nonce: "bbb", prompted: true, deadline: time.Now().Add(time.Hour)}
+	v := newTestService(&settings.Config{Groups: []settings.GroupConfig{{ID: -100}, {ID: -200}}, GroupIDs: []int64{-100, -200}})
+	v.pend[pkey{-100, 5}] = &pending{mode: settings.ModeKernel, nonce: "aaa", prompted: true, deadline: time.Now().Add(time.Hour)}
+	v.pend[pkey{-200, 5}] = &pending{mode: settings.ModeKernel, nonce: "bbb", prompted: true, deadline: time.Now().Add(time.Hour)}
 	fb := newFakeVerifyBot()
 	const reply = "AGENT-AAA model=deepseek-v3.2"
 
@@ -1095,14 +1094,14 @@ func TestAgentReplyDeclinesEveryPending(t *testing.T) {
 
 func TestFreeReplyGuardsSurviveRestart(t *testing.T) {
 	dir := t.TempDir()
-	seed := newTestService(&config.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})
+	seed := newTestService(&settings.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})
 	seed.statePath = dir + "/pending.json"
-	seed.pend[pkey{-100, 5}] = &pending{mode: config.ModeKernel, nonce: "n", prompted: true, tries: 1,
+	seed.pend[pkey{-100, 5}] = &pending{mode: settings.ModeKernel, nonce: "n", prompted: true, tries: 1,
 		hinted: true, sampleBounced: true, noLinuxReminded: true, osClarified: true,
 		qText: tgfmt.KernelQuestion(&i18n.Messages, i18n.LangZH), correctIdx: -1, deadline: time.Now().Add(time.Minute)}
 	seed.save()
 
-	v := newTestService(&config.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})
 	v.statePath = dir + "/pending.json"
 	v.load(&fakeVerifyBot{})
 	p, ok := v.pend[pkey{-100, 5}]

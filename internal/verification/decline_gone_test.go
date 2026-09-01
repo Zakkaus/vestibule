@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 var errRequesterMissing = errors.New(`api: 400 "Bad Request: HIDE_REQUESTER_MISSING"`)
@@ -36,7 +36,7 @@ func TestDeclineGivesUpWhenJoinRequestIsGone(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			v := newTestService(&config.Config{})
+			v := newTestService(&settings.Config{})
 			fb := &fakeVerifyBot{declineErr: errRequesterMissing, member: tc.member, memberErr: tc.memberErr}
 			key := pkey{gid: -100, uid: 7}
 			p := &pending{nonce: "n1", deadline: time.Now().Add(time.Hour), groupMsgID: 11, privateMsgID: 12}
@@ -67,7 +67,7 @@ func TestDeclineGivesUpWhenJoinRequestIsGone(t *testing.T) {
 // A timeout is not proof the applicant ignored anything: an administrator may have rejected the
 // request hours earlier. Only a wrong answer survives a vanished request as a strike.
 func TestGoneTimeoutDoesNotStrike(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	fb := &fakeVerifyBot{declineErr: errRequesterMissing, member: &ChatMemberLeft{Status: MemberStatusLeft}}
 	key := pkey{gid: -100, uid: 11}
 	p := &pending{nonce: "n5", deadline: time.Now().Add(time.Hour)}
@@ -86,7 +86,7 @@ func TestGoneTimeoutDoesNotStrike(t *testing.T) {
 
 // A genuine permission failure still keeps the request for a later retry.
 func TestDeclineKeepsRequestOnPermissionFailure(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	fb := &fakeVerifyBot{declineErr: errors.New(`api: 400 "Bad Request: not enough rights"`)}
 	key := pkey{gid: -100, uid: 8}
 	p := &pending{nonce: "n2", deadline: time.Now().Add(time.Hour)}
@@ -106,7 +106,7 @@ func TestDeclineKeepsRequestOnPermissionFailure(t *testing.T) {
 // An administrator settling the request in Telegram's own interface must not leave the bot
 // retrying an approval it can never complete.
 func TestApproveGivesUpWhenJoinRequestIsGone(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	fb := &fakeVerifyBot{approveErr: errRequesterMissing}
 	key := pkey{gid: -100, uid: 9}
 	p := &pending{nonce: "n3", deadline: time.Now().Add(time.Hour), groupMsgID: 21, privateMsgID: 22}
@@ -134,7 +134,7 @@ func TestApproveGivesUpWhenJoinRequestIsGone(t *testing.T) {
 
 // A genuine approval failure still keeps the request for a retry.
 func TestApproveKeepsRequestOnRealFailure(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	fb := &fakeVerifyBot{approveErr: errors.New(`api: 400 "Bad Request: not enough rights"`)}
 	key := pkey{gid: -100, uid: 10}
 	p := &pending{nonce: "n4", deadline: time.Now().Add(time.Hour)}

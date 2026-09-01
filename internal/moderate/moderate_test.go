@@ -3,12 +3,12 @@ package moderate
 import (
 	"context"
 	"errors"
+	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/mymmrac/telego"
 	ta "github.com/mymmrac/telego/telegoapi"
@@ -165,9 +165,7 @@ func (b *fakeModBot) AuditLog(ctx context.Context, chatID int64, text string) {
 
 func (b *fakeModBot) FailAlert(_ context.Context, adminLogChatID, groupID int64, text string) {
 	b.failAlerts = append(b.failAlerts, fakeModFailAlert{
-		adminLogChatID: adminLogChatID,
-		groupID:        groupID,
-		text:           text,
+		adminLogChatID: adminLogChatID, groupID: groupID, text: text,
 	})
 	if adminLogChatID == 0 {
 		adminLogChatID = groupID
@@ -220,62 +218,28 @@ func (b *fakeModBot) Call(context.Context, string, *ta.RequestData) (*ta.Respons
 	return nil, errors.New("unexpected raw Telegram API call")
 }
 
-func testSettings(t *testing.T, cfg *config.Config) *store.Settings {
+func testSettings(t *testing.T, cfg *settings.Config) *settings.Store {
 	t.Helper()
-	groupIDs := append([]int64(nil), cfg.GroupIDs...)
-	if len(groupIDs) == 0 {
-		for _, group := range cfg.Groups {
-			groupIDs = append(groupIDs, group.ID)
-		}
+	effective := *cfg
+	if len(effective.GroupIDs) == 0 && len(effective.Groups) == 0 {
+		effective.GroupIDs = []int64{-100}
+		effective.Groups = []settings.GroupConfig{{ID: -100}}
 	}
-	if len(groupIDs) == 0 {
-		groupIDs = []int64{-100}
-	}
-	defaultGroup := store.GroupBaseline{
-		Enabled:                 store.BaselineValue[bool]{Value: true},
-		DeliveryMode:            store.BaselineValue[string]{Value: config.DeliveryBoth},
-		VerifyMode:              store.BaselineValue[string]{Value: config.ModeKernel},
-		NameSpoiler:             store.BaselineValue[bool]{Value: true},
-		BanSeconds:              store.BaselineValue[int]{Value: cfg.BanSeconds},
-		LookupTTLSeconds:        store.BaselineValue[int]{Value: 180},
-		LookupAutoDeleteEnabled: store.BaselineValue[bool]{Value: true},
-		TimeoutSeconds:          store.BaselineValue[int]{Value: 240},
-		VerifyMaxFails:          store.BaselineValue[int]{Value: 3},
-		VerifyRetrySeconds:      store.BaselineValue[int]{Value: 180},
-		MuteSeconds:             store.BaselineValue[int]{Value: cfg.MuteSeconds},
-		VerifyInvited:           store.BaselineValue[bool]{Value: cfg.VerifyInvitedMembers()},
-		WarnLimit:               store.BaselineValue[int]{Value: cfg.WarnLimit},
-		AntispamEnabled:         store.BaselineValue[bool]{Value: cfg.BlockChannelSendersEnabled()},
-		Lang:                    store.BaselineValue[string]{Value: cfg.Lang},
-		ChannelWhitelist:        store.BaselineValue[[]int64]{Value: append([]int64(nil), cfg.ChannelWhitelist...)},
-		TrustedMemberGroupIDs:   store.BaselineValue[[]int64]{Value: append([]int64(nil), cfg.TrustedMemberGroupIDs...)},
-		KnownChatIDs:            store.BaselineValue[[]int64]{Value: append([]int64(nil), cfg.KnownChatIDs...)},
-		RequiredChannelID:       store.BaselineValue[int64]{Value: cfg.RequiredChannelID},
-		ChannelDisplay:          store.BaselineValue[string]{Value: cfg.ChannelDisplay},
-		ChannelInviteURL:        store.BaselineValue[string]{Value: cfg.ChannelInviteURL},
-		FallbackBuiltin:         store.BaselineValue[bool]{Value: true},
-	}
-	baseline := store.SettingsBaseline{
-		DefaultGroup:   defaultGroup,
-		ControlGroupID: cfg.ControlGroupID,
-		Global: store.GlobalBaseline{
-			PrivateQueryPerMin: store.BaselineValue[int]{Value: 1},
-			AdminLogChatID:     store.BaselineValue[int64]{Value: cfg.AdminLogChatID},
-		},
-	}
-	for _, groupID := range groupIDs {
-		group := defaultGroup
-		group.ID = groupID
-		baseline.Groups = append(baseline.Groups, group)
-	}
-	settings, err := store.NewSettings("", baseline)
+	baseline, err := settings.LoadBaseline(
+		filepath.Join(t.TempDir(), "missing-config.json"),
+		&effective,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return settings
+	store, err := settings.NewStore("", baseline, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return store
 }
 
-func newTestService(t *testing.T, cfg *config.Config, telegram *fakeModBot, stateDirectory string) *Service {
+func newTestService(t *testing.T, cfg *settings.Config, telegram *fakeModBot, stateDirectory string) *Service {
 	t.Helper()
 	return New(testSettings(t, cfg), telegram, cfg, newWarningJSONStore(warningsPath(stateDirectory)))
 }
@@ -438,8 +402,8 @@ func TestGroupSetupReportPermissionsAndChannelReadability(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			cfg := &config.Config{
-				Groups:   []config.GroupConfig{{ID: groupID}},
+			cfg := &settings.Config{
+				Groups:   []settings.GroupConfig{{ID: groupID}},
 				GroupIDs: []int64{groupID},
 				Lang:     "en",
 			}
@@ -504,7 +468,7 @@ func TestIsGroupAdminFailsClosed(t *testing.T) {
 			telegram := newFakeMod()
 			telegram.member = test.member
 			telegram.memberErr = test.err
-			service := newTestService(t, &config.Config{NotifyTTLSeconds: -1}, telegram, "")
+			service := newTestService(t, &settings.Config{NotifyTTLSeconds: -1}, telegram, "")
 			got, err := service.isGroupAdmin(ctx, -100, 1)
 			if got != test.want {
 				t.Errorf("isGroupAdmin = %v, want %v", got, test.want)
@@ -530,7 +494,7 @@ func TestWarnPrecheckGate(t *testing.T) {
 
 	denied := newFakeMod()
 	denied.memberByID = map[int64]telego.ChatMember{callerID: &telego.ChatMemberMember{}}
-	deniedService := newTestService(t, &config.Config{}, denied, "")
+	deniedService := newTestService(t, &settings.Config{}, denied, "")
 	if got := deniedService.warnPrecheck(ctx, message(), "/warn", true, i18n.LangZH); got != nil {
 		t.Error("a non-admin caller must be denied")
 	}
@@ -540,14 +504,14 @@ func TestWarnPrecheckGate(t *testing.T) {
 
 	allowed := newFakeMod()
 	allowed.memberByID = map[int64]telego.ChatMember{callerID: &telego.ChatMemberAdministrator{}, targetID: &telego.ChatMemberMember{}}
-	allowedService := newTestService(t, &config.Config{}, allowed, "")
+	allowedService := newTestService(t, &settings.Config{}, allowed, "")
 	if got := allowedService.warnPrecheck(ctx, message(), "/warn", true, i18n.LangZH); got == nil || got.ID != targetID {
 		t.Errorf("admin caller and non-admin target resolved to %v", got)
 	}
 
 	skipped := newFakeMod()
 	skipped.memberByID = map[int64]telego.ChatMember{callerID: &telego.ChatMemberAdministrator{}, targetID: &telego.ChatMemberAdministrator{}}
-	skippedService := newTestService(t, &config.Config{}, skipped, "")
+	skippedService := newTestService(t, &settings.Config{}, skipped, "")
 	if got := skippedService.warnPrecheck(ctx, message(), "/warn", true, i18n.LangZH); got != nil {
 		t.Error("an admin target must be skipped")
 	}
@@ -560,7 +524,7 @@ func TestWarnKick(t *testing.T) {
 	ctx := context.Background()
 
 	clean := newFakeMod()
-	service := newTestService(t, &config.Config{}, clean, "")
+	service := newTestService(t, &settings.Config{}, clean, "")
 	if rejoinable, err := service.warnKick(ctx, -100, 5); !rejoinable || err != nil {
 		t.Fatalf("clean kick = rejoinable %v, err %v", rejoinable, err)
 	}
@@ -570,7 +534,7 @@ func TestWarnKick(t *testing.T) {
 
 	banFailed := newFakeMod()
 	banFailed.banErr = errors.New("no rights")
-	service = newTestService(t, &config.Config{}, banFailed, "")
+	service = newTestService(t, &settings.Config{}, banFailed, "")
 	if rejoinable, err := service.warnKick(ctx, -100, 5); rejoinable || err == nil {
 		t.Fatalf("failed ban = rejoinable %v, err %v", rejoinable, err)
 	}
@@ -580,7 +544,7 @@ func TestWarnKick(t *testing.T) {
 
 	stuck := newFakeMod()
 	stuck.unbanErr = errors.New("unban failed")
-	service = newTestService(t, &config.Config{}, stuck, "")
+	service = newTestService(t, &settings.Config{}, stuck, "")
 	if rejoinable, err := service.warnKick(ctx, -100, 5); rejoinable || err != nil {
 		t.Fatalf("stuck ban = rejoinable %v, err %v", rejoinable, err)
 	}
@@ -593,9 +557,9 @@ func TestWarnHandlerKicksAtLimitAndClearsCounter(t *testing.T) {
 		7: &telego.ChatMemberAdministrator{},
 		8: &telego.ChatMemberMember{},
 	}
-	service := newTestService(t, &config.Config{
+	service := newTestService(t, &settings.Config{
 		GroupIDs:         []int64{groupID},
-		Groups:           []config.GroupConfig{{ID: groupID}},
+		Groups:           []settings.GroupConfig{{ID: groupID}},
 		WarnLimit:        1,
 		NotifyTTLSeconds: -1,
 	}, telegram, "")
@@ -634,9 +598,9 @@ func TestBanAndPurgeHandlers(t *testing.T) {
 				7: &telego.ChatMemberAdministrator{},
 				8: &telego.ChatMemberMember{},
 			}
-			service := newTestService(t, &config.Config{
+			service := newTestService(t, &settings.Config{
 				GroupIDs:         []int64{groupID},
-				Groups:           []config.GroupConfig{{ID: groupID}},
+				Groups:           []settings.GroupConfig{{ID: groupID}},
 				BanSeconds:       7200,
 				NotifyTTLSeconds: -1,
 			}, telegram, "")
@@ -672,9 +636,9 @@ func TestMuteAndUnmuteHandlers(t *testing.T) {
 		7: &telego.ChatMemberAdministrator{},
 		8: &telego.ChatMemberMember{},
 	}
-	service := newTestService(t, &config.Config{
+	service := newTestService(t, &settings.Config{
 		GroupIDs:         []int64{groupID},
-		Groups:           []config.GroupConfig{{ID: groupID}},
+		Groups:           []settings.GroupConfig{{ID: groupID}},
 		MuteSeconds:      3600,
 		NotifyTTLSeconds: -1,
 	}, telegram, "")
@@ -712,9 +676,9 @@ func TestBanRejectionRetainsEvidenceAndAlertsConfiguredLog(t *testing.T) {
 		7: &telego.ChatMemberAdministrator{},
 		8: &telego.ChatMemberMember{},
 	}
-	service := newTestService(t, &config.Config{
+	service := newTestService(t, &settings.Config{
 		GroupIDs:         []int64{groupID},
-		Groups:           []config.GroupConfig{{ID: groupID}},
+		Groups:           []settings.GroupConfig{{ID: groupID}},
 		AdminLogChatID:   adminLogID,
 		Lang:             "en",
 		NotifyTTLSeconds: -1,
@@ -742,9 +706,9 @@ func TestBanRejectionFallsBackToGroupWithoutAdminLog(t *testing.T) {
 		7: &telego.ChatMemberAdministrator{},
 		8: &telego.ChatMemberMember{},
 	}
-	service := newTestService(t, &config.Config{
+	service := newTestService(t, &settings.Config{
 		GroupIDs:         []int64{groupID},
-		Groups:           []config.GroupConfig{{ID: groupID}},
+		Groups:           []settings.GroupConfig{{ID: groupID}},
 		Lang:             "en",
 		NotifyTTLSeconds: -1,
 	}, telegram, "")
@@ -772,9 +736,9 @@ func TestMuteRejectionRetainsEvidenceAndAlertsConfiguredLog(t *testing.T) {
 		7: &telego.ChatMemberAdministrator{},
 		8: &telego.ChatMemberMember{},
 	}
-	service := newTestService(t, &config.Config{
+	service := newTestService(t, &settings.Config{
 		GroupIDs:         []int64{groupID},
-		Groups:           []config.GroupConfig{{ID: groupID}},
+		Groups:           []settings.GroupConfig{{ID: groupID}},
 		AdminLogChatID:   adminLogID,
 		Lang:             "en",
 		MuteSeconds:      3600,
@@ -807,9 +771,9 @@ func TestMuteRejectionFallsBackToGroupWithoutAdminLog(t *testing.T) {
 		7: &telego.ChatMemberAdministrator{},
 		8: &telego.ChatMemberMember{},
 	}
-	service := newTestService(t, &config.Config{
+	service := newTestService(t, &settings.Config{
 		GroupIDs:         []int64{groupID},
-		Groups:           []config.GroupConfig{{ID: groupID}},
+		Groups:           []settings.GroupConfig{{ID: groupID}},
 		Lang:             "en",
 		MuteSeconds:      3600,
 		NotifyTTLSeconds: -1,
@@ -841,9 +805,9 @@ func TestWarnLimitRejectionRetainsCountAndAlertsConfiguredLog(t *testing.T) {
 		7: &telego.ChatMemberAdministrator{},
 		8: &telego.ChatMemberMember{},
 	}
-	service := newTestService(t, &config.Config{
+	service := newTestService(t, &settings.Config{
 		GroupIDs:         []int64{groupID},
-		Groups:           []config.GroupConfig{{ID: groupID}},
+		Groups:           []settings.GroupConfig{{ID: groupID}},
 		AdminLogChatID:   adminLogID,
 		Lang:             "en",
 		WarnLimit:        1,
@@ -876,9 +840,9 @@ func TestWarnLimitRejectionFallsBackToGroupWithoutAdminLog(t *testing.T) {
 		7: &telego.ChatMemberAdministrator{},
 		8: &telego.ChatMemberMember{},
 	}
-	service := newTestService(t, &config.Config{
+	service := newTestService(t, &settings.Config{
 		GroupIDs:         []int64{groupID},
-		Groups:           []config.GroupConfig{{ID: groupID}},
+		Groups:           []settings.GroupConfig{{ID: groupID}},
 		Lang:             "en",
 		WarnLimit:        1,
 		NotifyTTLSeconds: -1,
@@ -905,7 +869,7 @@ func TestCallerAdminLookupFailureSaysSo(t *testing.T) {
 	const groupID = int64(-100)
 	telegram := newFakeMod()
 	telegram.memberErr = errors.New("network")
-	service := newTestService(t, &config.Config{NotifyTTLSeconds: -1, GroupIDs: []int64{groupID}}, telegram, "")
+	service := newTestService(t, &settings.Config{NotifyTTLSeconds: -1, GroupIDs: []int64{groupID}}, telegram, "")
 
 	message := &telego.Message{
 		MessageID: 1,
@@ -951,7 +915,7 @@ func TestChannelSenderFilterSparesTheLinkedChannel(t *testing.T) {
 			telegram := newFakeMod()
 			telegram.linkedChat = tc.linkedChat
 			telegram.linkedUnknown = tc.linkedUnknown
-			cfg := &config.Config{GroupIDs: []int64{groupID}, BlockChannelSenders: boolPtr(true), NotifyTTLSeconds: -1}
+			cfg := &settings.Config{GroupIDs: []int64{groupID}, BlockChannelSenders: boolPtr(true), NotifyTTLSeconds: -1}
 			service := newTestService(t, cfg, telegram, "")
 			consumed := service.FilterChannelSender(context.Background(), ChannelSenderMessage{
 				ChatID:          groupID,

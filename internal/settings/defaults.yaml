@@ -1,0 +1,141 @@
+# Vestibule embeds this file. Operators keep only differences in config.yaml;
+# configupgrade rebuilds the effective document from these defaults and an allowlist.
+
+process:
+  # Lifetime of a one-use initial-owner claim, in seconds. Range: 1..86400.
+  owner_claim_lifetime_seconds: 600
+  # Optional Telegram user allowed to make the initial owner claim; 0 allows any user.
+  owner_claim_user_id: 0
+  # Lifetime of transient bot notices, in seconds. Range: 1..86400.
+  notify_ttl_seconds: 60
+  # Per-user query limit for direct messages. Must be positive.
+  private_query_per_min: 3
+  # IANA timezone used for daily statistics; empty uses the process timezone.
+  stats_timezone: ""
+  # Outbound HTTP User-Agent override; empty uses the application default.
+  user_agent: ""
+  # Reply to non-command direct messages; empty uses the translated built-in reply.
+  private_reply: ""
+
+resources:
+  # Gentoo news index URL; empty disables the news lookup source.
+  news_url: ""
+  # GitHub overlays searched by package commands. See examples.overlay below.
+  overlays: []
+  # Bug/news destinations. See examples.feed below.
+  feeds: []
+
+factory:
+  # Whether verification is enabled when a chat has no override.
+  enabled: true
+  # Challenge destination: group, dm, or both.
+  delivery_mode: both
+  # Verification strategy: kernel, quiz, or mixed.
+  verify_mode: kernel
+  # Hide applicant names in public challenge messages.
+  name_spoiler: true
+  # Ban duration in seconds; 0 means permanent, otherwise Telegram requires 30..31622400.
+  ban_seconds: 0
+  # Lookup-message lifetime in seconds. Must be positive while auto deletion is enabled.
+  lookup_ttl_seconds: 180
+  # Delete lookup commands and replies after lookup_ttl_seconds.
+  lookup_auto_delete_enabled: true
+  # Verification deadline in seconds. Range: 30..1800.
+  timeout_seconds: 240
+  # Failed challenges before automatic ban; a negative value disables automatic ban.
+  verify_max_fails: 3
+  # Retry cooldown in seconds; a negative value disables cooldown.
+  verify_retry_seconds: 180
+  # Mute duration in seconds. Telegram requires 30..31622400.
+  mute_seconds: 3600
+  # Verify members invited by another member.
+  verify_invited: true
+  # Warnings before a kick. Must be positive.
+  warn_limit: 3
+  # Reject sender-chat posts unless allowlisted. Enabled by default.
+  antispam_enabled: true
+  # Sender-chat IDs allowed to post in this chat.
+  channel_whitelist: []
+  # Membership-source chats whose members bypass verification.
+  trusted_member_group_ids: []
+  # Support chats the bot may remain in without treating them as guarded chats.
+  known_chat_ids: []
+  # Channel applicants must join; 0 disables the gate.
+  required_channel_id: 0
+  # Public @handle or display name for the required channel.
+  channel_display: ""
+  # Invite URL for a private required channel.
+  channel_invite_url: ""
+  # Multiple-choice challenge bank. See examples.question below.
+  questions: []
+  # Answer-hidden fallback bank. See examples.fallback_question below.
+  fallback_questions: []
+  # Use the built-in fallback bank instead of fallback_questions.
+  fallback_builtin: true
+  # Chat language: zh, zh-Hant, or en.
+  lang: zh
+  # Send rich Bot API messages with an HTML fallback.
+  rich_messages: false
+  # Per-user query limit presented and enforced for this chat. Must be positive.
+  private_query_per_min: 3
+  # Destination for audit and failure notices; 0 falls back to the acting chat.
+  admin_log_chat_id: 0
+  # Admit applicants when the bot cannot read the required channel.
+  required_channel_fail_open: true
+
+# Per-chat user-file values are migration inputs. Live administrator overrides are stored in
+# chat.settings; an empty object inherits factory values. See examples.chat below.
+chats: []
+
+# Non-active examples keep every nested struct field discoverable without enabling a resource.
+examples:
+  overlay:
+    name: gentoo
+    repo: gentoo/gentoo
+    branch: master
+  feed:
+    chat_id: -1001234567890
+    lang: zh
+    interval_seconds: 300
+    bugs: true
+    news: true
+    bug_product: Gentoo Linux
+    bug_component: ""
+    silent_bugs: false
+  question:
+    q: Which package manager belongs to Gentoo?
+    options: [Portage, apt]
+    answer: 0
+  fallback_question:
+    q: Name the Gentoo package manager.
+    answers: [Portage, emerge]
+  chat:
+    id: -1001234567890
+    enabled: true
+    delivery_mode: both
+    verify_mode: kernel
+    name_spoiler: true
+    ban_seconds: 0
+    lookup_ttl_seconds: 180
+    lookup_auto_delete_enabled: true
+    timeout_seconds: 240
+    verify_max_fails: 3
+    verify_retry_seconds: 180
+    mute_seconds: 3600
+    verify_invited: true
+    warn_limit: 3
+    antispam_enabled: true
+    channel_whitelist: []
+    trusted_member_group_ids: []
+    known_chat_ids: []
+    required_channel_id: 0
+    channel_display: ""
+    channel_invite_url: ""
+    questions: []
+    fallback_questions: []
+    fallback_builtin: true
+    lang: zh
+    rich_messages: false
+    private_query_per_min: 3
+    admin_log_chat_id: 0
+    required_channel_fail_open: true

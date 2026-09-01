@@ -6,9 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/feed"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
 )
@@ -16,8 +15,8 @@ import (
 func newOutageAwareBot(
 	ctx context.Context,
 	bot *telego.Bot,
-	cfg *config.Config,
-	settings *store.Settings,
+	cfg *settings.Config,
+	settings *settings.Store,
 	stateStore verification.Store,
 ) *outageAwareBot {
 	observer := &retentionOutageObserver{
@@ -29,7 +28,7 @@ func newOutageAwareBot(
 		},
 	}
 	observer.alert = func(outageDuration time.Duration) {
-		alertRetentionOutage(ctx, bot, cfg, settings.GroupIDs(), outageDuration)
+		alertRetentionOutage(ctx, bot, cfg, settings.ChatIDs(), outageDuration)
 	}
 	return &outageAwareBot{Bot: bot, observer: observer}
 }
@@ -56,8 +55,8 @@ func logPrivacyMode(me *telego.User) {
 	}
 }
 
-func startFeeds(ctx context.Context, cfg *config.Config, bot *telego.Bot, stateDirectory string) <-chan struct{} {
-	var feeds []*config.FeedConfig
+func startFeeds(ctx context.Context, cfg *settings.Config, bot *telego.Bot, stateDirectory string) <-chan struct{} {
+	var feeds []*settings.FeedConfig
 	for i := range cfg.Feeds {
 		if cfg.Feeds[i].ChatID != 0 {
 			feeds = append(feeds, &cfg.Feeds[i])

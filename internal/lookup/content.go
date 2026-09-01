@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram/ids"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/mymmrac/telego"
@@ -207,7 +207,7 @@ const newsTTL = 30 * time.Minute
 var newsURL = "https://www.gentoo.org/support/news-items/"
 var newsBase = "https://www.gentoo.org"
 
-func configureNews(cfg *config.Config) {
+func configureNews(cfg *settings.Config) {
 	if cfg.NewsURL != "" {
 		newsURL = cfg.NewsURL
 	}

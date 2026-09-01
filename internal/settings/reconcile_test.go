@@ -1,4 +1,4 @@
-package store
+package settings
 
 import (
 	"path/filepath"
@@ -7,34 +7,34 @@ import (
 
 const testRuntimeGroup int64 = -1009000000009
 
-// Promoting a runtime-registered group into config.json, and retiring the control group, are
-// ordinary maintenance. Neither may cost administrators their settings: discarding the stored
-// state silently re-enables verification everywhere and unregisters live groups.
+// Promoting a runtime-registered group into the user file, or retiring a configured group, is
+// ordinary maintenance. Neither may silently discard stored overrides or registration metadata.
 func TestConfigDriftKeepsRuntimeDecisions(t *testing.T) {
 	cases := []struct {
-		name   string
-		mutate func(base *SettingsBaseline)
+		name         string
+		mutate       func(base *SettingsBaseline)
+		wantWritable bool
 	}{
 		{
 			name: "registered group promoted into config",
 			mutate: func(base *SettingsBaseline) {
-				promoted := base.DefaultGroup
+				promoted := base.Factory
 				promoted.ID = testRuntimeGroup
 				base.Groups = append(base.Groups, promoted)
 			},
 		},
 		{
-			name: "control group retired from config",
+			name: "configured group retired",
 			mutate: func(base *SettingsBaseline) {
-				base.Groups = base.Groups[1:] // drop testGroupA, the control group
-				base.ControlGroupID = 0
+				base.Groups = base.Groups[1:]
 			},
+			wantWritable: true,
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			path := filepath.Join(t.TempDir(), "settings.json")
-			first, err := NewSettings(path, testSettingsBaseline())
+			first, err := NewStore(path, testSettingsBaseline(), nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -45,28 +45,25 @@ func TestConfigDriftKeepsRuntimeDecisions(t *testing.T) {
 				t.Fatal(err)
 			}
 			target := testGroupB
-			if len(tc.name) > 0 && tc.name[0] == 'c' {
-				target = testGroupB // survives both baselines
-			}
-			group, _ := first.Group(target)
+			group, _ := first.Settings(target)
 			overrides := group.Overrides()
 			disabled := false
 			overrides.Enabled = &disabled
-			if _, err := first.CommitGroup(target, group.Revision(), overrides); err != nil {
+			if _, err := first.Update(target, group.Revision(), overrides); err != nil {
 				t.Fatal(err)
 			}
 
 			base := testSettingsBaseline()
 			tc.mutate(&base)
-			second, err := NewSettings(path, base)
+			second, err := NewStore(path, base, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
-			survived, ok := second.Group(target)
+			survived, ok := second.Settings(target)
 			if !ok {
 				t.Fatal("the configured group must survive reconciliation")
 			}
-			if survived.Enabled().Value || survived.Enabled().Source != SourceRuntime {
+			if survived.Enabled().Value || survived.Enabled().Source != SourceChatOverride {
 				t.Errorf("Enabled = %#v, want the administrator's runtime override to survive", survived.Enabled())
 			}
 			if got := second.Registrations().OwnerID; got != 42 {
@@ -75,8 +72,8 @@ func TestConfigDriftKeepsRuntimeDecisions(t *testing.T) {
 			if !second.IsGroup(testRuntimeGroup) {
 				t.Error("the runtime group is still guarded, whether it is registered or configured")
 			}
-			if second.Persistence().Writable {
-				t.Error("writes stay held until the operator resolves the drift")
+			if got := second.Persistence().Writable; got != tc.wantWritable {
+				t.Errorf("writable = %v, want %v", got, tc.wantWritable)
 			}
 		})
 	}

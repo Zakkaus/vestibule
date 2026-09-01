@@ -6,12 +6,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/store"
 )
 
-func loadRuntimeState(configPath, stateDirectory string) (*config.Config, *store.Settings, error) {
-	cfg, err := config.LoadConfig(configPath)
+func loadRuntimeState(configPath, stateDirectory string, repositories ...settings.Repository) (*settings.Config, *settings.Store, error) {
+	cfg, err := settings.LoadConfig(configPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("config: %w", err)
 	}
@@ -23,11 +23,18 @@ func loadRuntimeState(configPath, stateDirectory string) (*config.Config, *store
 		store.ReclaimTemps(stateDirectory)
 		settingsPath = filepath.Join(stateDirectory, "settings.json")
 	}
-	baseline, err := store.LoadBaseline(configPath, cfg)
+	baseline, err := settings.LoadBaseline(configPath, cfg)
 	if err != nil {
 		return nil, nil, fmt.Errorf("settings baseline: %w", err)
 	}
-	runtimeSettings, err := store.NewSettings(settingsPath, baseline)
+	if len(repositories) > 1 {
+		return nil, nil, fmt.Errorf("settings: at most one repository is supported")
+	}
+	var repository settings.Repository
+	if len(repositories) == 1 {
+		repository = repositories[0]
+	}
+	runtimeSettings, err := settings.NewStore(settingsPath, baseline, repository)
 	if err != nil {
 		return nil, nil, fmt.Errorf("settings: %w", err)
 	}

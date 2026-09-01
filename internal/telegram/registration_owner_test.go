@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/mymmrac/telego"
 )
 
@@ -18,8 +18,8 @@ func TestStartupStateAllowsMissingConfigAndNoGroups(t *testing.T) {
 	if err != nil {
 		t.Fatalf("startup state: %v", err)
 	}
-	if len(cfg.Groups) != 0 || len(settings.GroupIDs()) != 0 {
-		t.Fatalf("startup groups = config %v, settings %v; want none", cfg.GroupIDs, settings.GroupIDs())
+	if len(cfg.Groups) != 0 || len(settings.ChatIDs()) != 0 {
+		t.Fatalf("startup groups = config %v, settings %v; want none", cfg.GroupIDs, settings.ChatIDs())
 	}
 	if status := settings.Persistence(); !status.Durable || !status.Writable {
 		t.Fatalf("settings persistence = %+v, want durable and writable", status)
@@ -33,13 +33,13 @@ func TestStartupConfigRemainsRegistrationBaseline(t *testing.T) {
 	const groupID int64 = -1009000000601
 	configPath := t.TempDir() + "/missing-config.json"
 	stateDirectory := t.TempDir()
-	_, settings, err := loadRuntimeState(configPath, stateDirectory)
+	_, store, err := loadRuntimeState(configPath, stateDirectory)
 	if err != nil {
 		t.Fatal(err)
 	}
-	registration := settings.Registrations()
-	registration.RegisteredGroups = []store.RegisteredGroup{{ID: groupID, RegisteredBy: 42}}
-	if _, err := settings.CommitRegistrations(registration.Revision, registration); err != nil {
+	registration := store.Registrations()
+	registration.RegisteredGroups = []settings.RegisteredGroup{{ID: groupID, RegisteredBy: 42}}
+	if _, err := store.CommitRegistrations(registration.Revision, registration); err != nil {
 		t.Fatal(err)
 	}
 	cfg, reloaded, err := loadRuntimeState(configPath, stateDirectory)
@@ -183,7 +183,7 @@ func TestEnrollmentNoncePromotionReplayAndExpiry(t *testing.T) {
 	}})
 	waitForRegistrationMethod(t, caller, "leaveChat")
 	if settings.IsGroup(groupB) || len(caller.left) != 1 || caller.left[0] != groupB {
-		t.Fatalf("nonce replay result: groups=%v leaves=%v", settings.GroupIDs(), caller.left)
+		t.Fatalf("nonce replay result: groups=%v leaves=%v", settings.ChatIDs(), caller.left)
 	}
 
 	expired, err := settings.IssueEnrollmentNonce(testOwner, now, time.Second)
@@ -200,7 +200,7 @@ func TestEnrollmentNoncePromotionReplayAndExpiry(t *testing.T) {
 	}})
 	waitForRegistrationMethod(t, caller, "leaveChat")
 	if settings.IsGroup(groupC) || len(caller.left) != 2 || caller.left[1] != groupC {
-		t.Fatalf("expired nonce result: groups=%v leaves=%v", settings.GroupIDs(), caller.left)
+		t.Fatalf("expired nonce result: groups=%v leaves=%v", settings.ChatIDs(), caller.left)
 	}
 }
 
@@ -229,8 +229,8 @@ func TestOwnerPromotionRegistersFirstControlGroup(t *testing.T) {
 	}})
 	waitForRegistrationMethod(t, caller, "sendMessage")
 	state := settings.Registrations()
-	if !settings.IsGroup(groupID) || state.ControlGroupID != groupID || len(state.RegisteredGroups) != 1 {
-		t.Fatalf("owner registration = %+v, groups=%v", state, settings.GroupIDs())
+	if !settings.IsGroup(groupID) || len(state.RegisteredGroups) != 1 {
+		t.Fatalf("owner registration = %+v, groups=%v", state, settings.ChatIDs())
 	}
 	if len(caller.left) != 0 || len(caller.sent) != 1 {
 		t.Fatalf("owner registration Telegram calls: sent=%+v left=%v", caller.sent, caller.left)
@@ -305,6 +305,6 @@ func TestNonOwnerPromotionAttemptLeaves(t *testing.T) {
 	}})
 	waitForRegistrationMethod(t, caller, "leaveChat")
 	if settings.IsGroup(groupID) || len(caller.left) != 1 || caller.left[0] != groupID {
-		t.Fatalf("non-owner attempt: groups=%v leaves=%v", settings.GroupIDs(), caller.left)
+		t.Fatalf("non-owner attempt: groups=%v leaves=%v", settings.ChatIDs(), caller.left)
 	}
 }

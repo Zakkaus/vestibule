@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 func TestClaimedModel(t *testing.T) {
@@ -29,7 +29,7 @@ func TestClaimedModel(t *testing.T) {
 }
 
 func TestRecordAgentTally(t *testing.T) {
-	v := newTestService(&config.Config{}) // no agentPath: in-memory only, no state file written
+	v := newTestService(&settings.Config{}) // no agentPath: in-memory only, no state file written
 	v.agents = AgentTally{}
 	for i := 0; i < 3; i++ {
 		v.recordAgent("AGENT-X model=gpt-5")
@@ -50,7 +50,7 @@ func TestRecordAgentTally(t *testing.T) {
 	}
 
 	// key cap: unknown models fold into "other" once the map is full
-	v2 := newTestService(&config.Config{})
+	v2 := newTestService(&settings.Config{})
 	v2.agents = AgentTally{Counts: map[string]int{}}
 	for i := 0; i < agentModelMax; i++ {
 		v2.agents.Counts[string(rune('a'+i%26))+strings.Repeat("z", i%20+1)] = 1
@@ -60,19 +60,19 @@ func TestRecordAgentTally(t *testing.T) {
 	}
 
 	// an empty tally renders nothing, so /stats stays quiet before the first catch
-	if s := newTestService(&config.Config{}).AgentStatsText(i18n.LangZH); s != "" {
+	if s := newTestService(&settings.Config{}).AgentStatsText(i18n.LangZH); s != "" {
 		t.Errorf("an empty tally should render nothing, got %q", s)
 	}
 }
 
 func TestAgentTallyPersists(t *testing.T) {
 	path := t.TempDir() + "/agents.json"
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	v.agentPath = path
 	v.recordAgent("AGENT-X model=gpt-5")
 	v.recordAgent("AGENT-X model=gpt-5")
 
-	v2 := newTestService(&config.Config{})
+	v2 := newTestService(&settings.Config{})
 	v2.agentPath = path
 	v2.loadAgents()
 	if v2.agents.Total != 2 || v2.agents.Counts["gpt-5"] != 2 {
@@ -89,7 +89,7 @@ func TestLoadAgentsReadFailureDisablesWrites(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v := newTestService(&config.Config{})
+			v := newTestService(&settings.Config{})
 			v.agentPath = tt.path(t)
 			v.loadAgents()
 			if v.agentPath != "" {

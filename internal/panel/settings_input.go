@@ -7,9 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -19,7 +18,7 @@ type panelNoticeError struct{ text string }
 
 func (e *panelNoticeError) Error() string { return e.text }
 
-func (v *Panel) dispatchQuizBank(ctx context.Context, bot *telego.Bot, session *panelSession, group store.GroupView, data callbackData) error {
+func (v *Panel) dispatchQuizBank(ctx context.Context, bot *telego.Bot, session *panelSession, group settings.GroupView, data callbackData) error {
 	switch data.field {
 	case "go":
 		return v.navigate(ctx, bot, session, data.value)
@@ -33,7 +32,7 @@ func (v *Panel) dispatchQuizBank(ctx context.Context, bot *telego.Bot, session *
 		index, _ := decodeIndex(data.value)
 		questions := group.Questions().Value
 		if index < 0 || index >= len(questions) {
-			return &store.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
+			return &settings.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
 		}
 		question := cloneQuestion(questions[index])
 		session.quiz = &quizDraft{index: index, existing: true, question: question, revision: session.revision}
@@ -44,9 +43,9 @@ func (v *Panel) dispatchQuizBank(ctx context.Context, bot *telego.Bot, session *
 	}
 }
 
-func (v *Panel) dispatchQuizDraft(ctx context.Context, bot *telego.Bot, session *panelSession, group store.GroupView, data callbackData) error {
+func (v *Panel) dispatchQuizDraft(ctx context.Context, bot *telego.Bot, session *panelSession, group settings.GroupView, data callbackData) error {
 	if session.quiz == nil || session.quiz.revision != session.revision {
-		return &store.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
+		return &settings.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
 	}
 	draft := session.quiz
 	switch data.field {
@@ -57,14 +56,14 @@ func (v *Panel) dispatchQuizDraft(ctx context.Context, bot *telego.Bot, session 
 	case "ok":
 		index, _ := decodeIndex(data.value)
 		if index < 0 || index >= len(draft.question.Options) {
-			return &store.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
+			return &settings.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
 		}
 		draft.question.Answer = index
 		return v.renderSession(ctx, bot, session, session.groupID)
 	case "dl":
 		index, _ := decodeIndex(data.value)
 		if index < 0 || index >= len(draft.question.Options) {
-			return &store.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
+			return &settings.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
 		}
 		draft.question.Options = append(draft.question.Options[:index], draft.question.Options[index+1:]...)
 		switch {
@@ -82,7 +81,7 @@ func (v *Panel) dispatchQuizDraft(ctx context.Context, bot *telego.Bot, session 
 		questions := group.Questions().Value
 		if draft.existing {
 			if draft.index < 0 || draft.index >= len(questions) {
-				return &store.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
+				return &settings.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
 			}
 			questions[draft.index] = cloneQuestion(draft.question)
 		} else {
@@ -90,7 +89,7 @@ func (v *Panel) dispatchQuizDraft(ctx context.Context, bot *telego.Bot, session 
 		}
 		next := group.Overrides()
 		next.Questions = &questions
-		result, err := v.settings.CommitGroup(session.groupID, session.revision, next)
+		result, err := v.settings.Update(session.groupID, session.revision, next)
 		if err != nil {
 			return err
 		}
@@ -114,7 +113,7 @@ func (v *Panel) dispatchQuizDraft(ctx context.Context, bot *telego.Bot, session 
 	}
 }
 
-func (v *Panel) dispatchFallbackBank(ctx context.Context, bot *telego.Bot, session *panelSession, group store.GroupView, data callbackData) error {
+func (v *Panel) dispatchFallbackBank(ctx context.Context, bot *telego.Bot, session *panelSession, group settings.GroupView, data callbackData) error {
 	switch data.field {
 	case "go":
 		return v.navigate(ctx, bot, session, data.value)
@@ -128,7 +127,7 @@ func (v *Panel) dispatchFallbackBank(ctx context.Context, bot *telego.Bot, sessi
 		index, _ := decodeIndex(data.value)
 		questions := group.FallbackQuestions().Value
 		if group.FallbackBuiltin().Value || index < 0 || index >= len(questions) {
-			return &store.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
+			return &settings.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
 		}
 		session.fallback = &fallbackDraft{index: index, existing: true, question: cloneShortQuestion(questions[index]), revision: session.revision}
 		session.screen = "fd"
@@ -142,9 +141,9 @@ func (v *Panel) dispatchFallbackBank(ctx context.Context, bot *telego.Bot, sessi
 	}
 }
 
-func (v *Panel) dispatchFallbackDraft(ctx context.Context, bot *telego.Bot, session *panelSession, group store.GroupView, data callbackData) error {
+func (v *Panel) dispatchFallbackDraft(ctx context.Context, bot *telego.Bot, session *panelSession, group settings.GroupView, data callbackData) error {
 	if session.fallback == nil || session.fallback.revision != session.revision {
-		return &store.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
+		return &settings.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
 	}
 	draft := session.fallback
 	switch data.field {
@@ -155,7 +154,7 @@ func (v *Panel) dispatchFallbackDraft(ctx context.Context, bot *telego.Bot, sess
 	case "dl":
 		index, _ := decodeIndex(data.value)
 		if index < 0 || index >= len(draft.question.Answers) {
-			return &store.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
+			return &settings.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
 		}
 		draft.question.Answers = append(draft.question.Answers[:index], draft.question.Answers[index+1:]...)
 		return v.renderSession(ctx, bot, session, session.groupID)
@@ -169,7 +168,7 @@ func (v *Panel) dispatchFallbackDraft(ctx context.Context, bot *telego.Bot, sess
 		}
 		if draft.existing {
 			if draft.index < 0 || draft.index >= len(questions) {
-				return &store.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
+				return &settings.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
 			}
 			questions[draft.index] = cloneShortQuestion(draft.question)
 		} else {
@@ -179,7 +178,7 @@ func (v *Panel) dispatchFallbackDraft(ctx context.Context, bot *telego.Bot, sess
 		next := group.Overrides()
 		next.FallbackBuiltin = &builtin
 		next.FallbackQuestions = &questions
-		result, err := v.settings.CommitGroup(session.groupID, session.revision, next)
+		result, err := v.settings.Update(session.groupID, session.revision, next)
 		if err != nil {
 			return err
 		}
@@ -203,7 +202,7 @@ func (v *Panel) dispatchFallbackDraft(ctx context.Context, bot *telego.Bot, sess
 	}
 }
 
-func (v *Panel) dispatchChannel(ctx context.Context, bot *telego.Bot, session *panelSession, group store.GroupView, data callbackData) error {
+func (v *Panel) dispatchChannel(ctx context.Context, bot *telego.Bot, session *panelSession, group settings.GroupView, data callbackData) error {
 	switch data.field {
 	case "go":
 		return v.navigate(ctx, bot, session, data.value)
@@ -221,7 +220,7 @@ func (v *Panel) dispatchChannel(ctx context.Context, bot *telego.Bot, session *p
 		invite := ""
 		next := group.Overrides()
 		next.ChannelInviteURL = &invite
-		result, err := v.settings.CommitGroup(session.groupID, session.revision, next)
+		result, err := v.settings.Update(session.groupID, session.revision, next)
 		if err != nil {
 			return err
 		}
@@ -236,10 +235,10 @@ func (v *Panel) dispatchChannel(ctx context.Context, bot *telego.Bot, session *p
 	}
 }
 
-func (v *Panel) dispatchConfirmation(ctx context.Context, bot *telego.Bot, session *panelSession, group store.GroupView, data callbackData) error {
+func (v *Panel) dispatchConfirmation(ctx context.Context, bot *telego.Bot, session *panelSession, group settings.GroupView, data callbackData) error {
 	confirmation := session.confirm
 	if confirmation == nil || confirmation.revision != session.revision {
-		return &store.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
+		return &settings.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
 	}
 	if data.field == "cn" {
 		session.screen = confirmationParent(confirmation.kind)
@@ -254,14 +253,14 @@ func (v *Panel) dispatchConfirmation(ctx context.Context, bot *telego.Bot, sessi
 	case "quiz":
 		questions := group.Questions().Value
 		if confirmation.index < 0 || confirmation.index >= len(questions) {
-			return &store.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
+			return &settings.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
 		}
 		questions = append(questions[:confirmation.index], questions[confirmation.index+1:]...)
 		next.Questions = &questions
 	case "fallback":
 		questions := group.FallbackQuestions().Value
 		if group.FallbackBuiltin().Value || confirmation.index < 0 || confirmation.index >= len(questions) {
-			return &store.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
+			return &settings.ConflictError{GroupID: session.groupID, Expected: session.revision, Actual: group.Revision()}
 		}
 		questions = append(questions[:confirmation.index], questions[confirmation.index+1:]...)
 		if len(questions) == 0 {
@@ -284,7 +283,7 @@ func (v *Panel) dispatchConfirmation(ctx context.Context, bot *telego.Bot, sessi
 	default:
 		return errors.New("unknown confirmation")
 	}
-	result, err := v.settings.CommitGroup(session.groupID, session.revision, next)
+	result, err := v.settings.Update(session.groupID, session.revision, next)
 	if err != nil {
 		return err
 	}
@@ -431,7 +430,7 @@ func (v *Panel) OnPanelInput(ctx *th.Context, update telego.Update) error {
 			i18n.Messages.Panel.Settings.Error.InputCanceledVerification.For(session.language)))
 		return nil
 	}
-	group, ok := v.settings.Group(session.groupID)
+	group, ok := v.settings.Settings(session.groupID)
 	if !ok || group.Revision() != pending.expectedRevision {
 		v.finishSession(ctx.Context(), ctx.Bot(), session, i18n.Messages.Panel.Settings.Error.ConcurrentChange.For(session.language))
 		return nil
@@ -452,7 +451,7 @@ func (v *Panel) OnPanelInput(ctx *th.Context, update telego.Update) error {
 			v.sendInputError(ctx.Context(), ctx.Bot(), session, notice.text)
 			return nil
 		}
-		if errors.Is(err, store.ErrSettingsConflict) {
+		if errors.Is(err, settings.ErrSettingsConflict) {
 			v.finishSession(ctx.Context(), ctx.Bot(), session, i18n.Messages.Panel.Settings.Error.ConcurrentChange.For(session.language))
 			return nil
 		}
@@ -495,7 +494,7 @@ func (v *Panel) OnPanelChatShared(ctx *th.Context, update telego.Update) error {
 			i18n.Messages.Panel.Settings.Error.InputCanceledVerification.For(session.language)))
 		return nil
 	}
-	group, ok := v.settings.Group(session.groupID)
+	group, ok := v.settings.Settings(session.groupID)
 	if !ok || group.Revision() != pending.expectedRevision {
 		v.finishSession(ctx.Context(), ctx.Bot(), session, i18n.Messages.Panel.Settings.Error.ConcurrentChange.For(session.language))
 		return nil
@@ -517,7 +516,7 @@ func (v *Panel) OnPanelChatShared(ctx *th.Context, update telego.Update) error {
 			v.sendInputError(ctx.Context(), ctx.Bot(), session, notice.text)
 			return nil
 		}
-		if errors.Is(err, store.ErrSettingsConflict) {
+		if errors.Is(err, settings.ErrSettingsConflict) {
 			v.finishSession(ctx.Context(), ctx.Bot(), session, i18n.Messages.Panel.Settings.Error.ConcurrentChange.For(session.language))
 		} else {
 			v.finishSession(ctx.Context(), ctx.Bot(), session, i18n.Messages.Panel.Settings.Error.SaveFailed.For(session.language))
@@ -543,7 +542,7 @@ func (v *Panel) authorizeInput(ctx context.Context, bot *telego.Bot, session *pa
 	return v.sessionByUser(session.ownerID) == session
 }
 
-func (v *Panel) applyTextInput(ctx context.Context, bot *telego.Bot, session *panelSession, group store.GroupView, pending *pendingInput, text string) error {
+func (v *Panel) applyTextInput(ctx context.Context, bot *telego.Bot, session *panelSession, group settings.GroupView, pending *pendingInput, text string) error {
 	next := group.Overrides()
 	commit := true
 	committed := false
@@ -570,7 +569,7 @@ func (v *Panel) applyTextInput(ctx context.Context, bot *telego.Bot, session *pa
 	case inputMuteDuration:
 		// A mute always has to lift on its own, so zero (permanent) is not accepted here.
 		value, ok := parsePanelBanDuration(text)
-		if !ok || value <= 0 || value != config.ClampBanSeconds(value) {
+		if !ok || value <= 0 || value != settings.ClampBanSeconds(value) {
 			return &panelNoticeError{text: i18n.Messages.Panel.Settings.Error.InvalidDuration.For(session.language)}
 		}
 		next.MuteSeconds = &value
@@ -593,30 +592,15 @@ func (v *Panel) applyTextInput(ctx context.Context, bot *telego.Bot, session *pa
 		}
 		next.VerifyRetrySeconds = &value
 	case inputPrivateRate:
-		if session.groupID != v.settings.ControlGroupID() {
-			return &panelNoticeError{text: i18n.Messages.Panel.Settings.Error.ControlGroupOnly.For(session.language)}
-		}
 		value, ok := parseBoundedPositive(text, 1, 1<<30)
 		if !ok {
 			return &panelNoticeError{text: i18n.Messages.Panel.Settings.Error.InvalidNumber.For(session.language)}
 		}
-		global := v.settings.Global()
-		if global.Revision() != session.globalRevision {
-			return store.ErrSettingsConflict
-		}
-		overrides := global.Overrides()
-		overrides.PrivateQueryPerMin = &value
-		result, err := v.settings.CommitGlobal(session.globalRevision, overrides)
-		if err != nil {
-			return err
-		}
-		session.globalRevision = result.Revision
-		committed = true
-		commit = false
+		next.PrivateQueryPerMin = &value
 	case inputQuizQuestion:
 		commit = false
 		if session.quiz == nil {
-			session.quiz = &quizDraft{index: -1, question: config.Question{Q: text, Answer: -1}, revision: session.revision}
+			session.quiz = &quizDraft{index: -1, question: settings.Question{Q: text, Answer: -1}, revision: session.revision}
 		} else {
 			session.quiz.question.Q = text
 		}
@@ -631,7 +615,7 @@ func (v *Panel) applyTextInput(ctx context.Context, bot *telego.Bot, session *pa
 	case inputFallbackQuestion:
 		commit = false
 		if session.fallback == nil {
-			session.fallback = &fallbackDraft{index: -1, question: config.ShortQuestion{Q: text}, revision: session.revision}
+			session.fallback = &fallbackDraft{index: -1, question: settings.ShortQuestion{Q: text}, revision: session.revision}
 		} else {
 			session.fallback.question.Q = text
 		}
@@ -658,7 +642,7 @@ func (v *Panel) applyTextInput(ctx context.Context, bot *telego.Bot, session *pa
 		return errors.New("unknown panel input")
 	}
 	if commit {
-		result, err := v.settings.CommitGroup(session.groupID, session.revision, next)
+		result, err := v.settings.Update(session.groupID, session.revision, next)
 		if err != nil {
 			return err
 		}
@@ -696,7 +680,7 @@ func (v *Panel) validateSharedChat(ctx context.Context, bot *telego.Bot, session
 	return chat, true
 }
 
-func (v *Panel) applySharedChat(ctx context.Context, bot *telego.Bot, session *panelSession, group store.GroupView, pending *pendingInput, chat *telego.ChatFullInfo) error {
+func (v *Panel) applySharedChat(ctx context.Context, bot *telego.Bot, session *panelSession, group settings.GroupView, pending *pendingInput, chat *telego.ChatFullInfo) error {
 	sharedID := chat.ID
 	if pending.kind == inputTrustedGroup && sharedID == session.groupID {
 		return &panelNoticeError{text: i18n.Messages.Panel.Settings.Error.InvalidChat.For(session.language)}
@@ -713,7 +697,7 @@ func (v *Panel) applySharedChat(ctx context.Context, bot *telego.Bot, session *p
 		next := group.Overrides()
 		next.RequiredChannelID = &sharedID
 		next.ChannelDisplay = &display
-		result, err := v.settings.CommitGroup(session.groupID, session.revision, next)
+		result, err := v.settings.Update(session.groupID, session.revision, next)
 		if err != nil {
 			return err
 		}
@@ -729,20 +713,13 @@ func (v *Panel) applySharedChat(ctx context.Context, bot *telego.Bot, session *p
 		return v.renderAfterCommit(ctx, bot, session)
 	}
 	if pending.kind == inputAlertChat {
-		if session.groupID != v.settings.ControlGroupID() {
-			return &panelNoticeError{text: i18n.Messages.Panel.Settings.Error.ControlGroupOnly.For(session.language)}
-		}
-		global := v.settings.Global()
-		if global.Revision() != session.globalRevision {
-			return store.ErrSettingsConflict
-		}
-		overrides := global.Overrides()
-		overrides.AdminLogChatID = &sharedID
-		result, err := v.settings.CommitGlobal(session.globalRevision, overrides)
+		next := group.Overrides()
+		next.AdminLogChatID = &sharedID
+		result, err := v.settings.Update(session.groupID, session.revision, next)
 		if err != nil {
 			return err
 		}
-		session.globalRevision = result.Revision
+		session.revision = result.Revision
 		session.screen = pending.parent
 		return v.renderAfterCommit(ctx, bot, session)
 	}
@@ -756,7 +733,7 @@ func (v *Panel) applySharedChat(ctx context.Context, bot *telego.Bot, session *p
 	values = append(values, sharedID)
 	next := group.Overrides()
 	setListOverride(&next, pending.kind, values)
-	result, err := v.settings.CommitGroup(session.groupID, session.revision, next)
+	result, err := v.settings.Update(session.groupID, session.revision, next)
 	if err != nil {
 		return err
 	}
@@ -771,9 +748,9 @@ func (v *Panel) updateChannelWhitelist(ctx context.Context, bot *telego.Bot, ses
 	if err != nil {
 		return err
 	}
-	group, ok := v.settings.Group(session.groupID)
+	group, ok := v.settings.Settings(session.groupID)
 	if !ok {
-		return store.ErrUnknownGroup
+		return settings.ErrUnknownGroup
 	}
 	session.revision = group.Revision()
 	if unbanErr != nil {
@@ -817,7 +794,7 @@ func parsePanelBanDuration(value string) (int, bool) {
 	if err != nil || number < 0 || number > 1<<31 {
 		return 0, false
 	}
-	return config.ClampBanSeconds(number * multiplier), true
+	return settings.ClampBanSeconds(number * multiplier), true
 }
 
 func parseBoundedPositive(value string, minimum, maximum int) (int, bool) {
@@ -840,12 +817,12 @@ func validTelegramURL(value string) bool {
 	return parsed.RawQuery == "" && parsed.Fragment == ""
 }
 
-func cloneQuestion(value config.Question) config.Question {
+func cloneQuestion(value settings.Question) settings.Question {
 	value.Options = append([]string(nil), value.Options...)
 	return value
 }
 
-func cloneShortQuestion(value config.ShortQuestion) config.ShortQuestion {
+func cloneShortQuestion(value settings.ShortQuestion) settings.ShortQuestion {
 	value.Answers = append([]string(nil), value.Answers...)
 	return value
 }

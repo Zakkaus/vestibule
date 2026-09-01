@@ -6,9 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -89,7 +88,7 @@ func (b *outageAwareBot) Probe(ctx context.Context) error {
 func alertRetentionOutage(
 	ctx context.Context,
 	bot *telego.Bot,
-	cfg *config.Config,
+	cfg *settings.Config,
 	groupIDs []int64,
 	outage time.Duration,
 ) {
@@ -109,7 +108,7 @@ func alertRetentionOutage(
 	}
 }
 
-func alertPersistenceProblem(ctx context.Context, bot *telego.Bot, cfg *config.Config, settings *store.Settings) {
+func alertPersistenceProblem(ctx context.Context, bot *telego.Bot, cfg *settings.Config, settings *settings.Store) {
 	status := settings.Persistence()
 	if status.LastError == nil {
 		return
@@ -117,7 +116,7 @@ func alertPersistenceProblem(ctx context.Context, bot *telego.Bot, cfg *config.C
 	log.Printf("WARNING: runtime settings persistence unavailable: %v", status.LastError)
 	targets := []int64{cfg.AdminLogChatID}
 	if cfg.AdminLogChatID == 0 {
-		targets = settings.GroupIDs()
+		targets = settings.ChatIDs()
 	}
 	sendCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()

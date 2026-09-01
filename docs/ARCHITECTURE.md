@@ -1015,54 +1015,46 @@ func Normalize(in string) string {
 
 ## 10. 配置
 
-配置分三层，各有各的位置。**不把它们写成一份文件。** 判断一项属于哪一层，看谁改它、多久改一次。
+配置分三类，各有独立的所有者和持久位置。进程配置由运维在启动前提供； 每群配置由该群管理员修改；声明式资源由自托管者纳入版本控制。
 
-| 层 | 谁改 | 放在哪 | 例 |
+| 类型 | 谁改 | 放在哪 | 例 |
 |---|---|---|---|
-| 进程配置 | 运维，很少改 | 文件加环境变量 | 令牌、监听地址、数据库连接、Bot API 地址、日志 |
-| 每群配置 | 该群管理员，随时改 | 数据库 | 验证方式、超时、封禁时长、提示文案 |
-| 声明式资源 | 自托管者，进版本控制 | provisioning 目录 | 题库、自动回复、订阅源 |
+| 进程配置 | 运维，很少改 | `config.json` 与环境变量 | 数据库连接、Bot API 地址、日志、外部服务令牌 |
+| 每群配置 | 该群管理员，随时改 | `chat.settings` 与 `chat.settings_revision` | 验证方式、超时、封禁时长、反垃圾规则 |
+| 声明式资源 | 自托管者 | `provisioning/` | 题库、自动回复、订阅源 |
 
-### 进程配置：默认内嵌，用户文件只写差异
+### 设置实现：默认值、加载与数据库存取分开
 
 ```text
-/etc/vestibule/
-├── config.yaml                 只写与默认不同的项
-└── provisioning/
-    ├── rules/
-    │   ├── challenges.yaml
-    │   └── autoreply.yaml
-    └── feeds/
-        └── gentoo.yaml
-
 internal/settings/
-├── defaults.yaml               go:embed，完整、带注释、含全部默认值
-├── config.go                   struct 与 Validate
-├── upgrade.go                  旧路径到当前路径的复制规则
-└── load.go                     Do → Unmarshal → Validate
+├── defaults.yaml               go:embed，完整注释与全部出厂默认值
+├── defaults.go                 解析默认值，展开文件管理值，保留来源
+├── config.go                   进程配置类型、归一化与严格校验
+├── load.go                     configupgrade 白名单与四条升级路径
+└── store.go                    每群读取、稀疏覆盖、revision 与快照
+
+internal/database/settings.go   chat.settings 的 Repository
+migrations/01-settings.sql      settings_revision
 ```
 
-- **分节，不是一张平铺的表。**`server`、`database`、 `telegram`、`web`、`log` 各管一段。
-- **环境变量按机械映射覆盖。**`database.uri` 对应 `VT_DATABASE_URI`，规则可推导，不逐个登记。
-- **密钥只写引用。**`token: $file{/run/secrets/bot_token}` 或 `$env{BOT_TOKEN}`。**明文密钥不进配置文件**， 因为配置文件会被贴进工单、提交进仓库、发到群里求助。
-- **升级由 configupgrade 处理。**以当前 `defaults.yaml` 为模板重建， 按白名单复制旧值，不维护版本链。
+- **没有全局默认记录，也没有控制群。**新群从内嵌 factory 取得默认值； 用户文件中的旧式顶层值只展开到文件列出的群，不会传播给后来注册的群。
+- **进程级环境变量不进入每群设置。**`BOT_TOKEN`、 `VT_DATABASE_TYPE`、`VT_DATABASE_URI` 与 `TELEGRAM_API_URL` 在进程装配边界读取。
+- **设置升级由 configupgrade 处理。**加载器以当前结构为模板， 只复制白名单字段；未知字段和废弃字段不进入规范表示。升级规则不按版本串联。
+- **所有当前字段都必须同时进入默认文件和复制规则。**反射测试核对 `GroupOverrides`，防止新增字段只在一种加载路径生效。
 
-### 每群配置：存空表示继承
+### 每群配置：空覆盖继承 factory
 
-数据库里只存与出厂默认不同的项。空值表示继承，不保存一份副本 —— 保存副本会让默认值改动之后无法传播。这与既有的入群验证方案做法一致。
+`chat.settings` 只保存稀疏覆盖。空对象表示完整继承； 恢复默认就是删除对应字段，不写一份默认值副本。两个群的记录、revision 与快照互不影响。
 
-**接口返回来源，不只返回最终值。**只给一个最终值， 使用者无法判断它为何是这个值，也无法恢复默认。每一项返回六个字段：
+**读取接口同时返回值与来源。**`Store.Settings(chatID)` 返回不可变 `GroupView`；每个 getter 返回 `Setting[T]{Value, Source}`。 来源只有三种：
 
-| 字段 | 含义 |
-|---|---|
-| defaultValue | 出厂默认 |
-| overrideValue | 本群设定，未设定时为空 |
-| effectiveValue | 当前实际生效的值 |
-| pendingValue | 本次未保存的改动 |
-| source | default · group · provisioning |
-| locked | 由文件管理时为真，界面只读 |
+| 来源 | 含义 | 恢复方式 |
+|---|---|---|
+| factory default | `defaults.yaml` 的出厂值 | 无须恢复 |
+| user file | 启动文件为该群管理的值 | 修改文件并重启 |
+| chat override | `chat.settings` 的运行时覆盖 | 删除该稀疏字段 |
 
-界面上三态各有各的样子：继承、已覆盖、待保存。 已覆盖不只靠颜色区分，同时给圆点与文字，并提供只看已覆盖的筛选和恢复默认。
+`Store.Update(chatID, expectedRevision, overrides)` 接收完整稀疏记录。 Store 先解析整份有效设置并执行值域校验，再以 compare-and-swap 写数据库。 revision 冲突、校验失败或数据库写入失败都不发布新快照。
 
 ### 声明式资源：可由文件管理的部分
 

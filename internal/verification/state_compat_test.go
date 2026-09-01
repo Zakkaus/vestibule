@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/store"
 )
 
@@ -54,8 +54,8 @@ type stateCompatPendingWant struct {
 	deferralCapReached bool
 }
 
-func stateCompatConfig() *config.Config {
-	return &config.Config{Groups: []config.GroupConfig{{ID: stateCompatGroupA}, {ID: stateCompatGroupB}},
+func stateCompatConfig() *settings.Config {
+	return &settings.Config{Groups: []settings.GroupConfig{{ID: stateCompatGroupA}, {ID: stateCompatGroupB}},
 		GroupIDs:           []int64{stateCompatGroupA, stateCompatGroupB},
 		TimeoutSeconds:     240,
 		VerifyMaxFails:     3,
@@ -76,7 +76,7 @@ func TestStateCompatGenerateFixtures(t *testing.T) {
 	pendingV := newTestService(stateCompatConfig())
 	pendingV.statePath = filepath.Join(dir, "pending.json")
 	pendingV.pend[pkey{stateCompatGroupA, 7001}] = &pending{
-		groupMsgID: 501, privateMsgID: 601, mode: config.ModeKernel, lang: i18n.LangEN,
+		groupMsgID: 501, privateMsgID: 601, mode: settings.ModeKernel, lang: i18n.LangEN,
 		fbAnswers: []string{"gentoozh.org", "gentoozh"}, prompted: true,
 		hinted: true, sampleBounced: true, noLinuxReminded: true, osClarified: true, tries: 2,
 		qText: "Name the Gentoo Chinese community website", correctIdx: -1,
@@ -84,7 +84,7 @@ func TestStateCompatGenerateFixtures(t *testing.T) {
 		deferredSince: stateCompatDeferredSince,
 	}
 	pendingV.pend[pkey{stateCompatGroupB, 7002}] = &pending{
-		groupMsgID: 502, privateMsgID: 602, mode: config.ModeQuiz, lang: i18n.LangZHHant, prompted: true,
+		groupMsgID: 502, privateMsgID: 602, mode: settings.ModeQuiz, lang: i18n.LangZHHant, prompted: true,
 		qText: "Select the package manager", qOpts: []string{"apt", "Portage", "dnf"}, correctIdx: 1,
 		nonce: "quiz-compat-nonce", name: "Quiz Applicant", deadline: stateCompatQuizDeadline,
 	}

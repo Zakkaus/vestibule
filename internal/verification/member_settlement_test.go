@@ -6,15 +6,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 )
 
 // A verification that began while somebody waited outside cannot be settled by declining a join
 // request once they are inside: the call settles nothing and the member simply stays, unverified.
 func TestVerificationFollowsTheApplicantIntoTheGroup(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100}})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100}})
 	v.botUsername = "bot"
 	fb := &fakeVerifyBot{member: &ChatMemberMember{Status: MemberStatusMember}}
 	gid, uid := int64(-100), int64(5)
@@ -39,7 +39,7 @@ func TestVerificationFollowsTheApplicantIntoTheGroup(t *testing.T) {
 // Being blocked by the queue is the bot's problem, but leaving an unverified member inside is
 // worse than asking them to come back. They are taken out without a strike.
 func TestQueueFullTakesTheMemberBackOut(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100}})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100}})
 	v.botUsername = "bot"
 	fb := &fakeVerifyBot{member: &ChatMemberMember{Status: MemberStatusMember}}
 	for i := range pendingPerGroupCap {
@@ -63,7 +63,7 @@ func TestQueueFullTakesTheMemberBackOut(t *testing.T) {
 // Somebody an administrator already banned stays banned. Removing them again would ban and then
 // unban, quietly lifting the administrator's decision.
 func TestRemovalLeavesAnExistingBanAlone(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100}})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100}})
 	fb := &fakeVerifyBot{member: &ChatMemberBanned{Status: MemberStatusBanned}}
 	gid, uid := int64(-100), int64(6)
 	p := &pending{gate: gateMute, nonce: "n", lang: i18n.LangEN, deadline: time.Now().Add(time.Hour)}
@@ -80,7 +80,7 @@ func TestRemovalLeavesAnExistingBanAlone(t *testing.T) {
 
 // Giving up on a settlement must not leave somebody silenced with nothing left to lift it.
 func TestGivingUpLiftsTheHold(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100}})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100}})
 	fb := &fakeVerifyBot{
 		member: &ChatMemberMember{Status: MemberStatusMember},
 		banErr: errors.New(`api: 403 "Forbidden: bot is not a member of the supergroup chat"`),
@@ -107,7 +107,7 @@ func TestGivingUpLiftsTheHold(t *testing.T) {
 // Switching verification off must not leave its timers running: an applicant would still be
 // declined and a member still removed, minutes later, for a rule the administrator withdrew.
 func TestDisablingVerificationCancelsWhatIsRunning(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100}})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100}})
 	gid := int64(-100)
 	waiting := &pending{nonce: "a", lang: i18n.LangEN, deadline: time.Now().Add(time.Hour), groupMsgID: 1}
 	held := &pending{gate: gateMute, held: true, nonce: "b", lang: i18n.LangEN, deadline: time.Now().Add(time.Hour)}
@@ -141,7 +141,7 @@ func TestDisablingVerificationCancelsWhatIsRunning(t *testing.T) {
 // Passing restores the group's default permissions, which would also lift a restriction somebody
 // else added. The hold is only lifted while the one in force is still the one verification placed.
 func TestReleaseLeavesSomebodyElsesRestrictionAlone(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100}})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100}})
 	gid, uid := int64(-100), int64(8)
 	ours := v.wallNow().Add(5 * time.Minute).Unix()
 	p := &pending{gate: gateMute, held: true, holdUntil: ours, nonce: "n", lang: i18n.LangEN,
@@ -172,7 +172,7 @@ func TestReleaseLeavesSomebodyElsesRestrictionAlone(t *testing.T) {
 // A button left behind by a failed deletion must not settle a verification the administrator
 // never looked at. The applicant's answer buttons have always carried a nonce; these now do too.
 func TestStaleAdminButtonDoesNotSettleTheNextVerification(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100}})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100}})
 	gid, uid := int64(-100), int64(9)
 	current := &pending{gate: gateMute, nonce: "fresh", lang: i18n.LangEN, deadline: time.Now().Add(time.Hour)}
 	v.pend[pkey{gid, uid}] = current
@@ -200,7 +200,7 @@ func TestStaleAdminButtonDoesNotSettleTheNextVerification(t *testing.T) {
 
 // Removal that cannot be undone leaves the member banned. Inviting them back would be false.
 func TestStrandedBanIsReportedAsABan(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100}})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100}})
 	gid, uid := int64(-100), int64(10)
 	p := &pending{gate: gateMute, nonce: "n", lang: i18n.LangEN, deadline: time.Now().Add(time.Hour)}
 	v.pend[pkey{gid, uid}] = p
@@ -232,7 +232,7 @@ func TestChallengeWordingMatchesTheGate(t *testing.T) {
 // Telling an administrator that a join request is still pending, when the person is standing in
 // the group muted, sends them looking for a queue entry that does not exist.
 func TestAdminWordingFollowsTheGate(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	for _, locale := range i18n.Languages() {
 		request := v.adminSays(gateRequest)
 		member := v.adminSays(gateMute)

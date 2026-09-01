@@ -10,9 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/mymmrac/telego"
 	ta "github.com/mymmrac/telego/telegoapi"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -228,12 +227,12 @@ func commandDifference(got, want []telego.BotCommand) string {
 
 func TestSetupCommandsLanguageScopes(t *testing.T) {
 	const groupID int64 = -100
-	cfg := &config.Config{
-		Groups:    []config.GroupConfig{{ID: groupID, Lang: "zh-Hant"}},
+	cfg := &settings.Config{
+		Groups:    []settings.GroupConfig{{ID: groupID, Lang: "zh-Hant"}},
 		GroupIDs:  []int64{groupID},
 		WarnLimit: 3,
 	}
-	settings, err := store.NewSettings("", botTestSettingsBaseline(t, cfg))
+	settings, err := settings.NewStore("", botTestSettingsBaseline(t, cfg), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -294,18 +293,25 @@ func assertCommandRequest(t *testing.T, request commandRequest, warnLimit int) {
 
 func TestSetupCommandsRereadsRuntimeGroups(t *testing.T) {
 	const groupID int64 = -1009000000501
-	cfg := &config.Config{Lang: "zh-Hant", WarnLimit: 3}
-	settings, err := store.NewSettings(t.TempDir()+"/settings.json", botTestSettingsBaseline(t, cfg))
+	cfg := &settings.Config{Lang: "zh-Hant", WarnLimit: 3}
+	store, err := settings.NewStore(t.TempDir()+"/settings.json", botTestSettingsBaseline(t, cfg), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	caller := &commandRecordingCaller{}
-	service := &Updates{cfg: cfg, settings: settings}
+	service := &Updates{cfg: cfg, settings: store}
 	bot := testBot(t, caller)
 	service.SetupCommands(context.Background(), bot)
-	registration := settings.Registrations()
-	registration.RegisteredGroups = []store.RegisteredGroup{{ID: groupID, RegisteredBy: 42}}
-	if _, err := settings.CommitRegistrations(registration.Revision, registration); err != nil {
+	registration := store.Registrations()
+	registration.RegisteredGroups = []settings.RegisteredGroup{{ID: groupID, RegisteredBy: 42}}
+	if _, err := store.CommitRegistrations(registration.Revision, registration); err != nil {
+		t.Fatal(err)
+	}
+	group, _ := store.Settings(groupID)
+	overrides := group.Overrides()
+	language := "zh-Hant"
+	overrides.Lang = &language
+	if _, err := store.Update(groupID, group.Revision(), overrides); err != nil {
 		t.Fatal(err)
 	}
 	service.SetupCommands(context.Background(), bot)
@@ -327,8 +333,8 @@ func TestSetupCommandsRereadsRuntimeGroups(t *testing.T) {
 
 func TestSetupCommandsAddsOwnerPrivateMenuFromRuntimeState(t *testing.T) {
 	const ownerID int64 = 42
-	cfg := &config.Config{WarnLimit: 3}
-	settings, err := store.NewSettings(t.TempDir()+"/settings.json", botTestSettingsBaseline(t, cfg))
+	cfg := &settings.Config{WarnLimit: 3}
+	settings, err := settings.NewStore(t.TempDir()+"/settings.json", botTestSettingsBaseline(t, cfg), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -370,7 +376,7 @@ func TestDMReplyThrottle(t *testing.T) {
 	caller := &recordingCaller{}
 	telegramBot := testBot(t, caller)
 	dm := &dmHandler{
-		cfg:            &config.Config{PrivateQueryPerMin: 4},
+		cfg:            &settings.Config{PrivateQueryPerMin: 4},
 		telegram:       NewConnector(telegramBot),
 		last:           make(map[int64]time.Time),
 		catalogueReply: true,
@@ -394,7 +400,7 @@ func TestDMReplyCapacityKeepsActiveCooldown(t *testing.T) {
 	now := time.Now()
 	const activeUID int64 = 1
 	dm := &dmHandler{
-		cfg:            &config.Config{PrivateQueryPerMin: 3},
+		cfg:            &settings.Config{PrivateQueryPerMin: 3},
 		telegram:       NewConnector(telegramBot),
 		last:           make(map[int64]time.Time, dmMapMax),
 		catalogueReply: true,

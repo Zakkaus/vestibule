@@ -5,15 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 func TestGroupLanguageResolution(t *testing.T) {
 	const groupID int64 = -100
-	p := &Panel{cfg: &config.Config{
+	p := &Panel{cfg: &settings.Config{
 		Lang:     "en",
-		Groups:   []config.GroupConfig{{ID: groupID, Lang: "zh-Hant"}},
+		Groups:   []settings.GroupConfig{{ID: groupID, Lang: "zh-Hant"}},
 		GroupIDs: []int64{groupID},
 	}}
 	if got := p.groupLanguage(groupID); got != i18n.LangZHHant {

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 func joinUpdate(gid, uid int64, chatType string, old ChatMember) Update {
@@ -52,7 +52,7 @@ func TestJoinedNow(t *testing.T) {
 // Someone the bot itself just let in must not be challenged a second time by the membership
 // update that its own approval produced.
 func TestApprovedApplicantIsNotChallengedAgainOnJoining(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	gid, uid := int64(-100), int64(5)
 	v.notePassed(gid, uid)
 	if !v.recentlyPassed(gid, uid) {
@@ -74,7 +74,7 @@ func TestApprovedApplicantIsNotChallengedAgainOnJoining(t *testing.T) {
 
 // Passing lifts the hold instead of approving a join request that does not exist.
 func TestHeldMemberIsReleasedOnPass(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	fb := &fakeVerifyBot{}
 	gid, uid := int64(-100), int64(7)
 	p := &pending{gate: gateMute, held: true, nonce: "n", lang: i18n.LangEN, deadline: time.Now().Add(time.Hour)}
@@ -95,7 +95,7 @@ func TestHeldMemberIsReleasedOnPass(t *testing.T) {
 // "supergroups only" and, before this was fixed, that failure removed a member who answered
 // correctly.
 func TestPassingInAnUnheldGroupIsNotAFailure(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	fb := &fakeVerifyBot{unmuteErr: errors.New("Bad Request: method is available only for supergroups")}
 	gid, uid := int64(-100), int64(12)
 	p := &pending{gate: gateMute, nonce: "n", lang: i18n.LangEN, deadline: time.Now().Add(time.Hour)}
@@ -115,7 +115,7 @@ func TestPassingInAnUnheldGroupIsNotAFailure(t *testing.T) {
 
 // A hold the bot genuinely cannot lift yet is retried as an admission, never settled as one.
 func TestFailedReleaseRetriesTheAdmissionInsteadOfRemoving(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	fb := &fakeVerifyBot{unmuteErr: errors.New("network unreachable")}
 	gid, uid := int64(-100), int64(13)
 	p := &pending{gate: gateMute, held: true, nonce: "n", lang: i18n.LangEN, deadline: time.Now().Add(time.Hour)}
@@ -147,7 +147,7 @@ func TestFailedReleaseRetriesTheAdmissionInsteadOfRemoving(t *testing.T) {
 
 // Failing removes the member without keeping them out.
 func TestHeldMemberIsRemovedOnFailure(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	fb := &fakeVerifyBot{}
 	gid, uid := int64(-100), int64(8)
 	p := &pending{gate: gateMute, nonce: "n", lang: i18n.LangEN, deadline: time.Now().Add(time.Hour)}
@@ -168,7 +168,7 @@ func TestHeldMemberIsRemovedOnFailure(t *testing.T) {
 // The applicant-facing wording follows the gate: a member standing in the group is never told
 // their join request was declined.
 func TestHeldWordingDiffersFromRequestWording(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	request := v.wrongAnswerText(-100, i18n.LangEN, gateRequest, false)
 	held := v.wrongAnswerText(-100, i18n.LangEN, gateMute, false)
 	if request == held {
@@ -181,7 +181,7 @@ func TestHeldWordingDiffersFromRequestWording(t *testing.T) {
 
 // A basic group cannot restrict anyone, so no hold is attempted there.
 func TestBasicGroupIsNotHeld(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	fb := &fakeVerifyBot{}
 	basic := &pending{gate: gateMute, nonce: "b"}
 	v.pend[pkey{-100, 5}] = basic
@@ -214,7 +214,7 @@ func TestPostJoinIgnoresWhatItShouldNotVerify(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			v := newTestService(&config.Config{GroupIDs: []int64{-100}})
+			v := newTestService(&settings.Config{GroupIDs: []int64{-100}})
 			fb := &fakeVerifyBot{}
 			runFakeHandler(t, newAPITestBot(t, fb), v.OnMemberJoined, tc.update)
 			if fb.mutes != 0 || fb.sends != 0 {
@@ -239,7 +239,7 @@ func botJoinUpdate(gid, uid int64) Update {
 // Someone brought in by another member still verifies, but the group notice says so and points
 // administrators at the button that vouches for them.
 func TestInvitedMemberGetsItsOwnNotice(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	fb := &fakeVerifyBot{}
 	gid, uid := int64(-100), int64(9)
 	v.botUsername = "bot"
@@ -286,7 +286,7 @@ func TestInvitedIsDecidedByWhoActed(t *testing.T) {
 // hold keeps them harmless, so the post-join window is longer by default. A group that chose its
 // own timeout means what it chose.
 func TestPostJoinWindowDefaultsLonger(t *testing.T) {
-	def := newTestService(&config.Config{GroupIDs: []int64{-100}})
+	def := newTestService(&settings.Config{GroupIDs: []int64{-100}})
 	if got := def.gateTimeout(-100, gateMute); got != postJoinTimeout {
 		t.Errorf("post-join window = %v, want %v", got, postJoinTimeout)
 	}
@@ -294,12 +294,12 @@ func TestPostJoinWindowDefaultsLonger(t *testing.T) {
 		t.Error("an applicant's window is unchanged by the post-join default")
 	}
 
-	chosen := newTestService(&config.Config{GroupIDs: []int64{-100}})
-	group, _ := chosen.settings.Group(-100)
+	chosen := newTestService(&settings.Config{GroupIDs: []int64{-100}})
+	group, _ := chosen.settings.Settings(-100)
 	overrides := group.Overrides()
 	seconds := 300
 	overrides.TimeoutSeconds = &seconds
-	if _, err := chosen.settings.CommitGroup(-100, group.Revision(), overrides); err != nil {
+	if _, err := chosen.settings.Update(-100, group.Revision(), overrides); err != nil {
 		t.Fatal(err)
 	}
 	for _, gate := range []string{gateRequest, gateMute} {
@@ -311,12 +311,12 @@ func TestPostJoinWindowDefaultsLonger(t *testing.T) {
 
 // Verifying invited members is on unless the group turns it off.
 func TestVerifyInvitedDefaultsOn(t *testing.T) {
-	v := newTestService(&config.Config{GroupIDs: []int64{-100}})
+	v := newTestService(&settings.Config{GroupIDs: []int64{-100}})
 	if !v.verifyInvited(-100) {
 		t.Error("being vouched for is not verification; the check defaults on")
 	}
 	off := false
-	v2 := newTestService(&config.Config{GroupIDs: []int64{-100}, VerifyInvited: &off})
+	v2 := newTestService(&settings.Config{GroupIDs: []int64{-100}, VerifyInvited: &off})
 	if v2.verifyInvited(-100) {
 		t.Error("a group that switched it off must be honoured")
 	}
@@ -348,7 +348,7 @@ func TestAdmissionLeavesNoWindowToRechallenge(t *testing.T) {
 		{name: "hold lifted", gate: gateMute},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			v := newTestService(&config.Config{})
+			v := newTestService(&settings.Config{})
 			gid, uid := int64(-100), int64(21)
 			probe := &deleteProbe{fakeVerifyBot: &fakeVerifyBot{}, v: v, gid: gid, uid: uid}
 			p := &pending{gate: tc.gate, held: tc.gate == gateMute, nonce: "n", lang: i18n.LangEN,
@@ -375,7 +375,7 @@ func TestAdmissionLeavesNoWindowToRechallenge(t *testing.T) {
 // no join request to approve, so the bypass must not be expressed as an approval: that call
 // fails, and the failure used to put a trusted member through the challenge anyway.
 func TestTrustedMemberJoiningIsNotChallenged(t *testing.T) {
-	cfg := &config.Config{GroupIDs: []int64{-100}, TrustedMemberGroupIDs: []int64{-200}}
+	cfg := &settings.Config{GroupIDs: []int64{-100}, TrustedMemberGroupIDs: []int64{-200}}
 	v := newTestService(cfg)
 	v.botUsername = "bot"
 	fb := &fakeVerifyBot{member: &ChatMemberMember{Status: MemberStatusMember}}

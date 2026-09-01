@@ -1,17 +1,9 @@
-// Package config loads and resolves the bot's JSON configuration.
-package config
+// Package settings loads process configuration and resolves per-chat settings.
+package settings
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
-	"os"
-	"reflect"
-	"sort"
-	"strings"
 	"time"
-
-	"github.com/Zakkaus/vestibule/internal/i18n"
 )
 
 const (
@@ -159,26 +151,37 @@ type OverlayCfg struct {
 	Branch string `json:"branch"`
 }
 
-// GroupConfig overrides top-level defaults for one guarded group.
+// GroupConfig contains file-managed values for one guarded chat.
 type GroupConfig struct {
-	// ID is the guarded Telegram group ID.
-	ID int64 `json:"id"`
-	// RequiredChannelID overrides the global channel requirement when non-nil.
-	RequiredChannelID *int64 `json:"required_channel_id"`
-	// ChannelDisplay overrides the global channel display name when non-empty.
-	ChannelDisplay string `json:"channel_display"`
-	// ChannelInviteURL overrides the global private-channel invite when non-empty.
-	ChannelInviteURL string `json:"channel_invite_url"`
-	// Questions overrides the global quiz pool when non-empty.
-	Questions []Question `json:"questions"`
-	// VerifyMode is kernel, quiz, mixed, or empty to inherit.
-	VerifyMode string `json:"verify_mode"`
-	// DeliveryMode is group, dm, both, or empty to inherit.
-	DeliveryMode string `json:"delivery_mode"`
-	// TrustedMemberGroupIDs overrides, disables, or inherits the global bypass list.
-	TrustedMemberGroupIDs []int64 `json:"trusted_member_group_ids"`
-	// Lang overrides the global language when non-empty.
-	Lang string `json:"lang"`
+	ID                      int64            `json:"id"`
+	Enabled                 *bool            `json:"enabled"`
+	DeliveryMode            string           `json:"delivery_mode"`
+	VerifyMode              string           `json:"verify_mode"`
+	NameSpoiler             *bool            `json:"name_spoiler"`
+	BanSeconds              *int             `json:"ban_seconds"`
+	LookupTTLSeconds        *int             `json:"lookup_ttl_seconds"`
+	LookupAutoDeleteEnabled *bool            `json:"lookup_auto_delete_enabled"`
+	TimeoutSeconds          *int             `json:"timeout_seconds"`
+	VerifyMaxFails          *int             `json:"verify_max_fails"`
+	VerifyRetrySeconds      *int             `json:"verify_retry_seconds"`
+	MuteSeconds             *int             `json:"mute_seconds"`
+	VerifyInvited           *bool            `json:"verify_invited"`
+	WarnLimit               *int             `json:"warn_limit"`
+	AntispamEnabled         *bool            `json:"antispam_enabled"`
+	ChannelWhitelist        *[]int64         `json:"channel_whitelist"`
+	TrustedMemberGroupIDs   []int64          `json:"trusted_member_group_ids"`
+	KnownChatIDs            *[]int64         `json:"known_chat_ids"`
+	RequiredChannelID       *int64           `json:"required_channel_id"`
+	ChannelDisplay          string           `json:"channel_display"`
+	ChannelInviteURL        string           `json:"channel_invite_url"`
+	Questions               []Question       `json:"questions"`
+	FallbackQuestions       *[]ShortQuestion `json:"fallback_questions"`
+	FallbackBuiltin         *bool            `json:"fallback_builtin"`
+	Lang                    string           `json:"lang"`
+	RichMessages            *bool            `json:"rich_messages"`
+	PrivateQueryPerMin      *int             `json:"private_query_per_min"`
+	AdminLogChatID          *int64           `json:"admin_log_chat_id"`
+	RequiredChannelFailOpen *bool            `json:"required_channel_fail_open"`
 }
 
 // FeedConfig configures one optional Bugzilla and news destination.
@@ -230,8 +233,10 @@ type Config struct {
 	GroupIDs []int64 `json:"group_ids"`
 	// GroupID accepts the legacy singular group_id key.
 	GroupID int64 `json:"group_id"`
-	// ControlGroupID limits global commands and zero allows any guarded group.
-	ControlGroupID int64 `json:"control_group_id"`
+	// Enabled is a legacy top-level value expanded into every configured chat.
+	Enabled *bool `json:"enabled"`
+	// NameSpoiler is a legacy top-level value expanded into every configured chat.
+	NameSpoiler *bool `json:"name_spoiler"`
 	// Lang is the default language for group-facing output and defaults to zh.
 	Lang string `json:"lang"`
 	// RequiredChannelID gates approval on channel membership and zero disables it.
@@ -256,6 +261,8 @@ type Config struct {
 	NotifyTTLSeconds int `json:"notify_ttl_seconds"`
 	// LookupTTLSeconds controls lookup deletion, defaults to 180, and has a one-day maximum.
 	LookupTTLSeconds *int `json:"lookup_ttl_seconds"`
+	// LookupAutoDeleteEnabled overrides TTL-derived lookup cleanup for configured chats.
+	LookupAutoDeleteEnabled *bool `json:"lookup_auto_delete_enabled"`
 	// WarnLimit is the strike count before an automatic kick and defaults to three.
 	WarnLimit int `json:"warn_limit"`
 	// PrivateQueryPerMin is the per-user DM query limit and defaults to three.
@@ -278,6 +285,8 @@ type Config struct {
 	DeliveryMode string `json:"delivery_mode"`
 	// FallbackQuestions is the answer-hidden path for applicants without Linux.
 	FallbackQuestions []ShortQuestion `json:"fallback_questions"`
+	// FallbackBuiltin selects the embedded fallback bank for configured chats.
+	FallbackBuiltin *bool `json:"fallback_builtin"`
 	// Overlays lists GitHub overlays searched by /pkg.
 	Overlays []OverlayCfg `json:"overlays"`
 	// NewsURL is the Gentoo news-items index used by /news.
@@ -294,6 +303,8 @@ type Config struct {
 	// how this spam arrives, and the ban does nothing at all while Telegram's privacy mode keeps
 	// those messages from the bot, so leaving it on costs a group that never sees them nothing.
 	BlockChannelSenders *bool `json:"block_channel_senders"`
+	// AntispamEnabled is the current spelling of block_channel_senders.
+	AntispamEnabled *bool `json:"antispam_enabled"`
 	// ChannelWhitelist lists sender chats allowed to post in guarded groups.
 	ChannelWhitelist []int64 `json:"channel_whitelist"`
 	// Feeds lists Bugzilla and news destinations.
@@ -302,269 +313,6 @@ type Config struct {
 	Feed *FeedConfig `json:"feed"`
 	// Questions is the global verification quiz pool.
 	Questions []Question `json:"questions"`
-}
-
-func warnUnknownJSONKeys(raw json.RawMessage, typ reflect.Type, where string) {
-	var object map[string]json.RawMessage
-	if err := json.Unmarshal(raw, &object); err != nil {
-		return
-	}
-	known := make(map[string]struct{}, typ.NumField())
-	for i := range typ.NumField() {
-		name, _, _ := strings.Cut(typ.Field(i).Tag.Get("json"), ",")
-		if name != "" && name != "-" {
-			known[name] = struct{}{}
-		}
-	}
-	var unknown []string
-	for name := range object {
-		if _, ok := known[name]; !ok {
-			unknown = append(unknown, name)
-		}
-	}
-	sort.Strings(unknown)
-	for _, name := range unknown {
-		log.Printf("WARNING: %s: unknown key %q", where, name)
-	}
-}
-
-func warnUnknownJSONEntries(raw json.RawMessage, typ reflect.Type, where string) {
-	var entries []json.RawMessage
-	if err := json.Unmarshal(raw, &entries); err != nil {
-		return
-	}
-	for i, entry := range entries {
-		warnUnknownJSONKeys(entry, typ, fmt.Sprintf("%s[%d]", where, i))
-	}
-}
-
-func warnUnknownConfigKeys(data []byte) {
-	warnUnknownJSONKeys(data, reflect.TypeOf(Config{}), "config")
-	var top map[string]json.RawMessage
-	if err := json.Unmarshal(data, &top); err != nil {
-		return
-	}
-	warnUnknownJSONEntries(top["groups"], reflect.TypeOf(GroupConfig{}), "config groups")
-	warnUnknownJSONEntries(top["feeds"], reflect.TypeOf(FeedConfig{}), "config feeds")
-	if raw, ok := top["feed"]; ok {
-		warnUnknownJSONKeys(raw, reflect.TypeOf(FeedConfig{}), "config feed")
-	}
-}
-
-// LoadConfig reads, validates, defaults, and normalizes a JSON configuration file.
-func LoadConfig(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return nil, fmt.Errorf("read config: %w", err)
-		}
-		data = []byte("{}")
-	}
-	var c Config
-	if err := json.Unmarshal(data, &c); err != nil {
-		return nil, fmt.Errorf("parse config: %w", err)
-	}
-	warnUnknownConfigKeys(data)
-	// Merge legacy group IDs before building the canonical mirror.
-	legacy := c.GroupIDs
-	if c.GroupID != 0 {
-		legacy = append(legacy, c.GroupID)
-	}
-	for _, id := range legacy {
-		if c.group(id) == nil {
-			c.Groups = append(c.Groups, GroupConfig{ID: id})
-		}
-	}
-	c.GroupIDs = make([]int64, 0, len(c.Groups))
-	for i := range c.Groups {
-		c.GroupIDs = append(c.GroupIDs, c.Groups[i].ID)
-	}
-	// Reject invalid or duplicate groups before handlers start.
-	seenGroup := map[int64]bool{}
-	for i := range c.Groups {
-		id := c.Groups[i].ID
-		if id == 0 {
-			return nil, fmt.Errorf("group id 0 is invalid (a Telegram group/supergroup id is negative)")
-		}
-		if seenGroup[id] {
-			return nil, fmt.Errorf("duplicate group id %d", id)
-		}
-		seenGroup[id] = true
-	}
-	// Invalid repos fail here; duplicate names would collide in the cache.
-	seenOverlay := map[string]bool{}
-	for i, o := range c.Overlays {
-		if parts := strings.Split(o.Repo, "/"); o.Repo == "" || len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-			return nil, fmt.Errorf("overlay %d: repo must be \"owner/name\" (got %q)", i, o.Repo)
-		}
-		name := o.Name
-		if name == "" {
-			name = o.Repo
-		}
-		if seenOverlay[name] {
-			return nil, fmt.Errorf("duplicate overlay name %q", name)
-		}
-		seenOverlay[name] = true
-	}
-
-	validateQuestions := func(qs []Question, where string) error {
-		for i, q := range qs {
-			if len(q.Options) < 2 {
-				return fmt.Errorf("%s question %d: need at least 2 options", where, i)
-			}
-			if q.Answer < 0 || q.Answer >= len(q.Options) {
-				return fmt.Errorf("%s question %d: answer index %d out of range", where, i, q.Answer)
-			}
-		}
-		return nil
-	}
-	if err := validateQuestions(c.Questions, "global"); err != nil {
-		return nil, err
-	}
-	for i, q := range c.FallbackQuestions {
-		if strings.TrimSpace(q.Q) == "" || len(q.Answers) == 0 {
-			return nil, fmt.Errorf("fallback_questions %d requires q and at least one answers entry", i)
-		}
-		for _, a := range q.Answers {
-			if strings.TrimSpace(a) == "" {
-				return nil, fmt.Errorf("fallback_questions %d: answers must not contain an empty string", i)
-			}
-		}
-	}
-	if !ValidLanguage(c.Lang) {
-		return nil, fmt.Errorf("lang %q is not one of %q, %q, %q", c.Lang, "zh", "zh-Hant", "en")
-	}
-	if c.VerifyMode != "" && !ValidMode(c.VerifyMode) {
-		return nil, fmt.Errorf("verify_mode %q is not one of %q, %q, %q", c.VerifyMode, ModeKernel, ModeQuiz, ModeMixed)
-	}
-	if c.DeliveryMode != "" && !ValidDeliveryMode(c.DeliveryMode) {
-		return nil, fmt.Errorf("delivery_mode %q is not one of %q, %q, %q", c.DeliveryMode, DeliveryGroup, DeliveryDM, DeliveryBoth)
-	}
-	for i := range c.Groups {
-		g := &c.Groups[i]
-		if err := validateQuestions(g.Questions, fmt.Sprintf("group %d", g.ID)); err != nil {
-			return nil, err
-		}
-		if g.VerifyMode != "" && !ValidMode(g.VerifyMode) {
-			return nil, fmt.Errorf("group %d: verify_mode %q is not one of %q, %q, %q", g.ID, g.VerifyMode, ModeKernel, ModeQuiz, ModeMixed)
-		}
-		if g.DeliveryMode != "" && !ValidDeliveryMode(g.DeliveryMode) {
-			return nil, fmt.Errorf("group %d: delivery_mode %q is not one of %q, %q, %q", g.ID, g.DeliveryMode, DeliveryGroup, DeliveryDM, DeliveryBoth)
-		}
-		if !ValidLanguage(g.Lang) {
-			return nil, fmt.Errorf("group %d: lang %q is not one of %q, %q, %q", g.ID, g.Lang, "zh", "zh-Hant", "en")
-		}
-		// Kernel-only groups need no quiz pool; runtime quiz mode falls back to kernel.
-		if c.VerifyModeFor(g.ID) != ModeKernel && len(c.QuestionsFor(g.ID)) == 0 {
-			return nil, fmt.Errorf("group %d: no questions (add global questions or this group's own questions, or set verify_mode to %q)", g.ID, ModeKernel)
-		}
-		if c.RequiredChannel(g.ID) != 0 && c.ChannelInvite(g.ID) == "" && !strings.HasPrefix(c.ChannelDisplayFor(g.ID), "@") {
-			return nil, fmt.Errorf("group %d: required_channel_id is set but the channel has no reachable link (set channel_display to an @handle, or channel_invite_url for a private channel)", g.ID)
-		}
-	}
-	if len(c.Groups) == 0 {
-		if c.VerifyMode != "" && c.VerifyMode != ModeKernel && len(c.Questions) == 0 {
-			return nil, fmt.Errorf("default runtime group: no questions (add global questions or set verify_mode to %q)", ModeKernel)
-		}
-		if c.RequiredChannelID != 0 && c.ChannelInviteURL == "" && !strings.HasPrefix(c.ChannelDisplay, "@") {
-			return nil, fmt.Errorf("default runtime group: required_channel_id is set but the channel has no reachable link (set channel_display to an @handle, or channel_invite_url for a private channel)")
-		}
-	}
-	if err := validatePositiveConfigDuration("timeout_seconds", c.TimeoutSeconds, maxDurationSeconds); err != nil {
-		return nil, err
-	}
-	if err := validatePositiveConfigDuration("notify_ttl_seconds", c.NotifyTTLSeconds, maxMessageTTLSeconds); err != nil {
-		return nil, err
-	}
-	if c.LookupTTLSeconds != nil {
-		if err := validatePositiveConfigDuration("lookup_ttl_seconds", *c.LookupTTLSeconds, maxMessageTTLSeconds); err != nil {
-			return nil, err
-		}
-	}
-	if err := validatePositiveConfigDuration("ban_seconds", c.BanSeconds, maxDurationSeconds); err != nil {
-		return nil, err
-	}
-	if err := validatePositiveConfigDuration("mute_seconds", c.MuteSeconds, maxDurationSeconds); err != nil {
-		return nil, err
-	}
-	if err := validatePositiveConfigDuration("verify_retry_seconds", c.VerifyRetrySeconds, maxVerifyRetrySeconds); err != nil {
-		return nil, err
-	}
-	if err := validatePositiveConfigDuration("owner_claim_lifetime_seconds", c.OwnerClaimLifetimeSeconds, maxOwnerClaimLifetimeSeconds); err != nil {
-		return nil, err
-	}
-	if c.OwnerClaimLifetimeSeconds < 0 {
-		return nil, fmt.Errorf("owner_claim_lifetime_seconds must not be negative")
-	}
-	if c.OwnerClaimUserID < 0 {
-		return nil, fmt.Errorf("owner_claim_user_id must not be negative")
-	}
-	if c.OwnerClaimLifetimeSeconds == 0 {
-		c.OwnerClaimLifetimeSeconds = 10 * 60
-	}
-	if c.TimeoutSeconds <= 0 {
-		c.TimeoutSeconds = 240
-	}
-	if c.TimeoutSeconds < 30 {
-		c.TimeoutSeconds = 30 // a too-short timeout makes the challenge unwinnable and strikes real users
-	}
-	if c.TimeoutSeconds > 1800 {
-		c.TimeoutSeconds = 1800
-	}
-	if c.NotifyTTLSeconds == 0 {
-		c.NotifyTTLSeconds = 60
-	}
-	if c.WarnLimit <= 0 {
-		c.WarnLimit = 3
-	}
-	if c.PrivateQueryPerMin <= 0 {
-		c.PrivateQueryPerMin = 3
-	}
-	if c.VerifyRetrySeconds == 0 {
-		c.VerifyRetrySeconds = 180 // negative is honoured as "no cooldown"
-	}
-	if c.VerifyMaxFails == 0 {
-		c.VerifyMaxFails = 3 // negative => never auto-ban
-	}
-	if c.MuteSeconds <= 0 {
-		c.MuteSeconds = 3600 // mute is always timed; default 1h (no permanent mute)
-	}
-	// Keep reported config durations within Telegram's enforced window.
-	c.BanSeconds = ClampBanSeconds(c.BanSeconds)
-	c.MuteSeconds = clampMuteSecs(c.MuteSeconds)
-	if c.Feed != nil { // accept singular "feed" as one entry in "feeds"
-		c.Feeds = append(c.Feeds, *c.Feed)
-	}
-	for i := range c.Feeds {
-		if err := validatePositiveConfigDuration(
-			fmt.Sprintf("feeds[%d].interval_seconds", i), c.Feeds[i].IntervalSeconds, maxFeedIntervalSeconds,
-		); err != nil {
-			return nil, err
-		}
-		if !ValidLanguage(c.Feeds[i].Lang) {
-			return nil, fmt.Errorf("feed %d: lang %q is not one of %q, %q, %q", i, c.Feeds[i].Lang, "zh", "zh-Hant", "en")
-		}
-	}
-	// Duplicate chat IDs share one cursor and would silently drop each other's items.
-	seenFeed := map[int64]bool{}
-	deduped := c.Feeds[:0]
-	for _, f := range c.Feeds {
-		if f.ChatID != 0 && seenFeed[f.ChatID] {
-			log.Printf("config: duplicate feed for chat_id %d ignored (feed state is per chat)", f.ChatID)
-			continue
-		}
-		seenFeed[f.ChatID] = true
-		deduped = append(deduped, f)
-	}
-	c.Feeds = deduped
-	// An unguarded control group would lock out every global command.
-	if c.ControlGroupID != 0 && !c.IsGroup(c.ControlGroupID) {
-		return nil, fmt.Errorf("control_group_id %d is not one of the configured groups", c.ControlGroupID)
-	}
-	if c.ControlGroupID == 0 && len(c.Groups) > 1 {
-		log.Printf("WARNING: control_group_id is unset; administrators of any of the %d guarded groups can change process-global settings", len(c.Groups))
-	}
-	return &c, nil
 }
 
 // OwnerClaimLifetime returns the configured first-owner claim lifetime.
@@ -585,15 +333,6 @@ func (c *Config) IsGroup(id int64) bool {
 		}
 	}
 	return false
-}
-
-// ControlGroupAllowed reports whether a chat may run process-wide commands.
-func (c *Config) ControlGroupAllowed(chatID int64) (bool, string) {
-	if c.ControlGroupID == 0 || chatID == c.ControlGroupID {
-		return true, ""
-	}
-	l := i18n.FromStored(c.LangForGroup(chatID))
-	return false, i18n.Messages.Feed.Config.ControlGroupOnly.Render(l, c.ControlGroupID)
 }
 
 func (c *Config) group(id int64) *GroupConfig {
@@ -696,33 +435,42 @@ func (c *Config) QuestionsFor(id int64) []Question {
 
 // IsKnownChat is the auto-leave allowlist, including support-only chats.
 func (c *Config) IsKnownChat(id int64) bool {
-	if c.IsGroup(id) ||
+	return c.isDirectKnownChat(id) ||
+		containsChatID(c.KnownChatIDs, id) ||
+		containsChatID(c.TrustedMemberGroupIDs, id) ||
+		c.groupReferencesKnownChat(id) ||
+		c.feedReferencesKnownChat(id)
+}
+
+func (c *Config) isDirectKnownChat(id int64) bool {
+	return c.IsGroup(id) ||
 		(c.RequiredChannelID != 0 && id == c.RequiredChannelID) ||
-		(c.AdminLogChatID != 0 && id == c.AdminLogChatID) {
-		return true
-	}
-	// Explicit support-only chats.
-	for _, k := range c.KnownChatIDs {
-		if k == id {
+		(c.AdminLogChatID != 0 && id == c.AdminLogChatID)
+}
+
+func containsChatID(chatIDs []int64, id int64) bool {
+	for _, chatID := range chatIDs {
+		if chatID == id {
 			return true
 		}
 	}
-	// Trusted bypass sources must remain readable.
-	for _, t := range c.TrustedMemberGroupIDs {
-		if t == id {
-			return true
-		}
-	}
+	return false
+}
+
+func (c *Config) groupReferencesKnownChat(id int64) bool {
 	for i := range c.Groups {
-		if c.Groups[i].RequiredChannelID != nil && *c.Groups[i].RequiredChannelID == id {
+		group := &c.Groups[i]
+		if group.RequiredChannelID != nil && *group.RequiredChannelID == id {
 			return true
 		}
-		for _, t := range c.Groups[i].TrustedMemberGroupIDs {
-			if t == id {
-				return true
-			}
+		if containsChatID(group.TrustedMemberGroupIDs, id) {
+			return true
 		}
 	}
+	return false
+}
+
+func (c *Config) feedReferencesKnownChat(id int64) bool {
 	for i := range c.Feeds {
 		if c.Feeds[i].ChatID == id {
 			return true

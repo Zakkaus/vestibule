@@ -6,11 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/edition"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/rules"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 )
 
@@ -34,7 +33,7 @@ var kernelAnswerRule = rules.Rule{
 
 // SetVerifyMode updates one group's challenge mode or restores its configured baseline.
 func (v *Service) SetVerifyMode(groupID int64, mode string) error {
-	return v.updateGroupSettings(groupID, func(_ store.GroupView, overrides *store.GroupOverrides) {
+	return v.updateGroupSettings(groupID, func(_ settings.GroupView, overrides *settings.GroupOverrides) {
 		if mode == "" {
 			overrides.VerifyMode = nil
 			return
@@ -47,12 +46,12 @@ func (v *Service) SetVerifyMode(groupID int64, mode string) error {
 func (v *Service) EffectiveMode(groupID int64) string {
 	group, ok := v.groupSettings(groupID)
 	if !ok {
-		return config.ModeKernel
+		return settings.ModeKernel
 	}
 	return group.VerifyMode().Value
 }
 
-func (v *Service) questions(groupID int64) []config.Question {
+func (v *Service) questions(groupID int64) []settings.Question {
 	group, ok := v.groupSettings(groupID)
 	if !ok {
 		return nil
@@ -63,14 +62,14 @@ func (v *Service) questions(groupID int64) []config.Question {
 // Mixed mode uses a cryptographic coin flip; an empty quiz pool falls back to kernel.
 func (v *Service) pickMode(gid int64) string {
 	mode := v.EffectiveMode(gid)
-	if mode == (config.ModeMixed) {
-		mode = (config.ModeQuiz)
+	if mode == (settings.ModeMixed) {
+		mode = (settings.ModeQuiz)
 		if cryptoIntn(2) == 0 {
-			mode = (config.ModeKernel)
+			mode = (settings.ModeKernel)
 		}
 	}
-	if mode == (config.ModeQuiz) && len(v.questions(gid)) == 0 {
-		return config.ModeKernel
+	if mode == (settings.ModeQuiz) && len(v.questions(gid)) == 0 {
+		return settings.ModeKernel
 	}
 	return mode
 }
@@ -78,7 +77,7 @@ func (v *Service) pickMode(gid int64) string {
 // Kernel challenges have no options and use correctIdx -1.
 func (v *Service) newChallenge(gid int64, ul i18n.Lang) (mode, text string, opts []string, correctIdx int) {
 	mode = v.pickMode(gid)
-	if mode == (config.ModeKernel) {
+	if mode == (settings.ModeKernel) {
 		return mode, tgfmt.KernelQuestion(v.messages, ul), nil, -1
 	}
 	text, opts, correctIdx = shuffledQuestion(randomQuestion(v.questions(gid)))
@@ -87,7 +86,7 @@ func (v *Service) newChallenge(gid int64, ul i18n.Lang) (mode, text string, opts
 
 // Operator fallback questions override the localized built-in questions.
 func (v *Service) fallbackQuestion(groupID int64, l i18n.Lang) (string, []string) {
-	var questions []config.ShortQuestion
+	var questions []settings.ShortQuestion
 	if group, ok := v.groupSettings(groupID); ok && !group.FallbackBuiltin().Value {
 		questions = group.FallbackQuestions().Value
 	}
@@ -141,7 +140,7 @@ func (v *Service) drawnFallback(gid, uid int64) (string, []string, bool) {
 }
 
 // fallbackSource returns nil for the built-in bank, or the group's configured questions.
-func (v *Service) fallbackSource(groupID int64) []config.ShortQuestion {
+func (v *Service) fallbackSource(groupID int64) []settings.ShortQuestion {
 	group, ok := v.groupSettings(groupID)
 	if !ok || group.FallbackBuiltin().Value {
 		return nil
@@ -149,7 +148,7 @@ func (v *Service) fallbackSource(groupID int64) []config.ShortQuestion {
 	return group.FallbackQuestions().Value
 }
 
-func sameFallbackSource(a, b []config.ShortQuestion) bool {
+func sameFallbackSource(a, b []settings.ShortQuestion) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -199,7 +198,7 @@ func (v *Service) hasKernelPending(uid int64) bool {
 	defer v.mu.Unlock()
 	for k, p := range v.pend {
 		// Before prompting, the applicant may have seen only the channel-follow step.
-		if k.uid == uid && !p.done && p.mode == config.ModeKernel && p.prompted && !p.fallbackPending {
+		if k.uid == uid && !p.done && p.mode == settings.ModeKernel && p.prompted && !p.fallbackPending {
 			return true
 		}
 	}
@@ -212,7 +211,7 @@ func (v *Service) kernelPendingGroups(uid int64) []int64 {
 	defer v.mu.Unlock()
 	var gids []int64
 	for k, p := range v.pend {
-		if k.uid == uid && !p.done && p.mode == config.ModeKernel && p.prompted && !p.fallbackPending {
+		if k.uid == uid && !p.done && p.mode == settings.ModeKernel && p.prompted && !p.fallbackPending {
 			gids = append(gids, k.gid)
 		}
 	}
@@ -261,7 +260,7 @@ func (v *Service) trippedPending(uid int64, text string) (gid int64, nonce strin
 	v.mu.Lock()
 	defer v.mu.Unlock()
 	for k, p := range v.pend {
-		if k.uid == uid && !p.done && p.mode == config.ModeKernel && p.prompted && !p.fallbackPending &&
+		if k.uid == uid && !p.done && p.mode == settings.ModeKernel && p.prompted && !p.fallbackPending &&
 			rules.AgentReply(text, p.nonce) {
 			return k.gid, p.nonce, true
 		}
@@ -279,7 +278,7 @@ func (v *Service) declineAgent(c context.Context, bot Gateway, gid, uid int64, n
 		model, total := v.recordAgent(text)
 		log.Printf("verify: automated-agent tripwire triggered by %d in %d (model %q, %d total) — declining", uid, gid, model, total)
 		alert := v.messages.Verification.Admin.AgentCaught.Render(v.groupLanguage(gid), uid, gid, model, total)
-		v.adminRecord(c, bot, alert)
+		v.adminRecord(c, bot, gid, alert)
 	} else {
 		log.Printf("verify: declining %d in %d — the same reply tripped the tripwire in another group", uid, gid)
 	}

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 // An applicant stuck behind a channel gate the bot cannot read is stuck through no fault of
@@ -22,7 +22,7 @@ func TestUnreadableChannelGateDoesNotStrike(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			cfg := &config.Config{RequiredChannelID: -400, VerifyMaxFails: 3, RequiredChannelFailOpen: tc.failOpen}
+			cfg := &settings.Config{RequiredChannelID: -400, VerifyMaxFails: 3, RequiredChannelFailOpen: tc.failOpen}
 			v := newTestService(cfg)
 			v.botID = 42
 			gid, uid := int64(-100), int64(5)
@@ -54,7 +54,7 @@ func TestUnreadableChannelGateDoesNotStrike(t *testing.T) {
 
 // A readable gate clears the marker, so someone who simply never joined still carries the strike.
 func TestReadableChannelGateStillStrikes(t *testing.T) {
-	cfg := &config.Config{RequiredChannelID: -400, VerifyMaxFails: 3}
+	cfg := &settings.Config{RequiredChannelID: -400, VerifyMaxFails: 3}
 	v := newTestService(cfg)
 	v.botID = 42
 	gid, uid := int64(-100), int64(6)

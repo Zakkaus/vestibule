@@ -6,40 +6,39 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 func TestRuntimeSettingsDirectSettersPersist(t *testing.T) {
 	cfg := runtimeSettingsTestConfig()
 	groupID := cfg.GroupIDs[0]
 	path := filepath.Join(t.TempDir(), "settings.json")
-	settings, err := store.NewSettings(path, testSettingsBaselineFromConfig(t, cfg, store.SourceDefault))
+	store, err := settings.NewStore(path, testSettingsBaselineFromConfig(t, cfg, settings.SourceFactory), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	v := newService(settings, nil, cfg, &i18n.Messages)
+	v := newService(store, nil, cfg, &i18n.Messages)
 	if err := v.SetEnabled(groupID, false); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := v.ToggleNameSpoiler(groupID); err != nil {
 		t.Fatal(err)
 	}
-	if err := v.SetVerifyMode(groupID, config.ModeMixed); err != nil {
+	if err := v.SetVerifyMode(groupID, settings.ModeMixed); err != nil {
 		t.Fatal(err)
 	}
 
-	reloaded, err := store.NewSettings(path, testSettingsBaselineFromConfig(t, cfg, store.SourceDefault))
+	reloaded, err := settings.NewStore(path, testSettingsBaselineFromConfig(t, cfg, settings.SourceFactory), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	v2 := newService(reloaded, nil, cfg, &i18n.Messages)
-	if v2.IsEnabled(groupID) || v2.NameSpoilerOn(groupID) || v2.EffectiveMode(groupID) != config.ModeMixed {
+	if v2.IsEnabled(groupID) || v2.NameSpoilerOn(groupID) || v2.EffectiveMode(groupID) != settings.ModeMixed {
 		t.Fatalf("reloaded group = enabled:%v spoiler:%v mode:%q", v2.IsEnabled(groupID), v2.NameSpoilerOn(groupID), v2.EffectiveMode(groupID))
 	}
 
-	runtimeOnly, err := store.NewSettings("", testSettingsBaselineFromConfig(t, cfg, store.SourceDefault))
+	runtimeOnly, err := settings.NewStore("", testSettingsBaselineFromConfig(t, cfg, settings.SourceFactory), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,8 +49,8 @@ func TestRuntimeSettingsDirectSettersPersist(t *testing.T) {
 	if v3.IsEnabled(groupID) {
 		t.Fatal("runtime-only group command did not update settings")
 	}
-	group, _ := runtimeOnly.Group(groupID)
-	if group.Enabled().Value || group.Enabled().Source != store.SourceRuntime {
+	group, _ := runtimeOnly.Settings(groupID)
+	if group.Enabled().Value || group.Enabled().Source != settings.SourceChatOverride {
 		t.Fatalf("runtime-only transaction = %+v", group.Enabled())
 	}
 }
@@ -76,25 +75,25 @@ func TestUntouchedGroupUsesConfigAndDefaults(t *testing.T) {
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := config.LoadConfig(path)
+	cfg, err := settings.LoadConfig(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	baseline := testSettingsBaselineFromConfig(t, cfg, store.SourceConfig)
-	settings, err := store.NewSettings("", baseline)
+	baseline := testSettingsBaselineFromConfig(t, cfg, settings.SourceUserFile)
+	store, err := settings.NewStore("", baseline, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	v := newService(settings, nil, cfg, &i18n.Messages)
+	v := newService(store, nil, cfg, &i18n.Messages)
 	if err := v.SetEnabled(groupA, false); err != nil {
 		t.Fatal(err)
 	}
 
-	untouched, _ := settings.Group(groupB)
-	if got := untouched.Enabled(); !got.Value || got.Source != store.SourceDefault {
+	untouched, _ := store.Settings(groupB)
+	if got := untouched.Enabled(); !got.Value || got.Source != settings.SourceFactory {
 		t.Fatalf("untouched enabled = %+v, want built-in true", got)
 	}
-	if got := untouched.TimeoutSeconds(); got.Value != 420 || got.Source != store.SourceConfig {
+	if got := untouched.TimeoutSeconds(); got.Value != 420 || got.Source != settings.SourceUserFile {
 		t.Fatalf("untouched timeout = %+v, want configured 420", got)
 	}
 	if !v.IsEnabled(groupB) || v.timeout(groupB) != 420*time.Second || untouched.BanSeconds().Value != 7200 {
@@ -123,23 +122,23 @@ func TestPerGroupRuntimeSettingsIsolation(t *testing.T) {
 		requiredID   int64 = -1009000000504
 		overrideSecs       = 300
 	)
-	cfg := &config.Config{
-		Groups:             []config.GroupConfig{{ID: groupA}, {ID: groupB}},
+	cfg := &settings.Config{
+		Groups:             []settings.GroupConfig{{ID: groupA}, {ID: groupB}},
 		GroupIDs:           []int64{groupA, groupB},
 		TimeoutSeconds:     240,
 		VerifyMaxFails:     3,
 		VerifyRetrySeconds: 180,
 		LookupTTLSeconds:   intPointer(180),
 	}
-	settings, err := store.NewSettings("", testSettingsBaselineFromConfig(t, cfg, store.SourceDefault))
+	store, err := settings.NewStore("", testSettingsBaselineFromConfig(t, cfg, settings.SourceFactory), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	group, _ := settings.Group(groupA)
+	group, _ := store.Settings(groupA)
 	overrides := group.Overrides()
 	enabled := false
 	spoiler := false
-	mode := config.ModeQuiz
+	mode := settings.ModeQuiz
 	banSeconds := 3600
 	lookupEnabled := false
 	timeoutSeconds := 600
@@ -154,8 +153,8 @@ func TestPerGroupRuntimeSettingsIsolation(t *testing.T) {
 	whitelist := []int64{senderID}
 	trusted := []int64{trustedID}
 	known := []int64{knownID}
-	questions := []config.Question{{Q: "Package manager?", Options: []string{"Portage", "apt"}, Answer: 0}}
-	fallback := []config.ShortQuestion{{Q: "Init system?", Answers: []string{"OpenRC"}}}
+	questions := []settings.Question{{Q: "Package manager?", Options: []string{"Portage", "apt"}, Answer: 0}}
+	fallback := []settings.ShortQuestion{{Q: "Init system?", Answers: []string{"OpenRC"}}}
 	overrides.Enabled = &enabled
 	overrides.NameSpoiler = &spoiler
 	overrides.VerifyMode = &mode
@@ -176,16 +175,16 @@ func TestPerGroupRuntimeSettingsIsolation(t *testing.T) {
 	overrides.FallbackQuestions = &fallback
 	overrides.FallbackBuiltin = &fallbackBuiltin
 	overrides.Lang = &language
-	if _, err := settings.CommitGroup(groupA, group.Revision(), overrides); err != nil {
+	if _, err := store.Update(groupA, group.Revision(), overrides); err != nil {
 		t.Fatal(err)
 	}
-	groupAView, _ := settings.Group(groupA)
-	groupBView, _ := settings.Group(groupB)
-	v := newService(settings, nil, cfg, &i18n.Messages)
+	groupAView, _ := store.Settings(groupA)
+	groupBView, _ := store.Settings(groupB)
+	v := newService(store, nil, cfg, &i18n.Messages)
 
 	if v.IsEnabled(groupA) || !v.IsEnabled(groupB) ||
 		v.NameSpoilerOn(groupA) || !v.NameSpoilerOn(groupB) ||
-		v.EffectiveMode(groupA) != config.ModeQuiz || v.EffectiveMode(groupB) != config.ModeKernel {
+		v.EffectiveMode(groupA) != settings.ModeQuiz || v.EffectiveMode(groupB) != settings.ModeKernel {
 		t.Fatal("enabled, spoiler, or mode leaked between groups")
 	}
 	if v.timeout(groupA) != 10*time.Minute || v.timeout(groupB) != 4*time.Minute ||
@@ -234,24 +233,24 @@ func TestRuntimeOnlyGroupPendingSurvivesRestartWithoutRebuiltConfig(t *testing.T
 	cfg := runtimeSettingsTestConfig()
 	dir := t.TempDir()
 	settingsPath := filepath.Join(dir, "settings.json")
-	baseline := testSettingsBaselineFromConfig(t, cfg, store.SourceDefault)
-	settings, err := store.NewSettings(settingsPath, baseline)
+	baseline := testSettingsBaselineFromConfig(t, cfg, settings.SourceFactory)
+	store, err := settings.NewStore(settingsPath, baseline, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	registration := settings.Registrations()
-	registration.RegisteredGroups = []store.RegisteredGroup{{ID: runtimeGroup, RegisteredBy: 42, Title: "Runtime"}}
-	if _, err := settings.CommitRegistrations(registration.Revision, registration); err != nil {
+	registration := store.Registrations()
+	registration.RegisteredGroups = []settings.RegisteredGroup{{ID: runtimeGroup, RegisteredBy: 42, Title: "Runtime"}}
+	if _, err := store.CommitRegistrations(registration.Revision, registration); err != nil {
 		t.Fatal(err)
 	}
 
-	before := newService(settings, nil, cfg, &i18n.Messages)
+	before := newService(store, nil, cfg, &i18n.Messages)
 	before.stateStore = testVerificationStore{}
 	before.statePath = filepath.Join(dir, "pending.json")
 	key := pkey{gid: runtimeGroup, uid: 7001}
 	before.pend[key] = &pending{
 		groupMsgID: 501,
-		mode:       config.ModeKernel,
+		mode:       settings.ModeKernel,
 		qText:      "Kernel version?",
 		correctIdx: -1,
 		nonce:      "runtime-restart",
@@ -261,7 +260,7 @@ func TestRuntimeOnlyGroupPendingSurvivesRestartWithoutRebuiltConfig(t *testing.T
 	before.save()
 	before.stopForShutdown()
 
-	reloaded, err := store.NewSettings(settingsPath, baseline)
+	reloaded, err := settings.NewStore(settingsPath, baseline, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -283,10 +282,10 @@ func TestRuntimeOnlyGroupPendingSurvivesRestartWithoutRebuiltConfig(t *testing.T
 	}
 }
 
-func testSettingsBaselineFromConfig(t *testing.T, cfg *config.Config, configuredSource store.Source) store.SettingsBaseline {
+func testSettingsBaselineFromConfig(t *testing.T, cfg *settings.Config, configuredSource settings.Source) settings.SettingsBaseline {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "missing-config.json")
-	if configuredSource == store.SourceConfig {
+	if configuredSource == settings.SourceUserFile {
 		path = filepath.Join(t.TempDir(), "config.json")
 		data := []byte(`{
 			"ban_seconds": 0,
@@ -304,13 +303,13 @@ func testSettingsBaselineFromConfig(t *testing.T, cfg *config.Config, configured
 			"questions": [],
 			"fallback_questions": [],
 			"rich_messages": false,
-			"private_query_per_min": 0
+			"private_query_per_min": 3
 		}`)
 		if err := os.WriteFile(path, data, 0o600); err != nil {
 			t.Fatal(err)
 		}
 	}
-	baseline, err := store.LoadBaseline(path, cfg)
+	baseline, err := settings.LoadBaseline(path, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -318,22 +317,22 @@ func testSettingsBaselineFromConfig(t *testing.T, cfg *config.Config, configured
 }
 
 func testLookupAutoDelete(v *Service, groupID int64) (time.Duration, bool) {
-	if group, ok := v.settings.Group(groupID); ok {
-		duration, valid := config.SecondsToDuration(group.LookupTTLSeconds().Value)
+	if group, ok := v.settings.Settings(groupID); ok {
+		duration, valid := settings.SecondsToDuration(group.LookupTTLSeconds().Value)
 		return duration, group.LookupAutoDeleteEnabled().Value && valid
 	}
 	seconds := 180
 	if v.cfg.LookupTTLSeconds != nil {
 		seconds = max(*v.cfg.LookupTTLSeconds, 0)
 	}
-	duration, valid := config.SecondsToDuration(seconds)
+	duration, valid := settings.SecondsToDuration(seconds)
 	return duration, seconds > 0 && valid
 }
 
-func runtimeSettingsTestConfig() *config.Config {
+func runtimeSettingsTestConfig() *settings.Config {
 	const groupID int64 = -1009000000001
-	return &config.Config{
-		Groups:             []config.GroupConfig{{ID: groupID}},
+	return &settings.Config{
+		Groups:             []settings.GroupConfig{{ID: groupID}},
 		GroupIDs:           []int64{groupID},
 		TimeoutSeconds:     240,
 		VerifyMaxFails:     3,

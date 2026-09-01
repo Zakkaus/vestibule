@@ -7,18 +7,18 @@ import (
 	"strings"
 
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram/ids"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 )
 
 func (s *Service) antispamEnabled(groupID int64) bool {
-	group, ok := s.settings.Group(groupID)
+	group, ok := s.settings.Settings(groupID)
 	return ok && group.AntispamEnabled().Value
 }
 
 func (s *Service) channelWhitelisted(groupID, senderID int64) bool {
-	group, ok := s.settings.Group(groupID)
+	group, ok := s.settings.Settings(groupID)
 	if !ok {
 		return false
 	}
@@ -31,7 +31,7 @@ func (s *Service) channelWhitelisted(groupID, senderID int64) bool {
 }
 
 func (s *Service) isKnownChat(chatID int64) bool {
-	if s.settings.IsGroup(chatID) || s.adminLogChatID() == chatID {
+	if s.settings.IsKnownChat(chatID) {
 		return true
 	}
 	for _, feed := range s.cfg.Feeds {
@@ -39,51 +39,31 @@ func (s *Service) isKnownChat(chatID int64) bool {
 			return true
 		}
 	}
-	for _, groupID := range s.settings.GroupIDs() {
-		group, _ := s.settings.Group(groupID)
-		requiredChannelID := group.Baseline().RequiredChannelID.Value
-		if override := group.Overrides().RequiredChannelID; override != nil {
-			requiredChannelID = *override
-		}
-		if requiredChannelID == chatID {
-			return true
-		}
-		for _, knownID := range group.KnownChatIDs().Value {
-			if knownID == chatID {
-				return true
-			}
-		}
-		for _, trustedID := range group.TrustedMemberGroupIDs().Value {
-			if trustedID == chatID {
-				return true
-			}
-		}
-	}
 	return false
 }
 
 func (s *Service) toggleAntispam(groupID int64) (bool, error) {
-	group, ok := s.settings.Group(groupID)
+	group, ok := s.settings.Settings(groupID)
 	if !ok {
-		return false, fmt.Errorf("%w: %d", store.ErrUnknownGroup, groupID)
+		return false, fmt.Errorf("%w: %d", settings.ErrUnknownGroup, groupID)
 	}
 	enabled := !group.AntispamEnabled().Value
 	overrides := group.Overrides()
 	overrides.AntispamEnabled = &enabled
-	_, err := s.settings.CommitGroup(groupID, group.Revision(), overrides)
+	_, err := s.settings.Update(groupID, group.Revision(), overrides)
 	return enabled, err
 }
 
 // UpdateChannelWhitelist applies the shared whitelist bound and unbans newly allowed senders.
 func (s *Service) UpdateChannelWhitelist(ctx context.Context, groupID, senderID int64, allow bool) (unbanErr, updateErr error) {
-	group, ok := s.settings.Group(groupID)
+	group, ok := s.settings.Settings(groupID)
 	if !ok {
-		return nil, fmt.Errorf("%w: %d", store.ErrUnknownGroup, groupID)
+		return nil, fmt.Errorf("%w: %d", settings.ErrUnknownGroup, groupID)
 	}
 	whitelist := ids.UpdateChannelWhitelist(group.ChannelWhitelist().Value, senderID, allow)
 	overrides := group.Overrides()
 	overrides.ChannelWhitelist = &whitelist
-	if _, err := s.settings.CommitGroup(groupID, group.Revision(), overrides); err != nil {
+	if _, err := s.settings.Update(groupID, group.Revision(), overrides); err != nil {
 		return nil, err
 	}
 	if allow {
@@ -131,7 +111,7 @@ func (s *Service) FilterChannelSender(ctx context.Context, message ChannelSender
 	} else {
 		banned = true
 	}
-	s.telegram.Alert(ctx, s.adminLogChatID(),
+	s.telegram.Alert(ctx, s.adminLogChatID(message.ChatID),
 		tgfmt.ChannelSenderAlert(l, banned, message.SenderChatTitle, message.SenderChatID, message.ChatID))
 	log.Printf("antispam: channel sender %d (%q) in group %d deleted, banned=%v", message.SenderChatID, message.SenderChatTitle, message.ChatID, banned)
 	return true

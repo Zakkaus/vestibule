@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/store"
 	"log"
 	"reflect"
@@ -22,7 +22,7 @@ func setOffline(v *Service) {
 func setOnline(v *Service) { v.mu.Lock(); v.lastOnline = time.Now(); v.mu.Unlock() }
 
 func TestOfflineNow(t *testing.T) {
-	v := newTestService(&config.Config{TimeoutSeconds: 240})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240})
 	if v.offlineNow() {
 		t.Fatal("a fresh Service is seeded online")
 	}
@@ -37,7 +37,7 @@ func TestOfflineNow(t *testing.T) {
 }
 
 func TestOnExpiryOfflineDefers(t *testing.T) {
-	v := newTestService(&config.Config{TimeoutSeconds: 240, VerifyMaxFails: 3})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240, VerifyMaxFails: 3})
 	setOffline(v)
 	key := pkey{-100, 5}
 	v.pend[key] = &pending{nonce: "n", deadline: time.Now().Add(-time.Second), groupMsgID: 42}
@@ -62,7 +62,7 @@ func TestOnExpiryOfflineDefers(t *testing.T) {
 func TestDeferredExpiryCapSettlesStrikeFree(t *testing.T) {
 	const gid, uid = int64(-100), int64(5)
 	now := time.Date(2030, 1, 2, 3, 4, 5, 0, time.UTC)
-	v := newTestService(&config.Config{
+	v := newTestService(&settings.Config{
 		TimeoutSeconds:     4 * 60 * 60,
 		VerifyMaxFails:     1,
 		VerifyRetrySeconds: 600,
@@ -140,7 +140,7 @@ func TestDeferredExpiryCapSettlesStrikeFree(t *testing.T) {
 func TestDeferredExpiryCapRetriesWithoutFreshWindowAndLogsOnce(t *testing.T) {
 	const gid, uid = int64(-100), int64(5)
 	now := time.Date(2030, 1, 2, 3, 4, 5, 0, time.UTC)
-	v := newTestService(&config.Config{TimeoutSeconds: 4 * 60 * 60})
+	v := newTestService(&settings.Config{TimeoutSeconds: 4 * 60 * 60})
 	v.timeNow = func() time.Time { return now }
 	v.statePath = t.TempDir() + "/pending.json"
 	key := pkey{gid, uid}
@@ -187,9 +187,9 @@ func TestDeferredExpiryCapRetriesWithoutFreshWindowAndLogsOnce(t *testing.T) {
 func TestRecoveryPastDeferralCapKeepsShortSettlementRetry(t *testing.T) {
 	const gid, uid = int64(-100), int64(5)
 	now := time.Date(2030, 1, 2, 3, 4, 5, 0, time.UTC)
-	v := newTestService(&config.Config{
+	v := newTestService(&settings.Config{
 		TimeoutSeconds: 4 * 60 * 60,
-		DeliveryMode:   config.DeliveryBoth,
+		DeliveryMode:   settings.DeliveryBoth,
 	})
 	v.timeNow = func() time.Time { return now }
 	p := &pending{
@@ -222,7 +222,7 @@ func TestDeferredExpiryAccumulatorSurvivesLongOutageRestart(t *testing.T) {
 	const gid, uid = int64(-100), int64(5)
 	now := time.Now().UTC().Truncate(time.Second)
 	dir := t.TempDir()
-	cfg := &config.Config{TimeoutSeconds: 4 * 60 * 60, GroupIDs: []int64{gid}}
+	cfg := &settings.Config{TimeoutSeconds: 4 * 60 * 60, GroupIDs: []int64{gid}}
 	first := newTestService(cfg)
 	first.timeNow = func() time.Time { return now }
 	first.statePath = dir + "/pending.json"
@@ -306,7 +306,7 @@ func pendingStateBool(t *testing.T, path, field string) bool {
 }
 
 func TestOfflineExpiryDoesNotLogPerPending(t *testing.T) {
-	v := newTestService(&config.Config{TimeoutSeconds: 240})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240})
 	key := pkey{-100, 5}
 	p := &pending{nonce: "n", deadline: time.Now()}
 	v.pend[key] = p
@@ -326,7 +326,7 @@ func TestOfflineExpiryDoesNotLogPerPending(t *testing.T) {
 }
 
 func TestOnExpiryOnlineDeclines(t *testing.T) {
-	v := newTestService(&config.Config{TimeoutSeconds: 240, VerifyMaxFails: 3}) // seeded online, no probe => reachable
+	v := newTestService(&settings.Config{TimeoutSeconds: 240, VerifyMaxFails: 3}) // seeded online, no probe => reachable
 	key := pkey{-100, 5}
 	v.pend[key] = &pending{nonce: "n", deadline: time.Now(), groupMsgID: 42, privateMsgID: 43}
 	fb := &fakeVerifyBot{}
@@ -364,7 +364,7 @@ func TestOnExpiryNotifiesApplicantOfRetryOutcome(t *testing.T) {
 		{name: "immediate retry", maxFails: 3, retry: -1, resultOut: &noWaitText},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			v := newTestService(&config.Config{TimeoutSeconds: 240, VerifyMaxFails: tt.maxFails, VerifyRetrySeconds: tt.retry})
+			v := newTestService(&settings.Config{TimeoutSeconds: 240, VerifyMaxFails: tt.maxFails, VerifyRetrySeconds: tt.retry})
 			v.pend[pkey{gid, uid}] = &pending{
 				nonce:      "n",
 				lang:       i18n.LangEN,
@@ -397,7 +397,7 @@ func TestOnExpiryNotifiesApplicantOfRetryOutcome(t *testing.T) {
 }
 
 func TestOnExpiryOnsetLagProbeDefers(t *testing.T) {
-	v := newTestService(&config.Config{TimeoutSeconds: 240, VerifyMaxFails: 3}) // offlineNow == false (seeded online)
+	v := newTestService(&settings.Config{TimeoutSeconds: 240, VerifyMaxFails: 3}) // offlineNow == false (seeded online)
 	probe := &fakeVerifyBot{getMeErr: errors.New("network down")}
 	v.probe = probe
 	key := pkey{-100, 5}
@@ -419,7 +419,7 @@ func TestOnExpiryOnsetLagProbeDefers(t *testing.T) {
 }
 
 func TestOnExpiryStaleEpochNoop(t *testing.T) {
-	v := newTestService(&config.Config{TimeoutSeconds: 240, VerifyMaxFails: 3}) // online
+	v := newTestService(&settings.Config{TimeoutSeconds: 240, VerifyMaxFails: 3}) // online
 	key := pkey{-100, 5}
 	p := &pending{nonce: "n", deadline: time.Now()}
 	v.pend[key] = p
@@ -443,7 +443,7 @@ func TestOnExpiryStaleEpochNoop(t *testing.T) {
 }
 
 func TestExpiryDeferThenOnlineStrikes(t *testing.T) {
-	v := newTestService(&config.Config{TimeoutSeconds: 240, VerifyMaxFails: 3})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240, VerifyMaxFails: 3})
 	setOffline(v)
 	key := pkey{-100, 5}
 	v.pend[key] = &pending{nonce: "n", deadline: time.Now().Add(-time.Second), groupMsgID: 44, privateMsgID: 45}
@@ -476,7 +476,7 @@ func TestExpiryDeferThenOnlineStrikes(t *testing.T) {
 }
 
 func TestDeferExpiryGuards(t *testing.T) {
-	v := newTestService(&config.Config{TimeoutSeconds: 240})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240})
 	key := pkey{-100, 5}
 	fresh := &pending{nonce: "new", epoch: 7, deadline: time.Now().Add(time.Hour)}
 	v.pend[key] = fresh
@@ -493,7 +493,7 @@ func TestDeferExpiryGuards(t *testing.T) {
 
 func TestNonPositiveExpiryDelayGetsStrikeFreeGrace(t *testing.T) {
 	const gid, uid = int64(-999), int64(5)
-	v := newTestService(&config.Config{TimeoutSeconds: 240})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240})
 	p := &pending{nonce: "unknown"}
 	key := pkey{gid, uid}
 
@@ -511,7 +511,7 @@ func TestNonPositiveExpiryDelayGetsStrikeFreeGrace(t *testing.T) {
 }
 
 func TestHeartbeatTickRecovers(t *testing.T) {
-	v := newTestService(&config.Config{TimeoutSeconds: 240})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240})
 	v.botUsername = "bot"
 	v.mu.Lock()
 	v.lastOnline = time.Now().Add(-10 * time.Minute) // a long outage
@@ -536,7 +536,7 @@ func TestHeartbeatTickRecovers(t *testing.T) {
 }
 
 func TestHeartbeatTickOfflineKeepsClock(t *testing.T) {
-	v := newTestService(&config.Config{TimeoutSeconds: 240})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240})
 	before := time.Now().Add(-time.Hour)
 	v.mu.Lock()
 	v.lastOnline = before
@@ -554,7 +554,7 @@ func TestHeartbeatTickOfflineKeepsClock(t *testing.T) {
 }
 
 func TestOnRecoveryRefreshesAndRenotifies(t *testing.T) {
-	v := newTestService(&config.Config{TimeoutSeconds: 240})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240})
 	v.botUsername = "bot"
 	k1, k2 := pkey{-100, 1}, pkey{-100, 2}
 	v.pend[k1] = &pending{nonce: "a", name: "Alice", deadline: time.Now().Add(-time.Minute), groupMsgID: 11}
@@ -577,7 +577,7 @@ func TestOnRecoveryRefreshesAndRenotifies(t *testing.T) {
 }
 
 func TestOnRecoveryRenotifyCooldown(t *testing.T) {
-	v := newTestService(&config.Config{TimeoutSeconds: 240})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240})
 	v.botUsername = "bot"
 	v.pend[pkey{-100, 1}] = &pending{nonce: "a", name: "A", deadline: time.Now(), groupMsgID: 5}
 	fb := &fakeVerifyBot{}
@@ -595,9 +595,9 @@ func TestOnRecoveryRenotifyCooldown(t *testing.T) {
 func TestRecoveryPrivateDeliveryPreservesStrikeFreeExpiry(t *testing.T) {
 	const gid, uid = int64(-100), int64(5)
 	now := time.Date(2030, 1, 2, 3, 4, 5, 0, time.UTC)
-	v := newTestService(&config.Config{
+	v := newTestService(&settings.Config{
 		TimeoutSeconds: 240,
-		DeliveryMode:   config.DeliveryDM,
+		DeliveryMode:   settings.DeliveryDM,
 	})
 	v.timeNow = func() time.Time { return now }
 	p := &pending{
@@ -622,7 +622,7 @@ func TestRecoveryPrivateDeliveryPreservesStrikeFreeExpiry(t *testing.T) {
 func TestRenotifyFailureKeepsWorkingGroupChallenge(t *testing.T) {
 
 	const gid, uid = int64(-100), int64(5)
-	v := newTestService(&config.Config{TimeoutSeconds: 240, DeliveryMode: config.DeliveryGroup})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240, DeliveryMode: settings.DeliveryGroup})
 	v.botUsername = "bot"
 	key := pkey{gid, uid}
 	p := &pending{
@@ -650,7 +650,7 @@ func TestRenotifyFailureKeepsWorkingGroupChallenge(t *testing.T) {
 
 func TestRenotifySuccessfulSendDeletesNewOrphanWhenPendingWasReplaced(t *testing.T) {
 	const gid, uid = int64(-100), int64(5)
-	v := newTestService(&config.Config{TimeoutSeconds: 240, DeliveryMode: config.DeliveryGroup})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240, DeliveryMode: settings.DeliveryGroup})
 	v.botUsername = "bot"
 	key := pkey{gid, uid}
 	old := &pending{
@@ -706,7 +706,7 @@ func TestRenotifySuccessfulSendDeletesNewOrphanWhenPendingWasReplaced(t *testing
 }
 
 func TestOnRecoveryShuttingDown(t *testing.T) {
-	v := newTestService(&config.Config{TimeoutSeconds: 240})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240})
 	v.pend[pkey{-100, 1}] = &pending{nonce: "a", deadline: time.Now()}
 	v.shuttingDown = true
 	fb := &fakeVerifyBot{}
@@ -717,7 +717,7 @@ func TestOnRecoveryShuttingDown(t *testing.T) {
 }
 
 func TestLoadPendingFailureStillProtectsHeartbeat(t *testing.T) {
-	v := newTestService(&config.Config{TimeoutSeconds: 240})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240})
 	v.statePath = t.TempDir()
 	v.hbPath = t.TempDir()
 
@@ -733,7 +733,7 @@ func TestLoadPendingFailureStillProtectsHeartbeat(t *testing.T) {
 
 func TestLoadRefreshesAfterOutage(t *testing.T) {
 	dir := t.TempDir()
-	seed := newTestService(&config.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})
+	seed := newTestService(&settings.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})
 	seed.statePath = dir + "/pending.json"
 	seed.hbPath = dir + "/heartbeat.json"
 	seed.pend[pkey{-100, 7}] = &pending{nonce: "x", name: "Carol", correctIdx: 0,
@@ -744,7 +744,7 @@ func TestLoadRefreshesAfterOutage(t *testing.T) {
 	seed.mu.Unlock()
 	seed.saveHeartbeat()
 
-	v := newTestService(&config.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})
 	v.botUsername = "bot"
 	v.statePath = dir + "/pending.json"
 	v.hbPath = dir + "/heartbeat.json"
@@ -779,9 +779,9 @@ func TestLoadRecoveryBothReplacesAndDeletesBothChallenges(t *testing.T) {
 	const gid, uid = int64(-100), int64(7)
 	now := time.Now()
 	dir := t.TempDir()
-	cfg := &config.Config{
+	cfg := &settings.Config{
 		GroupIDs:       []int64{gid},
-		DeliveryMode:   config.DeliveryBoth,
+		DeliveryMode:   settings.DeliveryBoth,
 		TimeoutSeconds: 240,
 	}
 	seed := newTestService(cfg)
@@ -838,12 +838,12 @@ func TestRenotifyUsesDeliveryModeAndRetainsUnconfirmedPrivateID(t *testing.T) {
 	}{
 		{
 			name:      "group",
-			mode:      config.DeliveryGroup,
+			mode:      settings.DeliveryGroup,
 			wantChats: []int64{uid, gid},
 		},
 		{
 			name: "dm rejection falls back to group",
-			mode: config.DeliveryDM,
+			mode: settings.DeliveryDM,
 			sendErrAt: map[int]error{
 				2: errors.New("Forbidden: bot can't initiate conversation with a user"),
 			},
@@ -851,7 +851,7 @@ func TestRenotifyUsesDeliveryModeAndRetainsUnconfirmedPrivateID(t *testing.T) {
 		},
 		{
 			name: "both keeps private ID after uncertain send",
-			mode: config.DeliveryBoth,
+			mode: settings.DeliveryBoth,
 			sendErrAt: map[int]error{
 				3: errors.New("connection reset after request write"),
 			},
@@ -860,7 +860,7 @@ func TestRenotifyUsesDeliveryModeAndRetainsUnconfirmedPrivateID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v := newTestService(&config.Config{TimeoutSeconds: 240, DeliveryMode: tt.mode})
+			v := newTestService(&settings.Config{TimeoutSeconds: 240, DeliveryMode: tt.mode})
 			v.botUsername = "bot"
 			p := &pending{
 				nonce:              "x",
@@ -899,7 +899,7 @@ func TestRenotifyUsesDeliveryModeAndRetainsUnconfirmedPrivateID(t *testing.T) {
 
 func TestLoadQuickRestartKeepsWindow(t *testing.T) {
 	dir := t.TempDir()
-	seed := newTestService(&config.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})
+	seed := newTestService(&settings.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})
 	seed.statePath = dir + "/pending.json"
 	seed.hbPath = dir + "/heartbeat.json"
 	seed.pend[pkey{-100, 8}] = &pending{nonce: "y", correctIdx: 0, qOpts: []string{"a", "b"},
@@ -907,7 +907,7 @@ func TestLoadQuickRestartKeepsWindow(t *testing.T) {
 	seed.save()
 	seed.saveHeartbeat() // heartbeat = now (quick restart)
 
-	v := newTestService(&config.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240, GroupIDs: []int64{-100}})
 	v.statePath = dir + "/pending.json"
 	v.hbPath = dir + "/heartbeat.json"
 	fb := &fakeVerifyBot{}

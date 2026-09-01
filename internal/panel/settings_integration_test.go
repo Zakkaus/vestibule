@@ -7,10 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/database"
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/Zakkaus/vestibule/internal/verification"
@@ -18,7 +17,7 @@ import (
 	th "github.com/mymmrac/telego/telegohandler"
 )
 
-func newAdminTestApplication(cfg *config.Config, settings *store.Settings, bot *telego.Bot) (*Panel, *verification.Service) {
+func newAdminTestApplication(cfg *settings.Config, settings *settings.Store, bot *telego.Bot) (*Panel, *verification.Service) {
 	connector := telegram.NewConnector(bot)
 	verification := newPanelTestVerifier(settings, connector, cfg, verification.Identity{}, "")
 	administration := New(
@@ -29,9 +28,9 @@ func newAdminTestApplication(cfg *config.Config, settings *store.Settings, bot *
 }
 
 func newPanelTestVerifier(
-	settings *store.Settings,
+	settings *settings.Store,
 	connector *telegram.Connector,
-	cfg *config.Config,
+	cfg *settings.Config,
 	identity verification.Identity,
 	stateDirectory string,
 ) *verification.Service {
@@ -46,13 +45,12 @@ func TestStopCommandWritesInvokingGroup(t *testing.T) {
 		groupA int64 = -1009000000301
 		groupB int64 = -1009000000302
 	)
-	cfg := &config.Config{
-		Groups:           []config.GroupConfig{{ID: groupA}, {ID: groupB}},
+	cfg := &settings.Config{
+		Groups:           []settings.GroupConfig{{ID: groupA}, {ID: groupB}},
 		GroupIDs:         []int64{groupA, groupB},
-		ControlGroupID:   groupA,
 		NotifyTTLSeconds: -1,
 	}
-	settings, err := store.NewSettings("", testSettingsBaseline(t, cfg))
+	settings, err := settings.NewStore("", testSettingsBaseline(t, cfg), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,19 +71,26 @@ func TestStopCommandWritesInvokingGroup(t *testing.T) {
 
 func TestRuntimeRegisteredGroupUsesLiveCommandGuards(t *testing.T) {
 	const groupID int64 = -1009000000303
-	cfg := &config.Config{Lang: "en", NotifyTTLSeconds: -1}
-	settings, err := store.NewSettings(filepath.Join(t.TempDir(), "settings.json"), testSettingsBaseline(t, cfg))
+	cfg := &settings.Config{Lang: "en", NotifyTTLSeconds: -1}
+	store, err := settings.NewStore(filepath.Join(t.TempDir(), "settings.json"), testSettingsBaseline(t, cfg), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	fake := newFakeAdminBot()
 	fake.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
 	bot := newAPITestBot(t, fake)
-	administration, verification := newAdminTestApplication(cfg, settings, bot)
+	administration, verification := newAdminTestApplication(cfg, store, bot)
 	defer verification.Shutdown()
-	registration := settings.Registrations()
-	registration.RegisteredGroups = []store.RegisteredGroup{{ID: groupID, RegisteredBy: 42}}
-	if _, err := settings.CommitRegistrations(registration.Revision, registration); err != nil {
+	registration := store.Registrations()
+	registration.RegisteredGroups = []settings.RegisteredGroup{{ID: groupID, RegisteredBy: 42}}
+	if _, err := store.CommitRegistrations(registration.Revision, registration); err != nil {
+		t.Fatal(err)
+	}
+	group, _ := store.Settings(groupID)
+	overrides := group.Overrides()
+	language := "en"
+	overrides.Lang = &language
+	if _, err := store.Update(groupID, group.Revision(), overrides); err != nil {
 		t.Fatal(err)
 	}
 	message := &telego.Message{
@@ -122,28 +127,27 @@ func TestRuntimeRegisteredGroupUsesLiveCommandGuards(t *testing.T) {
 	}
 }
 
-func TestRuntimeControlGroupRestrictsGlobalCommands(t *testing.T) {
+func TestRuntimeGroupsMutateOnlyTheirOwnSettings(t *testing.T) {
 	const (
-		controlGroup = int64(-1009000000304)
-		otherGroup   = int64(-1009000000305)
+		firstGroup = int64(-1009000000304)
+		otherGroup = int64(-1009000000305)
 	)
-	cfg := &config.Config{Lang: "en", NotifyTTLSeconds: -1}
-	settings, err := store.NewSettings(filepath.Join(t.TempDir(), "settings.json"), testSettingsBaseline(t, cfg))
+	cfg := &settings.Config{Lang: "en", NotifyTTLSeconds: -1}
+	store, err := settings.NewStore(filepath.Join(t.TempDir(), "settings.json"), testSettingsBaseline(t, cfg), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	fake := newFakeAdminBot()
 	fake.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
 	bot := newAPITestBot(t, fake)
-	administration, verification := newAdminTestApplication(cfg, settings, bot)
+	administration, verification := newAdminTestApplication(cfg, store, bot)
 	defer verification.Shutdown()
-	registration := settings.Registrations()
-	registration.ControlGroupID = controlGroup
-	registration.RegisteredGroups = []store.RegisteredGroup{
-		{ID: controlGroup, RegisteredBy: 42},
+	registration := store.Registrations()
+	registration.RegisteredGroups = []settings.RegisteredGroup{
+		{ID: firstGroup, RegisteredBy: 42},
 		{ID: otherGroup, RegisteredBy: 42},
 	}
-	if _, err := settings.CommitRegistrations(registration.Revision, registration); err != nil {
+	if _, err := store.CommitRegistrations(registration.Revision, registration); err != nil {
 		t.Fatal(err)
 	}
 	runFakeHandler(t, bot, administration.OnRich, telego.Update{Message: &telego.Message{
@@ -151,18 +155,20 @@ func TestRuntimeControlGroupRestrictsGlobalCommands(t *testing.T) {
 		Chat:      telego.Chat{ID: otherGroup, Type: telego.ChatTypeSupergroup},
 		From:      &telego.User{ID: 7, LanguageCode: "en"},
 	}})
-	if settings.Global().RichMessages().Value {
-		t.Error("non-control runtime group changed a global setting")
+	other, _ := store.Settings(otherGroup)
+	if !other.RichMessages().Value || other.RichMessages().Source != settings.SourceChatOverride {
+		t.Fatalf("invoking chat rich setting = %+v", other.RichMessages())
 	}
-	want := i18n.Messages.Feed.Config.ControlGroupOnly.Render(i18n.LangEN, controlGroup)
-	if fake.lastSendText != want {
-		t.Errorf("control-group refusal = %q, want catalogue text %q", fake.lastSendText, want)
+	first, _ := store.Settings(firstGroup)
+	if first.RichMessages().Value {
+		t.Fatalf("other chat inherited rich setting = %+v", first.RichMessages())
 	}
 }
 
-func TestHelpUsesLivePrivateQueryRate(t *testing.T) {
-	cfg := &config.Config{PrivateQueryPerMin: 3}
-	settings, err := store.NewSettings("", testSettingsBaseline(t, cfg))
+func TestHelpUsesProcessPrivateQueryRate(t *testing.T) {
+	const rate = 3
+	cfg := &settings.Config{PrivateQueryPerMin: rate}
+	settings, err := settings.NewStore("", testSettingsBaseline(t, cfg), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,13 +176,6 @@ func TestHelpUsesLivePrivateQueryRate(t *testing.T) {
 	bot := newAPITestBot(t, fake)
 	administration, verification := newAdminTestApplication(cfg, settings, bot)
 	defer verification.Shutdown()
-	global := settings.Global()
-	overrides := global.Overrides()
-	rate := 5
-	overrides.PrivateQueryPerMin = &rate
-	if _, err := settings.CommitGlobal(global.Revision(), overrides); err != nil {
-		t.Fatal(err)
-	}
 	runFakeHandler(t, bot, administration.OnHelp, telego.Update{Message: &telego.Message{
 		Chat: telego.Chat{ID: 7, Type: telego.ChatTypePrivate},
 		From: &telego.User{ID: 7, LanguageCode: "en"},
@@ -191,7 +190,7 @@ func TestHelpUsesLivePrivateQueryRate(t *testing.T) {
 func TestSettingsCommandReportsWriteFailure(t *testing.T) {
 	cfg := runtimeSettingsTestConfig()
 	cfg.NotifyTTLSeconds = -1
-	settings, err := store.NewSettings(t.TempDir(), testSettingsBaseline(t, cfg))
+	settings, err := settings.NewStore(t.TempDir(), testSettingsBaseline(t, cfg), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,12 +253,12 @@ func TestRuntimeSettingsCommandHandlersPersistAndRespond(t *testing.T) {
 			text:    "/vmode MIXED",
 			handler: func(panel *Panel) th.Handler { return panel.OnVMode },
 			wantText: func(l i18n.Lang) string {
-				return i18n.Messages.Panel.VerificationMode.Set.Render(l, tgfmt.ModeName(l, config.ModeMixed))
+				return i18n.Messages.Panel.VerificationMode.Set.Render(l, tgfmt.ModeName(l, settings.ModeMixed))
 			},
 			assertState: func(t *testing.T, service *verification.Service, groupID int64) {
 				t.Helper()
-				if got := service.EffectiveMode(groupID); got != config.ModeMixed {
-					t.Fatalf("/vmode handler mode = %q, want %q", got, config.ModeMixed)
+				if got := service.EffectiveMode(groupID); got != settings.ModeMixed {
+					t.Fatalf("/vmode handler mode = %q, want %q", got, settings.ModeMixed)
 				}
 			},
 		},
@@ -271,14 +270,14 @@ func TestRuntimeSettingsCommandHandlersPersistAndRespond(t *testing.T) {
 			groupID := cfg.GroupIDs[0]
 			baseline := testSettingsBaseline(t, cfg)
 			path := filepath.Join(t.TempDir(), "settings.json")
-			settings, err := store.NewSettings(path, baseline)
+			store, err := settings.NewStore(path, baseline, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
 			fake := newFakeAdminBot()
 			fake.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
 			bot := newAPITestBot(t, fake)
-			administration, verification := newAdminTestApplication(cfg, settings, bot)
+			administration, verification := newAdminTestApplication(cfg, store, bot)
 			t.Cleanup(verification.Shutdown)
 
 			runFakeHandler(t, bot, test.handler(administration), telego.Update{Message: &telego.Message{
@@ -293,7 +292,7 @@ func TestRuntimeSettingsCommandHandlersPersistAndRespond(t *testing.T) {
 			}
 			test.assertState(t, verification, groupID)
 
-			restoredSettings, err := store.NewSettings(path, baseline)
+			restoredSettings, err := settings.NewStore(path, baseline, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -308,7 +307,7 @@ func TestSettingsCommandUsesFreshAdminMembership(t *testing.T) {
 	cfg := runtimeSettingsTestConfig()
 	cfg.NotifyTTLSeconds = -1
 	groupID := cfg.GroupIDs[0]
-	settings, err := store.NewSettings("", testSettingsBaseline(t, cfg))
+	settings, err := settings.NewStore("", testSettingsBaseline(t, cfg), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -349,53 +348,53 @@ func TestSettingsBaselineProvenance(t *testing.T) {
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := config.LoadConfig(path)
+	cfg, err := settings.LoadConfig(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	baseline, err := store.LoadBaseline(path, cfg)
+	baseline, err := settings.LoadBaseline(path, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	settings, err := store.NewSettings("", baseline)
+	store, err := settings.NewStore("", baseline, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	group, _ := settings.Group(-1001)
-	if got := group.VerifyMode(); got.Value != config.ModeQuiz || got.Source != store.SourceConfig {
+	group, _ := store.Settings(-1001)
+	if got := group.VerifyMode(); got.Value != settings.ModeQuiz || got.Source != settings.SourceUserFile {
 		t.Fatalf("group verify mode provenance = %+v", got)
 	}
-	if got := group.ChannelWhitelist(); len(got.Value) != 0 || got.Source != store.SourceConfig {
+	if got := group.ChannelWhitelist(); len(got.Value) != 0 || got.Source != settings.SourceUserFile {
 		t.Fatalf("explicit empty whitelist provenance = %+v", got)
 	}
-	if got := group.LookupTTLSeconds(); got.Value != 0 || got.Source != store.SourceConfig {
+	if got := group.LookupTTLSeconds(); got.Value != 0 || got.Source != settings.SourceUserFile {
 		t.Fatalf("disabled lookup provenance = %+v", got)
 	}
-	if got := group.TimeoutSeconds(); got.Value != 240 || got.Source != store.SourceDefault {
+	if got := group.TimeoutSeconds(); got.Value != 240 || got.Source != settings.SourceFactory {
 		t.Fatalf("default timeout provenance = %+v", got)
 	}
-	if got := settings.Global().PrivateQueryPerMin(); got.Value != 5 || got.Source != store.SourceConfig {
-		t.Fatalf("global query-rate provenance = %+v", got)
+	if got := group.PrivateQueryPerMin(); got.Value != 5 || got.Source != settings.SourceUserFile {
+		t.Fatalf("chat query-rate provenance = %+v", got)
 	}
 }
 
-func testSettingsBaseline(t *testing.T, cfg *config.Config) store.SettingsBaseline {
+func testSettingsBaseline(t *testing.T, cfg *settings.Config) settings.SettingsBaseline {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "config.json")
 	if err := os.WriteFile(path, []byte(`{}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	baseline, err := store.LoadBaseline(path, cfg)
+	baseline, err := settings.LoadBaseline(path, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return baseline
 }
 
-func runtimeSettingsTestConfig() *config.Config {
+func runtimeSettingsTestConfig() *settings.Config {
 	const groupID int64 = -1009000000001
-	return &config.Config{
-		Groups:             []config.GroupConfig{{ID: groupID}},
+	return &settings.Config{
+		Groups:             []settings.GroupConfig{{ID: groupID}},
 		GroupIDs:           []int64{groupID},
 		TimeoutSeconds:     240,
 		VerifyMaxFails:     3,

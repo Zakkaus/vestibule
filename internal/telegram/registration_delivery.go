@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
 )
@@ -77,7 +77,7 @@ func (s *registrationService) clearUnknownGroupLeave(groupID int64) error {
 	if _, ok := unknownGroupLeave(s.settings.Registrations(), groupID); !ok {
 		return nil
 	}
-	return s.mutateRegistrations(func(state *store.RegistrationState) error {
+	return s.mutateRegistrations(func(state *settings.RegistrationState) error {
 		removeUnknownGroupLeave(state, groupID)
 		return nil
 	})
@@ -143,13 +143,13 @@ func (s *registrationService) handleUnknownLeaveDeadline(groupID int64, title st
 			s.scheduleUnknownLeave(groupID, pending.Title, time.Unix(pending.ExpiresAt, 0))
 			return
 		}
-		if err := s.mutateRegistrations(func(next *store.RegistrationState) error {
+		if err := s.mutateRegistrations(func(next *settings.RegistrationState) error {
 			current, exists := pendingRegistration(*next, groupID)
 			if !exists || current.ExpiresAt != pending.ExpiresAt {
 				return nil
 			}
 			removePendingRegistration(next, groupID)
-			s.putUnknownGroupLeave(next, store.UnknownGroupLeave{
+			s.putUnknownGroupLeave(next, settings.UnknownGroupLeave{
 				GroupID: groupID, Title: current.Title, ExpiresAt: current.ExpiresAt,
 			})
 			return nil
@@ -177,7 +177,7 @@ func (s *registrationService) handleUnknownLeaveDeadline(groupID int64, title st
 }
 
 func (s *registrationService) groupLanguage(groupID int64) i18n.Lang {
-	if group, ok := s.settings.Group(groupID); ok {
+	if group, ok := s.settings.Settings(groupID); ok {
 		return i18n.FromStored(group.Lang().Value)
 	}
 	return i18n.FromStored(s.cfg.LangForGroup(groupID))

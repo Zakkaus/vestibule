@@ -10,9 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -79,8 +78,8 @@ func (l *registrationTransitionLocks) lock(groupID int64) func() {
 type registrationService struct {
 	root                context.Context
 	bot                 *telego.Bot
-	settings            *store.Settings
-	cfg                 *config.Config
+	settings            *settings.Store
+	cfg                 *settings.Config
 	username            string
 	selfID              int64
 	now                 func() time.Time
@@ -105,8 +104,8 @@ type registrationRoute struct {
 func newRegistrationService(
 	root context.Context,
 	bot *telego.Bot,
-	settings *store.Settings,
-	cfg *config.Config,
+	settings *settings.Store,
+	cfg *settings.Config,
 	username string,
 	selfID int64,
 	onRegistered func(context.Context, int64),
@@ -144,8 +143,8 @@ type Registration = registrationService
 func NewRegistration(
 	root context.Context,
 	bot *telego.Bot,
-	settings *store.Settings,
-	cfg *config.Config,
+	settings *settings.Store,
+	cfg *settings.Config,
 	username string,
 	selfID int64,
 	onOwnerClaimed func(context.Context),
@@ -295,7 +294,7 @@ func (s *registrationService) onOwnerClaim(ctx *th.Context, update telego.Update
 	}
 	if err := s.settings.ClaimOwner(message.From.ID, nonce, s.now()); err != nil {
 		text := i18n.Messages.Bot.Registration.OwnerClaimRefused.For(l)
-		if !errors.Is(err, store.ErrOwnerClaimInvalid) {
+		if !errors.Is(err, settings.ErrOwnerClaimInvalid) {
 			text = i18n.Messages.Bot.Registration.OwnerClaimSaveFailed.For(l)
 		}
 		_, _ = s.bot.SendMessage(ctx.Context(), tu.Message(tu.ID(message.Chat.ID), text))
@@ -320,7 +319,7 @@ func (s *registrationService) onEnrollmentCommand(ctx *th.Context, update telego
 	nonce, err := s.settings.IssueEnrollmentNonce(message.From.ID, s.now(), enrollmentLifetime)
 	if err != nil {
 		text := i18n.Messages.Bot.Registration.RegistrationSaveFailed.For(l)
-		if errors.Is(err, store.ErrRegistrationOwnerOnly) {
+		if errors.Is(err, settings.ErrRegistrationOwnerOnly) {
 			text = i18n.Messages.Bot.Registration.EnrollmentOwnerOnly.For(l)
 		}
 		_, _ = s.bot.SendMessage(ctx.Context(), tu.Message(tu.ID(message.Chat.ID), text))
@@ -337,7 +336,7 @@ func (s *registrationService) onEnrollmentCommand(ctx *th.Context, update telego
 
 type enrollmentResult struct {
 	registered bool
-	pending    store.PendingRegistration
+	pending    settings.PendingRegistration
 }
 
 func (s *registrationService) onEnrollmentStart(ctx *th.Context, update telego.Update) error {
@@ -398,7 +397,7 @@ func (s *registrationService) consumeEnrollment(
 	_, err := s.mutateRegistrationsWithMembership(
 		ctx,
 		groupID,
-		func(state *store.RegistrationState, membership botMembershipState) (bool, error) {
+		func(state *settings.RegistrationState, membership botMembershipState) (bool, error) {
 			if membership != botMembershipAdmin && membership != botMembershipMember {
 				return false, errBotMembershipIneligible
 			}
@@ -419,7 +418,7 @@ func (s *registrationService) consumeEnrollment(
 			if result.registered {
 				s.addRegisteredGroup(state, groupID, actorID, title)
 			} else {
-				result.pending = store.PendingRegistration{
+				result.pending = settings.PendingRegistration{
 					GroupID:      groupID,
 					RegisteredBy: actorID,
 					Title:        title,

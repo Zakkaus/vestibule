@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 // An administrator can approve a join request by hand while the bot is offline. Recovery must
 // notice the applicant is already in the group instead of re-posting a challenge for them.
 func TestRecoveryDropsPendingWhoseApplicantAlreadyJoined(t *testing.T) {
-	v := newTestService(&config.Config{TimeoutSeconds: 240})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240})
 	v.botUsername = "bot"
 	joined, waiting := pkey{-100, 1}, pkey{-100, 2}
 	v.pend[joined] = &pending{nonce: "a", name: "Alice", deadline: time.Now().Add(-time.Minute), groupMsgID: 11, privateMsgID: 21}
@@ -49,7 +49,7 @@ func TestRecoveryDropsPendingWhoseApplicantAlreadyJoined(t *testing.T) {
 
 // A membership lookup that fails must not skip verification.
 func TestRecoveryKeepsPendingWhenMembershipLookupFails(t *testing.T) {
-	v := newTestService(&config.Config{TimeoutSeconds: 240})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240})
 	v.botUsername = "bot"
 	key := pkey{-100, 1}
 	v.pend[key] = &pending{nonce: "a", name: "Alice", deadline: time.Now().Add(-time.Minute), groupMsgID: 11}
@@ -69,7 +69,7 @@ func TestRecoveryKeepsPendingWhenMembershipLookupFails(t *testing.T) {
 
 // The 48-hour deferral cap survives a recovery that also probes membership.
 func TestRecoveryPastDeferralCapDoesNotRepostChallenges(t *testing.T) {
-	v := newTestService(&config.Config{TimeoutSeconds: 240})
+	v := newTestService(&settings.Config{TimeoutSeconds: 240})
 	v.botUsername = "bot"
 	key := pkey{-100, 1}
 	past := time.Now().Add(-(maxVerificationDeferral + time.Hour))

@@ -1,4 +1,4 @@
-package store
+package settings
 
 import (
 	"bytes"
@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
-
-	"github.com/Zakkaus/vestibule/internal/config"
 )
 
 const (
@@ -16,8 +14,8 @@ const (
 	stateCompatGroupB int64 = -1001234500002
 )
 
-func stateCompatConfig() *config.Config {
-	return &config.Config{Groups: []config.GroupConfig{{ID: stateCompatGroupA}, {ID: stateCompatGroupB}},
+func stateCompatConfig() *Config {
+	return &Config{Groups: []GroupConfig{{ID: stateCompatGroupA}, {ID: stateCompatGroupB}},
 		GroupIDs:       []int64{stateCompatGroupA, stateCompatGroupB},
 		TimeoutSeconds: 240,
 		VerifyMaxFails: 3}
@@ -44,15 +42,12 @@ func TestStateCompatAntispamMigration(t *testing.T) {
 			if err := os.WriteFile(legacyPath, tt.data, 0o600); err != nil {
 				t.Fatal(err)
 			}
-			settings, err := NewSettings(
-				filepath.Join(dir, "settings.json"),
-				settingsBaselineFromConfig(stateCompatConfig(), configPresence{}),
-			)
+			settings, err := NewStore(filepath.Join(dir, "settings.json"), settingsBaselineFromConfig(stateCompatConfig(), configPresence{}), nil)
 			if err != nil {
 				t.Fatal(err)
 			}
 			for _, groupID := range []int64{stateCompatGroupA, stateCompatGroupB} {
-				group, ok := settings.Group(groupID)
+				group, ok := settings.Settings(groupID)
 				if !ok {
 					t.Fatalf("group %d missing after antispam migration", groupID)
 				}
@@ -67,61 +62,56 @@ func TestStateCompatAntispamMigration(t *testing.T) {
 	}
 }
 
-func TestStateCompatSettings(t *testing.T) {
-	tests := []struct {
-		name     string
-		data     []byte
-		schemaV2 bool
-	}{
-		{name: "existing legacy fixture", data: stateCompatFixture(t, "settings.json")},
-		{name: "legacy v0 golden", data: stateCompatFixture(t, "settings-legacy-v0.json")},
-		{name: "schema v2 golden", data: stateCompatFixture(t, "settings-v2.json"), schemaV2: true},
-		{name: "unknown legacy key", data: stateCompatWithUnknown(t, stateCompatFixture(t, "settings.json"))},
+func newStateCompatSettings(t *testing.T, data []byte) (*Store, string) {
+	t.Helper()
+	path := stateCompatTempFile(t, "settings.json", data)
+	settings, err := NewStore(path, settingsBaselineFromConfig(stateCompatConfig(), configPresence{}), nil)
+	requireNoError(t, err)
+	return settings, path
+}
+
+func assertStateCompatLegacySettings(t *testing.T, settings *Store, path string) {
+	t.Helper()
+	for _, groupID := range []int64{stateCompatGroupA, stateCompatGroupB} {
+		group := requireSettingsView(t, settings, groupID)
+		requireEqual(t, group.Enabled().Value, false, "legacy group enabled")
+		requireEqual(t, group.NameSpoiler().Value, false, "legacy group name spoiler")
+		requireEqual(t, group.VerifyMode().Value, ModeMixed, "legacy group verify mode")
+		requireEqual(t, group.DeliveryMode().Value, DeliveryBoth, "legacy group delivery mode")
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			path := stateCompatTempFile(t, "settings.json", tt.data)
-			settings, err := NewSettings(path, settingsBaselineFromConfig(stateCompatConfig(), configPresence{}))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if tt.schemaV2 {
-				var want, got map[string]any
-				stateCompatDecode(t, tt.data, &want)
-				want["version"] = float64(SettingsSchemaVersion)
-				stateCompatDecode(t, stateCompatRead(t, path), &got)
-				if !reflect.DeepEqual(got, want) {
-					t.Fatalf("schema-v2 migration changed fields beyond the version and delivery-mode migration:\nwant %#v\n got %#v", want, got)
-				}
-				for _, groupID := range settings.GroupIDs() {
-					group, _ := settings.Group(groupID)
-					if group.DeliveryMode().Value != config.DeliveryBoth {
-						t.Fatalf("group %d delivery mode = %q, want default %q",
-							groupID, group.DeliveryMode().Value, config.DeliveryBoth)
-					}
-				}
-				return
-			}
-			for _, groupID := range []int64{stateCompatGroupA, stateCompatGroupB} {
-				group, ok := settings.Group(groupID)
-				if !ok {
-					t.Fatalf("group %d missing after migration", groupID)
-				}
-				if group.Enabled().Value || group.NameSpoiler().Value || group.VerifyMode().Value != config.ModeMixed ||
-					group.DeliveryMode().Value != config.DeliveryBoth {
-					t.Fatalf("group %d settings = enabled:%v name_spoiler:%v verify_mode:%q delivery_mode:%q",
-						groupID, group.Enabled().Value, group.NameSpoiler().Value, group.VerifyMode().Value, group.DeliveryMode().Value)
-				}
-			}
-			var migrated map[string]any
-			stateCompatDecode(t, stateCompatRead(t, path), &migrated)
-			if migrated["version"] != float64(SettingsSchemaVersion) {
-				t.Fatalf("migrated settings version = %v", migrated["version"])
-			}
-			if groups, ok := migrated["groups"].(map[string]any); !ok || len(groups) != 2 {
-				t.Fatalf("migrated settings groups = %#v", migrated["groups"])
-			}
-		})
+	var migrated map[string]any
+	stateCompatDecode(t, stateCompatRead(t, path), &migrated)
+	requireDeepEqual(t, migrated["version"], float64(SettingsSchemaVersion), "migrated settings version")
+	groups, ok := migrated["groups"].(map[string]any)
+	if !ok || len(groups) != 2 {
+		t.Fatalf("migrated settings groups = %#v", migrated["groups"])
+	}
+}
+
+func TestStateCompatLegacySettings(t *testing.T) {
+	settings, path := newStateCompatSettings(t, stateCompatFixture(t, "settings.json"))
+	assertStateCompatLegacySettings(t, settings, path)
+}
+
+func TestStateCompatLegacySettingsWithUnknownKey(t *testing.T) {
+	fixture := stateCompatFixture(t, "settings.json")
+	settings, path := newStateCompatSettings(t, stateCompatWithUnknown(t, fixture))
+	assertStateCompatLegacySettings(t, settings, path)
+}
+
+func TestStateCompatSchemaV2Settings(t *testing.T) {
+	settings, path := newStateCompatSettings(t, stateCompatFixture(t, "settings-v2.json"))
+	group := requireSettingsView(t, settings, stateCompatGroupA)
+	requireEqual(t, group.Revision(), uint64(5), "schema-v2 revision")
+	requireEqual(t, group.Enabled().Value, false, "schema-v2 enabled")
+	requireEqual(t, group.DeliveryMode().Value, DeliveryDM, "schema-v2 delivery mode")
+	requireEqual(t, group.BanSeconds().Value, 86400, "schema-v2 ban seconds")
+	requireEqual(t, group.Lang().Value, "en", "schema-v2 language")
+	var upgraded map[string]any
+	stateCompatDecode(t, stateCompatRead(t, path), &upgraded)
+	record := upgraded["groups"].(map[string]any)["-1001234500001"].(map[string]any)
+	if _, exists := record["dm_first"]; exists {
+		t.Fatalf("obsolete dm_first survived allowlisted upgrade: %#v", record)
 	}
 }
 

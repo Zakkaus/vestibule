@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 )
@@ -45,7 +45,7 @@ func TestUnknownGroupGraceExpiry(t *testing.T) {
 		const groupID = int64(-3002)
 		service, caller := newFixture(t)
 		state := service.settings.Registrations()
-		state.RegisteredGroups = []store.RegisteredGroup{{ID: groupID, RegisteredBy: testOwner, Title: "Registered"}}
+		state.RegisteredGroups = []settings.RegisteredGroup{{ID: groupID, RegisteredBy: testOwner, Title: "Registered"}}
 		if _, err := service.settings.CommitRegistrations(state.Revision, state); err != nil {
 			t.Fatal(err)
 		}
@@ -236,17 +236,17 @@ func TestUnknownGroupLeaveSurvivesRestart(t *testing.T) {
 }
 
 func TestEffectiveGroupDemotionRunsOneSetupReport(t *testing.T) {
-	cfg, settings := registrationFixture(t)
+	cfg, store := registrationFixture(t)
 	const groupID = int64(-4003)
-	state := settings.Registrations()
-	state.RegisteredGroups = []store.RegisteredGroup{{ID: groupID, RegisteredBy: testOwner}}
-	if _, err := settings.CommitRegistrations(state.Revision, state); err != nil {
+	state := store.Registrations()
+	state.RegisteredGroups = []settings.RegisteredGroup{{ID: groupID, RegisteredBy: testOwner}}
+	if _, err := store.CommitRegistrations(state.Revision, state); err != nil {
 		t.Fatal(err)
 	}
 	reports := make(chan int64, 2)
 	caller := &registrationCaller{members: make(map[[2]int64]telego.ChatMember)}
 	bot := newRegistrationBot(t, caller)
-	service := newRegistrationService(context.Background(), bot, settings, cfg, "verify_test_bot", testBotID, nil, func(_ context.Context, reportedGroupID int64) { reports <- reportedGroupID }, nil)
+	service := newRegistrationService(context.Background(), bot, store, cfg, "verify_test_bot", testBotID, nil, func(_ context.Context, reportedGroupID int64) { reports <- reportedGroupID }, nil)
 	update := telego.Update{MyChatMember: &telego.ChatMemberUpdated{
 		Chat:          telego.Chat{ID: groupID, Type: telego.ChatTypeSupergroup, Title: "Demoted"},
 		From:          telego.User{ID: 79, LanguageCode: "en"},
@@ -268,7 +268,7 @@ func TestEffectiveGroupDemotionRunsOneSetupReport(t *testing.T) {
 		t.Fatalf("flapping group produced an unthrottled second report for %d", reportedGroupID)
 	default:
 	}
-	if !settings.IsGroup(groupID) {
+	if !store.IsGroup(groupID) {
 		t.Fatal("membership loss automatically erased an owner registration")
 	}
 }
@@ -281,7 +281,7 @@ type removalEvent struct {
 type unregisterFixture struct {
 	groupID        int64
 	stateDirectory string
-	settings       *store.Settings
+	settings       *settings.Store
 	caller         *registrationCaller
 	bot            *telego.Bot
 	service        *registrationService
@@ -294,25 +294,24 @@ func newUnregisterFixture(t *testing.T) *unregisterFixture {
 	const groupID = int64(-4004)
 	configPath := filepath.Join(t.TempDir(), "missing-config.json")
 	stateDirectory := t.TempDir()
-	cfg, settings, err := loadRuntimeState(configPath, stateDirectory)
+	cfg, store, err := loadRuntimeState(configPath, stateDirectory)
 	if err != nil {
 		t.Fatal(err)
 	}
-	bindTestOwner(t, settings, time.Unix(2_000_000_000, 0))
-	state := settings.Registrations()
-	state.RegisteredGroups = []store.RegisteredGroup{{ID: groupID, RegisteredBy: testOwner, Title: "Remove"}}
-	state.ControlGroupID = groupID
-	if _, err := settings.CommitRegistrations(state.Revision, state); err != nil {
+	bindTestOwner(t, store, time.Unix(2_000_000_000, 0))
+	state := store.Registrations()
+	state.RegisteredGroups = []settings.RegisteredGroup{{ID: groupID, RegisteredBy: testOwner, Title: "Remove"}}
+	if _, err := store.CommitRegistrations(state.Revision, state); err != nil {
 		t.Fatal(err)
 	}
-	group, ok := settings.Group(groupID)
+	group, ok := store.Settings(groupID)
 	if !ok {
 		t.Fatal("registered group is not effective")
 	}
 	overrides := group.Overrides()
 	disabled := false
 	overrides.Enabled = &disabled
-	if _, err := settings.CommitGroup(groupID, group.Revision(), overrides); err != nil {
+	if _, err := store.Update(groupID, group.Revision(), overrides); err != nil {
 		t.Fatal(err)
 	}
 	releaseLeave := make(chan struct{}, 1)
@@ -325,13 +324,13 @@ func newUnregisterFixture(t *testing.T) *unregisterFixture {
 	bot := newRegistrationBot(t, caller)
 	removed := make(chan removalEvent, 1)
 	onRemoved := func(removedGroupID int64) {
-		removed <- removalEvent{groupID: removedGroupID, durable: !settings.IsGroup(removedGroupID)}
+		removed <- removalEvent{groupID: removedGroupID, durable: !store.IsGroup(removedGroupID)}
 	}
 	service := newRegistrationService(
-		context.Background(), bot, settings, cfg, "verify_test_bot", testBotID, nil, nil, onRemoved,
+		context.Background(), bot, store, cfg, "verify_test_bot", testBotID, nil, nil, onRemoved,
 	)
 	return &unregisterFixture{
-		groupID: groupID, stateDirectory: stateDirectory, settings: settings,
+		groupID: groupID, stateDirectory: stateDirectory, settings: store,
 		caller: caller, bot: bot, service: service, removed: removed, releaseLeave: releaseLeave,
 	}
 }
@@ -412,7 +411,7 @@ func assertUnregisterResult(t *testing.T, fixture *unregisterFixture) {
 		t.Fatalf("owner unregister messages = %+v, want catalogue text %q", messages, want)
 	}
 	registration := fixture.settings.Registrations()
-	if registration.ControlGroupID != 0 || len(registration.RegisteredGroups) != 0 ||
+	if len(registration.RegisteredGroups) != 0 ||
 		len(registration.UnknownGroupLeaves) != 0 {
 		t.Fatalf("registration state after unregister = %+v", registration)
 	}

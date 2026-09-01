@@ -74,7 +74,7 @@ func (s *Updates) SetupCommands(ctx context.Context, bot *telego.Bot) {
 	groupIDs := []int64(nil)
 	ownerID := int64(0)
 	if s.settings != nil {
-		groupIDs = s.settings.GroupIDs()
+		groupIDs = s.settings.ChatIDs()
 		ownerID = s.settings.Registrations().OwnerID
 	}
 	menuCapacity := 6 + 2*len(groupIDs)
@@ -131,7 +131,7 @@ func (s *Updates) SetupCommands(ctx context.Context, bot *telego.Bot) {
 
 func (s *Updates) groupLanguage(groupID int64) i18n.Lang {
 	if s.settings != nil {
-		if group, ok := s.settings.Group(groupID); ok {
+		if group, ok := s.settings.Settings(groupID); ok {
 			return i18n.FromStored(group.Lang().Value)
 		}
 	}

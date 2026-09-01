@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Zakkaus/vestibule/internal/settings"
+
 	"go.mau.fi/util/dbutil"
 )
 
@@ -35,6 +37,86 @@ func TestOpenMigratesSQLite(t *testing.T) {
 		if !exists {
 			t.Errorf("migration did not create %s", table)
 		}
+	}
+}
+
+const settingsStoreTestChatID int64 = -1009000000901
+
+func newTestSettingsStore(t *testing.T) *SettingsStore {
+	t.Helper()
+	db, err := Open(context.Background(), testSQLiteConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	return NewSettingsStore(db)
+}
+
+func seedSettingsStore(t *testing.T, store *SettingsStore) {
+	t.Helper()
+	enabled := false
+	if err := store.SeedSettings([]settings.Record{{
+		ChatID: settingsStoreTestChatID, Revision: 4, Overrides: settings.GroupOverrides{Enabled: &enabled},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSettingsStoreLoadsSeededRecord(t *testing.T) {
+	store := newTestSettingsStore(t)
+	seedSettingsStore(t, store)
+	records, err := store.LoadSettings()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(records) != 1 || records[0].ChatID != settingsStoreTestChatID || records[0].Revision != 4 ||
+		records[0].Overrides.Enabled == nil || *records[0].Overrides.Enabled {
+		t.Fatalf("seeded records = %+v", records)
+	}
+}
+
+func TestSettingsStoreCompareAndSwapWritesNextRevision(t *testing.T) {
+	store := newTestSettingsStore(t)
+	seedSettingsStore(t, store)
+	nextEnabled := true
+	actual, written, err := store.CompareAndSwapSettings(
+		settingsStoreTestChatID, 4, settings.GroupOverrides{Enabled: &nextEnabled})
+	if err != nil || !written || actual != 5 {
+		t.Fatalf("CompareAndSwapSettings success = actual:%d written:%v error:%v", actual, written, err)
+	}
+}
+
+func TestSettingsStoreCompareAndSwapRejectsStaleRevision(t *testing.T) {
+	store := newTestSettingsStore(t)
+	seedSettingsStore(t, store)
+	nextEnabled := true
+	_, _, err := store.CompareAndSwapSettings(settingsStoreTestChatID, 4, settings.GroupOverrides{Enabled: &nextEnabled})
+	if err != nil {
+		t.Fatal(err)
+	}
+	enabled := false
+	actual, written, err := store.CompareAndSwapSettings(
+		settingsStoreTestChatID, 4, settings.GroupOverrides{Enabled: &enabled})
+	if err != nil || written || actual != 5 {
+		t.Fatalf("stale CompareAndSwapSettings = actual:%d written:%v error:%v", actual, written, err)
+	}
+}
+
+func TestSettingsStoreCompareAndSwapPersistsRecord(t *testing.T) {
+	store := newTestSettingsStore(t)
+	seedSettingsStore(t, store)
+	nextEnabled := true
+	_, _, err := store.CompareAndSwapSettings(settingsStoreTestChatID, 4, settings.GroupOverrides{Enabled: &nextEnabled})
+	if err != nil {
+		t.Fatal(err)
+	}
+	records, err := store.LoadSettings()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(records) != 1 || records[0].Revision != 5 ||
+		records[0].Overrides.Enabled == nil || !*records[0].Overrides.Enabled {
+		t.Fatalf("committed records = %+v", records)
 	}
 }
 
@@ -99,7 +181,7 @@ func TestOpenRejectsNewerSchema(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = db.Exec(ctx, "UPDATE version SET version=$1, compat=$2", 2, 2); err != nil {
+	if _, err = db.Exec(ctx, "UPDATE version SET version=$1, compat=$2", 3, 3); err != nil {
 		t.Fatal(err)
 	}
 	if err = db.Close(); err != nil {
@@ -110,7 +192,7 @@ func TestOpenRejectsNewerSchema(t *testing.T) {
 	if !errors.Is(err, dbutil.ErrUnsupportedDatabaseVersion) {
 		t.Fatalf("newer schema error = %v, want %v", err, dbutil.ErrUnsupportedDatabaseVersion)
 	}
-	if !strings.Contains(err.Error(), "currently on v2") || !strings.Contains(err.Error(), "latest known: v1") {
+	if !strings.Contains(err.Error(), "currently on v3") || !strings.Contains(err.Error(), "latest known: v2") {
 		t.Fatalf("newer schema error is not actionable: %v", err)
 	}
 	t.Logf("startup rejected: %v", err)

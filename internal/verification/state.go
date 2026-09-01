@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 // Tallies self-reported models from the kernel challenge's agent tripwire.
@@ -198,7 +198,7 @@ func (v *Service) pruneVerifyFailsLocked(now time.Time) {
 		retry, known := retryByGroup[key.gid]
 		if !known {
 			if seconds := v.verifyRetrySeconds(key.gid); seconds > 0 {
-				if duration, ok := config.SecondsToDuration(seconds); ok {
+				if duration, ok := settings.SecondsToDuration(seconds); ok {
 					retry = duration
 				}
 			}
@@ -382,7 +382,7 @@ func (v *Service) verifyCooldownRemaining(gid, uid int64) time.Duration {
 	if count == 0 {
 		return 0
 	}
-	cooldown, ok := config.SecondsToDuration(secs)
+	cooldown, ok := settings.SecondsToDuration(secs)
 	if !ok {
 		return 0
 	}
@@ -460,10 +460,10 @@ func (v *Service) load(bot Gateway) {
 		}
 		mode := r.Mode
 		if mode == "" {
-			mode = (config.ModeQuiz) // a record written before kernel mode existed always held a quiz
+			mode = (settings.ModeQuiz) // a record written before kernel mode existed always held a quiz
 		}
 		// Kernel challenges have no options; quiz payloads must remain winnable.
-		if mode == (config.ModeQuiz) && (len(r.QOpts) < 2 || r.CorrectIdx < 0 || r.CorrectIdx >= len(r.QOpts)) {
+		if mode == (settings.ModeQuiz) && (len(r.QOpts) < 2 || r.CorrectIdx < 0 || r.CorrectIdx >= len(r.QOpts)) {
 			log.Printf("state load: skip pending with invalid question payload (group %d user %d)", gid, uid)
 			v.supersedePendingRecord(r)
 			continue
@@ -781,7 +781,7 @@ func (v *Service) postGroupChallenge(c context.Context, bot Gateway, gid, uid in
 	messageID, err := sendHTML(c, bot, gid, body, rows)
 	if err != nil {
 		log.Printf("join %d in %d: post challenge failed: %v", uid, gid, err)
-		v.adminAlert(c, bot, v.adminSays(voice.gate).ChallengePostFailed.Render(l, gid, uid, err))
+		v.adminAlert(c, bot, gid, v.adminSays(voice.gate).ChallengePostFailed.Render(l, gid, uid, err))
 		return 0
 	}
 	return messageID

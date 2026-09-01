@@ -8,9 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
 	"github.com/mymmrac/telego"
@@ -21,7 +20,7 @@ import (
 // Verification is the administration surface provided by verification.
 type Verification interface {
 	AgentStatsText(l i18n.Lang) string
-	ControlGroupID() int64
+	FirstChatID() int64
 	DMOrGroup(chatID int64, private bool) bool
 	KernelAnswerDM(userID int64, text string, private bool) bool
 	EffectiveMode(groupID int64) string
@@ -32,7 +31,7 @@ type Verification interface {
 	SetVerifyMode(groupID int64, mode string) error
 	Stats() (date string, approved, declined int)
 	ToggleNameSpoiler(groupID int64) (bool, error)
-	ToggleRich() (bool, error)
+	ToggleRich(groupID int64) (bool, error)
 }
 
 // Moderation is the administration surface provided by moderation.
@@ -48,9 +47,9 @@ type Lookup interface {
 
 // Panel owns the existing administration handlers and their policy gates.
 type Panel struct {
-	settings   *store.Settings
+	settings   *settings.Store
 	telegram   *telegram.Connector
-	cfg        *config.Config
+	cfg        *settings.Config
 	verifier   Verification
 	moderation Moderation
 	lookups    Lookup
@@ -61,9 +60,9 @@ type Panel struct {
 
 // New constructs the existing administration surface from explicit dependencies.
 func New(
-	settings *store.Settings,
+	settings *settings.Store,
 	telegram *telegram.Connector,
-	cfg *config.Config,
+	cfg *settings.Config,
 	_ *i18n.Catalog,
 	verifier Verification,
 	moderation Moderation,
@@ -89,7 +88,7 @@ func uptimeStr(start time.Time) string {
 }
 func (v *Panel) groupLanguage(groupID int64) i18n.Lang {
 	if v.settings != nil {
-		if group, ok := v.settings.Group(groupID); ok {
+		if group, ok := v.settings.Settings(groupID); ok {
 			return i18n.FromStored(group.Lang().Value)
 		}
 	}
@@ -104,21 +103,7 @@ func (v *Panel) isGroup(groupID int64) bool {
 }
 
 func (v *Panel) privateQueryPerMin() int {
-	if v.settings != nil {
-		return v.settings.Global().PrivateQueryPerMin().Value
-	}
 	return v.cfg.PrivateQueryPerMin
-}
-
-func (v *Panel) controlGroupAllowed(groupID int64, l i18n.Lang) (bool, string) {
-	controlGroupID := v.cfg.ControlGroupID
-	if v.settings != nil {
-		controlGroupID = v.settings.ControlGroupID()
-	}
-	if controlGroupID == 0 || groupID == controlGroupID {
-		return true, ""
-	}
-	return false, i18n.Messages.Feed.Config.ControlGroupOnly.Render(l, controlGroupID)
 }
 
 func (v *Panel) requesterLanguage(msg *telego.Message) i18n.Lang {
@@ -205,10 +190,10 @@ func (v *Panel) OnStats(ctx *th.Context, update telego.Update) error {
 	})
 }
 
-// OnRich toggles the process-wide rich-message setting.
+// OnRich toggles rich-message delivery for the acting chat.
 func (v *Panel) OnRich(ctx *th.Context, update telego.Update) error {
-	return v.globalSettingsAdminCmd(ctx, update, func(_ int64, l i18n.Lang) (string, error) {
-		enabled, err := v.verifier.ToggleRich()
+	return v.settingsAdminCmd(ctx, update, func(groupID int64, l i18n.Lang) (string, error) {
+		enabled, err := v.verifier.ToggleRich(groupID)
 		if err != nil {
 			return "", err
 		}
@@ -240,16 +225,16 @@ func (v *Panel) OnVMode(ctx *th.Context, update telego.Update) error {
 		switch arg {
 		case "":
 			source := i18n.Messages.Panel.VerificationMode.ConfigSource.For(l)
-			if group, ok := v.settings.Group(groupID); ok && group.VerifyMode().Source == store.SourceRuntime {
+			if group, ok := v.settings.Settings(groupID); ok && group.VerifyMode().Source == settings.SourceChatOverride {
 				source = i18n.Messages.Panel.VerificationMode.RuntimeSource.For(l)
 			}
 			return i18n.Messages.Panel.VerificationMode.Current.Render(
 				l, tgfmt.ModeName(l, v.verifier.EffectiveMode(groupID)), source), nil
-		case config.ModeKernel, config.ModeQuiz, config.ModeMixed:
+		case settings.ModeKernel, settings.ModeQuiz, settings.ModeMixed:
 			if err := v.verifier.SetVerifyMode(groupID, arg); err != nil {
 				return "", err
 			}
-			if arg == (config.ModeKernel) {
+			if arg == (settings.ModeKernel) {
 				return i18n.Messages.Panel.VerificationMode.KernelSet.For(l), nil
 			}
 			return i18n.Messages.Panel.VerificationMode.Set.Render(l, tgfmt.ModeName(l, arg)), nil
@@ -395,7 +380,7 @@ func (v *Panel) memberCmd(ctx *th.Context, update telego.Update, fn func(groupID
 		v.notify(c, bot, groupID, fn(groupID, l))
 		return nil
 	}
-	_, _ = bot.SendMessage(c, tu.Message(tu.ID(groupID), fn(v.verifier.ControlGroupID(), l)))
+	_, _ = bot.SendMessage(c, tu.Message(tu.ID(groupID), fn(v.verifier.FirstChatID(), l)))
 	return nil
 }
 
@@ -405,14 +390,6 @@ func (v *Panel) notifySettingsFailure(c context.Context, bot *telego.Bot, groupI
 }
 
 func (v *Panel) settingsAdminCmd(ctx *th.Context, update telego.Update, fn func(groupID int64, l i18n.Lang) (string, error)) error {
-	return v.runSettingsAdminCmd(ctx, update, false, fn)
-}
-
-func (v *Panel) globalSettingsAdminCmd(ctx *th.Context, update telego.Update, fn func(groupID int64, l i18n.Lang) (string, error)) error {
-	return v.runSettingsAdminCmd(ctx, update, true, fn)
-}
-
-func (v *Panel) runSettingsAdminCmd(ctx *th.Context, update telego.Update, controlGroupOnly bool, fn func(groupID int64, l i18n.Lang) (string, error)) error {
 	msg := update.Message
 	if msg == nil || msg.From == nil || !v.isGroup(msg.Chat.ID) {
 		return nil
@@ -424,12 +401,7 @@ func (v *Panel) runSettingsAdminCmd(ctx *th.Context, update telego.Update, contr
 	defer func() {
 		_ = bot.DeleteMessage(c, &telego.DeleteMessageParams{ChatID: tu.ID(groupID), MessageID: msg.MessageID})
 	}()
-	if controlGroupOnly {
-		if allowed, refusal := v.controlGroupAllowed(groupID, l); !allowed {
-			v.notify(c, bot, groupID, refusal)
-			return nil
-		}
-	}
+
 	if !v.isGroupAdmin(c, bot, groupID, msg.From.ID) {
 		v.notify(c, bot, groupID, i18n.Messages.Panel.Error.AdminOnly.For(l))
 		return nil

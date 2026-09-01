@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/mymmrac/telego"
 	ta "github.com/mymmrac/telego/telegoapi"
@@ -315,15 +315,15 @@ func TestRegistrationGlobalDispatch(t *testing.T) {
 		unknownGroup int64 = -1009000000902
 		userID       int64 = 901
 	)
-	cfg, settings := registrationFixture(t)
-	registration := settings.Registrations()
-	registration.RegisteredGroups = []store.RegisteredGroup{{ID: knownGroup, RegisteredBy: testOwner}}
-	if _, err := settings.CommitRegistrations(registration.Revision, registration); err != nil {
+	cfg, store := registrationFixture(t)
+	registration := store.Registrations()
+	registration.RegisteredGroups = []settings.RegisteredGroup{{ID: knownGroup, RegisteredBy: testOwner}}
+	if _, err := store.CommitRegistrations(registration.Revision, registration); err != nil {
 		t.Fatal(err)
 	}
 	service := newRegistrationService(
 		context.Background(), newRegistrationBot(t, &registrationCaller{members: make(map[[2]int64]telego.ChatMember)}),
-		settings, cfg, "test_bot", testBotID, nil, nil, nil,
+		store, cfg, "test_bot", testBotID, nil, nil, nil,
 	)
 
 	privateStart := func(payload string) telego.Update {
@@ -426,8 +426,8 @@ func waitForRegistrationMethod(t *testing.T, caller *registrationCaller, method 
 	}
 }
 
-func loadRuntimeState(configPath, stateDirectory string) (*config.Config, *store.Settings, error) {
-	cfg, err := config.LoadConfig(configPath)
+func loadRuntimeState(configPath, stateDirectory string) (*settings.Config, *settings.Store, error) {
+	cfg, err := settings.LoadConfig(configPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("config: %w", err)
 	}
@@ -439,18 +439,18 @@ func loadRuntimeState(configPath, stateDirectory string) (*config.Config, *store
 		store.ReclaimTemps(stateDirectory)
 		settingsPath = filepath.Join(stateDirectory, "settings.json")
 	}
-	baseline, err := store.LoadBaseline(configPath, cfg)
+	baseline, err := settings.LoadBaseline(configPath, cfg)
 	if err != nil {
 		return nil, nil, fmt.Errorf("settings baseline: %w", err)
 	}
-	settings, err := store.NewSettings(settingsPath, baseline)
+	settings, err := settings.NewStore(settingsPath, baseline, nil)
 	if err != nil {
 		return nil, nil, fmt.Errorf("settings: %w", err)
 	}
 	return cfg, settings, nil
 }
 
-func registrationFixture(t *testing.T) (*config.Config, *store.Settings) {
+func registrationFixture(t *testing.T) (*settings.Config, *settings.Store) {
 	t.Helper()
 	missingConfig := t.TempDir() + "/missing-config.json"
 	cfg, settings, err := loadRuntimeState(missingConfig, t.TempDir())
@@ -460,7 +460,7 @@ func registrationFixture(t *testing.T) (*config.Config, *store.Settings) {
 	return cfg, settings
 }
 
-func registrationStateFromDisk(t *testing.T, configPath, stateDirectory string) store.RegistrationState {
+func registrationStateFromDisk(t *testing.T, configPath, stateDirectory string) settings.RegistrationState {
 	t.Helper()
 	_, settings, err := loadRuntimeState(configPath, stateDirectory)
 	if err != nil {
@@ -469,14 +469,14 @@ func registrationStateFromDisk(t *testing.T, configPath, stateDirectory string) 
 	return settings.Registrations()
 }
 
-func assertRegistrationStateEqual(t *testing.T, got, want store.RegistrationState) {
+func assertRegistrationStateEqual(t *testing.T, got, want settings.RegistrationState) {
 	t.Helper()
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("registration state = %+v, want %+v", got, want)
 	}
 }
 
-func bindTestOwner(t *testing.T, settings *store.Settings, now time.Time) {
+func bindTestOwner(t *testing.T, settings *settings.Store, now time.Time) {
 	t.Helper()
 	nonce, _, err := settings.EnsureOwnerClaim(now, ownerClaimLifetime)
 	if err != nil {

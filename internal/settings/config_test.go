@@ -1,4 +1,4 @@
-package config
+package settings
 
 import (
 	"bytes"
@@ -10,8 +10,6 @@ import (
 	"testing"
 	"time"
 	"unicode"
-
-	"github.com/Zakkaus/vestibule/internal/i18n"
 )
 
 // writeConfig writes a temp config.json and returns its path (cleaned up by t).
@@ -233,19 +231,6 @@ func TestLoadConfigLanguages(t *testing.T) {
 						t.Fatalf("config error contains Han text: %q", err)
 					}
 				}
-			}
-		})
-	}
-}
-
-func TestControlGroupAllowedLocalizesRefusal(t *testing.T) {
-	for _, lang := range i18n.Languages() {
-		t.Run(lang.String(), func(t *testing.T) {
-			cfg := &Config{ControlGroupID: -100, Lang: lang.String()}
-			allowed, got := cfg.ControlGroupAllowed(-200)
-			want := i18n.Messages.Feed.Config.ControlGroupOnly.Render(lang, int64(-100))
-			if allowed || got != want {
-				t.Errorf("ControlGroupAllowed(-200) = (%v, %q), want (false, %q)", allowed, got, want)
 			}
 		})
 	}
@@ -484,10 +469,9 @@ func captureLoadConfigLog(t *testing.T, config map[string]any) (*Config, string,
 }
 
 func TestLoadConfigWarnsUnknownKeys(t *testing.T) {
-	c, output, err := captureLoadConfigLog(t, map[string]any{
-		"control_group_id": -100,
-		"timeout_second":   240,
-		"questions":        sampleQ,
+	_, output, err := captureLoadConfigLog(t, map[string]any{
+		"timeout_second": 240,
+		"questions":      sampleQ,
 		"groups": []map[string]any{{
 			"id":           -100,
 			"verify_modes": "quiz",
@@ -500,9 +484,6 @@ func TestLoadConfigWarnsUnknownKeys(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unknown keys must not reject the config: %v", err)
 	}
-	if c.ControlGroupID != -100 {
-		t.Errorf("ControlGroupID = %d, want -100", c.ControlGroupID)
-	}
 	for _, want := range []string{
 		`WARNING: config: unknown key "timeout_second"`,
 		`WARNING: config groups[0]: unknown key "verify_modes"`,
@@ -511,52 +492,6 @@ func TestLoadConfigWarnsUnknownKeys(t *testing.T) {
 		if !strings.Contains(output, want) {
 			t.Errorf("startup log missing %q:\n%s", want, output)
 		}
-	}
-}
-
-func TestLoadConfigWarnsAboutSharedGlobalControl(t *testing.T) {
-	tests := []struct {
-		name      string
-		controlID int64
-		wantCount int
-	}{
-		{name: "unset", wantCount: 1},
-		{name: "configured", controlID: -100, wantCount: 0},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			config := map[string]any{
-				"group_ids": []int64{-100, -200},
-				"questions": sampleQ,
-			}
-			if tt.controlID != 0 {
-				config["control_group_id"] = tt.controlID
-			}
-			_, output, err := captureLoadConfigLog(t, config)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if got := strings.Count(output, "WARNING: control_group_id is unset"); got != tt.wantCount {
-				t.Errorf("warning count = %d, want %d:\n%s", got, tt.wantCount, output)
-			}
-		})
-	}
-}
-
-func TestControlGroupIDMustBeGuarded(t *testing.T) {
-	if _, err := LoadConfig(writeConfig(t, map[string]any{
-		"group_ids":        []int{-100},
-		"control_group_id": -999, // not a guarded group
-		"questions":        sampleQ,
-	})); err == nil {
-		t.Error("expected an error for a control_group_id outside the guarded groups")
-	}
-	if _, err := LoadConfig(writeConfig(t, map[string]any{
-		"group_ids":        []int{-100, -200},
-		"control_group_id": -200,
-		"questions":        sampleQ,
-	})); err != nil {
-		t.Errorf("a control_group_id naming a guarded group should load: %v", err)
 	}
 }
 

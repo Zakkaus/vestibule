@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/lookup"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/store"
 	"github.com/mymmrac/telego"
 	ta "github.com/mymmrac/telego/telegoapi"
@@ -43,7 +43,7 @@ func setFeedStateWriter(t *testing.T, write func(string, any) error) {
 func TestPollAllFirstRunBaselinesEachDestination(t *testing.T) {
 	setFeedTestTiming(t, time.Second, time.Second)
 	bugsOn, newsOn := true, true
-	feeds := []*config.FeedConfig{
+	feeds := []*settings.FeedConfig{
 		{ChatID: -100101, Lang: "en", Bugs: &bugsOn, News: &newsOn, BugProduct: "Gentoo Linux", BugComponent: "Kernel"},
 		{ChatID: -100202, Lang: "en", Bugs: &bugsOn, News: &newsOn},
 	}
@@ -94,7 +94,7 @@ func TestPollAllFirstRunBaselinesEachDestination(t *testing.T) {
 func TestPollAllFiltersConfiguredProductAndComponent(t *testing.T) {
 	setFeedTestTiming(t, time.Second, time.Second)
 	bugsOn, newsOff := true, false
-	feed := &config.FeedConfig{
+	feed := &settings.FeedConfig{
 		ChatID:       -100303,
 		Lang:         "en",
 		Bugs:         &bugsOn,
@@ -104,7 +104,7 @@ func TestPollAllFiltersConfiguredProductAndComponent(t *testing.T) {
 	}
 	state := &feedState{LastBugID: 100}
 	bot := &fakeFeedBot{}
-	pollAllWithSources(context.Background(), newAPITestBot(t, bot), []*config.FeedConfig{feed}, map[int64]*feedState{feed.ChatID: state}, "", time.Date(2026, time.August, 25, 0, 0, 0, 0, time.UTC), map[int64]time.Time{}, feedSources{
+	pollAllWithSources(context.Background(), newAPITestBot(t, bot), []*settings.FeedConfig{feed}, map[int64]*feedState{feed.ChatID: state}, "", time.Date(2026, time.August, 25, 0, 0, 0, 0, time.UTC), map[int64]time.Time{}, feedSources{
 		recent: func(_ context.Context, after int) ([]recentBug, bool) {
 			if after != 100 {
 				t.Errorf("filtered destination fetched after %d, want 100", after)
@@ -235,7 +235,7 @@ func TestProbeFeedPermsTelegramFailuresAndSuccess(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			logs := captureFeedLogs(t)
 			caller := &feedProbeCaller{t: t, chat: tt.chat, member: tt.member, chatErr: tt.chatErr, memberErr: tt.memberErr}
-			probeFeedPerms(context.Background(), newAPITestBot(t, caller), []*config.FeedConfig{{ChatID: -100404}})
+			probeFeedPerms(context.Background(), newAPITestBot(t, caller), []*settings.FeedConfig{{ChatID: -100404}})
 
 			if got := strings.Join(caller.methods, ","); got != tt.wantMethods {
 				t.Errorf("Telegram methods = %s, want %s", got, tt.wantMethods)
@@ -252,16 +252,16 @@ func TestProbeFeedPermsTelegramFailuresAndSuccess(t *testing.T) {
 
 func TestServiceRunPollsThenFlushesOnCancellation(t *testing.T) {
 	dir := t.TempDir()
-	feed := &config.FeedConfig{ChatID: -100505, IntervalSeconds: 60}
+	feed := &settings.FeedConfig{ChatID: -100505, IntervalSeconds: 60}
 	probeEntered := make(chan struct{})
 	releaseProbe := make(chan struct{})
 	pollCalls := 0
-	service := New(nil, []*config.FeedConfig{feed}, dir)
-	service.probe = func(context.Context, *telego.Bot, []*config.FeedConfig) {
+	service := New(nil, []*settings.FeedConfig{feed}, dir)
+	service.probe = func(context.Context, *telego.Bot, []*settings.FeedConfig) {
 		close(probeEntered)
 		<-releaseProbe
 	}
-	service.poll = func(ctx context.Context, _ *telego.Bot, _ []*config.FeedConfig, states map[int64]*feedState, _ string, _ time.Time, _ map[int64]time.Time) {
+	service.poll = func(ctx context.Context, _ *telego.Bot, _ []*settings.FeedConfig, states map[int64]*feedState, _ string, _ time.Time, _ map[int64]time.Time) {
 		pollCalls++
 		<-ctx.Done()
 		states[feed.ChatID].LastBugID = 505
@@ -293,7 +293,7 @@ func TestRuntimeStateSaveFailureKeepsOnlyVolatileProgress(t *testing.T) {
 	logs := captureFeedLogs(t)
 	dir := t.TempDir()
 	bugsOn, newsOff := true, false
-	feed := &config.FeedConfig{ChatID: -100606, Lang: "en", Bugs: &bugsOn, News: &newsOff}
+	feed := &settings.FeedConfig{ChatID: -100606, Lang: "en", Bugs: &bugsOn, News: &newsOff}
 	path := feedStatePath(dir, feed.ChatID)
 	if err := store.Write(path, feedState{LastBugID: 10}); err != nil {
 		t.Fatal(err)
@@ -314,8 +314,8 @@ func TestRuntimeStateSaveFailureKeepsOnlyVolatileProgress(t *testing.T) {
 	nextDue := map[int64]time.Time{}
 	states := map[int64]*feedState{feed.ChatID: &state}
 	apiBot := newAPITestBot(t, bot)
-	pollAllWithSources(context.Background(), apiBot, []*config.FeedConfig{feed}, states, dir, now, nextDue, sources)
-	pollAllWithSources(context.Background(), apiBot, []*config.FeedConfig{feed}, states, dir, now.Add(feed.Interval()), nextDue, sources)
+	pollAllWithSources(context.Background(), apiBot, []*settings.FeedConfig{feed}, states, dir, now, nextDue, sources)
+	pollAllWithSources(context.Background(), apiBot, []*settings.FeedConfig{feed}, states, dir, now.Add(feed.Interval()), nextDue, sources)
 
 	if state.LastBugID != 11 {
 		t.Errorf("live state cursor after failed save = %d, want 11", state.LastBugID)
@@ -328,9 +328,9 @@ func TestRuntimeStateSaveFailureKeepsOnlyVolatileProgress(t *testing.T) {
 	}
 
 	var reloaded feedState
-	restart := New(nil, []*config.FeedConfig{feed}, dir)
-	restart.probe = func(context.Context, *telego.Bot, []*config.FeedConfig) {}
-	restart.poll = func(_ context.Context, _ *telego.Bot, _ []*config.FeedConfig, states map[int64]*feedState, _ string, _ time.Time, _ map[int64]time.Time) {
+	restart := New(nil, []*settings.FeedConfig{feed}, dir)
+	restart.probe = func(context.Context, *telego.Bot, []*settings.FeedConfig) {}
+	restart.poll = func(_ context.Context, _ *telego.Bot, _ []*settings.FeedConfig, states map[int64]*feedState, _ string, _ time.Time, _ map[int64]time.Time) {
 		reloaded = *states[feed.ChatID]
 	}
 	cancelled, cancel := context.WithCancel(context.Background())
@@ -345,7 +345,7 @@ func TestSendBeforeSaveFailureResendsAfterRestart(t *testing.T) {
 	setFeedTestTiming(t, time.Second, time.Second)
 	dir := t.TempDir()
 	bugsOn, newsOff := true, false
-	feed := &config.FeedConfig{ChatID: -100707, Lang: "en", Bugs: &bugsOn, News: &newsOff}
+	feed := &settings.FeedConfig{ChatID: -100707, Lang: "en", Bugs: &bugsOn, News: &newsOff}
 	path := feedStatePath(dir, feed.ChatID)
 	if err := store.Write(path, feedState{LastBugID: 20}); err != nil {
 		t.Fatal(err)
@@ -379,7 +379,7 @@ func TestSendBeforeSaveFailureResendsAfterRestart(t *testing.T) {
 		}
 	})
 	go func() {
-		pollAllWithSources(context.Background(), newAPITestBot(t, firstBot), []*config.FeedConfig{feed}, map[int64]*feedState{feed.ChatID: &firstState}, dir, time.Date(2026, time.August, 25, 0, 0, 0, 0, time.UTC), map[int64]time.Time{}, sources)
+		pollAllWithSources(context.Background(), newAPITestBot(t, firstBot), []*settings.FeedConfig{feed}, map[int64]*feedState{feed.ChatID: &firstState}, dir, time.Date(2026, time.August, 25, 0, 0, 0, 0, time.UTC), map[int64]time.Time{}, sources)
 		close(firstDone)
 	}()
 	<-writeStarted
@@ -390,9 +390,9 @@ func TestSendBeforeSaveFailureResendsAfterRestart(t *testing.T) {
 
 	secondBot := &fakeFeedBot{}
 	var reloadedCursor int
-	restart := New(newAPITestBot(t, secondBot), []*config.FeedConfig{feed}, dir)
-	restart.probe = func(context.Context, *telego.Bot, []*config.FeedConfig) {}
-	restart.poll = func(ctx context.Context, bot *telego.Bot, feeds []*config.FeedConfig, states map[int64]*feedState, stateDir string, now time.Time, nextDue map[int64]time.Time) {
+	restart := New(newAPITestBot(t, secondBot), []*settings.FeedConfig{feed}, dir)
+	restart.probe = func(context.Context, *telego.Bot, []*settings.FeedConfig) {}
+	restart.poll = func(ctx context.Context, bot *telego.Bot, feeds []*settings.FeedConfig, states map[int64]*feedState, stateDir string, now time.Time, nextDue map[int64]time.Time) {
 		reloadedCursor = states[feed.ChatID].LastBugID
 		pollAllWithSources(ctx, bot, feeds, states, stateDir, now, nextDue, sources)
 	}

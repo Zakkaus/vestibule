@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 func TestVerifyStrikes(t *testing.T) {
-	c := &config.Config{VerifyMaxFails: 3, VerifyRetrySeconds: 180}
+	c := &settings.Config{VerifyMaxFails: 3, VerifyRetrySeconds: 180}
 	path := filepath.Join(t.TempDir(), "verify-fails.json")
 	v := newTestService(c)
 	v.vfailPath = path
@@ -44,7 +44,7 @@ func TestVerifyStrikes(t *testing.T) {
 }
 
 func TestVerifyNoAutoBan(t *testing.T) {
-	v := newTestService(&config.Config{VerifyMaxFails: -1})
+	v := newTestService(&settings.Config{VerifyMaxFails: -1})
 	for i := range 10 {
 		if _, ban := v.recordVerifyFail(-100, 7, v.wallNow()); ban {
 			t.Fatalf("auto-ban should be disabled with verify_max_fails=-1 (fired at strike %d)", i+1)
@@ -53,7 +53,7 @@ func TestVerifyNoAutoBan(t *testing.T) {
 }
 
 func TestVerifyCooldownDisabled(t *testing.T) {
-	v := newTestService(&config.Config{VerifyRetrySeconds: -1})
+	v := newTestService(&settings.Config{VerifyRetrySeconds: -1})
 	v.recordVerifyFail(-100, 5, v.wallNow())
 	if v.verifyCooldownRemaining(-100, 5) != 0 {
 		t.Error("cooldown should be disabled with verify_retry_seconds=-1")
@@ -61,7 +61,7 @@ func TestVerifyCooldownDisabled(t *testing.T) {
 }
 
 func TestVerifyStrikeDecay(t *testing.T) {
-	v := newTestService(&config.Config{VerifyMaxFails: 3})
+	v := newTestService(&settings.Config{VerifyMaxFails: 3})
 	if count, _ := v.recordVerifyFail(-100, 42, v.wallNow()); count != 1 {
 		t.Fatalf("first strike count=%d, want 1", count)
 	}
@@ -79,21 +79,21 @@ func TestSaveVerifyFailsPrunesOnlyFullyExpiredRecords(t *testing.T) {
 		shortGroup int64 = -100
 		longGroup  int64 = -200
 	)
-	cfg := &config.Config{
-		Groups:             []config.GroupConfig{{ID: shortGroup}, {ID: longGroup}},
+	cfg := &settings.Config{
+		Groups:             []settings.GroupConfig{{ID: shortGroup}, {ID: longGroup}},
 		GroupIDs:           []int64{shortGroup, longGroup},
 		VerifyMaxFails:     3,
 		VerifyRetrySeconds: 30,
 	}
 	v := newTestService(cfg)
-	group, ok := v.settings.Group(longGroup)
+	group, ok := v.settings.Settings(longGroup)
 	if !ok {
 		t.Fatal("long-cooldown group is missing")
 	}
 	overrides := group.Overrides()
 	longRetrySeconds := int((8 * time.Hour) / time.Second)
 	overrides.VerifyRetrySeconds = &longRetrySeconds
-	if _, err := v.settings.CommitGroup(longGroup, group.Revision(), overrides); err != nil {
+	if _, err := v.settings.Update(longGroup, group.Revision(), overrides); err != nil {
 		t.Fatal(err)
 	}
 
@@ -127,7 +127,7 @@ func TestSaveVerifyFailsPrunesOnlyFullyExpiredRecords(t *testing.T) {
 }
 
 func TestRecordVerifyFailPrunesExpiredRecordsBeforeInsertion(t *testing.T) {
-	v := newTestService(&config.Config{VerifyRetrySeconds: 30})
+	v := newTestService(&settings.Config{VerifyRetrySeconds: 30})
 	dead := pkey{-100, 1}
 	v.vfail[dead] = &vfailRec{count: 1, last: time.Now().Add(-verifyFailWindow - time.Minute)}
 
@@ -139,7 +139,7 @@ func TestRecordVerifyFailPrunesExpiredRecordsBeforeInsertion(t *testing.T) {
 }
 
 func TestVerifyFailCapacityEvictsOldestWithoutClearingLiveState(t *testing.T) {
-	v := newTestService(&config.Config{VerifyMaxFails: 3, VerifyRetrySeconds: 180})
+	v := newTestService(&settings.Config{VerifyMaxFails: 3, VerifyRetrySeconds: 180})
 	now := time.Now()
 	protected := pkey{-100, 1}
 	oldest := pkey{-100, 2}
@@ -163,7 +163,7 @@ func TestVerifyFailCapacityEvictsOldestWithoutClearingLiveState(t *testing.T) {
 }
 
 func TestClaimPendingNonce(t *testing.T) {
-	v := newTestService(&config.Config{})
+	v := newTestService(&settings.Config{})
 	key := pkey{-100, 42}
 	p := &pending{nonce: "NEW"}
 	v.pend[key] = p
@@ -181,7 +181,7 @@ func TestClaimPendingNonce(t *testing.T) {
 
 func TestRecordVerifyFailCountsAtClaimTime(t *testing.T) {
 	const gid, uid = int64(-100), int64(42)
-	v := newTestService(&config.Config{VerifyMaxFails: 2})
+	v := newTestService(&settings.Config{VerifyMaxFails: 2})
 	failedAt := time.Unix(2_000_000_000, 0)
 	key := pkey{gid, uid}
 	v.vfail[key] = &vfailRec{count: 1, last: failedAt.Add(-verifyFailWindow + 10*time.Second)}

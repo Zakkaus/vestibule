@@ -5,32 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/mymmrac/telego"
 )
-
-func TestControlGroupAllowed(t *testing.T) {
-	for _, test := range []struct {
-		name        string
-		controlID   int64
-		chatID      int64
-		wantAllowed bool
-		wantNotice  string
-	}{
-		{name: "control group", controlID: -100, chatID: -100, wantAllowed: true},
-		{name: "satellite refused", controlID: -100, chatID: -200, wantNotice: i18n.Messages.Feed.Config.ControlGroupOnly.Render(i18n.LangZH, -100)},
-		{name: "unset preserves legacy policy", chatID: -200, wantAllowed: true},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			cfg := &config.Config{ControlGroupID: test.controlID}
-			allowed, notice := cfg.ControlGroupAllowed(test.chatID)
-			if allowed != test.wantAllowed || notice != test.wantNotice {
-				t.Errorf("ControlGroupAllowed(%d) = (%v, %q), want (%v, %q)", test.chatID, allowed, notice, test.wantAllowed, test.wantNotice)
-			}
-		})
-	}
-}
 
 func TestBCAllowUpdatesOnlyInvokingGroup(t *testing.T) {
 	const senderID = int64(-1001234567890)
@@ -46,10 +24,9 @@ func TestBCAllowUpdatesOnlyInvokingGroup(t *testing.T) {
 		{name: "Traditional Chinese failure notice", lang: "zh-Hant", failUnban: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			cfg := &config.Config{
+			cfg := &settings.Config{
 				GroupIDs:         groups,
-				Groups:           []config.GroupConfig{{ID: -100}, {ID: -200}, {ID: -300}},
-				ControlGroupID:   -100,
+				Groups:           []settings.GroupConfig{{ID: -100}, {ID: -200}, {ID: -300}},
 				NotifyTTLSeconds: -1,
 				Lang:             test.lang,
 			}
@@ -96,9 +73,9 @@ func TestFilterChannelSenderUsesTelegramTransport(t *testing.T) {
 		groupID  int64 = -100
 		senderID int64 = -1001234567890
 	)
-	cfg := &config.Config{
+	cfg := &settings.Config{
 		GroupIDs:            []int64{groupID},
-		Groups:              []config.GroupConfig{{ID: groupID}},
+		Groups:              []settings.GroupConfig{{ID: groupID}},
 		BlockChannelSenders: boolPtr(true),
 		AdminLogChatID:      -200,
 		Lang:                "zh",

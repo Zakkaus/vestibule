@@ -8,12 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/config"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/lookup"
 	"github.com/Zakkaus/vestibule/internal/moderate"
 	"github.com/Zakkaus/vestibule/internal/panel"
-	"github.com/Zakkaus/vestibule/internal/store"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
@@ -35,8 +34,8 @@ func runRuntimeHandler(t *testing.T, bot *telego.Bot, register func(*th.BotHandl
 type runtimeRegistrationFixture struct {
 	bot          *telego.Bot
 	caller       *dispatchCaller
-	cfg          *config.Config
-	settings     *store.Settings
+	cfg          *settings.Config
+	settings     *settings.Store
 	verification *verification.Service
 	updates      *telegram.Updates
 	registration *telegram.Registration
@@ -124,6 +123,14 @@ func TestRuntimeRegistrationActivatesServicesWithoutRebuiltConfig(t *testing.T) 
 	if fixture.cfg.IsGroup(groupID) {
 		t.Fatal("test rebuilt or mutated the startup config")
 	}
+	runtimeSettings, _ := fixture.settings.Settings(groupID)
+	runtimeOverrides := runtimeSettings.Overrides()
+	runtimeLanguage := "zh-Hant"
+	runtimeOverrides.Lang = &runtimeLanguage
+	if _, err := fixture.settings.Update(groupID, runtimeSettings.Revision(), runtimeOverrides); err != nil {
+		t.Fatal(err)
+	}
+	fixture.updates.SetupCommands(context.Background(), fixture.bot)
 
 	beforeJoin := runtimeMethodCallsForChat(t, fixture.caller, "sendMessage", groupID)
 	beforePrivate := runtimeMethodCallsForChat(t, fixture.caller, "sendMessage", userID)
