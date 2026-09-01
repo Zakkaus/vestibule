@@ -3,6 +3,7 @@ export const themePreferences = ["system", "light", "dark"] as const;
 export type ThemePreference = (typeof themePreferences)[number];
 
 export const THEME_STORAGE_KEY = "verify-console-theme";
+export const THEME_PREFERENCE_CHANGE_EVENT = "verify-console-theme-preference-change";
 
 export function readThemePreference(): ThemePreference {
   const theme = document.documentElement.dataset.theme;
@@ -26,7 +27,7 @@ export function applyThemePreference(preference: ThemePreference): void {
     } else {
       localStorage.setItem(THEME_STORAGE_KEY, preference);
     }
-  } catch {
-    return;
-  }
+  } catch {}
+
+  window.dispatchEvent(new Event(THEME_PREFERENCE_CHANGE_EVENT));
 }

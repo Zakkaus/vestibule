@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -11,6 +11,7 @@ import {
 import i18n from "../i18n";
 import {
   applyThemePreference,
+  THEME_PREFERENCE_CHANGE_EVENT,
   readThemePreference,
   themePreferences,
   type ThemePreference
@@ -31,6 +32,18 @@ const themeLabelKeys: Record<ThemePreference, string> = {
 export function UtilityControls() {
   const { t } = useTranslation();
   const [theme, setTheme] = useState<ThemePreference>(readThemePreference);
+
+  useEffect(() => {
+    const synchronizeTheme = () => {
+      setTheme(readThemePreference());
+    };
+
+    window.addEventListener(THEME_PREFERENCE_CHANGE_EVENT, synchronizeTheme);
+    return () => {
+      window.removeEventListener(THEME_PREFERENCE_CHANGE_EVENT, synchronizeTheme);
+    };
+  }, []);
+
   const resolvedLocale = i18n.resolvedLanguage ?? i18n.language;
   const locale = isAppLocale(resolvedLocale) ? resolvedLocale : DEFAULT_LOCALE;
 
@@ -41,7 +54,6 @@ export function UtilityControls() {
 
     const preference = nextTheme as ThemePreference;
     applyThemePreference(preference);
-    setTheme(preference);
   }
 
   function changeLocale(nextLocale: string): void {

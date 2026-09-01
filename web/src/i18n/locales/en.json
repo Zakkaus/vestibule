@@ -19,7 +19,8 @@
     "label": "Console navigation",
     "workspace": "Workspace",
     "queue": "Waiting queue",
-    "groups": "Groups and channels"
+    "groups": "Groups and channels",
+    "preferences": "Preferences"
   },
   "shell": {
     "mobileNavigation": "Open navigation",
@@ -242,6 +243,14 @@
       "title": "No records match the current filters",
       "currentCondition": "Current filters: group {{group}}, result {{result}}.",
       "clear": "Clear filters"
+    }
+  },
+  "preferences": {
+    "title": "Preferences",
+    "description": "These options affect only this browser.",
+    "interface": {
+      "title": "Interface",
+      "description": "Theme and language are stored on this device and do not change group configuration."
     }
   }
 }

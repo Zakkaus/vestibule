@@ -23,6 +23,10 @@ const navigationItems = [
   {
     path: "/groups",
     labelKey: "navigation.groups"
+  },
+  {
+    path: "/preferences",
+    labelKey: "navigation.preferences"
   }
 ] as const;
 

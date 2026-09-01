@@ -19,7 +19,8 @@
     "label": "控制台导航",
     "workspace": "工作区",
     "queue": "等待队列",
-    "groups": "群与频道"
+    "groups": "群与频道",
+    "preferences": "偏好"
   },
   "shell": {
     "mobileNavigation": "打开导航",
@@ -242,6 +243,14 @@
       "title": "没有找到符合条件的记录",
       "currentCondition": "当前条件：群为 {{group}}，结果为 {{result}}。",
       "clear": "清除筛选"
+    }
+  },
+  "preferences": {
+    "title": "偏好",
+    "description": "这些选项只影响当前浏览器。",
+    "interface": {
+      "title": "界面",
+      "description": "主题和语言保存在当前设备，不会更改群配置。"
     }
   }
 }

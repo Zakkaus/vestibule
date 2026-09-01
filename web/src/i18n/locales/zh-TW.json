@@ -19,7 +19,8 @@
     "label": "控制台導覽",
     "workspace": "工作區",
     "queue": "等待佇列",
-    "groups": "群組與頻道"
+    "groups": "群組與頻道",
+    "preferences": "偏好"
   },
   "shell": {
     "mobileNavigation": "開啟導覽",
@@ -242,6 +243,14 @@
       "title": "找不到符合條件的記錄",
       "currentCondition": "目前條件：群組為 {{group}}，結果為 {{result}}。",
       "clear": "清除篩選"
+    }
+  },
+  "preferences": {
+    "title": "偏好",
+    "description": "這些選項只影響目前的瀏覽器。",
+    "interface": {
+      "title": "介面",
+      "description": "佈景主題與語言會儲存在目前裝置上，不會變更群組設定。"
     }
   }
 }
