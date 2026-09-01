@@ -190,31 +190,49 @@
     "status": {
       "pending": "Waiting {{time}}"
     },
+    "timeUnavailable": "Time unavailable",
+    "loading": {
+      "title": "Loading waiting queue",
+      "description": "Retrieving waiting applications…"
+    },
+    "groupRequired": {
+      "title": "Select a group first",
+      "description": "Choose an authorized group before viewing its waiting queue.",
+      "select": "Select a group"
+    },
+    "noGroups": {
+      "title": "This account is not authorized for any groups",
+      "description": "The waiting queue only shows authorized groups."
+    },
+    "unavailable": {
+      "title": "Unable to read waiting queue",
+      "retry": "Retry"
+    },
     "actions": {
       "release": "Release",
       "releaseFor": "Release {{user}}",
       "releasing": "Releasing…",
-      "releasingFor": "Releasing {{user}}",
-      "revoke": "Revoke",
-      "revokeFor": "Revoke the ban on {{user}}",
-      "revoking": "Revoking…",
-      "revokingFor": "Revoking the ban on {{user}}",
-      "details": "Details",
-      "detailsFor": "View details for {{user}}",
-      "openingDetails": "Opening…",
-      "openingDetailsFor": "Opening details for {{user}}"
-    },
-    "revokeDialog": {
-      "title": "Revoke the ban on {{user}}",
-      "description": "{{user}} will enter “{{group}}” with status “{{approved}}.” To restore the ban, undo this action in the activity log.",
-      "cancel": "Cancel",
-      "confirm": "Revoke and release"
+      "releasingFor": "Releasing {{user}}"
     },
     "feedback": {
-      "releaseSuccess": "Released {{user}}. They can now enter “{{group}}” with status “{{approved}}.”",
-      "revokeSuccess": "Revoked the ban on {{user}}. They can now enter “{{group}}” with status “{{approved}}.”",
-      "releaseFailure": "Could not release {{user}}. The action did not complete; the row returned to “{{pending}}” and can be retried.",
-      "detailsUnavailable": "The details page is not implemented yet. {{user}}’s record has not changed."
+      "releaseSuccess": "Released {{user}}. They can now enter “{{group}}”.",
+      "releaseFailure": "Could not release {{user}}. The application is still waiting and can be retried."
+    },
+    "errors": {
+      "authenticationExpired": "The console session has expired. Open the console from Telegram again.",
+      "authenticationInvalid": "The console session cannot be verified. Open the console from Telegram again.",
+      "accessDenied": "You no longer have management permission for this group.",
+      "accessUnavailable": "Your management permission for this group cannot be verified right now. Try again.",
+      "chatNotFound": "This group is no longer available in the console.",
+      "challengeConflict": "Another administrator has already handled this application. The queue has been refreshed.",
+      "csrfInvalid": "This page's security token has expired. Refresh the page before trying again.",
+      "invalidSettlement": "This application cannot be released now. Refresh the queue and try again.",
+      "loadUnavailable": "The waiting queue is temporarily unavailable.",
+      "network": "The connection was interrupted. Refresh the waiting queue before deciding whether to retry.",
+      "queueUnavailable": "The waiting queue cannot be read right now. Try again.",
+      "settlementUnavailable": "The application cannot be released right now. Try again.",
+      "targetProtected": "This applicant is a group administrator and cannot be released here.",
+      "targetUnavailable": "The applicant's group membership cannot be verified. Try again."
     },
     "empty": {
       "title": "No one has applied yet",

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type Route } from "@playwright/test";
 
 const selectedGroupId = "-1001163306055";
 
@@ -34,13 +34,98 @@ const groupListErrorCases = [
     retryable: true
   }
 ] as const;
+const pendingQueueEntry = {
+  id: "-1001163306055:528106774:queue-nonce",
+  user: "@another",
+  group_key: selectedGroupId,
+  result: { state: "pending", reason: null },
+  occurred_at: "2026-08-31T14:09:00+08:00",
+  expires_at: "2026-08-31T14:11:41+08:00",
+  remaining_seconds: 161
+};
+
+const approvedQueueEntry = {
+  ...pendingQueueEntry,
+  result: { state: "approved", reason: null },
+  remaining_seconds: null
+};
+
+type QueueReadHandler = (route: Route, readCount: number) => Promise<void>;
+type SettlementHandler = (route: Route) => Promise<void>;
 
 function rowFor(page: Page, user: string) {
   return page.locator("[data-queue-row]", { hasText: user });
 }
 
+async function mockQueueTransport(
+  page: Page,
+  readQueue: QueueReadHandler,
+  settleQueue: SettlementHandler
+): Promise<void> {
+  let readCount = 0;
+
+  await page.route("**/api/**", async (route) => {
+    const request = route.request();
+    const path = decodeURIComponent(new URL(request.url()).pathname);
+
+    if (path === "/api/session" && request.method() === "GET") {
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: { telegram_id: "741928306", role: "manager" },
+          expires_at: "2026-09-01T02:00:00Z",
+          csrf_token: "manager-csrf"
+        })
+      });
+      return;
+    }
+
+    if (path === "/api/chats" && request.method() === "GET") {
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chats: [{ id: selectedGroupId }] })
+      });
+      return;
+    }
+
+    if (path === `/api/chats/${selectedGroupId}/queue` && request.method() === "GET") {
+      await readQueue(route, readCount);
+      readCount += 1;
+      return;
+    }
+
+    if (
+      path === `/api/chats/${selectedGroupId}/queue/${pendingQueueEntry.id}` &&
+      request.method() === "POST"
+    ) {
+      await settleQueue(route);
+      return;
+    }
+
+    throw new Error(`Unexpected API request: ${request.method()} ${path}`);
+  });
+}
+
 async function openFixtureQueue(page: Page): Promise<void> {
   await page.goto("/queue");
+  await expect(page.locator("[data-queue-page]")).toHaveAttribute(
+    "data-queue-state",
+    "populated"
+  );
+}
+
+async function openLiveQueue(
+  page: Page,
+  settleQueue: SettlementHandler,
+  readQueue: QueueReadHandler = async (route) => {
+    await route.fulfill({
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: [pendingQueueEntry] })
+    });
+  }
+): Promise<void> {
+  await mockQueueTransport(page, readQueue, settleQueue);
+  await page.goto(`/queue?group=${selectedGroupId}`);
   await expect(page.locator("[data-queue-page]")).toHaveAttribute(
     "data-queue-state",
     "populated"
@@ -59,7 +144,7 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
   }, initData);
   await page.route("**/api/**", async (route) => {
     const request = route.request();
-    const path = new URL(request.url()).pathname;
+    const path = decodeURIComponent(new URL(request.url()).pathname);
     sessionRequests.push(`${request.method()} ${path}`);
 
     if (path === "/api/session" && request.method() === "GET") {
@@ -90,6 +175,30 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chats: [{ id: selectedGroupId }] })
+      });
+      return;
+    }
+
+    if (path === `/api/chats/${selectedGroupId}/queue` && request.method() === "GET") {
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: [pendingQueueEntry] })
+      });
+      return;
+    }
+
+    if (
+      path === `/api/chats/${selectedGroupId}/queue/${pendingQueueEntry.id}` &&
+      request.method() === "POST"
+    ) {
+      expect(request.headers()["x-csrf-token"]).toBe("mini-app-csrf");
+      expect(JSON.parse(request.postData() ?? "")).toEqual({
+        expected: { state: "pending", reason: "" },
+        result: { state: "approved", reason: "" }
+      });
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(approvedQueueEntry)
       });
       return;
     }
@@ -138,24 +247,21 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
 
     await row.getByRole("button", { name: "放行 @another" }).click();
 
-    await expect(row).toHaveAttribute("data-result", "approved");
-    const feedback = page.locator(
-      '[data-queue-feedback][data-feedback-kind="releaseSuccess"]'
-    );
-    await expect(feedback).toContainText("已放行 @another");
     await expect(row).toHaveAttribute("data-action-state", "idle");
+    await expect(row).toHaveAttribute("data-result", "approved");
     await expect(row.locator("[data-queue-result]")).toHaveText("已通过");
+    await expect(page.locator("[data-queue-feedback]")).toContainText("已放行 @another");
   });
 });
 
-test("operator cookie session skips Mini App exchange", async ({ page }) => {
+test("operator cookie session skips Mini App exchange", async ({ page, baseURL }) => {
   const requests: string[] = [];
 
   await page.context().addCookies([
     {
       name: "vestibule_console_session",
       value: "operator-session",
-      url: "http://127.0.0.1:4173"
+      url: baseURL ?? "http://127.0.0.1:4173"
     }
   ]);
   await page.route("**/api/**", async (route) => {
@@ -479,9 +585,68 @@ test("entry states retain their distinct guidance", async ({ page }) => {
   }
 });
 
-test("a failed release restores pending state and remaining time", async ({
-  page
-}) => {
+test("queue waits for a real response before rendering empty", async ({ page }) => {
+  let markQueueRequested!: () => void;
+  let resolveQueue!: () => void;
+  const queueRequested = new Promise<void>((resolve) => {
+    markQueueRequested = resolve;
+  });
+  const queueResponse = new Promise<void>((resolve) => {
+    resolveQueue = resolve;
+  });
+
+  await mockQueueTransport(
+    page,
+    async (route) => {
+      markQueueRequested();
+      await queueResponse;
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: [] })
+      });
+    },
+    async () => {
+      throw new Error("Settlement must not run while loading the queue");
+    }
+  );
+
+  await page.goto(`/queue?group=${selectedGroupId}`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator("[data-queue-page]")).toHaveAttribute("data-queue-state", "loading");
+  await expect(page.getByRole("heading", { name: "还没有人申请" })).toHaveCount(0);
+  await queueRequested;
+  resolveQueue();
+
+  await expect(page.locator("[data-queue-page]")).toHaveAttribute("data-queue-state", "empty");
+  await expect(page.getByRole("heading", { name: "还没有人申请" })).toBeVisible();
+});
+
+test("queue uses the API code for an unavailable load", async ({ page }) => {
+  await mockQueueTransport(
+    page,
+    async (route) => {
+      await route.fulfill({
+        status: 503,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ error: { code: "chat_access_denied" } })
+      });
+    },
+    async () => {
+      throw new Error("Settlement must not run when the queue is unavailable");
+    }
+  );
+
+  await page.goto(`/queue?group=${selectedGroupId}`);
+
+  await expect(page.locator("[data-queue-page]")).toHaveAttribute(
+    "data-queue-state",
+    "unavailable"
+  );
+  await expect(page.locator("[data-queue-unavailable]")).toContainText(
+    "你已不再拥有此群的管理权限"
+  );
+});
+
+test("a failed fixture release restores pending state and remaining time", async ({ page }) => {
   await openFixtureQueue(page);
 
   const row = rowFor(page, "@retry_release");
@@ -492,37 +657,128 @@ test("a failed release restores pending state and remaining time", async ({
   await row.getByRole("button", { name: "放行 @retry_release" }).click();
   await expect(row).toHaveAttribute("data-result", "approved");
 
-  const feedback = page.locator(
-    '[data-queue-feedback][data-feedback-kind="releaseFailure"]'
-  );
-  await expect(feedback).toContainText("没能放行 @retry_release");
+  await expect(page.locator("[data-queue-feedback]")).toContainText("未能放行 @retry_release");
   await expect(row).toHaveAttribute("data-action-state", "idle");
   await expect(row).toHaveAttribute("data-result", "pending");
   await expect(result).toContainText("等待中 3:39");
 });
 
-test("revoke does nothing without confirmation", async ({ page }) => {
+test("banned fixture rows expose status without an action", async ({ page }) => {
   await openFixtureQueue(page);
 
   const row = rowFor(page, "@spam_ad_01");
   await expect(row).toHaveAttribute("data-result", "banned");
-
-  await row
-    .getByRole("button", { name: "撤销 @spam_ad_01 的封禁" })
-    .click();
-
-  const dialog = page.getByRole("dialog", {
-    name: "撤销 @spam_ad_01 的封禁"
-  });
-  await expect(dialog).toBeVisible();
-  await expect(row).toHaveAttribute("data-action-state", "idle");
-  await expect(row).toHaveAttribute("data-result", "banned");
-  await expect(page.locator("[data-queue-feedback]")).toHaveCount(0);
-
-  await dialog.getByRole("button", { name: "取消" }).click();
-  await expect(dialog).not.toBeVisible();
-  await page.waitForTimeout(800);
-  await expect(row).toHaveAttribute("data-action-state", "idle");
-  await expect(row).toHaveAttribute("data-result", "banned");
-  await expect(page.locator("[data-queue-feedback]")).toHaveCount(0);
+  await expect(row.getByRole("button")).toHaveCount(0);
 });
+
+test("narrow queue exposes a release card to keyboard users", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await openLiveQueue(page, async (route) => {
+    await route.fulfill({
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(approvedQueueEntry)
+    });
+  });
+
+  await expect(page.locator("[data-queue-table-scroll]")).toBeHidden();
+
+  const card = page.locator("[data-queue-card-row]", { hasText: "@another" });
+  const action = card.getByRole("button", { name: "放行 @another" });
+  await expect(card).toHaveAttribute("data-result", "pending");
+  await expect(action).toBeVisible();
+
+  await action.focus();
+  await expect(action).toBeFocused();
+  await page.keyboard.press("Enter");
+
+  await expect(card).toHaveAttribute("data-result", "approved");
+  await expect(card.locator("[data-queue-action-id=\"release\"]")).toHaveCount(0);
+});
+
+const settlementFailureCases = [
+  {
+    name: "loss of management permission",
+    kind: "api",
+    code: "chat_access_denied",
+    message: "你已不再拥有此群的管理权限",
+    expectedState: "unavailable"
+  },
+  {
+    name: "a concurrent settlement",
+    kind: "api",
+    code: "challenge_conflict",
+    message: "此申请已由其他管理员处理",
+    expectedState: "empty"
+  },
+  {
+    name: "an expired CSRF token",
+    kind: "api",
+    code: "csrf_invalid",
+    message: "此页的安全令牌已过期",
+    expectedState: "populated"
+  },
+  {
+    name: "an interrupted network request",
+    kind: "network",
+    message: "连接已中断",
+    expectedState: "populated"
+  }
+] as const;
+
+for (const failure of settlementFailureCases) {
+  test(`release distinguishes ${failure.name}`, async ({ page }) => {
+    let queueReadCount = 0;
+    await openLiveQueue(
+      page,
+      async (route) => {
+        if (failure.kind === "network") {
+          await route.abort("failed");
+          return;
+        }
+
+        await route.fulfill({
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ error: { code: failure.code } })
+        });
+      },
+      async (route) => {
+        queueReadCount += 1;
+        await route.fulfill({
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items:
+              failure.kind === "api" &&
+              failure.code === "challenge_conflict" &&
+              queueReadCount > 1
+                ? []
+                : [pendingQueueEntry]
+          })
+        });
+      }
+    );
+
+    const row = rowFor(page, "@another");
+    await row.getByRole("button", { name: "放行 @another" }).click();
+
+    await expect(page.locator("[data-queue-feedback]")).toContainText(failure.message);
+    await expect(page.locator("[data-queue-page]")).toHaveAttribute(
+      "data-queue-state",
+      failure.expectedState
+    );
+
+    if (failure.kind === "api" && failure.code === "challenge_conflict") {
+      await expect(row).toHaveCount(0);
+      expect(queueReadCount).toBe(2);
+      return;
+    }
+
+    if (failure.expectedState === "unavailable") {
+      await expect(row).toHaveCount(0);
+      return;
+    }
+
+    await expect(row).toHaveAttribute("data-result", "pending");
+    await expect(row).toHaveAttribute("data-action-state", "idle");
+  });
+}

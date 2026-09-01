@@ -190,31 +190,49 @@
     "status": {
       "pending": "等待中 {{time}}"
     },
+    "timeUnavailable": "時間未知",
+    "loading": {
+      "title": "正在載入等待佇列",
+      "description": "正在讀取等待中的申請…"
+    },
+    "groupRequired": {
+      "title": "先選擇一個群組",
+      "description": "選擇已獲授權的群組後，才能查看其等待佇列。",
+      "select": "選擇群組"
+    },
+    "noGroups": {
+      "title": "此帳號尚未獲任何群組授權",
+      "description": "等待佇列只會顯示已獲授權的群組。"
+    },
+    "unavailable": {
+      "title": "無法讀取等待佇列",
+      "retry": "重試"
+    },
     "actions": {
       "release": "放行",
       "releaseFor": "放行 {{user}}",
       "releasing": "放行中…",
-      "releasingFor": "正在放行 {{user}}",
-      "revoke": "撤銷",
-      "revokeFor": "撤銷 {{user}} 的封鎖",
-      "revoking": "撤銷中…",
-      "revokingFor": "正在撤銷 {{user}} 的封鎖",
-      "details": "詳細資料",
-      "detailsFor": "查看 {{user}} 的詳細資料",
-      "openingDetails": "開啟中…",
-      "openingDetailsFor": "正在開啟 {{user}} 的詳細資料"
-    },
-    "revokeDialog": {
-      "title": "撤銷 {{user}} 的封鎖",
-      "description": "{{user}} 會進入「{{group}}」，狀態改為「{{approved}}」。如需恢復封鎖，請在操作記錄中撤銷本次操作。",
-      "cancel": "取消",
-      "confirm": "撤銷並放行"
+      "releasingFor": "正在放行 {{user}}"
     },
     "feedback": {
-      "releaseSuccess": "已放行 {{user}} 進入「{{group}}」，狀態為「{{approved}}」。",
-      "revokeSuccess": "已撤銷 {{user}} 的封鎖，狀態已改為「{{approved}}」，可進入「{{group}}」。",
-      "releaseFailure": "無法放行 {{user}}。此次操作未完成，狀態已恢復為「{{pending}}」，可以重試。",
-      "detailsUnavailable": "詳細資料頁尚未完成，{{user}} 的記錄沒有變更。"
+      "releaseSuccess": "已放行 {{user}}，現在可以進入「{{group}}」。",
+      "releaseFailure": "無法放行 {{user}}。該申請仍在等待中，可以重試。"
+    },
+    "errors": {
+      "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
+      "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
+      "accessDenied": "你已不再擁有此群組的管理權限。",
+      "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
+      "chatNotFound": "此群組已不再可在控制台中管理。",
+      "challengeConflict": "此申請已由其他管理員處理，等待佇列已更新。",
+      "csrfInvalid": "此頁的安全權杖已過期。重新整理頁面後再重試。",
+      "invalidSettlement": "此申請目前不能放行。重新整理等待佇列後再重試。",
+      "loadUnavailable": "等待佇列暫時不可用。",
+      "network": "連線已中斷。重新整理等待佇列後，再決定是否重試。",
+      "queueUnavailable": "暫時無法讀取等待佇列。請重試。",
+      "settlementUnavailable": "暫時無法放行此申請。請重試。",
+      "targetProtected": "此申請人是群組管理員，不能在這裡放行。",
+      "targetUnavailable": "暫時無法確認此申請人的群組成員狀態。請重試。"
     },
     "empty": {
       "title": "還沒有人申請",
