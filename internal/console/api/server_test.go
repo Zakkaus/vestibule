@@ -102,6 +102,10 @@ type apiTestQueueService struct {
 	auditCalls      int
 	undoCalls       int
 	lastUndo        verification.ConsoleAuditUndo
+	statsReport     verification.ConsoleStatsReport
+	statsErr        error
+	statsCalls      int
+	lastStats       verification.ConsoleStatsRequest
 }
 
 func (s *apiTestQueueService) ConsoleGroups() []int64 {
@@ -133,6 +137,15 @@ func (s *apiTestQueueService) UndoConsoleAudit(
 	s.undoCalls++
 	s.lastUndo = undo
 	return s.auditEntry, s.undoErr
+}
+
+func (s *apiTestQueueService) ConsoleStats(
+	_ context.Context,
+	request verification.ConsoleStatsRequest,
+) (verification.ConsoleStatsReport, error) {
+	s.statsCalls++
+	s.lastStats = request
+	return s.statsReport, s.statsErr
 }
 
 func TestPostSessionRejectsReplayedInitData(t *testing.T) {
