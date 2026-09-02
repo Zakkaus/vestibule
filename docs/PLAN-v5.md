@@ -340,7 +340,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 | 三个 `Save` 的错误被丢弃 | `internal/verification/state.go:108`、`:298`、`:754` 都走 `retryStoreWrite`，失败落日志 |
 | `moderate` 的 `LoadWarnings` 同形状 | `internal/moderate/state.go:36` 记下 `loadErr` 并把错误返回 |
 | 构造函数无法返回恢复错误 | `internal/verification/service.go:193` 与 `internal/moderate/service.go:53` 都返回 `error` |
-| 装配层只能继续启动 | `internal/app/app.go:75` 在 `newServices` 返回错误时终止启动 |
+| 装配层只能继续启动 | `internal/app/app.go:82-85` 在 `newBaseServices` 返回错误时终止启动 |
 
 「出错」与「条件不匹配影响 0 行」的区分由
 `internal/database/verification_store.go:198` 的 `changedRow` 承担：读不出受影响行数是错误，
@@ -549,8 +549,8 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 #### 落地之后要补的另一件：运维进来之后写不了
 
 `GET /enter/{token}` 只写 HttpOnly 会话 Cookie 然后 `303` 回首页
-（`internal/console/api/server.go:223-239`），而 CSRF token 只在
-`POST /api/session` 的 JSON 响应里出现（`:494-498`）；结算又严格要求
+（`internal/console/api/server.go:214-230`），而 CSRF token 只在
+`POST /api/session` 的 JSON 响应里出现（`internal/console/api/server.go:205-211`）；结算又严格要求
 `X-CSRF-Token`（`internal/console/auth/manager.go:291-297`）。
 
 于是**运维走一次性链接进来，能读群和队列，但任何写入都做不了** ——
@@ -680,11 +680,11 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 
 **做那次对照时，控制台一共七条路由，没有一条能读写设置**
 （`/livez` `/readyz` `GET/POST /api/session` `/enter/` `/api/chats` `/api/chats/`）。
-这一句是当时的状态，不是现在的：顶层分发现在有八条
-（`internal/console/api/server.go:141`），多出来的是
-`GET /api/process/settings` 与 `GET /api/status`；而 `/api/chats/` 那条
-现在按群展开成 `queue`、`audit`、`stats`、`settings`、`rules` 五组
-（`internal/console/api/server.go:287`）。下面这条次序就是照着这个缺口定的，
+这一句是当时的状态，不是现在的：顶层分发现在有九条
+（`internal/console/api/server.go:126-161`）。新增的是 `GET · POST /setup/{token}`、
+`GET /api/process/settings` 与 `GET /api/status`；而 `/api/chats/` 那条现在按群展开成
+`queue`、`audit`、`stats`、`settings`、`rules` 五组
+（`internal/console/api/server.go:262-290`）。下面这条次序就是照着这个缺口定的，
 八屏所等的设置端点已经建成。
 而 13 屏里有 8 屏管的全是设置：验证方式、题库、免验证来源、管理与处罚、
 消息与文案、订阅推送、功能，以及偏好屏里属于群的那一半。
@@ -896,14 +896,14 @@ revision 不匹配要能被前端区分成「别人改过了」而不是「保�
 **控制台落在随机端口加随机路径上**，装完把完整地址写进一个 `600` 权限的结果文件，
 供批量部署读取。写进去的是认领链接，不是凭据。
 
-**认领链接这条路由要先建，否则本阶段的头号性质做不出来。** 架构文档第 1123 行定了
-`GET · POST /setup/{token}`：安装脚本打印的一次性链接落在这里，用来填令牌、给出绑定口令、
-等第一个群出现，认领成功后这条路由不再注册。**实现里现在一行都没有**
-（`grep -rn '/setup' internal cmd` 为空），而 `internal/app/app.go:61` 在
-`BOT_TOKEN` 为空时直接拒绝启动。两件事合起来的后果是：安装脚本要么继续碰令牌文件
-（违背「一个密钥都不问」），要么写一条打开就是 404 的假链接。
-所以这一阶段的次序是**先建 `/setup/{token}` 与未认领启动，再写安装脚本**。
-它原本挂在「路由表与实现的差异」那条待决里当作无人认领的一行，现在归本阶段。
+**认领链接这条路由要先建，否则本阶段的头号性质做不出来。** 架构文档的控制台路由表定义
+`GET · POST /setup/{token}`：安装脚本打印的一次性链接落在这里；管理员提交 Bot token 后得到
+Telegram 部署者绑定链接；认领成功后这条路由不再注册。第一片已落实：`BOT_TOKEN` 为空时，
+进程完成配置校验与数据库迁移后仍启动 HTTP；`/livez` 返回 200，`/readyz` 返回 503，直到
+Telegram 通道建成。安装侧提供的 `SETUP_TOKEN` 只以哈希留在 `STATE_DIRECTORY/claim.json`；
+提交 Bot token 后，原始令牌以 `0600` 权限写入同一文件，进程不重启就建立 Telegram 通道。
+成功响应只给 Telegram 部署者绑定链接；HTTP 路由表随即原子替换，`/setup/{token}` 不再注册，
+之后返回 404。其余安装脚本、容器、宿主单元和结果文件仍按本阶段后续片完成。
 
 **验收**：一条命令起全套；健康检查通过；故意让新二进制起不来时自动回退到上一版并留下记录；
 结构不兼容时升级前就明确提示不可回退。
@@ -940,7 +940,7 @@ revision 不匹配要能被前端区分成「别人改过了」而不是「保�
 
 依赖阶段五：`/livez` 与 `/readyz` 由那一阶段的 HTTP 服务提供。
 **这条依赖已经解除** —— 两个端点都在
-（`internal/console/api/server.go:141`、`:143`），判据也与架构文档第 11、13 节对得上：
+（`internal/console/api/server.go:130`、`:132`），判据也与架构文档第 11、13 节对得上：
 `internal/status/health.go:78` 的 `Live` 只读一个原子标志、不探测任何依赖，
 `internal/status/health.go:83` 的 `Ready` 要求配置校验完成、Telegram 通道建立、
 并且当场探一次数据库。架构书那一列写的是「数据库已迁移」，代码判的是「数据库这一刻可用」——

@@ -191,7 +191,7 @@ func newAPIRulesHarness(t *testing.T, allowed bool) *apiRulesHarness {
 	groups := &apiTestQueueService{groups: []int64{apiRulesChatID}}
 	server, cookies, csrf := apiTestServer(t, checker, groups, nil)
 	store := database.NewRuleStore(db)
-	server.rules = store
+	server.ReplaceRoutes(Config{Authenticator: server.routes.Load().server.authenticator, Verification: groups, Rules: store})
 	return &apiRulesHarness{server: server, cookies: cookies, csrf: csrf, store: store, checker: checker}
 }
 

@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Zakkaus/vestibule/internal/console/auth"
@@ -44,6 +45,8 @@ type Config struct {
 	ProcessSettings ProcessSettingsService
 	Health          *status.Health
 	Persistence     PersistenceService
+	Setup           SetupService
+	SetupClaimed    func()
 }
 
 // Server owns listener admission and HTTP handler draining separately for ordered shutdown.
@@ -55,27 +58,13 @@ type Server struct {
 	processSettings ProcessSettingsService
 	health          *status.Health
 	persistence     PersistenceService
+	setup           SetupService
+	setupClaimed    func()
+	routes          atomic.Pointer[routeSet]
 
 	mu         sync.Mutex
 	listener   net.Listener
 	httpServer *http.Server
-}
-
-func New(config Config) *Server {
-	return &Server{
-		authenticator:   config.Authenticator,
-		verification:    config.Verification,
-		settings:        config.Settings,
-		rules:           config.Rules,
-		processSettings: config.ProcessSettings,
-		health:          config.Health,
-		persistence:     config.Persistence,
-	}
-}
-
-// Handler returns the router for focused tests and for the production HTTP server.
-func (s *Server) Handler() http.Handler {
-	return http.HandlerFunc(s.serveHTTP)
 }
 
 // Start opens the listener. It returns only after admission is available to the process.
@@ -142,6 +131,8 @@ func (s *Server) serveHTTP(writer http.ResponseWriter, request *http.Request) {
 		s.live(writer)
 	case request.Method == http.MethodGet && request.URL.Path == "/readyz":
 		s.ready(writer, request)
+	case s.setup != nil && strings.HasPrefix(request.URL.Path, "/setup/"):
+		s.setupRoute(writer, request)
 	case request.Method == http.MethodGet && strings.HasPrefix(request.URL.Path, "/enter/"):
 		s.enter(writer, request)
 	case strings.HasPrefix(request.URL.Path, "/api/"):
