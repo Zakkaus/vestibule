@@ -1117,6 +1117,7 @@ policr-mini 选了另一条：把 Telegram 的权限镜像进 `permissions` 表�
 | POST /api/chats/{id}/packages | 装一个包。先返回它将改动哪些项，确认后才落库 |
 | GET · PATCH /api/me/preferences | 看的人自己的偏好，不属于任何群 |
 | GET /api/status | 诊断屏。版本、三项验证前置、证书续期、队列积压。**只有运维可见** |
+| GET /api/process/settings | 实例级设置的只读视图，每项带来源（出厂默认 / 用户文件 / 群覆盖）。**只有运维可见**，没有写入路由 |
 | POST /api/status/upgrade | 发起升级，只写目标版本，执行在宿主侧。同上，只有运维 |
 | GET /verify/{token} | **长期存在的唯一公开面。**令牌一次性、带签名与有效期，不复用管理会话 |
 | GET · POST /setup/{token} | **只在认领之前存在。**安装脚本打印的一次性链接落在这里， 用来填令牌、给出绑定口令、等第一个群出现。**认领成功后这条路由不再注册**， 之后任何人访问都是 404，不是隐藏 |
