@@ -111,6 +111,36 @@ def main() -> int:
         failures.append("no literal translation key was found in %s — has the call "
                         "shape changed?" % source_dir)
 
+    # The other direction. The check above asks whether every key the code names
+    # exists; nothing asked whether every key defined is named by anything. A
+    # catalogue entry nobody reaches is three strings a translator maintains for
+    # a screen that stopped using them, and it was at zero when this was added,
+    # which is the cheap moment to hold it there.
+    #
+    # A key built at runtime is reached through a prefix, so a key counts as used
+    # when any proper prefix of it appears inside a template literal. That is
+    # deliberately generous: this check exists to catch a whole entry going cold,
+    # not to prove each leaf is live.
+    sources = ""
+    for path in sorted(source_dir.rglob("*")):
+        if path.suffix in (".ts", ".tsx") and locales_dir not in path.parents:
+            sources += path.read_text(encoding="utf-8")
+    for key in sorted(source):
+        stem = key
+        for suffix in PLURAL_SUFFIXES:
+            if key.endswith(suffix):
+                stem = key[: -len(suffix)]
+                break
+        if any(quote + stem + quote in sources for quote in ("\"", "'", "`")):
+            continue
+        parts = stem.split(".")
+        if any("`" + ".".join(parts[:count]) + "." in sources
+               for count in range(2, len(parts))):
+            continue
+        failures.append("%s.json defines %s and nothing in %s asks for it — use it "
+                        "or remove it from all three catalogues"
+                        % (source_name, key, source_dir.name))
+
     if failures:
         print("FAIL check-locale-catalogues: the catalogues and the code disagree")
         for failure in failures:
@@ -118,8 +148,8 @@ def main() -> int:
         return 1
 
     print("check-locale-catalogues: passed; %d catalogues agree on %d keys and their "
-          "placeholders, %d literal keys resolve, %d runtime keys not checked"
-          % (len(catalogues), len(source), literal, dynamic))
+          "placeholders, every key is reached and %d literal ones resolve, %d runtime "
+          "keys not checked" % (len(catalogues), len(source), literal, dynamic))
     return 0
 
 
