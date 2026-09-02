@@ -1,0 +1,46 @@
+# Commands the previous generation answered, frozen so none disappears quietly
+# before the cutover in phase ten.
+#
+# Source: ~/code/refs/gentoo-zh-verify-bot, read on 2026-09-02. Twenty-eight
+# plain names plus six that were written as gentooPrefix + name. That reference
+# is not in this repository and CI cannot read it, which is why the list lives
+# here instead of being derived at check time.
+#
+# A name may leave this file only into the dropped section below, with a reason.
+# Nothing may join it: this is what the previous generation had, not a wish list.
+armpkgs
+autodel
+ban
+bantime
+bc
+clearwarn
+cve
+distro
+enroll
+help
+kernel
+man
+mute
+ping
+pkgs
+repology
+rich
+sb
+settings
+spoiler
+start
+stats
+stop
+unmute
+unregister
+vmode
+warn
+wiki
+arm
+bbs
+bug
+news
+pkg
+use
+
+# dropped: name<TAB>reason
