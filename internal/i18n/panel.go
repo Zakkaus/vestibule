@@ -107,7 +107,6 @@ type PanelSettingsCommonCatalog struct {
 	Prev    Text
 	Next    Text
 	Refresh Text
-	Edit    Text
 	Disable Text
 	On      Text
 	Off     Text
@@ -235,13 +234,10 @@ type PanelSettingsErrorCatalog struct {
 	InvalidDuration           Text
 	InvalidURL                Text
 	InvalidChat               Text
-	StaleIndex                Text
 	QuestionNeedsOptions      Text
 	FallbackNeedsAnswer       Text
 	InputBlockedVerification  Text
 	InputCanceledVerification Text
-	ReplyToPrompt             Text
-	ControlGroupOnly          Text
 	PanelUnavailable          Text
 	WhitelistUnbanFailed      Text
 }

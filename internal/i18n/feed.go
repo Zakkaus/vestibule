@@ -36,6 +36,4 @@ type FeedBugCatalog struct {
 
 // FeedConfigCatalog contains user-facing configuration policy refusals.
 type FeedConfigCatalog struct {
-	// ControlGroupOnly formats a refusal outside the configured control group.
-	ControlGroupOnly Format
 }

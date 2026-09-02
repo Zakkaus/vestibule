@@ -13,6 +13,5 @@
     "creation_date": "创建日期"
   },
   "config": {
-    "control_group_only": "⛔ 该命令只能在控制群（ID %[1]d）中使用。"
   }
 }
