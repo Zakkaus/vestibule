@@ -53,6 +53,7 @@ type services struct {
 	registration        *telegram.Registration
 	consoleAuth         *auth.Manager
 	health              *status.Health
+	replacement         *status.Replacement
 	identity            verification.Identity
 }
 
@@ -190,6 +191,7 @@ func claimedConsoleConfig(runtime *services) api.Config {
 		ProcessSettings: runtime.cfg,
 		Health:          runtime.health,
 		Persistence:     runtime.settings,
+		Replacement:     runtime.replacement,
 	}
 }
 
@@ -200,6 +202,7 @@ func bootstrapConsoleConfig(runtime *services, setup api.SetupService, setupClai
 		Health:          runtime.health,
 		Persistence:     runtime.settings,
 		Setup:           setup,
+		Replacement:     runtime.replacement,
 		SetupClaimed:    setupClaimed,
 	}
 }
@@ -282,7 +285,10 @@ func newBaseServices(ctx context.Context, options Options) (*services, error) {
 		return nil, err
 	}
 	health.SetConfigReady(true)
-	return &services{database: db, cfg: cfg, settings: runtimeSettings, health: health}, nil
+	return &services{
+		database: db, cfg: cfg, settings: runtimeSettings, health: health,
+		replacement: status.NewReplacement(options.StateDirectory),
+	}, nil
 }
 
 func activateServices(ctx context.Context, runtime *services, options Options, progress chan<- struct{}) error {

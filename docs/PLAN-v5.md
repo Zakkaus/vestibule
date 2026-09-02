@@ -549,8 +549,8 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 #### 落地之后要补的另一件：运维进来之后写不了
 
 `GET /enter/{token}` 只写 HttpOnly 会话 Cookie 然后 `303` 回首页
-（`internal/console/api/server.go:214-230`），而 CSRF token 只在
-`POST /api/session` 的 JSON 响应里出现（`internal/console/api/server.go:205-211`）；结算又严格要求
+（`internal/console/api/server.go:218-234`），而 CSRF token 只在
+`POST /api/session` 的 JSON 响应里出现（`internal/console/api/server.go:198-215`）；结算又严格要求
 `X-CSRF-Token`（`internal/console/auth/manager.go:291-297`）。
 
 于是**运维走一次性链接进来，能读群和队列，但任何写入都做不了** ——
@@ -680,11 +680,11 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 
 **做那次对照时，控制台一共七条路由，没有一条能读写设置**
 （`/livez` `/readyz` `GET/POST /api/session` `/enter/` `/api/chats` `/api/chats/`）。
-这一句是当时的状态，不是现在的：顶层分发现在有九条
-（`internal/console/api/server.go:126-161`）。新增的是 `GET · POST /setup/{token}`、
-`GET /api/process/settings` 与 `GET /api/status`；而 `/api/chats/` 那条现在按群展开成
+这一句是当时的状态，不是现在的：顶层分发已经包含
+`GET · POST /setup/{token}`、`GET /api/process/settings`、`GET /api/status` 和
+`POST /api/status/upgrade`（`internal/console/api/server.go:128-165`）；而 `/api/chats/` 那条现在按群展开成
 `queue`、`audit`、`stats`、`settings`、`rules` 五组
-（`internal/console/api/server.go:262-290`）。下面这条次序就是照着这个缺口定的，
+（`internal/console/api/server.go:266-295`）。下面这条次序就是照着这个缺口定的，
 八屏所等的设置端点已经建成。
 而 13 屏里有 8 屏管的全是设置：验证方式、题库、免验证来源、管理与处罚、
 消息与文案、订阅推送、功能，以及偏好屏里属于群的那一半。
@@ -870,30 +870,22 @@ revision 不匹配要能被前端区分成「别人改过了」而不是「保�
 
 **分支** `v5/deploy`
 
-三个组件一次部署：应用二进制、数据库、自建 Bot API。
+三个组件一次部署：应用、数据库、自建 Bot API。
 
-**安装脚本一条命令装完**，只问机器上的事：部署方式、域名、证书、路径，每项都有默认值。
-**一个密钥都不问**，令牌与凭据全部在浏览器里填，脚本里不留读取令牌的分支。
-按能力探测而不按发行版名字分支。重跑同一条命令是升级不是重装，
-安装中途失败时删除这一次新建的文件与单元。
-同一个脚本管安装、升级、回退、卸载与查看状态。
+**容器是默认部署方式**，原生服务保留给不装容器运行时的人。两条路径共用安装、升级、回退、卸载、状态与宿主替换单元。
 
-**原生服务的五项生命周期已经落实。**`deploy/install.sh` 首次执行安装，检测到现有二进制后，
-同一条命令执行升级；`--rollback`、`--uninstall` 与 `--status` 分别负责回退、卸载和查看状态。
-脚本按 `curl`/`wget`、`systemctl` 与机器架构等能力选择路径，不读取发行版名称；
-没有 `systemctl` 时只安装原生文件，并明确报告服务未启动且没有开机自启。
-首次安装只在 `bot.env` 不存在时创建空文件。旧脚本读取 `BOT_TOKEN` 再决定是否重启的分支
-已经删除：认领流程允许服务先启动，所以脚本读取 Bot token 已经越过浏览器认领边界。
+**“无需凭据的一条命令启动三组件”已拒绝。**上游 Telegram Bot API 要求
+`TELEGRAM_API_ID` 与 `TELEGRAM_API_HASH`。安装器在容器路径开始前检查
+`/etc/vestibule/bot-api.env`；缺少任一变量即失败，不生成占位值，也不从浏览器认领流程读取。
+当前没有获批准的凭据配置路径，所以不能把这个前置条件伪装成一条命令可完成的部署。应用的
+`BOT_TOKEN` 仍只通过浏览器认领写入 `bot.env`，安装器不读取它。
 
-每次变更先记录目标路径原来是否存在。操作失败时，脚本从临时副本恢复既有文件，
-只删除本次新建的文件与单元；已有的 `bot.env`、配置、状态和无关文件均不进入删除范围。
+安装器按 `curl` 或 `wget`、`systemctl`、容器运行时与机器架构等能力选择路径，不按发行版名称分支。
+重跑同一部署方式是升级；失败事务只恢复本次变更的文件与单元，不删除已有 `bot.env`、配置、状态或无关文件。
+容器路径为首次安装生成 PostgreSQL 凭据与 `container.env`，升级保留它们。原生路径保留
+`DynamicUser` 服务及原有五项生命周期。
 
-**版本屏在这一阶段建**（设计文档十五屏里的最后一屏，从阶段七移来：
-它要显示的四项数据都由本阶段产生）。**控制台侧栏底部显示版本**，
-有新版时给标记，点进去看变更说明再决定。
-只有运维看得到升级按钮：升级重启整台机器上所有群的服务，群管理员只对自己的群负责。
-
-**升级下载前的回退预检已经接到原生安装脚本。**脚本先取 `SHA256SUMS` 与
+**升级下载前的回退预检保留在原生安装器。**脚本先取 `SHA256SUMS` 与
 `vestibule-schema-manifest`，校验清单后，再把目标版本的
 `minimum_rollback_schema_version` 与本机保存的当前
 `target_schema_version` 比较。结构不兼容或缺少当前清单时，脚本在请求二进制之前退出；
@@ -901,10 +893,10 @@ revision 不匹配要能被前端区分成「别人改过了」而不是「保�
 
 `migrations.AssessRollback` 与 `FetchAfterRollbackCheck` 仍供 Go 侧使用，shell 不调用它们。
 发布侧由 `cmd/schema-manifest` 生成两项结构元数据；版本库中的
-`deploy/vestibule-schema-manifest` 仍是受检副本。发布流程还把
-`vestibule.service` 作为发布资产，与二进制、结构清单一同列进 `SHA256SUMS`。
+`deploy/vestibule-schema-manifest` 仍是受检副本。发布流程把原生单元、安装器拆分的运行时文件、
+`compose.yaml` 与宿主替换单元作为发布资产，全部列进 `SHA256SUMS`。
 安装成功后，脚本把已校验的结构清单与版本号保存在 `/etc/vestibule/`，
-供下一次升级在下载二进制前判断。
+供下一次原生升级在下载二进制前判断。
 
 **发布真实性仍有明确缺口。**`SHA256SUMS` 与被校验资产来自同一个 GitHub release，
 当前发布流程没有提供独立签名。校验只能证明资产与这份摘要一致，不能证明发布者身份；
@@ -912,61 +904,63 @@ revision 不匹配要能被前端区分成「别人改过了」而不是「保�
 `checksum_authenticity=unverified_same_release`，没有把校验成功表述成来源可信。
 补齐独立签名或另一条可信摘要来源仍属于阶段九剩余工作。
 
-**容器是默认部署方式**，原生服务保留给不装运行时的人，两条路装完的操作面一致。
+**应用只写升级意图，宿主单元执行替换。**`POST /api/status/upgrade` 只接受运维角色和
+CSRF 令牌。应用将目标版本原子写入数据目录的 `replacement-request`；文件只有一行版本号，
+字符集限于 `[A-Za-z0-9._-]`，不接受 URL、镜像地址、键值对或额外行。请求中的版本由运维选择，
+原生路径的下载地址和容器路径的 `ghcr.io/zakkaus/vestibule:<version>` 均由宿主执行器固定决定。
+因此能写数据目录的主体不能把升级来源改成任意地址。
 
-**进程不替换自己**，也不持有容器运行时。应用只把目标版本写进自己的数据目录，
-由安装脚本在宿主上装的那个单元执行替换，容器始终拿不到 `docker.sock`。
-两种部署共用这一套，不为容器另设路径。不用安装脚本、自己起容器的人没有那个单元，
-界面显示命令并说明为什么这里不同；判断依据是单元在不在，不是猜部署方式。
+`deploy/vestibule-replace.path` 只监视该请求文件，触发
+`deploy/vestibule-replace.service`。服务以 root 运行
+`/usr/local/libexec/vestibule-replace`：原生部署调用已校验的安装器，容器部署更新固定应用镜像标签，
+由宿主调用 Docker Compose。应用容器没有 Docker 运行时凭据或 `docker.sock`；`compose.yaml` 的
+应用、数据库和 Bot API 三个服务也不会把该 socket 挂入应用。
 
-随机端口、外部域名与证书仍属于阶段九后续片。原生脚本当前使用本机 HTTP 默认地址，
-生成随机的一次性认领路径。systemd 首次启动时通过临时的 `setup.env` 接收原始认领值，
-把哈希写进自己创建并管理的 `StateDirectory`；`systemctl restart` 成功后，脚本立即删除临时文件，
-不以 root 身份预建动态用户的状态目录。完整认领链接写入
-`/etc/vestibule/install-result.env`。文件权限为 `600`，内容包括操作、版本、部署方式、
-认领链接、回退可用性与摘要校验状态；不写 Bot token 或其他凭据。
+执行器完成替换后依次探测 `/livez` 与 `/readyz`。两者通过时向数据目录写入
+`replacement-result.env` 的 `status=applied` 与 `reason=complete`。任一探针失败时自动恢复上一版，
+再次探测；成功恢复写入 `status=rolled_back` 与 `reason=healthcheck_failed`，恢复也失败则写入
+`status=rollback_failed`。结果文件为 `0600`，所以结果和失败原因在应用重启后仍可读取。
 
-**认领链接这条路由要先建，否则本阶段的头号性质做不出来。** 架构文档的控制台路由表定义
-`GET · POST /setup/{token}`：安装脚本打印的一次性链接落在这里；管理员提交 Bot token 后得到
-Telegram 部署者绑定链接；认领成功后这条路由不再注册。第一片已落实：`BOT_TOKEN` 为空时，
-进程完成配置校验与数据库迁移后仍启动 HTTP；`/livez` 返回 200，`/readyz` 返回 503，直到
-Telegram 通道建成。安装侧提供的 `SETUP_TOKEN` 只以哈希留在 `STATE_DIRECTORY/claim.json`；
-提交 Bot token 后，原始令牌以 `0600` 权限写入同一文件，进程不重启就建立 Telegram 通道。
-成功响应只给 Telegram 部署者绑定链接；HTTP 路由表随即原子替换，`/setup/{token}` 不再注册，
-之后返回 404。原生安装脚本与结果文件已经完成；容器、宿主替换单元和实机路径仍按本阶段后续片完成。
+安装器在数据目录写入 `replacement-unit.env` 的 `available=yes`，仅在替换单元已经安装时写入。
+应用通过状态服务读取此事实及最后的宿主结果，并在 `GET /api/status` 返回 `replacement` 字段。
+当前修改不触及控制台界面；下一版界面据此决定是否展示升级入口，不从部署方式推断可用性。
 
-无特权测试通过三个非凭据入口隔离外部环境：`VESTIBULE_ROOT` 把全部目标路径放进临时根，
-`VESTIBULE_FETCH` 替换下载，`VESTIBULE_SYSTEMCTL` 替换服务管理。
-`scripts/test-install.sh` 因此能在无 root、无网络、无真实 systemd 的条件下执行安装、
-同命令升级、状态查询、回退和卸载，并验证清单先于二进制、摘要校验、结果文件权限、
-`bot.env` 保持不变与失败清理边界。
+首次安装仍通过临时 `setup.env` 接收原始认领值，进程只把哈希写进其自己创建的
+`StateDirectory`。`systemctl restart` 成功后，安装器删除临时文件。完整认领链接写入
+`/etc/vestibule/install-result.env`，权限为 `600`；它包含操作、版本、部署方式、认领链接、
+回退可用性与摘要校验状态，不写 Bot token 或其他凭据。
 
-**验收**：一条命令起全套；健康检查通过；故意让新二进制起不来时自动回退到上一版并留下记录；
-结构不兼容时升级前就明确提示不可回退。
-**实机**：在一台干净机器上按 install.sh 走一遍，装完打开打印的那条地址就能用。
+无特权测试把目标路径放入 `VESTIBULE_ROOT`，以 `VESTIBULE_FETCH`、`VESTIBULE_SYSTEMCTL` 和
+`VESTIBULE_DOCKER` 替换外部依赖。`scripts/test-install.sh` 在临时根执行原生与容器的安装、
+升级、状态、回退和卸载。`scripts/test-replacement.sh` 用假安装器、Docker Compose、健康探针执行
+两种部署的同一宿主替换机制，并驱动 URL 请求、Docker socket 注入、探针失败自动回退和回退失败的反例。
 
-`scripts/accept-phase9.sh` 按上述五条验收原序输出。当前只有结构不兼容时阻止下载可以完整执行；
-完整三组件部署、健康检查、坏二进制自动回退和干净机器实机安装均打印 `EXEMPT`，
-并分别指向尚未完成的容器、宿主替换单元、健康检查与证书路径，不把局部测试记成整条通过。
+**验收**：三组件的凭据前置条件使第一条仍为 `EXEMPT`；脚本实际执行 `/livez` 与 `/readyz` 探针、
+坏替换自动回退并保留结果、以及结构不兼容时在下载前阻止升级；干净机器、域名、证书、浏览器与
+Bot API 凭据配置路径仍为 `EXEMPT`。
+`scripts/accept-phase9.sh` 按原来的五条顺序输出，不把临时根适配器当成实机部署成功。
 
 #### 文件处置
 
 | 现路径 | 处置 | 目标位置 |
 |---|---|---|
-| `deploy/install.sh` | 已重写原生服务路径 | 同名。一个脚本管理安装、同命令升级、回退、卸载与状态；容器路径仍由后续片接入 |
-| `deploy/vestibule.service` | 沿用 | 同名。加固项未改，现作为受摘要校验的发布资产；执行替换的宿主单元仍待后续片新增 |
+| `deploy/install.sh` | 已重写为部署调度入口 | 同名。默认容器，`--native` 选择原生；安装、升级、回退、卸载与状态共用入口 |
+| `deploy/install-common.sh`、`deploy/install-native.sh`、`deploy/install-container.sh` | 新增 | 安装器的已校验运行时文件；分别承载事务与发布资产、原生生命周期、容器生命周期 |
+| `deploy/vestibule-replace`、`.service`、`.path` | 新增 | 同名。宿主监视版本请求，执行两条部署路径并写回结果 |
+| `deploy/Dockerfile`、`Dockerfile.bot-api`、`compose.yaml` | 新增 | `deploy/` 下的容器文件。构建应用与固定 Bot API 提交的镜像，并定义没有 Docker socket 的三组件容器部署 |
+| `deploy/vestibule.service` | 沿用 | 同名。全部现有加固项未改，作为受摘要校验的发布资产 |
 | `deploy/gentoo-zhbot.service` | 已删除 | 无。阶段八去掉构建标签之后，`--generic` / `--gentoo` 不再选中任何版本，第二份单元没有对应的安装目标 |
 
-本阶段还要从无到有做出来的：容器镜像与 compose 定义、执行替换的宿主单元、
-域名与证书路径、安装后的健康检查、坏二进制自动回退，以及发布摘要的独立认证。
-原生安装结果文件已经完成。
+本阶段剩余：为 Telegram Bot API 设计获批准的 `TELEGRAM_API_ID` 与 `TELEGRAM_API_HASH` 配置路径，
+在干净机器上验证域名、证书和浏览器路径，以及为发布摘要提供独立认证。
 
 #### 必须保住的行为
 
-以下是现有两份文件已经做到的，重写时不能丢：
+以下行为必须保住：
 
-- 二进制、结构清单与 systemd 单元均按发布的 `SHA256SUMS` 校验后才安装。
-- **已存在的 `bot.env` 从不覆盖**，所以升级就是重跑同一条命令。
+- 二进制、结构清单、systemd 单元、安装器运行时文件、替换执行器与 `compose.yaml` 均按发布的
+  `SHA256SUMS` 校验后才安装。
+- **已存在的 `bot.env` 与 `bot-api.env` 从不覆盖**，所以升级不会替换应用令牌或 Bot API 凭据。
 - ~~两个版本名字全程分开，一台机器上可以同时装（`--generic` 与 `--gentoo`）~~
   **这一条被阶段八取代。** 版本由构建标签二选一的机制没了，一份二进制服务所有社区；
   「一台机器上装两份」原本是为了同时运行 Gentoo-zh 与通用两套，而多租户让一个实例
@@ -980,17 +974,12 @@ Telegram 通道建成。安装侧提供的 `SETUP_TOKEN` 只以哈希留在 `STA
 #### 依赖
 
 依赖阶段五：`/livez` 与 `/readyz` 由那一阶段的 HTTP 服务提供。
-**这条依赖已经解除** —— 两个端点都在
-（`internal/console/api/server.go:130`、`:132`），判据也与架构文档第 11、13 节对得上：
-`internal/status/health.go:78` 的 `Live` 只读一个原子标志、不探测任何依赖，
-`internal/status/health.go:83` 的 `Ready` 要求配置校验完成、Telegram 通道建立、
-并且当场探一次数据库。架构书那一列写的是「数据库已迁移」，代码判的是「数据库这一刻可用」——
-迁移在启动、开始服务之前完成，所以可用蕴含已迁移，但两处措辞不同，
-本阶段写验收时按代码的判据写。
+**这条依赖已经解除。**`Live` 只读原子标志，不探测依赖；`Ready` 要求配置校验完成、
+Telegram 通道建立，并且数据库在探测时可用。替换执行器按此顺序探测两个端点。
 
-自建 Bot API 这一侧已经就位：`internal/app/app.go:214` 接受 `TelegramAPIURL`
-并转给 `telego.WithAPIServer`；`internal/app/runtime.go:39` 是同一形状的第二处。
-本阶段只需把它接进部署。
+自建 Bot API 已接入容器部署：应用使用 `TELEGRAM_API_URL=http://bot-api:8081`，
+Bot API 容器从独立的 `bot-api.env` 读取上游必需凭据。应用代码继续把
+`TelegramAPIURL` 传给 `telego.WithAPIServer`。
 
 
 ### 阶段十 · 切换到生产
@@ -1175,11 +1164,7 @@ Catppuccin Mocha、Tokyo Night Storm、Tokyo Night。偏好屏原先欠着的「
 |---|---|
 | 申请人的应答要不要提前到动作之前 | **没有任何阶段排它，而且现在就能定。** 它原先挂在阶段七，那只是因为阶段七当时在进行中 —— 控制台的屏一个都不产生这个答案，产生它的是机器人那侧的应答次序。前提已经具备：阶段三第三片之后动作与状态转换同事务落库、由执行器重试，所以「先应答再执行动作」不再有撒谎的风险。剩下的是一个文案取舍，要维护者点头：应答说的会是「已判定通过」而不是「已经进群了」 |
 | 四屏欠的六条职责 | **四条已定 2026-09-02，归阶段十一**：强调色改为整套主题、拥有者绑定（唯一）、控制群、试答。**两条仍待决**：题库的内置模板、偏好的标题图标 | 实测：把设计文档「各屏职责」表里每屏的特征词拿去比三份语言目录（控制台文案检查保证凡是屏上能看见的字都在目录里），四屏存在缺口：**题库**缺「试答」与「内置模板」，**偏好**缺「强调色」与「标题图标」，**群与频道**缺「拥有者绑定」，**管理与处罚**缺「控制群」。逐个打开确认过不是换了说法：题库屏 18 个文案键里没有任何试答入口，群与频道屏 14 个键里没有拥有者。其中「试答」还被阶段三的「必须保住的行为」写成了要保住的既有行为，而**上一代根本没有 HTTP 服务**（`grep -rln 'http.Server\|ListenAndServe' ~/code/refs/gentoo-zh-verify-bot` 为空），控制台试答是新功能不是遗产 —— 这与清点表里那次「新功能被写进搬移表」是同一个错。要么补做，要么从设计文档里去掉；两种都要维护者点头 |
-| 路由表与实现的差异要不要收敛 | 阶段九与阶段十 | 实测，单位是**表格行**（一行可能写着两个方法）：架构文档第 11 节现在 26 行，16 行已实现、10 行没有。上一轮这里写的是 25/14/9，那是在同一个改动里把 `GET /api/process/settings` 加进表格**之前**数的，加完没有重数；「文档写的数量与实际结构一致」这条自己就栽在这上面，所以现在把单位写出来。10 行未实现的里，`POST /api/status/upgrade` 与 `GET · POST /setup/{token}` 属阶段九（**已认领**，见该节：安装脚本依赖它才能不碰令牌），`GET /verify/{token}` 属阶段十；维护者问过这七行是不是上一代的功能，逐条核过 refs：**只有 `feeds` 是**
-（`~/code/refs/gentoo-zh-verify-bot/internal/feed/feed.go` 与 `FeedConfig` 的
-Bugs/News/Interval 都在，只是靠配置文件），`packages` 指的是设计文档第 09 节那个
-「配置包」、不是 `/pkg` 查询命令，其余五行上一代都没有。`rules/test` 已归阶段十一。
-七行是：`GET /api/chats/{id}/overview`、`GET /api/chats/{id}/packages`、`POST /api/chats/{id}/packages`、`GET · PATCH /api/me/preferences`、`GET · PUT /api/chats/{id}/feeds`、`PATCH /api/chats/{id}`、`POST /api/chats/{id}/rules/test`。要么补进某一阶段，要么从路由表里去掉。这份清单由 `scripts/check-console-routes.py` 打印，不是手数的 |
+| 路由表与实现的差异要不要收敛 | 阶段十与阶段十一 | 实测，单位是**表格行**（一行可能写着两个方法）：架构文档第 11 节现在 26 行，18 行已实现、8 行没有。`POST /api/status/upgrade` 已由阶段九的宿主替换机制实现；`GET /verify/{token}` 属阶段十。其余七行上一代都没有，`rules/test` 已归阶段十一。七行是：`GET /api/chats/{id}/overview`、`GET /api/chats/{id}/packages`、`POST /api/chats/{id}/packages`、`GET · PATCH /api/me/preferences`、`GET · PUT /api/chats/{id}/feeds`、`PATCH /api/chats/{id}`、`POST /api/chats/{id}/rules/test`。要么补进某一阶段，要么从路由表里去掉。这份清单由 `scripts/check-console-routes.py` 打印，不是手数的 |
 | ~~三种语言各自跑一遍全部屏，还是只跑最宽的那一种~~ **已定 2026-09-02：全部执行，但按频次分两档**，见阶段十一 | **没有任何阶段排它，因为阶段七已经完成，而它的验收自相矛盾。** 那一条写着「三种语言各自执行一遍全部屏」，紧接着描述实现的那段写着「实测最宽的那种语言下渲染」，两句隔了四行。代码是后者：`web/e2e/render-gate.spec.ts:164` 测完三种语言的宽度只选一种，之后每个单元都用它。两种代价：跑满三种语言，矩阵从 16 路由 × 2 宽度 × 3 主题变成三倍，只为抓「某一种语言下的几何问题恰好不在最宽那一种」；维持现状，则「某种语言缺一个键」这类问题靠别处 —— 本会话新加的 `scripts/check-locale-catalogues.py` 已经静态地对三份目录做键集与占位符对齐，它比渲染更早也更全。**倾向维持现状并把验收改成实际执行的那句**，但改验收条款是缩小承诺，要维护者点头 |
 | 结构信号什么时候写 | **已定 2026-09-02：补上，归阶段十一。** 原记录保留在下面：**没有任何阶段排它。** 它是架构文档里的一项新设计（按消息实体计分的反垃圾），两代代码里都不存在。原先这条写着「阶段二逼着定」，而阶段二是重新分包、不含新功能 —— 那一阶段做完了，这个问题从没被问出来。它要么单独排一段，要么就不做；在有人真需要那套计分之前，它停在这里 |
 

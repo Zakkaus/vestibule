@@ -45,6 +45,7 @@ type Config struct {
 	ProcessSettings ProcessSettingsService
 	Health          *status.Health
 	Persistence     PersistenceService
+	Replacement     ReplacementService
 	Setup           SetupService
 	SetupClaimed    func()
 }
@@ -58,6 +59,7 @@ type Server struct {
 	processSettings ProcessSettingsService
 	health          *status.Health
 	persistence     PersistenceService
+	replacement     ReplacementService
 	setup           SetupService
 	setupClaimed    func()
 	routes          atomic.Pointer[routeSet]
@@ -152,6 +154,8 @@ func (s *Server) apiRoute(writer http.ResponseWriter, request *http.Request) {
 		s.readProcessSettings(writer, request)
 	case request.Method == http.MethodGet && request.URL.Path == "/api/status":
 		s.readDiagnostics(writer, request)
+	case request.Method == http.MethodPost && request.URL.Path == "/api/status/upgrade":
+		s.requestUpgrade(writer, request)
 	case request.Method == http.MethodGet && request.URL.Path == "/api/chats":
 		s.chats(writer, request)
 	case strings.HasPrefix(request.URL.Path, "/api/chats/"):

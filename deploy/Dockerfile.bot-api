@@ -1,0 +1,19 @@
+FROM alpine:3.22 AS build
+
+ARG TELEGRAM_BOT_API_REF=e3e9dd8e5b3d7ab8537cd5a10dc31d5ffa8f82d1
+RUN apk add --no-cache build-base cmake git gperf linux-headers openssl-dev zlib-dev
+RUN git clone --recursive https://github.com/tdlib/telegram-bot-api.git /src \
+ && git -C /src checkout "$TELEGRAM_BOT_API_REF" \
+ && git -C /src submodule update --init --recursive \
+ && cmake -S /src -B /build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/telegram-bot-api \
+ && cmake --build /build --target install --parallel
+
+FROM alpine:3.22
+RUN apk add --no-cache ca-certificates libstdc++ openssl zlib \
+ && addgroup -S -g 65532 vestibule \
+ && adduser -S -D -H -u 65532 -G vestibule vestibule \
+ && install -d -o vestibule -g vestibule /var/lib/telegram-bot-api
+COPY --from=build /opt/telegram-bot-api/ /usr/local/
+USER vestibule:vestibule
+ENTRYPOINT ["/usr/local/bin/telegram-bot-api"]
+CMD ["--local", "--http-ip-address=0.0.0.0", "--http-port=8081", "--dir=/var/lib/telegram-bot-api"]

@@ -48,6 +48,8 @@ jobs:
         run: scripts/test-static-sqlite.sh
       - name: Native installer lifecycle works without root, network, or systemd
         run: scripts/test-install.sh
+      - name: Host replacement unit lifecycle works without root, Docker, or systemd
+        run: scripts/test-replacement.sh
       - name: Phase nine acceptance remains explicit about incomplete host paths
         run: scripts/accept-phase9.sh
 

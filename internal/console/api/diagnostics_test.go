@@ -150,8 +150,16 @@ func diagnosticsTestServer(
 	role auth.Role,
 	health *status.Health,
 	persistence PersistenceService,
+	replacements ...ReplacementService,
 ) (*Server, []*http.Cookie) {
 	t.Helper()
+	if len(replacements) > 1 {
+		t.Fatal("diagnosticsTestServer accepts at most one replacement service")
+	}
+	var replacement ReplacementService
+	if len(replacements) == 1 {
+		replacement = replacements[0]
+	}
 	now := time.Unix(1_800_000_000, 0)
 	manager, err := auth.New(auth.Config{
 		BotToken: apiTestToken,
@@ -181,7 +189,9 @@ func diagnosticsTestServer(
 	}
 	cookies := httptest.NewRecorder()
 	manager.SetCookies(cookies, grant)
-	return New(Config{Authenticator: manager, Health: health, Persistence: persistence}), cookies.Result().Cookies()
+	return New(Config{
+		Authenticator: manager, Health: health, Persistence: persistence, Replacement: replacement,
+	}), cookies.Result().Cookies()
 }
 
 func diagnosticsRequest(server *Server, cookies []*http.Cookie, method string) *httptest.ResponseRecorder {
@@ -209,7 +219,7 @@ func assertDiagnosticsWireShape(t *testing.T, response *httptest.ResponseRecorde
 	if err := json.Unmarshal(response.Body.Bytes(), &root); err != nil {
 		t.Fatal(err)
 	}
-	if len(root) != 3 || root["health"] == nil || root["bot_api"] == nil || root["persistence"] == nil {
-		t.Fatalf("diagnostics JSON root = %s, want direct health, bot_api, persistence fields", response.Body.Bytes())
+	if len(root) != 4 || root["health"] == nil || root["bot_api"] == nil || root["persistence"] == nil || root["replacement"] == nil {
+		t.Fatalf("diagnostics JSON root = %s, want health, bot_api, persistence, and replacement fields", response.Body.Bytes())
 	}
 }

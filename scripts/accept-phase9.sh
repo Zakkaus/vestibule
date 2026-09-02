@@ -47,16 +47,16 @@ run_then_exempt() {
 
 # 1. One command starts the complete application, database, and self-hosted Bot API stack.
 run_then_exempt "one command starts the complete three-component stack" \
-	"the native five-action lifecycle runs in an isolated root; the container and self-hosted Bot API path belongs to the next phase-nine slice (PLAN-v5.md, '容器是默认部署方式')" \
-	scripts/test-install.sh --case lifecycle
+	"Telegram Bot API requires TELEGRAM_API_ID and TELEGRAM_API_HASH. The installer fails closed unless /etc/vestibule/bot-api.env already provides both; no approved credential-provisioning path exists, so a credential-free one-command stack is impossible." \
+	scripts/test-install.sh --case container
 
 # 2. Installed health checks pass.
-exempt "installed /livez and /readyz health checks pass" \
-	"the isolated systemctl adapter does not start a real process; this slice explicitly exempts health checks rather than treating adapter success as service health"
+run "installed /livez and /readyz health checks pass" \
+	scripts/test-replacement.sh --case health-endpoints
 
 # 3. A deliberately broken new binary automatically rolls back and records the result.
-exempt "broken replacement automatically rolls back and records why" \
-	"the host replacement unit and a real systemd rollback drill belong to the next phase-nine slice; this slice verifies explicit rollback only"
+run "broken replacement automatically rolls back and records why" \
+	scripts/test-replacement.sh --case automatic-rollback
 
 # 4. An incompatible schema blocks before the release binary is retrieved.
 run "schema incompatibility is reported before binary retrieval" \
@@ -64,7 +64,7 @@ run "schema incompatibility is reported before binary retrieval" \
 
 # 5. A clean machine can follow install.sh and open the printed address immediately.
 exempt "clean-machine install opens the printed address" \
-	"requires a disposable host plus the domain, certificate, container, and browser path still pending in phase nine; this worktree must not touch production"
+	"requires a disposable host, domain, certificate, browser path, and approved Bot API credential provisioning; this worktree must not touch production"
 
 [ "$fail" -eq 0 ] && echo "phase 9 acceptance: passed with exemptions" || echo "phase 9 acceptance: FAILED" >&2
 exit "$fail"

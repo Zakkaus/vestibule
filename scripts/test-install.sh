@@ -9,7 +9,7 @@ selected=all
 
 if [ "$#" -gt 0 ]; then
 	[ "$#" -eq 2 ] && [ "$1" = --case ] || {
-		echo "usage: test-install.sh [--case hardening|lifecycle|bot-env|failure-cleanup|rollback-preflight|checksums]" >&2
+		echo "usage: test-install.sh [--case hardening|lifecycle|container|container-credentials|bot-env|failure-cleanup|rollback-preflight|checksums]" >&2
 		exit 2
 	}
 	selected=$2
@@ -50,13 +50,23 @@ printf '%s\\n' '${tag}'
 EOF
 	chmod 755 "${release}/vestibule-linux-${arch}"
 	cp "$unit_under_test" "${release}/vestibule.service"
+	cp "$installer" "${release}/vestibule-install"
+	cp "${ROOT}/deploy/install-common.sh" "${release}/vestibule-install-common"
+	cp "${ROOT}/deploy/install-native.sh" "${release}/vestibule-install-native"
+	cp "${ROOT}/deploy/install-container.sh" "${release}/vestibule-install-container"
+	cp "${ROOT}/deploy/vestibule-replace" "${release}/vestibule-replace"
+	cp "${ROOT}/deploy/vestibule-replace.service" "${release}/vestibule-replace.service"
+	cp "${ROOT}/deploy/vestibule-replace.path" "${release}/vestibule-replace.path"
+	cp "${ROOT}/deploy/compose.yaml" "${release}/compose.yaml"
 	cat > "${release}/vestibule-schema-manifest" <<EOF
 target_schema_version=${target}
 minimum_rollback_schema_version=${minimum}
 EOF
 	(
 		cd "$release"
-		sha256sum "vestibule-linux-${arch}" vestibule.service vestibule-schema-manifest > SHA256SUMS
+		sha256sum "vestibule-linux-${arch}" vestibule.service vestibule-schema-manifest \
+			vestibule-install vestibule-install-common vestibule-install-native vestibule-install-container \
+			vestibule-replace vestibule-replace.service vestibule-replace.path compose.yaml > SHA256SUMS
 	)
 }
 
@@ -113,16 +123,34 @@ esac
 EOF
 chmod 755 "$fake_systemctl"
 
+fake_docker=${tmp}/docker
+cat > "$fake_docker" <<'EOF'
+#!/bin/sh
+set -eu
+printf '%s\n' "$*" >> "$DOCKER_LOG"
+case " $* " in
+	*' compose version '*) printf 'Docker Compose fixture\n' ;;
+	*' pull app bot-api database '*) ;;
+	*' up -d '*) ;;
+	*' ps '*) printf 'NAME STATUS\nvestibule-app running\n' ;;
+	*' down '*) ;;
+	*) echo "fake docker: unexpected command: $*" >&2; exit 64 ;;
+esac
+EOF
+chmod 755 "$fake_docker"
+
 new_sandbox() {
 	case_name=$1
 	sandbox=${tmp}/${case_name}
 	test_root=${sandbox}/root
 	fetch_log=${sandbox}/fetch.log
 	systemctl_log=${sandbox}/systemctl.log
+	docker_log=${sandbox}/docker.log
 	mkdir -p "${test_root}/usr/local/bin" "${test_root}/etc/systemd/system" \
 		"${test_root}/etc" "${test_root}/var/lib" "${sandbox}/tmp"
 	: > "$fetch_log"
 	: > "$systemctl_log"
+	: > "$docker_log"
 	fail_systemctl=
 }
 
@@ -135,7 +163,53 @@ run_installer() {
 	VESTIBULE_SYSTEMCTL=$fake_systemctl \
 	VESTIBULE_ROOT=$test_root \
 	TMPDIR=${sandbox}/tmp \
-		sh "$installer" "$@"
+		sh "$installer" --native "$@"
+}
+
+run_container_installer() {
+	FETCH_LOG=$fetch_log \
+	SYSTEMCTL_LOG=$systemctl_log \
+	DOCKER_LOG=$docker_log \
+	FAIL_SYSTEMCTL=$fail_systemctl \
+	FIXTURE_RELEASES=$fixtures \
+	VESTIBULE_FETCH=$fake_fetch \
+	VESTIBULE_SYSTEMCTL=$fake_systemctl \
+	VESTIBULE_DOCKER=$fake_docker \
+	VESTIBULE_ROOT=$test_root \
+	TMPDIR=${sandbox}/tmp \
+		sh "$installer" --container "$@"
+}
+
+run_managed_installer() {
+	FETCH_LOG=$fetch_log \
+	SYSTEMCTL_LOG=$systemctl_log \
+	DOCKER_LOG=$docker_log \
+	FAIL_SYSTEMCTL=$fail_systemctl \
+	FIXTURE_RELEASES=$fixtures \
+	VESTIBULE_FETCH=$fake_fetch \
+	VESTIBULE_SYSTEMCTL=$fake_systemctl \
+	VESTIBULE_DOCKER=$fake_docker \
+	VESTIBULE_ROOT=$test_root \
+	TMPDIR=${sandbox}/tmp \
+		sh "${test_root}/usr/local/libexec/vestibule-install" "$@"
+}
+
+run_managed_success() {
+	log=$1
+	shift
+	if ! run_managed_installer "$@" > "$log" 2>&1; then
+		sed 's/^/    /' "$log" >&2
+		fail "installed helper command failed: $*"
+	fi
+}
+
+run_container_success() {
+	log=$1
+	shift
+	if ! run_container_installer "$@" > "$log" 2>&1; then
+		sed 's/^/    /' "$log" >&2
+		fail "container installer command failed: $*"
+	fi
 }
 
 run_success() {
@@ -201,6 +275,10 @@ case_lifecycle() {
 	result=${test_root}/etc/vestibule/install-result.env
 	claim=${test_root}/var/lib/vestibule/claim.json
 	bot_env=${test_root}/etc/vestibule/bot.env
+	replacement_runner=${test_root}/usr/local/libexec/vestibule-replace
+	replacement_service=${test_root}/etc/systemd/system/vestibule-replace.service
+	replacement_path=${test_root}/etc/systemd/system/vestibule-replace.path
+	replacement_state=${test_root}/var/lib/vestibule/replacement-unit.env
 	assert_same "${fixtures}/v1.0.0/vestibule-linux-${arch}" "$installed_binary"
 	assert_same "$unit_under_test" "$installed_unit"
 	assert_file "$bot_env"
@@ -208,6 +286,14 @@ case_lifecycle() {
 	assert_mode "$claim" 600
 	assert_mode "$result" 600
 	assert_line 'operation=install' "$result"
+	assert_file "$replacement_runner"
+	assert_file "$replacement_service"
+	assert_file "$replacement_path"
+	assert_mode "$replacement_state" 600
+	assert_line 'available=yes' "$replacement_state"
+	run_managed_success "${sandbox}/managed-status.out" --status
+	assert_line 'installed=yes' "${sandbox}/managed-status.out"
+	assert_line 'deployment=native-systemd' "${sandbox}/managed-status.out"
 	assert_absent "${test_root}/etc/vestibule/setup.env"
 	claim_url=$(sed -n 's/^claim_url=//p' "$result")
 	case $claim_url in http://127.0.0.1:8080/setup/[0-9a-f][0-9a-f]*) ;; *) fail "result has no claim URL: $claim_url" ;; esac
@@ -239,6 +325,7 @@ case_lifecycle() {
 	assert_line 'installed=yes' "${sandbox}/status.out"
 	assert_line 'version=v2.0.0' "${sandbox}/status.out"
 	assert_line 'service_active=active' "${sandbox}/status.out"
+	assert_line 'replacement_unit=available' "${sandbox}/status.out"
 
 	run_success "${sandbox}/rollback.out" --rollback
 	assert_same "${fixtures}/v1.0.0/vestibule-linux-${arch}" "$installed_binary"
@@ -248,11 +335,78 @@ case_lifecycle() {
 	run_success "${sandbox}/uninstall.out" --uninstall --keep-data
 	assert_absent "$installed_binary"
 	assert_absent "$installed_unit"
+	assert_absent "$replacement_runner"
+	assert_absent "$replacement_service"
+	assert_absent "$replacement_path"
+	assert_absent "$replacement_state"
 	assert_file "$bot_env"
 	assert_file "$claim"
 	assert_file "${test_root}/var/lib/vestibule/database.keep"
 	assert_line 'operation=uninstall' "$result"
 	pass "install, same-command upgrade, status, rollback, and uninstall"
+}
+
+case_container() {
+	new_sandbox container
+	mkdir -p "${test_root}/etc/vestibule"
+	cat > "${test_root}/etc/vestibule/bot-api.env" <<'EOF'
+TELEGRAM_API_ID=12345
+TELEGRAM_API_HASH=abcdef
+EOF
+	run_container_success "${sandbox}/install.out" v1.0.0
+	result=${test_root}/etc/vestibule/install-result.env
+	container_env=${test_root}/etc/vestibule/container.env
+	replacement_state=${test_root}/var/lib/vestibule/replacement-unit.env
+	assert_file "${test_root}/etc/vestibule/compose.yaml"
+	assert_file "$container_env"
+	assert_file "${test_root}/etc/vestibule/deployment.env"
+	assert_file "${test_root}/usr/local/libexec/vestibule-replace"
+	assert_file "${test_root}/etc/systemd/system/vestibule-replace.path"
+	assert_mode "$container_env" 600
+	assert_mode "$result" 600
+	assert_mode "$replacement_state" 600
+	assert_line 'deployment=container' "$result"
+	assert_line 'available=yes' "$replacement_state"
+	assert_line 'VESTIBULE_APP_IMAGE=ghcr.io/zakkaus/vestibule:v1.0.0' "$container_env"
+	run_managed_success "${sandbox}/managed-status.out" --status
+	assert_line 'installed=yes' "${sandbox}/managed-status.out"
+	assert_line 'deployment=container' "${sandbox}/managed-status.out"
+	database_uri_before=$(sed -n 's/^VESTIBULE_DATABASE_URI=//p' "$container_env")
+	: > "$fetch_log"
+	run_container_success "${sandbox}/upgrade.out" v2.0.0
+	assert_line 'VESTIBULE_APP_IMAGE=ghcr.io/zakkaus/vestibule:v2.0.0' "$container_env"
+	assert_line "VESTIBULE_DATABASE_URI=${database_uri_before}" "$container_env"
+	assert_line 'operation=upgrade' "$result"
+	run_container_success "${sandbox}/status.out" --status
+	assert_line 'installed=yes' "${sandbox}/status.out"
+	assert_line 'deployment=container' "${sandbox}/status.out"
+	assert_line 'replacement_unit=available' "${sandbox}/status.out"
+	run_container_success "${sandbox}/rollback.out" --rollback
+	assert_line 'VESTIBULE_APP_IMAGE=ghcr.io/zakkaus/vestibule:v1.0.0' "$container_env"
+	assert_line 'operation=rollback' "$result"
+	run_container_success "${sandbox}/uninstall.out" --uninstall --keep-data
+	assert_absent "${test_root}/etc/vestibule/compose.yaml"
+	assert_absent "$container_env"
+	assert_absent "${test_root}/etc/vestibule/deployment.env"
+	assert_absent "$replacement_state"
+	assert_file "${test_root}/etc/vestibule/bot.env"
+	assert_file "${test_root}/etc/vestibule/bot-api.env"
+	grep -Fq ' pull app bot-api database' "$docker_log" || fail "container install did not pull all three components"
+	pass "container install, upgrade, status, rollback, and uninstall preserve credentials"
+}
+
+case_container_requires_bot_api_credentials() {
+	new_sandbox container-credentials
+	if run_container_installer v1.0.0 > "${sandbox}/credentials.out" 2>&1; then
+		fail "container installation unexpectedly accepted missing Bot API credentials"
+	fi
+	grep -Fq 'container deployment requires' "${sandbox}/credentials.out" ||
+		fail "missing Bot API credentials did not explain the prerequisite"
+	[ ! -s "$fetch_log" ] || fail "missing Bot API credentials reached release download"
+	if grep -Eq ' pull | up -d ' "$docker_log"; then
+		fail "missing Bot API credentials started a container"
+	fi
+	pass "container deployment fails closed without Bot API credentials"
 }
 
 case_bot_env() {
@@ -330,6 +484,8 @@ run_case() {
 	case $1 in
 		hardening) case_hardening ;;
 		lifecycle) case_lifecycle ;;
+		container) case_container ;;
+		container-credentials) case_container_requires_bot_api_credentials ;;
 		bot-env) case_bot_env ;;
 		failure-cleanup) case_failure_cleanup ;;
 		rollback-preflight) case_rollback_preflight ;;
@@ -339,7 +495,7 @@ run_case() {
 }
 
 if [ "$selected" = all ]; then
-	for test_case in hardening lifecycle bot-env failure-cleanup rollback-preflight checksums; do
+	for test_case in hardening lifecycle container container-credentials bot-env failure-cleanup rollback-preflight checksums; do
 		run_case "$test_case"
 	done
 else

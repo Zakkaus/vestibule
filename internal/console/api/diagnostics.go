@@ -19,6 +19,7 @@ type diagnosticsResponse struct {
 	Health      diagnosticsHealthResponse      `json:"health"`
 	BotAPI      diagnosticsBotAPIResponse      `json:"bot_api"`
 	Persistence diagnosticsPersistenceResponse `json:"persistence"`
+	Replacement diagnosticsReplacementResponse `json:"replacement"`
 }
 
 type diagnosticsHealthResponse struct {
@@ -40,6 +41,17 @@ type diagnosticsPersistenceResponse struct {
 	LastError  *string `json:"last_error"`
 }
 
+type diagnosticsReplacementResponse struct {
+	UnitAvailable bool                              `json:"unit_available"`
+	LastResult    *diagnosticsReplacementResultView `json:"last_result"`
+}
+
+type diagnosticsReplacementResultView struct {
+	Status           string `json:"status"`
+	RequestedVersion string `json:"requested_version"`
+	Reason           string `json:"reason"`
+}
+
 func (s *Server) readDiagnostics(writer http.ResponseWriter, request *http.Request) {
 	session, ok := s.session(writer, request)
 	if !ok {
@@ -56,13 +68,18 @@ func (s *Server) readDiagnostics(writer http.ResponseWriter, request *http.Reque
 	ctx, cancel := context.WithTimeout(request.Context(), healthProbeTimeout)
 	defer cancel()
 	health := s.health.Snapshot()
-	writeJSON(writer, http.StatusOK, diagnosticsView(health, s.health.Ready(ctx), s.persistence.Persistence()))
+	replacement := status.ReplacementStatus{}
+	if s.replacement != nil {
+		replacement = s.replacement.Status()
+	}
+	writeJSON(writer, http.StatusOK, diagnosticsView(health, s.health.Ready(ctx), s.persistence.Persistence(), replacement))
 }
 
 func diagnosticsView(
 	health status.HealthSnapshot,
 	ready bool,
 	persistence settings.PersistenceStatus,
+	replacement status.ReplacementStatus,
 ) diagnosticsResponse {
 	response := diagnosticsResponse{
 		Health: diagnosticsHealthResponse{
@@ -74,6 +91,9 @@ func diagnosticsView(
 			Durable:    persistence.Durable,
 			Writable:   persistence.Writable,
 		},
+		Replacement: diagnosticsReplacementResponse{
+			UnitAvailable: replacement.UnitAvailable,
+		},
 	}
 	if probe := health.TelegramProbe; probe != nil {
 		at := probe.At.UTC()
@@ -84,6 +104,13 @@ func diagnosticsView(
 	if persistence.LastError != nil {
 		lastError := status.RedactToken(persistence.LastError.Error())
 		response.Persistence.LastError = &lastError
+	}
+	if result := replacement.LastResult; result != nil {
+		response.Replacement.LastResult = &diagnosticsReplacementResultView{
+			Status:           result.Status,
+			RequestedVersion: result.RequestedVersion,
+			Reason:           result.Reason,
+		}
 	}
 	return response
 }
