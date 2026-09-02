@@ -125,7 +125,7 @@
 | 五 | `v5/console-api` | 接口契约、`internal/console`、Mini App 认证与授权 | 完成 |
 | 六 | `v5/console-*` | 前端骨架与一条通路：进入、选群、看队列、放行一个人。按屏分片，见该节 | 完成 |
 | 七 | `v5/console-screens` | 其余各屏 | 完成 |
-| 八 | `v5/multitenant` | 去掉全局默认，配置按群隔离 | 进行中 |
+| 八 | `v5/multitenant` | 去掉全局默认，配置按群隔离 | 完成 |
 | 九 | `v5/deploy` | 一次部署、健康检查、失败自动回退 | 未开始 |
 | 十 | `v5/cutover` | 从上一代迁移、并行观察、随时可退回 | 未开始 |
 
