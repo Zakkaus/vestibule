@@ -1,4 +1,4 @@
--- v0 -> v1: Latest revision
+-- v0 -> v1: Latest revision [incompatible: v0 has no database schema]
 CREATE TABLE chat (
     id       BIGINT PRIMARY KEY,
     title    TEXT   NOT NULL,
