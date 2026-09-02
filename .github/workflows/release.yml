@@ -32,6 +32,7 @@ jobs:
           python3 scripts/check-one-clock.py
           python3 scripts/check-one-transport.py
           python3 scripts/check-links-resolve.py
+          python3 scripts/check-log-privacy.py
           python3 scripts/check-migration-declarations.py migrations
           python3 scripts/check-schema-manifest.py deploy/vestibule-schema-manifest
           python3 scripts/check-console-routes.py
