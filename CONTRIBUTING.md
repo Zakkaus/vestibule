@@ -161,11 +161,12 @@ safe default is indistinguishable from a forgotten declaration without it.
 
 ## Before opening a PR
 
-CI runs these. The release workflow runs the Go half of them before publishing binaries —
-not the frontend or document checks, which do not bear on a Go binary, and not the baseline
-ratchet, which compares a branch against its base and has nothing to compare on a tag. Run
-them locally first. **Clear the build and type caches first**: a stale cache turns a red gate
-green locally.
+CI runs these. The release workflow runs the Go half plus phase-acceptance
+coverage before publishing binaries. It skips frontend and document checks that
+do not bear on a Go binary, and the baseline ratchet, which compares a branch
+against its base and has nothing to compare on a tag. Run them locally first.
+**Clear the build and type caches first**: a stale cache turns a red gate green
+locally.
 
 ```sh
 gofmt -l .                       # must print nothing
@@ -188,6 +189,7 @@ python3 scripts/check-privacy-tables.py   # docs/PRIVACY.md names every table ho
 python3 scripts/check-migration-declarations.py migrations  # every migration declares rollback compatibility
 python3 scripts/check-phase-seams.py     # no screen reaches for a later phase's endpoints
 
+python3 scripts/check-phase-acceptance.py  # every completed plan phase has acceptance coverage
 # The vendored copies must stay byte-identical to the design system they came
 # from. That is two questions and they need two gates.
 #
@@ -238,13 +240,18 @@ violations, delete their rows from `scripts/baseline.txt`, and lower
 the acceptance script refuses while any remain, so none of the three can be
 skipped quietly.
 
-A phase's acceptance is a script, not a paragraph. `scripts/accept-phase1.sh` is phase
-one's, clause by clause in the plan's own order. The count of baselined violations it
-compares against lives in `scripts/held.txt` and is a ratchet: the check fails when the
-number rises **and** when it falls without the file being lowered to match, so progress
-is recorded rather than left as headroom to creep back into. Read as prose it proved nothing; as a
-script it refuses an empty package, a platform type in the core, and a rise in the
-number of baselined violations the phase-zero gate is holding.
+A completed phase's acceptance is a script, not a paragraph. Its script is
+`scripts/accept-phase<phase-number>.sh`, and it prints the plan's clauses in
+order. An `EXEMPT` line names a clause that cannot run
+mechanically and why; it never reads as a pass.
+`scripts/check-phase-acceptance.py` refuses a plan whose completed phase has
+neither that script nor a written phase-level exemption. Phase one's script
+still compares the baselined-violation count in `scripts/held.txt` as a ratchet:
+the check fails when the number rises **and** when it falls without the file
+being lowered to match, so progress is recorded rather than left as headroom to
+creep back into. Read as prose it proved nothing; as a script phase one refuses
+an empty package, a platform type in the core, and a rise in the number of
+baselined violations the phase-zero gate is holding.
 
 Chinese documents and user-visible copy go through the prose checker — `docs/`,
 `web/design.html` and `web/architecture.html`. CI runs it as the `Zakk-LLM/Chinese-skill`
@@ -338,8 +345,9 @@ Merge a phase branch into `main` when all three of these hold, and say in the
 report that they did:
 
 1. The gate above passes, with caches cleared.
-2. The phase's acceptance script passes — `scripts/accept-phase1.sh` for phase
-   one, and its equivalent for later phases.
+2. The numbered acceptance script for that phase passes —
+   `scripts/accept-phase<phase-number>.sh`. Its `EXEMPT` lines name every
+   non-mechanical clause and the reason it cannot run as a script.
 3. Every check added on that branch was driven red, and the report names the
    deliberate break that made it fail.
 
