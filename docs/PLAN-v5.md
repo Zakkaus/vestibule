@@ -521,9 +521,9 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 #### 落地之后要补的另一件：运维进来之后写不了
 
 `GET /enter/{token}` 只写 HttpOnly 会话 Cookie 然后 `303` 回首页
-（`internal/console/api/server.go:191-197`），而 CSRF token 只在
-`POST /api/session` 的 JSON 响应里出现（`:387-400`）；结算又严格要求
-`X-CSRF-Token`（`internal/console/auth/manager.go:277-283`）。
+（`internal/console/api/server.go:223-239`），而 CSRF token 只在
+`POST /api/session` 的 JSON 响应里出现（`:494-498`）；结算又严格要求
+`X-CSRF-Token`（`internal/console/auth/manager.go:291-297`）。
 
 于是**运维走一次性链接进来，能读群和队列，但任何写入都做不了** ——
 没有任何端点能让浏览器取回当前会话的 CSRF token。
@@ -1045,8 +1045,10 @@ schema 里凡是带 `user_id` 或 `chat_id` 的表，两种语言的说明都必
 
 设计书「各屏职责」把等待队列写成「正在等待的申请，放行、拒绝、封禁」，
 把撤销写在操作记录那一行，和「谁改了什么、每次判定的来龙去脉」并列。
-而 `web/src/features/queue/fixtures.ts:65` 给 `banned` 挂了一个 `revoke` 动作 ——
-那是照 fixtures 建屏时留下的，没有任何端点对着它。
+当时 `web/src/features/queue/fixtures.ts` 给 `banned` 挂了一个 `revoke` 动作 ——
+那是照 fixtures 建屏时留下的，没有任何端点对着它。**已删除**：那个 fixture 里
+现在没有 `revoke`，`scripts/check-phase-seams.py` 会拒绝队列功能再次写出
+`/audit` 或 `revoke`，所以这一段是判据的记录，不是待办。
 
 上一代给出了这样分屏的理由，写在 `internal/verify/service.go:733-735`：
 
