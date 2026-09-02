@@ -9,6 +9,7 @@ import (
 
 	"github.com/Zakkaus/vestibule/internal/settings"
 
+	"github.com/Zakkaus/vestibule/migrations"
 	"go.mau.fi/util/dbutil"
 )
 
@@ -37,6 +38,68 @@ func TestOpenMigratesSQLite(t *testing.T) {
 		if !exists {
 			t.Errorf("migration did not create %s", table)
 		}
+	}
+}
+
+const (
+	settingsMigrationExistingChatID int64 = -1009000000931
+	settingsMigrationNewChatID      int64 = -1009000000932
+)
+
+func TestSettingsRevisionMigrationAllowsSchemaV1Rollback(t *testing.T) {
+	ctx := context.Background()
+	cfg := testSQLiteConfig(t)
+	legacy := openWithUpgradeTable(t, ctx, cfg, migrations.Table[:1])
+	insertSchemaV1Chat(t, ctx, legacy, settingsMigrationExistingChatID)
+	if err := legacy.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	current, err := Open(ctx, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertSchemaV1ChatDefaults(t, ctx, current.Database, settingsMigrationExistingChatID)
+	if err = current.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	rolledBack := openWithUpgradeTable(t, ctx, cfg, migrations.Table[:1])
+	t.Cleanup(func() { _ = rolledBack.Close() })
+	insertSchemaV1Chat(t, ctx, rolledBack, settingsMigrationNewChatID)
+	assertSchemaV1ChatDefaults(t, ctx, rolledBack, settingsMigrationNewChatID)
+}
+
+func openWithUpgradeTable(t *testing.T, ctx context.Context, cfg Config, upgrades dbutil.UpgradeTable) *dbutil.Database {
+	t.Helper()
+	handle, err := dbutil.NewWithDialect(cfg.URI, cfg.Type)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handle.UpgradeTable = upgrades
+	if err = handle.Upgrade(ctx); err != nil {
+		_ = handle.Close()
+		t.Fatal(err)
+	}
+	return handle
+}
+
+func insertSchemaV1Chat(t *testing.T, ctx context.Context, db *dbutil.Database, chatID int64) {
+	t.Helper()
+	if _, err := db.Exec(ctx, "INSERT INTO chat (id, title) VALUES ($1, '') ON CONFLICT (id) DO NOTHING", chatID); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func assertSchemaV1ChatDefaults(t *testing.T, ctx context.Context, db *dbutil.Database, chatID int64) {
+	t.Helper()
+	var settings string
+	var revision int64
+	if err := db.QueryRow(ctx, "SELECT settings, settings_revision FROM chat WHERE id=$1", chatID).Scan(&settings, &revision); err != nil {
+		t.Fatal(err)
+	}
+	if settings != "{}" || revision != 0 {
+		t.Fatalf("schema-v1 chat defaults = settings:%q revision:%d, want {} and 0", settings, revision)
 	}
 }
 

@@ -152,6 +152,13 @@ what it replaces is taking it by accident.
 To remove it:
 `gh api -X DELETE repos/Zakkaus/vestibule/branches/main/protection`
 
+### Migration rollback declarations
+
+Every `migrations/*.sql` header must state whether an earlier binary can start on
+its result. Use dbutil's `(compatible with vN+)` clause when it can; otherwise append
+`[incompatible: reason]` to the header message. The reason is required because dbutil's
+safe default is indistinguishable from a forgotten declaration without it.
+
 ## Before opening a PR
 
 CI runs these. The release workflow runs the Go half of them before publishing binaries —
@@ -178,6 +185,7 @@ python3 scripts/check-gate-list.py   # this list names every gate CI runs
 python3 scripts/check-limits.py      # the limits stated here are the ones lint.go enforces
 python3 scripts/check-console-copy.py  # no user-facing text written into a component
 python3 scripts/check-privacy-tables.py   # docs/PRIVACY.md names every table holding a person
+python3 scripts/check-migration-declarations.py migrations  # every migration declares rollback compatibility
 python3 scripts/check-phase-seams.py     # no screen reaches for a later phase's endpoints
 
 # The vendored copies must stay byte-identical to the design system they came
