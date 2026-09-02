@@ -20,12 +20,12 @@ const sourceMessageKeys: Readonly<Record<SettingSource, string>> = {
 };
 
 const errorMessageKeys: Readonly<Record<string, string>> = {
-  authentication_required: "moderation.errors.authenticationRequired",
-  session_expired: "moderation.errors.authenticationExpired",
+  authentication_expired: "moderation.errors.authenticationExpired",
+  authentication_invalid: "moderation.errors.authenticationInvalid",
   chat_access_denied: "moderation.errors.accessDenied",
   chat_access_unavailable: "moderation.errors.accessUnavailable",
   chat_not_found: "moderation.errors.chatNotFound",
-  csrf_invalid: "moderation.errors.authenticationExpired",
+  csrf_invalid: "moderation.errors.csrfInvalid",
   invalid_settings: "moderation.errors.invalidSettings",
   settings_unavailable: "moderation.errors.settingsUnavailable"
 };

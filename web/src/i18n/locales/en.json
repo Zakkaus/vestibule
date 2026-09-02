@@ -316,7 +316,8 @@
       "conflict": "Someone else changed these settings. Reload before saving again."
     },
     "errors": {
-      "authenticationRequired": "The console session is invalid. Reopen the console from Telegram.",
+      "authenticationInvalid": "The console session is invalid. Reopen the console from Telegram.",
+      "csrfInvalid": "This page's security token has expired. Refresh the page before trying again.",
       "authenticationExpired": "The session has expired. Reopen the console from Telegram.",
       "accessDenied": "You no longer administer this group.",
       "accessUnavailable": "Your administration access cannot be verified right now. Try again.",
