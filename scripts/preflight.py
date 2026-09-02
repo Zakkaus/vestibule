@@ -53,6 +53,24 @@ def check_citations(spec: str, worktree: Path) -> list[Path]:
                 # where. Two prompts this round wrote `server.go:274` after
                 # naming the full path once, which reads fine and cannot be
                 # checked.
+                #
+                # A file that actually lives at the repository root has no
+                # directory to give. Refusing those made the rule fire on
+                # `CONTRIBUTING.md:233`, which is exactly as checkable as any
+                # other citation: the rule is "unresolvable", not "has no
+                # slash".
+                if start and (worktree / path_text).is_file():
+                    path = worktree / path_text
+                    cited.append(path)
+                    lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
+                    number = int(start)
+                    if number > len(lines):
+                        failures.append("%s:%d is past the end of the file (%d lines)"
+                                        % (path_text, number, len(lines)))
+                    elif not lines[number - 1].strip(" \t{}()[];,"):
+                        failures.append("%s:%d is blank or only punctuation — the "
+                                        "line moved" % (path_text, number))
+                    continue
                 if start:
                     failures.append("%s:%s cites a line without a path — write the "
                                     "full path so it can be checked" % (path_text, start))
