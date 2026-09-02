@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"strings"
-	"time"
 
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/rules"
@@ -356,7 +355,7 @@ func (v *Service) gradeKernelAnswer(c context.Context, bot Gateway, gid, uid int
 		if saysNoLinux(text) || mentionsOtherOS(text) {
 			// The current minute proves the advertised escape is not a canned reply.
 			// One malformed attempt gets a free format reminder.
-			if !rules.MinuteProof(text, time.Now()) {
+			if !rules.MinuteProof(text, v.wallNow()) {
 				if v.markNoLinuxReminded(gid, uid, nonce) {
 					_, _ = sendHTML(c, bot, uid, challenge.NoLinuxRetry.For(ul), nil)
 					return
