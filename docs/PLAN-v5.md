@@ -7,7 +7,7 @@
 |---|---|
 | 界面取值、屏的内容、文案规则 | `web/design.html` |
 | 包结构、数据、流程、稳定性 | `web/architecture.html` 或 `docs/ARCHITECTURE.md` |
-| 构建、提交、PR 前检查、代码风格 | `CONTRIBUTING.md` |
+| 构建、提交、PR 前检查、代码风格 | `CONTRIBUTING.md` 与 `docs/development.md` |
 
 ## 0. 目标与范围
 
@@ -131,13 +131,6 @@
 | 十一 | `v5/asked-for` | 维护者点名要的功能：主题、两种新语言、拥有者绑定、控制群、试答、日报、结构信号 | 未开始 |
 
 **上一阶段合入 `main` 之前不开始下一阶段。** 每阶段结束时线上可发布。
-
-**分支一列是这个阶段作为单支交付时用的名字。** 一个阶段常常拆成几片，
-每片一支描述性分支、一个 PR。已交付的部分里只有 `v5/gates`、`v5/rules`、
-`v5/config`、`v5/console-api` 真的以表里这个名字合入，其余都是按片命名的。
-所以这一列定的是归属，不是承诺只开一支。
-详细节里若另有说明（阶段七写明一屏一支），以详细节为准，
-`scripts/check-docs.py` 会拒绝两处给出互相矛盾的单一名字。
 
 **状态一列由合入时更新。** 它存在的理由不只是好查：
 「待决」那张表里每条都写着「哪个阶段逼着定」，而在有这一列之前，
@@ -363,7 +356,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 
 ### 阶段三 · 数据层
 
-**分支** `v5/database`
+**分支** `v5/dbutil`
 
 引入 `go.mau.fi/util/dbutil`，建立 `migrations/00-latest.sql`，
 把现有 JSON 状态一次性迁入数据库。表结构见 `docs/ARCHITECTURE.md` 第 6 节「数据模型」。

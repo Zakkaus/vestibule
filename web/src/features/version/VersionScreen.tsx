@@ -99,9 +99,6 @@ function errorMessageKey(error: ApiRequestError, scope: "status" | "release" | "
     const keyByCode: Readonly<Record<string, string>> = {
       authentication_expired: "version.errors.authenticationExpired",
       authentication_invalid: "version.errors.authenticationInvalid",
-      csrf_invalid: "version.errors.csrfInvalid",
-      release_lookup_access_denied: "version.errors.accessDenied",
-      upgrade_access_denied: "version.errors.accessDenied",
       diagnostics_unavailable: "version.errors.statusUnavailable",
       release_lookup_unavailable: "version.errors.releaseUnavailable",
       upgrade_unavailable: "version.errors.upgradeUnavailable"

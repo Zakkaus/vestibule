@@ -29,9 +29,9 @@ instance* does is up to its operator, and section 4 is where they say so.
 
 ## 2. What it stores
 
-Every table below is in a checked schema migration, and this list is checked
-against all of them — `scripts/check-privacy-tables.py` fails if the schema grows
-a table holding a user or chat identifier and this document does not name it.
+Every table below is in `migrations/00-latest.sql`, and this list is checked
+against it — `scripts/check-privacy-tables.py` fails if the schema grows a table
+holding a user or chat identifier and this document does not name it.
 
 | Table | About whom | What it holds |
 |---|---|---|
@@ -41,7 +41,6 @@ a table holding a user or chat identifier and this document does not name it.
 | `warning_counter` | a member | user id, group id, how many warnings they hold |
 | `rule` | nobody directly | a group's questions, replies and filters — which can name people if an administrator writes them that way |
 | `pending_action` | an applicant or member | what the bot is about to do about one challenge and has not finished — the action, its retries, its last error. It names no user directly; it points at a `challenge`, whose id is `chat:user:nonce`, so the two identifiers are inside it |
-| `verification_observation` | an applicant or member for membership changes; nobody identifiable for other actions | the suppressed operation and timestamp. Approve, decline, ban, unban, mute, and unmute observations also hold the group and user ids. No observation holds message text, notification text, callback ids or answers, challenge answers, or Telegram message ids |
 
 Three tables hold no personal data: `agent_tally` counts self-reported model names
 from the challenge's tripwire, `verification_runtime` holds two numbers, and
@@ -60,9 +59,6 @@ read them in Telegram's secret chats at all.
 - **Warnings** last until they are cleared or the counter is bounded out.
 - When the bot is removed from a group, or an administrator deletes the group's
   data from the console, that group's records are erased.
-- **Observe-only membership observations** are erased with the group's records.
-  Identifier-free operation and timestamp rows remain as the cutover comparison
-  journal.
 
 An instance may keep less than this. It cannot keep more without changing the
 code.

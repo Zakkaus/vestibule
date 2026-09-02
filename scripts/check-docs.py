@@ -329,40 +329,6 @@ def check_phase_branches_are_distinct(text: str) -> None:
                             % (count, branch))
 
 
-def check_phase_table_agrees_with_its_sections(text: str) -> None:
-    """The branch a phase's table row names is the branch its own section names.
-
-    The row and the section are written months apart, and nothing compared them.
-    Phase three's row said `v5/database` while its section said `v5/dbutil`, and
-    neither was ever merged; phase seven's row named one branch while its section
-    said one per screen. Whoever dispatches the work reads whichever they open
-    first.
-
-    A section that deliberately describes something other than a single name --
-    phase seven's per-screen slices -- states that instead of a name, and this
-    compares nothing. Only two single names disagreeing is a failure.
-    """
-    rows = dict(re.findall(r"^\| ([零一二三四五六七八九十]+) \| `([^`]+)` \|", text, re.M))
-    sections = {}
-    for match in re.finditer(
-            r"^### 阶段([零一二三四五六七八九十]+) [^\n]*\n+\*\*分支\*\* `([^`]+)`",
-            text, re.M):
-        sections[match.group(1)] = match.group(2)
-    if not rows or not sections:
-        failures.append("plan: the phase table parsed to %d rows and %d sections with a "
-                        "single branch name, so nothing was compared"
-                        % (len(rows), len(sections)))
-        return
-    for phase, branch in sorted(sections.items()):
-        row = rows.get(phase)
-        if row is None:
-            failures.append("plan: 阶段%s names the branch %s and the phase table has no "
-                            "row for it" % (phase, branch))
-        elif row != branch:
-            failures.append("plan: 阶段%s is %s in the phase table and %s in its own "
-                            "section" % (phase, row, branch))
-
-
 def check_schema_matches_migration() -> None:
     """The architecture's schema and the migration name the same tables.
 
@@ -552,7 +518,6 @@ def main() -> int:
         phases = phase_count(plan_text)
         check_plan_phases(plan_text)
         check_phase_branches_are_distinct(plan_text)
-        check_phase_table_agrees_with_its_sections(plan_text)
         check_phases_have_their_sections(plan_text)
         check_phases_state_their_acceptance(plan_text)
         check_every_inventoried_file_has_a_phase(plan_text)

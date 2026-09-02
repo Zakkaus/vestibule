@@ -50,7 +50,6 @@ type Config struct {
 	Replacement          ReplacementService
 	Release              ReleaseService
 	Version              string
-	ObserveOnly          bool
 	Setup                SetupService
 	SetupClaimed         func()
 }
@@ -69,15 +68,16 @@ type Server struct {
 	replacement          ReplacementService
 	release              ReleaseService
 	version              string
-	observeOnly          bool
 	setup                SetupService
 	setupClaimed         func()
 	routes               atomic.Pointer[routeSet]
-	mu                   sync.Mutex
-	listener             net.Listener
-	httpServer           *http.Server
+
+	mu         sync.Mutex
+	listener   net.Listener
+	httpServer *http.Server
 }
 
+// Start opens the listener. It returns only after admission is available to the process.
 func (s *Server) Start(address string) error {
 	listener, err := net.Listen("tcp", address)
 	if err != nil {

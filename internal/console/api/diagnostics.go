@@ -28,7 +28,6 @@ type RollbackRejectionService interface {
 
 type diagnosticsResponse struct {
 	Version     string                         `json:"version"`
-	ObserveOnly bool                           `json:"observe_only"`
 	Health      diagnosticsHealthResponse      `json:"health"`
 	BotAPI      diagnosticsBotAPIResponse      `json:"bot_api"`
 	Persistence diagnosticsPersistenceResponse `json:"persistence"`
@@ -97,14 +96,13 @@ func (s *Server) readDiagnostics(writer http.ResponseWriter, request *http.Reque
 		writer,
 		http.StatusOK,
 		diagnosticsView(
-			s.version, s.observeOnly, health, s.health.Ready(ctx), s.persistence.Persistence(), replacement, rollback,
+			s.version, health, s.health.Ready(ctx), s.persistence.Persistence(), replacement, rollback,
 		),
 	)
 }
 
 func diagnosticsView(
 	version string,
-	observeOnly bool,
 	health status.HealthSnapshot,
 	ready bool,
 	persistence settings.PersistenceStatus,
@@ -112,8 +110,7 @@ func diagnosticsView(
 	rollback diagnosticsRollbackResponse,
 ) diagnosticsResponse {
 	response := diagnosticsResponse{
-		Version:     version,
-		ObserveOnly: observeOnly,
+		Version: version,
 		Health: diagnosticsHealthResponse{
 			Live: health.Live, Ready: ready,
 			ConfigReady: health.ConfigReady, TelegramReady: health.TelegramReady,
