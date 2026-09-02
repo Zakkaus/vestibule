@@ -24,6 +24,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 MUTATING = re.compile(r"http\.Method(Post|Put|Patch|Delete)")
+# Reading the method alone would miss a GET that changes state, and one exists on
+# purpose: GET /enter/{token} spends a one-time token and creates a session,
+# because a link in a chat can only be a GET. Naming it here puts it in the count
+# and forces it through ALLOWED with a reason, instead of leaving it invisible.
+# A GET added later still has to be noticed by a person and named here.
+MUTATING_GETS = {
+    "enter": "GET /enter/{token} in internal/console/api/server.go",
+}
 DISPATCH = re.compile(r"s\.([a-zA-Z][A-Za-z0-9]*)\(writer, request")
 # The method and the call are on different lines: one `case` naming the method,
 # then the handler on the lines that follow until the next case. Matching a
@@ -38,6 +46,13 @@ FUNCTION = re.compile(r"^func \(s \*Server\) ([A-Za-z][A-Za-z0-9]*)\(", re.M)
 AUTHORISES = re.compile(r"authorizedSession\([^)]*auth\.WriteAccess|"
                         r"Principal\.Role != auth\.RoleOperator|"
                         r"RedeemSetupToken|setupToken")
+# Presence was the wrong question. A handler that authorises on its last line
+# passes a search of its body and still touches the service first, so the check
+# now compares positions: the authorisation has to come before the first call
+# into a dependency. s.authorizedSession and s.authenticator are the machinery
+# doing the asking, so they are not what is being ordered against.
+SERVICE_CALL = re.compile(r"s\.(?!authorizedSession\b)(?!authenticator\b)"
+                          r"[a-z][A-Za-z0-9]*\.[A-Z][A-Za-z0-9]*\(")
 
 # handler -> why it does not take authorizedSession with WriteAccess.
 ALLOWED = {
@@ -45,6 +60,8 @@ ALLOWED = {
     "submitSetup": "gated by the one-time claim token in its path, and the route stops "
                    "being registered once the claim succeeds",
     "requestUpgrade": "instance-wide rather than per-group; checks the operator role and CSRF",
+    "enter": "spends the one-time link token, which is the authorisation; there is no "
+             "session to ask about until it succeeds",
 }
 
 
@@ -89,6 +106,13 @@ def main() -> int:
                     break
                 for handler in DISPATCH.findall(following):
                     mutating.setdefault(handler, (path, index + 1))
+    for handler, where in MUTATING_GETS.items():
+        if handler not in bodies:
+            print("FAIL check-mutations-authorise: %s is named as a state-changing GET "
+                  "and no such handler is defined; the route it stood for has moved"
+                  % handler)
+            return 1
+        mutating.setdefault(handler, (Path(where.split()[-1]), 0))
     if not mutating:
         print("FAIL check-mutations-authorise: no mutating dispatch was found — has "
               "the routing shape changed?")
@@ -104,9 +128,17 @@ def main() -> int:
                             "handler is defined here"
                             % (path.relative_to(ROOT), number, handler))
             continue
-        if not AUTHORISES.search(body):
+        authorised = AUTHORISES.search(body)
+        if not authorised:
             failures.append("%s:%d routes a mutating method to %s, which authorises "
                             "nothing" % (path.relative_to(ROOT), number, handler))
+            continue
+        touches = SERVICE_CALL.search(body)
+        if touches and touches.start() < authorised.start():
+            failures.append("%s:%d routes a mutating method to %s, which calls %s "
+                            "before it authorises anybody"
+                            % (path.relative_to(ROOT), number, handler,
+                               touches.group(0).rstrip("(")))
 
     if failures:
         print("FAIL check-mutations-authorise: something changes state without "
