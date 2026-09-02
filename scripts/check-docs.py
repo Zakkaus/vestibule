@@ -48,6 +48,12 @@ AUTHORITY = "What may happen without asking"
 CITED_LINE = re.compile(
     r"`([A-Za-z0-9_./-]+\.(?:go|ts|tsx|py|sh|md|html|json|ya?ml)):(\d+)(?:[\u2013-](\d+))?`")
 HISTORICAL = re.compile(r"上一代|原先|重写前|refs/|已删除")
+# A basename with line numbers reads like a citation and cannot be checked:
+# CITED_LINE will not match `state.go:283,102,816` at all, so it sat in the plan
+# unread while every other citation around it was verified. Silence is the worst
+# outcome here, because it is indistinguishable from passing.
+BARE_CITED = re.compile(
+    r"`([A-Za-z0-9_.-]+\.(?:go|ts|tsx|py|sh|md|html|json|ya?ml)):[\d,\u2013 -]*\d`")
 
 # The plan states how many screens are left. That number is the difference
 # between the design language's table and the routes that exist, and it went
@@ -342,6 +348,20 @@ def list_items(text: str) -> list[str]:
     return items
 
 
+def check_plan_citations_are_addressable(plan_text: str) -> None:
+    checked = 0
+    for line in plan_text.split("\n"):
+        if HISTORICAL.search(line):
+            continue
+        for name in BARE_CITED.findall(line):
+            checked += 1
+            failures.append("plan: cites %s with a line number and no path — "
+                            "write the full path so the line can be checked" % name)
+    if checked and not failures:
+        failures.append("plan: the bare-citation check counted hits but reported "
+                        "none, which means it is not wired to the failure list")
+
+
 def check_plan_citations_resolve(plan_text: str) -> None:
     checked = 0
     for line in plan_text.split("\n"):
@@ -354,11 +374,35 @@ def check_plan_citations_resolve(plan_text: str) -> None:
                 failures.append("plan: cites %s:%s and that file is not in the tree"
                                 % (path_text, start))
                 continue
-            total = len(path.read_text(encoding="utf-8", errors="replace").split("\n"))
+            lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
             highest = int(end or start)
-            if highest > total:
+            if highest > len(lines):
                 failures.append("plan: cites %s:%s-%s, and the file has %d lines"
-                                % (path_text, start, end or start, total))
+                                % (path_text, start, end or start, len(lines)))
+                continue
+            if end and line.lstrip().startswith("|"):
+                # The file-disposition tables partition a file between phases,
+                # so `1–472` and `473–1381` are boundaries chosen by arithmetic
+                # and land on whatever is there. Exempting every table row was
+                # too much: the first rewrite of this section put single-line
+                # citations in a table and they went unchecked, which is the
+                # same silence this check exists to remove. A range in a table
+                # is a partition; a single line anywhere is a claim.
+                continue
+            # Existing and in-range is not the same as still pointing at the
+            # thing. Two citations survived a phase each while landing on a
+            # closing brace and on an opening one: the code they described had
+            # moved, the file was still there, the line number was still in
+            # range, and this check said nothing. A line that is blank or only
+            # punctuation carries no claim, which is the cheap half of "did it
+            # move" that a script can answer.
+            # Only the first line of a citation makes a claim. A range says
+            # "from here through there", and its last line landing on a closing
+            # brace is what a range around a function looks like.
+            if not lines[int(start) - 1].strip(" \t{}()[];,"):
+                failures.append("plan: cites %s:%s, which is blank or only "
+                                "punctuation — the code it described moved"
+                                % (path_text, start))
     if checked == 0:
         failures.append("plan: no path:line citation was checked — has the "
                         "citation format changed?")
@@ -440,6 +484,7 @@ def main() -> int:
         check_every_inventoried_file_has_a_phase(plan_text)
         check_open_questions_have_a_future(plan_text)
         check_plan_citations_resolve(plan_text)
+        check_plan_citations_are_addressable(plan_text)
         check_remaining_screens(plan_text)
 
     check_schema_matches_migration()

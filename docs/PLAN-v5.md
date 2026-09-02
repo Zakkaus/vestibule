@@ -305,30 +305,34 @@ internal/app  verification  rules  telegram  console  settings  database  status
 - 归一化后仍能识别规避写法。结构信号不在本阶段的「保住」之列 —— 它还没有被写出来。
 - 反频道身份策略只影响当前群，保留 4,096 项上限、linked channel 例外、白名单边界和解除白名单后的 unban。
 
-#### 阶段三之后要补的一件：数据库错误不是文件缺失
+#### 阶段三之后要补的一件：数据库错误不是文件缺失（**已做完**）
 
-一次只读检视量出来的，落在阶段三之后、部署之前必须补。
+一次只读检视量出来的，当时定为落在阶段三之后、部署之前必须补。
+这一节现在是记录，不是待办：下面五条逐条核过，都已落地。
 
-换介质时把 JSON 的 best-effort 语义一起带过来了。
-`internal/verification/state.go:438-443` 在 `LoadPending` 出错时直接返回，
+问题是换介质时把 JSON 的 best-effort 语义一起带了过来。`LoadPending` 出错直接返回，
 留下一个空的 `pend`，注释还写着「损坏文件已备份」——那是文件时代的说法。
 数据库时代，读不出来通常是连接瞬断，而库里那些 `pending` 行仍然在：
 新申请因 `challenge_open` 冲突无法发出挑战，旧按钮又因内存里没有 nonce 无法结算，
-**人卡在外面，而且自己好不了**。
-
-同一形状还有三处：
-`LoadFailures`、`LoadAgents`、`LoadWarnings` 出错同样退化为空状态，
-而随后的快照写入会先 `DELETE` 整张表再写回本进程看到的那些，
-历史冷却、失败次数和警告计数**静默消失**；
-`SaveFailures`、`SaveAgents`、`SaveHeartbeat` 的错误被丢弃
-（`state.go:283,102,816`）；`moderate` 那边的 `LoadWarnings` 是同一形状
-（`internal/moderate/state.go:34-39`）；
+**人卡在外面，而且自己好不了**。同一形状当时还有三处：`LoadFailures`、`LoadAgents`、
+`LoadWarnings` 出错同样退化为空状态，而随后的快照写入会先 `DELETE` 整张表再写回
+本进程看到的那些，历史冷却、失败次数和警告计数**静默消失**；三个 `Save` 的错误被丢弃；
 `verification.New` 与 `moderate.New` 无法返回恢复错误，装配层只能继续启动。
 
-要做的：构造函数能返回错误并让 `newServices` 终止启动；
-把「出错」与「条件不匹配影响 0 行」分开处理；
-数据库写入出错时保留本地记录、上报并重试。
-现有测试证明的是旧文件语义（`state_write_failure_test.go`），要补数据库那一侧的。
+现在的样子：
+
+| 当时的问题 | 现在 |
+|---|---|
+| `LoadPending` 出错静默退化为空 | `internal/verification/state_restore.go:19` 先 `disablePendingState`，再把错误包着返回 |
+| 三个 `Save` 的错误被丢弃 | `internal/verification/state.go:108`、`:298`、`:754` 都走 `retryStoreWrite`，失败落日志 |
+| `moderate` 的 `LoadWarnings` 同形状 | `internal/moderate/state.go:36` 记下 `loadErr` 并把错误返回 |
+| 构造函数无法返回恢复错误 | `internal/verification/service.go:193` 与 `internal/moderate/service.go:53` 都返回 `error` |
+| 装配层只能继续启动 | `internal/app/app.go:72` 在 `newServices` 返回错误时终止启动 |
+
+「出错」与「条件不匹配影响 0 行」的区分由
+`internal/database/verification_store.go:198` 的 `changedRow` 承担：读不出受影响行数是错误，
+受影响 0 行只是「已经是那个状态」。`internal/verification/state_write_failure_test.go`
+证明的旧文件语义仍在，没有被这几处改动动过。
 
 #### 依赖
 
