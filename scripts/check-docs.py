@@ -277,6 +277,32 @@ def check_phases_have_their_sections(text: str) -> None:
                                 % (number, title, heading.strip("# ")))
 
 
+def check_phases_state_their_acceptance(text: str) -> None:
+    """Every phase says how anyone would know it is done.
+
+    The sibling check above asks for three subsections and passed while phase
+    five had no acceptance clause at all: eleven phases, ten 验收 lines, and the
+    missing one belonged to a phase already marked complete. Counting matches
+    rather than reading them is what found it, and the shape is the one this
+    file keeps meeting — a section that is absent reads like nothing at all,
+    while a wrong one at least reads oddly.
+
+    The clause is also where an agent looks first when asked to prove a phase,
+    so a phase without one cannot be verified by anybody who was not there.
+    """
+    seen = 0
+    for match in re.finditer(r"^### 阶段([零一二三四五六七八九十]+) · (.+?)$(.*?)(?=^### |\Z)",
+                             text, re.M | re.S):
+        number, title, body = match.group(1), match.group(2), match.group(3)
+        seen += 1
+        if not re.search(r"^\*\*验收", body, re.M):
+            failures.append("plan: 阶段%s · %s never says what its acceptance is"
+                            % (number, title))
+    if seen == 0:
+        failures.append("plan: no phase section was read — has the heading "
+                        "format changed?")
+
+
 def check_phase_branches_are_distinct(text: str) -> None:
     """No two phases claim the same branch.
 
@@ -489,6 +515,7 @@ def main() -> int:
         check_plan_phases(plan_text)
         check_phase_branches_are_distinct(plan_text)
         check_phases_have_their_sections(plan_text)
+        check_phases_state_their_acceptance(plan_text)
         check_every_inventoried_file_has_a_phase(plan_text)
         check_open_questions_have_a_future(plan_text)
         check_plan_citations_resolve(plan_text)
