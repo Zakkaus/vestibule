@@ -1963,6 +1963,28 @@ func TestChallengeResendCapacityKeepsActiveCooldown(t *testing.T) {
 	}
 }
 
+// The cooldown used to be measured against the wall clock inside a service that
+// carries an injectable one, so the only way to watch it expire was to wait.
+func TestChallengeResendCooldownFollowsTheInjectedClock(t *testing.T) {
+	v := newTestService(&settings.Config{})
+	start := time.Date(2026, 9, 2, 12, 0, 0, 0, time.UTC)
+	moment := start
+	v.timeNow = func() time.Time { return moment }
+
+	const gid, uid = int64(-100), int64(7)
+	if !v.challengeResendOK(gid, uid) {
+		t.Fatal("first resend was throttled")
+	}
+	if v.challengeResendOK(gid, uid) {
+		t.Fatal("second resend inside the cooldown was allowed")
+	}
+
+	moment = start.Add(challengeResendCooldown + time.Second)
+	if !v.challengeResendOK(gid, uid) {
+		t.Error("moving the injected clock past the cooldown did not release it")
+	}
+}
+
 func TestChannelAccessAlertPrunesExpiredChannels(t *testing.T) {
 	v := newTestService(&settings.Config{})
 	now := time.Now()

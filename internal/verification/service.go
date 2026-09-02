@@ -869,7 +869,7 @@ func (v *Service) finishPendingChallenge(
 
 // One process-wide throttle prevents a multi-group flood from spamming operator alerts.
 func (v *Service) alertPendingCap(c context.Context, bot Gateway, gid int64, gate string) {
-	now := time.Now()
+	now := v.wallNow()
 	v.mu.Lock()
 	if !v.pendingCapAlertAt.IsZero() && now.Sub(v.pendingCapAlertAt) < pendingCapAlertCooldown {
 		v.mu.Unlock()
@@ -1234,7 +1234,7 @@ func (v *Service) firstPending(uid int64) (gid int64, ul i18n.Lang, ok bool) {
 func (v *Service) challengeResendOK(gid, uid int64) bool {
 	v.mu.Lock()
 	defer v.mu.Unlock()
-	now := time.Now()
+	now := v.wallNow()
 	key := pkey{gid, uid}
 	if last, ok := v.challengeAt[key]; ok && now.Sub(last) < challengeResendCooldown {
 		return false
@@ -1819,7 +1819,7 @@ const channelAccessAlertCooldown = 10 * time.Minute
 
 func (v *Service) channelAccessAlert(c context.Context, bot Gateway, groupID int64, l i18n.Lang, channelID int64, open bool) {
 	v.mu.Lock()
-	now := time.Now()
+	now := v.wallNow()
 	if last, ok := v.chanAlert[channelID]; ok && now.Sub(last) < channelAccessAlertCooldown {
 		v.mu.Unlock()
 		return
