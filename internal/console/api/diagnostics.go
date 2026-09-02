@@ -16,6 +16,7 @@ type PersistenceService interface {
 }
 
 type diagnosticsResponse struct {
+	Version     string                         `json:"version"`
 	Health      diagnosticsHealthResponse      `json:"health"`
 	BotAPI      diagnosticsBotAPIResponse      `json:"bot_api"`
 	Persistence diagnosticsPersistenceResponse `json:"persistence"`
@@ -72,16 +73,22 @@ func (s *Server) readDiagnostics(writer http.ResponseWriter, request *http.Reque
 	if s.replacement != nil {
 		replacement = s.replacement.Status()
 	}
-	writeJSON(writer, http.StatusOK, diagnosticsView(health, s.health.Ready(ctx), s.persistence.Persistence(), replacement))
+	writeJSON(
+		writer,
+		http.StatusOK,
+		diagnosticsView(s.version, health, s.health.Ready(ctx), s.persistence.Persistence(), replacement),
+	)
 }
 
 func diagnosticsView(
+	version string,
 	health status.HealthSnapshot,
 	ready bool,
 	persistence settings.PersistenceStatus,
 	replacement status.ReplacementStatus,
 ) diagnosticsResponse {
 	response := diagnosticsResponse{
+		Version: version,
 		Health: diagnosticsHealthResponse{
 			Live: health.Live, Ready: ready,
 			ConfigReady: health.ConfigReady, TelegramReady: health.TelegramReady,

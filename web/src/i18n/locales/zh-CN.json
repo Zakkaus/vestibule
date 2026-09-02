@@ -882,6 +882,115 @@
       "invalidResponse": "实例返回的诊断数据不符合接口约定。请重试。"
     }
   },
+  "version": {
+    "navigation": "版本",
+    "title": "版本",
+    "description": "查看当前版本，按需检查正式发布，并在升级前确认回退条件。",
+    "actions": {
+      "retry": "重试",
+      "cancel": "取消"
+    },
+    "loading": {
+      "title": "正在读取版本状态",
+      "description": "正在读取当前版本和宿主替换单元的状态…",
+      "permissionTitle": "正在确认访问权限",
+      "permissionUnavailableTitle": "无法确认访问权限",
+      "permissionDescription": "确认此会话是否具有实例运维权限后，才会读取版本状态。"
+    },
+    "accessDenied": {
+      "title": "这是实例运维信息",
+      "description": "此屏仅向运维开放。群管理员不能读取版本信息或发起升级。"
+    },
+    "unavailable": {
+      "title": "无法读取版本状态"
+    },
+    "current": {
+      "title": "当前版本",
+      "description": "应用正在运行的版本，以及宿主是否可以执行替换。",
+      "version": "运行版本",
+      "hostUnit": "宿主替换单元",
+      "hostUnitAvailable": "可用",
+      "hostUnitUnavailable": "未安装"
+    },
+    "replacement": {
+      "title": "上一次替换结果",
+      "requestedVersion": "请求版本",
+      "reasonCode": "原因代码",
+      "none": "尚未记录替换结果。",
+      "status": {
+        "applied": "升级已应用",
+        "failed": "升级失败",
+        "rejected": "请求被拒绝",
+        "rolledBack": "已自动回退",
+        "rollbackFailed": "升级与自动回退均失败",
+        "unknown": "未知结果"
+      },
+      "reason": {
+        "complete": "新版本已通过宿主健康检查。",
+        "requestClaimFailed": "宿主无法接管升级请求。",
+        "invalidDeployment": "宿主记录的部署信息无效。",
+        "invalidRequest": "升级请求格式无效，宿主已拒绝执行。",
+        "applyFailed": "新版本未能完成替换，宿主已按策略处理回退。",
+        "healthcheckFailed": "新版本未通过存活或就绪探针。",
+        "unknown": "宿主返回了未识别的原因：{{reason}}。"
+      }
+    },
+    "release": {
+      "title": "可用新版",
+      "description": "只有按下检查更新才会访问 GitHub。查询失败不影响当前版本和宿主状态。",
+      "check": "检查更新",
+      "checking": "正在检查",
+      "notChecked": "尚未检查。此页不会在后台访问发布源。",
+      "available": "有新版",
+      "current": "已是最新",
+      "notes": "变更说明",
+      "noNotes": "此发布没有变更说明。",
+      "open": "查看完整发布页面"
+    },
+    "rollback": {
+      "safe": "可以回退",
+      "blocked": "不能回退",
+      "available": "目标 schema 为 v{{target}}，最低回退 schema 为 v{{minimum}}；当前保留版本支持 schema v{{retained}}。",
+      "schemaIncompatible": "无法回退：目标 schema v{{target}} 要求保留版本至少支持 schema v{{minimum}}，但当前保留版本只支持 schema v{{retained}}。",
+      "unknownTarget": "无法确认目标 schema v{{target}} 的兼容范围，因此不会发起升级。",
+      "notEarlier": "当前保留版本的 schema v{{retained}} 高于目标 schema v{{target}}，因此它不是可用的回退版本。",
+      "unknown": "无法确认此版本的回退条件，因此不会发起升级。"
+    },
+    "manual": {
+      "title": "请在宿主上手动更新",
+      "description": "此实例没有宿主替换单元，并非应用故障。应用只能写入升级意图，不能替换宿主进程或容器。先把 compose 使用的镜像改为下列值，再在 compose 目录执行命令。",
+      "imageLabel": "镜像设置",
+      "commandsLabel": "宿主命令"
+    },
+    "upgrade": {
+      "action": "升级到此版本",
+      "confirm": "确认让宿主替换单元升级到 {{version}}？升级会重启应用；健康检查失败时，宿主会按已显示的回退条件处理。",
+      "confirmAction": "确认升级",
+      "requesting": "正在提交升级",
+      "monitoring": "等待宿主结果",
+      "restartNotice": "升级会重启应用。连接恢复后，此页会继续读取结果。",
+      "tryAgain": "再次升级",
+      "rollbackBlocked": "回退预检未通过，因此不会向宿主提交升级请求。"
+    },
+    "values": {
+      "none": "无"
+    },
+    "errors": {
+      "authenticationExpired": "会话已过期。请重新从 Telegram 进入控制台。",
+      "authenticationInvalid": "无法验证此控制台会话。请从 Telegram 重新打开控制台。",
+      "authenticationUnavailable": "暂时无法确认此会话的实例运维权限。请重试。",
+      "statusNetwork": "连接已中断。当前版本状态未能载入，请重试。",
+      "statusUnavailable": "版本状态暂时不可用。请重试。",
+      "statusInvalidResponse": "实例返回的版本状态不符合接口约定。请重试。",
+      "releaseNetwork": "无法连接发布源。当前版本仍可查看；请稍后重试。",
+      "releaseUnavailable": "发布源或版本清单暂时不可用。这不表示当前版本已是最新。",
+      "releaseInvalidResponse": "发布源返回的数据不符合接口约定。当前版本仍可查看。",
+      "upgradeNetwork": "提交升级时连接中断。先重试读取结果，再决定是否重新提交。",
+      "upgradeUnavailable": "宿主暂时无法接收升级请求。请重试。",
+      "upgradeInvalidResponse": "实例没有确认升级请求。请重试。",
+      "monitorUnavailable": "暂时无法确认宿主的最终结果。升级状态仍会保留在实例数据目录中，请重试读取。"
+    }
+  },
   "stats": {
     "navigation": "统计",
     "title": "统计",

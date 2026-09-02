@@ -54,6 +54,8 @@ type services struct {
 	consoleAuth         *auth.Manager
 	health              *status.Health
 	replacement         *status.Replacement
+	release             *status.ReleaseChecker
+	version             string
 	identity            verification.Identity
 }
 
@@ -192,6 +194,8 @@ func claimedConsoleConfig(runtime *services) api.Config {
 		Health:          runtime.health,
 		Persistence:     runtime.settings,
 		Replacement:     runtime.replacement,
+		Release:         runtime.release,
+		Version:         runtime.version,
 	}
 }
 
@@ -203,6 +207,8 @@ func bootstrapConsoleConfig(runtime *services, setup api.SetupService, setupClai
 		Persistence:     runtime.settings,
 		Setup:           setup,
 		Replacement:     runtime.replacement,
+		Release:         runtime.release,
+		Version:         runtime.version,
 		SetupClaimed:    setupClaimed,
 	}
 }
@@ -288,6 +294,8 @@ func newBaseServices(ctx context.Context, options Options) (*services, error) {
 	return &services{
 		database: db, cfg: cfg, settings: runtimeSettings, health: health,
 		replacement: status.NewReplacement(options.StateDirectory),
+		release:     status.NewReleaseChecker(options.Version, options.GitHubToken),
+		version:     options.Version,
 	}, nil
 }
 

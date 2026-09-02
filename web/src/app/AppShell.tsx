@@ -9,6 +9,11 @@ import {
 import { UtilityControls } from "../components/UtilityControls";
 import { Icon, type IconName } from "../icons";
 import { GroupSwitcher } from "../features/groups";
+import {
+  canViewInstanceStatus,
+  useConsoleSession,
+  type ConsoleSessionState
+} from "./session";
 
 type ShellVariant = "entry" | "console";
 
@@ -16,7 +21,22 @@ type RouteHandle = {
   shell?: ShellVariant;
 };
 
-const navigationItems = [
+type NavigationCapability = "instance-status";
+
+type NavigationItem = Readonly<{
+  path: string;
+  labelKey: string;
+  icon: IconName;
+  capability?: NavigationCapability;
+}>;
+
+const capabilityChecks: Readonly<
+  Record<NavigationCapability, (state: ConsoleSessionState) => boolean>
+> = {
+  "instance-status": canViewInstanceStatus
+};
+
+const navigationItems: readonly NavigationItem[] = [
   {
     path: "/home",
     labelKey: "home.navigation",
@@ -78,6 +98,12 @@ const navigationItems = [
     icon: "messagesSquare"
   },
   {
+    path: "/version",
+    labelKey: "version.navigation",
+    icon: "refreshCw",
+    capability: "instance-status"
+  },
+  {
     path: "/capabilities",
     labelKey: "capabilities.navigation",
     icon: "slidersHorizontal"
@@ -87,15 +113,12 @@ const navigationItems = [
     labelKey: "navigation.preferences",
     icon: "settings"
   }
-] as const satisfies readonly Readonly<{
-  path: string;
-  labelKey: string;
-  icon: IconName;
-}>[];
+];
 
 function ConsoleNavigation({
+  items,
   selectedGroupSearch
-}: Readonly<{ selectedGroupSearch: string }>) {
+}: Readonly<{ items: readonly NavigationItem[]; selectedGroupSearch: string }>) {
   const { t } = useTranslation();
   const location = useLocation();
 
@@ -103,7 +126,7 @@ function ConsoleNavigation({
     <nav className="nav" aria-label={t("navigation.label")}>
       <div className="nav-group">
         <span className="nav-label">{t("navigation.workspace")}</span>
-        {navigationItems.map((item) => {
+        {items.map((item) => {
           const isActive = location.pathname === item.path;
 
           return (
@@ -127,11 +150,15 @@ function ConsoleNavigation({
 export function AppShell() {
   const { t } = useTranslation();
   const location = useLocation();
+  const session = useConsoleSession();
   const selectedGroupId = new URLSearchParams(location.search).get("group");
   const selectedGroupSearch = selectedGroupId
     ? `?${new URLSearchParams({ group: selectedGroupId }).toString()}`
     : "";
-  const currentNavigationItem = navigationItems.find((item) => item.path === location.pathname);
+  const visibleNavigationItems = navigationItems.filter((item) =>
+    item.capability === undefined || capabilityChecks[item.capability](session)
+  );
+  const currentNavigationItem = visibleNavigationItems.find((item) => item.path === location.pathname);
   const matches = useMatches();
   const routeHandle = matches.at(-1)?.handle as RouteHandle | undefined;
   const shellVariant = routeHandle?.shell ?? "entry";
@@ -163,13 +190,13 @@ export function AppShell() {
           <span className="name">{t("app.name")}</span>
         </Link>
         <div className="rule" />
-        <ConsoleNavigation selectedGroupSearch={selectedGroupSearch} />
+        <ConsoleNavigation items={visibleNavigationItems} selectedGroupSearch={selectedGroupSearch} />
       </aside>
       <div className="shell-main">
         <header className="shell-header" data-console-header>
           <details data-mobile-navigation>
             <summary>{t("shell.mobileNavigation")}</summary>
-            <ConsoleNavigation selectedGroupSearch={selectedGroupSearch} />
+            <ConsoleNavigation items={visibleNavigationItems} selectedGroupSearch={selectedGroupSearch} />
           </details>
           <span data-header-title>
             {currentNavigationItem ? t(currentNavigationItem.labelKey) : t("app.name")}

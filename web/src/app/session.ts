@@ -216,6 +216,10 @@ class ConsoleSessionStore {
 export const consoleSessionStore = new ConsoleSessionStore();
 export const consoleApi = consoleSessionStore.api;
 
+export function canViewInstanceStatus(state: ConsoleSessionState): boolean {
+  return "session" in state && state.session.subject.role === "operator";
+}
+
 export function retryConsoleGroups(): Promise<void> {
   return consoleSessionStore.retryGroups();
 }

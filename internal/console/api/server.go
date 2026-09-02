@@ -46,6 +46,8 @@ type Config struct {
 	Health          *status.Health
 	Persistence     PersistenceService
 	Replacement     ReplacementService
+	Release         ReleaseService
+	Version         string
 	Setup           SetupService
 	SetupClaimed    func()
 }
@@ -60,6 +62,8 @@ type Server struct {
 	health          *status.Health
 	persistence     PersistenceService
 	replacement     ReplacementService
+	release         ReleaseService
+	version         string
 	setup           SetupService
 	setupClaimed    func()
 	routes          atomic.Pointer[routeSet]
@@ -152,14 +156,25 @@ func (s *Server) apiRoute(writer http.ResponseWriter, request *http.Request) {
 		s.createSession(writer, request)
 	case request.Method == http.MethodGet && request.URL.Path == "/api/process/settings":
 		s.readProcessSettings(writer, request)
-	case request.Method == http.MethodGet && request.URL.Path == "/api/status":
-		s.readDiagnostics(writer, request)
-	case request.Method == http.MethodPost && request.URL.Path == "/api/status/upgrade":
-		s.requestUpgrade(writer, request)
+	case strings.HasPrefix(request.URL.Path, "/api/status"):
+		s.statusRoute(writer, request)
 	case request.Method == http.MethodGet && request.URL.Path == "/api/chats":
 		s.chats(writer, request)
 	case strings.HasPrefix(request.URL.Path, "/api/chats/"):
 		s.chatRoute(writer, request)
+	default:
+		writeError(writer, http.StatusNotFound, "not_found")
+	}
+}
+
+func (s *Server) statusRoute(writer http.ResponseWriter, request *http.Request) {
+	switch {
+	case request.Method == http.MethodGet && request.URL.Path == "/api/status":
+		s.readDiagnostics(writer, request)
+	case request.Method == http.MethodGet && request.URL.Path == "/api/status/release":
+		s.readLatestRelease(writer, request)
+	case request.Method == http.MethodPost && request.URL.Path == "/api/status/upgrade":
+		s.requestUpgrade(writer, request)
 	default:
 		writeError(writer, http.StatusNotFound, "not_found")
 	}

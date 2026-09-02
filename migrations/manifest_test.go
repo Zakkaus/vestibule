@@ -50,3 +50,29 @@ func schemaManifestForTest(t *testing.T, upgrades fstest.MapFS) SchemaManifest {
 	}
 	return manifest
 }
+
+func TestParseSchemaManifestAcceptsOnlyCompleteReleaseMetadata(t *testing.T) {
+	parsed, err := ParseSchemaManifest([]byte(
+		"target_schema_version=3\nminimum_rollback_schema_version=2\n",
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if parsed.TargetSchemaVersion != 3 || parsed.MinimumRollbackSchemaVersion != 2 {
+		t.Fatalf("parsed manifest = %#v, want target v3 and rollback floor v2", parsed)
+	}
+
+	for name, data := range map[string]string{
+		"missing floor":  "target_schema_version=3\n",
+		"repeated field": "target_schema_version=3\ntarget_schema_version=2\nminimum_rollback_schema_version=1\n",
+		"unknown field":  "target_schema_version=3\nminimum_rollback_schema_version=1\nsource=other\n",
+		"non-numeric":    "target_schema_version=next\nminimum_rollback_schema_version=1\n",
+		"floor too new":  "target_schema_version=2\nminimum_rollback_schema_version=3\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, parseErr := ParseSchemaManifest([]byte(data)); parseErr == nil {
+				t.Fatalf("ParseSchemaManifest(%q) succeeded, want refusal", data)
+			}
+		})
+	}
+}

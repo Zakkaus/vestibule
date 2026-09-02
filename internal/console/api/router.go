@@ -23,6 +23,8 @@ func (s *Server) ReplaceRoutes(config Config) {
 		health:          config.Health,
 		persistence:     config.Persistence,
 		replacement:     config.Replacement,
+		release:         config.Release,
+		version:         config.Version,
 		setup:           config.Setup,
 		setupClaimed:    config.SetupClaimed,
 	}

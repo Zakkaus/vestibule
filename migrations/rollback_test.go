@@ -52,3 +52,30 @@ func TestFetchAfterRollbackCheckRetrievesApprovedTarget(t *testing.T) {
 		t.Fatalf("safe fetch result = assessment:%#v fetches:%d error:%v", assessment, fetches, err)
 	}
 }
+
+func TestReleaseManifestAssessesRetainedSchema(t *testing.T) {
+	sameSchema := (SchemaManifest{
+		TargetSchemaVersion:          2,
+		MinimumRollbackSchemaVersion: 1,
+	}).AssessRollback(2)
+	if !sameSchema.CanRollback() {
+		t.Fatalf("same-schema release assessment = %#v, want compatible", sameSchema)
+	}
+
+	blocked := (SchemaManifest{
+		TargetSchemaVersion:          3,
+		MinimumRollbackSchemaVersion: 3,
+	}).AssessRollback(2)
+	if blocked.CanRollback() || blocked.Reason != RollbackIncompatible ||
+		blocked.MinimumCompatibleVersion != 3 || blocked.RollbackVersion != 2 {
+		t.Fatalf("future release assessment = %#v, want floor v3 blocking retained v2", blocked)
+	}
+
+	newerRetained := (SchemaManifest{
+		TargetSchemaVersion:          1,
+		MinimumRollbackSchemaVersion: 1,
+	}).AssessRollback(2)
+	if newerRetained.Reason != RollbackNotEarlier {
+		t.Fatalf("newer retained schema assessment = %#v, want not-an-earlier-schema", newerRetained)
+	}
+}

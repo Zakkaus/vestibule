@@ -15,6 +15,7 @@ import { PreferencesScreen } from "../features/preferences";
 import { VerificationScreen } from "../features/verification";
 import { QuestionsScreen } from "../features/questions";
 import { StatsScreen } from "../features/stats";
+import { VersionScreen } from "../features/version";
 import { AppShell } from "./AppShell";
 
 const entryHandle = {
@@ -58,6 +59,11 @@ const router = createBrowserRouter([
       {
         path: "diagnostics",
         element: <DiagnosticsScreen />,
+        handle: consoleHandle
+      },
+      {
+        path: "version",
+        element: <VersionScreen />,
         handle: consoleHandle
       },
       {

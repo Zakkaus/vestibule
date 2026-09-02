@@ -47,6 +47,9 @@ func TestGetDiagnosticsDistinguishesUnmeasuredAndZeroLatency(t *testing.T) {
 			server, cookies := diagnosticsTestServer(t, auth.RoleOperator, health, persistence)
 			response := diagnosticsRequest(server, cookies, http.MethodGet)
 			body := decodeDiagnostics(t, response)
+			if body.Version != "v5.1.0" {
+				t.Fatalf("version = %q, want v5.1.0", body.Version)
+			}
 
 			assertDiagnosticsHealth(t, response, persistence.calls, body.Health)
 			assertDiagnosticsWireShape(t, response)
@@ -191,6 +194,7 @@ func diagnosticsTestServer(
 	manager.SetCookies(cookies, grant)
 	return New(Config{
 		Authenticator: manager, Health: health, Persistence: persistence, Replacement: replacement,
+		Version: "v5.1.0",
 	}), cookies.Result().Cookies()
 }
 
@@ -219,7 +223,11 @@ func assertDiagnosticsWireShape(t *testing.T, response *httptest.ResponseRecorde
 	if err := json.Unmarshal(response.Body.Bytes(), &root); err != nil {
 		t.Fatal(err)
 	}
-	if len(root) != 4 || root["health"] == nil || root["bot_api"] == nil || root["persistence"] == nil || root["replacement"] == nil {
-		t.Fatalf("diagnostics JSON root = %s, want health, bot_api, persistence, and replacement fields", response.Body.Bytes())
+	if len(root) != 5 || root["version"] == nil || root["health"] == nil || root["bot_api"] == nil ||
+		root["persistence"] == nil || root["replacement"] == nil {
+		t.Fatalf(
+			"diagnostics JSON root = %s, want version, health, bot_api, persistence, and replacement fields",
+			response.Body.Bytes(),
+		)
 	}
 }

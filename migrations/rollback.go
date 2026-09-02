@@ -59,7 +59,7 @@ func (err rollbackBlockedError) Error() string {
 		)
 	case RollbackNotEarlier:
 		return fmt.Sprintf(
-			"cannot roll back from schema v%d to v%d: the requested schema is not earlier",
+			"cannot roll back from schema v%d to v%d: the requested schema is newer than the target",
 			assessment.TargetVersion,
 			assessment.RollbackVersion,
 		)
@@ -100,21 +100,38 @@ func FetchAfterRollbackCheck(
 
 // AssessRollback derives a target schema's compatibility floor from the embedded migration headers.
 func AssessRollback(targetVersion, rollbackVersion int) RollbackAssessment {
-	assessment := RollbackAssessment{
-		TargetVersion:   targetVersion,
-		RollbackVersion: rollbackVersion,
-	}
 	floor, known := rollbackHistory.floor(targetVersion)
 	if !known {
+		return RollbackAssessment{
+			TargetVersion:   targetVersion,
+			RollbackVersion: rollbackVersion,
+			Reason:          RollbackUnknownTarget,
+		}
+	}
+	return (SchemaManifest{
+		TargetSchemaVersion:          targetVersion,
+		MinimumRollbackSchemaVersion: floor,
+	}).AssessRollback(rollbackVersion)
+}
+
+// AssessRollback reports whether a retained release can start after applying this manifest.
+func (manifest SchemaManifest) AssessRollback(rollbackVersion int) RollbackAssessment {
+	assessment := RollbackAssessment{
+		TargetVersion:            manifest.TargetSchemaVersion,
+		RollbackVersion:          rollbackVersion,
+		MinimumCompatibleVersion: manifest.MinimumRollbackSchemaVersion,
+	}
+	if manifest.TargetSchemaVersion < 1 ||
+		manifest.MinimumRollbackSchemaVersion < 1 ||
+		manifest.MinimumRollbackSchemaVersion > manifest.TargetSchemaVersion {
 		assessment.Reason = RollbackUnknownTarget
 		return assessment
 	}
-	assessment.MinimumCompatibleVersion = floor
-	if rollbackVersion >= targetVersion {
+	if rollbackVersion > manifest.TargetSchemaVersion {
 		assessment.Reason = RollbackNotEarlier
 		return assessment
 	}
-	if rollbackVersion < floor {
+	if rollbackVersion < manifest.MinimumRollbackSchemaVersion {
 		assessment.Reason = RollbackIncompatible
 		return assessment
 	}

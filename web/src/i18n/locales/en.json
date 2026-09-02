@@ -888,6 +888,115 @@
       "invalidResponse": "The instance returned diagnostics data that does not match the endpoint contract. Try again."
     }
   },
+  "version": {
+    "navigation": "Version",
+    "title": "Version",
+    "description": "View the running version, check published releases on demand, and verify rollback compatibility before upgrading.",
+    "actions": {
+      "retry": "Retry",
+      "cancel": "Cancel"
+    },
+    "loading": {
+      "title": "Loading version status",
+      "description": "Reading the running version and host replacement unit status…",
+      "permissionTitle": "Checking access",
+      "permissionUnavailableTitle": "Access could not be confirmed",
+      "permissionDescription": "Version status is loaded only after this session's instance-operator access is known."
+    },
+    "accessDenied": {
+      "title": "This is instance-operator information",
+      "description": "Only operators can view this screen. Group managers cannot read version data or request an upgrade."
+    },
+    "unavailable": {
+      "title": "Version status unavailable"
+    },
+    "current": {
+      "title": "Current version",
+      "description": "The version this application is running and whether the host can perform replacement.",
+      "version": "Running version",
+      "hostUnit": "Host replacement unit",
+      "hostUnitAvailable": "Available",
+      "hostUnitUnavailable": "Not installed"
+    },
+    "replacement": {
+      "title": "Last replacement result",
+      "requestedVersion": "Requested version",
+      "reasonCode": "Reason code",
+      "none": "No replacement result has been recorded.",
+      "status": {
+        "applied": "Upgrade applied",
+        "failed": "Upgrade failed",
+        "rejected": "Request rejected",
+        "rolledBack": "Automatically rolled back",
+        "rollbackFailed": "Upgrade and automatic rollback failed",
+        "unknown": "Unknown result"
+      },
+      "reason": {
+        "complete": "The new version passed the host health checks.",
+        "requestClaimFailed": "The host could not claim the upgrade request.",
+        "invalidDeployment": "The deployment information recorded by the host is invalid.",
+        "invalidRequest": "The host rejected an invalid upgrade request.",
+        "applyFailed": "Replacement did not complete; the host applied its rollback policy.",
+        "healthcheckFailed": "The new version failed its liveness or readiness probe.",
+        "unknown": "The host returned an unrecognized reason: {{reason}}."
+      }
+    },
+    "release": {
+      "title": "Available release",
+      "description": "GitHub is contacted only when you check for updates. A lookup failure does not hide the current version or host status.",
+      "check": "Check for updates",
+      "checking": "Checking",
+      "notChecked": "Not checked yet. This page does not query the release source in the background.",
+      "available": "Update available",
+      "current": "Up to date",
+      "notes": "Release notes",
+      "noNotes": "This release has no notes.",
+      "open": "Open the full release page"
+    },
+    "rollback": {
+      "safe": "Rollback available",
+      "blocked": "Rollback unavailable",
+      "available": "The target is schema v{{target}} with rollback floor v{{minimum}}; the retained version supports schema v{{retained}}.",
+      "schemaIncompatible": "Rollback is unavailable: target schema v{{target}} requires a retained version supporting at least schema v{{minimum}}, but the retained version supports only schema v{{retained}}.",
+      "unknownTarget": "The compatibility range for target schema v{{target}} is unknown, so no upgrade request will be sent.",
+      "notEarlier": "The retained version's schema v{{retained}} is newer than target schema v{{target}}, so it is not a usable rollback version.",
+      "unknown": "Rollback compatibility cannot be confirmed, so no upgrade request will be sent."
+    },
+    "manual": {
+      "title": "Update on the host",
+      "description": "This instance has no host replacement unit; the application is not broken. It can write upgrade intent but cannot replace the host process or container. Set the compose image to the value below, then run the commands from the compose directory.",
+      "imageLabel": "Image setting",
+      "commandsLabel": "Host commands"
+    },
+    "upgrade": {
+      "action": "Upgrade to this version",
+      "confirm": "Let the host replacement unit upgrade to {{version}}? The application will restart. If health checks fail, the host will follow the rollback conditions shown above.",
+      "confirmAction": "Confirm upgrade",
+      "requesting": "Submitting upgrade",
+      "monitoring": "Waiting for the host",
+      "restartNotice": "The application will restart. This page will resume reading the result when the connection returns.",
+      "tryAgain": "Try upgrade again",
+      "rollbackBlocked": "Rollback preflight failed, so no upgrade request will be sent to the host."
+    },
+    "values": {
+      "none": "None"
+    },
+    "errors": {
+      "authenticationExpired": "The session has expired. Open the console again from Telegram.",
+      "authenticationInvalid": "This console session cannot be verified. Open the console again from Telegram.",
+      "authenticationUnavailable": "Instance-operator access cannot be confirmed right now. Try again.",
+      "statusNetwork": "The connection was interrupted. Current version status was not loaded; try again.",
+      "statusUnavailable": "Version status is temporarily unavailable. Try again.",
+      "statusInvalidResponse": "The instance returned version data that does not match the endpoint contract. Try again.",
+      "releaseNetwork": "The release source could not be reached. The current version is still available; try again later.",
+      "releaseUnavailable": "The release source or schema manifest is temporarily unavailable. This does not mean the instance is up to date.",
+      "releaseInvalidResponse": "The release source returned data that does not match the endpoint contract. The current version is still available.",
+      "upgradeNetwork": "The connection was interrupted while submitting the upgrade. Retry reading the result before deciding whether to submit again.",
+      "upgradeUnavailable": "The host cannot accept an upgrade request right now. Try again.",
+      "upgradeInvalidResponse": "The instance did not confirm the upgrade request. Try again.",
+      "monitorUnavailable": "The host's final result cannot be confirmed right now. Upgrade status remains in the instance data directory; retry reading it."
+    }
+  },
   "stats": {
     "navigation": "Statistics",
     "title": "Statistics",
