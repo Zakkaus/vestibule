@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Icon } from "../../icons";
 
 import type { ShortQuestionDraft, ShortQuestionItemErrors } from "./model";
 
@@ -69,6 +70,7 @@ function FallbackAnswerRow({
           })
         }
       >
+        <Icon name="trash2" />
         {t("questions.actions.removeAnswer")}
       </button>
     </div>
@@ -108,6 +110,7 @@ function FallbackQuestionItem({
           disabled={disabled}
           onClick={onDelete}
         >
+          <Icon name="trash2" />
           {t("questions.actions.deleteFallback")}
         </button>
       </header>
@@ -159,6 +162,7 @@ function FallbackQuestionItem({
           disabled={disabled}
           onClick={() => onChange({ ...question, answers: [...question.answers, ""] })}
         >
+          <Icon name="plus" />
           {t("questions.actions.addAnswer")}
         </button>
       </fieldset>

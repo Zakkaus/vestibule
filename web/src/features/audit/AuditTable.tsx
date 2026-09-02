@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import { StatusBadge } from "../../components/StatusBadge";
+import { Icon } from "../../icons";
 import type { AuditRecord } from "./api";
 
 export type PendingAuditActions = Readonly<Record<string, true>>;
@@ -35,6 +36,7 @@ function AuditAction({ record, pending, onUndo }: AuditActionProps) {
         })}
         onClick={() => onUndo(record)}
       >
+        <Icon name="undo2" />
         {t(pending ? "audit.actions.undoing" : "audit.actions.undo")}
       </button>
     );

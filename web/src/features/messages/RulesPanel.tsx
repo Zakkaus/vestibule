@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Icon } from "../../icons";
 import type { MessageRule } from "./api";
 
 type RuleBusy =
@@ -133,6 +134,7 @@ function RuleCollectionView({
                         }
                       }}
                     >
+                      <Icon name="chevronUp" />
                       {t("messages.rules.up")}
                     </button>
                     <button
@@ -148,6 +150,7 @@ function RuleCollectionView({
                         }
                       }}
                     >
+                      <Icon name="chevronDown" />
                       {t("messages.rules.down")}
                     </button>
                   </div>
@@ -179,7 +182,10 @@ export function RulesPanel({ items, busy, feedback, onToggle, onMove }: RulesPan
       <p data-messages-rules-semantics>{t("messages.rules.saveSemantics")}</p>
       {collections.length === 0 ? (
         <div data-messages-rules-empty>
-          <h3>{t("messages.rules.empty.title")}</h3>
+          <h3 data-state-heading>
+            <Icon name="circleMinus" />
+            {t("messages.rules.empty.title")}
+          </h3>
           <p>{t("messages.rules.empty.description")}</p>
         </div>
       ) : (
@@ -198,6 +204,7 @@ export function RulesPanel({ items, busy, feedback, onToggle, onMove }: RulesPan
       )}
       {feedback ? (
         <div data-messages-rules-feedback data-tone={feedback.tone} role={feedback.tone === "error" ? "alert" : "status"}>
+          <Icon name={feedback.tone === "ok" ? "circleCheck" : "circleAlert"} />
           {feedback.content}
         </div>
       ) : null}

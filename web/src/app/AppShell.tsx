@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 
 import { UtilityControls } from "../components/UtilityControls";
+import { Icon, type IconName } from "../icons";
 import { GroupSwitcher } from "../features/groups";
 
 type ShellVariant = "entry" | "console";
@@ -18,61 +19,79 @@ type RouteHandle = {
 const navigationItems = [
   {
     path: "/home",
-    labelKey: "home.navigation"
+    labelKey: "home.navigation",
+    icon: "layoutDashboard"
   },
   {
     path: "/queue",
-    labelKey: "navigation.queue"
+    labelKey: "navigation.queue",
+    icon: "inbox"
   },
   {
     path: "/audit",
-    labelKey: "audit.navigation"
+    labelKey: "audit.navigation",
+    icon: "clipboardList"
   },
   {
     path: "/stats",
-    labelKey: "stats.navigation"
+    labelKey: "stats.navigation",
+    icon: "chartNoAxesCombined"
   },
   {
     path: "/diagnostics",
-    labelKey: "diagnostics.navigation"
+    labelKey: "diagnostics.navigation",
+    icon: "activity"
   },
   {
     path: "/verification",
-    labelKey: "verification.navigation"
+    labelKey: "verification.navigation",
+    icon: "shieldCheck"
   },
   {
     path: "/bypass",
-    labelKey: "bypass.navigation"
+    labelKey: "bypass.navigation",
+    icon: "shieldOff"
   },
   {
     path: "/questions",
-    labelKey: "questions.navigation"
+    labelKey: "questions.navigation",
+    icon: "circleHelp"
   },
   {
     path: "/feeds",
-    labelKey: "feeds.navigation"
+    labelKey: "feeds.navigation",
+    icon: "rss"
   },
   {
     path: "/groups",
-    labelKey: "navigation.groups"
+    labelKey: "navigation.groups",
+    icon: "usersRound"
   },
   {
     path: "/moderation",
-    labelKey: "moderation.navigation"
+    labelKey: "moderation.navigation",
+    icon: "shieldAlert"
   },
   {
     path: "/messages",
-    labelKey: "messages.navigation"
+    labelKey: "messages.navigation",
+    icon: "messagesSquare"
   },
   {
     path: "/capabilities",
-    labelKey: "capabilities.navigation"
+    labelKey: "capabilities.navigation",
+    icon: "slidersHorizontal"
   },
   {
     path: "/preferences",
-    labelKey: "navigation.preferences"
+    labelKey: "navigation.preferences",
+    icon: "settings"
   }
-] as const;
+] as const satisfies readonly Readonly<{
+  path: string;
+  labelKey: string;
+  icon: IconName;
+}>[];
 
 function ConsoleNavigation({
   selectedGroupSearch
@@ -95,6 +114,7 @@ function ConsoleNavigation({
               aria-current={isActive ? "page" : undefined}
               data-active={isActive ? "" : undefined}
             >
+              <Icon name={item.icon} />
               {t(item.labelKey)}
             </Link>
           );
@@ -138,6 +158,7 @@ export function AppShell() {
           className="brand"
           to={{ pathname: "/groups", search: selectedGroupSearch }}
         >
+          <Icon name="layoutDashboard" />
           <span className="name">{t("app.name")}</span>
         </Link>
         <div className="rule" />

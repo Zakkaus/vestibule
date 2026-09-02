@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 
 import { consoleApi, useConsoleSession } from "../../app/session";
 import { StatusBadge } from "../../components/StatusBadge";
+import { Icon } from "../../icons";
+import type { IconName } from "../../icons";
 import type { ApiRequestError } from "../../lib/api";
 import { loadDiagnostics, type Diagnostics } from "./api";
 
@@ -32,6 +34,7 @@ function StateCard({
   id,
   titleKey,
   descriptionKey,
+  iconName,
   role,
   live,
   children
@@ -39,6 +42,7 @@ function StateCard({
   id: string;
   titleKey: string;
   descriptionKey: string;
+  iconName: IconName;
   role?: "alert";
   live?: "polite";
   children?: ReactNode;
@@ -52,7 +56,12 @@ function StateCard({
       aria-live={live}
       aria-labelledby={`diagnostics-${id}-title`}
     >
-      <h2 id={`diagnostics-${id}-title`}>{t(titleKey)}</h2>
+      <h2 id={`diagnostics-${id}-title`}>
+        <span data-state-heading>
+          <Icon name={iconName} />
+          {t(titleKey)}
+        </span>
+      </h2>
       <p>{t(descriptionKey)}</p>
       {children}
     </section>
@@ -341,6 +350,7 @@ export function DiagnosticsScreen() {
           id="loading"
           titleKey="diagnostics.loading.title"
           descriptionKey="diagnostics.loading.description"
+          iconName="loaderCircle"
           live="polite"
         />
       ) : null}
@@ -349,6 +359,7 @@ export function DiagnosticsScreen() {
           id="access-denied"
           titleKey="diagnostics.accessDenied.title"
           descriptionKey="diagnostics.accessDenied.description"
+          iconName="circleAlert"
           role="alert"
         />
       ) : null}
@@ -357,6 +368,7 @@ export function DiagnosticsScreen() {
           id="unavailable"
           titleKey="diagnostics.unavailable.title"
           descriptionKey={diagnosticsErrorMessageKey(screenState.error)}
+          iconName="circleAlert"
           role="alert"
         >
           <button
@@ -366,6 +378,7 @@ export function DiagnosticsScreen() {
             data-size="sm"
             onClick={reload}
           >
+            <Icon name="refreshCw" />
             {t("diagnostics.unavailable.retry")}
           </button>
         </StateCard>

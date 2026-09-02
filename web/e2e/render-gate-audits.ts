@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { selectAppOption } from "./app-select";
 
 import type { LocaleCatalogues, RenderRoute } from "./render-gate-routes";
 
@@ -129,12 +130,12 @@ export async function renderCell(
   await page.locator("[data-app-shell]").waitFor({ state: "visible" });
 
   const controls = page.locator("[data-utility-controls]").first();
-  const selects = controls.locator("select");
-  if ((await selects.count()) !== 2) {
-    throw new Error(`${cell.route.sourcePath}: utility controls must expose theme and locale selects`);
+  const triggers = controls.locator("[data-slot=\"select-trigger\"]");
+  if ((await triggers.count()) !== 2) {
+    throw new Error(`${cell.route.sourcePath}: utility controls must expose theme and locale triggers`);
   }
 
-  await selects.nth(0).selectOption(cell.theme);
+  await selectAppOption(triggers.nth(0), cell.theme);
   await page.waitForFunction((theme) => {
     const root = document.documentElement;
     return (
@@ -143,7 +144,7 @@ export async function renderCell(
     );
   }, cell.theme);
 
-  await selects.nth(1).selectOption(locale);
+  await selectAppOption(triggers.nth(1), locale);
   await page.waitForFunction(
     (selectedLocale) => document.documentElement.lang === selectedLocale,
     locale

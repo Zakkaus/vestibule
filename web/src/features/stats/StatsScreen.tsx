@@ -4,6 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { useConsoleSession } from "../../app/session";
 import type { ApiRequestError } from "../../lib/api";
+import { Icon, type IconName } from "../../icons";
 import type { StatsQuery } from "./api";
 import {
   StatsResults,
@@ -112,6 +113,7 @@ function statsQueryError(query: StatsQuery): QueryError | undefined {
 
 function StatsStateCard({
   id,
+  icon,
   titleKey,
   descriptionKey,
   role,
@@ -119,6 +121,7 @@ function StatsStateCard({
   children
 }: Readonly<{
   id: string;
+  icon: IconName;
   titleKey: string;
   descriptionKey: string;
   role?: "alert";
@@ -135,7 +138,10 @@ function StatsStateCard({
       aria-live={live}
       aria-labelledby={`stats-${id}-title`}
     >
-      <h2 id={`stats-${id}-title`}>{t(titleKey)}</h2>
+      <h2 id={`stats-${id}-title`} data-state-heading>
+        <Icon name={icon} />
+        {t(titleKey)}
+      </h2>
       <p>{t(descriptionKey)}</p>
       {children}
     </section>
@@ -258,6 +264,7 @@ function StatsFilters({
             data-variant="primary"
             aria-disabled={loading ? "true" : undefined}
           >
+            <Icon name="slidersHorizontal" />
             {t("stats.filters.apply")}
           </button>
         </div>
@@ -293,6 +300,7 @@ function StatsStateContent({
     return (
       <StatsStateCard
         id="loading"
+        icon="loaderCircle"
         titleKey="stats.loading.title"
         descriptionKey="stats.loading.description"
         live="polite"
@@ -303,26 +311,37 @@ function StatsStateContent({
     return (
       <StatsStateCard
         id="group-required"
+        icon="usersRound"
         titleKey="stats.groupRequired.title"
         descriptionKey="stats.groupRequired.description"
       >
         <Link to="/groups" data-slot="button" data-variant="primary" data-size="sm">
+          <Icon name="usersRound" />
           {t("stats.groupRequired.select")}
         </Link>
       </StatsStateCard>
     );
   }
   if (state.kind === "no-groups") {
-    return <StatsStateCard id="no-groups" titleKey="stats.noGroups.title" descriptionKey="stats.noGroups.description" />;
+    return (
+      <StatsStateCard
+        id="no-groups"
+        icon="usersRound"
+        titleKey="stats.noGroups.title"
+        descriptionKey="stats.noGroups.description"
+      />
+    );
   }
   return (
     <StatsStateCard
       id="unavailable"
+      icon="circleAlert"
       titleKey="stats.unavailable.title"
       descriptionKey={statsErrorMessageKey(state.error, "stats.errors.loadUnavailable")}
       role="alert"
     >
       <button type="button" data-slot="button" data-variant="outline" data-size="sm" onClick={onReload}>
+        <Icon name="refreshCw" />
         {t("stats.unavailable.retry")}
       </button>
     </StatsStateCard>
@@ -402,7 +421,10 @@ export function StatsScreen() {
       aria-labelledby="stats-title"
     >
       <header data-page-heading>
-        <h1 id="stats-title">{t("stats.title")}</h1>
+        <h1 id="stats-title">
+          <Icon name="chartNoAxesCombined" />
+          {t("stats.title")}
+        </h1>
         <p>{t("stats.description")}</p>
       </header>
       {stats.canQuery ? (

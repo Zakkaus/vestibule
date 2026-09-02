@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { consoleApi, useConsoleSession } from "../../app/session";
+import { Icon } from "../../icons";
+import type { IconName } from "../../icons";
 import type { StatusTone } from "../../components/StatusBadge";
 import type { ApiRequestError } from "../../lib/api";
 import { loadAuditRecords, undoAuditRecord, type AuditRecord } from "./api";
@@ -69,6 +71,19 @@ function AuditFeedbackNotice({ feedback }: Readonly<{ feedback: AuditFeedback }>
       role={feedback.tone === "error" ? "alert" : "status"}
       aria-atomic="true"
     >
+      <Icon
+        name={
+          feedback.tone === "ok"
+            ? "circleCheck"
+            : feedback.tone === "info"
+              ? "info"
+              : feedback.tone === "pending"
+                ? "loaderCircle"
+                : feedback.tone === "neutral"
+                  ? "circleMinus"
+                  : "circleAlert"
+        }
+      />
       {t(feedback.messageKey, { user: feedback.record.user })}
     </div>
   );
@@ -78,6 +93,7 @@ type AuditStateCardProps = Readonly<{
   id: string;
   titleKey: string;
   descriptionKey: string;
+  iconName: IconName;
   role?: "alert";
   live?: "polite";
   children?: ReactNode;
@@ -87,6 +103,7 @@ function AuditStateCard({
   id,
   titleKey,
   descriptionKey,
+  iconName,
   role,
   live,
   children
@@ -102,7 +119,12 @@ function AuditStateCard({
       aria-live={live}
       aria-labelledby={`audit-${id}-title`}
     >
-      <h2 id={`audit-${id}-title`}>{t(titleKey)}</h2>
+      <h2 id={`audit-${id}-title`}>
+        <span data-state-heading>
+          <Icon name={iconName} />
+          {t(titleKey)}
+        </span>
+      </h2>
       <p>{t(descriptionKey)}</p>
       {children}
     </section>
@@ -380,6 +402,7 @@ export function AuditScreen() {
           id="loading"
           titleKey="audit.loading.title"
           descriptionKey="audit.loading.description"
+          iconName="loaderCircle"
           live="polite"
         />
       ) : null}
@@ -388,8 +411,10 @@ export function AuditScreen() {
           id="group-required"
           titleKey="audit.groupRequired.title"
           descriptionKey="audit.groupRequired.description"
+          iconName="usersRound"
         >
           <Link to="/groups" data-slot="button" data-variant="primary" data-size="sm">
+            <Icon name="usersRound" />
             {t("audit.groupRequired.select")}
           </Link>
         </AuditStateCard>
@@ -399,6 +424,7 @@ export function AuditScreen() {
           id="no-groups"
           titleKey="audit.noGroups.title"
           descriptionKey="audit.noGroups.description"
+          iconName="usersRound"
         />
       ) : null}
       {auditState.kind === "unavailable" ? (
@@ -409,6 +435,7 @@ export function AuditScreen() {
             auditState.error,
             "audit.errors.loadUnavailable"
           )}
+          iconName="circleAlert"
           role="alert"
         >
           <button
@@ -418,6 +445,7 @@ export function AuditScreen() {
             data-size="sm"
             onClick={() => setReloadVersion((currentVersion) => currentVersion + 1)}
           >
+            <Icon name="refreshCw" />
             {t("audit.unavailable.retry")}
           </button>
         </AuditStateCard>
@@ -435,6 +463,7 @@ export function AuditScreen() {
           id="empty"
           titleKey="audit.empty.title"
           descriptionKey="audit.empty.description"
+          iconName="inbox"
         />
       ) : null}
 

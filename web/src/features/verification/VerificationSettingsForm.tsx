@@ -1,7 +1,9 @@
 import { type FormEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
+import { AppSelect, type AppSelectOption } from "../../components/AppSelect";
 import { StatusBadge } from "../../components/StatusBadge";
+import { Icon } from "../../icons";
 import {
   deliveryModes,
   verifyModes,
@@ -122,6 +124,7 @@ function SettingRow({
             data-size="sm"
             onClick={() => onRestore(field)}
           >
+            <Icon name="rotateCcw" />
             {t("verification.actions.restore")}
           </button>
         ) : null}
@@ -182,6 +185,14 @@ export function VerificationSettingsForm({
   onRestore
 }: VerificationSettingsFormProps) {
   const { t } = useTranslation();
+  const deliveryOptions: readonly AppSelectOption<DeliveryMode>[] = deliveryModes.map((mode) => ({
+    label: t(deliveryModeMessageKeys[mode]),
+    value: mode
+  }));
+  const verifyOptions: readonly AppSelectOption<VerifyMode>[] = verifyModes.map((mode) => ({
+    label: t(verifyModeMessageKeys[mode]),
+    value: mode
+  }));
 
   return (
     <form data-verification-form onSubmit={onSubmit}>
@@ -200,19 +211,15 @@ export function VerificationSettingsForm({
           onRestore={onRestore}
         >
           {(describedBy) => (
-            <select
+            <AppSelect
+              aria-label={t("verification.delivery.label")}
               id="verification-delivery-mode"
               aria-describedby={describedBy}
               value={draft.delivery_mode}
               disabled={saving}
-              onChange={(event) => onDraftChange("delivery_mode", event.currentTarget.value as DeliveryMode)}
-            >
-              {deliveryModes.map((mode) => (
-                <option key={mode} value={mode}>
-                  {t(deliveryModeMessageKeys[mode])}
-                </option>
-              ))}
-            </select>
+              options={deliveryOptions}
+              onValueChange={(value) => onDraftChange("delivery_mode", value)}
+            />
           )}
         </SettingRow>
       </section>
@@ -232,19 +239,15 @@ export function VerificationSettingsForm({
           onRestore={onRestore}
         >
           {(describedBy) => (
-            <select
+            <AppSelect
+              aria-label={t("verification.challenge.label")}
               id="verification-mode"
               aria-describedby={describedBy}
               value={draft.verify_mode}
               disabled={saving}
-              onChange={(event) => onDraftChange("verify_mode", event.currentTarget.value as VerifyMode)}
-            >
-              {verifyModes.map((mode) => (
-                <option key={mode} value={mode}>
-                  {t(verifyModeMessageKeys[mode])}
-                </option>
-              ))}
-            </select>
+              options={verifyOptions}
+              onValueChange={(value) => onDraftChange("verify_mode", value)}
+            />
           )}
         </SettingRow>
       </section>
@@ -355,6 +358,7 @@ export function VerificationSettingsForm({
           aria-disabled={saving ? "true" : undefined}
           disabled={!hasChanges}
         >
+          <Icon name="save" />
           {t(saving ? "verification.actions.saving" : "verification.actions.save")}
         </button>
       </footer>

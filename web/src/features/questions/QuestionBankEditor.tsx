@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Icon } from "../../icons";
 
 import type { QuestionDraft, QuestionItemErrors } from "./model";
 
@@ -102,6 +103,7 @@ function QuestionOptionRow({
         disabled={disabled}
         onClick={() => onChange({ ...question, answer: optionIndex })}
       >
+        <Icon name="circleCheck" />
         {t("questions.actions.selectCorrectAnswer")}
       </button>
       <div data-question-option-field>
@@ -129,6 +131,7 @@ function QuestionOptionRow({
         aria-label={t("questions.actions.removeOptionFor", { number: optionIndex + 1 })}
         onClick={() => onChange(removeOption(question, optionIndex))}
       >
+        <Icon name="trash2" />
         {t("questions.actions.removeOption")}
       </button>
     </div>
@@ -183,6 +186,7 @@ function QuestionOptionsEditor({ question, errors, disabled, onChange }: Questio
         disabled={disabled}
         onClick={() => onChange({ ...question, options: [...question.options, ""] })}
       >
+        <Icon name="plus" />
         {t("questions.actions.addOption")}
       </button>
     </fieldset>
@@ -217,6 +221,7 @@ function QuestionItem({
           disabled={disabled}
           onClick={onDelete}
         >
+          <Icon name="trash2" />
           {t("questions.actions.deleteQuestion")}
         </button>
       </header>
@@ -247,7 +252,12 @@ export function QuestionBankEditor({
   return (
     <div data-question-bank-editor>
       {questions.length === 0 ? (
-        <p data-question-empty>{t("questions.questionBank.empty")}</p>
+        <p data-question-empty>
+          <span data-state-heading>
+            <Icon name="inbox" />
+            {t("questions.questionBank.empty")}
+          </span>
+        </p>
       ) : (
         <div data-question-list>
           {questions.map((question, index) => (

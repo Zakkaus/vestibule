@@ -3,6 +3,7 @@ import { Navigate, useSearchParams } from "react-router-dom";
 
 import { useConsoleSession } from "../../app/session";
 import type { ApiRequestError } from "../../lib/api";
+import { Icon } from "../../icons";
 import { entryFixtureFor, entryFixtures, type EntryFixture } from "./fixtures";
 
 type EntryFixtureContentProps = Readonly<{
@@ -47,7 +48,12 @@ function EntryLoading() {
       aria-labelledby="entry-title"
     >
       <div data-slot="card">
-        <h1 id="entry-title">{t("entry.loading.title")}</h1>
+        <h1 id="entry-title">
+          <span data-state-heading>
+            <Icon name="loaderCircle" />
+            {t("entry.loading.title")}
+          </span>
+        </h1>
         <p data-entry-copy aria-live="polite">
           {t("entry.loading.description")}
         </p>
@@ -67,7 +73,12 @@ function EntryUnavailable({ error }: Readonly<{ error: ApiRequestError }>) {
       aria-labelledby="entry-title"
     >
       <div data-slot="card">
-        <h1 id="entry-title">{t("entry.unavailable.title")}</h1>
+        <h1 id="entry-title">
+          <span data-state-heading>
+            <Icon name="circleAlert" />
+            {t("entry.unavailable.title")}
+          </span>
+        </h1>
         <p data-entry-copy role="alert">
           {t("entry.unavailable.description")}
         </p>

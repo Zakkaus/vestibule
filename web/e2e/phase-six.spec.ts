@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { selectAppOption } from "./app-select";
 
 const selectedGroupId = "-1001163306055";
 
@@ -287,8 +288,11 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
   });
 
   await test.step("review the selected managed group", async () => {
-    const groupSwitcher = page.getByRole("combobox", { name: "当前群" });
-    await expect(groupSwitcher).toHaveValue(selectedGroupId);
+    // Home already selects the first authorised group, so this step reads the
+    // switcher rather than operating it. The switcher is no longer a native
+    // select, so its value is an attribute, not a form value.
+    const groupSwitcher = page.getByRole("button", { name: "当前群" });
+    await expect(groupSwitcher).toHaveAttribute("data-value", selectedGroupId);
     await page.getByRole("link", { name: "群与频道", exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/groups\\?group=${selectedGroupId}$`));
 
@@ -656,7 +660,7 @@ test("widest locale keeps group controls inside the desktop header", async ({ pa
 
   await page.goto("/groups");
   await expect(page.locator("[data-groups-source='api']")).toBeVisible();
-  await page.getByRole("combobox", { name: "语言" }).selectOption("en");
+  await selectAppOption(page.getByRole("button", { name: "语言" }), "en");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
 
   const bounds = await page.evaluate(() => {

@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { selectAppOption } from "./app-select";
 
 const selectedGroupID = "-1001163306055";
 const actorID = "741928306";
@@ -130,16 +131,16 @@ test("verification saves only the edited field through the shared CSRF transport
     }
   );
 
-  await expect(page.locator("#verification-mode")).toHaveValue("kernel");
+  await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "kernel");
   await expect(page.getByText("来源：配置文件")).toBeVisible();
-  await page.locator("#verification-mode").selectOption("quiz");
+  await selectAppOption(page.locator("#verification-mode"), "quiz");
   await page.getByRole("button", { name: "保存更改" }).click();
   await patchSettled;
   await expect(page.locator("[data-verification-page]")).toHaveAttribute(
     "data-verification-state",
     "loaded"
   );
-  await expect(page.locator("#verification-mode")).toHaveValue("quiz");
+  await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "quiz");
   await expect(page.getByText("来源：此群覆盖")).toBeVisible();
   await expect(page.locator("[data-verification-feedback]")).toContainText("已保存验证设置");
 });
@@ -222,14 +223,14 @@ test("verification conflict loads the newer revision and says another administra
     }
   );
 
-  await page.locator("#verification-mode").selectOption("quiz");
+  await selectAppOption(page.locator("#verification-mode"), "quiz");
   await page.getByRole("button", { name: "保存更改" }).click();
   await latestSettingsSettled;
   await expect(page.locator("[data-verification-page]")).toHaveAttribute(
     "data-verification-state",
     "loaded"
   );
-  await expect(page.locator("#verification-mode")).toHaveValue("mixed");
+  await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "mixed");
   await expect(page.locator("[data-verification-feedback]")).toContainText(
     "其他管理员已经更改了设置"
   );

@@ -8,6 +8,7 @@ import {
   useConsoleSession
 } from "../../app/session";
 import { StatusBadge, type StatusTone } from "../../components/StatusBadge";
+import { Icon } from "../../icons";
 import type { ApiRequestError } from "../../lib/api";
 import {
   groupFixtures,
@@ -60,6 +61,12 @@ type GroupStateCardProps = Readonly<{
   errorCode?: string;
 }>;
 
+const groupStateIcon: Readonly<Record<GroupStateCardProps["state"], "loaderCircle" | "usersRound" | "circleAlert">> = {
+  loading: "loaderCircle",
+  empty: "usersRound",
+  error: "circleAlert"
+};
+
 function GroupStateCard({
   state,
   title,
@@ -74,7 +81,12 @@ function GroupStateCard({
       data-group-error-code={errorCode}
       role={state === "error" ? "alert" : "status"}
     >
-      <h2>{title}</h2>
+      <h2>
+        <span data-state-heading>
+          <Icon name={groupStateIcon[state]} />
+          {title}
+        </span>
+      </h2>
       <p>{description}</p>
       {action ? <div data-group-state-actions>{action}</div> : null}
     </section>
@@ -94,6 +106,7 @@ function OpenQueueLink({ groupId }: Readonly<{ groupId: string }>) {
       to={`/queue?${query.toString()}`}
       aria-label={t("groups.actions.openQueueFor", { id: groupId })}
     >
+      <Icon name="arrowRight" />
       {t("groups.actions.openQueue")}
     </Link>
   );
@@ -367,6 +380,7 @@ function GroupsUnavailable({
         type="button"
         onClick={() => void retryConsoleGroups()}
       >
+        <Icon name="refreshCw" />
         {t("groups.actions.retry")}
       </button>
     ) : undefined;

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { consoleApi, useConsoleSession } from "../../app/session";
+import { Icon, type IconName } from "../../icons";
 import type { ApiRequestError } from "../../lib/api";
 import {
   loadVerificationSettings,
@@ -59,15 +60,16 @@ function verificationErrorMessageKey(error: ApiRequestError, fallback: string): 
   }
   return fallback;
 }
-
 function StateCard({
   id,
+  icon,
   titleKey,
   descriptionKey,
   role,
   children
 }: Readonly<{
   id: string;
+  icon: IconName;
   titleKey: string;
   descriptionKey: string;
   role?: "alert";
@@ -82,7 +84,10 @@ function StateCard({
       role={role}
       aria-labelledby={`verification-${id}-title`}
     >
-      <h2 id={`verification-${id}-title`}>{t(titleKey)}</h2>
+      <h2 id={`verification-${id}-title`} data-state-heading>
+        <Icon name={icon} />
+        {t(titleKey)}
+      </h2>
       <p>{t(descriptionKey)}</p>
       {children}
     </section>
@@ -271,13 +276,17 @@ export function VerificationScreen() {
       aria-labelledby="verification-title"
     >
       <header data-page-heading>
-        <h1 id="verification-title">{t("verification.title")}</h1>
+        <h1 id="verification-title">
+          <Icon name="shieldCheck" />
+          {t("verification.title")}
+        </h1>
         <p>{t("verification.description")}</p>
       </header>
 
       {screenState.kind === "loading" ? (
         <StateCard
           id="loading"
+          icon="loaderCircle"
           titleKey="verification.loading.title"
           descriptionKey="verification.loading.description"
         />
@@ -285,10 +294,12 @@ export function VerificationScreen() {
       {screenState.kind === "group-required" ? (
         <StateCard
           id="group-required"
+          icon="usersRound"
           titleKey="verification.groupRequired.title"
           descriptionKey="verification.groupRequired.description"
         >
           <Link to="/groups" data-slot="button" data-variant="primary" data-size="sm">
+            <Icon name="usersRound" />
             {t("verification.groupRequired.select")}
           </Link>
         </StateCard>
@@ -296,6 +307,7 @@ export function VerificationScreen() {
       {screenState.kind === "no-groups" ? (
         <StateCard
           id="no-groups"
+          icon="usersRound"
           titleKey="verification.noGroups.title"
           descriptionKey="verification.noGroups.description"
         />
@@ -303,6 +315,7 @@ export function VerificationScreen() {
       {screenState.kind === "unavailable" ? (
         <StateCard
           id="unavailable"
+          icon="circleAlert"
           titleKey="verification.unavailable.title"
           descriptionKey={verificationErrorMessageKey(
             screenState.error,
@@ -317,6 +330,7 @@ export function VerificationScreen() {
             data-size="sm"
             onClick={() => setReloadVersion((version) => version + 1)}
           >
+            <Icon name="refreshCw" />
             {t("verification.unavailable.retry")}
           </button>
         </StateCard>
@@ -341,6 +355,7 @@ export function VerificationScreen() {
           role={feedback.kind === "error" || feedback.kind === "conflict" ? "alert" : "status"}
           aria-atomic="true"
         >
+          <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
           {t(
             feedback.kind === "saved"
               ? "verification.feedback.saved"

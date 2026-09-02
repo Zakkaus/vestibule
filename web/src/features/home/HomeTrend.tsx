@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
+import { Icon } from "../../icons";
 import type { StatsDay } from "../stats/api";
 import type { HomeData } from "./useHomeData";
 
@@ -65,6 +66,7 @@ export function HomeTrend({
           data-variant="link"
           data-size="sm"
         >
+          <Icon name="chartNoAxesCombined" />
           {t("home.trend.openStats")}
         </Link>
       </header>

@@ -4,6 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { useConsoleSession } from "../../app/session";
 import type { ApiRequestError } from "../../lib/api";
+import { Icon, type IconName } from "../../icons";
 import { MessageSettingsForm } from "./MessageSettingsForm";
 import { RulesPanel } from "./RulesPanel";
 import {
@@ -39,12 +40,14 @@ function errorMessageKey(error: ApiRequestError, fallback: string): string {
 
 function StateCard({
   id,
+  icon,
   titleKey,
   descriptionKey,
   role,
   children
 }: Readonly<{
   id: string;
+  icon: IconName;
   titleKey: string;
   descriptionKey: string;
   role?: "alert";
@@ -55,7 +58,10 @@ function StateCard({
 
   return (
     <section data-slot="card" data-messages-state-card={id} role={role} aria-labelledby={titleID}>
-      <h2 id={titleID}>{t(titleKey)}</h2>
+      <h2 id={titleID} data-state-heading>
+        <Icon name={icon} />
+        {t(titleKey)}
+      </h2>
       <p>{t(descriptionKey)}</p>
       {children}
     </section>
@@ -77,6 +83,7 @@ function SettingsFeedbackNotice({ feedback }: Readonly<{ feedback: MessageSettin
       data-tone={feedback.kind === "saved" ? "ok" : "error"}
       role={feedback.kind === "saved" ? "status" : "alert"}
     >
+      <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
       {t(messageKey)}
     </div>
   );
@@ -101,6 +108,7 @@ export function MessagesScreen() {
     content = (
       <StateCard
         id="loading"
+        icon="loaderCircle"
         titleKey="messages.loading.title"
         descriptionKey="messages.loading.description"
       />
@@ -109,6 +117,7 @@ export function MessagesScreen() {
     content = (
       <StateCard
         id="session-unavailable"
+        icon="circleAlert"
         titleKey="messages.unavailable.title"
         descriptionKey={errorMessageKey(session.error, "messages.errors.loadUnavailable")}
         role="alert"
@@ -118,6 +127,7 @@ export function MessagesScreen() {
     content = (
       <StateCard
         id="no-groups"
+        icon="usersRound"
         titleKey="messages.noGroups.title"
         descriptionKey="messages.noGroups.description"
       />
@@ -126,10 +136,12 @@ export function MessagesScreen() {
     content = (
       <StateCard
         id="group-required"
+        icon="usersRound"
         titleKey="messages.groupRequired.title"
         descriptionKey="messages.groupRequired.description"
       >
         <Link to="/groups" data-slot="button" data-variant="primary" data-size="sm">
+          <Icon name="usersRound" />
           {t("messages.groupRequired.select")}
         </Link>
       </StateCard>
@@ -157,6 +169,7 @@ export function MessagesScreen() {
         {rules.state.kind === "loading" ? (
           <StateCard
             id="rules-loading"
+            icon="loaderCircle"
             titleKey="messages.rules.loading.title"
             descriptionKey="messages.rules.loading.description"
           />
@@ -164,6 +177,7 @@ export function MessagesScreen() {
         {rules.state.kind === "unavailable" ? (
           <StateCard
             id="rules-unavailable"
+            icon="circleAlert"
             titleKey="messages.rules.unavailable.title"
             descriptionKey={errorMessageKey(rules.state.error, "messages.errors.loadRulesUnavailable")}
             role="alert"
@@ -175,6 +189,7 @@ export function MessagesScreen() {
               data-size="sm"
               onClick={rules.retry}
             >
+              <Icon name="refreshCw" />
               {t("messages.actions.retry")}
             </button>
           </StateCard>
@@ -192,6 +207,7 @@ export function MessagesScreen() {
         {settings.state.kind === "loading" ? (
           <StateCard
             id="settings-loading"
+            icon="loaderCircle"
             titleKey="messages.settings.loading.title"
             descriptionKey="messages.settings.loading.description"
           />
@@ -199,6 +215,7 @@ export function MessagesScreen() {
         {settings.state.kind === "unavailable" ? (
           <StateCard
             id="settings-unavailable"
+            icon="circleAlert"
             titleKey="messages.settings.unavailable.title"
             descriptionKey={errorMessageKey(
               settings.state.error,
@@ -213,6 +230,7 @@ export function MessagesScreen() {
               data-size="sm"
               onClick={settings.retry}
             >
+              <Icon name="refreshCw" />
               {t("messages.actions.retry")}
             </button>
           </StateCard>
@@ -234,7 +252,10 @@ export function MessagesScreen() {
         ) : null}
 
         <section data-slot="card" data-messages-copy-gap aria-labelledby="messages-copy-gap-title">
-          <h2 id="messages-copy-gap-title">{t("messages.copyGap.title")}</h2>
+          <h2 id="messages-copy-gap-title" data-state-heading>
+            <Icon name="circleAlert" />
+            {t("messages.copyGap.title")}
+          </h2>
           <p>{t("messages.copyGap.description")}</p>
           <ul>
             <li>{t("messages.copyGap.joinLeave")}</li>
@@ -253,7 +274,10 @@ export function MessagesScreen() {
       aria-labelledby="messages-title"
     >
       <header data-page-heading>
-        <h1 id="messages-title">{t("messages.title")}</h1>
+        <h1 id="messages-title">
+          <Icon name="messagesSquare" />
+          {t("messages.title")}
+        </h1>
         <p>{t("messages.description")}</p>
       </header>
       {content}
