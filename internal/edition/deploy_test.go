@@ -7,13 +7,13 @@ import (
 	"testing"
 )
 
-// The unit file, the installer, and the binary all have to agree on this build's name. Nothing
-// links them at compile time, so this test does.
-func TestUnitFileMatchesEditionName(t *testing.T) {
+// The unit file, installer, and binary all use one product name. Nothing links the
+// deployment files at compile time, so this test does.
+func TestUnitFileMatchesProductName(t *testing.T) {
 	path := filepath.Join("..", "..", "deploy", Name+".service")
 	data, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("this build is %q but %s is missing: %v", Name, path, err)
+		t.Fatalf("product name is %q but %s is missing: %v", Name, path, err)
 	}
 	unit := string(data)
 	for _, want := range []string{
@@ -26,22 +26,18 @@ func TestUnitFileMatchesEditionName(t *testing.T) {
 			t.Errorf("%s does not contain %q", path, want)
 		}
 	}
-	// The other edition's name must not leak into this unit.
-	other := "gentoo-zhbot"
-	if !IsGentoo {
-		other = "vestibule"
-	}
-	if strings.Contains(unit, other) {
-		t.Errorf("%s mentions the other edition (%s)", path, other)
-	}
 }
 
-func TestInstallerOffersThisEdition(t *testing.T) {
+func TestInstallerOffersOnlyProduct(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "..", "deploy", "install.sh"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(data), "name="+Name) {
+	installer := string(data)
+	if !strings.Contains(installer, "name="+Name) {
 		t.Errorf("deploy/install.sh cannot install %q", Name)
+	}
+	if strings.Contains(installer, "--generic") || strings.Contains(installer, "gentoo-zhbot") {
+		t.Error("deploy/install.sh still exposes the removed build editions")
 	}
 }

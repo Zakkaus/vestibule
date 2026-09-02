@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	stateCompatGroupA int64 = -1001234500001
-	stateCompatGroupB int64 = -1001234500002
+	stateCompatGroupA int64 = -1009999900004
+	stateCompatGroupB int64 = -1009999900005
 )
 
 var (

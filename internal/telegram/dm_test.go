@@ -12,13 +12,11 @@ func privMsg(text string) telego.Update {
 }
 
 func TestPrivateNonStartPredicate(t *testing.T) {
-	// The Gentoo lookups carry the edition prefix, so the generic build expects /gpkg here.
-	g := "/" + gentooPrefix
 	handled := []string{
-		g + "pkg vim", g + "use vim", g + "bug 1", g + "news", "/wiki x", g + "bbs x",
-		"/pkgs firefox", "/distro firefox", g + "arm htop", "/armpkgs htop",
+		"/pkg vim", "/use vim", "/bug 1", "/news", "/wiki x", "/bbs x",
+		"/pkgs firefox", "/distro firefox", "/arm htop", "/armpkgs htop",
 		"/kernel", "/man ls", "/cve CVE-2024-3094", "/repology bash",
-		"/help", "/ping", "/stats", "/start", "/start verify", g + "pkg@GentooZhVerifyBot vim",
+		"/help", "/ping", "/stats", "/start", "/start verify", "/pkg@GentooZhVerifyBot vim",
 	}
 	for _, m := range handled {
 		if privateNonStart(context.TODO(), privMsg(m)) {
@@ -31,8 +29,8 @@ func TestPrivateNonStartPredicate(t *testing.T) {
 			t.Errorf("%q should get the auto-reply", m)
 		}
 	}
-	// Non-private messages never match the generic DM predicate.
-	if privateNonStart(context.TODO(), telego.Update{Message: &telego.Message{Chat: telego.Chat{Type: "supergroup"}, Text: g + "pkg x"}}) {
+	// Non-private messages never match the direct-message predicate.
+	if privateNonStart(context.TODO(), telego.Update{Message: &telego.Message{Chat: telego.Chat{Type: "supergroup"}, Text: "/pkg x"}}) {
 		t.Errorf("group message should not match privateNonStart")
 	}
 }

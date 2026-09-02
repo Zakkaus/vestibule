@@ -115,6 +115,18 @@ production code, comments included.
 
 See `internal/i18n/README.md` for the catalogue layout and translation workflow.
 
+## Test chat identifiers
+
+Go test files and `testdata/` use only the reserved synthetic Telegram supergroup block
+whose identifiers start with `-1009`. The remaining eight or nine digits may vary, which
+keeps both supported identifier lengths covered. Never copy a deployed chat identifier into
+a test: chat identifiers grant no access, but they expose deployment topology without adding
+test coverage.
+
+`python3 scripts/check-test-chat-ids.py internal cmd testdata` enforces the block. The check
+also fails when a target is missing, no test assets are found, or no supergroup identifier is
+covered; an empty scan is not a pass.
+
 ## Commits
 
 - One commit per logical change. Squash the incremental fixups before opening a PR.
@@ -151,6 +163,7 @@ green locally.
 ```sh
 gofmt -l .                       # must print nothing
 scripts/lint.sh                  # package boundaries, file and function length, complexity
+python3 scripts/check-test-chat-ids.py internal cmd testdata  # test topology stays synthetic
 python3 scripts/check-baseline-ratchet.py origin/main   # a held violation may not grow
 go vet ./...
 go build ./... && go build -tags gentoo ./...
@@ -192,7 +205,8 @@ for c in html-structure coverage-floor style-rules css-coverage shadowed undefin
 cd web && npm run e2e && cd ..  # the console journey and the render gate, in Chromium
 ```
 
-**Both build tags must pass.** Running only the default one misses the generic edition.
+The `gentoo` tag remains only as a compatibility regression: default and tagged commands must
+select the same product behavior. It no longer selects an edition.
 
 `scripts/baseline.txt` is phase zero's snapshot of the violations that already
 existed. **A row may leave it; none may join.** A row leaves when the violation is

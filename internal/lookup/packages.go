@@ -26,7 +26,7 @@ type overlay struct {
 	branch string
 }
 
-// Identify as the build that is actually running; operators can still override it.
+// Identify outbound requests as this product; operators can override it.
 var userAgent = edition.Name
 
 var overlays []overlay
@@ -1403,14 +1403,13 @@ func appendUseAvailabilityNote(l i18n.Lang, plain, rich string, availability pkg
 }
 
 // OnUse handles package metadata and USE flag lookups.
-// renderUseMultipleMatches lists the candidate atoms with the command that queries each one.
-// The command carries the edition prefix, so the generic build suggests /guse, not /use.
+// renderUseMultipleMatches lists candidate atoms with the canonical query command.
 func renderUseMultipleMatches(l i18n.Lang, atoms []string, availability pkgLookupAvailability) string {
 	sort.Strings(atoms)
 	var b strings.Builder
 	b.WriteString(i18n.Messages.LookupPackages.Use.MultipleMatches.For(l))
 	for _, a := range atoms {
-		fmt.Fprintf(&b, "\n • /%suse %s", edition.CommandPrefix, a)
+		fmt.Fprintf(&b, "\n • /use %s", a)
 	}
 	if availability.anyUnavailable() {
 		fmt.Fprintf(&b, "\n%s", i18n.Messages.LookupPackages.Use.PartialMatches.Render(l, availability.unavailableSources(l)))

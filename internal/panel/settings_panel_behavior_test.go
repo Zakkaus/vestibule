@@ -842,7 +842,7 @@ func TestPanelChannelWhitelistUsesModerationPolicy(t *testing.T) {
 	group, _ := settings.Settings(panelTestGroupA)
 	whitelist := make([]int64, whitelistLimit)
 	for index := range whitelist {
-		whitelist[index] = -1008000000000 - int64(index)
+		whitelist[index] = -1009999900016 - int64(index)
 	}
 	overrides := group.Overrides()
 	overrides.ChannelWhitelist = &whitelist

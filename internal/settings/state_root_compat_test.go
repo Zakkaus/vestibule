@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	stateCompatGroupA int64 = -1001234500001
-	stateCompatGroupB int64 = -1001234500002
+	stateCompatGroupA int64 = -1009999900004
+	stateCompatGroupB int64 = -1009999900005
 )
 
 func stateCompatConfig() *Config {
@@ -24,9 +24,9 @@ func stateCompatConfig() *Config {
 func TestStateCompatAntispamMigration(t *testing.T) {
 	fixture := stateCompatFixture(t, "antispam.json")
 	wantWhitelist := []int64{
-		-1007000000003,
-		-1007000000001,
-		-1007000000002,
+		-1009999900015,
+		-1009999900013,
+		-1009999900014,
 	}
 	tests := []struct {
 		name string
@@ -109,7 +109,7 @@ func TestStateCompatSchemaV2Settings(t *testing.T) {
 	requireEqual(t, group.Lang().Value, "en", "schema-v2 language")
 	var upgraded map[string]any
 	stateCompatDecode(t, stateCompatRead(t, path), &upgraded)
-	record := upgraded["groups"].(map[string]any)["-1001234500001"].(map[string]any)
+	record := upgraded["groups"].(map[string]any)["-1009999900004"].(map[string]any)
 	if _, exists := record["dm_first"]; exists {
 		t.Fatalf("obsolete dm_first survived allowlisted upgrade: %#v", record)
 	}

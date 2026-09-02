@@ -44,9 +44,7 @@ func isBuiltInPrivateReply(reply string) bool {
 }
 
 // Member commands bypass the unified DM reply. Deriving the set from the registered menu
-// keeps two things right that a hand-written list got wrong: a newly added command works in
-// direct messages straight away, and the Gentoo lookups carry the edition prefix, so the
-// generic build admits /gpkg where the Gentoo build admits /pkg.
+// makes a newly added command work in direct messages without maintaining a second list.
 var dmCommands = func() map[string]bool {
 	allowed := make(map[string]bool)
 	for _, c := range memberCommands(i18n.LangEN) {
@@ -82,7 +80,7 @@ func (v *dmHandler) privateReply(l i18n.Lang) string {
 	}
 	rate := v.cfg.PrivateQueryPerMin
 	dm := i18n.Messages.Bot.DirectMessage
-	return dm.AutoReply.Render(l, rate, dm.Who(l))
+	return dm.AutoReply.Render(l, rate, dm.Identity.For(l))
 }
 
 func (v *dmHandler) onPrivateDM(ctx *th.Context, update telego.Update) error {

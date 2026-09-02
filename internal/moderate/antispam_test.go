@@ -11,7 +11,7 @@ import (
 )
 
 func TestBCAllowUpdatesOnlyInvokingGroup(t *testing.T) {
-	const senderID = int64(-1001234567890)
+	const senderID = int64(-1009999900006)
 	groups := []int64{-100, -200, -300}
 	for _, test := range []struct {
 		name      string
@@ -40,7 +40,7 @@ func TestBCAllowUpdatesOnlyInvokingGroup(t *testing.T) {
 				ChatID:    -200,
 				MessageID: 1,
 				CallerID:  7,
-				Text:      "/bc allow 1234567890",
+				Text:      "/bc allow 9999900006",
 			})
 
 			if !service.channelWhitelisted(-200, senderID) {
@@ -71,7 +71,7 @@ func TestBCAllowUpdatesOnlyInvokingGroup(t *testing.T) {
 func TestFilterChannelSenderUsesTelegramTransport(t *testing.T) {
 	const (
 		groupID  int64 = -100
-		senderID int64 = -1001234567890
+		senderID int64 = -1009999900006
 	)
 	cfg := &settings.Config{
 		GroupIDs:            []int64{groupID},

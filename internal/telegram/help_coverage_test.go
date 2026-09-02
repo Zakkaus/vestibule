@@ -3,11 +3,9 @@ package telegram
 import (
 	"context"
 	"regexp"
-	"slices"
 	"strings"
 	"testing"
 
-	"github.com/Zakkaus/vestibule/internal/edition"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/mymmrac/telego"
 )
@@ -72,13 +70,11 @@ func TestAdminHelpMatchesAdminMenu(t *testing.T) {
 	}
 }
 
-// Every rendered string must have had its edition prefix substituted; a leftover token would
-// reach a user as literal "{g}".
 // The auto-reply used to repeat the command list, which is how it went stale. It must now
 // point at /help and name no lookup command of its own.
 func TestAutoReplyNamesNoLookupCommand(t *testing.T) {
 	for _, l := range helpLocales {
-		reply := i18n.Messages.Bot.DirectMessage.AutoReply.Render(l, 5)
+		reply := i18n.Messages.Bot.DirectMessage.AutoReply.Render(l, 5, i18n.Messages.Bot.DirectMessage.Identity.For(l))
 		if !strings.Contains(reply, "/help") {
 			t.Errorf("%s: the direct-message reply must point at /help", helpLocaleName[l])
 		}
@@ -90,23 +86,7 @@ func TestAutoReplyNamesNoLookupCommand(t *testing.T) {
 	}
 }
 
-func TestNoUnsubstitutedEditionToken(t *testing.T) {
-	for _, l := range helpLocales {
-		for name, s := range map[string]string{
-			"help.member": i18n.Messages.Panel.Help.Member.For(l),
-			"help.admin":  i18n.Messages.Panel.Help.Admin.Render(l, 3),
-			"auto_reply":  i18n.Messages.Bot.DirectMessage.AutoReply.Render(l, 5),
-		} {
-			if strings.Contains(s, "{g}") {
-				t.Errorf("%s: %s still contains an unsubstituted {g}", helpLocaleName[l], name)
-			}
-		}
-	}
-}
-
-// The four lookups added in v4.5.0 reached the menu but not the direct-message allow-list, so
-// they fell through to the generic auto-reply; in the generic build the prefixed Gentoo
-// lookups did the same. Both are now derived from one list.
+// Member commands and the direct-message allow-list are derived from one declaration.
 func TestDMAllowsEveryMemberCommand(t *testing.T) {
 	for _, c := range memberCommands(i18n.LangEN) {
 		update := telego.Update{Message: &telego.Message{
@@ -131,58 +111,14 @@ func TestDMRejectsUnregisteredCommand(t *testing.T) {
 	}
 }
 
-// A build that is not the Gentoo edition must not present itself as the Gentoo-zh Community's
-// bot, and must not ask joiners about that community's website.
-func TestGenericBuildClaimsNoCommunity(t *testing.T) {
-	if edition.CommandPrefix == "" {
-		t.Skip("the Gentoo build is the Gentoo-zh Community's bot")
-	}
+// A multi-tenant product describes its configured groups without claiming one community.
+func TestProductCopyClaimsNoCommunity(t *testing.T) {
 	for _, l := range helpLocales {
-		reply := i18n.Messages.Bot.DirectMessage.AutoReply.Render(l, 5, i18n.Messages.Bot.DirectMessage.Who(l))
+		dm := i18n.Messages.Bot.DirectMessage
+		reply := dm.AutoReply.Render(l, 5, dm.Identity.For(l))
 		for _, claim := range []string{"Gentoo-zh", "Gentoo 中文社区", "Gentoo 中文社群", "gentoozh"} {
 			if strings.Contains(reply, claim) {
-				t.Errorf("%s: the generic build's direct-message reply claims %q", helpLocaleName[l], claim)
-			}
-		}
-		for _, q := range i18n.Messages.Verification.Challenge.BuiltinFallback() {
-			prompt, answers := q.For(l)
-			for _, claim := range []string{"Gentoo", "gentoozh"} {
-				if strings.Contains(prompt, claim) {
-					t.Errorf("%s: the generic build's built-in question asks about %q: %s", helpLocaleName[l], claim, prompt)
-				}
-			}
-			if len(answers) == 0 {
-				t.Errorf("%s: built-in question %q has no accepted answer", helpLocaleName[l], prompt)
-			}
-		}
-	}
-}
-
-func TestGentooBuildKeepsItsIdentity(t *testing.T) {
-	if !edition.IsGentoo {
-		t.Skip("only the Gentoo build names the community")
-	}
-	for _, l := range helpLocales {
-		reply := i18n.Messages.Bot.DirectMessage.AutoReply.Render(l, 5, i18n.Messages.Bot.DirectMessage.Who(l))
-		if !strings.Contains(reply, "Gentoo") {
-			t.Errorf("%s: the Gentoo build must name the community it serves: %q", helpLocaleName[l], reply)
-		}
-	}
-	// A bank of the right length but the wrong content would pass a length check, so assert
-	// that the selector really returned the Gentoo bank.
-	bank := i18n.Messages.Verification.Challenge.BuiltinFallback()
-	if len(bank) != 2 {
-		t.Fatalf("built-in bank = %d questions, want 2", len(bank))
-	}
-	for _, l := range helpLocales {
-		var answers []string
-		for _, q := range bank {
-			_, a := q.For(l)
-			answers = append(answers, a...)
-		}
-		for _, want := range []string{"gentoozh.org", "gentoo.org"} {
-			if !slices.Contains(answers, want) {
-				t.Errorf("%s: the Gentoo build's built-in bank does not accept %q, got %v", helpLocaleName[l], want, answers)
+				t.Errorf("%s: direct-message reply claims %q: %q", helpLocaleName[l], claim, reply)
 			}
 		}
 	}

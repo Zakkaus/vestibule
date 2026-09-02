@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/edition"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/rules"
 	"github.com/Zakkaus/vestibule/internal/settings"
@@ -16,10 +15,8 @@ import (
 // Three replies tolerate typos while bounding DM guess floods.
 const kernelMaxTries = 3
 
-// The impossible placeholder cannot collide with a real release.
-// samplePrompt is the placeholder the prompt shows and the answer rule rejects. Both come
-// from one constant so that a build cannot display one shape and detect another.
-const samplePrompt = "X.Y.Z" + edition.KernelExampleSuffix
+// samplePrompt is the impossible placeholder shown in every locale and rejected as an answer.
+const samplePrompt = "X.Y.Z"
 
 var kernelAnswerRule = rules.Rule{
 	Accept: []rules.Condition{rules.VersionRange{Intervals: []rules.VersionInterval{
@@ -84,7 +81,7 @@ func (v *Service) newChallenge(gid int64, ul i18n.Lang) (mode, text string, opts
 	return mode, text, opts, correctIdx
 }
 
-// Operator fallback questions override the localized built-in questions.
+// Per-chat questions override the answer-hidden factory rules.
 func (v *Service) fallbackQuestion(groupID int64, l i18n.Lang) (string, []string) {
 	var questions []settings.ShortQuestion
 	if group, ok := v.groupSettings(groupID); ok && !group.FallbackBuiltin().Value {
@@ -94,8 +91,9 @@ func (v *Service) fallbackQuestion(groupID int64, l i18n.Lang) (string, []string
 		question := questions[cryptoIntn(len(questions))]
 		return question.Q, question.Answers
 	}
-	builtin := v.messages.Verification.Challenge.BuiltinFallback()
-	return builtin[cryptoIntn(len(builtin))].For(l)
+	factory := rules.FactoryFallbackQuestions(l.String())
+	question := factory[cryptoIntn(len(factory))]
+	return question.Prompt, question.Answers
 }
 
 // answersAnotherFallback reports that this reply is the right answer to a fallback question the
@@ -139,7 +137,7 @@ func (v *Service) drawnFallback(gid, uid int64) (string, []string, bool) {
 	return "", nil, false
 }
 
-// fallbackSource returns nil for the built-in bank, or the group's configured questions.
+// fallbackSource returns nil for the factory bank, or the chat's configured questions.
 func (v *Service) fallbackSource(groupID int64) []settings.ShortQuestion {
 	group, ok := v.groupSettings(groupID)
 	if !ok || group.FallbackBuiltin().Value {

@@ -68,9 +68,9 @@ factory:
   channel_invite_url: ""
   # Multiple-choice challenge bank. See examples.question below.
   questions: []
-  # Answer-hidden fallback bank. See examples.fallback_question below.
+  # Answer-hidden chat override. See examples.fallback_question below.
   fallback_questions: []
-  # Use the built-in fallback bank instead of fallback_questions.
+  # Use the answer-hidden bank embedded in rules/provisioning.
   fallback_builtin: true
   # Chat language: zh, zh-Hant, or en.
   lang: zh

@@ -9,7 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const upgradeFixtureChatID int64 = -1001234500001
+const upgradeFixtureChatID int64 = -1009999900004
 
 func upgradeFixtureRecord(t *testing.T, fixture string) groupRecord {
 	t.Helper()
@@ -64,7 +64,7 @@ func TestUpgradeSettingsVersionThree(t *testing.T) {
 	requirePointerValue(t, record.DeliveryMode, DeliveryBoth, "v3 delivery mode")
 	requirePointerValue(t, record.TimeoutSeconds, 420, "v3 timeout")
 	requirePointerValue(t, record.AntispamEnabled, false, "v3 antispam")
-	requirePointerDeepEqual(t, record.ChannelWhitelist, []int64{-1007000000001}, "v3 channel whitelist")
+	requirePointerDeepEqual(t, record.ChannelWhitelist, []int64{-1009999900013}, "v3 channel whitelist")
 }
 
 func TestEveryGroupSettingHasCopyRule(t *testing.T) {

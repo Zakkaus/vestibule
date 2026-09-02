@@ -1,7 +1,5 @@
 package i18n
 
-import "github.com/Zakkaus/vestibule/internal/edition"
-
 // BotCatalog contains bot lifecycle and command text.
 type BotCatalog struct {
 	// Menu contains Telegram command-menu descriptions.
@@ -110,12 +108,10 @@ type BotLifecycleCatalog struct {
 
 // BotDirectMessageCatalog contains ordinary direct-message replies.
 type BotDirectMessageCatalog struct {
-	// AutoReply formats the built-in direct-message guidance around an identity sentence.
+	// AutoReply formats the built-in direct-message guidance around the product identity.
 	AutoReply Format
-	// Identity names the community this build serves.
+	// Identity describes the service without claiming one community.
 	Identity Text
-	// IdentityGeneric names a build that serves no particular community.
-	IdentityGeneric Text
 }
 
 // BotRegistrationCatalog contains private owner and group-enrollment notices.
@@ -146,13 +142,4 @@ type BotRegistrationCatalog struct {
 	UnregisterSaveFailed Text
 	// GroupUnregistered formats completed runtime-group removal.
 	GroupUnregistered Format
-}
-
-// Who returns the identity sentence for this build. Only the Gentoo build may claim to be the
-// Gentoo-zh Community's bot; every other build states what it does without naming a community.
-func (c BotDirectMessageCatalog) Who(l Lang) string {
-	if edition.IsGentoo {
-		return c.Identity.For(l)
-	}
-	return c.IdentityGeneric.For(l)
 }

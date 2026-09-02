@@ -25,6 +25,7 @@ jobs:
           fi
           go vet ./...
           scripts/lint.sh
+          python3 scripts/check-test-chat-ids.py internal cmd testdata
           go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
           go build ./...
           go build -tags gentoo ./...
@@ -33,23 +34,17 @@ jobs:
           scripts/test-static-sqlite.sh
           go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
           go run github.com/securego/gosec/v2/cmd/gosec@v2.28.0 -exclude=G304,G703,G706 ./...
-      - name: Build static linux binaries (both editions, amd64 + arm64)
+      - name: Build static linux binaries (amd64 + arm64)
         run: |
           set -euo pipefail
           mkdir -p dist
           ver="${GITHUB_REF_NAME}"
-          # vestibule is the Gentoo-zh edition: /pkg, /use, /bug, /news, /bbs and /arm
-          # answer about Gentoo. gentoo-zhbot is the same bot for Linux communities in general,
-          # where those commands carry a g prefix and the unqualified names stay free.
           for arch in amd64 arm64; do
             CGO_ENABLED=0 GOOS=linux GOARCH="$arch" \
-              go build -trimpath -tags gentoo -ldflags "-s -w -X main.version=${ver}" \
-              -o "dist/vestibule-linux-${arch}" ./cmd/bot
-            CGO_ENABLED=0 GOOS=linux GOARCH="$arch" \
               go build -trimpath -ldflags "-s -w -X main.version=${ver}" \
-              -o "dist/gentoo-zhbot-linux-${arch}" ./cmd/bot
+              -o "dist/vestibule-linux-${arch}" ./cmd/bot
           done
-          ( cd dist && sha256sum vestibule-* gentoo-zhbot-* > SHA256SUMS )
+          ( cd dist && sha256sum vestibule-* > SHA256SUMS )
           ls -l dist
       - name: Publish release with binaries + checksums
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
@@ -58,6 +53,4 @@ jobs:
           files: |
             dist/vestibule-linux-amd64
             dist/vestibule-linux-arm64
-            dist/gentoo-zhbot-linux-amd64
-            dist/gentoo-zhbot-linux-arm64
             dist/SHA256SUMS

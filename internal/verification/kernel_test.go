@@ -772,29 +772,27 @@ func TestKernelPromptLocalised(t *testing.T) {
 	}
 }
 
-func TestFallbackWebsiteAnswers(t *testing.T) {
-	_, community := i18n.Messages.Verification.Challenge.FallbackQuestions[0].For(i18n.LangZH)
-	_, official := i18n.Messages.Verification.Challenge.FallbackQuestions[1].For(i18n.LangZH)
+func TestFactoryFallbackWebsiteAnswers(t *testing.T) {
+	bank := rules.FactoryFallbackQuestions(i18n.LangZH.String())
+	kernel, gnu := bank[0].Answers, bank[1].Answers
 	tests := []struct {
 		name    string
 		text    string
 		answers []string
 		want    bool
 	}{
-		{name: "community bare", text: "gentoozh.org", answers: community, want: true},
-		{name: "community case", text: "GentooZH.org", answers: community, want: true},
-		{name: "community scheme", text: "https://gentoozh.org", answers: community, want: true},
-		{name: "community URL", text: "http://www.gentoozh.org/", answers: community, want: true},
-		{name: "community punctuation", text: "（gentoozh.org。）", answers: community, want: true},
-		{name: "official bare", text: "gentoo.org", answers: official, want: true},
-		{name: "official URL", text: "https://www.gentoo.org/", answers: official, want: true},
-		{name: "both for community", text: "gentoozh.org gentoo.org", answers: community},
-		{name: "both for official", text: "gentoozh.org gentoo.org", answers: official},
-		{name: "community in prose", text: "是 gentoozh.org", answers: community},
-		{name: "official in prose", text: "官网是 gentoo.org", answers: official},
-		{name: "different community", text: "gentoo-zh.org", answers: community},
-		{name: "wrong official", text: "gentoozh.org", answers: official},
-		{name: "unknown", text: "不知道", answers: community},
+		{name: "kernel bare", text: "kernel.org", answers: kernel, want: true},
+		{name: "kernel case", text: "Kernel.org", answers: kernel, want: true},
+		{name: "kernel scheme", text: "https://kernel.org", answers: kernel, want: true},
+		{name: "kernel URL", text: "http://www.kernel.org/", answers: kernel, want: true},
+		{name: "kernel punctuation", text: "（kernel.org。）", answers: kernel, want: true},
+		{name: "GNU bare", text: "gnu.org", answers: gnu, want: true},
+		{name: "GNU URL", text: "https://www.gnu.org/", answers: gnu, want: true},
+		{name: "both for kernel", text: "kernel.org gnu.org", answers: kernel},
+		{name: "both for GNU", text: "kernel.org gnu.org", answers: gnu},
+		{name: "kernel in prose", text: "是 kernel.org", answers: kernel},
+		{name: "wrong bank", text: "kernel.org", answers: gnu},
+		{name: "unknown", text: "不知道", answers: kernel},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

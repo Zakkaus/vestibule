@@ -1,0 +1,28 @@
+{
+  "fallback_questions": [
+    {
+      "id": "linux-kernel-website",
+      "prompts": {
+        "zh": "Linux 内核官方网站的域名是什么？",
+        "zh-Hant": "Linux 核心官方網站的網域名稱是什麼？",
+        "en": "What is the domain name of the official Linux kernel website?"
+      },
+      "answers": [
+        "kernel.org",
+        "www.kernel.org"
+      ]
+    },
+    {
+      "id": "gnu-project-website",
+      "prompts": {
+        "zh": "GNU 项目官方网站的域名是什么？",
+        "zh-Hant": "GNU 專案官方網站的網域名稱是什麼？",
+        "en": "What is the domain name of the official GNU Project website?"
+      },
+      "answers": [
+        "gnu.org",
+        "www.gnu.org"
+      ]
+    }
+  ]
+}
