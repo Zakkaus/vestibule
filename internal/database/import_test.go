@@ -89,7 +89,7 @@ func TestImportLegacyStateAcceptsEmptySnapshots(t *testing.T) {
 	}
 	report, err := ImportLegacyState(ctx, db, ImportOptions{
 		StateDirectory: stateDirectory, BackupDirectory: filepath.Join(t.TempDir(), "backup"),
-		Pending:         PendingCarry,
+		Pending: PendingCarry,
 	})
 	if err != nil {
 		t.Fatal(err)
