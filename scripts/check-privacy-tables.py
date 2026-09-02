@@ -65,10 +65,24 @@ def person_bearing_tables(sql: str) -> list:
     return sorted(found)
 
 
+# A backtick in these two documents marks a table, except for a path, the nonce
+# format and one example log line. A lowercase identifier with nothing else in it
+# is therefore a table name being claimed.
+DOCUMENTED_TABLE = re.compile(r"`([a-z][a-z0-9_]*)`")
+
+
+def all_tables(sql: str) -> set:
+    return {match.group(1) for match in re.finditer(r"CREATE TABLE (\w+) \(", sql)}
+
+
 def main() -> int:
     if not MIGRATION.exists():
-        print("check-privacy-tables: no migration to read")
-        return 0
+        # This branch returned 0. A check that passes when its target is absent
+        # reports success for every change made after the file moves, and the
+        # output is indistinguishable from having checked something.
+        print("FAIL check-privacy-tables: %s is missing, so nothing was compared"
+              % MIGRATION)
+        return 1
 
     required = person_bearing_tables(MIGRATION.read_text(encoding="utf-8"))
     if not required:
@@ -90,13 +104,30 @@ def main() -> int:
                   "%s does not name it" % (table, statement.name))
             failed = True
 
+    # The other direction. Naming a table the schema no longer has tells a reader
+    # the software keeps something it does not, which is the same defect pointing
+    # the other way, and nothing asked about it.
+    schema_tables = all_tables(MIGRATION.read_text(encoding="utf-8"))
+    for statement in STATEMENTS:
+        if not statement.exists():
+            continue
+        for name in sorted(set(DOCUMENTED_TABLE.findall(
+                statement.read_text(encoding="utf-8")))):
+            if name in schema_tables:
+                continue
+            print("FAIL check-privacy-tables: %s names `%s` and the schema has no "
+                  "such table — either the table went away or the word should not "
+                  "be in backticks" % (statement.name, name))
+            failed = True
+
     if failed:
         print("\nA privacy statement that is quietly incomplete is worse than none.")
         print("Add the table, what it is about, and what it holds — in both languages.")
         return 1
 
-    print("check-privacy-tables: passed; %d tables carry an identifier, "
-          "both statements name all of them" % len(required))
+    print("check-privacy-tables: passed; %d tables carry an identifier and both "
+          "statements name all of them, and every table they name exists among "
+          "the schema's %d" % (len(required), len(schema_tables)))
     return 0
 
 
