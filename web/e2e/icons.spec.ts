@@ -90,15 +90,24 @@ test("Lucide icon assets are traceable and exclusive", () => {
     .sort();
   expect(svgPaths).toEqual(manifestFiles.map((file) => join("icons", "lucide", file)).sort());
 
+  // A component may inline an SVG only to draw a chart, and it says so on the
+  // element. Naming the one file that was allowed to made the rule invisible to
+  // the next chart: the home trend chart arrived from another branch and this
+  // assertion reported it as a stray glyph. The rule is the declared capability,
+  // not the filename.
   const rawSvgSources = sourceFiles(sourceRoot)
     .filter((path) => /\.tsx?$/.test(path))
-    .filter((path) => readFileSync(path, "utf8").includes("<svg"))
-    .map((path) => relative(sourceRoot, path))
+    .flatMap((path) => {
+      const source = readFileSync(path, "utf8");
+      const openings = [...source.matchAll(/<svg\b[^>]*>/g)];
+      if (openings.length === 0) {
+        return [];
+      }
+      const undeclared = openings.filter((opening) => !/data-[a-z-]*chart[a-z-]*/.test(opening[0]));
+      return undeclared.length === 0 ? [] : [relative(sourceRoot, path)];
+    })
     .sort();
-  expect(rawSvgSources).toEqual([join("features", "stats", "StatsViews.tsx")]);
-  expect(readFileSync(join(sourceRoot, "features", "stats", "StatsViews.tsx"), "utf8")).toContain(
-    "data-stats-chart-svg"
-  );
+  expect(rawSvgSources).toEqual([]);
 });
 
 test("rendered console action buttons and navigation carry icons", async ({ page }) => {

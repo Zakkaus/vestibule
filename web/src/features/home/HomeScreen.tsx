@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 
+import { Icon } from "../../icons";
 import { StatusBadge, type StatusTone } from "../../components/StatusBadge";
 import { useConsoleSession } from "../../app/session";
 import type { SettingSource } from "../verification/api";
@@ -468,6 +469,7 @@ function HomeStateContent({
         descriptionKey="home.groupRequired.description"
       >
         <Link to="/groups" data-slot="button" data-variant="primary" data-size="sm">
+          <Icon name="usersRound" />
           {t("home.groupRequired.select")}
         </Link>
       </StateCard>
@@ -496,6 +498,7 @@ function HomeStateContent({
         data-size="sm"
         onClick={reload}
       >
+        <Icon name="refreshCw" />
         {t("home.unavailable.retry")}
       </button>
     </StateCard>
