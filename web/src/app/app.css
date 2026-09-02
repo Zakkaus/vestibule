@@ -134,6 +134,7 @@ body {
   max-inline-size: 100%;
 }
 
+[data-slot="select-trigger"][aria-disabled="true"],
 [data-slot="select-trigger"]:disabled {
   opacity: 0.55;
   cursor: default;

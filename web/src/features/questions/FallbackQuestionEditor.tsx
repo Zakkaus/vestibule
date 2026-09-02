@@ -7,7 +7,7 @@ export type FallbackQuestionEditorProps = Readonly<{
   questions: readonly ShortQuestionDraft[];
   errors: Readonly<Record<string, ShortQuestionItemErrors>>;
   listErrorKey?: string;
-  disabled: boolean;
+  readOnly: boolean;
   onChange: (questions: readonly ShortQuestionDraft[]) => void;
 }>;
 
@@ -15,7 +15,7 @@ type FallbackItemProps = Readonly<{
   question: ShortQuestionDraft;
   number: number;
   errors?: ShortQuestionItemErrors;
-  disabled: boolean;
+  readOnly: boolean;
   onChange: (question: ShortQuestionDraft) => void;
   onDelete: () => void;
 }>;
@@ -24,7 +24,7 @@ type AnswerRowProps = Readonly<{
   question: ShortQuestionDraft;
   answer: string;
   answerIndex: number;
-  disabled: boolean;
+  readOnly: boolean;
   onChange: (question: ShortQuestionDraft) => void;
 }>;
 
@@ -32,7 +32,7 @@ function FallbackAnswerRow({
   question,
   answer,
   answerIndex,
-  disabled,
+  readOnly,
   onChange
 }: AnswerRowProps) {
   const { t } = useTranslation();
@@ -48,7 +48,7 @@ function FallbackAnswerRow({
           id={answerID}
           data-slot="input"
           value={answer}
-          disabled={disabled}
+          readOnly={readOnly}
           onChange={(event) => {
             const answers = [...question.answers];
             answers[answerIndex] = event.currentTarget.value;
@@ -61,14 +61,16 @@ function FallbackAnswerRow({
         data-slot="button"
         data-variant="link"
         data-size="sm"
-        disabled={disabled}
+        aria-disabled={readOnly ? "true" : undefined}
         aria-label={t("questions.actions.removeAnswerFor", { number: answerIndex + 1 })}
-        onClick={() =>
-          onChange({
-            ...question,
-            answers: question.answers.filter((_, index) => index !== answerIndex)
-          })
-        }
+        onClick={() => {
+          if (!readOnly) {
+            onChange({
+              ...question,
+              answers: question.answers.filter((_, index) => index !== answerIndex)
+            });
+          }
+        }}
       >
         <Icon name="trash2" />
         {t("questions.actions.removeAnswer")}
@@ -81,7 +83,7 @@ function FallbackQuestionItem({
   question,
   number,
   errors,
-  disabled,
+  readOnly,
   onChange,
   onDelete
 }: FallbackItemProps) {
@@ -107,8 +109,12 @@ function FallbackQuestionItem({
           data-slot="button"
           data-variant="destructive"
           data-size="sm"
-          disabled={disabled}
-          onClick={onDelete}
+          aria-disabled={readOnly ? "true" : undefined}
+          onClick={() => {
+            if (!readOnly) {
+              onDelete();
+            }
+          }}
         >
           <Icon name="trash2" />
           {t("questions.actions.deleteFallback")}
@@ -120,7 +126,7 @@ function FallbackQuestionItem({
           id={promptID}
           data-slot="textarea"
           value={question.q}
-          disabled={disabled}
+          readOnly={readOnly}
           aria-invalid={errors?.q ? "true" : undefined}
           aria-describedby={errors?.q ? promptErrorID : undefined}
           onChange={(event) => onChange({ ...question, q: event.currentTarget.value })}
@@ -144,7 +150,7 @@ function FallbackQuestionItem({
               question={question}
               answer={answer}
               answerIndex={answerIndex}
-              disabled={disabled}
+              readOnly={readOnly}
               onChange={onChange}
             />
           ))}
@@ -159,8 +165,12 @@ function FallbackQuestionItem({
           data-slot="button"
           data-variant="outline"
           data-size="sm"
-          disabled={disabled}
-          onClick={() => onChange({ ...question, answers: [...question.answers, ""] })}
+          aria-disabled={readOnly ? "true" : undefined}
+          onClick={() => {
+            if (!readOnly) {
+              onChange({ ...question, answers: [...question.answers, ""] });
+            }
+          }}
         >
           <Icon name="plus" />
           {t("questions.actions.addAnswer")}
@@ -174,7 +184,7 @@ export function FallbackQuestionEditor({
   questions,
   errors,
   listErrorKey,
-  disabled,
+  readOnly,
   onChange
 }: FallbackQuestionEditorProps) {
   const { t } = useTranslation();
@@ -193,7 +203,7 @@ export function FallbackQuestionEditor({
             question={question}
             number={index + 1}
             errors={errors[question.id]}
-            disabled={disabled}
+            readOnly={readOnly}
             onChange={(next) =>
               onChange(questions.map((item) => (item.id === question.id ? next : item)))
             }

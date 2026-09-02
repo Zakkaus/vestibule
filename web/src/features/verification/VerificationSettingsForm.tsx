@@ -166,7 +166,7 @@ function NumericSetting({
           aria-invalid={errorKey ? "true" : undefined}
           aria-describedby={describedBy}
           value={value}
-          disabled={saving}
+          readOnly={saving}
           onChange={(event) => onChange(event.currentTarget.value)}
         />
       )}
@@ -216,7 +216,7 @@ export function VerificationSettingsForm({
               id="verification-delivery-mode"
               aria-describedby={describedBy}
               value={draft.delivery_mode}
-              disabled={saving}
+              aria-disabled={saving ? "true" : undefined}
               options={deliveryOptions}
               onValueChange={(value) => onDraftChange("delivery_mode", value)}
             />
@@ -244,7 +244,7 @@ export function VerificationSettingsForm({
               id="verification-mode"
               aria-describedby={describedBy}
               value={draft.verify_mode}
-              disabled={saving}
+              aria-disabled={saving ? "true" : undefined}
               options={verifyOptions}
               onValueChange={(value) => onDraftChange("verify_mode", value)}
             />
@@ -342,8 +342,12 @@ export function VerificationSettingsForm({
               aria-checked={draft.verify_invited}
               aria-describedby={describedBy}
               checked={draft.verify_invited}
-              disabled={saving}
-              onChange={(event) => onDraftChange("verify_invited", event.currentTarget.checked)}
+              aria-disabled={saving ? "true" : undefined}
+              onChange={(event) => {
+                if (!saving) {
+                  onDraftChange("verify_invited", event.currentTarget.checked);
+                }
+              }}
             />
           )}
         </SettingRow>

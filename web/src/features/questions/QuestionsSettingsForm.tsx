@@ -133,7 +133,7 @@ function LanguageSection({
             aria-label={t("questions.language.label")}
             id="questions-language-select"
             value={draft.lang}
-            disabled={saving}
+            aria-disabled={saving ? "true" : undefined}
             aria-describedby={descriptionID}
             options={languageOptions}
             onValueChange={(value) =>
@@ -181,13 +181,15 @@ function QuestionBankSection({
           data-slot="button"
           data-variant="outline"
           data-size="sm"
-          disabled={saving}
-          onClick={() =>
-            onDraftChange(
-              { ...draft, questions: [...draft.questions, newQuestionDraft()] },
-              ["questions"]
-            )
-          }
+          aria-disabled={saving ? "true" : undefined}
+          onClick={() => {
+            if (!saving) {
+              onDraftChange(
+                { ...draft, questions: [...draft.questions, newQuestionDraft()] },
+                ["questions"]
+              );
+            }
+          }}
         >
           <Icon name="plus" />
           {t("questions.actions.addQuestion")}
@@ -196,7 +198,7 @@ function QuestionBankSection({
       <QuestionBankEditor
         questions={draft.questions}
         errors={validation.questionErrors}
-        disabled={saving}
+        readOnly={saving}
         onChange={(questions) => onDraftChange({ ...draft, questions }, ["questions"])}
       />
     </QuestionSection>
@@ -275,8 +277,12 @@ function FallbackMode({
           data-size="sm"
           aria-pressed={draft.fallbackBuiltin}
           aria-describedby={descriptionID}
-          disabled={saving}
-          onClick={() => chooseMode(true)}
+          aria-disabled={saving ? "true" : undefined}
+          onClick={() => {
+            if (!saving) {
+              chooseMode(true);
+            }
+          }}
         >
           <Icon name="bookOpen" />
           {t("questions.fallback.builtin")}
@@ -288,8 +294,12 @@ function FallbackMode({
           data-size="sm"
           aria-pressed={!draft.fallbackBuiltin}
           aria-describedby={descriptionID}
-          disabled={saving}
-          onClick={() => chooseMode(false)}
+          aria-disabled={saving ? "true" : undefined}
+          onClick={() => {
+            if (!saving) {
+              chooseMode(false);
+            }
+          }}
         >
           <Icon name="pencil" />
           {t("questions.fallback.custom")}
@@ -321,16 +331,18 @@ function FallbackSection(props: Omit<QuestionsSettingsFormProps, "hasChanges" | 
               data-slot="button"
               data-variant="outline"
               data-size="sm"
-              disabled={saving}
-              onClick={() =>
-                onDraftChange(
-                  {
-                    ...draft,
-                    fallbackQuestions: [...draft.fallbackQuestions, newShortQuestionDraft()]
-                  },
-                  ["fallback_questions"]
-                )
-              }
+              aria-disabled={saving ? "true" : undefined}
+              onClick={() => {
+                if (!saving) {
+                  onDraftChange(
+                    {
+                      ...draft,
+                      fallbackQuestions: [...draft.fallbackQuestions, newShortQuestionDraft()]
+                    },
+                    ["fallback_questions"]
+                  );
+                }
+              }}
             >
               <Icon name="plus" />
               {t("questions.actions.addFallback")}
@@ -340,7 +352,7 @@ function FallbackSection(props: Omit<QuestionsSettingsFormProps, "hasChanges" | 
             questions={draft.fallbackQuestions}
             errors={validation.fallbackQuestionErrors}
             listErrorKey={validation.fallbackListError}
-            disabled={saving}
+            readOnly={saving}
             onChange={(fallbackQuestions) =>
               onDraftChange({ ...draft, fallbackQuestions }, ["fallback_questions"])
             }

@@ -6,7 +6,7 @@ import type { QuestionDraft, QuestionItemErrors } from "./model";
 export type QuestionBankEditorProps = Readonly<{
   questions: readonly QuestionDraft[];
   errors: Readonly<Record<string, QuestionItemErrors>>;
-  disabled: boolean;
+  readOnly: boolean;
   onChange: (questions: readonly QuestionDraft[]) => void;
 }>;
 
@@ -14,7 +14,7 @@ type QuestionItemProps = Readonly<{
   question: QuestionDraft;
   number: number;
   errors?: QuestionItemErrors;
-  disabled: boolean;
+  readOnly: boolean;
   onChange: (question: QuestionDraft) => void;
   onDelete: () => void;
 }>;
@@ -22,14 +22,14 @@ type QuestionItemProps = Readonly<{
 type QuestionPromptProps = Readonly<{
   question: QuestionDraft;
   errorKey?: string;
-  disabled: boolean;
+  readOnly: boolean;
   onChange: (question: QuestionDraft) => void;
 }>;
 
 type QuestionOptionsProps = Readonly<{
   question: QuestionDraft;
   errors?: QuestionItemErrors;
-  disabled: boolean;
+  readOnly: boolean;
   onChange: (question: QuestionDraft) => void;
 }>;
 
@@ -37,7 +37,7 @@ type QuestionOptionRowProps = Readonly<{
   question: QuestionDraft;
   option: string;
   optionIndex: number;
-  disabled: boolean;
+  readOnly: boolean;
   onChange: (question: QuestionDraft) => void;
 }>;
 
@@ -55,7 +55,7 @@ function removeOption(question: QuestionDraft, optionIndex: number): QuestionDra
   return { ...question, options, answer };
 }
 
-function QuestionPrompt({ question, errorKey, disabled, onChange }: QuestionPromptProps) {
+function QuestionPrompt({ question, errorKey, readOnly, onChange }: QuestionPromptProps) {
   const { t } = useTranslation();
   const promptID = `question-prompt-${question.id}`;
   const errorID = `${promptID}-error`;
@@ -67,7 +67,7 @@ function QuestionPrompt({ question, errorKey, disabled, onChange }: QuestionProm
         id={promptID}
         data-slot="textarea"
         value={question.q}
-        disabled={disabled}
+        readOnly={readOnly}
         aria-invalid={errorKey ? "true" : undefined}
         aria-describedby={errorKey ? errorID : undefined}
         onChange={(event) => onChange({ ...question, q: event.currentTarget.value })}
@@ -85,7 +85,7 @@ function QuestionOptionRow({
   question,
   option,
   optionIndex,
-  disabled,
+  readOnly,
   onChange
 }: QuestionOptionRowProps) {
   const { t } = useTranslation();
@@ -100,8 +100,12 @@ function QuestionOptionRow({
         data-size="sm"
         aria-pressed={question.answer === optionIndex}
         aria-label={t("questions.questionBank.correctAnswerFor", { number: optionIndex + 1 })}
-        disabled={disabled}
-        onClick={() => onChange({ ...question, answer: optionIndex })}
+        aria-disabled={readOnly ? "true" : undefined}
+        onClick={() => {
+          if (!readOnly) {
+            onChange({ ...question, answer: optionIndex });
+          }
+        }}
       >
         <Icon name="circleCheck" />
         {t("questions.actions.selectCorrectAnswer")}
@@ -114,7 +118,7 @@ function QuestionOptionRow({
           id={optionID}
           data-slot="input"
           value={option}
-          disabled={disabled}
+          readOnly={readOnly}
           onChange={(event) => {
             const options = [...question.options];
             options[optionIndex] = event.currentTarget.value;
@@ -127,9 +131,13 @@ function QuestionOptionRow({
         data-slot="button"
         data-variant="link"
         data-size="sm"
-        disabled={disabled}
+        aria-disabled={readOnly ? "true" : undefined}
         aria-label={t("questions.actions.removeOptionFor", { number: optionIndex + 1 })}
-        onClick={() => onChange(removeOption(question, optionIndex))}
+        onClick={() => {
+          if (!readOnly) {
+            onChange(removeOption(question, optionIndex));
+          }
+        }}
       >
         <Icon name="trash2" />
         {t("questions.actions.removeOption")}
@@ -139,7 +147,7 @@ function QuestionOptionRow({
   );
 }
 
-function QuestionOptionsEditor({ question, errors, disabled, onChange }: QuestionOptionsProps) {
+function QuestionOptionsEditor({ question, errors, readOnly, onChange }: QuestionOptionsProps) {
   const { t } = useTranslation();
   const descriptionID = `question-options-${question.id}-description`;
   const optionsErrorID = `question-options-${question.id}-error`;
@@ -163,7 +171,7 @@ function QuestionOptionsEditor({ question, errors, disabled, onChange }: Questio
             question={question}
             option={option}
             optionIndex={optionIndex}
-            disabled={disabled}
+            readOnly={readOnly}
             onChange={onChange}
           />
         ))}
@@ -183,8 +191,12 @@ function QuestionOptionsEditor({ question, errors, disabled, onChange }: Questio
         data-slot="button"
         data-variant="outline"
         data-size="sm"
-        disabled={disabled}
-        onClick={() => onChange({ ...question, options: [...question.options, ""] })}
+        aria-disabled={readOnly ? "true" : undefined}
+        onClick={() => {
+          if (!readOnly) {
+            onChange({ ...question, options: [...question.options, ""] });
+          }
+        }}
       >
         <Icon name="plus" />
         {t("questions.actions.addOption")}
@@ -197,7 +209,7 @@ function QuestionItem({
   question,
   number,
   errors,
-  disabled,
+  readOnly,
   onChange,
   onDelete
 }: QuestionItemProps) {
@@ -218,8 +230,12 @@ function QuestionItem({
           data-slot="button"
           data-variant="destructive"
           data-size="sm"
-          disabled={disabled}
-          onClick={onDelete}
+          aria-disabled={readOnly ? "true" : undefined}
+          onClick={() => {
+            if (!readOnly) {
+              onDelete();
+            }
+          }}
         >
           <Icon name="trash2" />
           {t("questions.actions.deleteQuestion")}
@@ -228,13 +244,13 @@ function QuestionItem({
       <QuestionPrompt
         question={question}
         errorKey={errors?.q}
-        disabled={disabled}
+        readOnly={readOnly}
         onChange={onChange}
       />
       <QuestionOptionsEditor
         question={question}
         errors={errors}
-        disabled={disabled}
+        readOnly={readOnly}
         onChange={onChange}
       />
     </section>
@@ -244,7 +260,7 @@ function QuestionItem({
 export function QuestionBankEditor({
   questions,
   errors,
-  disabled,
+  readOnly,
   onChange
 }: QuestionBankEditorProps) {
   const { t } = useTranslation();
@@ -266,7 +282,7 @@ export function QuestionBankEditor({
               question={question}
               number={index + 1}
               errors={errors[question.id]}
-              disabled={disabled}
+              readOnly={readOnly}
               onChange={(next) =>
                 onChange(questions.map((item) => (item.id === question.id ? next : item)))
               }

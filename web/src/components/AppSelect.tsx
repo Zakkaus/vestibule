@@ -7,6 +7,7 @@ export type AppSelectOption<Value extends string> = Readonly<{
 
 type AppSelectProps<Value extends string> = Readonly<{
   "aria-busy"?: boolean;
+  "aria-disabled"?: boolean | "true" | "false";
   "aria-describedby"?: string;
   "aria-label"?: string;
   "aria-labelledby"?: string;
@@ -27,6 +28,7 @@ function selectedOptionIndex<Value extends string>(
 
 export function AppSelect<Value extends string>({
   "aria-busy": ariaBusy,
+  "aria-disabled": ariaDisabled,
   "aria-describedby": ariaDescribedBy,
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
@@ -45,12 +47,20 @@ export function AppSelect<Value extends string>({
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(selectedIndex);
   const selectedOption = options[selectedIndex];
+  const ariaDisabledState = ariaDisabled === true || ariaDisabled === "true";
 
   useEffect(() => {
     if (!open) {
       setActiveIndex(selectedIndex);
     }
   }, [open, selectedIndex]);
+
+  useEffect(() => {
+    if (ariaDisabledState && open) {
+      setOpen(false);
+      triggerRef.current?.focus();
+    }
+  }, [ariaDisabledState, open]);
 
   useEffect(() => {
     if (!open) {
@@ -79,7 +89,7 @@ export function AppSelect<Value extends string>({
   }, [open]);
 
   function openListbox(index = selectedIndex): void {
-    if (disabled || options.length === 0) {
+    if (disabled || ariaDisabledState || options.length === 0) {
       return;
     }
 
@@ -95,6 +105,10 @@ export function AppSelect<Value extends string>({
   }
 
   function choose(index: number): void {
+    if (ariaDisabledState) {
+      return;
+    }
+
     const option = options[index];
     if (!option) {
       return;
@@ -113,7 +127,7 @@ export function AppSelect<Value extends string>({
   }
 
   function handleTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>): void {
-    if (disabled || options.length === 0) {
+    if (disabled || ariaDisabledState || options.length === 0) {
       return;
     }
 
@@ -158,6 +172,10 @@ export function AppSelect<Value extends string>({
     event: KeyboardEvent<HTMLDivElement>,
     index: number
   ): void {
+    if (ariaDisabledState) {
+      return;
+    }
+
     switch (event.key) {
       case "ArrowDown":
         event.preventDefault();
@@ -197,6 +215,7 @@ export function AppSelect<Value extends string>({
       <button
         ref={triggerRef}
         aria-busy={ariaBusy}
+        aria-disabled={ariaDisabled}
         aria-controls={listboxId}
         aria-describedby={ariaDescribedBy}
         aria-expanded={open}
@@ -208,7 +227,11 @@ export function AppSelect<Value extends string>({
         disabled={disabled || options.length === 0}
         id={id}
         type="button"
-        onClick={() => (open ? closeListbox() : openListbox())}
+        onClick={() => {
+          if (!ariaDisabledState) {
+            open ? closeListbox() : openListbox();
+          }
+        }}
         onKeyDown={handleTriggerKeyDown}
       >
         {selectedOption?.label}
