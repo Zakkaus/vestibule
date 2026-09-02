@@ -39,6 +39,7 @@ def main() -> int:
     scanned = 0
     calls = 0
     failures = []
+    seen: set[str] = set()
     for package in packages:
         if not package.is_dir():
             print("FAIL check-log-privacy: %s is not a directory, so nothing was read"
@@ -54,6 +55,7 @@ def main() -> int:
                 calls += 1
                 stripped = line.strip()
                 if stripped in ALLOWED:
+                    seen.add(stripped)
                     continue
                 # Only the arguments after the format string matter. The first
                 # version searched from the opening parenthesis and reported five
@@ -82,6 +84,18 @@ def main() -> int:
             print("  " + failure)
         print("\nLog the decision and the identifiers, not the text. If the value is "
               "not user content, add its exact line to ALLOWED with the reason.")
+        return 1
+
+    # ALLOWED is empty today. The assertion goes in while that is true, because an
+    # exception nobody re-reads is how a rule stops applying: every entry must still be
+    # a line this package contains.
+    for line, reason in sorted(ALLOWED.items()):
+        if line not in seen:
+            failures.append("the allowed line %r is not here any more (%s)" % (line, reason))
+    if failures:
+        print("FAIL check-log-privacy: an exception outlived the line it was written for")
+        for failure in failures:
+            print("  " + failure)
         return 1
 
     print("check-log-privacy: passed; %d log calls across %d files carry no value "

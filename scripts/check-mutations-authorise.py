@@ -119,6 +119,11 @@ def main() -> int:
         return 1
 
     failures = []
+    for handler, reason in sorted(ALLOWED.items()):
+        if handler not in bodies:
+            failures.append("ALLOWED names %s, and no such handler is defined here (%s); "
+                            "an exception for code that is gone reads as a decision about "
+                            "code that is here" % (handler, reason))
     for handler, (path, number) in sorted(mutating.items()):
         if handler in ALLOWED:
             continue
