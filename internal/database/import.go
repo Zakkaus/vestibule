@@ -30,7 +30,24 @@ var legacyJSONNames = []string{
 type ImportOptions struct {
 	StateDirectory  string
 	BackupDirectory string
+	// Pending says what to do with challenges that were open when the previous
+	// generation's state was written. It has no default: the plan and the command
+	// disagreed about this for several phases, and a silent answer is how that
+	// happened. PendingCarry or PendingDrop, stated by whoever runs the import.
+	Pending PendingDisposition
 }
+
+// PendingDisposition is what an import does with the previous generation's open challenges.
+type PendingDisposition string
+
+const (
+	// PendingCarry writes them into the new database, which then holds challenges the
+	// previous generation is still settling if it has not been stopped.
+	PendingCarry PendingDisposition = "carry"
+	// PendingDrop leaves them behind. The applicants stay with whichever bot is still
+	// answering for them; nothing about them is deleted from the backup.
+	PendingDrop PendingDisposition = "drop"
+)
 
 // ImportReport contains post-commit validation results.
 type ImportReport struct {
@@ -67,6 +84,14 @@ func ImportLegacyState(ctx context.Context, db *Database, options ImportOptions)
 	if strings.TrimSpace(options.StateDirectory) == "" {
 		return ImportReport{}, fmt.Errorf("state directory is required")
 	}
+	switch options.Pending {
+	case PendingCarry, PendingDrop:
+	default:
+		return ImportReport{}, fmt.Errorf(
+			"pending disposition is required: %q keeps the previous generation's open "+
+				"challenges, %q leaves them with the bot still answering for them",
+			PendingCarry, PendingDrop)
+	}
 	// The import deletes and rebuilds every per-group table it owns. Run against a database a
 	// bot is polling for, it replaces verifications that are in flight right now with a
 	// snapshot of the generation being replaced. The polling lease is what says a bot is
@@ -88,6 +113,9 @@ func ImportLegacyState(ctx context.Context, db *Database, options ImportOptions)
 	state, err := loadLegacyState(options.StateDirectory)
 	if err != nil {
 		return ImportReport{BackupDirectory: backupDirectory}, err
+	}
+	if options.Pending == PendingDrop {
+		state.pending = nil
 	}
 	if err = persistLegacyState(ctx, db, state); err != nil {
 		return ImportReport{BackupDirectory: backupDirectory}, err
