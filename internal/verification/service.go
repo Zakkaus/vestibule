@@ -24,7 +24,7 @@ const (
 	// AnswerCallbackPrefix identifies applicant quiz-answer callbacks.
 	AnswerCallbackPrefix = "v:" // v:<gid>:<uid>:<nonce>:<idx>
 	// AdminCallbackPrefix identifies administrator verification callbacks.
-	AdminCallbackPrefix = "adm:" // adm:<action>:<gid>:<uid>[:<nonce>]
+	AdminCallbackPrefix = "adm:" // adm:<action>:<gid>:<uid>:<nonce>
 	// ChannelRecheckCallbackPrefix identifies required-channel recheck callbacks.
 	ChannelRecheckCallbackPrefix = "ch:" // ch:<gid>:<uid>
 )
