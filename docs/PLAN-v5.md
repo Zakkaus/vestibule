@@ -72,7 +72,7 @@
 
 - 付费与配额计费。
 - 移动端原生应用。
-- 把 `lookup` 与 `feed` 拆成独立服务。它们保持在同一进程内，仅由每群开关控制。
+- 不把 `lookup` 与 `feed` 拆成独立服务。它们保持在同一进程内；模块开关是实例级配置，因为 Telegram 的处理器注册和默认命令菜单属于进程级表面。
 - 多实例水平扩容的实际部署。数据模型按它设计，但本轮仍单实例运行。
 
 ### 验收标准
@@ -327,7 +327,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 | 三个 `Save` 的错误被丢弃 | `internal/verification/state.go:108`、`:298`、`:754` 都走 `retryStoreWrite`，失败落日志 |
 | `moderate` 的 `LoadWarnings` 同形状 | `internal/moderate/state.go:36` 记下 `loadErr` 并把错误返回 |
 | 构造函数无法返回恢复错误 | `internal/verification/service.go:193` 与 `internal/moderate/service.go:53` 都返回 `error` |
-| 装配层只能继续启动 | `internal/app/app.go:72` 在 `newServices` 返回错误时终止启动 |
+| 装配层只能继续启动 | `internal/app/app.go:75` 在 `newServices` 返回错误时终止启动 |
 
 「出错」与「条件不匹配影响 0 行」的区分由
 `internal/database/verification_store.go:198` 的 `changedRow` 承担：读不出受影响行数是错误，

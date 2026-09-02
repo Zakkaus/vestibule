@@ -24,8 +24,9 @@ func botTestSettingsBaseline(t *testing.T, cfg *settings.Config) settings.Settin
 }
 
 func TestDistroAliasVisible(t *testing.T) {
+	modules := testCommandModules(t)
 	var description string
-	for _, command := range memberCommands(i18n.LangZH) {
+	for _, command := range modules.MemberMenu(i18n.LangZH) {
 		if command.Command == "distro" {
 			description = command.Description
 			break

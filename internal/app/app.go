@@ -44,6 +44,7 @@ type services struct {
 	bot                 *telego.Bot
 	heartbeatBot        *outageAwareBot
 	lookups             *lookup.Service
+	modules             *runtimeModules
 	verification        *verification.Service
 	verificationGateway *telegram.VerificationGateway
 	moderation          *moderate.Service
@@ -89,11 +90,10 @@ func Run(ctx context.Context, options Options) error {
 		defer cancel()
 		_ = polling.Stop(stopCtx)
 	}()
-	feedDone := startFeeds(runtimeCtx, runtime.cfg, runtime.bot, options.StateDirectory)
+	feedDone := runtime.modules.Start(runtimeCtx)
 	heartbeatDone := startHeartbeat(runtimeCtx, runtime.verification, runtime.heartbeatBot)
 	expiryDone := startExpiryScanner(runtimeCtx, runtime.verification)
 	actionDone := startPendingActions(runtimeCtx, runtime.verification)
-	go runtime.lookups.Warm(runtimeCtx)
 	if err := polling.Start(runtimeCtx, runtime); err != nil {
 		return fmt.Errorf("start long polling: %w", err)
 	}
@@ -165,9 +165,7 @@ func newServices(ctx context.Context, options Options, progress chan<- struct{})
 	alertPersistenceProblem(ctx, bot, cfg, settings)
 	verificationStore := database.NewVerificationStore(db)
 	heartbeatBot := newOutageAwareBot(ctx, bot, cfg, settings, verificationStore, health)
-	// Uptime counts from before the GetMe round trip, as it did previously.
-	// Measuring it afterwards silently shortens every uptime an operator reads
-	// by however long that call took.
+	// Count uptime before GetMe so operator-visible uptime includes its latency.
 	startedAt := time.Now()
 	me, err := heartbeatBot.GetMe(ctx)
 	if err != nil {
@@ -177,10 +175,7 @@ func newServices(ctx context.Context, options Options, progress chan<- struct{})
 	logPrivacyMode(me)
 	identity := verification.Identity{ID: me.ID, Username: me.Username}
 	verificationGateway := telegram.NewVerificationGateway(connector)
-	stateNamespace := options.StateDirectory
-	if stateNamespace == "" {
-		stateNamespace = "database"
-	}
+	stateNamespace := verificationStateNamespace(options.StateDirectory)
 	moderation, err := moderate.New(settings, connector, cfg, database.NewWarningStore(db))
 	if err != nil {
 		_ = db.Close()
@@ -198,15 +193,28 @@ func newServices(ctx context.Context, options Options, progress chan<- struct{})
 		settings, connector, cfg, &i18n.Messages,
 		verification, moderation, lookups, options.Version, startedAt,
 	)
+	modules, err := newRuntimeModules(cfg, bot, options.StateDirectory, administration, moderation, lookups)
+	if err != nil {
+		_ = db.Close()
+		return nil, err
+	}
+	administration.SetCommandModules(modules.commands)
 	updates := telegram.NewUpdates(cfg, settings, connector,
-		telegramHandlers(verification, verificationGateway, administration, moderation, lookups, consoleHandler))
+		telegramHandlers(verification, verificationGateway, administration, moderation, modules.commands, consoleHandler))
 	registration := newRegistration(ctx, bot, cfg, settings, identity, moderation, verification, updates)
 	return &services{
 		database: db,
 		cfg:      cfg, settings: settings, bot: bot, heartbeatBot: heartbeatBot,
-		lookups: lookups, verification: verification, verificationGateway: verificationGateway, moderation: moderation,
+		lookups: lookups, modules: modules, verification: verification, verificationGateway: verificationGateway, moderation: moderation,
 		updates: updates, registration: registration, consoleAuth: consoleAuth, health: health, identity: identity,
 	}, nil
+}
+
+func verificationStateNamespace(stateDirectory string) string {
+	if stateDirectory == "" {
+		return "database"
+	}
+	return stateDirectory
 }
 
 func newBot(options Options, progress chan<- struct{}) (*telego.Bot, error) {

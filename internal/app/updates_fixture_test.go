@@ -304,6 +304,7 @@ type dispatchFixture struct {
 	administration      *panel.Panel
 	moderation          *moderate.Service
 	lookups             *lookup.Service
+	commands            telegram.CommandModules
 	application         *telegram.Updates
 }
 
@@ -353,7 +354,15 @@ func newDispatchFixture(t *testing.T, requiredChannel int64) *dispatchFixture {
 	administration := panel.New(
 		settings, connector, cfg, &i18n.Messages, verification, moderation, lookups, "test", time.Now(),
 	)
-	application := telegram.NewUpdates(cfg, settings, connector, telegramHandlers(verification, verificationGateway, administration, moderation, lookups, nil))
+	modules, err := newRuntimeModules(cfg, telegramBot, stateDirectory, administration, moderation, lookups)
+	if err != nil {
+		t.Fatal(err)
+	}
+	administration.SetCommandModules(modules.commands)
+	application := telegram.NewUpdates(
+		cfg, settings, connector,
+		telegramHandlers(verification, verificationGateway, administration, moderation, modules.commands, nil),
+	)
 	return &dispatchFixture{
 		groupID:             groupID,
 		requiredChannel:     requiredChannel,
@@ -368,6 +377,7 @@ func newDispatchFixture(t *testing.T, requiredChannel int64) *dispatchFixture {
 		administration:      administration,
 		moderation:          moderation,
 		lookups:             lookups,
+		commands:            modules.commands,
 		application:         application,
 	}
 }

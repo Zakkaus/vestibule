@@ -24,6 +24,30 @@ const (
 	DeliveryBoth = "both"
 )
 
+const (
+	// ModuleGentoo contains Gentoo lookups and Bugzilla/news subscriptions.
+	ModuleGentoo = "gentoo"
+	// ModuleLinux contains cross-distribution and general Linux lookups.
+	ModuleLinux = "linux"
+)
+
+var optionalModules = [...]string{ModuleGentoo, ModuleLinux}
+
+// OptionalModuleNames returns every process-level module that may be disabled.
+func OptionalModuleNames() []string {
+	return append([]string(nil), optionalModules[:]...)
+}
+
+// ValidOptionalModule reports whether name identifies a supported optional module.
+func ValidOptionalModule(name string) bool {
+	for _, module := range optionalModules {
+		if name == module {
+			return true
+		}
+	}
+	return false
+}
+
 const defaultDeliveryMode = DeliveryBoth
 
 // ValidDeliveryMode reports whether mode names a supported challenge delivery mode.
@@ -227,6 +251,8 @@ func (f *FeedConfig) Interval() time.Duration {
 
 // Config contains the validated JSON configuration.
 type Config struct {
+	// DisabledModules turns off optional query and subscription modules for this bot instance.
+	DisabledModules []string `json:"disabled_modules"`
 	// Groups is the canonical guarded-group list after legacy IDs are merged.
 	Groups []GroupConfig `json:"groups"`
 	// GroupIDs mirrors Groups and accepts the legacy group_ids key.
@@ -324,6 +350,16 @@ func (c *Config) OwnerClaimLifetime() time.Duration {
 	}
 	duration, _ := SecondsToDuration(seconds)
 	return duration
+}
+
+// ModuleEnabled reports whether the named optional module is enabled for this bot instance.
+func (c *Config) ModuleEnabled(name string) bool {
+	for _, disabled := range c.DisabledModules {
+		if disabled == name {
+			return false
+		}
+	}
+	return true
 }
 
 // IsGroup reports whether id is one of the guarded groups.

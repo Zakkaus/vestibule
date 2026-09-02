@@ -20,6 +20,7 @@ import (
 // TestHandlerOrder protects the documented label sequence; it does not exercise predicates,
 // handler pairings, or Telego's first-match dispatch.
 func TestHandlerOrder(t *testing.T) {
+	modules := testCommandModules(t)
 	want := []string{
 		"verify.answer",
 		"verify.admin_action",
@@ -32,40 +33,11 @@ func TestHandlerOrder(t *testing.T) {
 		"verify.kernel_answer",
 		"console.open",
 		"bot.private_dm",
-		"moderate.sb",
-		"moderate.ban",
-		"moderate.warn",
-		"moderate.clearwarn",
-		"moderate.bc",
-		"panel.ping",
-		"panel.start",
-		"panel.settings",
-		"panel.stop",
-		"panel.stats",
-		"lookup.pkg",
-		"lookup.use",
-		"lookup.bug",
-		"lookup.news",
-		"lookup.wiki",
-		"lookup.bbs",
-		"lookup.pkgs",
-		"lookup.distro",
-		"lookup.arm",
-		"lookup.armpkgs",
-		"lookup.kernel",
-		"lookup.man",
-		"lookup.cve",
-		"lookup.repology",
-		"panel.rich",
-		"panel.spoiler",
-		"panel.vmode",
-		"panel.autodel",
-		"panel.bantime",
-		"moderate.mute",
-		"moderate.unmute",
-		"panel.help",
 	}
-	routes := (&Updates{}).handlerRoutes()
+	for _, command := range modules.Routes() {
+		want = append(want, command.Name)
+	}
+	routes := (&Updates{handlers: HandlerSet{Commands: modules}}).handlerRoutes()
 	got := make([]string, len(routes))
 	for i := range routes {
 		got[i] = routes[i].name
@@ -238,7 +210,7 @@ func TestSetupCommandsLanguageScopes(t *testing.T) {
 		t.Fatal(err)
 	}
 	caller := &commandRecordingCaller{}
-	service := &Updates{cfg: cfg, settings: settings}
+	service := &Updates{cfg: cfg, settings: settings, handlers: HandlerSet{Commands: testCommandModules(t)}}
 	service.SetupCommands(context.Background(), testBot(t, caller))
 
 	if len(caller.requests) != 8 {
@@ -300,7 +272,7 @@ func TestSetupCommandsRereadsRuntimeGroups(t *testing.T) {
 		t.Fatal(err)
 	}
 	caller := &commandRecordingCaller{}
-	service := &Updates{cfg: cfg, settings: store}
+	service := &Updates{cfg: cfg, settings: store, handlers: HandlerSet{Commands: testCommandModules(t)}}
 	bot := testBot(t, caller)
 	service.SetupCommands(context.Background(), bot)
 	registration := store.Registrations()
@@ -349,7 +321,7 @@ func TestSetupCommandsAddsOwnerPrivateMenuFromRuntimeState(t *testing.T) {
 	}
 
 	caller := &commandRecordingCaller{}
-	service := &Updates{cfg: cfg, settings: settings}
+	service := &Updates{cfg: cfg, settings: settings, handlers: HandlerSet{Commands: testCommandModules(t)}}
 	service.SetupCommands(context.Background(), testBot(t, caller))
 
 	ownerMenus := 0

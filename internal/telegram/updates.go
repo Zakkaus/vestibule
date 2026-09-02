@@ -51,51 +51,24 @@ type VerificationHandlers struct {
 	ChannelRecheckPrefix string
 }
 
-// PanelHandlers maps Telegram administration updates to the existing panel service.
+// PanelHandlers maps Telegram administration callbacks and input routes to the panel service.
 type PanelHandlers struct {
 	SettingsCallback th.Handler
 	ChatShared       th.Handler
 	Input            th.Handler
-	Ping             th.Handler
-	Start            th.Handler
-	Settings         th.Handler
-	Stop             th.Handler
-	Stats            th.Handler
-	Rich             th.Handler
-	Spoiler          th.Handler
-	VerifyMode       th.Handler
-	AutoDelete       th.Handler
-	BanTime          th.Handler
-	Help             th.Handler
 	ChatSharedDM     th.Predicate
 	InputDM          th.Predicate
 	SettingsPrefix   string
 }
 
-// ModerationHandlers maps Telegram moderation commands without making policy decisions.
+// ModerationHandlers maps non-command moderation updates without making policy decisions.
 type ModerationHandlers struct {
 	FilterChannelSenders th.Handler
-	Purge                th.Handler
-	Ban                  th.Handler
-	Warn                 th.Handler
-	ClearWarn            th.Handler
-	BlockChannel         th.Handler
-	Mute                 th.Handler
-	Unmute               th.Handler
 }
 
 // NewModerationHandlers converts sender-chat updates before invoking moderation policy.
 func NewModerationHandlers(service *moderate.Service) ModerationHandlers {
-	return ModerationHandlers{
-		FilterChannelSenders: channelSenderHandler(service),
-		Purge:                service.OnPurge,
-		Ban:                  service.OnBan,
-		Warn:                 service.OnWarn,
-		ClearWarn:            service.OnClearWarn,
-		BlockChannel:         blockChannelHandler(service),
-		Mute:                 service.OnMute,
-		Unmute:               service.OnUnmute,
-	}
+	return ModerationHandlers{FilterChannelSenders: channelSenderHandler(service)}
 }
 
 func channelSenderHandler(service *moderate.Service) th.Handler {
@@ -117,7 +90,8 @@ func channelSenderHandler(service *moderate.Service) th.Handler {
 	}
 }
 
-func blockChannelHandler(service *moderate.Service) th.Handler {
+// NewBlockChannelHandler adapts the /bc command to moderation policy.
+func NewBlockChannelHandler(service *moderate.Service) th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
 		message := update.Message
 		if message == nil || message.From == nil {
@@ -133,29 +107,12 @@ func blockChannelHandler(service *moderate.Service) th.Handler {
 	}
 }
 
-// LookupHandlers maps Telegram lookup commands to lookup service handlers.
-type LookupHandlers struct {
-	Package  th.Handler
-	Use      th.Handler
-	Bug      th.Handler
-	News     th.Handler
-	Wiki     th.Handler
-	Forum    th.Handler
-	Distros  th.Handler
-	Arm      th.Handler
-	ArmPkgs  th.Handler
-	Kernel   th.Handler
-	Man      th.Handler
-	CVE      th.Handler
-	Repology th.Handler
-}
-
 // HandlerSet is the protocol-facing call surface supplied by app assembly.
 type HandlerSet struct {
 	Verification VerificationHandlers
 	Panel        PanelHandlers
 	Moderation   ModerationHandlers
-	Lookup       LookupHandlers
+	Commands     CommandModules
 	Console      th.Handler
 }
 
@@ -183,6 +140,7 @@ func NewUpdates(cfg *settings.Config, settings *settings.Store, connector *Conne
 			cfg:            cfg,
 			settings:       settings,
 			telegram:       connector,
+			commands:       handlers.Commands.MemberCommandNames(),
 			last:           make(map[int64]time.Time),
 			catalogueReply: isBuiltInPrivateReply(cfg.PrivateReply),
 		},
@@ -204,8 +162,12 @@ func (u *Updates) Register(handler *th.BotHandler) {
 }
 
 func (u *Updates) handlerRoutes() []handlerRoute {
-	v, p, m, l := u.handlers.Verification, u.handlers.Panel, u.handlers.Moderation, u.handlers.Lookup
-	return []handlerRoute{
+	v, p := u.handlers.Verification, u.handlers.Panel
+	privateDM := privateNonStart(nil)
+	if u.dm != nil {
+		privateDM = privateNonStart(u.dm.commands)
+	}
+	routes := []handlerRoute{
 		{name: "verify.answer", handler: v.Answer, predicates: []th.Predicate{th.CallbackDataPrefix(v.AnswerPrefix)}},
 		{name: "verify.admin_action", handler: v.AdminAction, predicates: []th.Predicate{th.CallbackDataPrefix(v.AdminPrefix)}},
 		{name: "verify.channel_recheck", handler: v.ChannelRecheck, predicates: []th.Predicate{th.CallbackDataPrefix(v.ChannelRecheckPrefix)}},
@@ -216,40 +178,14 @@ func (u *Updates) handlerRoutes() []handlerRoute {
 		{name: "panel.input", handler: p.Input, predicates: []th.Predicate{p.InputDM}},
 		{name: "verify.kernel_answer", handler: v.KernelAnswer, predicates: []th.Predicate{v.KernelAnswerDM}},
 		{name: "console.open", handler: u.handlers.Console, predicates: []th.Predicate{th.And(th.CommandEqual("console"), privateMessage)}},
-		{name: "bot.private_dm", handler: u.dm.onPrivateDM, predicates: []th.Predicate{privateNonStart}},
-		{name: "moderate.sb", handler: m.Purge, predicates: []th.Predicate{th.CommandEqual("sb")}},
-		{name: "moderate.ban", handler: m.Ban, predicates: []th.Predicate{th.CommandEqual("ban")}},
-		{name: "moderate.warn", handler: m.Warn, predicates: []th.Predicate{th.CommandEqual("warn")}},
-		{name: "moderate.clearwarn", handler: m.ClearWarn, predicates: []th.Predicate{th.CommandEqual("clearwarn")}},
-		{name: "moderate.bc", handler: m.BlockChannel, predicates: []th.Predicate{th.CommandEqual("bc")}},
-		{name: "panel.ping", handler: p.Ping, predicates: []th.Predicate{th.CommandEqual("ping")}},
-		{name: "panel.start", handler: p.Start, predicates: []th.Predicate{th.CommandEqual("start")}},
-		{name: "panel.settings", handler: p.Settings, predicates: []th.Predicate{th.CommandEqual("settings")}},
-		{name: "panel.stop", handler: p.Stop, predicates: []th.Predicate{th.CommandEqual("stop")}},
-		{name: "panel.stats", handler: p.Stats, predicates: []th.Predicate{th.CommandEqual("stats")}},
-		{name: "lookup.pkg", handler: l.Package, predicates: []th.Predicate{th.CommandEqual("pkg")}},
-		{name: "lookup.use", handler: l.Use, predicates: []th.Predicate{th.CommandEqual("use")}},
-		{name: "lookup.bug", handler: l.Bug, predicates: []th.Predicate{th.CommandEqual("bug")}},
-		{name: "lookup.news", handler: l.News, predicates: []th.Predicate{th.CommandEqual("news")}},
-		{name: "lookup.wiki", handler: l.Wiki, predicates: []th.Predicate{th.CommandEqual("wiki")}},
-		{name: "lookup.bbs", handler: l.Forum, predicates: []th.Predicate{th.CommandEqual("bbs")}},
-		{name: "lookup.pkgs", handler: l.Distros, predicates: []th.Predicate{th.CommandEqual("pkgs")}},
-		{name: "lookup.distro", handler: l.Distros, predicates: []th.Predicate{th.CommandEqual("distro")}},
-		{name: "lookup.arm", handler: l.Arm, predicates: []th.Predicate{th.CommandEqual("arm")}},
-		{name: "lookup.armpkgs", handler: l.ArmPkgs, predicates: []th.Predicate{th.CommandEqual("armpkgs")}},
-		{name: "lookup.kernel", handler: l.Kernel, predicates: []th.Predicate{th.CommandEqual("kernel")}},
-		{name: "lookup.man", handler: l.Man, predicates: []th.Predicate{th.CommandEqual("man")}},
-		{name: "lookup.cve", handler: l.CVE, predicates: []th.Predicate{th.CommandEqual("cve")}},
-		{name: "lookup.repology", handler: l.Repology, predicates: []th.Predicate{th.CommandEqual("repology")}},
-		{name: "panel.rich", handler: p.Rich, predicates: []th.Predicate{th.CommandEqual("rich")}},
-		{name: "panel.spoiler", handler: p.Spoiler, predicates: []th.Predicate{th.CommandEqual("spoiler")}},
-		{name: "panel.vmode", handler: p.VerifyMode, predicates: []th.Predicate{th.CommandEqual("vmode")}},
-		{name: "panel.autodel", handler: p.AutoDelete, predicates: []th.Predicate{th.CommandEqual("autodel")}},
-		{name: "panel.bantime", handler: p.BanTime, predicates: []th.Predicate{th.CommandEqual("bantime")}},
-		{name: "moderate.mute", handler: m.Mute, predicates: []th.Predicate{th.CommandEqual("mute")}},
-		{name: "moderate.unmute", handler: m.Unmute, predicates: []th.Predicate{th.CommandEqual("unmute")}},
-		{name: "panel.help", handler: p.Help, predicates: []th.Predicate{th.CommandEqual("help")}},
+		{name: "bot.private_dm", handler: u.dm.onPrivateDM, predicates: []th.Predicate{privateDM}},
 	}
+	for _, command := range u.handlers.Commands.Routes() {
+		routes = append(routes, handlerRoute{
+			name: command.Name, handler: command.Handler, predicates: []th.Predicate{th.CommandEqual(command.Command)},
+		})
+	}
+	return routes
 }
 
 // Polling owns one running telegohandler and its completion result.

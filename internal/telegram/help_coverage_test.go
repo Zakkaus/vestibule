@@ -28,9 +28,10 @@ func namesOf(cmds []telego.BotCommand) map[string]bool {
 // text. Nothing links them, so adding a command and forgetting the help text is silent. These
 // tests are that link.
 func TestMemberHelpListsEveryMenuCommand(t *testing.T) {
+	modules := testCommandModules(t)
 	for _, l := range helpLocales {
-		help := i18n.Messages.Panel.Help.Member.For(l)
-		for _, c := range memberCommands(l) {
+		help := modules.MemberHelp(l)
+		for _, c := range modules.MemberMenu(l) {
 			if !regexp.MustCompile(`/` + c.Command + `\b`).MatchString(help) {
 				t.Errorf("%s: /%s is in the member menu but not in the /help text", helpLocaleName[l], c.Command)
 			}
@@ -39,9 +40,10 @@ func TestMemberHelpListsEveryMenuCommand(t *testing.T) {
 }
 
 func TestMemberHelpMentionsNoUnknownCommand(t *testing.T) {
+	modules := testCommandModules(t)
 	for _, l := range helpLocales {
-		known := namesOf(memberCommands(l))
-		for _, m := range helpCommandRe.FindAllStringSubmatch(i18n.Messages.Panel.Help.Member.For(l), -1) {
+		known := namesOf(modules.MemberMenu(l))
+		for _, m := range helpCommandRe.FindAllStringSubmatch(modules.MemberHelp(l), -1) {
 			if !known[m[1]] {
 				t.Errorf("%s: /help lists /%s, which the bot does not register", helpLocaleName[l], m[1])
 			}
@@ -50,11 +52,12 @@ func TestMemberHelpMentionsNoUnknownCommand(t *testing.T) {
 }
 
 func TestAdminHelpMatchesAdminMenu(t *testing.T) {
+	modules := testCommandModules(t)
 	for _, l := range helpLocales {
-		help := i18n.Messages.Panel.Help.Admin.Render(l, 3)
-		member := namesOf(memberCommands(l))
-		known := namesOf(adminCommands(l, 3))
-		for _, c := range adminCommands(l, 3) {
+		help := modules.AdministratorHelp(l, 3)
+		member := namesOf(modules.MemberMenu(l))
+		known := namesOf(modules.AdministratorMenu(l))
+		for _, c := range modules.AdministratorMenu(l) {
 			if member[c.Command] {
 				continue // member commands are documented by the member help
 			}
@@ -88,24 +91,27 @@ func TestAutoReplyNamesNoLookupCommand(t *testing.T) {
 
 // Member commands and the direct-message allow-list are derived from one declaration.
 func TestDMAllowsEveryMemberCommand(t *testing.T) {
-	for _, c := range memberCommands(i18n.LangEN) {
+	modules := testCommandModules(t)
+	predicate := privateNonStart(modules.MemberCommandNames())
+	for _, c := range modules.MemberMenu(i18n.LangEN) {
 		update := telego.Update{Message: &telego.Message{
 			Chat: telego.Chat{Type: "private"},
 			Text: "/" + c.Command + " something",
 		}}
-		if privateNonStart(context.Background(), update) {
+		if predicate(context.Background(), update) {
 			t.Errorf("/%s does not reach its handler in a direct message", c.Command)
 		}
 	}
 }
 
 func TestDMRejectsUnregisteredCommand(t *testing.T) {
+	predicate := privateNonStart(testCommandModules(t).MemberCommandNames())
 	for _, cmd := range []string{"/nosuchcommand", "/mute", "/settings"} {
 		update := telego.Update{Message: &telego.Message{
 			Chat: telego.Chat{Type: "private"},
 			Text: cmd,
 		}}
-		if !privateNonStart(context.Background(), update) {
+		if !predicate(context.Background(), update) {
 			t.Errorf("%s should fall through to the direct-message reply", cmd)
 		}
 	}

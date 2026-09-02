@@ -52,6 +52,37 @@ func TestLoadConfigMissingAndEmptyAllowNoGroups(t *testing.T) {
 	}
 }
 
+func TestOptionalModuleConfiguration(t *testing.T) {
+	defaults, err := LoadConfig(writeConfig(t, map[string]any{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, module := range OptionalModuleNames() {
+		if !defaults.ModuleEnabled(module) {
+			t.Errorf("%s is disabled by default", module)
+		}
+	}
+	disabled, err := LoadConfig(writeConfig(t, map[string]any{
+		"disabled_modules": []string{ModuleGentoo, ModuleLinux},
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, module := range OptionalModuleNames() {
+		if disabled.ModuleEnabled(module) {
+			t.Errorf("%s remains enabled after configuration", module)
+		}
+	}
+	for _, value := range []map[string]any{
+		{"disabled_modules": []string{"missing"}},
+		{"disabled_modules": []string{ModuleGentoo, ModuleGentoo}},
+	} {
+		if _, err := LoadConfig(writeConfig(t, value)); err == nil {
+			t.Errorf("expected disabled_modules validation error for %#v", value)
+		}
+	}
+}
+
 func TestLoadConfigLegacy(t *testing.T) {
 	c, err := LoadConfig(writeConfig(t, map[string]any{
 		"group_ids":           []int{-100, -200},

@@ -17,6 +17,7 @@ type dmHandler struct {
 	cfg            *settings.Config
 	settings       *settings.Store
 	telegram       *Connector
+	commands       map[string]bool
 	mu             sync.Mutex
 	last           map[int64]time.Time
 	catalogueReply bool
@@ -43,35 +44,28 @@ func isBuiltInPrivateReply(reply string) bool {
 	return sha256.Sum256([]byte(reply)) == legacyPrivateReplySHA256
 }
 
-// Member commands bypass the unified DM reply. Deriving the set from the registered menu
-// makes a newly added command work in direct messages without maintaining a second list.
-var dmCommands = func() map[string]bool {
-	allowed := make(map[string]bool)
-	for _, c := range memberCommands(i18n.LangEN) {
-		allowed[c.Command] = true
-	}
-	return allowed
-}()
-
-// /start and allowed DM commands must reach their registered handlers.
-func privateNonStart(_ context.Context, update telego.Update) bool {
-	m := update.Message
-	if m == nil || m.Chat.Type != "private" {
-		return false
-	}
-	if fields := strings.Fields(m.Text); len(fields) > 0 {
-		cmd := fields[0]
-		if i := strings.IndexByte(cmd, '@'); i >= 0 { // strip /cmd@BotName
-			cmd = cmd[:i]
-		}
-		if cmd == "/start" {
+// Member commands bypass the unified DM reply. Their names come from the active command modules,
+// so a disabled module cannot leave a command path behind in direct messages.
+func privateNonStart(commands map[string]bool) th.Predicate {
+	return func(_ context.Context, update telego.Update) bool {
+		m := update.Message
+		if m == nil || m.Chat.Type != "private" {
 			return false
 		}
-		if strings.HasPrefix(cmd, "/") && dmCommands[cmd[1:]] {
-			return false // a member command usable in DM — let its (rate-limited) handler run
+		if fields := strings.Fields(m.Text); len(fields) > 0 {
+			cmd := fields[0]
+			if i := strings.IndexByte(cmd, '@'); i >= 0 { // strip /cmd@BotName
+				cmd = cmd[:i]
+			}
+			if cmd == "/start" {
+				return false
+			}
+			if strings.HasPrefix(cmd, "/") && commands[cmd[1:]] {
+				return false // a member command usable in DM — let its (rate-limited) handler run
+			}
 		}
+		return true
 	}
-	return true
 }
 
 func (v *dmHandler) privateReply(l i18n.Lang) string {
