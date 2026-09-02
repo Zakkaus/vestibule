@@ -314,7 +314,8 @@
       "conflict": "其他人已修改這些設定。請重新載入後再儲存。"
     },
     "errors": {
-      "authenticationRequired": "控制台工作階段無效。請從 Telegram 重新開啟控制台。",
+      "authenticationInvalid": "控制台工作階段無效。請從 Telegram 重新開啟控制台。",
+      "csrfInvalid": "此頁的安全權杖已過期。重新整理頁面後再重試。",
       "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
       "accessDenied": "你已不再擁有此群組的管理權限。",
       "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",

@@ -314,7 +314,8 @@
       "conflict": "别人改过这些设置了。重新载入后再保存。"
     },
     "errors": {
-      "authenticationRequired": "控制台会话无效。请从 Telegram 重新打开控制台。",
+      "authenticationInvalid": "控制台会话无效。请从 Telegram 重新打开控制台。",
+      "csrfInvalid": "此页的安全令牌已过期。刷新页面后再重试。",
       "authenticationExpired": "会话已过期。请从 Telegram 重新打开控制台。",
       "accessDenied": "你已不再拥有此群的管理权限。",
       "accessUnavailable": "暂时无法确认你对此群的管理权限。请重试。",
