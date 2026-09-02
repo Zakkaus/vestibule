@@ -46,6 +46,11 @@ type metric struct {
 type boundaryRule struct {
 	directory string
 	prefix    string
+	// productionOnly rules ignore _test.go. A handler layer that must never
+	// reach the database in production is still tested by building a real one
+	// and driving the handlers through it, which is the test doing its job
+	// rather than the boundary being crossed.
+	productionOnly bool
 }
 
 func main() {
@@ -310,7 +315,7 @@ func packageBoundaryFindings(files []string, rules []boundaryRule) ([]metric, er
 			if err != nil {
 				return nil, fmt.Errorf("parse import in %s: %w", path, err)
 			}
-			if !forbiddenImport(directory, importPath, rules) {
+			if !forbiddenImport(directory, importPath, rules, strings.HasSuffix(path, "_test.go")) {
 				continue
 			}
 			findings = append(findings, metric{
@@ -333,8 +338,11 @@ func hasRuleForDirectory(directory string, rules []boundaryRule) bool {
 	return false
 }
 
-func forbiddenImport(directory, importPath string, rules []boundaryRule) bool {
+func forbiddenImport(directory, importPath string, rules []boundaryRule, inTest bool) bool {
 	for _, rule := range rules {
+		if rule.productionOnly && inTest {
+			continue
+		}
 		if directoryMatches(directory, rule.directory) && importMatches(importPath, rule.prefix) {
 			return true
 		}
@@ -365,10 +373,19 @@ func loadBoundaryRules(path string) ([]boundaryRule, error) {
 			continue
 		}
 		fields := strings.Fields(text)
-		if len(fields) != 2 {
+		if len(fields) != 2 && len(fields) != 3 {
 			return nil, fmt.Errorf("parse boundary rules line %d", line)
 		}
-		rules = append(rules, boundaryRule{directory: fields[0], prefix: fields[1]})
+		rule := boundaryRule{directory: fields[0], prefix: fields[1]}
+		if len(fields) == 3 {
+			if fields[2] != "production" {
+				return nil, fmt.Errorf(
+					"boundary rules line %d: unknown scope %q, the only one is production",
+					line, fields[2])
+			}
+			rule.productionOnly = true
+		}
+		rules = append(rules, rule)
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("read boundary rules: %w", err)

@@ -1,9 +1,16 @@
 # Package directory and forbidden import prefix, separated by whitespace.
 internal/verification github.com/mymmrac/telego
-# internal/rules does not exist yet; reserve its pure-function boundary now.
+# internal/rules was reserved before it existed; it exists now and stays pure.
 internal/rules database
 internal/rules net
 internal/rules github.com/mymmrac/telego
 internal/rules go.mau.fi/util/dbutil
 internal/rules github.com/Zakkaus/vestibule/internal/store
 internal/rules github.com/Zakkaus/vestibule/internal/tg
+
+# The console HTTP layer authenticates, validates and calls a service. Reaching
+# the database from a handler is how a decision ends up in the transport layer.
+# Tests build a real database on purpose, so this one is production only.
+internal/console/api github.com/Zakkaus/vestibule/internal/database production
+internal/console/api go.mau.fi/util/dbutil production
+internal/console/api database/sql production
