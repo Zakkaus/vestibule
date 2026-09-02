@@ -376,7 +376,7 @@ func TestLookupHandlerArgumentsAndTelegramFallbacks(t *testing.T) {
 
 func TestLookupHandlerAuthorizationRateAndScheduledCleanup(t *testing.T) {
 	const (
-		groupID = int64(-1007000000001)
+		groupID = int64(-1009999900013)
 		userID  = int64(88)
 	)
 	limit := 1

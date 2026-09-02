@@ -1607,7 +1607,7 @@ func TestStopForShutdownFreezesPending(t *testing.T) {
 
 func TestTrustedBypass(t *testing.T) {
 	ctx := context.Background()
-	const gid, src, uid = int64(-1003265952923), int64(-1001163306055), int64(5)
+	const gid, src, uid = int64(-1009999900007), int64(-1009999900002), int64(5)
 	mkV := func() *Service {
 		v := newTestService(&settings.Config{Groups: []settings.GroupConfig{{ID: gid, TrustedMemberGroupIDs: []int64{src}}}})
 		v.loc = time.UTC
@@ -1655,7 +1655,7 @@ func TestTrustedBypass(t *testing.T) {
 
 func TestJoinGate(t *testing.T) {
 	ctx := context.Background()
-	const gid, src, uid = int64(-1003265952923), int64(-1001163306055), int64(5)
+	const gid, src, uid = int64(-1009999900007), int64(-1009999900002), int64(5)
 	mkV := func() *Service {
 		v := newTestService(&settings.Config{VerifyRetrySeconds: 600, Groups: []settings.GroupConfig{{ID: gid, TrustedMemberGroupIDs: []int64{src}}}})
 		v.loc = time.UTC
@@ -1711,7 +1711,7 @@ func TestJoinGate(t *testing.T) {
 
 func TestCooldownReapplicationDMsCurrentWait(t *testing.T) {
 	const (
-		gid      = int64(-1003265952923)
+		gid      = int64(-1009999900007)
 		uid      = int64(5)
 		cooldown = 600
 	)

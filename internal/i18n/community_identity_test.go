@@ -3,19 +3,12 @@ package i18n
 import (
 	"encoding/json"
 	"regexp"
-	"strings"
 	"testing"
 )
 
-// Only two catalogue entries may name the Gentoo-zh Community, and both are selected by build:
-// Who() picks the identity sentence, BuiltinFallback() picks the question bank. Any other
-// string carrying the community's name would reach a group that is not this community.
-var (
-	communityClaim = regexp.MustCompile(`Gentoo-zh|Gentoo 中文社[区群]|gentoozh|Gentoo Chinese`)
-	gentooOnlyKeys = []string{"challenge.fallback_questions", "direct_message.identity"}
-)
+var communityIdentityClaim = regexp.MustCompile(`Gentoo-zh Community|Gentoo 中文社[区群]|Gentoo Chinese Community|gentoozh\.org`)
 
-func TestOnlyEditionSelectedTextNamesTheCommunity(t *testing.T) {
+func TestCatalogueClaimsNoSpecificCommunityIdentity(t *testing.T) {
 	for _, definition := range localeDefinitions {
 		for _, subsystem := range []string{"bot", "verification", "panel", "moderate", "feed",
 			"lookup_content", "lookup_distros", "lookup_packages"} {
@@ -28,16 +21,10 @@ func TestOnlyEditionSelectedTextNamesTheCommunity(t *testing.T) {
 				t.Fatalf("parse %s/%s: %v", definition.tag, subsystem, err)
 			}
 			walkStrings(tree, "", func(path, value string) {
-				if !communityClaim.MatchString(value) {
-					return
+				if communityIdentityClaim.MatchString(value) {
+					t.Errorf("%s/%s: %s claims a specific community identity: %q",
+						definition.tag, subsystem, path, value)
 				}
-				for _, allowed := range gentooOnlyKeys {
-					if strings.HasPrefix(path, allowed) {
-						return
-					}
-				}
-				t.Errorf("%s/%s: %s names the Gentoo-zh Community but is not selected by build: %q",
-					definition.tag, subsystem, path, value)
 			})
 		}
 	}

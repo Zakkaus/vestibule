@@ -1,7 +1,5 @@
 package i18n
 
-import "github.com/Zakkaus/vestibule/internal/edition"
-
 type localizedStrings [langCount][]string
 
 func (s localizedStrings) value(l Lang) []string {
@@ -16,19 +14,6 @@ type StringList struct{ localizedStrings }
 
 // For returns the list for l.
 func (s StringList) For(l Lang) []string { return s.value(l) }
-
-// Question is one localized answer-hidden verification question.
-type Question struct {
-	// Prompt contains the localized question text.
-	Prompt Text
-	// Answers contains the localized accepted answers.
-	Answers StringList
-}
-
-// For returns the localized prompt and accepted answers.
-func (q Question) For(l Lang) (string, []string) {
-	return q.Prompt.For(l), q.Answers.For(l)
-}
 
 // VerificationCatalog contains the join-verification surface groups.
 // VerificationHeldCatalog words verification outcomes for someone verified after joining, where
@@ -118,11 +103,6 @@ type VerificationChallengeCatalog struct {
 	FallbackIntro Format
 	// FallbackWrong formats a fallback retry.
 	FallbackWrong Format
-	// FallbackQuestions contains the built-in answer-hidden questions for the Gentoo build.
-	FallbackQuestions [2]Question
-	// FallbackQuestionsGeneric contains the built-in questions for a build serving Linux
-	// communities in general, which cannot ask about a Gentoo-zh Community site.
-	FallbackQuestionsGeneric [2]Question
 	// AgentTrap formats the hidden automated-agent instruction.
 	AgentTrap Format
 }
@@ -293,14 +273,4 @@ type VerificationAdminCatalog struct {
 	BanButton Text
 	// ChallengePostFailed formats a failed public challenge alert.
 	ChallengePostFailed Format
-}
-
-// BuiltinFallback returns the built-in questions this build should ask. A group that is not
-// the Gentoo-zh Community cannot answer a question about its website, so the generic build
-// asks about Linux itself instead.
-func (c VerificationChallengeCatalog) BuiltinFallback() []Question {
-	if edition.IsGentoo {
-		return c.FallbackQuestions[:]
-	}
-	return c.FallbackQuestionsGeneric[:]
 }

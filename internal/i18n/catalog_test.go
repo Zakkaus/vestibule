@@ -114,18 +114,6 @@ func TestCatalogComplete(t *testing.T) {
 			}
 		}
 	})
-
-	for i, question := range Messages.Verification.Challenge.FallbackQuestions {
-		for _, locale := range Languages() {
-			prompt, answers := question.For(locale)
-			for _, answer := range answers {
-				if strings.EqualFold(strings.TrimSpace(prompt), strings.TrimSpace(answer)) {
-					path := fmt.Sprintf("Messages.Verification.Challenge.FallbackQuestions[%d].Prompt", i)
-					t.Errorf("%s exposes its answer", catalogEntry(path, locale))
-				}
-			}
-		}
-	}
 }
 
 func TestSetupRecoveryCatalogNamesImplementedRestartAction(t *testing.T) {

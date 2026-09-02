@@ -285,7 +285,7 @@ type Config struct {
 	DeliveryMode string `json:"delivery_mode"`
 	// FallbackQuestions is the answer-hidden path for applicants without Linux.
 	FallbackQuestions []ShortQuestion `json:"fallback_questions"`
-	// FallbackBuiltin selects the embedded fallback bank for configured chats.
+	// FallbackBuiltin selects the embedded factory rules when no chat bank is configured.
 	FallbackBuiltin *bool `json:"fallback_builtin"`
 	// Overlays lists GitHub overlays searched by /pkg.
 	Overlays []OverlayCfg `json:"overlays"`

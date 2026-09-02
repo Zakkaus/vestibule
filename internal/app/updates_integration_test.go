@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Zakkaus/vestibule/internal/edition"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/panel"
 	"github.com/Zakkaus/vestibule/internal/telegram"
@@ -159,7 +158,7 @@ func globalDispatchCases(
 			update: groupCommand(
 				fixture.groupID,
 				panelUser,
-				"/"+edition.CommandPrefix+"pkg sys-apps/portage",
+				"/pkg sys-apps/portage",
 			),
 			want: "lookup.pkg",
 		},

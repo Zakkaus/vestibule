@@ -25,6 +25,8 @@ jobs:
           fi
       - name: lint
         run: scripts/lint.sh
+      - name: Test chat identifiers stay in the synthetic range
+        run: python3 scripts/check-test-chat-ids.py internal cmd testdata
       - name: A held violation may not grow
         run: |
           base="${{ github.event.pull_request.base.sha || 'HEAD^' }}"
@@ -36,11 +38,11 @@ jobs:
         run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
       - name: build
         run: go build ./...
-      - name: build (gentoo edition)
+      - name: build (gentoo compatibility tag; behavior must stay identical)
         run: go build -tags gentoo ./...
       - name: test
         run: go test -race ./...
-      - name: test (gentoo edition)
+      - name: test (gentoo compatibility tag; behavior must stay identical)
         run: go test -race -tags gentoo ./...
       - name: static SQLite release-runtime gate
         run: scripts/test-static-sqlite.sh

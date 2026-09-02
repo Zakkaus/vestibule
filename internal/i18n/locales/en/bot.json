@@ -29,7 +29,7 @@
       "warn": "[Administrator] Warn the user you replied to (removed after %[1]d warnings)",
       "clear_warn": "[Administrator] Clear warnings for the user you replied to",
       "channel": "[Administrator] Manage sender-channel blocking",
-      "rich_text": "[Administrator] Toggle rich text for /{g}pkg and /{g}use",
+      "rich_text": "[Administrator] Toggle rich text for /pkg and /use",
       "name_spoiler": "[Administrator] Toggle name hiding for new members",
       "verification_mode": "[Administrator] Change verification mode",
       "auto_delete": "[Administrator] Toggle automatic result deletion",
@@ -45,8 +45,7 @@
   },
   "direct_message": {
     "auto_reply": "👋 %[2]s\n\n• To join: submit a join request in the group. Answer a challenge sent here, or select “✅ Start verification” in any group message the bot posts.\n• Lookup commands also work in direct messages; /help lists every one of them. Direct messages are limited to %[1]d queries per minute; group chats are not rate-limited.\n• Review and administration commands only work in the group.",
-    "identity": "This bot handles join verification for the Gentoo-zh Community and provides Gentoo/Linux lookup commands.",
-    "identity_generic": "This bot handles join verification for this group and provides Linux lookup commands."
+    "identity": "This bot handles join verification and provides Linux lookup commands for its configured groups."
   },
   "registration": {
     "owner_claimed": "Deployer ownership is now bound to this account. You can add groups.",

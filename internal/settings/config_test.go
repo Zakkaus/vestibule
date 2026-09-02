@@ -366,9 +366,9 @@ func TestIsKnownChatExtra(t *testing.T) {
 	c := &Config{
 		GroupIDs:     []int64{-1},
 		Groups:       []GroupConfig{{ID: -1}},
-		KnownChatIDs: []int64{-1001166068646},
+		KnownChatIDs: []int64{-1009999900003},
 	}
-	if !c.IsKnownChat(-1001166068646) {
+	if !c.IsKnownChat(-1009999900003) {
 		t.Error("a known_chat_ids chat must be a known chat (never auto-left)")
 	}
 	if len(c.TrustedGroups(-1)) != 0 {
@@ -381,14 +381,14 @@ func TestIsKnownChatExtra(t *testing.T) {
 
 func TestLoadConfigKnownChats(t *testing.T) {
 	c, err := LoadConfig(writeConfig(t, map[string]any{
-		"known_chat_ids": []int64{-1001166068646},
-		"groups":         []map[string]any{{"id": -1003265952923}},
+		"known_chat_ids": []int64{-1009999900003},
+		"groups":         []map[string]any{{"id": -1009999900007}},
 		"questions":      sampleQ,
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !c.IsKnownChat(-1001166068646) {
+	if !c.IsKnownChat(-1009999900003) {
 		t.Error("a known_chat_ids chat must be a known chat")
 	}
 	if len(c.TrustedMemberGroupIDs) != 0 {
@@ -398,29 +398,29 @@ func TestLoadConfigKnownChats(t *testing.T) {
 
 func TestLoadConfigTrustedGroups(t *testing.T) {
 	c, err := LoadConfig(writeConfig(t, map[string]any{
-		"trusted_member_group_ids": []int64{-1001163306055},
+		"trusted_member_group_ids": []int64{-1009999900002},
 		"groups": []map[string]any{
-			{"id": -1003265952923, "trusted_member_group_ids": []int64{-1001163306055}},
+			{"id": -1009999900007, "trusted_member_group_ids": []int64{-1009999900002}},
 		},
 		"questions": sampleQ,
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(c.TrustedMemberGroupIDs) != 1 || c.TrustedMemberGroupIDs[0] != -1001163306055 {
+	if len(c.TrustedMemberGroupIDs) != 1 || c.TrustedMemberGroupIDs[0] != -1009999900002 {
 		t.Errorf("top-level trusted_member_group_ids not parsed: %v", c.TrustedMemberGroupIDs)
 	}
-	if got := c.TrustedGroups(-1003265952923); len(got) != 1 || got[0] != -1001163306055 {
+	if got := c.TrustedGroups(-1009999900007); len(got) != 1 || got[0] != -1009999900002 {
 		t.Errorf("per-group trusted_member_group_ids not resolved: %v", got)
 	}
-	if !c.IsKnownChat(-1001163306055) {
+	if !c.IsKnownChat(-1009999900002) {
 		t.Error("the trusted source group must be a known chat (so auto-leave won't kick the bot)")
 	}
 }
 
 func TestLoadConfigTrustedDisable(t *testing.T) {
 	c, err := LoadConfig(writeConfig(t, map[string]any{
-		"trusted_member_group_ids": []int64{-1001163306055},
+		"trusted_member_group_ids": []int64{-1009999900002},
 		"groups": []map[string]any{
 			{"id": -100}, // omitted -> inherit global
 			{"id": -200, "trusted_member_group_ids": []int64{}}, // explicit [] -> disable
@@ -430,7 +430,7 @@ func TestLoadConfigTrustedDisable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := c.TrustedGroups(-100); len(got) != 1 || got[0] != -1001163306055 {
+	if got := c.TrustedGroups(-100); len(got) != 1 || got[0] != -1009999900002 {
 		t.Errorf("group -100 (omitted) should inherit the global, got %v", got)
 	}
 	if got := c.TrustedGroups(-200); len(got) != 0 {

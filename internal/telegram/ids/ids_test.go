@@ -8,11 +8,11 @@ func TestParseChannelID(t *testing.T) {
 		want  int64
 		ok    bool
 	}{
-		{input: "-1001234567890", want: -1001234567890, ok: true},
-		{input: "1234567890", want: -1001234567890, ok: true},
-		{input: " 1234567890 ", want: -1001234567890, ok: true},
-		{input: "-100123456789", want: -100123456789, ok: true},
-		{input: "123456789", want: -100123456789, ok: true},
+		{input: "-1009999900006", want: -1009999900006, ok: true},
+		{input: "9999900006", want: -1009999900006, ok: true},
+		{input: " 9999900006 ", want: -1009999900006, ok: true},
+		{input: "-100999999999", want: -100999999999, ok: true},
+		{input: "999999999", want: -100999999999, ok: true},
 		{input: ""},
 		{input: "abc"},
 		{input: "-100abc"},

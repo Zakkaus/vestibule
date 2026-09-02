@@ -56,13 +56,13 @@ func TestBuiltInPrivateReplyUsesCatalogue(t *testing.T) {
 	handler := dmHandler{cfg: cfg, catalogueReply: true}
 	for _, language := range i18n.Languages() {
 		got := handler.privateReply(language)
-		want := i18n.Messages.Bot.DirectMessage.AutoReply.Render(language, cfg.PrivateQueryPerMin, i18n.Messages.Bot.DirectMessage.Who(language))
+		want := i18n.Messages.Bot.DirectMessage.AutoReply.Render(language, cfg.PrivateQueryPerMin, i18n.Messages.Bot.DirectMessage.Identity.For(language))
 		if got != want {
 			t.Errorf("private reply for %s = %q, want catalogue text %q", language, got, want)
 		}
 	}
 
-	customReply := i18n.Messages.Bot.DirectMessage.AutoReply.Render(i18n.LangEN, 99, i18n.Messages.Bot.DirectMessage.Who(i18n.LangEN))
+	customReply := i18n.Messages.Bot.DirectMessage.AutoReply.Render(i18n.LangEN, 99, i18n.Messages.Bot.DirectMessage.Identity.For(i18n.LangEN))
 	if isBuiltInPrivateReply(customReply) {
 		t.Fatal("custom private reply was recognized as built-in")
 	}
@@ -81,7 +81,7 @@ func TestBuiltInPrivateReplyUsesProcessQueryRate(t *testing.T) {
 	}
 	service := NewUpdates(cfg, settings, nil, HandlerSet{})
 	got := service.dm.privateReply(i18n.LangEN)
-	want := i18n.Messages.Bot.DirectMessage.AutoReply.Render(i18n.LangEN, rate, i18n.Messages.Bot.DirectMessage.Who(i18n.LangEN))
+	want := i18n.Messages.Bot.DirectMessage.AutoReply.Render(i18n.LangEN, rate, i18n.Messages.Bot.DirectMessage.Identity.For(i18n.LangEN))
 	if got != want {
 		t.Errorf("private reply = %q, want catalogue text %q", got, want)
 	}

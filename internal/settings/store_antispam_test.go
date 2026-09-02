@@ -9,7 +9,7 @@ import (
 
 const legacyAntispamRuntimeGroup int64 = -1009000000003
 
-var legacyAntispamWhitelist = []int64{-1007000000003, -1007000000001, -1007000000002}
+var legacyAntispamWhitelist = []int64{-1009999900015, -1009999900013, -1009999900014}
 
 type legacyAntispamMigration struct {
 	settings     *Store

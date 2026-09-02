@@ -1,5 +1,5 @@
 [Unit]
-Description=Gentoo zh Telegram join-verification bot
+Description=Vestibule Telegram join-verification bot
 After=network-online.target
 Wants=network-online.target
 # Retry forever: a 30-second backoff avoids a hot crash loop, while interval 0

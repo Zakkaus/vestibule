@@ -7,8 +7,6 @@ import (
 	"reflect"
 	"sort"
 	"strings"
-
-	"github.com/Zakkaus/vestibule/internal/edition"
 )
 
 // Lang identifies one supported catalogue locale.
@@ -97,25 +95,7 @@ func (s localized) value(l Lang) string {
 	if l >= langCount {
 		l = LangZH
 	}
-	return applyCommandPrefix(s[l])
-}
-
-// commandPrefixToken marks where an edition-specific command name begins, so one catalogue
-// serves both builds: "/{g}pkg" renders as /pkg in the Gentoo build and /gpkg in the generic
-// one. Substituting here rather than at each call site means no message can be missed.
-const (
-	commandPrefixToken = "{g}"
-	kernelSuffixToken  = "{ks}"
-)
-
-func applyCommandPrefix(s string) string {
-	if strings.Contains(s, commandPrefixToken) {
-		s = strings.ReplaceAll(s, commandPrefixToken, edition.CommandPrefix)
-	}
-	if strings.Contains(s, kernelSuffixToken) {
-		s = strings.ReplaceAll(s, kernelSuffixToken, edition.KernelExampleSuffix)
-	}
-	return s
+	return s[l]
 }
 
 // Text is a localized value that is returned without formatting.

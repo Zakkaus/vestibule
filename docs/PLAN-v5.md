@@ -778,36 +778,32 @@ revision 不匹配要能被前端区分成「别人改过了」而不是「保�
 关掉全部可选模块后二进制照常启动，命令表里不残留它们的条目；
 `grep -rn '主群\|mainGroup\|isMainChat' internal cmd` 无业务分支。
 
-还有一处同类的、这条 grep 抓不到的：**测试里写着真实的生产群号**。
-`config.example.json` 用的是假号，这点是对的；但若干测试文件直接用了线上那几个群的
-真实 ID，其中一处还写出了「哪个群信任哪个群」。它们不是凭据 ——
-群号不授予任何权限 —— 但这是一个公开仓库，把真实拓扑写进测试没有理由，
-而且换成任意数字，测试断言的内容一个字都不会变。
-本阶段一并换掉，并加一条检查：测试里的群号取自一个写明的假号段。
-核过仍然成立：五个真实群号在仓库里还有 43 处，集中在
-`internal/settings/config_test.go`、`internal/verification/verify_test.go`、
-`internal/status/redact_test.go`。`internal/feed/state_compat_test.go`
-与 `internal/settings/defaults.yaml` 用的已经是假号，不动。
+还有一处同类问题不会被这条 grep 捕获：**测试里曾写入真实的生产群号**。
+`config.example.json` 使用假号，但若干测试文件直接使用了五个线上群 ID，其中一处还
+暴露了群之间的信任关系。群号不是凭据，但测试断言不依赖这些具体数值，因此不应在
+公开仓库里保留生产拓扑。
 
-**这条 grep 现在已经是空的** —— 前序阶段搬移时一并移除了，
-所以它是一条回归检查，不是待办。本阶段真正剩下的是 edition：
-`internal/edition/{edition_gentoo,edition_generic}.go` 共 37 行按构建标签二选一。
-读它的地方有九处，分布在五个包，不是原先记的四处：
+本阶段实施前按这五个完整 ID 重新统计，三个目标测试文件合计 21 处，不是旧快照记录的
+43 处。现已将 Go 测试与 `testdata/` 中的群号迁入 `-1009` 假号段，并由
+`scripts/check-test-chat-ids.py` 拒绝段外号码、缺失扫描目标和零覆盖。
+`internal/feed/state_compat_test.go` 与 `internal/settings/defaults.yaml` 原有的假号未改。
 
-| 位置 | 读的是什么 |
+**这条 grep 仍为空** —— 前序阶段搬移时已删除对应业务分支，所以它是一条回归检查。
+本阶段处理了原来由构建标签二选一的两个 `internal/edition` 文件及其九处读取：
+
+| 原读取位置 | 处置结果 |
 |---|---|
-| `internal/telegram/edition.go:8` | `CommandPrefix`，再由整个 telegram 包用作命令前缀 |
-| `internal/lookup/packages.go:30` | `Name`，用作出站请求的 User-Agent |
-| `internal/lookup/packages.go:1413` | `CommandPrefix`，拼进 `/use` 的提示文本 |
-| `internal/verification/kernel.go:22` | `KernelExampleSuffix`，拼进内核题的占位示例 |
-| `internal/i18n/catalog.go:113` | `CommandPrefix`，替换目录里的命令前缀记号 |
-| `internal/i18n/catalog.go:116` | `KernelExampleSuffix`，替换目录里的后缀记号 |
-| `internal/i18n/bot.go:154` | `IsGentoo`，按版本选帮助文案 |
-| `internal/i18n/verification.go:302` | `IsGentoo`，按版本选验证文案 |
-| `cmd/bot/main.go:21` | `Name`，拼默认配置文件路径 |
+| telegram 包的 edition 命令前缀适配层 | 删除适配层；`internal/telegram/commands.go` 只声明无前缀命令 |
+| `internal/lookup/packages.go` 的 `Name` 读取 | 保留单一 `edition.Name`，继续作为 User-Agent |
+| `internal/lookup/packages.go` 的 `CommandPrefix` 读取 | 提示文本固定使用 `/use` |
+| `internal/verification/kernel.go` 的 `KernelExampleSuffix` 读取 | 占位示例固定为通用的 `X.Y.Z` |
+| `internal/i18n/catalog.go` 的 `CommandPrefix` 读取 | 删除运行时替换；三语目录直接保存无前缀命令 |
+| `internal/i18n/catalog.go` 的 `KernelExampleSuffix` 读取 | 删除运行时替换；三语目录直接保存通用示例 |
+| `internal/i18n/bot.go` 的 `IsGentoo` 读取 | 删除版本分支，只保留中性的 `Identity` 文案 |
+| verification 文案的 `IsGentoo` 读取 | 删除版本分支；fallback 题迁入 `internal/rules/provisioning/fallback_questions.json` |
+| `cmd/bot/main.go` 的 `Name` 读取 | 保留单一 `edition.Name`，继续拼接默认配置路径 |
 
-「按 edition 决定功能」这一条要拆的就是这九处。`internal/telegram/dm.go` 附近
-只有一句解释 edition 前缀的注释，本身不读 edition。
+`gentoo` 构建标签现在只用于兼容性回归，不再选择源码或产品行为。
 **实机**：测试群与另一个临时群同时挂在同一个进程上，两边配置互不影响。
 
 #### 文件处置
@@ -877,7 +873,7 @@ revision 不匹配要能被前端区分成「别人改过了」而不是「保�
 |---|---|---|
 | `deploy/install.sh` | 重写 | 同名。现有这份继承自上一代：只做「从 GitHub release 下载、校验 SHA256、装 systemd 单元」，不管容器、不管回退、不管卸载 |
 | `deploy/vestibule.service` | 沿用并扩写 | 同名。加上执行替换的那个单元 |
-| `deploy/gentoo-zhbot.service` | 沿用并扩写 | 同名 |
+| `deploy/gentoo-zhbot.service` | 已删除 | 无。阶段八去掉构建标签之后，`--generic` / `--gentoo` 不再选中任何版本，第二份单元没有对应的安装目标 |
 
 本阶段还要从无到有做出来的：容器镜像与 compose 定义、执行替换的宿主单元、
 以及安装结果文件（`600` 权限，写认领链接不写凭据）。
@@ -888,7 +884,11 @@ revision 不匹配要能被前端区分成「别人改过了」而不是「保�
 
 - 下载的二进制按发布的 `SHA256SUMS` 校验后才安装（`deploy/install.sh:54`）。
 - **已存在的 `bot.env` 从不覆盖**，所以升级就是重跑同一条命令（`deploy/install.sh:60-61`）。
-- 两个版本名字全程分开，一台机器上可以同时装（`--generic` 与 `--gentoo`）。
+- ~~两个版本名字全程分开，一台机器上可以同时装（`--generic` 与 `--gentoo`）~~
+  **这一条被阶段八取代。** 版本由构建标签二选一的机制没了，一份二进制服务所有社区；
+  「一台机器上装两份」原本是为了同时运行 Gentoo-zh 与通用两套，而多租户让一个实例
+  就能服务多个群。安装脚本的 `--generic` / `--gentoo` 与第二份单元一并删除，
+  `internal/edition/deploy_test.go` 改为断言单元、安装脚本与二进制用同一个产品名。
 - 单元的加固逐条保留：`DynamicUser`、`ProtectSystem=strict`、
   `CapabilityBoundingSet=` 空、`SystemCallFilter=@system-service`、
   `RestrictAddressFamilies` 只留三种、`UMask=0077`、`StateDirectoryMode=0700`。

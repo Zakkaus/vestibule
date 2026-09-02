@@ -1,15 +1,12 @@
 #!/bin/sh
 # Install or upgrade the bot from a GitHub release.
 #
-#   sh install.sh                    # Gentoo-zh Community edition, latest release
-#   sh install.sh --generic          # gentoo-zhbot, for a Linux community in general
+#   sh install.sh                    # latest release
 #   sh install.sh v4.3.0             # a specific tag
-#   sh install.sh --generic v4.3.0
 #
 # Downloads the release binary for this machine's architecture, checks it against the
 # published SHA256SUMS, installs the systemd unit, and leaves the service enabled. An
-# existing bot.env is never overwritten, so upgrading is the same command. The two
-# editions use separate names throughout, so both can be installed on one machine.
+# existing bot.env is never overwritten, so upgrading is the same command.
 set -eu
 
 repo=Zakkaus/vestibule
@@ -19,8 +16,6 @@ version=
 
 for arg in "$@"; do
 	case $arg in
-		--generic) name=gentoo-zhbot ;;
-		--gentoo) name=vestibule ;;
 		-h | --help) sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
 		-*) echo "install.sh: unknown option $arg" >&2; exit 1 ;;
 		*) version=$arg ;;
