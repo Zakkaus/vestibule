@@ -23,7 +23,9 @@ type Telegram interface {
 	Alert(ctx context.Context, adminLogChatID int64, text string)
 	AuditLog(ctx context.Context, adminLogChatID int64, text string)
 	FailAlert(ctx context.Context, adminLogChatID, groupID int64, text string)
-	CachedAdmin(ctx context.Context, chatID, userID int64) (bool, error)
+	// The architecture document forbids a cached lookup for the target of a sensitive
+	// command, so this package cannot reach one: a revoked administrator must stop being
+	// protected the moment Telegram says so, not up to a cache lifetime later.
 	FreshAdmin(ctx context.Context, chatID, userID int64) (bool, error)
 	Ban(ctx context.Context, chatID, userID int64, seconds int, revokeMessages bool) error
 	Unban(ctx context.Context, chatID, userID int64, onlyIfBanned bool) error
@@ -246,7 +248,7 @@ func (s *Service) warnPrecheck(ctx context.Context, msg *telego.Message, command
 	}
 	target := msg.ReplyToMessage.From
 	if checkTargetAdmin {
-		isAdmin, err := s.telegram.CachedAdmin(ctx, groupID, target.ID)
+		isAdmin, err := s.telegram.FreshAdmin(ctx, groupID, target.ID)
 		if err != nil {
 			s.notify(ctx, groupID, i18n.Messages.Moderate.Common.TargetAdminCheckFailed.For(l))
 			return nil
