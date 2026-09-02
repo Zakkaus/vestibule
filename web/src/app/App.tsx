@@ -7,6 +7,7 @@ import { DiagnosticsScreen } from "../features/diagnostics";
 import { EntryScreen } from "../features/entry";
 import { FeedsScreen } from "../features/feeds";
 import { GroupListScreen } from "../features/groups";
+import { HomeLanding, HomeScreen } from "../features/home";
 import { ModerationScreen } from "../features/moderation";
 import { MessagesScreen } from "../features/messages";
 import { QueueScreen } from "../features/queue";
@@ -31,8 +32,13 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <EntryScreen />,
+        element: <HomeLanding />,
         handle: entryHandle
+      },
+      {
+        path: "home",
+        element: <HomeScreen />,
+        handle: consoleHandle
       },
       {
         path: "queue",

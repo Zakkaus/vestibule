@@ -1201,5 +1201,160 @@
       "saveUnavailable": "暫時無法儲存功能設定。請重試。",
       "network": "連線已中斷。重新載入功能後，再決定是否重試。"
     }
+  },
+  "home": {
+    "navigation": "首頁",
+    "title": "首頁",
+    "description": "查看目前所選群組的概況、待辦、近七天趨勢和常用設定。",
+    "roles": {
+      "manager": "群組管理員",
+      "operator": "維運"
+    },
+    "context": {
+      "title": "群組 {{id}}",
+      "selectedScope": "此頁面只彙總目前所選群組。",
+      "enabled": "驗證已啟用",
+      "disabled": "驗證已停用",
+      "modeUnreported": "群組模式尚未由端點上報"
+    },
+    "source": {
+      "value": "來源：{{source}}",
+      "factoryDefault": "出廠預設",
+      "userFile": "設定檔",
+      "chatOverride": "此群組覆寫"
+    },
+    "values": {
+      "enabled": "已啟用",
+      "disabled": "已停用",
+      "seconds_one": "{{count}} 秒",
+      "seconds_other": "{{count}} 秒",
+      "rules_one": "{{count}} 條",
+      "rules_other": "{{count}} 條",
+      "groups_one": "{{count}} 個群組",
+      "groups_other": "{{count}} 個群組",
+      "channels_one": "{{count}} 個頻道",
+      "channels_other": "{{count}} 個頻道",
+      "warnings_one": "{{count}} 次警告",
+      "warnings_other": "{{count}} 次警告",
+      "verifyMode": {
+        "kernel": "核心版本題",
+        "quiz": "選擇題",
+        "mixed": "混合"
+      },
+      "deliveryMode": {
+        "group": "僅群組內",
+        "dm": "私訊優先",
+        "both": "群組內和私訊"
+      }
+    },
+    "loading": {
+      "title": "正在載入首頁",
+      "description": "正在讀取目前群組的佇列、統計和設定…"
+    },
+    "groupRequired": {
+      "title": "請先選擇群組",
+      "description": "首頁一次只彙總一個群組。選擇群組後再查看其概況。",
+      "select": "選擇群組"
+    },
+    "noGroups": {
+      "title": "此帳號尚未取得任何群組授權",
+      "description": "取得群組管理權限後，首頁才會顯示該群組的資料。"
+    },
+    "unavailable": {
+      "title": "無法載入首頁",
+      "description": "暫時無法讀取目前群組的佇列、統計或設定。請重試。",
+      "retry": "重試"
+    },
+    "overview": {
+      "title": "概況",
+      "description": "統計值涵蓋近七天；等待數量為目前值。",
+      "challenges": "近七天挑戰",
+      "passRate": "近七天通過率",
+      "waiting": "正在等待",
+      "banned": "近七天封禁"
+    },
+    "attention": {
+      "title": "需要注意",
+      "description": "只列出需要處理或進一步確認的事項。",
+      "tones": {
+        "pending": "待處理",
+        "error": "異常",
+        "info": "資訊"
+      },
+      "empty": {
+        "badge": "目前正常",
+        "managerDescription": "等待佇列為空，目前群組沒有需要處理的事項。",
+        "operatorDescription": "等待佇列為空，執行個體診斷與設定持久化均正常。"
+      },
+      "queue": {
+        "title": "等待佇列",
+        "description_one": "有 {{count}} 份申請等待處理。",
+        "description_other": "有 {{count}} 份申請等待處理。"
+      },
+      "diagnosticsUnavailable": {
+        "title": "無法讀取執行個體診斷",
+        "description": "首頁仍會顯示群組資料。請到診斷畫面確認執行個體狀態。"
+      },
+      "health": {
+        "title": "執行個體尚未就緒",
+        "description": "存活、設定或 Telegram 連線檢查中至少一項未通過。"
+      },
+      "persistenceError": {
+        "title": "設定持久化已記錄失敗",
+        "description": "診斷端點上報了最近一次持久化錯誤。"
+      },
+      "persistenceUnconfigured": {
+        "title": "尚未設定設定持久化",
+        "description": "目前執行個體沒有已設定的設定持久化目標。"
+      },
+      "persistenceUnwritable": {
+        "title": "設定持久化無法寫入",
+        "description": "設定已存在，但目前無法寫入。"
+      },
+      "persistenceVolatile": {
+        "title": "設定儲存無法持久化",
+        "description": "目前儲存不保證在執行個體重新啟動後保留設定。"
+      }
+    },
+    "trend": {
+      "title": "近七天趨勢",
+      "description": "縮圖只顯示走向。請到統計畫面查看精確數值。",
+      "openStats": "查看統計",
+      "empty": "所選範圍內沒有可繪製的日期。",
+      "chartTitle": "近七天挑戰量與通過率",
+      "chartDescription": "長條表示每天的挑戰量，折線表示每天的通過率。",
+      "legendLabel": "趨勢圖圖例",
+      "challenges": "挑戰量",
+      "passRate": "通過率"
+    },
+    "entries": {
+      "title": "常用設定",
+      "description": "每個入口都顯示目前值及其來源。",
+      "verification": {
+        "title": "驗證方式",
+        "description": "挑戰類型、傳送管道和逾時",
+        "mode": "驗證策略",
+        "delivery": "傳送管道",
+        "timeout": "逾時"
+      },
+      "questions": {
+        "title": "題庫",
+        "description": "選擇題與自訂備用題",
+        "primary": "選擇題",
+        "fallback": "備用題"
+      },
+      "bypass": {
+        "title": "免驗證來源",
+        "description": "信任群組與頻道白名單",
+        "trustedGroups": "信任群組",
+        "channels": "頻道白名單"
+      },
+      "moderation": {
+        "title": "管理與處罰",
+        "description": "反垃圾訊息與警告上限",
+        "antispam": "反垃圾訊息",
+        "warnLimit": "警告上限"
+      }
+    }
   }
 }

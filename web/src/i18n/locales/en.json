@@ -1201,5 +1201,160 @@
       "saveUnavailable": "Capability settings cannot be saved right now. Try again.",
       "network": "The connection was interrupted. Reload capabilities before deciding whether to retry."
     }
+  },
+  "home": {
+    "navigation": "Home",
+    "title": "Home",
+    "description": "Review the selected group's summary, attention items, seven-day trend, and common configuration.",
+    "roles": {
+      "manager": "Group administrator",
+      "operator": "Operator"
+    },
+    "context": {
+      "title": "Group {{id}}",
+      "selectedScope": "This page summarizes only the selected group.",
+      "enabled": "Verification enabled",
+      "disabled": "Verification disabled",
+      "modeUnreported": "Group mode not reported by the endpoint"
+    },
+    "source": {
+      "value": "Source: {{source}}",
+      "factoryDefault": "Factory default",
+      "userFile": "Configuration file",
+      "chatOverride": "Group override"
+    },
+    "values": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "seconds_one": "{{count}} second",
+      "seconds_other": "{{count}} seconds",
+      "rules_one": "{{count}} rule",
+      "rules_other": "{{count}} rules",
+      "groups_one": "{{count}} group",
+      "groups_other": "{{count}} groups",
+      "channels_one": "{{count}} channel",
+      "channels_other": "{{count}} channels",
+      "warnings_one": "{{count}} warning",
+      "warnings_other": "{{count}} warnings",
+      "verifyMode": {
+        "kernel": "Kernel version question",
+        "quiz": "Multiple-choice question",
+        "mixed": "Mixed"
+      },
+      "deliveryMode": {
+        "group": "Group only",
+        "dm": "Direct message first",
+        "both": "Group and direct message"
+      }
+    },
+    "loading": {
+      "title": "Loading home",
+      "description": "Reading the selected group's queue, statistics, and configuration…"
+    },
+    "groupRequired": {
+      "title": "Select a group first",
+      "description": "Home summarizes one group at a time. Select a group to review its status.",
+      "select": "Select group"
+    },
+    "noGroups": {
+      "title": "This account has no authorized groups",
+      "description": "Home will show group data after this account receives group administration access."
+    },
+    "unavailable": {
+      "title": "Home cannot be loaded",
+      "description": "The selected group's queue, statistics, or configuration cannot be read right now. Try again.",
+      "retry": "Try again"
+    },
+    "overview": {
+      "title": "Summary",
+      "description": "Statistics cover the past seven days; the waiting count is current.",
+      "challenges": "Seven-day challenges",
+      "passRate": "Seven-day pass rate",
+      "waiting": "Waiting now",
+      "banned": "Seven-day bans"
+    },
+    "attention": {
+      "title": "Needs attention",
+      "description": "Only items requiring action or further review appear here.",
+      "tones": {
+        "pending": "Pending",
+        "error": "Problem",
+        "info": "Information"
+      },
+      "empty": {
+        "badge": "All clear",
+        "managerDescription": "The waiting queue is empty, and this group has no items requiring action.",
+        "operatorDescription": "The waiting queue is empty, and instance diagnostics and configuration persistence are healthy."
+      },
+      "queue": {
+        "title": "Waiting queue",
+        "description_one": "{{count}} application is waiting for action.",
+        "description_other": "{{count}} applications are waiting for action."
+      },
+      "diagnosticsUnavailable": {
+        "title": "Instance diagnostics cannot be read",
+        "description": "Group data remains available on home. Open diagnostics to review the instance."
+      },
+      "health": {
+        "title": "The instance is not ready",
+        "description": "At least one liveness, configuration, or Telegram connectivity check is failing."
+      },
+      "persistenceError": {
+        "title": "Configuration persistence recorded a failure",
+        "description": "The diagnostics endpoint reports a recent persistence error."
+      },
+      "persistenceUnconfigured": {
+        "title": "Configuration persistence is not configured",
+        "description": "This instance has no configured persistence target for settings."
+      },
+      "persistenceUnwritable": {
+        "title": "Configuration persistence is not writable",
+        "description": "A persistence target exists, but it cannot be written right now."
+      },
+      "persistenceVolatile": {
+        "title": "Configuration storage is not durable",
+        "description": "Current storage does not guarantee that settings survive an instance restart."
+      }
+    },
+    "trend": {
+      "title": "Seven-day trend",
+      "description": "The miniature chart shows direction only. Open statistics for exact values.",
+      "openStats": "View statistics",
+      "empty": "The selected range contains no dates to plot.",
+      "chartTitle": "Seven-day challenge volume and pass rate",
+      "chartDescription": "Bars show daily challenge volume, and the line shows the daily pass rate.",
+      "legendLabel": "Trend chart legend",
+      "challenges": "Challenge volume",
+      "passRate": "Pass rate"
+    },
+    "entries": {
+      "title": "Common configuration",
+      "description": "Every entry point shows its current values and their sources.",
+      "verification": {
+        "title": "Verification method",
+        "description": "Challenge type, delivery channel, and timeout",
+        "mode": "Verification strategy",
+        "delivery": "Delivery channel",
+        "timeout": "Timeout"
+      },
+      "questions": {
+        "title": "Question bank",
+        "description": "Multiple-choice and custom fallback questions",
+        "primary": "Multiple-choice",
+        "fallback": "Fallback"
+      },
+      "bypass": {
+        "title": "Verification bypass sources",
+        "description": "Trusted groups and the channel allowlist",
+        "trustedGroups": "Trusted groups",
+        "channels": "Channel allowlist"
+      },
+      "moderation": {
+        "title": "Moderation and penalties",
+        "description": "Anti-spam and warning threshold",
+        "antispam": "Anti-spam",
+        "warnLimit": "Warning threshold"
+      }
+    }
   }
 }

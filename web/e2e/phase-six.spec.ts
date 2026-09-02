@@ -50,6 +50,58 @@ const approvedQueueEntry = {
   remaining_seconds: null
 };
 
+const homeSettingsPayload = {
+  enabled: { value: true, source: "factory default" },
+  delivery_mode: { value: "both", source: "factory default" },
+  verify_mode: { value: "mixed", source: "factory default" },
+  timeout_seconds: { value: 300, source: "factory default" },
+  questions: { value: [], source: "factory default" },
+  fallback_questions: { value: [], source: "factory default" },
+  trusted_member_group_ids: { value: [], source: "factory default" },
+  channel_whitelist: { value: [], source: "factory default" },
+  antispam_enabled: { value: true, source: "factory default" },
+  warn_limit: { value: 3, source: "factory default" }
+} as const;
+
+const healthyDiagnosticsPayload = {
+  health: {
+    live: true,
+    ready: true,
+    config_ready: true,
+    telegram_ready: true
+  },
+  bot_api: {
+    last_heartbeat_at: "2026-09-01T01:00:00Z",
+    latency_ms: 12
+  },
+  persistence: {
+    configured: true,
+    durable: true,
+    writable: true,
+    last_error: null
+  }
+} as const;
+
+function homeStatsPayload(url: URL): unknown {
+  return {
+    range: {
+      from: url.searchParams.get("from"),
+      to: url.searchParams.get("to"),
+      timezone: url.searchParams.get("timezone")
+    },
+    summary: {
+      challenges: 1,
+      approved: 1,
+      declined: 0,
+      banned: 0,
+      expired: 0,
+      pass_rate: 1
+    },
+    trend: [],
+    interceptions: []
+  };
+}
+
 type QueueReadHandler = (route: Route, readCount: number) => Promise<void>;
 type SettlementHandler = (route: Route) => Promise<void>;
 
@@ -144,7 +196,8 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
   }, initData);
   await page.route("**/api/**", async (route) => {
     const request = route.request();
-    const path = decodeURIComponent(new URL(request.url()).pathname);
+    const url = new URL(request.url());
+    const path = decodeURIComponent(url.pathname);
     sessionRequests.push(`${request.method()} ${path}`);
 
     if (path === "/api/session" && request.method() === "GET") {
@@ -187,6 +240,22 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
       return;
     }
 
+    if (path === `/api/chats/${selectedGroupId}/stats` && request.method() === "GET") {
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(homeStatsPayload(url))
+      });
+      return;
+    }
+
+    if (path === `/api/chats/${selectedGroupId}/settings` && request.method() === "GET") {
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(homeSettingsPayload)
+      });
+      return;
+    }
+
     if (
       path === `/api/chats/${selectedGroupId}/queue/${pendingQueueEntry.id}` &&
       request.method() === "POST"
@@ -208,22 +277,19 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
 
   await test.step("exchange the Mini App identity for a session", async () => {
     await page.goto("/");
-    await expect(page).toHaveURL(/\/groups$/);
-    await expect(page.locator("[data-groups-page]")).toHaveAttribute(
-      "data-groups-source",
-      "api"
-    );
-    expect(sessionRequests).toEqual([
+    await expect(page).toHaveURL(new RegExp(`/home\\?group=${selectedGroupId}$`));
+    await expect(page.locator("[data-home-page]")).toHaveAttribute("data-home-state", "loaded");
+    expect(sessionRequests.slice(0, 3)).toEqual([
       "GET /api/session",
       "POST /api/session",
       "GET /api/chats"
     ]);
   });
 
-  await test.step("select a managed group", async () => {
+  await test.step("review the selected managed group", async () => {
     const groupSwitcher = page.getByRole("combobox", { name: "当前群" });
-    await groupSwitcher.selectOption(selectedGroupId);
     await expect(groupSwitcher).toHaveValue(selectedGroupId);
+    await page.getByRole("link", { name: "群与频道", exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/groups\\?group=${selectedGroupId}$`));
 
     const selectedRow = page.locator("[data-group-row][data-selected]");
@@ -266,7 +332,8 @@ test("operator cookie session skips Mini App exchange", async ({ page, baseURL }
   ]);
   await page.route("**/api/**", async (route) => {
     const request = route.request();
-    const path = new URL(request.url()).pathname;
+    const url = new URL(request.url());
+    const path = url.pathname;
     requests.push(`${request.method()} ${path}`);
 
     if (path === "/api/session" && request.method() === "GET") {
@@ -292,13 +359,46 @@ test("operator cookie session skips Mini App exchange", async ({ page, baseURL }
       return;
     }
 
+    if (path === `/api/chats/${selectedGroupId}/queue` && request.method() === "GET") {
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: [] })
+      });
+      return;
+    }
+
+    if (path === `/api/chats/${selectedGroupId}/stats` && request.method() === "GET") {
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(homeStatsPayload(url))
+      });
+      return;
+    }
+
+    if (path === `/api/chats/${selectedGroupId}/settings` && request.method() === "GET") {
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(homeSettingsPayload)
+      });
+      return;
+    }
+
+    if (path === "/api/status" && request.method() === "GET") {
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(healthyDiagnosticsPayload)
+      });
+      return;
+    }
+
     throw new Error(`Unexpected API request: ${request.method()} ${path}`);
   });
 
   await page.goto("/");
-  await expect(page).toHaveURL(/\/groups$/);
-  await expect(page.locator("[data-groups-page]")).toBeVisible();
-  expect(requests).toEqual(["GET /api/session", "GET /api/chats"]);
+  await expect(page).toHaveURL(new RegExp(`/home\\?group=${selectedGroupId}$`));
+  await expect(page.locator("[data-home-page]")).toHaveAttribute("data-home-state", "loaded");
+  expect(requests.slice(0, 2)).toEqual(["GET /api/session", "GET /api/chats"]);
+  expect(requests).not.toContain("POST /api/session");
 });
 
 test("a valid session with no groups identifies the Telegram account", async ({ page }) => {
