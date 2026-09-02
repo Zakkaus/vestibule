@@ -149,7 +149,24 @@ for a round — the rule was in this document and nothing was holding anyone to 
 a check when there is a reason to. That is a decision someone takes knowingly;
 what it replaces is taking it by accident.
 
-To remove it:
+A branch must also be up to date with `main` before it can merge. Two merged
+changes were silently reverted before this was on: a worktree created before
+`main` moved was squashed with `git reset --soft main && git add -A`, which
+stages "make the tree look like it did before" and so records every file merged
+in between as a deletion. The branch then merged cleanly and undid them. Squash a
+branch by bringing it onto `main` first:
+
+```sh
+git fetch origin
+git rebase origin/main
+git reset --soft origin/main
+git add -A
+```
+
+To remove the up-to-date requirement:
+`gh api -X PATCH repos/Zakkaus/vestibule/branches/main/protection/required_status_checks -f strict=false`
+
+To remove protection entirely:
 `gh api -X DELETE repos/Zakkaus/vestibule/branches/main/protection`
 
 ### Migration rollback declarations
