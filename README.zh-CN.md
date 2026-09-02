@@ -11,7 +11,7 @@ Telegram 群入群验证与管理机器人，一个实例服务很多群，
 
 **重写中。** 当前树起于 `gentoo-zh-verify-bot` v4.5.6 原样导入后改名。
 到目前为止行为未变：这次重写先做重新分包，每一阶段都只搬代码，不改它判定什么。
-`docs/PLAN-v5.md` 记着十一个阶段各自验收什么、又刻意不做什么。
+`docs/PLAN-v5.md` 记着十二个阶段各自验收什么、又刻意不做什么。
 
 阶段零与阶段一已完成。验证核心现在是 `internal/verification`，其中没有 Telegram，
 对外一律经三个从自身调用点推导出的端口：`Gateway`、`LiveProbe` 与 `Store`。
