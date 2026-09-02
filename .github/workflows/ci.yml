@@ -101,6 +101,10 @@ jobs:
         run: python3 scripts/check-one-transport.py
       - name: Every console link points at a route that exists
         run: python3 scripts/check-links-resolve.py
+      - name: A screen that writes recognises a stale security token
+        run: python3 scripts/check-writing-screens-know-a-stale-token.py
+      - name: A screen only maps error codes the API can send
+        run: python3 scripts/check-error-maps-hold-real-codes.py
       - name: What a person typed does not reach the log
         run: python3 scripts/check-log-privacy.py
       - name: A handler that changes something authorises first
