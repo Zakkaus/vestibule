@@ -1,7 +1,7 @@
 name: Release
 
 # On a vX.Y.Z tag, build static linux binaries (amd64 + arm64) with the version baked in,
-# generate SHA256 checksums, and publish them as assets on the GitHub release for that tag.
+# generate SHA256 checksums, and publish them with the schema manifest and systemd unit.
 on:
   push:
     tags: ['v*']
@@ -34,6 +34,7 @@ jobs:
           python3 scripts/check-links-resolve.py
           python3 scripts/check-migration-declarations.py migrations
           python3 scripts/check-schema-manifest.py deploy/vestibule-schema-manifest
+          python3 scripts/check-console-routes.py
           python3 scripts/check-phase-acceptance.py
           go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
           go build ./...
@@ -41,6 +42,8 @@ jobs:
           go test -race ./...
           go test -race -tags gentoo ./...
           scripts/test-static-sqlite.sh
+          scripts/test-install.sh
+          scripts/accept-phase9.sh
           go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
           go run github.com/securego/gosec/v2/cmd/gosec@v2.28.0 -exclude=G304,G703,G706 ./...
       - name: Build static linux binaries (amd64 + arm64)
@@ -54,12 +57,13 @@ jobs:
               -o "dist/vestibule-linux-${arch}" ./cmd/bot
           done
           go run ./cmd/schema-manifest -output dist/vestibule-schema-manifest
+          cp deploy/vestibule.service dist/vestibule.service
           (
             cd dist
-            sha256sum vestibule-linux-amd64 vestibule-linux-arm64 vestibule-schema-manifest > SHA256SUMS
+            sha256sum vestibule-linux-amd64 vestibule-linux-arm64 vestibule-schema-manifest vestibule.service > SHA256SUMS
           )
           ls -l dist
-      - name: Publish release with binaries, schema manifest + checksums
+      - name: Publish release with binaries, schema manifest, systemd unit + checksums
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           generate_release_notes: true
@@ -67,4 +71,5 @@ jobs:
             dist/vestibule-linux-amd64
             dist/vestibule-linux-arm64
             dist/vestibule-schema-manifest
+            dist/vestibule.service
             dist/SHA256SUMS

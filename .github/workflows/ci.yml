@@ -46,6 +46,10 @@ jobs:
         run: go test -race -tags gentoo ./...
       - name: static SQLite release-runtime gate
         run: scripts/test-static-sqlite.sh
+      - name: Native installer lifecycle works without root, network, or systemd
+        run: scripts/test-install.sh
+      - name: Phase nine acceptance remains explicit about incomplete host paths
+        run: scripts/accept-phase9.sh
 
       - name: govulncheck
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
@@ -77,6 +81,8 @@ jobs:
         run: python3 scripts/check-schema-manifest.py deploy/vestibule-schema-manifest
       - name: No screen reaches for a later phase's endpoints
         run: python3 scripts/check-phase-seams.py
+      - name: Console routes match the exhaustive architecture table
+        run: python3 scripts/check-console-routes.py
       - name: Every completed plan phase has executable acceptance coverage
         run: python3 scripts/check-phase-acceptance.py
       - name: The vendored copies still match the bytes they were copied at
