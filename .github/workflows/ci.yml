@@ -103,6 +103,8 @@ jobs:
         run: python3 scripts/check-log-privacy.py
       - name: A handler that changes something authorises first
         run: python3 scripts/check-mutations-authorise.py
+      - name: A write that clears a per-group table records its guard
+        run: python3 scripts/check-whole-table-writes.py
       - name: Chinese prose — docs/PRIVACY.zh-CN.md
         uses: Zakk-LLM/Chinese-skill@242ec69c089f5dae91cfc7eb3b4dc924d5c1aab0 # v1.4.0
         with:
