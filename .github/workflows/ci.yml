@@ -75,6 +75,8 @@ jobs:
         run: python3 scripts/check-migration-declarations.py migrations
       - name: No screen reaches for a later phase's endpoints
         run: python3 scripts/check-phase-seams.py
+      - name: Every completed plan phase has executable acceptance coverage
+        run: python3 scripts/check-phase-acceptance.py
       - name: The vendored copies still match the bytes they were copied at
         run: python3 scripts/check-vendored.py
       - name: The three locale catalogues agree with each other and with the code
