@@ -35,7 +35,8 @@
     },
     "unavailable": {
       "title": "The console is temporarily unavailable",
-      "description": "The console did not return a usable session state. Open the bot menu in Telegram later, or request a new link from the bot."
+      "description": "The console did not return a usable session state. Open the bot menu in Telegram later, or request a new link from the bot.",
+      "retry": "Try again"
     },
     "noSession": {
       "title": "Open the console from Telegram",

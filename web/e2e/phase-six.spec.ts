@@ -718,6 +718,44 @@ test("entry states retain their distinct guidance", async ({ page }) => {
   }
 });
 
+test("a transport failure on the way in can be tried again", async ({ page }) => {
+  let attempts = 0;
+  await page.route("**/api/session", async (route) => {
+    attempts += 1;
+    if (attempts === 1) {
+      // A refused connection, not a 503 with a body: in development a
+      // non-JSON response is deliberately routed to the no-session copy.
+      await route.abort("connectionrefused");
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(managerSessionPayload)
+    });
+  });
+  await page.route("**/api/chats", async (route) => {
+    await route.fulfill({
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chats: [] })
+    });
+  });
+
+  await page.goto("/");
+  const entry = page.locator("[data-entry-page]");
+  await expect(entry).toHaveAttribute("data-entry-state", "unavailable");
+
+  // The screen a person lands on first was the only one that answered a
+  // transport failure by telling them to leave and come back.
+  const again = page.getByRole("button", { name: "重试" });
+  await expect(again).toBeVisible();
+  await again.click();
+
+  await expect(entry).toHaveAttribute("data-entry-state", "no-groups");
+  expect(attempts).toBe(2);
+});
+
 test("queue waits for a real response before rendering empty", async ({ page }) => {
   let markQueueRequested!: () => void;
   let resolveQueue!: () => void;
