@@ -38,9 +38,10 @@ LIVE_ROUTES = {
     "GET /api/chats/{id}/audit": ("server.go", "auditRoute", ("case http.MethodGet:",)),
     "POST /api/chats/{id}/audit/{aid}/undo": ("server.go", "auditRoute", ("case http.MethodPost:", 'rest[1] == "undo"')),
     "GET /api/chats/{id}/stats": ("stats.go", "statsRoute", ("request.Method == http.MethodGet",)),
-    "GET /api/status": ("server.go", "apiRoute", ('request.URL.Path == "/api/status"',)),
+    "GET /api/status": ("server.go", "statusRoute", ('request.URL.Path == "/api/status"',)),
+    "GET /api/status/release": ("server.go", "statusRoute", ('request.URL.Path == "/api/status/release"',)),
     "GET /api/process/settings": ("server.go", "apiRoute", ('request.URL.Path == "/api/process/settings"',)),
-    "POST /api/status/upgrade": ("server.go", "apiRoute", ('request.URL.Path == "/api/status/upgrade"', "http.MethodPost")),
+    "POST /api/status/upgrade": ("server.go", "statusRoute", ('request.URL.Path == "/api/status/upgrade"', "http.MethodPost")),
 }
 
 # These table rows are intentionally ahead of the implementation. Keep this list

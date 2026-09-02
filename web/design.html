@@ -1654,35 +1654,51 @@ li::marker { color: var(--border); }
       <b>它变化时，当班的人需要立刻知道吗。</b>不需要就不放。</p>
 
     <h3>版本放在侧栏底部</h3>
-    <p>当前版本常驻侧栏最下面。有新版时旁边出现一个标记，点进去看它改了什么再决定。
-      <b>不做一键直接升级</b>：升级会重启整台机器上所有群的服务，
-      值得多一次确认。</p>
+    <p>版本入口只在实例运维权限确定后出现；群管理员和权限尚未载入的会话都看不到。
+      打开版本屏只读本机的当前版本、宿主替换单元和上一次结果，
+      <b>不会因为进入页面就访问外部发布源</b>。</p>
     <div class="spec-wrap">
-      <div class="cap"><span>版本屏</span><span class="hint">只有运维能看到升级按钮</span></div>
+      <div class="cap"><span>版本屏</span><span class="hint">运维明确检查后才显示发布信息</span></div>
       <div class="in stack">
         <div class="setting">
-          <span class="k"><svg class="i"><use href="#i-refresh"/></svg>当前 v5.1 · 有新版 v5.2</span>
-          <span class="d">升级会重启服务，中断几秒。进行中的验证不会丢，
-            重复到达不会被处理两次。</span>
-          <span class="c"><button class="btn btn-primary btn-sm" type="button">
-            <svg class="i"><use href="#i-refresh"/></svg>升级</button></span>
+          <span class="k"><svg class="i"><use href="#i-refresh"/></svg>当前版本</span>
+          <span class="d">v5.1 · 宿主替换单元可用 · 上一次替换没有失败</span>
+          <span class="c"><button class="btn btn-outline btn-sm" type="button">
+            <svg class="i"><use href="#i-refresh"/></svg>检查更新</button></span>
         </div>
         <div class="setting">
-          <span class="k"><svg class="i"><use href="#i-check"/></svg>能否回退</span>
-          <span class="d">升级前就要知道。数据结构不向下兼容时这里会写明，
-            <b>不要等装完才发现回不去</b>。</span>
-          <span class="c"><span class="badge plain"><span class="dot"></span>可回退</span></span>
+          <span class="k"><svg class="i"><use href="#i-check"/></svg>可用新版 v5.2</span>
+          <span class="d">发布于 2026-09-01。发布源查不到时，这一行显示可重试错误，
+            不能写成「已是最新」；当前版本仍然保留。</span>
+          <span class="c"><span class="badge plain"><span class="dot"></span>有新版</span></span>
+        </div>
+        <div class="setting">
+          <span class="k"><svg class="i"><use href="#i-shield"/></svg>可以回退</span>
+          <span class="d">目标 schema v2，最低回退 schema v1；当前保留版本支持 schema v2。
+            不可回退时把三个版本号和原因写全，<b>不只放一个布尔值</b>。</span>
+          <span class="c"><span class="badge plain"><span class="dot"></span>预检通过</span></span>
         </div>
         <div class="setting">
           <span class="k"><svg class="i"><use href="#i-file"/></svg>这一版改了什么</span>
-          <span class="d">上游的变更说明，看完再决定。</span>
-          <span class="c"><button class="btn btn-outline btn-sm" type="button">查看</button></span>
+          <span class="d">发布说明按纯文本显示，并保留到固定 GitHub 发布页的链接。</span>
+          <span class="c"><button class="btn btn-outline btn-sm" type="button">
+            <svg class="i"><use href="#i-file"/></svg>查看发布页</button></span>
+        </div>
+        <div class="setting">
+          <span class="k"><svg class="i"><use href="#i-refresh"/></svg>升级</span>
+          <span class="d">先显示目标版本、重启影响和回退条件，再要求第二次确认。</span>
+          <span class="c"><button class="btn btn-primary btn-sm" type="button">
+            <svg class="i"><use href="#i-refresh"/></svg>升级到 v5.2</button></span>
         </div>
       </div>
     </div>
-    <p style="font-size:0.875rem;">升级期间控制台显示「正在更新」并自动重试，
-      <b>不要抛一个连接错误让人以为坏了</b>。群管理员看不到这一屏，
-      因为升级影响机器上所有的群，而他只对自己的群负责。</p>
+    <p style="font-size:0.875rem;">宿主替换单元不存在时，升级按钮完全不出现。
+      界面说明应用只能写升级意图、不能替换宿主进程或容器，再给出 compose 镜像设置与
+      <code>docker compose pull app</code>、<code>docker compose up -d --no-deps app</code>。
+      判断只看 <code>unit_available</code>，不猜部署方式，也不把这种正常差异写成功能故障。</p>
+    <p style="font-size:0.875rem;">上一次替换失败、自动回退或回退失败时，状态、请求版本和宿主原因都常驻显示。
+      升级期间按钮用 <code>aria-disabled</code> 与处理器守卫阻止重复提交；
+      控制台在重启窗口内自动重试本地状态端点，查询或提交失败都保留带图标的重试入口。</p>
 
     <h3>各屏职责</h3>
     <p>下表把今天散在 Telegram 面板和配置文件里的每一项，都对到一个屏。
@@ -1704,7 +1720,7 @@ li::marker { color: var(--border); }
         <tr><td>诊断</td><td>权限预检、Bot API 延迟、心跳、上次失败原因、查询缓存与限流</td></tr>
         <tr><td>功能</td><td>这个群开哪些能力，每项一句话说清带来什么</td></tr>
         <tr><td>偏好</td><td>标记、名字、强调色、标题图标、保存方式、界面语言</td></tr>
-        <tr><td>版本</td><td>当前版本、可用新版、变更说明、能否回退、升级。仅运维可见</td></tr>
+        <tr><td>版本</td><td>当前版本、按需查询的可用新版与变更说明、结构清单给出的回退原因、宿主替换结果、升级或手动命令。仅运维可见</td></tr>
       </tbody>
     </table></div>
     <p style="font-size:0.875rem;">反频道马甲今天默认就是开的（配置里不写等于开），

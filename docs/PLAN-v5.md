@@ -651,10 +651,11 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 
 **分支** 按屏分片，一屏一支一个 PR：`v5/screen-<屏名>`。
 
-设计文档的「各屏职责」列了 15 个屏。阶段六做完其中 2 个 —— 等待队列和群与频道；
-本阶段又做完了偏好屏、操作记录屏、管理与处罚屏、验证方式屏、免验证来源屏、题库屏、订阅推送屏、统计屏、消息与文案屏、功能屏、诊断屏和首页，还剩 1 个。**剩下那一个是版本屏，已改归阶段九** ——
-它要显示的四项数据都由部署机制产生，本阶段做不了。所以本阶段到此为止，
-那个数字要等阶段九建完那一屏才会归零。阶段六还建了进入屏，但它不在那 15 个里：
+设计文档的「各屏职责」列了 15 个屏。阶段六做完其中 2 个——等待队列和群与频道；
+阶段七又做完偏好屏、操作记录屏、管理与处罚屏、验证方式屏、免验证来源屏、题库屏、
+订阅推送屏、统计屏、消息与文案屏、功能屏、诊断屏和首页；阶段九现已做完版本屏，所以还剩 0 个。
+版本屏仍归阶段九，因为当前版本、可用新版、回退条件和升级入口都依赖那一阶段的部署机制。
+阶段六还建了进入屏，但它不在那 15 个里：
 那张表里的首页是「概况、需要注意、趋势」，进入屏是打不开的时候看到的那一屏，两回事。
 这个数由 `scripts/check-docs.py` 从设计书那张表和 `web/src/app/App.tsx` 的路由算出来，
 手写的数与它算出来的不一致就报错。
@@ -681,8 +682,9 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 **做那次对照时，控制台一共七条路由，没有一条能读写设置**
 （`/livez` `/readyz` `GET/POST /api/session` `/enter/` `/api/chats` `/api/chats/`）。
 这一句是当时的状态，不是现在的：顶层分发已经包含
-`GET · POST /setup/{token}`、`GET /api/process/settings`、`GET /api/status` 和
-`POST /api/status/upgrade`（`internal/console/api/server.go:128-165`）；而 `/api/chats/` 那条现在按群展开成
+`GET · POST /setup/{token}`、`GET /api/process/settings`、`GET /api/status`、
+`GET /api/status/release` 和 `POST /api/status/upgrade`（`internal/console/api/server.go:132-181`）；而
+`/api/chats/` 那条现在按群展开成
 `queue`、`audit`、`stats`、`settings`、`rules` 五组
 （`internal/console/api/server.go:266-295`）。下面这条次序就是照着这个缺口定的，
 八屏所等的设置端点已经建成。
@@ -709,7 +711,7 @@ revision 不匹配要能被前端区分成「别人改过了」而不是「保�
 | 统计 | 数据在 `challenge` 表里，缺的是聚合端点；时区已有 `process.stats_timezone` |
 | 首页 | 概况与趋势是上面几屏的聚合，最后做，否则要为它单独造一遍 |
 | 诊断 | `/livez`、`/readyz` 与只供运维读取的 `GET /api/status` 已有；后者返回 health、设置持久化状态（含上次错误）和成功 Bot API 探测的心跳及延迟。权限预检和查询缓存还没有状态；`private_query_per_min` 是按群设置，不进实例端点 |
-| 版本 | **归阶段九，不归本阶段。** 当前版本、可用新版、能否回退、升级，四项数据全部由那一阶段的部署机制产生；留在本阶段会让阶段七永远完不成，而计划书要求上一阶段合入之后才开始下一阶段。屏没建，所以「还剩 1 个」那个数字不变 |
+| 版本 | **归阶段九，不归本阶段。** 现已通过 `GET /api/status` 显示当前版本和宿主替换状态；运维明确操作后，`GET /api/status/release` 才查询固定 GitHub 仓库的最新正式发布、变更说明和结构清单。屏已建成，所以「还剩 0 个」与路由计数一致 |
 
 #### 两屏卡在「按群」这道边界上
 
@@ -922,8 +924,24 @@ CSRF 令牌。应用将目标版本原子写入数据目录的 `replacement-requ
 `status=rollback_failed`。结果文件为 `0600`，所以结果和失败原因在应用重启后仍可读取。
 
 安装器在数据目录写入 `replacement-unit.env` 的 `available=yes`，仅在替换单元已经安装时写入。
-应用通过状态服务读取此事实及最后的宿主结果，并在 `GET /api/status` 返回 `replacement` 字段。
-当前修改不触及控制台界面；下一版界面据此决定是否展示升级入口，不从部署方式推断可用性。
+应用通过状态服务读取此事实及最后的宿主结果；`GET /api/status` 同时返回构建注入的当前版本和
+`replacement`。版本屏只向运维显示，群管理员既看不到导航，也会被后端拒绝读取状态、查询发布或发起升级。
+
+**发布查询按需执行，不在页面打开时对外请求。**运维按下「检查更新」后，
+`GET /api/status/release` 才查询固定仓库 `Zakkaus/vestibule` 的 GitHub 最新正式发布，
+并读取该标签下固定名称的 `vestibule-schema-manifest`。查询失败只让「可用新版」区块进入可重试状态；
+当前版本、宿主单元状态和上次替换结果继续显示。这样既不把打开本地状态页变成外部依赖，
+也不会把「发布源不可用」误报成「已是最新」。
+
+目标发布的结构清单由目标版本自己提供。当前二进制内嵌的迁移历史无法预知未来版本的
+`minimum_rollback_schema_version`，所以不能只调用当前版本的 `migrations.AssessRollback` 推断未来发布。
+应用严格解析下载到的两项清单，再以当前保留版本的 schema 计算结构化回退结果。
+不兼容时，界面会同时显示目标 schema、最低回退 schema 和当前保留版本支持的 schema，不只显示布尔值。
+
+宿主单元存在且回退预检通过时，升级入口先要求确认，再沿现有 CSRF 传输写入版本意图；
+页面在应用重启期间重试本地状态端点，并显示最终宿主结果。宿主单元不存在时完全不显示升级按钮，
+改为说明应用不能替换宿主进程或容器，并给出 compose 镜像设置和宿主命令。判断只看
+`unit_available`，不猜部署方式。
 
 首次安装仍通过临时 `setup.env` 接收原始认领值，进程只把哈希写进其自己创建的
 `StateDirectory`。`systemctl restart` 成功后，安装器删除临时文件。完整认领链接写入
@@ -936,9 +954,11 @@ CSRF 令牌。应用将目标版本原子写入数据目录的 `replacement-requ
 两种部署的同一宿主替换机制，并驱动 URL 请求、Docker socket 注入、探针失败自动回退和回退失败的反例。
 
 **验收**：三组件的凭据前置条件使第一条仍为 `EXEMPT`；脚本实际执行 `/livez` 与 `/readyz` 探针、
-坏替换自动回退并保留结果、以及结构不兼容时在下载前阻止升级；干净机器、域名、证书、浏览器与
-Bot API 凭据配置路径仍为 `EXEMPT`。
-`scripts/accept-phase9.sh` 按原来的五条顺序输出，不把临时根适配器当成实机部署成功。
+坏替换自动回退并保留结果、结构不兼容时在下载前阻止升级，以及版本、发布查询、运维权限和回退原因的
+Go 契约；版本前端继续由单一认证传输检查。干净机器、域名、证书、浏览器与 Bot API 凭据配置路径
+仍为 `EXEMPT`。
+`scripts/accept-phase9.sh` 现在按七条顺序输出：第一条和第七条保留真实环境豁免，中间五条实际执行。
+浏览器门禁另行覆盖群管理员隐藏、无宿主单元时无升级按钮、回退原因、确认升级、重连读取结果和查询失败重试。
 
 #### 文件处置
 
@@ -947,6 +967,8 @@ Bot API 凭据配置路径仍为 `EXEMPT`。
 | `deploy/install.sh` | 已重写为部署调度入口 | 同名。默认容器，`--native` 选择原生；安装、升级、回退、卸载与状态共用入口 |
 | `deploy/install-common.sh`、`deploy/install-native.sh`、`deploy/install-container.sh` | 新增 | 安装器的已校验运行时文件；分别承载事务与发布资产、原生生命周期、容器生命周期 |
 | `deploy/vestibule-replace`、`.service`、`.path` | 新增 | 同名。宿主监视版本请求，执行两条部署路径并写回结果 |
+| `internal/status/release.go`、`internal/console/api/release.go` | 新增 | 按需读取固定发布源及目标结构清单，并以运维权限返回结构化回退结果 |
+| `web/src/features/version/` | 新增 | 最后一张控制台屏；显示当前版本、发布说明、回退原因、宿主结果及升级或手动命令 |
 | `deploy/Dockerfile`、`Dockerfile.bot-api`、`compose.yaml` | 新增 | `deploy/` 下的容器文件。构建应用与固定 Bot API 提交的镜像，并定义没有 Docker socket 的三组件容器部署 |
 | `deploy/vestibule.service` | 沿用 | 同名。全部现有加固项未改，作为受摘要校验的发布资产 |
 | `deploy/gentoo-zhbot.service` | 已删除 | 无。阶段八去掉构建标签之后，`--generic` / `--gentoo` 不再选中任何版本，第二份单元没有对应的安装目标 |

@@ -882,6 +882,115 @@
       "invalidResponse": "執行個體回傳的診斷資料不符合端點契約。請重試。"
     }
   },
+  "version": {
+    "navigation": "版本",
+    "title": "版本",
+    "description": "查看目前版本，依需要檢查正式發布，並在升級前確認回退條件。",
+    "actions": {
+      "retry": "重試",
+      "cancel": "取消"
+    },
+    "loading": {
+      "title": "正在讀取版本狀態",
+      "description": "正在讀取目前版本和主機端替換單元的狀態…",
+      "permissionTitle": "正在確認存取權限",
+      "permissionUnavailableTitle": "無法確認存取權限",
+      "permissionDescription": "確認此工作階段具備執行個體維運權限後，才會讀取版本狀態。"
+    },
+    "accessDenied": {
+      "title": "這是執行個體維運資訊",
+      "description": "此畫面只對維運人員開放。群組管理員不能讀取版本資訊或啟動升級。"
+    },
+    "unavailable": {
+      "title": "無法讀取版本狀態"
+    },
+    "current": {
+      "title": "目前版本",
+      "description": "應用程式正在執行的版本，以及主機是否可以執行替換。",
+      "version": "執行版本",
+      "hostUnit": "主機端替換單元",
+      "hostUnitAvailable": "可用",
+      "hostUnitUnavailable": "未安裝"
+    },
+    "replacement": {
+      "title": "上一次替換結果",
+      "requestedVersion": "要求版本",
+      "reasonCode": "原因代碼",
+      "none": "尚未記錄替換結果。",
+      "status": {
+        "applied": "升級已套用",
+        "failed": "升級失敗",
+        "rejected": "要求遭拒",
+        "rolledBack": "已自動回退",
+        "rollbackFailed": "升級與自動回退均失敗",
+        "unknown": "未知結果"
+      },
+      "reason": {
+        "complete": "新版本已通過主機健康檢查。",
+        "requestClaimFailed": "主機無法接管升級要求。",
+        "invalidDeployment": "主機記錄的部署資訊無效。",
+        "invalidRequest": "升級要求格式無效，主機已拒絕執行。",
+        "applyFailed": "新版本未能完成替換，主機已依策略處理回退。",
+        "healthcheckFailed": "新版本未通過存活或就緒探針。",
+        "unknown": "主機回傳了無法識別的原因：{{reason}}。"
+      }
+    },
+    "release": {
+      "title": "可用新版本",
+      "description": "只有按下檢查更新才會存取 GitHub。查詢失敗不影響目前版本和主機狀態。",
+      "check": "檢查更新",
+      "checking": "正在檢查",
+      "notChecked": "尚未檢查。此頁不會在背景存取發布來源。",
+      "available": "有新版本",
+      "current": "已是最新版本",
+      "notes": "變更說明",
+      "noNotes": "此發布沒有變更說明。",
+      "open": "查看完整發布頁面"
+    },
+    "rollback": {
+      "safe": "可以回退",
+      "blocked": "不能回退",
+      "available": "目標 schema 為 v{{target}}，最低回退 schema 為 v{{minimum}}；目前保留版本支援 schema v{{retained}}。",
+      "schemaIncompatible": "無法回退：目標 schema v{{target}} 要求保留版本至少支援 schema v{{minimum}}，但目前保留版本只支援 schema v{{retained}}。",
+      "unknownTarget": "無法確認目標 schema v{{target}} 的相容範圍，因此不會啟動升級。",
+      "notEarlier": "目前保留版本的 schema v{{retained}} 高於目標 schema v{{target}}，因此它不是可用的回退版本。",
+      "unknown": "無法確認此版本的回退條件，因此不會啟動升級。"
+    },
+    "manual": {
+      "title": "請在主機上手動更新",
+      "description": "此執行個體沒有主機端替換單元，並非應用程式故障。應用程式只能寫入升級意圖，不能替換主機程序或容器。請先把 compose 使用的映像改成下列值，再於 compose 目錄執行命令。",
+      "imageLabel": "映像設定",
+      "commandsLabel": "主機命令"
+    },
+    "upgrade": {
+      "action": "升級到此版本",
+      "confirm": "確認讓主機端替換單元升級到 {{version}}？升級會重新啟動應用程式；健康檢查失敗時，主機會依已顯示的回退條件處理。",
+      "confirmAction": "確認升級",
+      "requesting": "正在提交升級",
+      "monitoring": "等待主機結果",
+      "restartNotice": "升級會重新啟動應用程式。連線恢復後，此頁會繼續讀取結果。",
+      "tryAgain": "再次升級",
+      "rollbackBlocked": "回退預檢未通過，因此不會向主機提交升級要求。"
+    },
+    "values": {
+      "none": "無"
+    },
+    "errors": {
+      "authenticationExpired": "工作階段已過期。請重新從 Telegram 進入控制台。",
+      "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
+      "authenticationUnavailable": "暫時無法確認此工作階段的執行個體維運權限。請重試。",
+      "statusNetwork": "連線已中斷。目前版本狀態未能載入，請重試。",
+      "statusUnavailable": "版本狀態暫時無法使用。請重試。",
+      "statusInvalidResponse": "執行個體回傳的版本狀態不符合端點契約。請重試。",
+      "releaseNetwork": "無法連線到發布來源。目前版本仍可查看；請稍後重試。",
+      "releaseUnavailable": "發布來源或版本清單暫時無法使用。這不表示目前版本已是最新版本。",
+      "releaseInvalidResponse": "發布來源回傳的資料不符合端點契約。目前版本仍可查看。",
+      "upgradeNetwork": "提交升級時連線中斷。請先重試讀取結果，再決定是否重新提交。",
+      "upgradeUnavailable": "主機暫時無法接收升級要求。請重試。",
+      "upgradeInvalidResponse": "執行個體沒有確認升級要求。請重試。",
+      "monitorUnavailable": "暫時無法確認主機的最終結果。升級狀態仍會保留在執行個體資料目錄中，請重試讀取。"
+    }
+  },
   "stats": {
     "navigation": "統計",
     "title": "統計",

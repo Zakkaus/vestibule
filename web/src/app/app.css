@@ -2702,3 +2702,233 @@ body {
     inline-size: 100%;
   }
 }
+
+[data-version-page],
+[data-version-content] {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+[data-version-content] {
+  inline-size: min(100%, 56rem);
+}
+
+[data-version-state-card] {
+  display: grid;
+  justify-items: start;
+  inline-size: min(100%, 42rem);
+  min-block-size: var(--sp-9);
+  gap: var(--sp-3);
+}
+
+[data-version-section] {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+[data-version-state-card] h2,
+[data-version-state-card] p,
+[data-version-section-heading] h2,
+[data-version-section-heading] p,
+[data-version-release-actions] p,
+[data-version-release-error] p,
+[data-version-release-notes] h3,
+[data-version-release-notes] p,
+[data-version-replacement-result] h3,
+[data-version-replacement-result] p,
+[data-version-rollback] p,
+[data-version-manual-upgrade] h3,
+[data-version-manual-upgrade] p,
+[data-version-upgrade-confirmation] p,
+[data-version-upgrade-progress] p,
+[data-version-upgrade-outcome] > p,
+[data-version-upgrade-blocked],
+[data-version-no-result] {
+  margin: 0;
+}
+
+[data-version-state-card] h2,
+[data-version-section-heading] h2 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+[data-version-state-card] p,
+[data-version-section-heading] p,
+[data-version-release-actions] p,
+[data-version-no-result] {
+  color: var(--muted-foreground);
+}
+
+[data-version-section-heading],
+[data-version-release-actions],
+[data-version-release-summary],
+[data-version-replacement-result] header {
+  display: flex;
+  min-inline-size: 0;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+[data-version-section-heading] > div,
+[data-version-release-details],
+[data-version-release-notes],
+[data-version-replacement-result],
+[data-version-rollback],
+[data-version-manual-upgrade],
+[data-version-upgrade-confirmation],
+[data-version-upgrade-progress],
+[data-version-upgrade-outcome],
+[data-version-release-error] {
+  display: grid;
+  min-inline-size: 0;
+  gap: var(--sp-3);
+}
+
+[data-version-rollback] {
+  justify-items: start;
+}
+
+[data-version-current-values],
+[data-version-replacement-result] dl {
+  display: grid;
+  gap: var(--sp-2);
+  margin: 0;
+}
+
+[data-version-current-values] > div,
+[data-version-replacement-result] dl > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 2fr) minmax(0, 3fr);
+  align-items: start;
+  gap: var(--sp-3);
+}
+
+[data-version-current-values] dt,
+[data-version-replacement-result] dt {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+[data-version-current-values] dd,
+[data-version-replacement-result] dd {
+  min-inline-size: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  text-align: end;
+}
+
+[data-version-current-values] code,
+[data-version-replacement-result] code {
+  overflow-wrap: anywhere;
+}
+
+[data-version-replacement-result],
+[data-version-rollback],
+[data-version-manual-upgrade],
+[data-version-upgrade-confirmation],
+[data-version-upgrade-progress],
+[data-version-upgrade-outcome],
+[data-version-release-error] {
+  padding: var(--sp-3) var(--sp-4);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}
+
+[data-version-replacement-result="failed"],
+[data-version-replacement-result="rejected"],
+[data-version-replacement-result="rollback_failed"],
+[data-version-rollback="blocked"],
+[data-version-release-error],
+[data-version-upgrade-outcome="unavailable"] {
+  border-color: var(--status-error-fg);
+}
+
+[data-version-rollback="available"],
+[data-version-upgrade-outcome="applied"] {
+  border-color: var(--status-ok-fg);
+}
+
+[data-version-release-summary] > div {
+  display: grid;
+  gap: var(--sp-1);
+}
+
+[data-version-release-summary] time {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+[data-version-release-notes] p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+[data-version-release-notes] a {
+  display: inline-flex;
+  inline-size: fit-content;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+[data-version-manual-upgrade] > code,
+[data-version-manual-command] {
+  margin: 0;
+  padding: var(--sp-3);
+  overflow: auto;
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--muted);
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+[data-version-manual-upgrade] > code {
+  overflow-wrap: anywhere;
+}
+
+[data-version-manual-upgrade] h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+[data-version-upgrade-blocked] {
+  color: var(--status-error-fg);
+}
+
+[data-version-upgrade-progress] [data-slot="button"][aria-disabled="true"] {
+  pointer-events: none;
+}
+
+[data-version-page] [data-button-row] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+@media (max-width: 48rem) {
+  [data-version-current-values] > div,
+  [data-version-replacement-result] dl > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--sp-1);
+  }
+
+  [data-version-current-values] dd,
+  [data-version-replacement-result] dd {
+    text-align: start;
+  }
+
+  [data-version-state-card] [data-slot="button"],
+  [data-version-release-actions] [data-slot="button"],
+  [data-version-release-error] [data-slot="button"],
+  [data-version-page] [data-button-row] [data-slot="button"],
+  [data-version-action="upgrade"] {
+    inline-size: 100%;
+  }
+}

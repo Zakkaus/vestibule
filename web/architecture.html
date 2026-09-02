@@ -783,7 +783,7 @@ internal/
 │   └── assets/             前端产物 go:embed
 ├── settings/               配置，configupgrade
 ├── database/               dbutil 装配与迁移
-└── status/                 健康检查、诊断、指标
+└── status/                 健康、替换状态与按需发布查询
 
 web/                        前端源码，Vite + React
 migrations/                 编号 SQL
@@ -2245,7 +2245,8 @@ migrations/01-settings.sql      settings_revision</div>
           <tr><td class="mono">GET /api/chats/{id}/packages</td><td>已装的配置包与可装的包</td></tr>
           <tr><td class="mono">POST /api/chats/{id}/packages</td><td>装一个包。先返回它将改动哪些项，确认后才落库</td></tr>
           <tr><td class="mono">GET · PATCH /api/me/preferences</td><td>看的人自己的偏好，不属于任何群</td></tr>
-          <tr><td class="mono">GET /api/status</td><td>诊断屏。版本、三项验证前置、证书续期、队列积压。<b>只有运维可见</b></td></tr>
+          <tr><td class="mono">GET /api/status</td><td>诊断屏与版本屏。健康、当前版本、设置持久化、Bot API 探测和宿主替换状态。<b>只有运维可见</b></td></tr>
+          <tr><td class="mono">GET /api/status/release</td><td>运维明确操作后，按需读取固定 GitHub 仓库的最新正式发布、变更说明与目标结构清单；失败不影响本地状态。同上，只有运维</td></tr>
           <tr><td class="mono">GET /api/process/settings</td><td>实例级设置的只读视图，每项带来源（出厂默认 / 用户文件 / 群覆盖）。<b>只有运维可见</b>，没有写入路由</td></tr>
           <tr><td class="mono">POST /api/status/upgrade</td><td>发起升级，只写目标版本，执行在宿主侧。同上，只有运维</td></tr>
           <tr><td class="mono">GET /verify/{token}</td><td><b>长期存在的唯一公开面。</b>令牌一次性、带签名与有效期，不复用管理会话</td></tr>
@@ -2750,25 +2751,36 @@ install.sh --uninstall    卸载，数据目录是否一并删除单独确认</d
     <p style="font-size:0.875rem;">控制台在升级期间显示「正在更新」并自动重试，
       而不是抛出一个连接错误让人以为坏了。</p>
 
+    <h3>发布查询不跟页面加载绑定</h3>
+    <p><code>GET /api/status</code> 只读本机的当前版本、宿主单元和上次替换结果。
+      打开版本屏不会访问外部网络；运维按下检查更新后，
+      <code>GET /api/status/release</code> 才查询固定的 GitHub 仓库与最新正式发布。
+      发布源不可用时，只有新版区块进入可重试状态，不能把失败写成「已是最新」，
+      也不能遮住已经读到的本地状态。</p>
+    <p>发布响应同时带变更说明和目标标签的 <code>vestibule-schema-manifest</code>。
+      当前二进制内嵌的迁移历史不知道未来版本的兼容下限，所以回退判断必须使用目标发布自己的
+      <code>minimum_rollback_schema_version</code>，再与当前保留版本支持的 schema 比较。
+      接口返回结构版本和原因；界面负责把它写成人能理解的说明。</p>
+
     <h3>更新流程</h3>
     <div class="spec-wrap">
       <div class="cap"><span>顺序</span><span class="hint">任一步失败即停在原版本</span></div>
       <div class="in">
-        <div class="seq"><span class="a">1</span>  取上游版本信息，与当前版本比较
-<span class="a">2</span>  <span class="b">先判断能不能回退</span>            <span class="a">新版的结构变更若不向下兼容，此时就要说清楚</span>
+        <div class="seq"><span class="a">1</span>  运维明确检查发布源，与当前版本比较
+<span class="a">2</span>  取目标发布的结构清单，<span class="b">先判断能不能回退</span>
 <span class="a">3</span>  下载到临时文件，校验摘要与签名
 <span class="a">4</span>  原子替换，保留上一版
 <span class="a">5</span>  由进程管理器重启
 <span class="a">6</span>  探活；不健康则换回上一版并记录原因</div>
       </div>
     </div>
-    <p><b>第 2 步是关键，而且必须在下载之前。</b>数据结构的兼容下限决定了这次升级
-      能不能回退。装完才发现回不去，等于没有回退。</p>
+    <p><b>第 2 步是关键，而且必须在下载发布二进制之前。</b>目标发布的结构清单声明兼容下限，
+      决定当前保留版本能不能回退。装完才发现回不去，等于没有回退。</p>
 
     <h3>谁能点这个按钮</h3>
-    <p><b>只有运维，不是群管理员。</b>升级影响整台机器上的所有群，
-      而群管理员只对自己的群负责。这一条与权限那一节是同一条边界，
-      落在接口上而不是靠界面隐藏。</p>
+    <p><b>只有运维，不是群管理员。</b>版本导航、发布查询和升级端点都遵守这条边界。
+      升级影响整台机器上的所有群，而群管理员只对自己的群负责；
+      后端在读取或写入前拒绝群管理员，不能只靠界面隐藏。</p>
 
     <h3>不需要终端也能更新</h3>
     <p>更新可以中断服务，但<b>不应该要求有人去开一个终端</b>。
@@ -2778,7 +2790,7 @@ install.sh --uninstall    卸载，数据目录是否一并删除单独确认</d
     <div class="spec-wrap">
       <div class="cap"><span>触发链</span><span class="hint">应用始终无特权</span></div>
       <div class="in">
-        <div class="seq"><span class="a">1</span>  控制台点击升级
+        <div class="seq"><span class="a">1</span>  运维看清目标版本与回退条件，再次确认升级
 <span class="a">2</span>  应用往数据目录写一个请求文件      <span class="a">它只需要对自己的数据目录可写</span>
 <span class="a">3</span>  一个监视该路径的单元被触发         <span class="a">一次性任务，有替换二进制的权限</span>
 <span class="a">4</span>  下载 → 校验 → 原子替换 → 重启主单元 → 探活

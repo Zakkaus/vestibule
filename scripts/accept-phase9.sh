@@ -62,7 +62,15 @@ run "broken replacement automatically rolls back and records why" \
 run "schema incompatibility is reported before binary retrieval" \
 	scripts/test-install.sh --case rollback-preflight
 
-# 5. A clean machine can follow install.sh and open the printed address immediately.
+# 5. Version and release metadata stay operator-only and carry rollback reasons.
+run "version release and rollback API contracts pass" \
+	go test -count=1 ./migrations ./internal/status ./internal/console/api
+
+# 6. The version route uses the console's authenticated transport.
+run "version route stays on the authenticated console transport" \
+	python3 scripts/check-one-transport.py
+
+# 7. A clean machine can follow install.sh and open the printed address immediately.
 exempt "clean-machine install opens the printed address" \
 	"requires a disposable host, domain, certificate, browser path, and approved Bot API credential provisioning; this worktree must not touch production"
 
