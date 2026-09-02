@@ -848,6 +848,10 @@
       "notReported": {
         "title": "Diagnostics not reported yet",
         "description": "These items belong to diagnostics, but the current instance endpoint does not provide their state."
+      },
+      "rollback": {
+        "title": "Rollback condition readings",
+        "description": "Readings for the four rollback conditions phase ten fixed in advance. This screen shows the numbers and their thresholds; the decision stays with a person."
       }
     },
     "labels": {
@@ -863,7 +867,20 @@
       "lastError": "Last failure reason",
       "permissionPreflight": "Permission preflight",
       "queryCache": "Query cache",
-      "queryRateLimit": "Query rate limit"
+      "queryRateLimit": "Query rate limit",
+      "challengeDelivery": "Challenge delivery",
+      "consoleAccess": "Console group access",
+      "databaseWrites": "Database writes",
+      "rejections": "Declines and bans",
+      "problemSpan": "Unbroken run",
+      "firstProblem": "First unrecovered failure",
+      "lastProblem": "Most recent failure",
+      "lastRecovered": "Last recovery",
+      "failedDeliveries": "Failed deliveries in this run",
+      "duplicateDeliveries": "Duplicate deliveries in this run",
+      "unavailableAttempts": "Failures in this run",
+      "failureRate": "Failure rate",
+      "writeScope": "Counted scope"
     },
     "values": {
       "yes": "Yes",
@@ -872,7 +889,21 @@
       "milliseconds": "{{value}} ms",
       "noFailure": "No failure reason recorded",
       "failureRecorded": "Failure recorded",
-      "notReported": "Not reported"
+      "notReported": "Not reported",
+      "streakClear": "No unrecovered failure",
+      "streakWithin": "Below the threshold",
+      "streakExceeded": "Past the threshold",
+      "writeRateWithin": "Within one percent",
+      "writeRateExceeded": "Above one percent",
+      "noWrites": "No write in the window",
+      "humanReview": "Needs human review",
+      "notRecorded": "Not recorded",
+      "reasonUnrecorded": "Reason not recorded",
+      "percent": "{{value}}%",
+      "durationSeconds": "{{seconds}} s",
+      "durationMinutes": "{{minutes}} min",
+      "durationHours": "{{hours}} h",
+      "durationMinutesSeconds": "{{minutes}} min {{seconds}} s"
     },
     "notReported": {
       "permissionPreflight": "No per-group permission result is available, so Telegram readiness cannot stand in for it.",
@@ -886,6 +917,21 @@
       "loadUnavailable": "Instance status cannot be loaded right now. Try again.",
       "network": "The connection was interrupted. Reload instance status.",
       "invalidResponse": "The instance returned diagnostics data that does not match the endpoint contract. Try again."
+    },
+    "rollback": {
+      "unavailable": "This instance returned no rollback readings. A version that does not report them leaves this empty.",
+      "streak": {
+        "rule": "Threshold {{threshold}}: only a run longer than that is a rollback condition, and a single failure runs for zero."
+      },
+      "databaseWrites": {
+        "rule": "Observation window {{window}}: only a rate strictly above one percent is a rollback condition.",
+        "rate": "{{rate}} ({{failed}} / {{total}} writes)"
+      },
+      "rejections": {
+        "reading": "Declines and bans settled in the last {{window}}, grouped by reason. This is material for a person to read, not a finding that anyone was declined wrongly.",
+        "unavailable": "The decline records could not be read this time, so no count is shown below.",
+        "none": "No decline or ban was settled in the window."
+      }
     }
   },
   "version": {

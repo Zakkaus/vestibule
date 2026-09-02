@@ -842,6 +842,10 @@
       "notReported": {
         "title": "尚未上报的诊断项",
         "description": "这些项属于诊断职责，但当前实例端点没有提供状态。"
+      },
+      "rollback": {
+        "title": "回退条件读数",
+        "description": "阶段十提前写死的四条回退条件对应的读数。此屏只给出数值和阈值，是否回退由人判断。"
       }
     },
     "labels": {
@@ -857,7 +861,20 @@
       "lastError": "上次失败原因",
       "permissionPreflight": "权限预检",
       "queryCache": "查询缓存",
-      "queryRateLimit": "查询限流"
+      "queryRateLimit": "查询限流",
+      "challengeDelivery": "验证消息发送",
+      "consoleAccess": "控制台群访问",
+      "databaseWrites": "数据库写入",
+      "rejections": "拒绝与封禁结算",
+      "problemSpan": "连续时长",
+      "firstProblem": "首个未恢复失败",
+      "lastProblem": "最近一次失败",
+      "lastRecovered": "上次恢复",
+      "failedDeliveries": "本段发送失败",
+      "duplicateDeliveries": "本段重复发送",
+      "unavailableAttempts": "本段失败次数",
+      "failureRate": "失败率",
+      "writeScope": "统计范围"
     },
     "values": {
       "yes": "是",
@@ -866,7 +883,21 @@
       "milliseconds": "{{value}} 毫秒",
       "noFailure": "未记录失败原因",
       "failureRecorded": "已记录失败",
-      "notReported": "未上报"
+      "notReported": "未上报",
+      "streakClear": "无未恢复的失败",
+      "streakWithin": "未达阈值",
+      "streakExceeded": "已超过阈值",
+      "writeRateWithin": "未超过百分之一",
+      "writeRateExceeded": "已超过百分之一",
+      "noWrites": "窗口内没有写入",
+      "humanReview": "需人工判读",
+      "notRecorded": "未记录",
+      "reasonUnrecorded": "未记录原因",
+      "percent": "{{value}}%",
+      "durationSeconds": "{{seconds}} 秒",
+      "durationMinutes": "{{minutes}} 分钟",
+      "durationHours": "{{hours}} 小时",
+      "durationMinutesSeconds": "{{minutes}} 分 {{seconds}} 秒"
     },
     "notReported": {
       "permissionPreflight": "没有按群权限结果，不能以 Telegram 就绪代替。",
@@ -880,6 +911,21 @@
       "loadUnavailable": "暂时无法读取实例状态。请重试。",
       "network": "连接已中断。请重新读取实例状态。",
       "invalidResponse": "实例返回的诊断数据不符合接口约定。请重试。"
+    },
+    "rollback": {
+      "unavailable": "当前实例没有返回回退读数。回退到不上报这四项的版本后，这里也是空的。",
+      "streak": {
+        "rule": "阈值 {{threshold}}：连续失败超过它才构成回退条件，单次失败的连续时长为 0。"
+      },
+      "databaseWrites": {
+        "rule": "观测窗口 {{window}}：失败率严格超过百分之一才构成回退条件。",
+        "rate": "{{rate}}（{{failed}} / {{total}} 次写入）"
+      },
+      "rejections": {
+        "reading": "最近 {{window}}内按原因汇总的拒绝与封禁结算数。这是给人核查的原料，不代表已经误拒。",
+        "unavailable": "本次没有读到拒绝记录，下面不显示数字。",
+        "none": "窗口内没有拒绝或封禁结算。"
+      }
     }
   },
   "version": {
