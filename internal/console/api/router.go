@@ -15,18 +15,20 @@ func New(config Config) *Server {
 // ReplaceRoutes atomically installs a complete new route table for the running listener.
 func (s *Server) ReplaceRoutes(config Config) {
 	routes := &Server{
-		authenticator:   config.Authenticator,
-		verification:    config.Verification,
-		settings:        config.Settings,
-		rules:           config.Rules,
-		processSettings: config.ProcessSettings,
-		health:          config.Health,
-		persistence:     config.Persistence,
-		replacement:     config.Replacement,
-		release:         config.Release,
-		version:         config.Version,
-		setup:           config.Setup,
-		setupClaimed:    config.SetupClaimed,
+		authenticator:        config.Authenticator,
+		verification:         config.Verification,
+		settings:             config.Settings,
+		rules:                config.Rules,
+		processSettings:      config.ProcessSettings,
+		health:               config.Health,
+		persistence:          config.Persistence,
+		rollbackObservations: config.RollbackObservations,
+		rollbackRejections:   config.RollbackRejections,
+		replacement:          config.Replacement,
+		release:              config.Release,
+		version:              config.Version,
+		setup:                config.Setup,
+		setupClaimed:         config.SetupClaimed,
 	}
 	s.routes.Store(&routeSet{server: routes})
 }

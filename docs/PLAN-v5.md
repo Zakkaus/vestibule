@@ -549,8 +549,8 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 #### 落地之后要补的另一件：运维进来之后写不了
 
 `GET /enter/{token}` 只写 HttpOnly 会话 Cookie 然后 `303` 回首页
-（`internal/console/api/server.go:218-234`），而 CSRF token 只在
-`POST /api/session` 的 JSON 响应里出现（`internal/console/api/server.go:198-215`）；结算又严格要求
+（`internal/console/api/server.go:247-253`），而 CSRF token 只在
+`POST /api/session` 的 JSON 响应里出现（`internal/console/api/server.go:217-234`）；结算又严格要求
 `X-CSRF-Token`（`internal/console/auth/manager.go:291-297`）。
 
 于是**运维走一次性链接进来，能读群和队列，但任何写入都做不了** ——
@@ -683,10 +683,10 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 （`/livez` `/readyz` `GET/POST /api/session` `/enter/` `/api/chats` `/api/chats/`）。
 这一句是当时的状态，不是现在的：顶层分发已经包含
 `GET · POST /setup/{token}`、`GET /api/process/settings`、`GET /api/status`、
-`GET /api/status/release` 和 `POST /api/status/upgrade`（`internal/console/api/server.go:132-181`）；而
+`GET /api/status/release` 和 `POST /api/status/upgrade`（`internal/console/api/server.go:136-184`）；而
 `/api/chats/` 那条现在按群展开成
 `queue`、`audit`、`stats`、`settings`、`rules` 五组
-（`internal/console/api/server.go:266-295`）。下面这条次序就是照着这个缺口定的，
+（`internal/console/api/server.go:285-310`）。下面这条次序就是照着这个缺口定的，
 八屏所等的设置端点已经建成。
 而 13 屏里有 8 屏管的全是设置：验证方式、题库、免验证来源、管理与处罚、
 消息与文案、订阅推送、功能，以及偏好屏里属于群的那一半。
@@ -1050,10 +1050,24 @@ Bot API 容器从独立的 `bot-api.env` 读取上游必需凭据。应用代码
 **退回的条件写死在这里，不到当天再判断。**
 出现下面任意一条就退回，不讨论：
 
-- 误拒真实用户，一天内两起
-- 验证消息发送失败或重复发送，持续超过十分钟
-- 控制台换不到会话，且十分钟内没有恢复
-- 数据库写入失败率超过百分之一
+- 误拒真实用户，一天内两起。
+  读数：`GET /api/status` 的 `rollback_observations.rejections`。`window_seconds` 固定为
+  `86400`，`by_reason` 按 `reason` 汇总最近窗口内 `declined` 与 `banned` 的结算数。
+  `human_review_required` 始终为 `true`：这些是核查原料，不自动认定误拒。
+- 验证消息发送失败或重复发送，持续超过十分钟。
+  读数：`rollback_observations.challenge_delivery`。`streak.problem_span_seconds` 是当前未被成功
+  发送打断的首末问题事件间隔；只有超过 `600` 秒时 `streak.exceeds_threshold` 才为 `true`。
+  `failed_deliveries` 与 `duplicate_deliveries` 分别是这个连续段里的发送失败和重复发送数；
+  单次失败的间隔为 `0`，不触发。
+- 控制台换不到会话，且十分钟内没有恢复。
+  读数：`rollback_observations.console_access`。它记录群访问验证返回
+  `ErrAccessUnavailable` 的连续段；任一成功验证会清零。读 `streak.problem_span_seconds` 与
+  `streak.exceeds_threshold`，同样以超过 `600` 秒为界。
+- 数据库写入失败率超过百分之一。
+  读数：`rollback_observations.database_writes`。`scope` 是 `retry_store_write`，
+  `window_seconds` 固定为 `600`；`total_writes` 是窗口内完成的逻辑写入数，
+  `failed_writes` 是三次重试都失败的写入数，`failure_rate_percent` 是两者的百分比，
+  `exceeds_one_percent` 表示严格超过百分之一。
 
 退回的动作是：把新机器人的权限收回，旧机器人的权限恢复，
 然后写清是哪一条触发的。旧机器人在整个观察期内不停机，

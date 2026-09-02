@@ -38,35 +38,39 @@ type ConsoleService interface {
 
 // Config injects policy services into the HTTP adapter. The adapter owns no database access.
 type Config struct {
-	Authenticator   *auth.Manager
-	Verification    ConsoleService
-	Settings        SettingsService
-	Rules           RulesService
-	ProcessSettings ProcessSettingsService
-	Health          *status.Health
-	Persistence     PersistenceService
-	Replacement     ReplacementService
-	Release         ReleaseService
-	Version         string
-	Setup           SetupService
-	SetupClaimed    func()
+	Authenticator        *auth.Manager
+	Verification         ConsoleService
+	Settings             SettingsService
+	Rules                RulesService
+	ProcessSettings      ProcessSettingsService
+	Health               *status.Health
+	Persistence          PersistenceService
+	RollbackObservations RollbackObservationsService
+	RollbackRejections   RollbackRejectionService
+	Replacement          ReplacementService
+	Release              ReleaseService
+	Version              string
+	Setup                SetupService
+	SetupClaimed         func()
 }
 
 // Server owns listener admission and HTTP handler draining separately for ordered shutdown.
 type Server struct {
-	authenticator   *auth.Manager
-	verification    ConsoleService
-	settings        SettingsService
-	rules           RulesService
-	processSettings ProcessSettingsService
-	health          *status.Health
-	persistence     PersistenceService
-	replacement     ReplacementService
-	release         ReleaseService
-	version         string
-	setup           SetupService
-	setupClaimed    func()
-	routes          atomic.Pointer[routeSet]
+	authenticator        *auth.Manager
+	verification         ConsoleService
+	settings             SettingsService
+	rules                RulesService
+	processSettings      ProcessSettingsService
+	health               *status.Health
+	persistence          PersistenceService
+	rollbackObservations RollbackObservationsService
+	rollbackRejections   RollbackRejectionService
+	replacement          ReplacementService
+	release              ReleaseService
+	version              string
+	setup                SetupService
+	setupClaimed         func()
+	routes               atomic.Pointer[routeSet]
 
 	mu         sync.Mutex
 	listener   net.Listener

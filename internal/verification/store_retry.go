@@ -10,13 +10,23 @@ const (
 	storeWriteRetryDelay  = 10 * time.Millisecond
 )
 
-func retryStoreWrite(write func() error) error {
+type storeWriteObserver interface {
+	RecordDatabaseWrite(success bool)
+}
+
+func retryStoreWrite(observer storeWriteObserver, write func() error) error {
 	var err error
 	for attempt := 1; attempt <= storeWriteMaxAttempts; attempt++ {
 		if err = write(); err == nil {
+			if observer != nil {
+				observer.RecordDatabaseWrite(true)
+			}
 			return nil
 		}
 		pauseBeforeStoreRetry(attempt)
+	}
+	if observer != nil {
+		observer.RecordDatabaseWrite(false)
 	}
 	return fmt.Errorf("state write failed after %d attempts: %w", storeWriteMaxAttempts, err)
 }

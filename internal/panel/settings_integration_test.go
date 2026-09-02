@@ -38,7 +38,7 @@ func newPanelTestVerifier(
 ) *verification.Service {
 	service, err := verification.New(
 		settings, telegram.NewVerificationGateway(connector), database.NewVerificationJSONStore(),
-		cfg, &i18n.Messages, nil, identity, stateDirectory,
+		cfg, &i18n.Messages, nil, identity, stateDirectory, nil,
 	)
 	if err != nil {
 		t.Helper()

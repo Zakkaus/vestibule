@@ -105,7 +105,7 @@ func (v *Service) saveAgents() {
 	if v.agentPath == "" || v.stateStore == nil || !v.agentWritable {
 		return
 	}
-	if err := retryStoreWrite(func() error {
+	if err := retryStoreWrite(v.rollbackObserver, func() error {
 		return v.stateStore.SaveAgents(v.agentPath, v.agentSnapshot)
 	}); err != nil {
 		log.Printf("verification: save automated-agent tally: %v", err)
@@ -295,7 +295,7 @@ func (v *Service) saveVerifyFails() {
 	if v.vfailPath == "" || v.stateStore == nil || !v.vfailWritable {
 		return
 	}
-	err := retryStoreWrite(func() error {
+	err := retryStoreWrite(v.rollbackObserver, func() error {
 		return v.stateStore.SaveFailures(v.vfailPath, func() []FailureRecord {
 			v.mu.Lock()
 			defer v.mu.Unlock()
@@ -751,7 +751,7 @@ func (v *Service) saveHeartbeat() {
 		return
 	}
 	record := HeartbeatRecord{LastOnline: t.Unix()}
-	if err := retryStoreWrite(func() error {
+	if err := retryStoreWrite(v.rollbackObserver, func() error {
 		return v.stateStore.SaveHeartbeat(v.hbPath, record)
 	}); err != nil {
 		log.Printf("verification: save heartbeat: %v", err)

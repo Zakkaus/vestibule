@@ -39,24 +39,25 @@ type Options struct {
 }
 
 type services struct {
-	cfg                 *settings.Config
-	database            *database.Database
-	settings            *settings.Store
-	bot                 *telego.Bot
-	heartbeatBot        *outageAwareBot
-	lookups             *lookup.Service
-	modules             *runtimeModules
-	verification        *verification.Service
-	verificationGateway *telegram.VerificationGateway
-	moderation          *moderate.Service
-	updates             *telegram.Updates
-	registration        *telegram.Registration
-	consoleAuth         *auth.Manager
-	health              *status.Health
-	replacement         *status.Replacement
-	release             *status.ReleaseChecker
-	version             string
-	identity            verification.Identity
+	cfg                  *settings.Config
+	database             *database.Database
+	settings             *settings.Store
+	bot                  *telego.Bot
+	heartbeatBot         *outageAwareBot
+	lookups              *lookup.Service
+	modules              *runtimeModules
+	verification         *verification.Service
+	verificationGateway  *telegram.VerificationGateway
+	moderation           *moderate.Service
+	updates              *telegram.Updates
+	registration         *telegram.Registration
+	consoleAuth          *auth.Manager
+	health               *status.Health
+	replacement          *status.Replacement
+	release              *status.ReleaseChecker
+	rollbackObservations *status.RollbackObservations
+	version              string
+	identity             verification.Identity
 }
 
 type activeRuntime struct {
@@ -186,16 +187,18 @@ func closeRuntimeDatabase(runtime *services) {
 
 func claimedConsoleConfig(runtime *services) api.Config {
 	return api.Config{
-		Authenticator:   runtime.consoleAuth,
-		Verification:    runtime.verification,
-		Settings:        runtime.settings,
-		Rules:           database.NewRuleStore(runtime.database),
-		ProcessSettings: runtime.cfg,
-		Health:          runtime.health,
-		Persistence:     runtime.settings,
-		Replacement:     runtime.replacement,
-		Release:         runtime.release,
-		Version:         runtime.version,
+		Authenticator:        runtime.consoleAuth,
+		Verification:         runtime.verification,
+		Settings:             runtime.settings,
+		Rules:                database.NewRuleStore(runtime.database),
+		ProcessSettings:      runtime.cfg,
+		Health:               runtime.health,
+		Persistence:          runtime.settings,
+		RollbackObservations: runtime.rollbackObservations,
+		RollbackRejections:   runtime.verification,
+		Replacement:          runtime.replacement,
+		Release:              runtime.release,
+		Version:              runtime.version,
 	}
 }
 
@@ -293,9 +296,10 @@ func newBaseServices(ctx context.Context, options Options) (*services, error) {
 	health.SetConfigReady(true)
 	return &services{
 		database: db, cfg: cfg, settings: runtimeSettings, health: health,
-		replacement: status.NewReplacement(options.StateDirectory),
-		release:     status.NewReleaseChecker(options.Version, options.GitHubToken),
-		version:     options.Version,
+		replacement:          status.NewReplacement(options.StateDirectory),
+		release:              status.NewReleaseChecker(options.Version, options.GitHubToken),
+		rollbackObservations: status.NewRollbackObservations(time.Now),
+		version:              options.Version,
 	}, nil
 }
 
@@ -308,7 +312,9 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 		return err
 	}
 	connector := telegram.NewConnector(bot)
-	consoleAuth, consoleHandler, err := newConsoleAuthentication(options, runtime.settings, connector, bot)
+	consoleAuth, consoleHandler, err := newConsoleAuthentication(
+		options, runtime.settings, connector, bot, runtime.rollbackObservations,
+	)
 	if err != nil {
 		return err
 	}
@@ -333,7 +339,7 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 	}
 	verificationService, err := verification.New(
 		runtime.settings, verificationGateway, verificationStore, runtime.cfg, &i18n.Messages,
-		heartbeatBot, identity, stateNamespace,
+		heartbeatBot, identity, stateNamespace, runtime.rollbackObservations,
 	)
 	if err != nil {
 		return fmt.Errorf("verification: %w", err)

@@ -94,6 +94,34 @@ func TestConsoleStatsPreservesUnknownChallengeKind(t *testing.T) {
 	}
 }
 
+func TestRecentRejectionsUsesTwentyFourHourWindowAndGroupsReasons(t *testing.T) {
+	db, service := newStatsIntegrationService(t)
+	end := time.Date(2026, time.September, 3, 14, 0, 0, 0, time.UTC)
+	since := end.Add(-verification.RollbackRejectionWindow)
+	seedRollbackRejection(t, db, "at-window-start", 11, verification.ChallengeDeclined, "wrong_answer", since.Unix())
+	seedRollbackRejection(t, db, "wrong-again", 12, verification.ChallengeDeclined, "wrong_answer", since.Unix()+1)
+	seedRollbackRejection(t, db, "banned", 13, verification.ChallengeBanned, "rejected", end.Unix())
+	seedRollbackRejection(t, db, "no-reason", 14, verification.ChallengeDeclined, nil, end.Unix())
+	seedRollbackRejection(t, db, "before-window", 15, verification.ChallengeDeclined, "wrong_answer", since.Unix()-1)
+	seedRollbackRejection(t, db, "approved", 16, verification.ChallengeApproved, "wrong_answer", end.Unix())
+
+	counts, err := service.RecentRejections(context.Background(), since)
+	if err != nil {
+		t.Fatal(err)
+	}
+	byReason := map[string]int64{}
+	for _, count := range counts {
+		reason := "<null>"
+		if count.Reason != nil {
+			reason = *count.Reason
+		}
+		byReason[reason] = count.Count
+	}
+	if len(byReason) != 3 || byReason["wrong_answer"] != 2 || byReason["rejected"] != 1 || byReason["<null>"] != 1 {
+		t.Fatalf("recent rejection reasons = %#v, want wrong_answer=2 rejected=1 null=1", byReason)
+	}
+}
+
 func newStatsIntegrationService(t *testing.T) (*database.Database, *verification.Service) {
 	t.Helper()
 	db, err := database.Open(context.Background(), database.Config{StateDirectory: t.TempDir()})
@@ -115,7 +143,7 @@ func newStatsIntegrationService(t *testing.T) (*database.Database, *verification
 		t.Fatal(err)
 	}
 	service, err := verification.New(
-		settingsStore, nil, database.NewVerificationStore(db), config, nil, nil, verification.Identity{}, "",
+		settingsStore, nil, database.NewVerificationStore(db), config, nil, nil, verification.Identity{}, "", nil,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -142,6 +170,26 @@ func seedStatsChallenge(
 			(id, chat_id, user_id, state, kind, payload, delivery, reason, expires_at, settled_at, epoch)
 		VALUES ($1, $2, $3, $4, $5, '{}', '{}', $6, $7, $8, 1)`,
 		id, statsIntegrationChatID, userID, state, kind, reason, settledAt, settledAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func seedRollbackRejection(
+	t *testing.T,
+	db *database.Database,
+	id string,
+	userID int64,
+	state verification.ChallengeState,
+	reason any,
+	settledAt int64,
+) {
+	t.Helper()
+	_, err := db.Exec(context.Background(), `
+		INSERT INTO challenge
+			(id, chat_id, user_id, state, kind, payload, delivery, reason, expires_at, settled_at, epoch)
+		VALUES ($1, $2, $3, $4, 'rule', '{}', '{}', $5, $6, $7, 1)`,
+		id, statsIntegrationChatID, userID, state, reason, settledAt, settledAt)
 	if err != nil {
 		t.Fatal(err)
 	}

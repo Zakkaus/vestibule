@@ -162,6 +162,7 @@ type Service struct {
 	settings          *settings.Store
 	gateway           Gateway
 	stateStore        Store
+	rollbackObserver  RollbackObserver
 	actionOwner       string
 	lastOnline        time.Time
 	hbPath            string
@@ -199,9 +200,11 @@ func New(
 	probe LiveProbe,
 	identity Identity,
 	stateDir string,
+	observer RollbackObserver,
 ) (*Service, error) {
 	v := newService(settings, gateway, cfg, messages)
 	v.stateStore = stateStore
+	v.rollbackObserver = observer
 	v.botID = identity.ID
 	v.botUsername = identity.Username
 	v.probe = probe
@@ -937,8 +940,12 @@ func (v *Service) deliverPendingChallenge(
 	gid, uid int64,
 	name string,
 	owner *pending,
-) challengeDeliveryResult {
-	result := challengeDeliveryResult{active: true, modeLabel: v.DeliveryMode(gid)}
+) (result challengeDeliveryResult) {
+	repeated := owner != nil && owner.challengeDelivered
+	defer func() {
+		v.recordChallengeDelivery(result, repeated)
+	}()
+	result = challengeDeliveryResult{active: true, modeLabel: v.DeliveryMode(gid)}
 	groupLang := v.groupLanguage(gid)
 	switch result.modeLabel {
 	case settings.DeliveryGroup:
@@ -981,6 +988,22 @@ func (v *Service) deliverPendingChallenge(
 		}
 	}
 	return result
+}
+
+func (v *Service) recordChallengeDelivery(result challengeDeliveryResult, repeated bool) {
+	observer := v.rollbackObserver
+	if observer == nil || !result.active {
+		return
+	}
+	if !result.delivered {
+		observer.RecordChallengeDeliveryFailure()
+		return
+	}
+	if repeated || result.replacedPrivateMsgID != 0 {
+		observer.RecordChallengeDeliveryDuplicate()
+		return
+	}
+	observer.RecordChallengeDeliverySuccess()
 }
 
 // OnJoinRequest starts verification for one eligible group join request.

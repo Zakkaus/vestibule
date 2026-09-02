@@ -13,6 +13,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/console/auth"
 	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/status"
+	"github.com/Zakkaus/vestibule/internal/verification"
 )
 
 const diagnosticsPath = "/api/status"
@@ -25,6 +26,22 @@ type apiTestPersistenceService struct {
 func (s *apiTestPersistenceService) Persistence() settings.PersistenceStatus {
 	s.calls++
 	return s.value
+}
+
+type apiTestRollbackRejectionService struct {
+	counts []verification.RejectionReasonCount
+	err    error
+	calls  int
+	since  time.Time
+}
+
+func (s *apiTestRollbackRejectionService) RecentRejections(
+	_ context.Context,
+	since time.Time,
+) ([]verification.RejectionReasonCount, error) {
+	s.calls++
+	s.since = since
+	return s.counts, s.err
 }
 
 func TestGetDiagnosticsDistinguishesUnmeasuredAndZeroLatency(t *testing.T) {
@@ -55,6 +72,51 @@ func TestGetDiagnosticsDistinguishesUnmeasuredAndZeroLatency(t *testing.T) {
 			assertDiagnosticsWireShape(t, response)
 			assertBotAPISample(t, body.BotAPI, test.observed, at)
 		})
+	}
+}
+
+func TestGetDiagnosticsIncludesRollbackObservations(t *testing.T) {
+	persistence := &apiTestPersistenceService{}
+	server, cookies := diagnosticsTestServer(t, auth.RoleOperator, diagnosticsHealth(), persistence)
+	rejections, ok := server.routes.Load().server.rollbackRejections.(*apiTestRollbackRejectionService)
+	if !ok {
+		t.Fatal("diagnostics test server did not install a rollback rejection source")
+	}
+	reason := "wrong_answer"
+	rejections.counts = []verification.RejectionReasonCount{{Reason: &reason, Count: 2}}
+
+	response := diagnosticsRequest(server, cookies, http.MethodGet)
+	body := decodeDiagnostics(t, response)
+	rollback := body.Rollback
+	assertRollbackRejections(t, response, rejections.calls, rollback.Rejections, reason)
+	assertRollbackObservationThresholds(t, rollback)
+}
+
+func assertRollbackRejections(
+	t *testing.T,
+	response *httptest.ResponseRecorder,
+	calls int,
+	rejections diagnosticsRejectionsResponse,
+	reason string,
+) {
+	t.Helper()
+	if response.Code != http.StatusOK || calls != 1 || !rejections.SourceAvailable ||
+		!rejections.HumanReviewRequired ||
+		rejections.WindowSeconds != int64(verification.RollbackRejectionWindow/time.Second) ||
+		len(rejections.ByReason) != 1 || rejections.ByReason[0].Reason == nil ||
+		*rejections.ByReason[0].Reason != reason || rejections.ByReason[0].Count != 2 {
+		t.Fatalf("status=%d calls=%d rollback rejections=%+v", response.Code, calls, rejections)
+	}
+}
+
+func assertRollbackObservationThresholds(t *testing.T, rollback diagnosticsRollbackResponse) {
+	t.Helper()
+	if !rollback.Rejections.WindowStart.Equal(rollback.Rejections.WindowEnd.Add(-verification.RollbackRejectionWindow)) ||
+		rollback.ChallengeDelivery.Streak.ThresholdSeconds != int64(status.RollbackObservationWindow/time.Second) ||
+		rollback.ConsoleAccess.Streak.ThresholdSeconds != int64(status.RollbackObservationWindow/time.Second) ||
+		rollback.DatabaseWrites.Scope != retryStoreWriteScope ||
+		rollback.DatabaseWrites.WindowSeconds != int64(status.RollbackObservationWindow/time.Second) {
+		t.Fatalf("rollback diagnostics response = %+v", rollback)
 	}
 }
 
@@ -119,10 +181,16 @@ func TestGetDiagnosticsRedactsPersistenceError(t *testing.T) {
 func TestGetDiagnosticsRejectsManager(t *testing.T) {
 	persistence := &apiTestPersistenceService{}
 	server, cookies := diagnosticsTestServer(t, auth.RoleManager, diagnosticsHealth(), persistence)
+	rejections, ok := server.routes.Load().server.rollbackRejections.(*apiTestRollbackRejectionService)
+	if !ok {
+		t.Fatal("diagnostics test server did not install a rollback rejection source")
+	}
 	response := diagnosticsRequest(server, cookies, http.MethodGet)
 
-	if response.Code != http.StatusForbidden || decodeError(response) != "diagnostics_access_denied" || persistence.calls != 0 {
-		t.Fatalf("status=%d code=%s calls=%d, want 403, diagnostics_access_denied, 0", response.Code, decodeError(response), persistence.calls)
+	if response.Code != http.StatusForbidden || decodeError(response) != "diagnostics_access_denied" ||
+		persistence.calls != 0 || rejections.calls != 0 {
+		t.Fatalf("status=%d code=%s persistence_calls=%d rejection_calls=%d, want 403 and no diagnostics reads",
+			response.Code, decodeError(response), persistence.calls, rejections.calls)
 	}
 }
 
@@ -192,9 +260,16 @@ func diagnosticsTestServer(
 	}
 	cookies := httptest.NewRecorder()
 	manager.SetCookies(cookies, grant)
+	rollbackRejections := &apiTestRollbackRejectionService{}
+	rollbackObservations := status.NewRollbackObservations(func() time.Time { return now })
 	return New(Config{
-		Authenticator: manager, Health: health, Persistence: persistence, Replacement: replacement,
-		Version: "v5.1.0",
+		Authenticator:        manager,
+		Health:               health,
+		Persistence:          persistence,
+		RollbackObservations: rollbackObservations,
+		RollbackRejections:   rollbackRejections,
+		Replacement:          replacement,
+		Version:              "v5.1.0",
 	}), cookies.Result().Cookies()
 }
 
@@ -223,10 +298,10 @@ func assertDiagnosticsWireShape(t *testing.T, response *httptest.ResponseRecorde
 	if err := json.Unmarshal(response.Body.Bytes(), &root); err != nil {
 		t.Fatal(err)
 	}
-	if len(root) != 5 || root["version"] == nil || root["health"] == nil || root["bot_api"] == nil ||
-		root["persistence"] == nil || root["replacement"] == nil {
+	if len(root) != 6 || root["version"] == nil || root["health"] == nil || root["bot_api"] == nil ||
+		root["persistence"] == nil || root["rollback_observations"] == nil || root["replacement"] == nil {
 		t.Fatalf(
-			"diagnostics JSON root = %s, want version, health, bot_api, persistence, and replacement fields",
+			"diagnostics JSON root = %s, want version, health, bot_api, persistence, rollback_observations, and replacement fields",
 			response.Body.Bytes(),
 		)
 	}
