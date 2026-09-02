@@ -1,4 +1,4 @@
-import { expect, test, type Page, type Route } from "@playwright/test";
+import { expect, test, type Locator, type Page, type Route } from "@playwright/test";
 
 const selectedGroupID = "-1001163306055";
 const actorID = "741928306";
@@ -33,6 +33,11 @@ type SettingsResponse = Readonly<{
 type SettingsReadHandler = (route: Route, requestNumber: number) => Promise<void>;
 type SettingsPatchHandler = (route: Route) => Promise<void>;
 
+type Deferred = Readonly<{
+  promise: Promise<void>;
+  resolve: () => void;
+}>;
+
 const firstQuestion: Question = {
   q: "Which package manager belongs to Gentoo?",
   options: ["Portage", "apt"],
@@ -58,6 +63,33 @@ function settingsResponse(overrides: Partial<SettingsResponse> = {}): SettingsRe
     lang: sourced("zh"),
     ...overrides
   };
+}
+
+function busyControlsSettings() {
+  return {
+    ...settingsResponse({
+      fallback_questions: sourced([
+        { q: "Name a Gentoo package manager", answers: ["Portage", "emerge"] }
+      ]),
+      fallback_builtin: sourced(false)
+    }),
+    delivery_mode: sourced("both"),
+    verify_mode: sourced("kernel"),
+    timeout_seconds: sourced(240),
+    verify_max_fails: sourced(3),
+    verify_retry_seconds: sourced(180),
+    ban_seconds: sourced(0),
+    mute_seconds: sourced(3600),
+    verify_invited: sourced(true)
+  };
+}
+
+function deferred(): Deferred {
+  let resolve!: () => void;
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
 }
 
 async function fulfillJSON(route: Route, body: unknown, status = 200): Promise<void> {
@@ -113,6 +145,125 @@ async function openQuestions(
     "data-questions-state",
     "loaded"
   );
+}
+
+async function expectControlsFocusable(controls: Locator): Promise<void> {
+  const count = await controls.count();
+  expect(count).toBeGreaterThan(0);
+  for (let index = 0; index < count; index += 1) {
+    const control = controls.nth(index);
+    await control.focus();
+    await expect(control).toBeFocused();
+  }
+}
+
+async function exerciseBusyQuestionControls(
+  page: Page,
+  patchRequested: Promise<void>,
+  patchCalls: () => number
+): Promise<void> {
+  await page.getByLabel("题面").first().fill("Edited while testing the busy state");
+  const addQuestion = page.getByRole("button", { name: "添加选择题" });
+  await addQuestion.focus();
+  await page.locator("[data-questions-form]").evaluate((form) => {
+    (form as HTMLFormElement).requestSubmit();
+  });
+  await patchRequested;
+
+  await expect(addQuestion).toBeFocused();
+  await expect(addQuestion).toHaveAttribute("aria-disabled", "true");
+  const controls = page.locator(
+    [
+      "#questions-language-select",
+      "[data-question-list-heading] > button",
+      "[data-fallback-mode-options] > button",
+      "[data-question-bank-editor] button",
+      "[data-question-bank-editor] input",
+      "[data-question-bank-editor] textarea",
+      "[data-fallback-question-editor] button",
+      "[data-fallback-question-editor] input",
+      "[data-fallback-question-editor] textarea"
+    ].join(", ")
+  );
+  await expectControlsFocusable(controls);
+  const editorTextControls = page.locator(
+    "[data-question-bank-editor] input, [data-question-bank-editor] textarea, " +
+      "[data-fallback-question-editor] input, [data-fallback-question-editor] textarea"
+  );
+  expect(
+    await editorTextControls.evaluateAll((fields) =>
+      fields.every(
+        (field) => (field as HTMLInputElement | HTMLTextAreaElement).readOnly
+      )
+    )
+  ).toBe(true);
+  const guardedButtons = page.locator(
+    [
+      "[data-question-list-heading] > button",
+      "[data-fallback-mode-options] > button",
+      "[data-question-bank-editor] button",
+      "[data-fallback-question-editor] button"
+    ].join(", ")
+  );
+  expect(
+    await guardedButtons.evaluateAll((buttons) =>
+      buttons.every((button) => button.getAttribute("aria-disabled") === "true")
+    )
+  ).toBe(true);
+
+  const questionCount = await page.locator("[data-question-bank-editor] [data-question-item]").count();
+  const optionCount = await page.locator("[data-question-bank-editor] [data-question-option-row]").count();
+  const answerCount = await page.locator("[data-fallback-question-editor] [data-fallback-answer-row]").count();
+  await addQuestion.dispatchEvent("click");
+  await page.getByRole("button", { name: "添加选项" }).dispatchEvent("click");
+  await page.getByRole("button", { name: "添加答案" }).dispatchEvent("click");
+  await page.locator("#questions-language-select").dispatchEvent("click");
+  await page.getByRole("button", { name: "内置本地化题目" }).dispatchEvent("click");
+  expect(await page.locator("[data-question-bank-editor] [data-question-item]").count()).toBe(questionCount);
+  expect(await page.locator("[data-question-bank-editor] [data-question-option-row]").count()).toBe(optionCount);
+  expect(await page.locator("[data-fallback-question-editor] [data-fallback-answer-row]").count()).toBe(answerCount);
+  await expect(page.locator("#questions-language-select")).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator("[data-fallback-question-editor]")).toBeVisible();
+
+  await page.getByRole("button", { name: "正在保存…" }).dispatchEvent("click");
+  await page.waitForTimeout(100);
+  expect(patchCalls()).toBe(1);
+}
+
+async function exerciseBusyVerificationControls(
+  page: Page,
+  patchRequested: Promise<void>,
+  patchCalls: () => number
+): Promise<void> {
+  await page.locator("#verification-timeout-seconds").fill("241");
+  const focusedSelect = page.locator("#verification-mode");
+  await focusedSelect.focus();
+  await page.locator("[data-verification-form]").evaluate((form) => {
+    (form as HTMLFormElement).requestSubmit();
+  });
+  await patchRequested;
+
+  await expect(focusedSelect).toBeFocused();
+  await expect(focusedSelect).toHaveAttribute("aria-disabled", "true");
+  const controls = page.locator(
+    "#verification-delivery-mode, #verification-mode, [data-verification-number], #verification-invited-members"
+  );
+  await expectControlsFocusable(controls);
+  expect(
+    await page.locator("[data-verification-number]").evaluateAll((inputs) =>
+      inputs.every((input) => (input as HTMLInputElement).readOnly)
+    )
+  ).toBe(true);
+
+  await focusedSelect.dispatchEvent("click");
+  await expect(focusedSelect).toHaveAttribute("aria-expanded", "false");
+  const invited = page.locator("#verification-invited-members");
+  await invited.evaluate((input) => (input as HTMLInputElement).click());
+  await expect(invited).toBeChecked();
+
+  await page.getByRole("button", { name: "正在保存…" }).dispatchEvent("click");
+  await page.waitForTimeout(100);
+  expect(patchCalls()).toBe(2);
 }
 
 test("question bank adds and edits an item, then sends only the complete questions array with CSRF", async ({
@@ -172,6 +323,66 @@ test("question bank adds and edits an item, then sends only the complete questio
     "loaded"
   );
   await expect(page.getByText("来源：此群覆盖").first()).toBeVisible();
+});
+
+test("busy question and verification controls keep focus and ignore interaction", async ({ page }) => {
+  const questionPatchRequested = deferred();
+  const questionPatchResponse = deferred();
+  const verificationPatchRequested = deferred();
+  const verificationPatchResponse = deferred();
+  let patchCalls = 0;
+  let currentSettings = busyControlsSettings();
+
+  await openQuestions(
+    page,
+    async (route) => fulfillJSON(route, currentSettings),
+    async (route) => {
+      patchCalls += 1;
+      const requested =
+        patchCalls === 1
+          ? questionPatchRequested
+          : patchCalls === 2
+            ? verificationPatchRequested
+            : undefined;
+      const response =
+        patchCalls === 1
+          ? questionPatchResponse
+          : patchCalls === 2
+            ? verificationPatchResponse
+            : undefined;
+      if (!requested || !response) {
+        throw new Error(`Unexpected extra settings PATCH request ${patchCalls}`);
+      }
+
+      requested.resolve();
+      await response.promise;
+      currentSettings = { ...currentSettings, revision: currentSettings.revision + 1 };
+      await fulfillJSON(route, currentSettings);
+    }
+  );
+
+  await exerciseBusyQuestionControls(
+    page,
+    questionPatchRequested.promise,
+    () => patchCalls
+  );
+  questionPatchResponse.resolve();
+  await expect(page.locator('[data-questions-feedback="saved"]')).toBeVisible();
+
+  await page.goto(`/verification?group=${selectedGroupID}`);
+  await expect(page.locator("[data-verification-page]")).toHaveAttribute(
+    "data-verification-state",
+    "loaded"
+  );
+  await exerciseBusyVerificationControls(
+    page,
+    verificationPatchRequested.promise,
+    () => patchCalls
+  );
+  verificationPatchResponse.resolve();
+  await expect(page.locator("[data-verification-feedback]")).toContainText(
+    "已保存验证设置"
+  );
 });
 
 test("question deletion requires confirmation and language restoration writes null", async ({ page }) => {
