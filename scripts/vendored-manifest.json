@@ -1,0 +1,81 @@
+{
+  "collection": "design-language",
+  "source": "the design system this console is built from; the copies are byte-for-byte",
+  "files": [
+    {
+      "file": "web/src/styles/components.css",
+      "source": "app/components.css",
+      "sha256": "a29f24429583c0dfb9b99f105cc0a6dc6dddf1716386f8d72c517257b33149a8"
+    },
+    {
+      "file": "web/src/styles/shell.css",
+      "source": "app/shell.css",
+      "sha256": "1d03fb66515ed6e0e313345e8d4449f4c049d092726ad98b93b65b9ef95c99ed"
+    },
+    {
+      "file": "web/src/styles/tokens.css",
+      "source": "app/tokens.css",
+      "sha256": "bb09e3ae814d4278df07972728bac10380c38f604363d47ecda65d9e9d088816"
+    },
+    {
+      "file": "scripts/design-checks/comment-boundaries.py",
+      "source": "checks/comment-boundaries.py",
+      "sha256": "4232f7e665cbbcb2efb7d58c447fd0e5c42d6060b03d561bb7ac8fbec3e1276b"
+    },
+    {
+      "file": "scripts/design-checks/coverage-floor.py",
+      "source": "checks/coverage-floor.py",
+      "sha256": "e8b03bc89ac33c1438d2673dcb516830e9fad5662337f00d47b220aaf9152f16"
+    },
+    {
+      "file": "scripts/design-checks/css-coverage.py",
+      "source": "checks/css-coverage.py",
+      "sha256": "b20ed938eca0866996f55ae80996ace199bac39278e326dc67b627a177c0624e"
+    },
+    {
+      "file": "scripts/design-checks/html-structure.py",
+      "source": "checks/html-structure.py",
+      "sha256": "952b041decbfcb50d6cce89a4e75d7599865280eb52264d7342de7f02869aad9"
+    },
+    {
+      "file": "scripts/design-checks/padding-ratio.py",
+      "source": "checks/padding-ratio.py",
+      "sha256": "cabebade96c8d9c50dd4e23d1eb16919212796f21ba843dcc065851a6fe9f820"
+    },
+    {
+      "file": "scripts/design-checks/peer-consistency.py",
+      "source": "checks/peer-consistency.py",
+      "sha256": "6874493f116aa21ec4ad25f70fa7fed4b8339421eba23c63f7e3e2300a30f07b"
+    },
+    {
+      "file": "scripts/design-checks/percentage-min.py",
+      "source": "checks/percentage-min.py",
+      "sha256": "a78d1f5818fe1ef6985fb7149821619e3cedc06c51514b79b21e5f682f638bdb"
+    },
+    {
+      "file": "scripts/design-checks/shadowed.py",
+      "source": "checks/shadowed.py",
+      "sha256": "90666a0def35bc7ed6dedb9498020e5aa94fe48fd3ea7f4579b1c348c8ec8b82"
+    },
+    {
+      "file": "scripts/design-checks/shorthand-across-layers.py",
+      "source": "checks/shorthand-across-layers.py",
+      "sha256": "155996b672adfcba1e228a952e569e38dd66dab011c293cd3e448f5b7d5ccad7"
+    },
+    {
+      "file": "scripts/design-checks/style-rules.py",
+      "source": "checks/style-rules.py",
+      "sha256": "fd755e2b5f1499fbe4817f94c6b00a9c94127375076c3dbd7f7742cda7443bc5"
+    },
+    {
+      "file": "scripts/design-checks/theme-leak.py",
+      "source": "checks/theme-leak.py",
+      "sha256": "de44d2869c84108c64d025bc7260815653a4056df0e00d7348a998738bf8b1ac"
+    },
+    {
+      "file": "scripts/design-checks/undefined-var.py",
+      "source": "checks/undefined-var.py",
+      "sha256": "45b86e9ecc6f9781f7cab44769b3c3ba85e5eec300b4e3d6583cfd5823389ec0"
+    }
+  ]
+}

@@ -181,11 +181,16 @@ python3 scripts/check-privacy-tables.py   # docs/PRIVACY.md names every table ho
 python3 scripts/check-phase-seams.py     # no screen reaches for a later phase's endpoints
 
 # The vendored copies must stay byte-identical to the design system they came
-# from. CI cannot run this — the source lives on a developer's machine, not in
-# the repository — so it is a local gate with the root spelled out. Drift runs
-# both ways: a copy someone edited has to be restored, a source that moved
-# forward has to be re-copied. Read the direction before acting on it.
-CHECKS=~/code/skills/web-ui/examples/design-language
+# from. That is two questions and they need two gates.
+#
+# "Did someone edit a copy in place" is answered inside the repository, against
+# the hashes recorded when the copy was taken, so CI runs it:
+python3 scripts/check-vendored.py    # copies match scripts/vendored-manifest.json
+
+# "Has the source moved forward" needs the source, which lives on a developer's
+# machine, so it stays local. When it reports drift, re-copy and re-record the
+# manifest; do not edit either side by hand. Read the direction before acting.
+CHECKS=~/.claude/skills/web-ui/examples/design-language
 python3 "$CHECKS/checks/vendored.py" --source "$CHECKS/checks" scripts/design-checks/*.py
 python3 "$CHECKS/checks/vendored.py" --source "$CHECKS/app"    web/src/styles/*.css
 
