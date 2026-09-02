@@ -977,6 +977,8 @@
     },
     "errors": {
       "authenticationExpired": "会话已过期。请重新从 Telegram 进入控制台。",
+      "accessDenied": "只有运维可以查看发布信息或发起升级。",
+      "csrfInvalid": "此页的安全令牌已过期。刷新页面后再重试。",
       "authenticationInvalid": "无法验证此控制台会话。请从 Telegram 重新打开控制台。",
       "authenticationUnavailable": "暂时无法确认此会话的实例运维权限。请重试。",
       "statusNetwork": "连接已中断。当前版本状态未能载入，请重试。",

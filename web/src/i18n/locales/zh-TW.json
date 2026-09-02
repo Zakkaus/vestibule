@@ -977,6 +977,8 @@
     },
     "errors": {
       "authenticationExpired": "工作階段已過期。請重新從 Telegram 進入控制台。",
+      "accessDenied": "只有維運可以查看發行資訊或發起升級。",
+      "csrfInvalid": "此頁的安全權杖已過期。重新整理頁面後再重試。",
       "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
       "authenticationUnavailable": "暫時無法確認此工作階段的執行個體維運權限。請重試。",
       "statusNetwork": "連線已中斷。目前版本狀態未能載入，請重試。",
