@@ -7,9 +7,6 @@ import { Icon } from "../../icons";
 import type { IconName } from "../../icons";
 import type { ApiRequestError } from "../../lib/api";
 import { loadDiagnostics, type Diagnostics } from "./api";
-import { DetailRow, DiagnosticsCard } from "./DiagnosticsCard";
-import type { DiagnosticsFormatters } from "./model";
-import { RollbackSection } from "./RollbackSection";
 
 type DiagnosticsScreenState =
   | Readonly<{ kind: "loading" }>
@@ -71,6 +68,41 @@ function StateCard({
   );
 }
 
+function DiagnosticsCard({
+  id,
+  titleKey,
+  descriptionKey,
+  children
+}: Readonly<{
+  id: string;
+  titleKey: string;
+  descriptionKey: string;
+  children: ReactNode;
+}>) {
+  const { t } = useTranslation();
+  return (
+    <section data-slot="card" data-diagnostics-section={id} aria-labelledby={`diagnostics-${id}-title`}>
+      <header data-diagnostics-section-heading>
+        <div data-diagnostics-section-copy>
+          <h2 id={`diagnostics-${id}-title`}>{t(titleKey)}</h2>
+          <p>{t(descriptionKey)}</p>
+        </div>
+      </header>
+      {children}
+    </section>
+  );
+}
+
+function DetailRow({ labelKey, name, children }: Readonly<{ labelKey: string; name: string; children: ReactNode }>) {
+  const { t } = useTranslation();
+  return (
+    <div data-diagnostics-value={name}>
+      <dt>{t(labelKey)}</dt>
+      <dd>{children}</dd>
+    </div>
+  );
+}
+
 function BooleanStatus({ value }: Readonly<{ value: boolean }>) {
   const { t } = useTranslation();
   return <StatusBadge tone={value ? "ok" : "error"}>{t(value ? "diagnostics.values.yes" : "diagnostics.values.no")}</StatusBadge>;
@@ -88,6 +120,11 @@ function ReadOnlyNotice() {
     </aside>
   );
 }
+
+type DiagnosticsFormatters = Readonly<{
+  date: Intl.DateTimeFormat;
+  number: Intl.NumberFormat;
+}>;
 
 function HealthSection({ health }: Readonly<{ health: Diagnostics["health"] }>) {
   return (
@@ -223,7 +260,6 @@ function DiagnosticsContent({
       <HealthSection health={diagnostics.health} />
       <BotAPISection botAPI={diagnostics.botAPI} formatters={formatters} />
       <PersistenceSection persistence={diagnostics.persistence} />
-      <RollbackSection rollback={diagnostics.rollback} formatters={formatters} />
       <NotReportedSection />
     </div>
   );
@@ -293,8 +329,7 @@ export function DiagnosticsScreen() {
         second: "2-digit",
         hourCycle: "h23"
       }),
-      number: new Intl.NumberFormat(locale),
-      rate: new Intl.NumberFormat(locale, { maximumFractionDigits: 2 })
+      number: new Intl.NumberFormat(locale)
     }),
     [locale]
   );

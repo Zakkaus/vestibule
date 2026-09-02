@@ -205,9 +205,7 @@ type AckResult struct {
 	Alert bool
 }
 
-// Gateway is the complete platform surface used by verification. Member, CachedAdmin, and
-// FreshAdmin only read platform state. Every other method writes externally: it sends, deletes,
-// acknowledges, approves, declines, bans, unmutes, or otherwise changes platform-visible state.
+// Gateway is the complete external-action surface used by verification.
 //
 // Every method may perform network I/O and must not be called while a database transaction is
 // open. Implementations must not decide verification outcomes or retry an ambiguous identical

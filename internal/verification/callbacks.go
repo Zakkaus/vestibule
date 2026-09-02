@@ -131,10 +131,7 @@ func (v *Service) OnAdminAction(ctx *HandlerContext, update Update) error {
 	action := parts[0]
 	gid, _ := strconv.ParseInt(parts[1], 10, 64)
 	target, _ := strconv.ParseInt(parts[2], 10, 64)
-	// The nonce prevents a stale button from settling a replacement verification. A payload
-	// carrying none is checked the same way rather than skipping the check: pendingHasNonce
-	// matches an empty nonce only against a pending that has one too, so a button predating
-	// the nonce cannot settle a challenge that has one.
+	// The nonce prevents a stale button from settling a replacement verification.
 	nonce := ""
 	if len(parts) == 4 {
 		nonce = parts[3]
@@ -142,7 +139,7 @@ func (v *Service) OnAdminAction(ctx *HandlerContext, update Update) error {
 
 	l := v.groupLanguage(gid)
 	admin := &v.messages.Verification.Admin
-	if !v.pendingHasNonce(gid, target, nonce) {
+	if nonce != "" && !v.pendingHasNonce(gid, target, nonce) {
 		ackResult(c, bot, cq.ID, admin.AlreadyHandled.For(l), true)
 		return nil
 	}

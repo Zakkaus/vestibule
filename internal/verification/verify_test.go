@@ -966,7 +966,7 @@ func TestAdminCallbackReportsActionInProgress(t *testing.T) {
 			bot.member = &ChatMemberAdministrator{Status: MemberStatusAdministrator}
 			update := Update{CallbackQuery: &CallbackQuery{
 				ID: "admin", From: User{ID: adminID},
-				Data: AdminCallbackPrefix + tt.action + ":-100:5:n",
+				Data: AdminCallbackPrefix + tt.action + ":-100:5",
 			}}
 
 			runFakeHandler(t, newAPITestBot(t, bot), v.OnAdminAction, update)
@@ -1073,7 +1073,7 @@ func TestOnAdminActionTelegramFailureAfterAcknowledgement(t *testing.T) {
 			update := Update{CallbackQuery: &CallbackQuery{
 				ID:   "admin-failure",
 				From: User{ID: adminID},
-				Data: AdminCallbackPrefix + tt.action + ":-100:5:n",
+				Data: AdminCallbackPrefix + tt.action + ":-100:5",
 			}}
 
 			runFakeHandler(t, newAPITestBot(t, bot), v.OnAdminAction, update)
@@ -1212,7 +1212,7 @@ func TestSettlementDeletesGroupChallengeOnly(t *testing.T) {
 				t.Helper()
 				bot.member = &ChatMemberAdministrator{Status: MemberStatusAdministrator}
 				runFakeHandler(t, newAPITestBot(t, bot), v.OnAdminAction, Update{CallbackQuery: &CallbackQuery{
-					ID: "admin-pass", From: User{ID: adminID}, Data: AdminCallbackPrefix + "pass:-100:5:n",
+					ID: "admin-pass", From: User{ID: adminID}, Data: AdminCallbackPrefix + "pass:-100:5",
 				}})
 			},
 		},
@@ -1222,7 +1222,7 @@ func TestSettlementDeletesGroupChallengeOnly(t *testing.T) {
 				t.Helper()
 				bot.member = &ChatMemberAdministrator{Status: MemberStatusAdministrator}
 				runFakeHandler(t, newAPITestBot(t, bot), v.OnAdminAction, Update{CallbackQuery: &CallbackQuery{
-					ID: "admin-ban", From: User{ID: adminID}, Data: AdminCallbackPrefix + "ban:-100:5:n",
+					ID: "admin-ban", From: User{ID: adminID}, Data: AdminCallbackPrefix + "ban:-100:5",
 				}})
 			},
 		},

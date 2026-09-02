@@ -47,7 +47,7 @@ type services struct {
 	lookups              *lookup.Service
 	modules              *runtimeModules
 	verification         *verification.Service
-	verificationGateway  verification.Gateway
+	verificationGateway  *telegram.VerificationGateway
 	moderation           *moderate.Service
 	updates              *telegram.Updates
 	registration         *telegram.Registration
@@ -199,7 +199,6 @@ func claimedConsoleConfig(runtime *services) api.Config {
 		Replacement:          runtime.replacement,
 		Release:              runtime.release,
 		Version:              runtime.version,
-		ObserveOnly:          runtime.cfg.ObserveOnly,
 	}
 }
 
@@ -213,7 +212,6 @@ func bootstrapConsoleConfig(runtime *services, setup api.SetupService, setupClai
 		Replacement:     runtime.replacement,
 		Release:         runtime.release,
 		Version:         runtime.version,
-		ObserveOnly:     runtime.cfg.ObserveOnly,
 		SetupClaimed:    setupClaimed,
 	}
 }
@@ -333,13 +331,7 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 	}
 	logPrivacyMode(me)
 	identity := verification.Identity{ID: me.ID, Username: me.Username}
-	liveVerificationGateway := telegram.NewVerificationGateway(connector)
-	verificationGateway, err := verificationGatewayForMode(
-		ctx, runtime.cfg, runtime.database, liveVerificationGateway,
-	)
-	if err != nil {
-		return err
-	}
+	verificationGateway := telegram.NewVerificationGateway(connector)
 	stateNamespace := verificationStateNamespace(options.StateDirectory)
 	moderation, err := moderate.New(runtime.settings, connector, runtime.cfg, database.NewWarningStore(runtime.database))
 	if err != nil {

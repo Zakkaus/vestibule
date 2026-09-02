@@ -21,10 +21,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-MIGRATIONS = (
-    ROOT / "migrations" / "00-latest.sql",
-    ROOT / "internal" / "database" / "observation_migrations" / "00-latest.sql",
-)
+MIGRATION = ROOT / "migrations" / "00-latest.sql"
 STATEMENTS = [ROOT / "docs" / "PRIVACY.md", ROOT / "docs" / "PRIVACY.zh-CN.md"]
 IDENTIFYING = ("user_id", "chat_id")
 
@@ -79,19 +76,15 @@ def all_tables(sql: str) -> set:
 
 
 def main() -> int:
-    missing = [migration for migration in MIGRATIONS if not migration.exists()]
-    if missing:
-        # A missing target must fail: otherwise moving a schema silently disables
-        # the comparison for every table it owns.
-        for migration in missing:
-            print("FAIL check-privacy-tables: %s is missing, so nothing was compared"
-                  % migration)
+    if not MIGRATION.exists():
+        # This branch returned 0. A check that passes when its target is absent
+        # reports success for every change made after the file moves, and the
+        # output is indistinguishable from having checked something.
+        print("FAIL check-privacy-tables: %s is missing, so nothing was compared"
+              % MIGRATION)
         return 1
 
-    schema_sql = "\n".join(
-        migration.read_text(encoding="utf-8") for migration in MIGRATIONS
-    )
-    required = person_bearing_tables(schema_sql)
+    required = person_bearing_tables(MIGRATION.read_text(encoding="utf-8"))
     if not required:
         print("FAIL check-privacy-tables: no table carries a user_id or chat_id, "
               "which cannot be right — has the column naming changed?")
@@ -114,7 +107,7 @@ def main() -> int:
     # The other direction. Naming a table the schema no longer has tells a reader
     # the software keeps something it does not, which is the same defect pointing
     # the other way, and nothing asked about it.
-    schema_tables = all_tables(schema_sql)
+    schema_tables = all_tables(MIGRATION.read_text(encoding="utf-8"))
     for statement in STATEMENTS:
         if not statement.exists():
             continue
