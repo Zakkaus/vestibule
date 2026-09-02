@@ -31,6 +31,7 @@ func main() {
 	if err := app.Run(ctx, app.Options{
 		ConfigPath:     *configPath,
 		Token:          os.Getenv("BOT_TOKEN"),
+		SetupToken:     os.Getenv("SETUP_TOKEN"),
 		StateDirectory: os.Getenv("STATE_DIRECTORY"),
 		DatabaseType:   os.Getenv("VT_DATABASE_TYPE"),
 		DatabaseURI:    os.Getenv("VT_DATABASE_URI"),

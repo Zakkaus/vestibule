@@ -24,6 +24,11 @@ LIVE_ROUTES = {
     "POST /api/session": ("server.go", "apiRoute", ('request.URL.Path == "/api/session"', "http.MethodPost")),
     "GET /api/session": ("server.go", "apiRoute", ('request.URL.Path == "/api/session"', "http.MethodGet")),
     "GET /enter/{token}": ("server.go", "serveHTTP", ('strings.HasPrefix(request.URL.Path, "/enter/")',)),
+    "GET · POST /setup/{token}": (
+        "setup.go",
+        "setupRoute",
+        ("case http.MethodGet:", "case http.MethodPost:", "s.setup.SetupAvailable(token)"),
+    ),
     "GET /api/chats": ("server.go", "apiRoute", ('request.URL.Path == "/api/chats"',)),
     "GET /api/chats/{id}/queue": ("server.go", "queueRoute", ("case http.MethodGet:", "len(rest) == 0")),
     "POST /api/chats/{id}/queue/{cid}": ("server.go", "queueRoute", ("case http.MethodPost:", "len(rest) == 1")),
@@ -49,7 +54,6 @@ DEFERRED_ROWS = {
     "GET · PATCH /api/me/preferences",
     "POST /api/status/upgrade",
     "GET /verify/{token}",
-    "GET · POST /setup/{token}",
 }
 
 

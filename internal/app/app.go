@@ -26,6 +26,7 @@ import (
 type Options struct {
 	ConfigPath     string
 	Token          string
+	SetupToken     string
 	StateDirectory string
 	DatabaseType   string
 	DatabaseURI    string
@@ -55,11 +56,19 @@ type services struct {
 	identity            verification.Identity
 }
 
-// Run assembles the service graph, starts polling, and drains it on cancellation.
+type activeRuntime struct {
+	context       context.Context
+	cancel        context.CancelFunc
+	runtime       *services
+	polling       *pollingLease
+	feedDone      <-chan struct{}
+	heartbeatDone <-chan struct{}
+	expiryDone    <-chan struct{}
+	actionDone    <-chan struct{}
+}
+
+// Run assembles the service graph, starts polling after a claim, and drains it on cancellation.
 func Run(ctx context.Context, options Options) error {
-	if strings.TrimSpace(options.Token) == "" {
-		return fmt.Errorf("BOT_TOKEN environment variable is required")
-	}
 	notifier, err := newSystemdNotifier(options.NotifySocket)
 	if err != nil {
 		return fmt.Errorf("connect systemd notifier: %w", err)
@@ -70,34 +79,110 @@ func Run(ctx context.Context, options Options) error {
 	notifierDone := make(chan error, 1)
 	go func() { notifierDone <- runSystemdLifecycle(ctx, notifier, startupComplete, progress) }()
 
-	runtime, err := newServices(ctx, options, progress)
+	runtime, err := newBaseServices(ctx, options)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if err := runtime.database.Close(); err != nil {
-			log.Printf("database close failed: %v", err)
+	defer closeRuntimeDatabase(runtime)
+
+	claimState, err := openSetupState(options.StateDirectory, options.SetupToken)
+	if err != nil {
+		return err
+	}
+	if token := strings.TrimSpace(options.Token); token != "" {
+		options.Token = token
+	} else {
+		options.Token = claimState.BotToken()
+	}
+	if options.Token != "" {
+		return runClaimed(ctx, options, runtime, progress, startupComplete, notifierDone)
+	}
+	return runUnclaimed(ctx, options, runtime, claimState, progress, startupComplete, notifierDone)
+}
+
+func runClaimed(
+	ctx context.Context,
+	options Options,
+	runtime *services,
+	progress chan<- struct{},
+	startupComplete chan<- struct{},
+	notifierDone <-chan error,
+) error {
+	if err := activateServices(ctx, runtime, options, progress); err != nil {
+		return err
+	}
+	active, err := startActiveRuntime(ctx, runtime)
+	if err != nil {
+		return err
+	}
+	defer active.cancel()
+	console := api.New(claimedConsoleConfig(runtime))
+	runtime.health.SetTelegramReady(true)
+	if err := console.Start(consoleAddress(options.ConsoleAddr)); err != nil {
+		runtime.health.SetTelegramReady(false)
+		stopActiveRuntime(active)
+		return fmt.Errorf("start console HTTP: %w", err)
+	}
+	log.Printf("verify bot @%s (%s) started — groups=%d", runtime.identity.Username, options.Version, len(runtime.settings.ChatIDs()))
+	close(startupComplete)
+	return runActiveLifecycle(active, console, notifierDone)
+}
+
+func runUnclaimed(
+	ctx context.Context,
+	options Options,
+	runtime *services,
+	claimState *setupState,
+	progress chan<- struct{},
+	startupComplete chan<- struct{},
+	notifierDone <-chan error,
+) error {
+	activated := make(chan *activeRuntime, 1)
+	coordinator := newSetupCoordinator(ctx, options, runtime, claimState, progress, activated)
+	console := api.New(bootstrapConsoleConfig(runtime, coordinator, nil))
+	console.ReplaceRoutes(bootstrapConsoleConfig(runtime, coordinator, func() {
+		runtime.health.SetTelegramReady(true)
+		console.ReplaceRoutes(claimedConsoleConfig(runtime))
+	}))
+	if err := console.Start(consoleAddress(options.ConsoleAddr)); err != nil {
+		return fmt.Errorf("start console HTTP: %w", err)
+	}
+	log.Printf("instance is unclaimed; waiting for a setup claim")
+	close(startupComplete)
+	select {
+	case active := <-activated:
+		defer active.cancel()
+		log.Printf("verify bot @%s (%s) started — groups=%d", runtime.identity.Username, options.Version, len(runtime.settings.ChatIDs()))
+		return runActiveLifecycle(active, console, notifierDone)
+	case <-ctx.Done():
+		coordinator.stop()
+		select {
+		case active := <-activated:
+			stopActiveRuntime(active)
+		default:
 		}
-	}()
-	runtimeCtx, cancelRuntime := context.WithCancel(ctx)
-	defer cancelRuntime()
-	polling, err := newRuntimePollingLease(runtimeCtx, runtime)
-	if err != nil {
-		return err
+		shutdownBootstrap(console, notifierDone)
+		return nil
 	}
-	defer func() {
-		stopCtx, cancel := context.WithTimeout(context.Background(), shutdownDeadline)
-		defer cancel()
-		_ = polling.Stop(stopCtx)
-	}()
-	feedDone := runtime.modules.Start(runtimeCtx)
-	heartbeatDone := startHeartbeat(runtimeCtx, runtime.verification, runtime.heartbeatBot)
-	expiryDone := startExpiryScanner(runtimeCtx, runtime.verification)
-	actionDone := startPendingActions(runtimeCtx, runtime.verification)
-	if err := polling.Start(runtimeCtx, runtime); err != nil {
-		return fmt.Errorf("start long polling: %w", err)
+}
+
+func shutdownBootstrap(console *api.Server, notifierDone <-chan error) {
+	stopCtx, cancel := context.WithTimeout(context.Background(), shutdownDeadline)
+	defer cancel()
+	if err := console.Shutdown(stopCtx); err != nil {
+		log.Printf("shutdown: console HTTP did not drain cleanly: %v", err)
 	}
-	console := api.New(api.Config{
+	waitForNotifier(stopCtx, notifierDone)
+}
+
+func closeRuntimeDatabase(runtime *services) {
+	if err := runtime.database.Close(); err != nil {
+		log.Printf("database close failed: %v", err)
+	}
+}
+
+func claimedConsoleConfig(runtime *services) api.Config {
+	return api.Config{
 		Authenticator:   runtime.consoleAuth,
 		Verification:    runtime.verification,
 		Settings:        runtime.settings,
@@ -105,23 +190,59 @@ func Run(ctx context.Context, options Options) error {
 		ProcessSettings: runtime.cfg,
 		Health:          runtime.health,
 		Persistence:     runtime.settings,
-	})
-	runtime.health.SetTelegramReady(true)
-	if err := console.Start(consoleAddress(options.ConsoleAddr)); err != nil {
-		runtime.health.SetTelegramReady(false)
-		return fmt.Errorf("start console HTTP: %w", err)
 	}
-	log.Printf("verify bot @%s (%s) started — groups=%d", runtime.identity.Username, options.Version, len(runtime.settings.ChatIDs()))
-	close(startupComplete)
-	return runRuntimeLifecycle(runtimeCtx, runtimeLifecycle{
-		handlerDone:       polling.Done(),
-		stopHandlers:      polling.Stop,
-		waitRegistration:  runtime.registration.Wait,
-		heartbeatDone:     heartbeatDone,
-		expiryDone:        expiryDone,
-		actionDone:        actionDone,
-		flushVerification: runtime.verification.Shutdown,
-		feedDone:          feedDone,
+}
+
+func bootstrapConsoleConfig(runtime *services, setup api.SetupService, setupClaimed func()) api.Config {
+	return api.Config{
+		Settings:        runtime.settings,
+		ProcessSettings: runtime.cfg,
+		Health:          runtime.health,
+		Persistence:     runtime.settings,
+		Setup:           setup,
+		SetupClaimed:    setupClaimed,
+	}
+}
+
+func startActiveRuntime(parent context.Context, runtime *services) (*activeRuntime, error) {
+	runtimeCtx, cancel := context.WithCancel(parent)
+	polling, err := newRuntimePollingLease(runtimeCtx, runtime)
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+	active := &activeRuntime{
+		context: runtimeCtx, cancel: cancel, runtime: runtime, polling: polling,
+		feedDone:      runtime.modules.Start(runtimeCtx),
+		heartbeatDone: startHeartbeat(runtimeCtx, runtime.verification, runtime.heartbeatBot),
+		expiryDone:    startExpiryScanner(runtimeCtx, runtime.verification),
+		actionDone:    startPendingActions(runtimeCtx, runtime.verification),
+	}
+	if err := polling.Start(runtimeCtx, runtime); err != nil {
+		stopActiveRuntime(active)
+		return nil, fmt.Errorf("start long polling: %w", err)
+	}
+	return active, nil
+}
+
+func stopActiveRuntime(active *activeRuntime) {
+	active.cancel()
+	stopCtx, cancel := context.WithTimeout(context.Background(), shutdownDeadline)
+	defer cancel()
+	_ = active.polling.Stop(stopCtx)
+	active.runtime.verification.Shutdown()
+}
+
+func runActiveLifecycle(active *activeRuntime, console *api.Server, notifierDone <-chan error) error {
+	return runRuntimeLifecycle(active.context, runtimeLifecycle{
+		handlerDone:       active.polling.Done(),
+		stopHandlers:      active.polling.Stop,
+		waitRegistration:  active.runtime.registration.Wait,
+		heartbeatDone:     active.heartbeatDone,
+		expiryDone:        active.expiryDone,
+		actionDone:        active.actionDone,
+		flushVerification: active.runtime.verification.Shutdown,
+		feedDone:          active.feedDone,
 		notifierDone:      notifierDone,
 		stopAdmission:     console.StopAdmission,
 		shutdownHTTP:      console.Shutdown,
@@ -130,6 +251,18 @@ func Run(ctx context.Context, options Options) error {
 }
 
 func newServices(ctx context.Context, options Options, progress chan<- struct{}) (*services, error) {
+	runtime, err := newBaseServices(ctx, options)
+	if err != nil {
+		return nil, err
+	}
+	if err := activateServices(ctx, runtime, options, progress); err != nil {
+		_ = runtime.database.Close()
+		return nil, err
+	}
+	return runtime, nil
+}
+
+func newBaseServices(ctx context.Context, options Options) (*services, error) {
 	db, err := database.Open(ctx, database.Config{
 		Type: options.DatabaseType, URI: options.DatabaseURI, StateDirectory: options.StateDirectory,
 	})
@@ -139,7 +272,7 @@ func newServices(ctx context.Context, options Options, progress chan<- struct{})
 	health := status.NewHealth(func(checkCtx context.Context) error {
 		return db.RawDB.PingContext(checkCtx)
 	})
-	cfg, settings, err := loadRuntimeState(
+	cfg, runtimeSettings, err := loadRuntimeState(
 		options.ConfigPath,
 		options.StateDirectory,
 		database.NewSettingsStore(db),
@@ -149,65 +282,72 @@ func newServices(ctx context.Context, options Options, progress chan<- struct{})
 		return nil, err
 	}
 	health.SetConfigReady(true)
+	return &services{database: db, cfg: cfg, settings: runtimeSettings, health: health}, nil
+}
+
+func activateServices(ctx context.Context, runtime *services, options Options, progress chan<- struct{}) error {
+	if strings.TrimSpace(options.Token) == "" {
+		return fmt.Errorf("a bot token is required to activate the instance")
+	}
 	bot, err := newBot(options, progress)
 	if err != nil {
-		_ = db.Close()
-		return nil, err
+		return err
 	}
 	connector := telegram.NewConnector(bot)
-	consoleAuth, consoleHandler, err := newConsoleAuthentication(options, settings, connector, bot)
+	consoleAuth, consoleHandler, err := newConsoleAuthentication(options, runtime.settings, connector, bot)
 	if err != nil {
-		_ = db.Close()
-		return nil, err
+		return err
 	}
-	lookups := lookup.New(settings, connector, cfg, options.GitHubToken)
+	lookups := lookup.New(runtime.settings, connector, runtime.cfg, options.GitHubToken)
 	logRuntimeOptions(options)
-	alertPersistenceProblem(ctx, bot, cfg, settings)
-	verificationStore := database.NewVerificationStore(db)
-	heartbeatBot := newOutageAwareBot(ctx, bot, cfg, settings, verificationStore, health)
+	alertPersistenceProblem(ctx, bot, runtime.cfg, runtime.settings)
+	verificationStore := database.NewVerificationStore(runtime.database)
+	heartbeatBot := newOutageAwareBot(ctx, bot, runtime.cfg, runtime.settings, verificationStore, runtime.health)
 	// Count uptime before GetMe so operator-visible uptime includes its latency.
 	startedAt := time.Now()
 	me, err := heartbeatBot.GetMe(ctx)
 	if err != nil {
-		_ = db.Close()
-		return nil, fmt.Errorf("GetMe failed (required for the verification deep link): %w", err)
+		return fmt.Errorf("GetMe failed (required for the verification deep link): %w", err)
 	}
 	logPrivacyMode(me)
 	identity := verification.Identity{ID: me.ID, Username: me.Username}
 	verificationGateway := telegram.NewVerificationGateway(connector)
 	stateNamespace := verificationStateNamespace(options.StateDirectory)
-	moderation, err := moderate.New(settings, connector, cfg, database.NewWarningStore(db))
+	moderation, err := moderate.New(runtime.settings, connector, runtime.cfg, database.NewWarningStore(runtime.database))
 	if err != nil {
-		_ = db.Close()
-		return nil, fmt.Errorf("moderation: %w", err)
+		return fmt.Errorf("moderation: %w", err)
 	}
-	verification, err := verification.New(
-		settings, verificationGateway, verificationStore, cfg, &i18n.Messages,
+	verificationService, err := verification.New(
+		runtime.settings, verificationGateway, verificationStore, runtime.cfg, &i18n.Messages,
 		heartbeatBot, identity, stateNamespace,
 	)
 	if err != nil {
-		_ = db.Close()
-		return nil, fmt.Errorf("verification: %w", err)
+		return fmt.Errorf("verification: %w", err)
 	}
 	administration := panel.New(
-		settings, connector, cfg, &i18n.Messages,
-		verification, moderation, lookups, options.Version, startedAt,
+		runtime.settings, connector, runtime.cfg, &i18n.Messages,
+		verificationService, moderation, lookups, options.Version, startedAt,
 	)
-	modules, err := newRuntimeModules(cfg, bot, options.StateDirectory, administration, moderation, lookups)
+	modules, err := newRuntimeModules(runtime.cfg, bot, options.StateDirectory, administration, moderation, lookups)
 	if err != nil {
-		_ = db.Close()
-		return nil, err
+		return err
 	}
 	administration.SetCommandModules(modules.commands)
-	updates := telegram.NewUpdates(cfg, settings, connector,
-		telegramHandlers(verification, verificationGateway, administration, moderation, modules.commands, consoleHandler))
-	registration := newRegistration(ctx, bot, cfg, settings, identity, moderation, verification, updates)
-	return &services{
-		database: db,
-		cfg:      cfg, settings: settings, bot: bot, heartbeatBot: heartbeatBot,
-		lookups: lookups, modules: modules, verification: verification, verificationGateway: verificationGateway, moderation: moderation,
-		updates: updates, registration: registration, consoleAuth: consoleAuth, health: health, identity: identity,
-	}, nil
+	updates := telegram.NewUpdates(runtime.cfg, runtime.settings, connector,
+		telegramHandlers(verificationService, verificationGateway, administration, moderation, modules.commands, consoleHandler))
+	registration := newRegistration(ctx, bot, runtime.cfg, runtime.settings, identity, moderation, verificationService, updates)
+	runtime.bot = bot
+	runtime.heartbeatBot = heartbeatBot
+	runtime.lookups = lookups
+	runtime.modules = modules
+	runtime.verification = verificationService
+	runtime.verificationGateway = verificationGateway
+	runtime.moderation = moderation
+	runtime.updates = updates
+	runtime.registration = registration
+	runtime.consoleAuth = consoleAuth
+	runtime.identity = identity
+	return nil
 }
 
 func verificationStateNamespace(stateDirectory string) string {

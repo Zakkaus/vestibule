@@ -61,5 +61,16 @@
     "unregister_refused": "无法取消登记该群组。请使用 /unregister <group-id> 指定已登记的运行时群组 ID。",
     "unregister_save_failed": "无法持久保存群组取消登记结果。请恢复服务状态目录的写入权限后重试。",
     "group_unregistered": "已取消登记群组“%[1]s”，并删除其运行设置。"
+  },
+  "setup": {
+    "title": "认领此实例",
+    "description": "输入 Telegram 机器人令牌以启动此实例。",
+    "token_label": "Telegram 机器人令牌",
+    "submit": "认领实例",
+    "token_required": "必须提供 Telegram 机器人令牌。",
+    "claim_failed": "无法认领此实例。请确认令牌有效后重试。",
+    "claimed": "实例已认领，机器人已启动。",
+    "binding": "在 Telegram 中打开此链接以绑定部署者身份。",
+    "binding_action": "在 Telegram 中绑定"
   }
 }

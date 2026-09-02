@@ -18,11 +18,12 @@ released and your report credited, unless you prefer to stay anonymous.
 
 ## Operator notes
 
-- The bot token (`BOT_TOKEN`) and optional `GITHUB_TOKEN` come from the environment only.
-  Keep `bot.env` at mode `0600` and never commit it; `config.json` holds no secrets. Do not put a
-  real token in `printf`, `echo`, `install`, or another command argument: interactive shells may
-  preserve that argument in history even when the destination file is private. Create an empty
-  `0600` file and edit it with `sudoedit`, as shown in the README.
+- An existing deployment may provide `BOT_TOKEN` from the environment. During browser claim,
+  `SETUP_TOKEN` is a one-time capability: only its hash is stored in
+  `$STATE_DIRECTORY/claim.json`. After a successful claim, that `0600` file holds the Bot token
+  and the setup-token hash is removed. `GITHUB_TOKEN` remains environment-only. Do not put a real
+  token in `printf`, `echo`, `install`, or another command argument: interactive shells may
+  preserve that argument in history even when the destination file is private.
 - Admin and moderation commands are gated on Telegram group-admin status and **fail
   closed** on API errors; callback buttons verify the acting user. Only run the bot
   in groups whose admin set you trust.

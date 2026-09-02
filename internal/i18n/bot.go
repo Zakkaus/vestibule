@@ -10,6 +10,8 @@ type BotCatalog struct {
 	DirectMessage BotDirectMessageCatalog
 	// Registration contains owner claim and runtime group-registration text.
 	Registration BotRegistrationCatalog
+	// Setup contains browser bootstrap text before the instance is claimed.
+	Setup BotSetupCatalog
 }
 
 // BotMenuCatalog contains member, administrator, and owner command descriptions.
@@ -142,4 +144,26 @@ type BotRegistrationCatalog struct {
 	UnregisterSaveFailed Text
 	// GroupUnregistered formats completed runtime-group removal.
 	GroupUnregistered Format
+}
+
+// BotSetupCatalog contains browser bootstrap text for an unclaimed instance.
+type BotSetupCatalog struct {
+	// Title labels the one-time claim page.
+	Title Text
+	// Description explains what the form activates.
+	Description Text
+	// TokenLabel labels the Telegram bot token input.
+	TokenLabel Text
+	// Submit labels the claim action.
+	Submit Text
+	// TokenRequired reports an empty token input.
+	TokenRequired Text
+	// ClaimFailed reports a rejected or unavailable claim without exposing credentials.
+	ClaimFailed Text
+	// Claimed confirms that the bot is running after a successful claim.
+	Claimed Text
+	// Binding explains the Telegram owner-binding step.
+	Binding Text
+	// BindingAction labels the Telegram owner-binding link.
+	BindingAction Text
 }

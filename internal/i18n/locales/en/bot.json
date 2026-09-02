@@ -61,5 +61,16 @@
     "unregister_refused": "Could not unregister that group. Use /unregister <group-id> with a runtime-registered group ID.",
     "unregister_save_failed": "Could not persist group removal. Restore write access to the service state directory, then retry.",
     "group_unregistered": "Unregistered group “%[1]s” and removed its runtime settings."
+  },
+  "setup": {
+    "title": "Claim this instance",
+    "description": "Enter the Telegram bot token to start this instance.",
+    "token_label": "Telegram bot token",
+    "submit": "Claim instance",
+    "token_required": "A Telegram bot token is required.",
+    "claim_failed": "Could not claim this instance. Check the token and try again.",
+    "claimed": "This instance is claimed and the bot is running.",
+    "binding": "Open this link in Telegram to bind the deployer account.",
+    "binding_action": "Bind in Telegram"
   }
 }
