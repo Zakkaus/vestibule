@@ -1,6 +1,7 @@
 import type { FormEvent, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Icon } from "../../icons";
 import type { SettingSource, SettingValue } from "./api";
 import type {
   BypassEvaluation,
@@ -52,10 +53,12 @@ function SettingMeta({
         data-status={source === "chat override" ? "info" : "neutral"}
         data-setting-source={source}
       >
+        <Icon name={source === "chat override" ? "info" : "circleMinus"} />
         {t(sourceMessageKeys[source])}
       </span>
       {pending ? (
         <span data-slot="badge" data-status="pending" data-setting-pending>
+          <Icon name="loaderCircle" />
           {t(restoring ? "bypass.source.restoring" : "bypass.source.pending")}
         </span>
       ) : null}
@@ -72,6 +75,7 @@ function SettingMeta({
             }
           }}
         >
+          <Icon name={restoring ? "x" : "rotateCcw"} />
           {t(restoring ? "bypass.actions.cancelRestore" : "bypass.actions.restore")}
         </button>
       ) : null}
@@ -355,6 +359,7 @@ function BypassFeedbackNotice({
       data-status={feedback.kind === "saved" ? "ok" : "error"}
       role={feedback.kind === "saved" ? "status" : "alert"}
     >
+      <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
       {t(messageKey)}
     </div>
   );
@@ -519,6 +524,7 @@ export function BypassSettingsForm({
                 }
               }}
             >
+              <Icon name="trash2" />
               {t("bypass.actions.discard")}
             </button>
             <button
@@ -533,6 +539,7 @@ export function BypassSettingsForm({
                 }
               }}
             >
+              <Icon name="save" />
               {t(state.saving ? "bypass.actions.saving" : "bypass.actions.save")}
             </button>
           </span>

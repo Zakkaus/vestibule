@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import type { ApiRequestError } from "../../lib/api";
+import { Icon, type IconName } from "../../icons";
 import { QuestionsSettingsForm } from "./QuestionsSettingsForm";
 import {
   useQuestionSettings,
@@ -35,12 +36,14 @@ function StateCard({
   id,
   titleKey,
   descriptionKey,
+  icon,
   role,
   children
 }: Readonly<{
   id: string;
   titleKey: string;
   descriptionKey: string;
+  icon: IconName;
   role?: "alert";
   children?: ReactNode;
 }>) {
@@ -52,7 +55,12 @@ function StateCard({
       role={role}
       aria-labelledby={`questions-${id}-title`}
     >
-      <h2 id={`questions-${id}-title`}>{t(titleKey)}</h2>
+      <h2 id={`questions-${id}-title`}>
+        <span data-state-heading>
+          <Icon name={icon} />
+          {t(titleKey)}
+        </span>
+      </h2>
       <p>{t(descriptionKey)}</p>
       {children}
     </section>
@@ -67,6 +75,7 @@ function QuestionsStateContent({ controller }: Readonly<{ controller: QuestionsC
       <StateCard
         id="loading"
         titleKey="questions.loading.title"
+        icon="loaderCircle"
         descriptionKey="questions.loading.description"
       />
     );
@@ -76,9 +85,11 @@ function QuestionsStateContent({ controller }: Readonly<{ controller: QuestionsC
       <StateCard
         id="group-required"
         titleKey="questions.groupRequired.title"
+        icon="usersRound"
         descriptionKey="questions.groupRequired.description"
       >
         <Link to="/groups" data-slot="button" data-variant="primary" data-size="sm">
+          <Icon name="usersRound" />
           {t("questions.groupRequired.select")}
         </Link>
       </StateCard>
@@ -89,6 +100,7 @@ function QuestionsStateContent({ controller }: Readonly<{ controller: QuestionsC
       <StateCard
         id="no-groups"
         titleKey="questions.noGroups.title"
+        icon="usersRound"
         descriptionKey="questions.noGroups.description"
       />
     );
@@ -98,6 +110,7 @@ function QuestionsStateContent({ controller }: Readonly<{ controller: QuestionsC
       <StateCard
         id="unavailable"
         titleKey="questions.unavailable.title"
+        icon="circleAlert"
         descriptionKey={questionErrorMessageKey(state.error, "questions.errors.loadUnavailable")}
         role="alert"
       >
@@ -108,6 +121,7 @@ function QuestionsStateContent({ controller }: Readonly<{ controller: QuestionsC
           data-size="sm"
           onClick={controller.reload}
         >
+          <Icon name="refreshCw" />
           {t("questions.unavailable.retry")}
         </button>
       </StateCard>
@@ -154,7 +168,10 @@ function QuestionsFeedbackNotice({ feedback }: Readonly<{ feedback: QuestionsFee
       role={isError ? "alert" : "status"}
       aria-atomic="true"
     >
-      {t(messageKey)}
+      <span data-state-heading>
+        <Icon name={isError ? "circleAlert" : "circleCheck"} />
+        {t(messageKey)}
+      </span>
     </div>
   );
 }

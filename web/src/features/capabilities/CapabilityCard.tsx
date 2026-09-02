@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
+import { Icon } from "../../icons";
 import type { SettingSource } from "./api";
 
 const sourceMessageKeys: Readonly<Record<SettingSource, string>> = {
@@ -35,10 +36,12 @@ export function SourceMeta({
         data-status={source === "chat override" ? "info" : "neutral"}
         data-capability-source={source}
       >
+        <Icon name={source === "chat override" ? "info" : "circleMinus"} />
         {t("capabilities.source.value", { source: sourceText })}
       </span>
       {pending ? (
         <span data-slot="badge" data-status="pending" data-capability-pending>
+          <Icon name="loaderCircle" />
           {t(restoring ? "capabilities.source.restoring" : "capabilities.source.pending")}
         </span>
       ) : null}
@@ -55,6 +58,7 @@ export function SourceMeta({
             }
           }}
         >
+          <Icon name={restoring ? "x" : "rotateCcw"} />
           {t(restoring ? "capabilities.actions.cancelRestore" : "capabilities.actions.restore")}
         </button>
       ) : null}
@@ -99,6 +103,7 @@ export function CapabilityCard({
           <div data-capability-title-row>
             <h2 id={titleID}>{t(titleKey)}</h2>
             <span data-slot="badge" data-status={enabled ? "ok" : "neutral"}>
+              <Icon name={enabled ? "circleCheck" : "circleMinus"} />
               {t(enabled ? "capabilities.status.enabled" : "capabilities.status.disabled")}
             </span>
           </div>
@@ -110,12 +115,14 @@ export function CapabilityCard({
       <div data-capability-outcomes aria-label={t("capabilities.outcomes.label")}>
         <div data-capability-outcome="enabled">
           <span data-slot="badge" data-status="ok">
+            <Icon name="circleCheck" />
             {t("capabilities.outcomes.enabled")}
           </span>
           <p>{t(onKey)}</p>
         </div>
         <div data-capability-outcome="disabled">
           <span data-slot="badge" data-status="neutral">
+            <Icon name="circleMinus" />
             {t("capabilities.outcomes.disabled")}
           </span>
           <p>{t(offKey)}</p>
@@ -128,6 +135,7 @@ export function CapabilityCard({
           data-variant="outline"
           data-size="sm"
         >
+          <Icon name="arrowRight" />
           {t(detailsKey)}
         </Link>
       </footer>

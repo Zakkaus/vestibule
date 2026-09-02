@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -16,6 +16,7 @@ import {
   themePreferences,
   type ThemePreference
 } from "../app/theme";
+import { AppSelect } from "./AppSelect";
 
 const localeLabelKeys: Record<AppLocale, string> = {
   "zh-CN": "locale.zhCN",
@@ -63,37 +64,38 @@ export function UtilityControls() {
 
     void setAppLocale(nextLocale);
   }
+  const themeLabelId = useId();
+  const localeLabelId = useId();
+  const themeOptions = themePreferences.map((preference) => ({
+    label: t(themeLabelKeys[preference]),
+    value: preference
+  }));
+  const localeOptions = locales.map((optionLocale) => ({
+    label: t(localeLabelKeys[optionLocale]),
+    value: optionLocale
+  }));
+
 
   return (
     <div data-utility-controls>
-      <label data-utility-control>
-        <span>{t("theme.label")}</span>
-        <select
-          aria-label={t("theme.label")}
+      <div data-utility-control>
+        <span id={themeLabelId}>{t("theme.label")}</span>
+        <AppSelect
+          aria-labelledby={themeLabelId}
           value={theme}
-          onChange={(event) => changeTheme(event.currentTarget.value)}
-        >
-          {themePreferences.map((preference) => (
-            <option key={preference} value={preference}>
-              {t(themeLabelKeys[preference])}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label data-utility-control>
-        <span>{t("locale.label")}</span>
-        <select
-          aria-label={t("locale.label")}
+          options={themeOptions}
+          onValueChange={changeTheme}
+        />
+      </div>
+      <div data-utility-control>
+        <span id={localeLabelId}>{t("locale.label")}</span>
+        <AppSelect
+          aria-labelledby={localeLabelId}
           value={locale}
-          onChange={(event) => changeLocale(event.currentTarget.value)}
-        >
-          {locales.map((optionLocale) => (
-            <option key={optionLocale} value={optionLocale}>
-              {t(localeLabelKeys[optionLocale])}
-            </option>
-          ))}
-        </select>
-      </label>
+          options={localeOptions}
+          onValueChange={changeLocale}
+        />
+      </div>
     </div>
   );
 }

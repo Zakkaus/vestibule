@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 
+import { Icon } from "../../icons";
 import { StatusBadge } from "../../components/StatusBadge";
 import type { QueueRecord } from "./api";
 
@@ -57,11 +58,12 @@ function QueueReleaseAction({ record, pending, onRelease }: QueueReleaseActionPr
       data-size="sm"
       data-queue-action-id="release"
       aria-disabled={pending ? true : undefined}
+      onClick={() => onRelease(record)}
       aria-label={t(pending ? "queue.actions.releasingFor" : "queue.actions.releaseFor", {
         user: record.user
       })}
-      onClick={() => onRelease(record)}
     >
+      <Icon name="unlock" />
       {t(pending ? "queue.actions.releasing" : "queue.actions.release")}
     </button>
   );

@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 
 import { consoleApi, useConsoleSession } from "../../app/session";
 import { StatusBadge } from "../../components/StatusBadge";
+import { Icon } from "../../icons";
+import type { IconName } from "../../icons";
 import type { ApiRequestError } from "../../lib/api";
 import {
   loadFeedSettings,
@@ -72,11 +74,11 @@ function BooleanValue({
         : "feeds.values.disabled";
   return <StatusBadge tone={effectiveValue ? "ok" : "neutral"}>{t(messageKey)}</StatusBadge>;
 }
-
 function StateCard({
   id,
   titleKey,
   descriptionKey,
+  iconName,
   role,
   live,
   children
@@ -84,6 +86,7 @@ function StateCard({
   id: string;
   titleKey: string;
   descriptionKey: string;
+  iconName: IconName;
   role?: "alert";
   live?: "polite";
   children?: ReactNode;
@@ -97,7 +100,12 @@ function StateCard({
       aria-live={live}
       aria-labelledby={`feeds-${id}-title`}
     >
-      <h2 id={`feeds-${id}-title`}>{t(titleKey)}</h2>
+      <h2 id={`feeds-${id}-title`}>
+        <span data-state-heading>
+          <Icon name={iconName} />
+          {t(titleKey)}
+        </span>
+      </h2>
       <p>{t(descriptionKey)}</p>
       {children}
     </section>
@@ -187,7 +195,10 @@ function FeedListSection({ settings }: Readonly<{ settings: FeedSettings["feeds"
       />
       {settings.value.length === 0 ? (
         <div className="surface-raised" data-feeds-empty>
-          <strong>{t("feeds.feed.emptyTitle")}</strong>
+          <div data-state-heading>
+            <Icon name="inbox" />
+            <strong>{t("feeds.feed.emptyTitle")}</strong>
+          </div>
           <p>{t("feeds.feed.emptyDescription")}</p>
         </div>
       ) : (
@@ -217,7 +228,14 @@ function NewsURLSection({ settings }: Readonly<{ settings: FeedSettings["newsURL
         source={settings.source}
       />
       <div className="surface-raised" data-news-url-value>
-        {settings.value ? <code>{settings.value}</code> : <span>{t("feeds.newsURL.empty")}</span>}
+        {settings.value ? (
+          <code>{settings.value}</code>
+        ) : (
+          <span data-state-heading>
+            <Icon name="inbox" />
+            {t("feeds.newsURL.empty")}
+          </span>
+        )}
       </div>
     </section>
   );
@@ -263,7 +281,10 @@ function OverlaySection({ settings }: Readonly<{ settings: FeedSettings["overlay
       />
       {settings.value.length === 0 ? (
         <div className="surface-raised" data-overlays-empty>
-          <strong>{t("feeds.overlays.emptyTitle")}</strong>
+          <div data-state-heading>
+            <Icon name="inbox" />
+            <strong>{t("feeds.overlays.emptyTitle")}</strong>
+          </div>
           <p>{t("feeds.overlays.emptyDescription")}</p>
         </div>
       ) : (
@@ -354,6 +375,7 @@ export function FeedsScreen() {
           titleKey="feeds.loading.title"
           descriptionKey="feeds.loading.description"
           live="polite"
+          iconName="loaderCircle"
         />
       ) : null}
       {screenState.kind === "access-denied" ? (
@@ -362,6 +384,7 @@ export function FeedsScreen() {
           titleKey="feeds.accessDenied.title"
           descriptionKey="feeds.accessDenied.description"
           role="alert"
+          iconName="circleAlert"
         />
       ) : null}
       {screenState.kind === "unavailable" ? (
@@ -370,6 +393,7 @@ export function FeedsScreen() {
           titleKey="feeds.unavailable.title"
           descriptionKey={processSettingsErrorMessageKey(screenState.error)}
           role="alert"
+          iconName="circleAlert"
         >
           <button
             type="button"
@@ -378,6 +402,7 @@ export function FeedsScreen() {
             data-size="sm"
             onClick={() => setReloadVersion((version) => version + 1)}
           >
+            <Icon name="refreshCw" />
             {t("feeds.unavailable.retry")}
           </button>
         </StateCard>

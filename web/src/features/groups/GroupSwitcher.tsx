@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
 import { useConsoleSession } from "../../app/session";
+import { AppSelect } from "../../components/AppSelect";
 import {
   allGroupsSelection,
   groupFixtures,
@@ -28,6 +29,17 @@ export function GroupSwitcher() {
         : [];
   const selectedGroupId = resolveGroupSelection(searchParams.get("group"), options);
   const isLoading = session.state === "loading" || session.state === "checking-groups";
+  const selectionOptions = [
+    {
+      label: t("shell.allGroups"),
+      value: allGroupsSelection
+    },
+    ...options.map((option) => ({
+      label: option.label,
+      value: option.id
+    }))
+  ];
+
 
   function changeSelectedGroup(nextGroupId: string): void {
     setSearchParams((currentSearchParams) => {
@@ -46,20 +58,14 @@ export function GroupSwitcher() {
   return (
     <label data-group-switcher>
       <span>{t("shell.groupSwitcher")}</span>
-      <select
-        aria-busy={isLoading ? "true" : undefined}
+      <AppSelect
+        aria-busy={isLoading || undefined}
         aria-label={t("shell.groupSwitcher")}
         disabled={options.length === 0}
         value={selectedGroupId}
-        onChange={(event) => changeSelectedGroup(event.currentTarget.value)}
-      >
-        <option value={allGroupsSelection}>{t("shell.allGroups")}</option>
-        {options.map((option) => (
-          <option key={option.id} value={option.id}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+        options={selectionOptions}
+        onValueChange={changeSelectedGroup}
+      />
     </label>
   );
 }

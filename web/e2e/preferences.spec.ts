@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { selectAppOption } from "./app-select";
 
 const selectedGroupId = "-1001163306055";
 const resetMarker = "preferences-test-reset";
@@ -62,7 +63,7 @@ async function resetStoredPreferences(page: Page): Promise<void> {
 
 async function waitForPreferences(page: Page): Promise<void> {
   await expect(page.locator("[data-preferences-page]")).toBeVisible();
-  await expect(page.locator("[data-group-switcher] select")).not.toHaveAttribute(
+  await expect(page.locator("[data-group-switcher] [data-slot=\"select-trigger\"]")).not.toHaveAttribute(
     "aria-busy",
     "true"
   );
@@ -72,12 +73,12 @@ async function preferenceControls(page: Page): Promise<PreferenceControls> {
   const controls = page.locator("[data-preference-local] [data-utility-controls]");
   await expect(controls).toHaveCount(1);
 
-  const selects = controls.locator("select");
-  await expect(selects).toHaveCount(2);
+  const triggers = controls.locator("[data-slot=\"select-trigger\"]");
+  await expect(triggers).toHaveCount(2);
 
   return {
-    theme: selects.nth(0),
-    locale: selects.nth(1)
+    theme: triggers.nth(0),
+    locale: triggers.nth(1)
   };
 }
 
@@ -90,20 +91,20 @@ test("theme preference persists after a reload", async ({ page }) => {
   await waitForPreferences(page);
   const controls = await preferenceControls(page);
 
-  await controls.theme.selectOption("dark");
+  await selectAppOption(controls.theme, "dark");
   await page.waitForFunction(() => {
     const root = document.documentElement;
     return root.dataset.themePreference === "dark" && root.dataset.theme === "dark";
   });
-  await expect(controls.theme).toHaveValue("dark");
+  await expect(controls.theme).toHaveAttribute("data-value", "dark");
   await expect(
-    page.locator("[data-header-controls] [data-utility-controls] select").first()
-  ).toHaveValue("dark");
+    page.locator("[data-header-controls] [data-utility-controls] [data-slot=\"select-trigger\"]").first()
+  ).toHaveAttribute("data-value", "dark");
 
   await page.reload();
   await waitForPreferences(page);
   const reloadedControls = await preferenceControls(page);
-  await expect(reloadedControls.theme).toHaveValue("dark");
+  await expect(reloadedControls.theme).toHaveAttribute("data-value", "dark");
   await page.waitForFunction(() => {
     const root = document.documentElement;
     return root.dataset.themePreference === "dark" && root.dataset.theme === "dark";
@@ -119,7 +120,7 @@ test("language preference persists after a reload", async ({ page }) => {
   await waitForPreferences(page);
   const controls = await preferenceControls(page);
 
-  await controls.locale.selectOption("en");
+  await selectAppOption(controls.locale, "en");
   await expect(page.locator("[data-preferences-page] h1")).toHaveText("Preferences");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
 
@@ -127,7 +128,54 @@ test("language preference persists after a reload", async ({ page }) => {
   await waitForPreferences(page);
   const reloadedControls = await preferenceControls(page);
   await expect(page.locator("[data-preferences-page] h1")).toHaveText("Preferences");
-  await expect(reloadedControls.locale).toHaveValue("en");
+  await expect(reloadedControls.locale).toHaveAttribute("data-value", "en");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   expect(requests).toEqual(expectedShellRequests);
+});
+
+test("theme preference listbox supports keyboard selection and dismissal", async ({ page }) => {
+  await mockConsoleSession(page);
+  await resetStoredPreferences(page);
+
+  await page.goto("/preferences");
+  await waitForPreferences(page);
+  const { theme } = await preferenceControls(page);
+
+  await theme.focus();
+  await page.keyboard.press("Enter");
+  await expect(theme).toHaveAttribute("aria-expanded", "true");
+  await expect(theme.locator("xpath=..").locator('[role="option"][data-value="system"]')).toBeFocused();
+
+  await page.keyboard.press("ArrowDown");
+  await expect(theme.locator("xpath=..").locator('[role="option"][data-value="light"]')).toBeFocused();
+  await page.keyboard.press("End");
+  await expect(theme.locator("xpath=..").locator('[role="option"][data-value="dark"]')).toBeFocused();
+  await page.keyboard.press("Enter");
+
+  await expect(theme).toHaveAttribute("aria-expanded", "false");
+  await expect(theme).toHaveAttribute("data-value", "dark");
+  await expect(theme).toBeFocused();
+
+  await page.keyboard.press(" ");
+  await expect(theme).toHaveAttribute("aria-expanded", "true");
+  await page.keyboard.press("Escape");
+  await expect(theme).toHaveAttribute("aria-expanded", "false");
+  await expect(theme).toBeFocused();
+
+  // Home and End are listed twice in this component: once for the closed trigger
+  // and once for a focused option. Disabling the trigger pair left the whole
+  // suite green, because every existing press happened with an option focused.
+  const options = theme.locator("xpath=..");
+  await page.keyboard.press("Home");
+  await expect(theme).toHaveAttribute("aria-expanded", "true");
+  await expect(options.locator('[role="option"][data-value="system"]')).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(theme).toHaveAttribute("aria-expanded", "false");
+  await expect(theme).toBeFocused();
+
+  await page.keyboard.press("End");
+  await expect(theme).toHaveAttribute("aria-expanded", "true");
+  await expect(options.locator('[role="option"][data-value="dark"]')).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(theme).toHaveAttribute("aria-expanded", "false");
 });

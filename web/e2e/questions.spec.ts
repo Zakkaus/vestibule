@@ -227,7 +227,7 @@ test("question deletion requires confirmation and language restoration writes nu
     expected_revision: 9,
     changes: { questions: remainingQuestions, lang: null }
   });
-  await expect(page.locator("#questions-language-select")).toHaveValue("zh");
+  await expect(page.locator("#questions-language-select")).toHaveAttribute("data-value", "zh");
 });
 
 test("switching custom fallback questions to built-ins clears the array override", async ({ page }) => {

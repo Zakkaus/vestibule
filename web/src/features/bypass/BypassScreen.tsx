@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
+import { Icon } from "../../icons";
+import type { IconName } from "../../icons";
 import type { ApiRequestError } from "../../lib/api";
 import { BypassSettingsForm } from "./BypassSettingsForm";
 import {
@@ -34,6 +36,7 @@ type StateCardProps = Readonly<{
   id: string;
   titleKey: string;
   descriptionKey: string;
+  iconName: IconName;
   role?: "alert";
   live?: "polite";
   children?: ReactNode;
@@ -43,6 +46,7 @@ function BypassStateCard({
   id,
   titleKey,
   descriptionKey,
+  iconName,
   role,
   live,
   children
@@ -56,7 +60,12 @@ function BypassStateCard({
       aria-live={live}
       aria-labelledby={`bypass-${id}-title`}
     >
-      <h2 id={`bypass-${id}-title`}>{t(titleKey)}</h2>
+      <h2 id={`bypass-${id}-title`}>
+        <span data-state-heading>
+          <Icon name={iconName} />
+          {t(titleKey)}
+        </span>
+      </h2>
       <p>{t(descriptionKey)}</p>
       {children}
     </section>
@@ -89,6 +98,7 @@ function BypassStateContent({ controller }: Readonly<{ controller: BypassControl
         id="loading"
         titleKey="bypass.loading.title"
         descriptionKey="bypass.loading.description"
+        iconName="loaderCircle"
         live="polite"
       />
     );
@@ -99,8 +109,10 @@ function BypassStateContent({ controller }: Readonly<{ controller: BypassControl
         id="group-required"
         titleKey="bypass.groupRequired.title"
         descriptionKey="bypass.groupRequired.description"
+        iconName="usersRound"
       >
         <Link to="/groups" data-slot="button" data-variant="primary" data-size="sm">
+          <Icon name="usersRound" />
           {t("bypass.groupRequired.select")}
         </Link>
       </BypassStateCard>
@@ -112,6 +124,7 @@ function BypassStateContent({ controller }: Readonly<{ controller: BypassControl
         id="no-groups"
         titleKey="bypass.noGroups.title"
         descriptionKey="bypass.noGroups.description"
+        iconName="usersRound"
       />
     );
   }
@@ -120,6 +133,7 @@ function BypassStateContent({ controller }: Readonly<{ controller: BypassControl
       id="unavailable"
       titleKey="bypass.unavailable.title"
       descriptionKey={bypassErrorMessageKey(state.error, "bypass.errors.loadUnavailable")}
+      iconName="circleAlert"
       role="alert"
     >
       <button
@@ -129,6 +143,7 @@ function BypassStateContent({ controller }: Readonly<{ controller: BypassControl
         data-size="sm"
         onClick={controller.reload}
       >
+        <Icon name="refreshCw" />
         {t("bypass.unavailable.retry")}
       </button>
     </BypassStateCard>

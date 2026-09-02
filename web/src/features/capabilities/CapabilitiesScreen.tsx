@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { consoleApi, useConsoleSession } from "../../app/session";
+import { Icon } from "../../icons";
+import type { IconName } from "../../icons";
 import type { ApiRequestError } from "../../lib/api";
 import {
   loadCapabilitySettings,
@@ -55,12 +57,14 @@ function StateCard({
   id,
   titleKey,
   descriptionKey,
+  iconName,
   role,
   children
 }: Readonly<{
   id: string;
   titleKey: string;
   descriptionKey: string;
+  iconName: IconName;
   role?: "alert";
   children?: ReactNode;
 }>) {
@@ -73,7 +77,12 @@ function StateCard({
       role={role}
       aria-labelledby={`capabilities-${id}-title`}
     >
-      <h2 id={`capabilities-${id}-title`}>{t(titleKey)}</h2>
+      <h2 id={`capabilities-${id}-title`}>
+        <span data-state-heading>
+          <Icon name={iconName} />
+          {t(titleKey)}
+        </span>
+      </h2>
       <p>{t(descriptionKey)}</p>
       {children}
     </section>
@@ -243,6 +252,7 @@ export function CapabilitiesScreen() {
           id="loading"
           titleKey="capabilities.loading.title"
           descriptionKey="capabilities.loading.description"
+          iconName="loaderCircle"
         />
       ) : null}
       {screenState.kind === "group-required" ? (
@@ -250,8 +260,10 @@ export function CapabilitiesScreen() {
           id="group-required"
           titleKey="capabilities.groupRequired.title"
           descriptionKey="capabilities.groupRequired.description"
+          iconName="usersRound"
         >
           <Link to="/groups" data-slot="button" data-variant="primary" data-size="sm">
+            <Icon name="usersRound" />
             {t("capabilities.groupRequired.select")}
           </Link>
         </StateCard>
@@ -261,6 +273,7 @@ export function CapabilitiesScreen() {
           id="no-groups"
           titleKey="capabilities.noGroups.title"
           descriptionKey="capabilities.noGroups.description"
+          iconName="usersRound"
         />
       ) : null}
       {screenState.kind === "unavailable" ? (
@@ -271,6 +284,7 @@ export function CapabilitiesScreen() {
             screenState.error,
             "capabilities.errors.loadUnavailable"
           )}
+          iconName="circleAlert"
           role="alert"
         >
           <button
@@ -280,6 +294,7 @@ export function CapabilitiesScreen() {
             data-size="sm"
             onClick={() => setReloadVersion((version) => version + 1)}
           >
+            <Icon name="refreshCw" />
             {t("capabilities.actions.retry")}
           </button>
         </StateCard>
@@ -355,6 +370,7 @@ export function CapabilitiesScreen() {
                   aria-disabled={saving ? "true" : undefined}
                   onClick={discardChanges}
                 >
+                  <Icon name="trash2" />
                   {t("capabilities.actions.discard")}
                 </button>
                 <button
@@ -369,6 +385,7 @@ export function CapabilitiesScreen() {
                     }
                   }}
                 >
+                  <Icon name="save" />
                   {t(saving ? "capabilities.actions.saving" : "capabilities.actions.save")}
                 </button>
               </span>
@@ -386,6 +403,7 @@ export function CapabilitiesScreen() {
           aria-atomic="true"
         >
           <span>
+            <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
             {t(
               feedback.kind === "saved"
                 ? "capabilities.feedback.saved"
@@ -402,6 +420,7 @@ export function CapabilitiesScreen() {
               data-size="sm"
               onClick={() => setReloadVersion((version) => version + 1)}
             >
+              <Icon name="refreshCw" />
               {t("capabilities.actions.reload")}
             </button>
           ) : null}

@@ -2,6 +2,7 @@ import { type FormEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { StatusBadge } from "../../components/StatusBadge";
+import { Icon } from "../../icons";
 import type {
   MessageSettingField,
   MessageSettings,
@@ -90,13 +91,13 @@ function SettingMeta({
             }
           }}
         >
+          <Icon name={restoring ? "x" : "rotateCcw"} />
           {t(restoring ? "messages.actions.cancelRestore" : "messages.actions.restore")}
         </button>
       ) : null}
     </span>
   );
 }
-
 function SettingRow({
   field,
   controlID,
@@ -332,6 +333,7 @@ export function MessageSettingsForm({
             }
           }}
         >
+          <Icon name="save" />
           {t(saving ? "messages.actions.savingSettings" : "messages.actions.saveSettings")}
         </button>
       </footer>

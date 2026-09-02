@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
+import { Icon, type IconName } from "../../icons";
 import type { ApiRequestError } from "../../lib/api";
 import type { SettingSource, SettingValue } from "./api";
 import type { ModerationEvaluation, ModerationField } from "./model";
@@ -35,15 +36,16 @@ function moderationErrorMessageKey(error: ApiRequestError, fallback: string): st
 
 type StateCardProps = Readonly<{
   id: string;
+  icon: IconName;
   titleKey: string;
   descriptionKey: string;
   role?: "alert";
   live?: "polite";
   children?: ReactNode;
 }>;
-
 function ModerationStateCard({
   id,
+  icon,
   titleKey,
   descriptionKey,
   role,
@@ -59,7 +61,10 @@ function ModerationStateCard({
       aria-live={live}
       aria-labelledby={`moderation-${id}-title`}
     >
-      <h2 id={`moderation-${id}-title`}>{t(titleKey)}</h2>
+      <h2 id={`moderation-${id}-title`} data-state-heading>
+        <Icon name={icon} />
+        {t(titleKey)}
+      </h2>
       <p>{t(descriptionKey)}</p>
       {children}
     </section>
@@ -111,6 +116,7 @@ function SettingMeta({
             }
           }}
         >
+          <Icon name={restoring ? "x" : "rotateCcw"} />
           {t(restoring ? "moderation.actions.cancelRestore" : "moderation.actions.restore")}
         </button>
       ) : null}
@@ -269,6 +275,7 @@ function ModerationFeedbackNotice({
       data-status={feedback.kind === "saved" ? "ok" : "error"}
       role={feedback.kind === "saved" ? "status" : "alert"}
     >
+      <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
       <span>{t(messageKey)}</span>
       {feedback.kind === "conflict" ? (
         <button
@@ -278,6 +285,7 @@ function ModerationFeedbackNotice({
           data-size="sm"
           onClick={onReload}
         >
+          <Icon name="refreshCw" />
           {t("moderation.actions.reload")}
         </button>
       ) : null}
@@ -323,6 +331,7 @@ function ModerationSaveBar({
             }
           }}
         >
+          <Icon name="trash2" />
           {t("moderation.actions.discard")}
         </button>
         <button
@@ -337,6 +346,7 @@ function ModerationSaveBar({
             }
           }}
         >
+          <Icon name="save" />
           {t(state.saving ? "moderation.actions.saving" : "moderation.actions.save")}
         </button>
       </span>
@@ -415,6 +425,7 @@ function ModerationStateContent({
     return (
       <ModerationStateCard
         id="loading"
+        icon="loaderCircle"
         titleKey="moderation.loading.title"
         descriptionKey="moderation.loading.description"
         live="polite"
@@ -425,10 +436,12 @@ function ModerationStateContent({
     return (
       <ModerationStateCard
         id="group-required"
+        icon="usersRound"
         titleKey="moderation.groupRequired.title"
         descriptionKey="moderation.groupRequired.description"
       >
         <Link to="/groups" data-slot="button" data-variant="primary" data-size="sm">
+          <Icon name="usersRound" />
           {t("moderation.groupRequired.select")}
         </Link>
       </ModerationStateCard>
@@ -438,6 +451,7 @@ function ModerationStateContent({
     return (
       <ModerationStateCard
         id="no-groups"
+        icon="usersRound"
         titleKey="moderation.noGroups.title"
         descriptionKey="moderation.noGroups.description"
       />
@@ -446,6 +460,7 @@ function ModerationStateContent({
   return (
     <ModerationStateCard
       id="unavailable"
+      icon="circleAlert"
       titleKey="moderation.unavailable.title"
       descriptionKey={moderationErrorMessageKey(
         state.error,
@@ -460,6 +475,7 @@ function ModerationStateContent({
         data-size="sm"
         onClick={controller.reload}
       >
+        <Icon name="refreshCw" />
         {t("moderation.unavailable.retry")}
       </button>
     </ModerationStateCard>
@@ -479,7 +495,10 @@ export function ModerationScreen() {
       aria-labelledby="moderation-title"
     >
       <header data-page-heading>
-        <h1 id="moderation-title">{t("moderation.title")}</h1>
+        <h1 id="moderation-title">
+          <Icon name="shieldAlert" />
+          {t("moderation.title")}
+        </h1>
         <p>{t("moderation.description")}</p>
       </header>
       <ModerationStateContent controller={controller} />

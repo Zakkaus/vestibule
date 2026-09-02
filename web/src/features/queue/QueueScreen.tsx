@@ -5,6 +5,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { consoleApi, useConsoleSession } from "../../app/session";
 import type { StatusTone } from "../../components/StatusBadge";
 import type { ApiRequestError } from "../../lib/api";
+import { Icon } from "../../icons";
 import { challengeResults } from "../../lib/challenge";
 import { loadQueue, releaseQueueRecord, type QueueRecord } from "./api";
 import { queueFixtureFor, type QueueFilter, type QueueFixture } from "./fixtures";
@@ -76,6 +77,19 @@ function QueueFeedbackNotice({ feedback }: Readonly<{ feedback: QueueFeedback }>
       role={feedback.tone === "error" ? "alert" : "status"}
       aria-atomic="true"
     >
+      <Icon
+        name={
+          feedback.tone === "ok"
+            ? "circleCheck"
+            : feedback.tone === "info"
+              ? "info"
+              : feedback.tone === "pending"
+                ? "loaderCircle"
+                : feedback.tone === "error"
+                  ? "circleAlert"
+                  : "circleMinus"
+        }
+      />
       {t(feedback.messageKey, {
         user: feedback.record.user,
         group,
@@ -90,7 +104,10 @@ function QueueEmptyState() {
 
   return (
     <section data-slot="card" data-record-empty data-queue-empty aria-labelledby="queue-empty-title">
-      <h2 id="queue-empty-title">{t("queue.empty.title")}</h2>
+      <h2 id="queue-empty-title" data-state-heading>
+        <Icon name="inbox" />
+        {t("queue.empty.title")}
+      </h2>
       <p>{t("queue.empty.description")}</p>
     </section>
   );
@@ -101,7 +118,10 @@ function QueueLoadingState() {
 
   return (
     <section data-slot="card" data-record-empty data-queue-empty aria-live="polite" aria-labelledby="queue-loading-title">
-      <h2 id="queue-loading-title">{t("queue.loading.title")}</h2>
+      <h2 id="queue-loading-title" data-state-heading>
+        <Icon name="loaderCircle" />
+        {t("queue.loading.title")}
+      </h2>
       <p>{t("queue.loading.description")}</p>
     </section>
   );
@@ -112,9 +132,13 @@ function QueueGroupRequiredState() {
 
   return (
     <section data-slot="card" data-record-empty data-queue-empty aria-labelledby="queue-group-required-title">
-      <h2 id="queue-group-required-title">{t("queue.groupRequired.title")}</h2>
+      <h2 id="queue-group-required-title" data-state-heading>
+        <Icon name="usersRound" />
+        {t("queue.groupRequired.title")}
+      </h2>
       <p>{t("queue.groupRequired.description")}</p>
       <Link to="/groups" data-slot="button" data-variant="primary" data-size="sm">
+        <Icon name="usersRound" />
         {t("queue.groupRequired.select")}
       </Link>
     </section>
@@ -126,7 +150,10 @@ function QueueNoGroupsState() {
 
   return (
     <section data-slot="card" data-record-empty data-queue-empty aria-labelledby="queue-no-groups-title">
-      <h2 id="queue-no-groups-title">{t("queue.noGroups.title")}</h2>
+      <h2 id="queue-no-groups-title" data-state-heading>
+        <Icon name="usersRound" />
+        {t("queue.noGroups.title")}
+      </h2>
       <p>{t("queue.noGroups.description")}</p>
     </section>
   );
@@ -140,9 +167,13 @@ function QueueUnavailableState({
 
   return (
     <section data-slot="card" data-record-empty data-queue-empty data-queue-unavailable role="alert" aria-labelledby="queue-unavailable-title">
-      <h2 id="queue-unavailable-title">{t("queue.unavailable.title")}</h2>
+      <h2 id="queue-unavailable-title" data-state-heading>
+        <Icon name="circleAlert" />
+        {t("queue.unavailable.title")}
+      </h2>
       <p>{t(queueErrorMessageKey(error, "queue.errors.loadUnavailable"))}</p>
       <button type="button" data-slot="button" data-variant="outline" data-size="sm" onClick={onRetry}>
+        <Icon name="refreshCw" />
         {t("queue.unavailable.retry")}
       </button>
     </section>
@@ -160,7 +191,10 @@ function QueueFilteredEmptyState({ filter, onClear }: QueueFilteredEmptyStatePro
 
   return (
     <section data-slot="card" data-record-empty data-queue-empty aria-labelledby="queue-filtered-empty-title">
-      <h2 id="queue-filtered-empty-title">{t("queue.filteredEmpty.title")}</h2>
+      <h2 id="queue-filtered-empty-title" data-state-heading>
+        <Icon name="inbox" />
+        {t("queue.filteredEmpty.title")}
+      </h2>
       <p>
         {t("queue.filteredEmpty.currentCondition", {
           group,
@@ -169,6 +203,7 @@ function QueueFilteredEmptyState({ filter, onClear }: QueueFilteredEmptyStatePro
       </p>
       <div>
         <button type="button" data-slot="button" data-variant="ghost" data-size="sm" onClick={onClear}>
+          <Icon name="listX" />
           {t("queue.filteredEmpty.clear")}
         </button>
       </div>
@@ -446,7 +481,10 @@ export function QueueScreen() {
       aria-labelledby="queue-title"
     >
       <header data-page-heading>
-        <h1 id="queue-title">{t("queue.title")}</h1>
+        <h1 id="queue-title">
+          <Icon name="inbox" />
+          {t("queue.title")}
+        </h1>
       </header>
 
       {queueState.kind === "loading" ? <QueueLoadingState /> : null}

@@ -1,7 +1,9 @@
 import { type FormEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
+import { AppSelect, type AppSelectOption } from "../../components/AppSelect";
 import { StatusBadge } from "../../components/StatusBadge";
+import { Icon } from "../../icons";
 import { FallbackQuestionEditor } from "./FallbackQuestionEditor";
 import { QuestionBankEditor } from "./QuestionBankEditor";
 import {
@@ -88,6 +90,7 @@ function SourceMeta({ source, restoring, labelKey = "questions.source.value", on
           data-size="sm"
           onClick={onRestore}
         >
+          <Icon name="rotateCcw" />
           {t("questions.actions.restore")}
         </button>
       ) : null}
@@ -105,6 +108,10 @@ function LanguageSection({
 }: Omit<QuestionsSettingsFormProps, "validation" | "hasChanges" | "onSubmit" | "onRestoreFallback">) {
   const { t } = useTranslation();
   const descriptionID = "questions-language-description";
+  const languageOptions: readonly AppSelectOption<QuestionLanguage>[] = questionLanguages.map((language) => ({
+    label: t(languageMessageKeys[language]),
+    value: language
+  }));
   return (
     <QuestionSection
       id="questions-language"
@@ -122,24 +129,20 @@ function LanguageSection({
           />
         </div>
         <div data-question-setting-control>
-          <select
+          <AppSelect
+            aria-label={t("questions.language.label")}
             id="questions-language-select"
             value={draft.lang}
             disabled={saving}
             aria-describedby={descriptionID}
-            onChange={(event) =>
+            options={languageOptions}
+            onValueChange={(value) =>
               onDraftChange(
-                { ...draft, lang: event.currentTarget.value as QuestionLanguage },
+                { ...draft, lang: value },
                 ["lang"]
               )
             }
-          >
-            {questionLanguages.map((language) => (
-              <option key={language} value={language}>
-                {t(languageMessageKeys[language])}
-              </option>
-            ))}
-          </select>
+          />
         </div>
       </div>
     </QuestionSection>
@@ -186,6 +189,7 @@ function QuestionBankSection({
             )
           }
         >
+          <Icon name="plus" />
           {t("questions.actions.addQuestion")}
         </button>
       </div>
@@ -236,6 +240,7 @@ function FallbackSources({
           data-size="sm"
           onClick={onRestore}
         >
+          <Icon name="rotateCcw" />
           {t("questions.actions.restoreFallback")}
         </button>
       ) : null}
@@ -273,6 +278,7 @@ function FallbackMode({
           disabled={saving}
           onClick={() => chooseMode(true)}
         >
+          <Icon name="bookOpen" />
           {t("questions.fallback.builtin")}
         </button>
         <button
@@ -285,6 +291,7 @@ function FallbackMode({
           disabled={saving}
           onClick={() => chooseMode(false)}
         >
+          <Icon name="pencil" />
           {t("questions.fallback.custom")}
         </button>
       </div>
@@ -325,6 +332,7 @@ function FallbackSection(props: Omit<QuestionsSettingsFormProps, "hasChanges" | 
                 )
               }
             >
+              <Icon name="plus" />
               {t("questions.actions.addFallback")}
             </button>
           </div>
@@ -359,6 +367,7 @@ export function QuestionsSettingsForm(props: QuestionsSettingsFormProps) {
           aria-disabled={props.saving ? "true" : undefined}
           disabled={!props.hasChanges}
         >
+          <Icon name="save" />
           {t(props.saving ? "questions.actions.saving" : "questions.actions.save")}
         </button>
       </footer>
