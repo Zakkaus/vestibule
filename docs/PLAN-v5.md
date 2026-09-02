@@ -521,9 +521,9 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 #### 落地之后要补的另一件：运维进来之后写不了
 
 `GET /enter/{token}` 只写 HttpOnly 会话 Cookie 然后 `303` 回首页
-（`internal/console/api/server.go:191-197`），而 CSRF token 只在
-`POST /api/session` 的 JSON 响应里出现（`:387-400`）；结算又严格要求
-`X-CSRF-Token`（`internal/console/auth/manager.go:277-283`）。
+（`internal/console/api/server.go:223-239`），而 CSRF token 只在
+`POST /api/session` 的 JSON 响应里出现（`:494-498`）；结算又严格要求
+`X-CSRF-Token`（`internal/console/auth/manager.go:291-297`）。
 
 于是**运维走一次性链接进来，能读群和队列，但任何写入都做不了** ——
 没有任何端点能让浏览器取回当前会话的 CSRF token。
@@ -775,14 +775,30 @@ revision 不匹配要能被前端区分成「别人改过了」而不是「保�
 群号不授予任何权限 —— 但这是一个公开仓库，把真实拓扑写进测试没有理由，
 而且换成任意数字，测试断言的内容一个字都不会变。
 本阶段一并换掉，并加一条检查：测试里的群号取自一个写明的假号段。
-阶段七会再写十二屏的测试，现在换比那时换便宜。
+核过仍然成立：五个真实群号在仓库里还有 43 处，集中在
+`internal/settings/config_test.go`、`internal/verification/verify_test.go`、
+`internal/status/redact_test.go`。`internal/feed/state_compat_test.go`
+与 `internal/settings/defaults.yaml` 用的已经是假号，不动。
 
 **这条 grep 现在已经是空的** —— 前序阶段搬移时一并移除了，
 所以它是一条回归检查，不是待办。本阶段真正剩下的是 edition：
-`internal/edition/{edition_gentoo,edition_generic}.go` 共 37 行按构建标签二选一，
-而 `internal/lookup/packages.go:30,1413`、`internal/verification/kernel.go:23`、
-`internal/telegram/dm.go:49` 仍在读它决定命令前缀、User-Agent 与题面示例后缀。
-「按 edition 决定功能」这一条要拆的就是这几处。
+`internal/edition/{edition_gentoo,edition_generic}.go` 共 37 行按构建标签二选一。
+读它的地方有九处，分布在五个包，不是原先记的四处：
+
+| 位置 | 读的是什么 |
+|---|---|
+| `internal/telegram/edition.go:8` | `CommandPrefix`，再由整个 telegram 包用作命令前缀 |
+| `internal/lookup/packages.go:30` | `Name`，用作出站请求的 User-Agent |
+| `internal/lookup/packages.go:1413` | `CommandPrefix`，拼进 `/use` 的提示文本 |
+| `internal/verification/kernel.go:22` | `KernelExampleSuffix`，拼进内核题的占位示例 |
+| `internal/i18n/catalog.go:113` | `CommandPrefix`，替换目录里的命令前缀记号 |
+| `internal/i18n/catalog.go:116` | `KernelExampleSuffix`，替换目录里的后缀记号 |
+| `internal/i18n/bot.go:154` | `IsGentoo`，按版本选帮助文案 |
+| `internal/i18n/verification.go:302` | `IsGentoo`，按版本选验证文案 |
+| `cmd/bot/main.go:21` | `Name`，拼默认配置文件路径 |
+
+「按 edition 决定功能」这一条要拆的就是这九处。`internal/telegram/dm.go` 附近
+只有一句解释 edition 前缀的注释，本身不读 edition。
 **实机**：测试群与另一个临时群同时挂在同一个进程上，两边配置互不影响。
 
 #### 文件处置
@@ -797,7 +813,7 @@ revision 不匹配要能被前端区分成「别人改过了」而不是「保�
 | `internal/store/{baseline,settings}.go` | 复查 | `internal/settings`、`internal/database` |
 | `internal/config/config.go` | 复查 | `internal/settings` |
 | `internal/edition/{edition_gentoo,edition_generic}.go` | 重写 | 单一的 `internal/edition` |
-| `internal/bot/edition.go` | 删除 | 无；不再由 edition 决定群功能 |
+| `internal/bot/edition.go` | 已删除 | 无；不再由 edition 决定群功能。前序阶段已完成，此行是回归项 |
 
 #### 必须保住的行为
 
@@ -1029,8 +1045,10 @@ schema 里凡是带 `user_id` 或 `chat_id` 的表，两种语言的说明都必
 
 设计书「各屏职责」把等待队列写成「正在等待的申请，放行、拒绝、封禁」，
 把撤销写在操作记录那一行，和「谁改了什么、每次判定的来龙去脉」并列。
-而 `web/src/features/queue/fixtures.ts:65` 给 `banned` 挂了一个 `revoke` 动作 ——
-那是照 fixtures 建屏时留下的，没有任何端点对着它。
+当时 `web/src/features/queue/fixtures.ts` 给 `banned` 挂了一个 `revoke` 动作 ——
+那是照 fixtures 建屏时留下的，没有任何端点对着它。**已删除**：那个 fixture 里
+现在没有 `revoke`，`scripts/check-phase-seams.py` 会拒绝队列功能再次写出
+`/audit` 或 `revoke`，所以这一段是判据的记录，不是待办。
 
 上一代给出了这样分屏的理由，写在 `internal/verify/service.go:733-735`：
 
