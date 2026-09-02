@@ -87,6 +87,8 @@ jobs:
         run: python3 scripts/check-console-routes.py
       - name: Every completed plan phase has executable acceptance coverage
         run: python3 scripts/check-phase-acceptance.py
+      - name: Every acceptance exemption rests on a reason that can still be true
+        run: python3 scripts/check-acceptance-exemptions.py
       - name: The vendored copies still match the bytes they were copied at
         run: python3 scripts/check-vendored.py
       - name: The three locale catalogues agree with each other and with the code

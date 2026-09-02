@@ -63,11 +63,17 @@ run_web "browser end-to-end session exchange reaches successful release" \
 run_web "render gate covers widths, themes, widest locale, and keyboard navigation" \
   npm run e2e -- e2e/render-gate.spec.ts
 
-# These two observations need the deployment that phase nine owns.
-exempt "post-deployment health-check command" \
-  "container deployment and installed health check belong to phase nine (PLAN-v5.md:624)"
+# 5. The installed health check answers after a deployment.
+# Phase nine delivered this, so the clause that once waited on it now runs the same
+# case phase nine's own acceptance runs.
+run "post-deployment health-check command" \
+  scripts/test-replacement.sh --case health-endpoints
+
+# Phase nine is complete and did not deliver an isolated deployment holding a real bot
+# account, which is phase ten's to arrange. Naming the blocker rather than a phase keeps
+# this reason from expiring the way the line above did.
 exempt "test console settles a real test-group join request" \
-  "requires the deployed isolated test environment owned by phase nine (PLAN-v5.md:625)"
+  "needs a live Telegram bot account in an isolated deployment; no unattended authority covers that"
 
 [ "$fail" -eq 0 ] && echo "phase 6 acceptance: passed" || echo "phase 6 acceptance: FAILED" >&2
 exit "$fail"
