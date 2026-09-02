@@ -187,6 +187,7 @@ python3 scripts/check-limits.py      # the limits stated here are the ones lint.
 python3 scripts/check-console-copy.py  # no user-facing text written into a component
 python3 scripts/check-privacy-tables.py   # docs/PRIVACY.md names every table holding a person
 python3 scripts/check-migration-declarations.py migrations  # every migration declares rollback compatibility
+python3 scripts/check-schema-manifest.py deploy/vestibule-schema-manifest  # released schema metadata matches migrations.Table
 python3 scripts/check-phase-seams.py     # no screen reaches for a later phase's endpoints
 
 python3 scripts/check-phase-acceptance.py  # every completed plan phase has acceptance coverage

@@ -893,9 +893,13 @@ revision 不匹配要能被前端区分成「别人改过了」而不是「保�
 `cmd/bot` 也只有 `-config` 与 `-version` 两个参数（`cmd/bot/main.go:21`、`:22`）。
 
 所以次序是：**发布侧先发出结构元数据，安装脚本才谈得上下载前判断。**
-形状定为一份随发布上传的清单，记目标 schema 版本与最低可回退版本，
-列进 `SHA256SUMS` 一并校验；安装脚本先取它、验它、据此决定，再决定要不要下载二进制。
-它由 `migrations.Table` 生成，不是手写。
+
+**这一片已落实。**`cmd/schema-manifest` 从 `migrations.Table` 生成 `target_schema_version` 与 `minimum_rollback_schema_version` 两个 `key=value` 字段；版本库中的 `deploy/vestibule-schema-manifest` 是受检副本。发布时重新生成 `dist/vestibule-schema-manifest`，与二进制一同写入 `SHA256SUMS` 并上传；CI 将受检副本与当前迁移表对比，迁移变更后未重新生成即失败。安装脚本仍归后续片。
+
+**「列进 `SHA256SUMS`」不等于认证。** 摘要文件只在**它自己**可信时提供完整性：
+同一个能替换清单的人也能替换摘要文件。所以写安装脚本那一片必须从一个可信来源取到那份摘要、
+或者验一个签名，**不许把「校验通过」当成「来源可信」**。这一条是做清单时提出来的，
+先记在这里，免得下一片按字面理解写成「下载 `SHA256SUMS` 然后 `sha256sum -c`」就算完。
 
 这一条是派安装脚本时撞出来的：那份说明书同时要求「不动 Go」和
 「shell 在下载前调用 `migrations.AssessRollback`」，两条不能同时成立；
