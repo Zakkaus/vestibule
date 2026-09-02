@@ -17,6 +17,10 @@ type RouteHandle = {
 
 const navigationItems = [
   {
+    path: "/home",
+    labelKey: "home.navigation"
+  },
+  {
     path: "/queue",
     labelKey: "navigation.queue"
   },

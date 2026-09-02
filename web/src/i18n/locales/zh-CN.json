@@ -1201,5 +1201,160 @@
       "saveUnavailable": "暂时无法保存功能设置。请重试。",
       "network": "连接已中断。重新载入功能后再决定是否重试。"
     }
+  },
+  "home": {
+    "navigation": "首页",
+    "title": "首页",
+    "description": "查看当前所选群的概况、待办、近七天趋势和常用配置。",
+    "roles": {
+      "manager": "群管理员",
+      "operator": "运维"
+    },
+    "context": {
+      "title": "群 {{id}}",
+      "selectedScope": "本页只汇总当前所选群。",
+      "enabled": "验证已启用",
+      "disabled": "验证已停用",
+      "modeUnreported": "群模式未由接口报告"
+    },
+    "source": {
+      "value": "来源：{{source}}",
+      "factoryDefault": "出厂默认",
+      "userFile": "配置文件",
+      "chatOverride": "此群覆盖"
+    },
+    "values": {
+      "enabled": "已启用",
+      "disabled": "已停用",
+      "seconds_one": "{{count}} 秒",
+      "seconds_other": "{{count}} 秒",
+      "rules_one": "{{count}} 条",
+      "rules_other": "{{count}} 条",
+      "groups_one": "{{count}} 个群",
+      "groups_other": "{{count}} 个群",
+      "channels_one": "{{count}} 个频道",
+      "channels_other": "{{count}} 个频道",
+      "warnings_one": "{{count}} 次警告",
+      "warnings_other": "{{count}} 次警告",
+      "verifyMode": {
+        "kernel": "内核版本题",
+        "quiz": "选择题",
+        "mixed": "混合"
+      },
+      "deliveryMode": {
+        "group": "仅群内",
+        "dm": "私聊优先",
+        "both": "群内和私聊"
+      }
+    },
+    "loading": {
+      "title": "正在载入首页",
+      "description": "正在读取当前群的队列、统计和配置…"
+    },
+    "groupRequired": {
+      "title": "先选择一个群",
+      "description": "首页一次只汇总一个群。选择群后再查看它的概况。",
+      "select": "选择群"
+    },
+    "noGroups": {
+      "title": "此账号尚未获任何群授权",
+      "description": "获得群管理权限后，首页才会显示该群的数据。"
+    },
+    "unavailable": {
+      "title": "无法载入首页",
+      "description": "暂时无法读取当前群的队列、统计或配置。请重试。",
+      "retry": "重试"
+    },
+    "overview": {
+      "title": "概况",
+      "description": "统计值覆盖近七天；等待数量为当前值。",
+      "challenges": "近七天挑战",
+      "passRate": "近七天通过率",
+      "waiting": "正在等待",
+      "banned": "近七天封禁"
+    },
+    "attention": {
+      "title": "需要注意",
+      "description": "只列出需要处理或进一步确认的事项。",
+      "tones": {
+        "pending": "待处理",
+        "error": "异常",
+        "info": "信息"
+      },
+      "empty": {
+        "badge": "当前正常",
+        "managerDescription": "等待队列为空，当前群没有需要处理的事项。",
+        "operatorDescription": "等待队列为空，实例诊断与配置持久化均正常。"
+      },
+      "queue": {
+        "title": "等待队列",
+        "description_one": "有 {{count}} 份申请等待处理。",
+        "description_other": "有 {{count}} 份申请等待处理。"
+      },
+      "diagnosticsUnavailable": {
+        "title": "无法读取实例诊断",
+        "description": "首页仍显示群数据。请到诊断屏确认实例状态。"
+      },
+      "health": {
+        "title": "实例尚未就绪",
+        "description": "存活、配置或 Telegram 连接检查中至少一项未通过。"
+      },
+      "persistenceError": {
+        "title": "设置持久化记录了失败",
+        "description": "诊断接口报告了最近一次持久化错误。"
+      },
+      "persistenceUnconfigured": {
+        "title": "设置持久化尚未配置",
+        "description": "当前实例没有已配置的设置持久化目标。"
+      },
+      "persistenceUnwritable": {
+        "title": "设置持久化不可写",
+        "description": "配置已存在，但当前无法写入。"
+      },
+      "persistenceVolatile": {
+        "title": "设置持久化不耐久",
+        "description": "当前存储不会保证设置在实例重启后保留。"
+      }
+    },
+    "trend": {
+      "title": "近七天趋势",
+      "description": "缩略图只显示走向。精确数值在统计屏查看。",
+      "openStats": "查看统计",
+      "empty": "所选范围内没有可绘制的日期。",
+      "chartTitle": "近七天挑战量与通过率",
+      "chartDescription": "柱形表示每天的挑战量，折线表示每天的通过率。",
+      "legendLabel": "趋势图图例",
+      "challenges": "挑战量",
+      "passRate": "通过率"
+    },
+    "entries": {
+      "title": "常用配置",
+      "description": "每个入口显示当前值及其来源。",
+      "verification": {
+        "title": "验证方式",
+        "description": "挑战类型、投递渠道和超时",
+        "mode": "验证策略",
+        "delivery": "投递渠道",
+        "timeout": "超时"
+      },
+      "questions": {
+        "title": "题库",
+        "description": "选择题与自定义备用题",
+        "primary": "选择题",
+        "fallback": "备用题"
+      },
+      "bypass": {
+        "title": "免验证来源",
+        "description": "信任群与频道白名单",
+        "trustedGroups": "信任群",
+        "channels": "频道白名单"
+      },
+      "moderation": {
+        "title": "管理与处罚",
+        "description": "反垃圾与警告上限",
+        "antispam": "反垃圾",
+        "warnLimit": "警告上限"
+      }
+    }
   }
 }
