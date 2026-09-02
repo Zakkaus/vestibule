@@ -25,7 +25,17 @@ restore_transaction() {
 	if [ "$service_changed" = yes ] && [ "$manager" = systemd ]; then
 		service_control daemon-reload >/dev/null 2>&1 || :
 		if [ "$had_unit_before" = yes ] && [ "$had_binary_before" = yes ]; then
-			service_control restart "$name" >/dev/null 2>&1 || :
+			case $unit_enabled_before in
+				enabled|enabled-runtime|alias|static|indirect|generated)
+					service_control enable "$name" >/dev/null 2>&1 || : ;;
+				disabled|masked)
+					service_control disable "$name" >/dev/null 2>&1 || : ;;
+			esac
+			if [ "$unit_active_before" = inactive ] || [ "$unit_active_before" = failed ]; then
+				service_control stop "$name" >/dev/null 2>&1 || :
+			else
+				service_control restart "$name" >/dev/null 2>&1 || :
+			fi
 		else
 			service_control disable --now "$name" >/dev/null 2>&1 || :
 		fi
@@ -75,6 +85,11 @@ begin_transaction() {
 	fi
 	if [ -e "$unit" ]; then
 		had_unit_before=yes
+		# Whether the unit was enabled and running is state a rollback has to put back.
+		# The native installer disables the service before it replaces anything, so a
+		# rollback that only restarts leaves it running now and not after a reboot.
+		unit_enabled_before=$(service_control is-enabled "$name" 2>/dev/null || echo unknown)
+		unit_active_before=$(service_control is-active "$name" 2>/dev/null || echo unknown)
 	fi
 	if [ -e "$replacement_path" ]; then
 		had_replacement_path_before=yes
