@@ -101,6 +101,11 @@ def main() -> int:
                 print(f"ok phase {phase}: {relative_script}")
             else:
                 failures.append(f"phase {phase}: {relative_script} is not executable")
+            if phase in exemptions_by_phase:
+                failures.append(
+                    f"phase {phase}: {relative_script} exists and an exemption is still "
+                    f"written for it; the exemption describes work that is now done"
+                )
             continue
         reason = exemptions_by_phase.get(phase)
         if reason:
