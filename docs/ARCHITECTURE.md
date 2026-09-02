@@ -695,7 +695,8 @@ CREATE TABLE chat (
     id         BIGINT PRIMARY KEY,
     title      TEXT   NOT NULL,
     left_at    BIGINT,          -- 非空表示 bot 已被移出，数据待清理
-    settings   TEXT   NOT NULL DEFAULT '{}'
+    settings   TEXT   NOT NULL DEFAULT '{}',
+    settings_revision BIGINT NOT NULL DEFAULT 0  -- migrations/01-settings.sql；控制台写入靠它检冲突
 );
 
 CREATE TABLE challenge (
@@ -757,6 +758,7 @@ CREATE TABLE rule (
     ordinal    INTEGER NOT NULL,
     enabled    BOOLEAN NOT NULL DEFAULT TRUE,
     definition TEXT   NOT NULL    -- 题面、条件、回复内容，三语
+);
 
 -- 以下四张表承载上一代那四份 JSON 状态。它们不在本节最初的设计里，
 -- 是阶段三第一片换介质时按现有状态的实际形状定下来的。
