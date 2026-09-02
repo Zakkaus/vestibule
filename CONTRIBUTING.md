@@ -186,6 +186,7 @@ python3 scripts/check-phase-seams.py     # no screen reaches for a later phase's
 # "Did someone edit a copy in place" is answered inside the repository, against
 # the hashes recorded when the copy was taken, so CI runs it:
 python3 scripts/check-vendored.py    # copies match scripts/vendored-manifest.json
+python3 scripts/check-locale-catalogues.py  # three catalogues agree, and the code's keys exist
 
 # "Has the source moved forward" needs the source, which lives on a developer's
 # machine, so it stays local. When it reports drift, re-copy and re-record the
