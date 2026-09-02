@@ -396,6 +396,14 @@ def check_plan_citations_resolve(plan_text: str) -> None:
             # range, and this check said nothing. A line that is blank or only
             # punctuation carries no claim, which is the cheap half of "did it
             # move" that a script can answer.
+            # What this cannot see: a citation that lands on real code which is
+            # not the code it describes. One pointed at server.go:122-134 for
+            # "the seven routes" long after that range became the shutdown
+            # method. A containment test — the tokens named in the prose must
+            # appear inside the cited range — was prototyped and dropped: the
+            # plan has one range citation it applies to, and that one is a false
+            # positive. Reading the cited lines before dispatch is what catches
+            # this class, and no check here replaces it.
             # Only the first line of a citation makes a claim. A range says
             # "from here through there", and its last line landing on a closing
             # brace is what a range around a function looks like.

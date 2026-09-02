@@ -649,9 +649,14 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 
 派第一批之前把 13 屏逐个对了一遍数据源，结论是一条硬次序，写在这里免得每派一屏重发现一次。
 
-**控制台现在一共七条路由，没有一条能读写设置**
-（`internal/console/api/server.go:122-134`：`/livez` `/readyz`
-`GET/POST /api/session` `/enter/` `/api/chats` `/api/chats/`）。
+**做那次对照时，控制台一共七条路由，没有一条能读写设置**
+（`/livez` `/readyz` `GET/POST /api/session` `/enter/` `/api/chats` `/api/chats/`）。
+这一句是当时的状态，不是现在的：顶层分发现在有八条
+（`internal/console/api/server.go:141`），多出来的是
+`GET /api/process/settings` 与 `GET /api/status`；而 `/api/chats/` 那条
+现在按群展开成 `queue`、`audit`、`stats`、`settings`、`rules` 五组
+（`internal/console/api/server.go:287`）。下面这条次序就是照着这个缺口定的，
+八屏所等的设置端点已经建成。
 而 13 屏里有 8 屏管的全是设置：验证方式、题库、免验证来源、管理与处罚、
 消息与文案、订阅推送、功能，以及偏好屏里属于群的那一半。
 这 8 屏在那对端点存在之前一屏都开不了工 ——
@@ -892,11 +897,17 @@ revision 不匹配要能被前端区分成「别人改过了」而不是「保�
 #### 依赖
 
 依赖阶段五：`/livez` 与 `/readyz` 由那一阶段的 HTTP 服务提供。
-架构文档第 11 节与第 13 节已经定了这两个端点各自的判据，
-但**代码里现在一个都没有** —— 本阶段的「健康检查通过」在它们存在之前无从验起。
+**这条依赖已经解除** —— 两个端点都在
+（`internal/console/api/server.go:141`、`:143`），判据也与架构文档第 11、13 节对得上：
+`internal/status/health.go:78` 的 `Live` 只读一个原子标志、不探测任何依赖，
+`internal/status/health.go:83` 的 `Ready` 要求配置校验完成、Telegram 通道建立、
+并且当场探一次数据库。架构书那一列写的是「数据库已迁移」，代码判的是「数据库这一刻可用」——
+迁移在启动、开始服务之前完成，所以可用蕴含已迁移，但两处措辞不同，
+本阶段写验收时按代码的判据写。
 
-自建 Bot API 这一侧已经就位：`internal/app/app.go:166-168` 接受
-`TelegramAPIURL` 并转给 `telego.WithAPIServer`，本阶段只需把它接进部署。
+自建 Bot API 这一侧已经就位：`internal/app/app.go:214` 接受 `TelegramAPIURL`
+并转给 `telego.WithAPIServer`；`internal/app/runtime.go:39` 是同一形状的第二处。
+本阶段只需把它接进部署。
 
 
 ### 阶段十 · 切换到生产
