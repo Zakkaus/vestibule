@@ -67,6 +67,20 @@ func ImportLegacyState(ctx context.Context, db *Database, options ImportOptions)
 	if strings.TrimSpace(options.StateDirectory) == "" {
 		return ImportReport{}, fmt.Errorf("state directory is required")
 	}
+	// The import deletes and rebuilds every per-group table it owns. Run against a database a
+	// bot is polling for, it replaces verifications that are in flight right now with a
+	// snapshot of the generation being replaced. The polling lease is what says a bot is
+	// there: migration happens with the old bot stopped, so an unexpired holder means this is
+	// not that moment. Repeating the import against a cold database is unaffected, which the
+	// phase-ten acceptance requires.
+	if holder, err := NewUpdatePollLease(db).Holder(ctx, time.Now().Unix()); err != nil {
+		return ImportReport{}, err
+	} else if holder != "" {
+		return ImportReport{}, fmt.Errorf(
+			"an instance is polling Telegram against this database (lease held by %s); "+
+				"stop it before importing, or the import replaces verifications it is running",
+			holder)
+	}
 	backupDirectory, err := backupLegacyJSON(options)
 	if err != nil {
 		return ImportReport{}, err

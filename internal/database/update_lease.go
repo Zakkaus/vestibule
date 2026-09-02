@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -33,6 +35,23 @@ func (l *UpdatePollLease) Acquire(ctx context.Context, holder string, now, expir
 		return false, fmt.Errorf("acquire update polling lease: %w", err)
 	}
 	return changedRow(result)
+}
+
+// Holder reports the unexpired lease holder, if there is one. An empty name means no
+// instance is polling Telegram against this database right now, which is what a migration
+// has to establish before it replaces the state a running instance is using.
+func (l *UpdatePollLease) Holder(ctx context.Context, now int64) (string, error) {
+	var holder string
+	err := l.db.QueryRow(ctx,
+		`SELECT holder FROM update_poll_lease WHERE singleton = 1 AND expires_at > $1`,
+		now).Scan(&holder)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("read update polling lease: %w", err)
+	}
+	return holder, nil
 }
 
 // Renew extends only the lease still held by this process. False means ownership was lost.
