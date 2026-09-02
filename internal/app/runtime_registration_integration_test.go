@@ -90,7 +90,15 @@ func newRuntimeRegistrationFixture(
 		settings, connector, cfg, &i18n.Messages,
 		verification, moderation, lookups, "test", time.Now(),
 	)
-	updates := telegram.NewUpdates(cfg, settings, connector, telegramHandlers(verification, verificationGateway, administration, moderation, lookups, nil))
+	modules, err := newRuntimeModules(cfg, bot, t.TempDir(), administration, moderation, lookups)
+	if err != nil {
+		t.Fatal(err)
+	}
+	administration.SetCommandModules(modules.commands)
+	updates := telegram.NewUpdates(
+		cfg, settings, connector,
+		telegramHandlers(verification, verificationGateway, administration, moderation, modules.commands, nil),
+	)
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 	return &runtimeRegistrationFixture{

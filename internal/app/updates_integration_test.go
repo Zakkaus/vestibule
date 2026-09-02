@@ -21,19 +21,19 @@ func routeRecorder(name string, handled *[]string) th.Handler {
 	}
 }
 
-func recordingHandlers(fixture *dispatchFixture, handled *[]string) telegram.HandlerSet {
+func recordingHandlers(t *testing.T, fixture *dispatchFixture, handled *[]string) telegram.HandlerSet {
+	t.Helper()
 	handlers := telegramHandlers(
 		fixture.verification,
 		fixture.verificationGateway,
 		fixture.administration,
 		fixture.moderation,
-		fixture.lookups,
+		fixture.commands,
 		nil,
 	)
 	recordVerificationHandlers(&handlers.Verification, handled)
 	recordPanelHandlers(&handlers.Panel, handled)
-	recordModerationHandlers(&handlers.Moderation, handled)
-	recordLookupHandlers(&handlers.Lookup, handled)
+	handlers.Commands = recordingCommandModules(t, handlers.Commands, handled)
 	return handlers
 }
 
@@ -50,43 +50,30 @@ func recordPanelHandlers(handlers *telegram.PanelHandlers, handled *[]string) {
 	handlers.SettingsCallback = routeRecorder("panel.settings_callback", handled)
 	handlers.ChatShared = routeRecorder("panel.chat_shared", handled)
 	handlers.Input = routeRecorder("panel.input", handled)
-	handlers.Ping = routeRecorder("panel.ping", handled)
-	handlers.Start = routeRecorder("panel.start", handled)
-	handlers.Settings = routeRecorder("panel.settings", handled)
-	handlers.Stop = routeRecorder("panel.stop", handled)
-	handlers.Stats = routeRecorder("panel.stats", handled)
-	handlers.Rich = routeRecorder("panel.rich", handled)
-	handlers.Spoiler = routeRecorder("panel.spoiler", handled)
-	handlers.VerifyMode = routeRecorder("panel.vmode", handled)
-	handlers.AutoDelete = routeRecorder("panel.autodel", handled)
-	handlers.BanTime = routeRecorder("panel.bantime", handled)
-	handlers.Help = routeRecorder("panel.help", handled)
 }
 
-func recordModerationHandlers(handlers *telegram.ModerationHandlers, handled *[]string) {
-	handlers.Purge = routeRecorder("moderate.sb", handled)
-	handlers.Ban = routeRecorder("moderate.ban", handled)
-	handlers.Warn = routeRecorder("moderate.warn", handled)
-	handlers.ClearWarn = routeRecorder("moderate.clearwarn", handled)
-	handlers.BlockChannel = routeRecorder("moderate.bc", handled)
-	handlers.Mute = routeRecorder("moderate.mute", handled)
-	handlers.Unmute = routeRecorder("moderate.unmute", handled)
-}
-
-func recordLookupHandlers(handlers *telegram.LookupHandlers, handled *[]string) {
-	handlers.Package = routeRecorder("lookup.pkg", handled)
-	handlers.Use = routeRecorder("lookup.use", handled)
-	handlers.Bug = routeRecorder("lookup.bug", handled)
-	handlers.News = routeRecorder("lookup.news", handled)
-	handlers.Wiki = routeRecorder("lookup.wiki", handled)
-	handlers.Forum = routeRecorder("lookup.bbs", handled)
-	handlers.Distros = routeRecorder("lookup.distros", handled)
-	handlers.Arm = routeRecorder("lookup.arm", handled)
-	handlers.ArmPkgs = routeRecorder("lookup.armpkgs", handled)
-	handlers.Kernel = routeRecorder("lookup.kernel", handled)
-	handlers.Man = routeRecorder("lookup.man", handled)
-	handlers.CVE = routeRecorder("lookup.cve", handled)
-	handlers.Repology = routeRecorder("lookup.repology", handled)
+func recordingCommandModules(
+	t *testing.T,
+	commands telegram.CommandModules,
+	handled *[]string,
+) telegram.CommandModules {
+	t.Helper()
+	definitions := commands.Definitions()
+	for i := range definitions {
+		if definitions[i].External {
+			continue
+		}
+		definitions[i].Handler = routeRecorder(definitions[i].RouteName, handled)
+	}
+	recording, err := telegram.NewCommandModules(telegram.CommandModule{
+		Name:           "recording",
+		PrivateQueries: commands.HasPrivateQueries(),
+		Commands:       definitions,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return recording
 }
 
 func dispatchRouteNames(t *testing.T, fixture *dispatchFixture, update telego.Update) []string {
@@ -96,7 +83,7 @@ func dispatchRouteNames(t *testing.T, fixture *dispatchFixture, update telego.Up
 		fixture.cfg,
 		fixture.settings,
 		fixture.connector,
-		recordingHandlers(fixture, &handled),
+		recordingHandlers(t, fixture, &handled),
 	)
 	handler, err := th.NewBotHandler(fixture.bot, nil)
 	if err != nil {

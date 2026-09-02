@@ -10,57 +10,16 @@ import (
 	tu "github.com/mymmrac/telego/telegoutil"
 )
 
-func memberCommands(l i18n.Lang) []telego.BotCommand {
-	// Keep menu descriptions short because Telegram truncates them.
-	menu := i18n.Messages.Bot.Menu.Member
-	return []telego.BotCommand{
-		{Command: "help", Description: menu.Help.For(l)},
-		{Command: "pkg", Description: menu.Pkg.For(l)},
-		{Command: "use", Description: menu.Use.For(l)},
-		{Command: "bug", Description: menu.Bug.For(l)},
-		{Command: "news", Description: menu.News.For(l)},
-		{Command: "wiki", Description: menu.Wiki.For(l)},
-		{Command: "bbs", Description: menu.BBS.For(l)},
-		{Command: "pkgs", Description: menu.Pkgs.For(l)},
-		{Command: "distro", Description: menu.Distro.For(l)},
-		{Command: "arm", Description: menu.Arm.For(l)},
-		{Command: "armpkgs", Description: menu.ArmPkgs.For(l)},
-		{Command: "kernel", Description: menu.Kernel.For(l)},
-		{Command: "man", Description: menu.Man.For(l)},
-		{Command: "cve", Description: menu.CVE.For(l)},
-		{Command: "repology", Description: menu.Repology.For(l)},
-		{Command: "ping", Description: menu.Ping.For(l)},
-		{Command: "stats", Description: menu.Stats.For(l)},
-	}
+func (s *Updates) memberCommands(l i18n.Lang) []telego.BotCommand {
+	return s.handlers.Commands.MemberMenu(l)
 }
 
-func ownerCommands(l i18n.Lang) []telego.BotCommand {
-	menu := i18n.Messages.Bot.Menu.Owner
-	return append([]telego.BotCommand{
-		{Command: "enroll", Description: menu.Enroll.For(l)},
-		{Command: "unregister", Description: menu.Unregister.For(l)},
-	}, memberCommands(l)...)
+func (s *Updates) ownerCommands(l i18n.Lang) []telego.BotCommand {
+	return s.handlers.Commands.OwnerMenu(l)
 }
 
-func adminCommands(l i18n.Lang, warnLimit int) []telego.BotCommand {
-	menu := i18n.Messages.Bot.Menu.Admin
-	return append([]telego.BotCommand{
-		{Command: "start", Description: menu.Start.For(l)},
-		{Command: "settings", Description: i18n.Messages.Panel.Menu.Settings.For(l)},
-		{Command: "stop", Description: menu.Stop.For(l)},
-		{Command: "mute", Description: menu.Mute.For(l)},
-		{Command: "unmute", Description: menu.Unmute.For(l)},
-		{Command: "sb", Description: menu.Purge.For(l)},
-		{Command: "ban", Description: menu.Ban.For(l)},
-		{Command: "warn", Description: menu.Warn.Render(l, warnLimit)},
-		{Command: "clearwarn", Description: menu.ClearWarn.For(l)},
-		{Command: "bc", Description: menu.Channel.For(l)},
-		{Command: "rich", Description: menu.RichText.For(l)},
-		{Command: "spoiler", Description: menu.NameSpoiler.For(l)},
-		{Command: "vmode", Description: menu.VerificationMode.For(l)},
-		{Command: "autodel", Description: menu.AutoDelete.For(l)},
-		{Command: "bantime", Description: menu.BanTime.For(l)},
-	}, memberCommands(l)...)
+func (s *Updates) adminCommands(l i18n.Lang) []telego.BotCommand {
+	return s.handlers.Commands.AdministratorMenu(l)
 }
 
 // SetupCommands registers member, administrator, and claimed-owner Telegram command menus.
@@ -91,8 +50,8 @@ func (s *Updates) SetupCommands(ctx context.Context, bot *telego.Bot) {
 		{name: "zh", lang: i18n.LangZH, code: "zh"},
 		{name: "en", lang: i18n.LangEN, code: "en"},
 	} {
-		member := memberCommands(language.lang)
-		admin := adminCommands(language.lang, s.cfg.WarnLimit)
+		member := s.memberCommands(language.lang)
+		admin := s.adminCommands(language.lang)
 		menus = append(menus,
 			commandMenu{name: "members/" + language.name, commands: member,
 				scope: &telego.BotCommandScopeDefault{Type: "default"}, languageCode: language.code},
@@ -101,7 +60,7 @@ func (s *Updates) SetupCommands(ctx context.Context, bot *telego.Bot) {
 		)
 		if ownerID != 0 {
 			menus = append(menus, commandMenu{
-				name: "owner/" + language.name, commands: ownerCommands(language.lang),
+				name: "owner/" + language.name, commands: s.ownerCommands(language.lang),
 				scope: &telego.BotCommandScopeChat{Type: "chat", ChatID: tu.ID(ownerID)}, languageCode: language.code,
 			})
 		}
@@ -110,8 +69,8 @@ func (s *Updates) SetupCommands(ctx context.Context, bot *telego.Bot) {
 		if s.groupLanguage(groupID) != i18n.LangZHHant {
 			continue
 		}
-		member := memberCommands(i18n.LangZHHant)
-		admin := adminCommands(i18n.LangZHHant, s.cfg.WarnLimit)
+		member := s.memberCommands(i18n.LangZHHant)
+		admin := s.adminCommands(i18n.LangZHHant)
 		menus = append(menus,
 			commandMenu{name: fmt.Sprintf("members/chat/%d", groupID), commands: member,
 				scope: &telego.BotCommandScopeChat{Type: "chat", ChatID: tu.ID(groupID)}},

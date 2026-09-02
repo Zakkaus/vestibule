@@ -194,6 +194,43 @@ func TestHelpUsesProcessPrivateQueryRate(t *testing.T) {
 	}
 }
 
+func TestHelpOmitsDisabledModuleCommands(t *testing.T) {
+	cfg := &settings.Config{PrivateQueryPerMin: 3}
+	store, err := settings.NewStore("", testSettingsBaseline(t, cfg), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fake := newFakeAdminBot()
+	bot := newAPITestBot(t, fake)
+	administration, verification := newAdminTestApplication(t, cfg, store, bot)
+	defer verification.Shutdown()
+	commands, err := telegram.NewCommandModules(telegram.CommandModule{
+		Name: "core",
+		Commands: []telegram.CommandDefinition{{
+			Name: "help", Description: i18n.Messages.Bot.Menu.Member.Help.For,
+			Audience: telegram.CommandMember, RouteName: "panel.help",
+			Handler: func(_ *th.Context, _ telego.Update) error { return nil },
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	administration.SetCommandModules(commands)
+
+	runFakeHandler(t, bot, administration.OnHelp, telego.Update{Message: &telego.Message{
+		Chat: telego.Chat{ID: 7, Type: telego.ChatTypePrivate},
+		From: &telego.User{ID: 7, LanguageCode: "en"},
+	}})
+	if got, want := fake.lastSendText, commands.MemberHelp(i18n.LangEN); got != want {
+		t.Errorf("disabled-module help = %q, want %q", got, want)
+	}
+	for _, command := range []string{"/pkg", "/wiki", "/repology"} {
+		if strings.Contains(fake.lastSendText, command) {
+			t.Errorf("disabled command %s remains in /help", command)
+		}
+	}
+}
+
 func TestSettingsCommandReportsWriteFailure(t *testing.T) {
 	cfg := runtimeSettingsTestConfig()
 	cfg.NotifyTTLSeconds = -1

@@ -45,7 +45,7 @@ They render in the tokens they document, so a broken token breaks the page.
 ## What it has to become
 
 1. Anyone can add the bot to their own group and configure it themselves.
-2. The web console covers every setting.
+2. The web console covers every group setting; process-level `disabled_modules` selects optional `gentoo` and `linux` bot modules.
 3. State lives in a database and survives concurrency and restarts without loss or double
    settlement.
 4. One command deploys it, and a failed upgrade rolls itself back.

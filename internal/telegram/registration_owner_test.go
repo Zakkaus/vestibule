@@ -62,7 +62,7 @@ func TestOwnerClaimRefreshesCommandMenus(t *testing.T) {
 	service := newRegistrationService(
 		context.Background(), bot, settings, cfg, "verify_test_bot", testBotID, nil, nil, nil,
 	)
-	application := NewUpdates(cfg, settings, nil, HandlerSet{})
+	application := NewUpdates(cfg, settings, nil, HandlerSet{Commands: testCommandModules(t)})
 	service.onOwnerClaimed = func(ctx context.Context) {
 		application.SetupCommands(ctx, bot)
 	}

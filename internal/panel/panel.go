@@ -45,7 +45,6 @@ type Lookup interface {
 	AutoDelete(groupID int64) (time.Duration, bool)
 }
 
-// Panel owns the existing administration handlers and their policy gates.
 type Panel struct {
 	settings   *settings.Store
 	telegram   *telegram.Connector
@@ -53,6 +52,7 @@ type Panel struct {
 	verifier   Verification
 	moderation Moderation
 	lookups    Lookup
+	commands   telegram.CommandModules
 	version    string
 	startedAt  time.Time
 	panelState *settingsPanelState
@@ -81,6 +81,11 @@ func New(
 		startedAt:  startedAt,
 		panelState: newSettingsPanelState(),
 	}
+}
+
+// SetCommandModules supplies the process-wide command surface before update polling starts.
+func (v *Panel) SetCommandModules(commands telegram.CommandModules) {
+	v.commands = commands
 }
 
 func uptimeStr(start time.Time) string {
@@ -313,6 +318,24 @@ func memberHelpText(l i18n.Lang) string {
 	return i18n.Messages.Panel.Help.Member.For(l)
 }
 
+func (v *Panel) memberHelpText(l i18n.Lang) string {
+	if !v.commands.HasCommands() {
+		return memberHelpText(l)
+	}
+	return v.commands.MemberHelp(l)
+}
+
+func (v *Panel) administratorHelpText(l i18n.Lang) string {
+	if !v.commands.HasCommands() {
+		return i18n.Messages.Panel.Help.Admin.Render(l, v.cfg.WarnLimit)
+	}
+	return v.commands.AdministratorHelp(l, v.cfg.WarnLimit)
+}
+
+func (v *Panel) hasPrivateQueries() bool {
+	return !v.commands.HasCommands() || v.commands.HasPrivateQueries()
+}
+
 // Settings and verification commands require a fresh, successful admin lookup.
 func (v *Panel) isGroupAdmin(ctx context.Context, _ *telego.Bot, chatID, userID int64) bool {
 	ok, err := v.telegram.FreshAdmin(ctx, chatID, userID)
@@ -347,19 +370,21 @@ func (v *Panel) OnHelp(ctx *th.Context, update telego.Update) error {
 	chatID := msg.Chat.ID
 	inGroup := v.isGroup(chatID)
 	l := v.requesterLanguage(msg)
-	help := memberHelpText(l)
+	help := v.memberHelpText(l)
 	if inGroup {
 		help += "\n\n" + i18n.Messages.Panel.Help.GroupState.Render(l, v.stateText(l, chatID))
 	}
 	if inGroup && v.isGroupAdminCached(c, bot, chatID, msg.From.ID) {
-		help += "\n\n" + i18n.Messages.Panel.Help.Admin.Render(l, v.cfg.WarnLimit)
+		help += "\n\n" + v.administratorHelpText(l)
 	}
 	if inGroup {
 		_ = bot.DeleteMessage(c, &telego.DeleteMessageParams{ChatID: tu.ID(chatID), MessageID: msg.MessageID})
 		v.notify(c, bot, chatID, help)
 		return nil
 	}
-	help += "\n\n" + i18n.Messages.Panel.Help.DirectMessageNote.Render(l, v.privateQueryPerMin())
+	if v.hasPrivateQueries() {
+		help += "\n\n" + i18n.Messages.Panel.Help.DirectMessageNote.Render(l, v.privateQueryPerMin())
+	}
 	// Plain text keeps angle-bracket placeholders from being parsed as Telegram HTML.
 	_, _ = bot.SendMessage(c, tu.Message(tu.ID(chatID), help))
 	return nil
