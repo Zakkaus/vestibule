@@ -39,11 +39,11 @@ run "rule evaluation remains directly callable pure behavior" \
   -run '^(TestRuleRejectsBeforeAccept|TestVersionRangeAcceptsNormalizedProcVersionOutput|TestOneOfAnswerNormalization)$' \
   -count=1
 exempt "console test-answer directly calls the same rule entry point" \
-  "POST /api/chats/{id}/rules/test is unimplemented; route ownership is pending at PLAN-v5.md:1062"
+  "POST /api/chats/{id}/rules/test is unwritten; phase eleven owns it (decided 2026-09-02)"
 
 # This was explicitly excluded from phase two because no source implementation exists.
 exempt "structural-signal samples and assertions" \
-  "the feature was not written; PLAN-v5.md:292-303 and :1064 defer the decision"
+  "structural signal is unwritten; phase eleven owns it (decided 2026-09-02)"
 
 [ "$fail" -eq 0 ] && echo "phase 2 acceptance: passed" || echo "phase 2 acceptance: FAILED" >&2
 exit "$fail"

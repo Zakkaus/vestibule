@@ -196,6 +196,7 @@ python3 scripts/check-phase-seams.py     # no screen reaches for a later phase's
 python3 scripts/check-console-routes.py  # implemented console routes match the exhaustive architecture table
 
 python3 scripts/check-phase-acceptance.py  # every completed plan phase has acceptance coverage
+python3 scripts/check-acceptance-exemptions.py  # every EXEMPT reason can still be true
 # The vendored copies must stay byte-identical to the design system they came
 # from. That is two questions and they need two gates.
 #
@@ -258,7 +259,13 @@ A completed phase's acceptance is a script, not a paragraph. Its script is
 order. An `EXEMPT` line names a clause that cannot run
 mechanically and why; it never reads as a pass.
 `scripts/check-phase-acceptance.py` refuses a plan whose completed phase has
-neither that script nor a written phase-level exemption. Phase one's script
+neither that script nor a written phase-level exemption. It reads whether a
+reason is present, not whether it is still true, so
+`scripts/check-acceptance-exemptions.py` reads the reason: an exemption may not
+rest on a phase the plan marks complete, nor call a decision open without
+citing a row of the open-questions table that is still open. Four reasons had
+expired at once when it was written, and one of them was hiding a clause that
+by then passed. Phase one's script
 still compares the baselined-violation count in `scripts/held.txt` as a ratchet:
 the check fails when the number rises **and** when it falls without the file
 being lowered to match, so progress is recorded rather than left as headroom to

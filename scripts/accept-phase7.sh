@@ -19,7 +19,7 @@ fi
 
 # The literal three-locale matrix conflicts with the implemented acceptance.
 exempt "every screen runs separately in all three locales" \
-  "render-gate measures all locale widths then runs the widest; the contradiction is pending at PLAN-v5.md:1063"
+  "render-gate measures all locale widths then runs the widest; phase eleven runs every locale on a lower frequency (decided 2026-09-02)"
 
 # The implemented render gate discovers routes and checks the visual invariants in Chromium.
 log=$(mktemp "${TMPDIR:-/tmp}/accept-phase7.XXXXXX") || exit 1
