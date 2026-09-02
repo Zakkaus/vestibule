@@ -28,6 +28,7 @@ jobs:
           python3 scripts/check-test-chat-ids.py internal cmd testdata
           python3 scripts/check-vendored.py
           python3 scripts/check-locale-catalogues.py
+          python3 scripts/check-inherited-commands.py
           python3 scripts/check-migration-declarations.py migrations
           python3 scripts/check-phase-acceptance.py
           go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...

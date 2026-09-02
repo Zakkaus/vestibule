@@ -197,6 +197,7 @@ python3 scripts/check-phase-acceptance.py  # every completed plan phase has acce
 # the hashes recorded when the copy was taken, so CI runs it:
 python3 scripts/check-vendored.py    # copies match scripts/vendored-manifest.json
 python3 scripts/check-locale-catalogues.py  # three catalogues agree, and the code's keys exist
+python3 scripts/check-inherited-commands.py  # every command the previous generation answered still exists
 
 # "Has the source moved forward" needs the source, which lives on a developer's
 # machine, so it stays local. When it reports drift, re-copy and re-record the
