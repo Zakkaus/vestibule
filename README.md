@@ -12,7 +12,7 @@ literally where an applicant is: outside the group, holding.
 
 **Being rewritten.** The tree started as `gentoo-zh-verify-bot` v4.5.6 carried over and
 renamed. Behaviour is unchanged so far: the rewrite is repackaging first, and every phase
-so far has moved code without altering what it decides. `docs/PLAN-v5.md` has the eleven
+so far has moved code without altering what it decides. `docs/PLAN-v5.md` has the twelve
 phases, what each one accepts, and what it deliberately does not do.
 
 Phase zero and phase one are complete. The verification core is `internal/verification`,
