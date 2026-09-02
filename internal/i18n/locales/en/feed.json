@@ -13,6 +13,5 @@
     "creation_date": "Created"
   },
   "config": {
-    "control_group_only": "⛔ Run this command in the control group (ID %[1]d)."
   }
 }
