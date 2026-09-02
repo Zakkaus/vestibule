@@ -2244,6 +2244,7 @@ migrations/01-settings.sql      settings_revision</div>
           <tr><td class="mono">POST /api/chats/{id}/packages</td><td>装一个包。先返回它将改动哪些项，确认后才落库</td></tr>
           <tr><td class="mono">GET · PATCH /api/me/preferences</td><td>看的人自己的偏好，不属于任何群</td></tr>
           <tr><td class="mono">GET /api/status</td><td>诊断屏。版本、三项验证前置、证书续期、队列积压。<b>只有运维可见</b></td></tr>
+          <tr><td class="mono">GET /api/process/settings</td><td>实例级设置的只读视图，每项带来源（出厂默认 / 用户文件 / 群覆盖）。<b>只有运维可见</b>，没有写入路由</td></tr>
           <tr><td class="mono">POST /api/status/upgrade</td><td>发起升级，只写目标版本，执行在宿主侧。同上，只有运维</td></tr>
           <tr><td class="mono">GET /verify/{token}</td><td><b>长期存在的唯一公开面。</b>令牌一次性、带签名与有效期，不复用管理会话</td></tr>
           <tr><td class="mono">GET · POST /setup/{token}</td><td><b>只在认领之前存在。</b>安装脚本打印的一次性链接落在这里，
