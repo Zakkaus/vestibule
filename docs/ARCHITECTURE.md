@@ -1116,7 +1116,7 @@ policr-mini 选了另一条：把 Telegram 的权限镜像进 `permissions` 表�
 | GET /api/chats/{id}/packages | 已装的配置包与可装的包 |
 | POST /api/chats/{id}/packages | 装一个包。先返回它将改动哪些项，确认后才落库 |
 | GET · PATCH /api/me/preferences | 看的人自己的偏好，不属于任何群 |
-| GET /api/status | 诊断屏与版本屏。健康、当前版本、设置持久化、Bot API 探测和宿主替换状态。**只有运维可见** |
+| GET /api/status | 诊断屏与版本屏。健康、当前版本、设置持久化、Bot API 探测、回退条件读数和宿主替换状态。**只有运维可见** |
 | GET /api/status/release | 运维明确操作后，按需读取固定 GitHub 仓库的最新正式发布、变更说明与目标结构清单；失败不影响本地状态。同上，只有运维 |
 | GET /api/process/settings | 实例级设置的只读视图，每项带来源（出厂默认 / 用户文件 / 群覆盖）。**只有运维可见**，没有写入路由 |
 | POST /api/status/upgrade | 发起升级，只写目标版本，执行在宿主侧。同上，只有运维 |
