@@ -40,6 +40,7 @@ def main() -> int:
         return 1
 
     scanned = 0
+    seen: set[str] = set()
     failures = []
     for path in sorted(package.glob("*.go")):
         if path.name.endswith("_test.go"):
@@ -49,6 +50,7 @@ def main() -> int:
             if not CALL.search(line):
                 continue
             if line.strip() in ALLOWED:
+                seen.add(line.strip())
                 continue
             failures.append("%s:%d reads the wall clock: %s"
                             % (path.relative_to(ROOT), number, line.strip()))
@@ -56,6 +58,17 @@ def main() -> int:
     if scanned == 0:
         print("FAIL check-one-clock: no Go source was read from %s" % package)
         return 1
+
+    # An allowed line is an exception to this rule, and an exception with nothing behind
+    # it is how the rule stops applying without anyone deciding to stop it. Every entry
+    # holds a time.Now() call, so requiring each to still be in the package also proves
+    # the pattern above still matches what this package writes: if time.Now() were spelled
+    # some other way tomorrow, the scan would find nothing and report a clean pass.
+    for line, reason in sorted(ALLOWED.items()):
+        if line not in seen:
+            failures.append("the allowed line %r is not in %s any more (%s); remove the "
+                            "exception, or this rule is exempting code that is gone"
+                            % (line, package.relative_to(ROOT), reason))
 
     if failures:
         print("FAIL check-one-clock: this package decides against a clock a test "
