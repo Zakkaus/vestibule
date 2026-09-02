@@ -20,16 +20,23 @@ type authorizationCheck struct {
 
 type authorizationTrackingTelegram struct {
 	*fakeModBot
-	freshAdmin   bool
-	freshErr     error
-	cachedAdmin  bool
-	cachedErr    error
+	freshAdmin  bool
+	freshErr    error
+	cachedAdmin bool
+	cachedErr   error
+	// Both lookups are fresh now, so a single answer for all of them cannot tell the
+	// caller from the target: everyone an administrator means the command refuses to
+	// touch its target, and nobody one means it refuses its caller.
+	admins       map[int64]bool
 	freshChecks  []authorizationCheck
 	cachedChecks []authorizationCheck
 }
 
 func (b *authorizationTrackingTelegram) FreshAdmin(_ context.Context, chatID, userID int64) (bool, error) {
 	b.freshChecks = append(b.freshChecks, authorizationCheck{chatID: chatID, userID: userID})
+	if b.admins != nil {
+		return b.admins[userID], b.freshErr
+	}
 	return b.freshAdmin, b.freshErr
 }
 
@@ -69,15 +76,15 @@ func newAuthorizationTestService(t *testing.T, telegram Telegram) *Service {
 	return service
 }
 
-func TestBanAndMuteAuthorizationChecksCallerFreshAndTargetCached(t *testing.T) {
+func TestBanAndMuteAuthorizationChecksCallerAndTargetFresh(t *testing.T) {
 	for _, action := range authorizationActions() {
 		t.Run(action.name, func(t *testing.T) {
+			message := moderationCommand(authorizationTestGroupID, action.text)
 			telegram := &authorizationTrackingTelegram{
 				fakeModBot: newFakeMod(),
-				freshAdmin: true,
+				admins:     map[int64]bool{message.From.ID: true},
 			}
 			service := newAuthorizationTestService(t, telegram)
-			message := moderationCommand(authorizationTestGroupID, action.text)
 			handler := func(ctx *th.Context, update telego.Update) error {
 				return action.handler(service, ctx, update)
 			}
@@ -85,11 +92,15 @@ func TestBanAndMuteAuthorizationChecksCallerFreshAndTargetCached(t *testing.T) {
 
 			wantCaller := authorizationCheck{chatID: authorizationTestGroupID, userID: message.From.ID}
 			wantTarget := authorizationCheck{chatID: authorizationTestGroupID, userID: message.ReplyToMessage.From.ID}
-			if len(telegram.freshChecks) != 1 || telegram.freshChecks[0] != wantCaller {
-				t.Errorf("fresh admin checks = %v, want caller %v: a sensitive command must recheck its caller", telegram.freshChecks, wantCaller)
+			want := []authorizationCheck{wantCaller, wantTarget}
+			if len(telegram.freshChecks) != len(want) ||
+				telegram.freshChecks[0] != want[0] || telegram.freshChecks[1] != want[1] {
+				t.Errorf("fresh admin checks = %v, want %v: a sensitive command rechecks the caller "+
+					"and the target, in that order", telegram.freshChecks, want)
 			}
-			if len(telegram.cachedChecks) != 1 || telegram.cachedChecks[0] != wantTarget {
-				t.Errorf("cached admin checks = %v, want target %v: only the target check may use cached membership", telegram.cachedChecks, wantTarget)
+			if len(telegram.cachedChecks) != 0 {
+				t.Errorf("cached admin checks = %v, want none: a revoked administrator would stay "+
+					"protected for the life of the cache entry", telegram.cachedChecks)
 			}
 			if got := action.calls(telegram.fakeModBot); got != 1 {
 				t.Errorf("%s calls = %d, want 1 after an administrator authorized the command", action.name, got)
