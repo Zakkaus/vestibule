@@ -1799,8 +1799,12 @@ func (v *Service) adminRecord(c context.Context, bot Gateway, groupID int64, tex
 	v.gatewayFor(bot).AuditLog(c, v.adminLogChatID(groupID), text)
 }
 
-// A failure nobody can act on is not worth an operator notice. A deactivated applicant cannot be
-// approved, declined, or settled by an administrator either, so the group hears nothing.
+// A settlement failure the bot cannot retry is still worth a log line, but not an operator notice.
+// Telegram refuses approve, decline and ban alike once the account is deactivated, so a notice
+// would name no action this bot can offer. Whether an administrator can clear the join request by
+// hand is a separate question the log line above stakes out and nobody here has verified; the
+// suppression deliberately does not depend on the answer, and TestSettlementAlertStaysSilentOnly-
+// ForADeactivatedApplicant pins both directions of it.
 func (v *Service) settlementAlert(c context.Context, bot Gateway, gid int64, err error, text string) {
 	if gatewayFailureHas(err, FailureApplicantGone) {
 		return
