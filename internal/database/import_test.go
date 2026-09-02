@@ -43,6 +43,7 @@ func TestImportLegacyStateReplay(t *testing.T) {
 	first, err := ImportLegacyState(ctx, db, ImportOptions{
 		StateDirectory:  stateDirectory,
 		BackupDirectory: filepath.Join(t.TempDir(), "first-backup"),
+		Pending:         PendingCarry,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -50,6 +51,7 @@ func TestImportLegacyStateReplay(t *testing.T) {
 	second, err := ImportLegacyState(ctx, db, ImportOptions{
 		StateDirectory:  stateDirectory,
 		BackupDirectory: filepath.Join(t.TempDir(), "second-backup"),
+		Pending:         PendingCarry,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -87,6 +89,7 @@ func TestImportLegacyStateAcceptsEmptySnapshots(t *testing.T) {
 	}
 	report, err := ImportLegacyState(ctx, db, ImportOptions{
 		StateDirectory: stateDirectory, BackupDirectory: filepath.Join(t.TempDir(), "backup"),
+		Pending:         PendingCarry,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -113,6 +116,7 @@ func TestImportPreservesCorruptJSON(t *testing.T) {
 	_, err = ImportLegacyState(ctx, db, ImportOptions{
 		StateDirectory:  stateDirectory,
 		BackupDirectory: backupDirectory,
+		Pending:         PendingCarry,
 	})
 	if err == nil || !strings.Contains(err.Error(), "warns.json") {
 		t.Fatalf("corrupt import error = %v", err)

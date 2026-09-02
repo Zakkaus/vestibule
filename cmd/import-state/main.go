@@ -24,6 +24,7 @@ func run(ctx context.Context, args []string) error {
 	databaseType := flags.String("database-type", os.Getenv("VT_DATABASE_TYPE"), "dbutil driver name (default sqlite3-fk-wal)")
 	databaseURI := flags.String("database-uri", os.Getenv("VT_DATABASE_URI"), "database URI (default STATE_DIRECTORY/vestibule.db)")
 	backupDirectory := flags.String("backup-dir", "", "exact directory for this import backup")
+	pending := flags.String("pending", "", "what to do with the previous generation's open challenges: carry or drop (required)")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -38,6 +39,7 @@ func run(ctx context.Context, args []string) error {
 	}
 	report, importErr := database.ImportLegacyState(ctx, db, database.ImportOptions{
 		StateDirectory: *stateDirectory, BackupDirectory: *backupDirectory,
+		Pending: database.PendingDisposition(strings.TrimSpace(*pending)),
 	})
 	closeErr := db.Close()
 	if importErr != nil {

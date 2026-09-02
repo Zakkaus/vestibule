@@ -30,6 +30,7 @@ func TestImportRefusesWhileAnInstanceHoldsThePollingLease(t *testing.T) {
 	_, err = ImportLegacyState(ctx, db, ImportOptions{
 		StateDirectory:  copyLegacyFixtures(t),
 		BackupDirectory: filepath.Join(t.TempDir(), "held"),
+		Pending:         PendingCarry,
 	})
 	if err == nil {
 		t.Fatal("import ran while an instance held the polling lease; it would have replaced " +
@@ -45,6 +46,7 @@ func TestImportRefusesWhileAnInstanceHoldsThePollingLease(t *testing.T) {
 	report, err := ImportLegacyState(ctx, db, ImportOptions{
 		StateDirectory:  copyLegacyFixtures(t),
 		BackupDirectory: filepath.Join(t.TempDir(), "released"),
+		Pending:         PendingCarry,
 	})
 	if err != nil {
 		t.Fatalf("import after the lease was released: %v", err)
@@ -72,6 +74,7 @@ func TestImportProceedsWhenThePollingLeaseHasExpired(t *testing.T) {
 	if _, err := ImportLegacyState(ctx, db, ImportOptions{
 		StateDirectory:  copyLegacyFixtures(t),
 		BackupDirectory: filepath.Join(t.TempDir(), "expired"),
+		Pending:         PendingCarry,
 	}); err != nil {
 		t.Fatalf("import with an expired lease: %v; an expired holder is a stopped instance", err)
 	}

@@ -22,6 +22,7 @@ func TestImportLegacyStatePersistsFixtureSnapshots(t *testing.T) {
 	report, err := ImportLegacyState(ctx, db, ImportOptions{
 		StateDirectory:  copyLegacyFixtures(t),
 		BackupDirectory: filepath.Join(t.TempDir(), "backup"),
+		Pending:         PendingCarry,
 	})
 	if err != nil {
 		t.Errorf("ImportLegacyState fixture: %v", err)
@@ -132,6 +133,7 @@ func TestImportLegacyStateRejectsSilentlyDroppedSnapshot(t *testing.T) {
 	_, err = ImportLegacyState(ctx, db, ImportOptions{
 		StateDirectory:  copyLegacyFixtures(t),
 		BackupDirectory: filepath.Join(t.TempDir(), "backup"),
+		Pending:         PendingCarry,
 	})
 	if err == nil {
 		t.Fatal("ImportLegacyState succeeded after the verification failure snapshot was silently dropped")
