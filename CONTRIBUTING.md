@@ -208,6 +208,7 @@ python3 scripts/check-one-clock.py           # internal/verification reads time 
 python3 scripts/check-one-transport.py       # no screen reaches the API without the CSRF-bearing transport
 python3 scripts/check-links-resolve.py       # no link points at a route that does not exist
 python3 scripts/check-log-privacy.py         # no message body or challenge answer reaches the log
+python3 scripts/check-mutations-authorise.py # every mutating handler authorises before it writes
 
 # "Has the source moved forward" needs the source, which lives on a developer's
 # machine, so it stays local. When it reports drift, re-copy and re-record the
