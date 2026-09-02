@@ -35,6 +35,29 @@ DYNAMIC_KEY = re.compile(r"(?<![A-Za-z0-9_$])t\(\s*(?![\"'])")
 # component asks for the bare key and the catalogue never holds it.
 PLURAL_SUFFIXES = ("_zero", "_one", "_two", "_few", "_many", "_other")
 
+# What Intl.PluralRules answers for each locale, read from the runtime rather
+# than from memory: node -e 'new Intl.PluralRules(l).resolvedOptions()'. A
+# category the language does not have can never be selected, so a translator
+# maintains a string nobody will ever see; a category it does have and the
+# catalogue lacks renders the key. The table is here rather than derived at
+# check time because the job that runs this has no node.
+#
+# Adding a locale means adding its row. An unlisted locale fails.
+PLURAL_CATEGORIES = {
+    "en": {"one", "other"},
+    "zh-CN": {"other"},
+    "zh-TW": {"other"},
+    "ja": {"other"},
+    "ru": {"one", "few", "many", "other"},
+}
+
+
+def plural_stem(key: str) -> str:
+    for suffix in PLURAL_SUFFIXES:
+        if key.endswith(suffix):
+            return key[: -len(suffix)]
+    return key
+
 failures: list[str] = []
 
 
@@ -75,12 +98,18 @@ def main() -> int:
     for name, catalogue in sorted(catalogues.items()):
         if name == source_name:
             continue
-        for key in sorted(set(source) - set(catalogue)):
+        # Compare what a key means, not how it is spelled. Russian needs four
+        # plural forms where English needs two, so comparing leaf keys would
+        # have made a correct Russian catalogue impossible to add — the first
+        # thing found when preparing for it.
+        source_stems = {plural_stem(key) for key in source}
+        catalogue_stems = {plural_stem(key) for key in catalogue}
+        for stem in sorted(source_stems - catalogue_stems):
             failures.append("%s.json is missing %s, which %s.json has"
-                            % (name, key, source_name))
-        for key in sorted(set(catalogue) - set(source)):
+                            % (name, stem, source_name))
+        for stem in sorted(catalogue_stems - source_stems):
             failures.append("%s.json has %s, which %s.json does not"
-                            % (name, key, source_name))
+                            % (name, stem, source_name))
         for key in sorted(set(source) & set(catalogue)):
             wanted = set(PLACEHOLDER.findall(str(source[key])))
             got = set(PLACEHOLDER.findall(str(catalogue[key])))
@@ -88,6 +117,29 @@ def main() -> int:
                 failures.append("%s.json %s interpolates %s where %s.json "
                                 "interpolates %s" % (name, key, sorted(got) or "nothing",
                                                      source_name, sorted(wanted) or "nothing"))
+
+    # Each locale carries exactly the plural categories its language has.
+    for name, catalogue in sorted(catalogues.items()):
+        expected = PLURAL_CATEGORIES.get(name)
+        if expected is None:
+            failures.append("%s.json is a locale this check does not know the "
+                            "plural categories for — add its row from "
+                            "Intl.PluralRules rather than guessing" % name)
+            continue
+        groups = {}
+        for key in catalogue:
+            stem = plural_stem(key)
+            if stem == key:
+                continue
+            groups.setdefault(stem, set()).add(key[len(stem) + 1:])
+        for stem, found in sorted(groups.items()):
+            for extra in sorted(found - expected):
+                failures.append("%s.json defines %s_%s and %s never selects that "
+                                "category, so nobody can read it"
+                                % (name, stem, extra, name))
+            for missing in sorted(expected - found):
+                failures.append("%s.json has no %s_%s and %s selects that category"
+                                % (name, stem, missing, name))
 
     literal = 0
     dynamic = 0
