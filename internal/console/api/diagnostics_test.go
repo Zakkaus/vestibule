@@ -75,6 +75,16 @@ func TestGetDiagnosticsDistinguishesUnmeasuredAndZeroLatency(t *testing.T) {
 	}
 }
 
+func TestGetDiagnosticsReportsObserveOnlyMode(t *testing.T) {
+	persistence := &apiTestPersistenceService{}
+	server, cookies := diagnosticsTestServerWithMode(t, auth.RoleOperator, diagnosticsHealth(), persistence, true)
+	response := diagnosticsRequest(server, cookies, http.MethodGet)
+	body := decodeDiagnostics(t, response)
+	if response.Code != http.StatusOK || !body.ObserveOnly {
+		t.Fatalf("status=%d observe_only=%v, want 200 and true", response.Code, body.ObserveOnly)
+	}
+}
+
 func TestGetDiagnosticsIncludesRollbackObservations(t *testing.T) {
 	persistence := &apiTestPersistenceService{}
 	server, cookies := diagnosticsTestServer(t, auth.RoleOperator, diagnosticsHealth(), persistence)
@@ -180,7 +190,7 @@ func TestGetDiagnosticsRedactsPersistenceError(t *testing.T) {
 
 func TestGetDiagnosticsRejectsManager(t *testing.T) {
 	persistence := &apiTestPersistenceService{}
-	server, cookies := diagnosticsTestServer(t, auth.RoleManager, diagnosticsHealth(), persistence)
+	server, cookies := diagnosticsTestServerWithMode(t, auth.RoleManager, diagnosticsHealth(), persistence, true)
 	rejections, ok := server.routes.Load().server.rollbackRejections.(*apiTestRollbackRejectionService)
 	if !ok {
 		t.Fatal("diagnostics test server did not install a rollback rejection source")
@@ -221,6 +231,18 @@ func diagnosticsTestServer(
 	role auth.Role,
 	health *status.Health,
 	persistence PersistenceService,
+	replacements ...ReplacementService,
+) (*Server, []*http.Cookie) {
+	t.Helper()
+	return diagnosticsTestServerWithMode(t, role, health, persistence, false, replacements...)
+}
+
+func diagnosticsTestServerWithMode(
+	t *testing.T,
+	role auth.Role,
+	health *status.Health,
+	persistence PersistenceService,
+	observeOnly bool,
 	replacements ...ReplacementService,
 ) (*Server, []*http.Cookie) {
 	t.Helper()
@@ -270,6 +292,7 @@ func diagnosticsTestServer(
 		RollbackRejections:   rollbackRejections,
 		Replacement:          replacement,
 		Version:              "v5.1.0",
+		ObserveOnly:          observeOnly,
 	}), cookies.Result().Cookies()
 }
 
@@ -298,10 +321,11 @@ func assertDiagnosticsWireShape(t *testing.T, response *httptest.ResponseRecorde
 	if err := json.Unmarshal(response.Body.Bytes(), &root); err != nil {
 		t.Fatal(err)
 	}
-	if len(root) != 6 || root["version"] == nil || root["health"] == nil || root["bot_api"] == nil ||
-		root["persistence"] == nil || root["rollback_observations"] == nil || root["replacement"] == nil {
+	if len(root) != 7 || root["version"] == nil || root["observe_only"] == nil ||
+		root["health"] == nil || root["bot_api"] == nil || root["persistence"] == nil ||
+		root["rollback_observations"] == nil || root["replacement"] == nil {
 		t.Fatalf(
-			"diagnostics JSON root = %s, want version, health, bot_api, persistence, rollback_observations, and replacement fields",
+			"diagnostics JSON root = %s, want version, observe_only, health, bot_api, persistence, rollback_observations, and replacement fields",
 			response.Body.Bytes(),
 		)
 	}

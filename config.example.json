@@ -1,4 +1,5 @@
 {
+  "observe_only": false,
   "group_ids": [
     -1001234567890
   ]

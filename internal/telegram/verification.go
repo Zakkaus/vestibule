@@ -206,7 +206,7 @@ func verificationMember(member telego.ChatMember) verification.ChatMember {
 }
 
 // NewVerificationHandlers converts protocol updates before invoking the core service.
-func NewVerificationHandlers(service *verification.Service, gateway *VerificationGateway) VerificationHandlers {
+func NewVerificationHandlers(service *verification.Service, gateway verification.Gateway) VerificationHandlers {
 	return VerificationHandlers{
 		Answer:         verificationHandler(service.OnAnswer, gateway),
 		AdminAction:    verificationHandler(service.OnAdminAction, gateway),
@@ -226,7 +226,7 @@ func NewVerificationHandlers(service *verification.Service, gateway *Verificatio
 	}
 }
 
-func verificationHandler(handler verification.Handler, gateway *VerificationGateway) th.Handler {
+func verificationHandler(handler verification.Handler, gateway verification.Gateway) th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
 		return handler(verification.NewHandlerContext(ctx.Context(), gateway), verificationUpdate(update))
 	}

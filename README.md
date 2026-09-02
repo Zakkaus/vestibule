@@ -15,15 +15,15 @@ renamed. Behaviour is unchanged so far: the rewrite is repackaging first, and ev
 so far has moved code without altering what it decides. `docs/PLAN-v5.md` has the twelve
 phases, what each one accepts, and what it deliberately does not do.
 
-Phase zero and phase one are complete. The verification core is `internal/verification`,
-it imports no Telegram, and it reaches the outside through three ports derived from its own
-call sites: `Gateway`, `LiveProbe` and `Store`. Phase six is underway in slices, one branch
-per console screen.
+The verification core is `internal/verification`, it imports no Telegram, and it reaches
+the outside through three ports derived from its own call sites: `Gateway`, `LiveProbe`
+and `Store`. Which phases are finished is recorded in one place, the status column of the
+phase table in `docs/PLAN-v5.md`; this file used to repeat it and stopped at "phase six is underway".
 
 The previous generation is still running in production and will not be replaced until this
 one is ready.
 
-## The three references
+## The four references
 
 | To decide | Read |
 |---|---|

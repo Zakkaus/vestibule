@@ -10,7 +10,7 @@ import (
 
 func telegramHandlers(
 	verification *verification.Service,
-	verificationGateway *telegram.VerificationGateway,
+	verificationGateway verification.Gateway,
 	administration *panel.Panel,
 	moderation *moderate.Service,
 	commands telegram.CommandModules,

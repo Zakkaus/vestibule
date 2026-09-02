@@ -251,6 +251,8 @@ func (f *FeedConfig) Interval() time.Duration {
 
 // Config contains the validated JSON configuration.
 type Config struct {
+	// ObserveOnly records verification actions without changing Telegram state.
+	ObserveOnly bool `json:"observe_only"`
 	// DisabledModules turns off optional query and subscription modules for this bot instance.
 	DisabledModules []string `json:"disabled_modules"`
 	// Groups is the canonical guarded-group list after legacy IDs are merged.
