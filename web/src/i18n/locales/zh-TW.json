@@ -35,7 +35,8 @@
     },
     "unavailable": {
       "title": "暫時無法開啟控制台",
-      "description": "控制台沒有傳回可用的工作階段狀態。請稍後從 Telegram 開啟機器人的選單，或向機器人索取新的連結。"
+      "description": "控制台沒有傳回可用的工作階段狀態。請稍後從 Telegram 開啟機器人的選單，或向機器人索取新的連結。",
+      "retry": "重試"
     },
     "noSession": {
       "title": "從 Telegram 開啟控制台",

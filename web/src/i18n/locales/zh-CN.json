@@ -35,7 +35,8 @@
     },
     "unavailable": {
       "title": "暂时无法打开控制台",
-      "description": "控制台没有返回可用的会话状态。请稍后从 Telegram 打开机器人的菜单，或向机器人索取新的链接。"
+      "description": "控制台没有返回可用的会话状态。请稍后从 Telegram 打开机器人的菜单，或向机器人索取新的链接。",
+      "retry": "重试"
     },
     "noSession": {
       "title": "从 Telegram 打开控制台",

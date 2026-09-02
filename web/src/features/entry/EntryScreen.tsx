@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Navigate, useSearchParams } from "react-router-dom";
 
-import { useConsoleSession } from "../../app/session";
+import { retryConsoleSession, useConsoleSession } from "../../app/session";
 import type { ApiRequestError } from "../../lib/api";
 import { Icon } from "../../icons";
 import { entryFixtureFor, entryFixtures, type EntryFixture } from "./fixtures";
@@ -82,6 +82,18 @@ function EntryUnavailable({ error }: Readonly<{ error: ApiRequestError }>) {
         <p data-entry-copy role="alert">
           {t("entry.unavailable.description")}
         </p>
+        <button
+          type="button"
+          data-slot="button"
+          data-variant="outline"
+          data-size="sm"
+          onClick={() => {
+            void retryConsoleSession();
+          }}
+        >
+          <Icon name="refreshCw" />
+          {t("entry.unavailable.retry")}
+        </button>
       </div>
     </section>
   );

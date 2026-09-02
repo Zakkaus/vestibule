@@ -144,6 +144,15 @@ class ConsoleSessionStore {
     return session ? this.startGroupsLoad(session) : Promise.resolve();
   }
 
+  // start memoises, because every screen calls it and only the first should
+  // fetch. A transport failure has to be able to ask again, so this is the one
+  // place that clears the memo.
+  retrySession(initData: string | undefined): Promise<void> {
+    this.bootstrap = undefined;
+    this.publish({ state: "loading" });
+    return this.start(initData);
+  }
+
   private currentSession(): ConsoleSession | undefined {
     const { snapshot } = this;
     return "session" in snapshot ? snapshot.session : undefined;
@@ -209,6 +218,10 @@ export const consoleApi = consoleSessionStore.api;
 
 export function retryConsoleGroups(): Promise<void> {
   return consoleSessionStore.retryGroups();
+}
+
+export function retryConsoleSession(): Promise<void> {
+  return consoleSessionStore.retrySession(telegramInitData());
 }
 
 export function useConsoleSession(): ConsoleSessionState {
