@@ -1045,7 +1045,19 @@ Bot API 容器从独立的 `bot-api.env` 读取上游必需凭据。应用代码
 复用旧令牌的切换是原子的，但退回去要重新配置，而且中间那段两边都不在线。
 新令牌的代价是群里短期有两个机器人，换来的是任何时刻都能退回：
 旧的一直在，出问题就把新的移出群。
-并行期间新机器人先只观察不动作，确认它判断得和旧的一致，再给它权限。
+并行期间新机器人只记录判断、不发出任何动作，确认它判断得和旧的一致，再让它接手。
+
+**只观察是一个还没写的运行模式，不是「先不给权限」。**
+Bot API 规定，机器人必须持有 `can_invite_users` 管理员权限才会收到
+`chat_join_request`（`telego@v1.11.1/types.go:108`）。
+因为收得到和做得了是同一个权限，所以不给权限，它一条申请都收不到，无从比较；
+给了权限，approve 与 decline 就都在它手上。只观察必须由代码保证，
+而全仓没有这个模式，这一阶段要先把它写出来。
+
+这个模式要拦下全部对外写入，不只是 approve 与 decline。
+两个机器人收到同一条申请，如果新的照常发验证消息，申请人会收到两份题目，
+观察本身就改变了被观察的对象。所以新机器人只把它会做的判断写进自己的库，
+一个 Telegram 调用都不发；验收里「并行期两边判断一致」比的是这批记录与旧机器人的日志。
 
 **退回的条件写死在这里，不到当天再判断。**
 出现下面任意一条就退回，不讨论：
@@ -1063,6 +1075,10 @@ Bot API 容器从独立的 `bot-api.env` 读取上游必需凭据。应用代码
   读数：`rollback_observations.console_access`。它记录群访问验证返回
   `ErrAccessUnavailable` 的连续段；任一成功验证会清零。读 `streak.problem_span_seconds` 与
   `streak.exceeds_threshold`，同样以超过 `600` 秒为界。
+  **这个读数量的不是条文点名的那件事。** `ErrAccessUnavailable` 出自 `AuthorizeChat`
+  核验会话主体对某个群的权限，不出自 `RedeemOperatorLink`（`internal/console/auth/manager.go:229`）
+  或会话查找。会话兑换本身整体失败时，这个读数仍然显示正常。
+  切换之前要把兑换失败也计入，否则这一条只覆盖了它名字的一半。
 - 数据库写入失败率超过百分之一。
   读数：`rollback_observations.database_writes`。`scope` 是 `retry_store_write`，
   `window_seconds` 固定为 `600`；`total_writes` 是窗口内完成的逻辑写入数，
