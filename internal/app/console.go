@@ -25,10 +25,12 @@ func newConsoleAuthentication(
 	state *settings.Store,
 	connector *telegram.Connector,
 	bot *telego.Bot,
+	accessObserver auth.AccessAvailabilityObserver,
 ) (*auth.Manager, th.Handler, error) {
 	manager, err := auth.New(auth.Config{
 		BotToken: options.Token, AdminChecker: connector,
 		OperatorAllowed: func(telegramID int64) bool { return state.Registrations().OwnerID == telegramID },
+		AccessObserver:  accessObserver,
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("console authentication: %w", err)

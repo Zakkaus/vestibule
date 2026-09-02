@@ -49,7 +49,7 @@ func newTestVerifier(
 		gateway = telegram.NewVerificationGateway(connector)
 	}
 	service, err := verification.New(
-		settings, gateway, database.NewVerificationJSONStore(), cfg, &i18n.Messages, nil, identity, stateDirectory,
+		settings, gateway, database.NewVerificationJSONStore(), cfg, &i18n.Messages, nil, identity, stateDirectory, nil,
 	)
 	if err != nil {
 		t.Fatal(err)

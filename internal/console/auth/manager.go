@@ -77,6 +77,12 @@ type AdminChecker interface {
 	FreshAdmin(context.Context, int64, int64) (bool, error)
 }
 
+// AccessAvailabilityObserver records whether group-access checks are usable.
+type AccessAvailabilityObserver interface {
+	RecordConsoleAccessUnavailable()
+	RecordConsoleAccessVerified()
+}
+
 // Config makes all credential lifetimes and the bounded in-memory cache explicit.
 type Config struct {
 	BotToken        string
@@ -87,6 +93,7 @@ type Config struct {
 	Now             func() time.Time
 	OperatorAllowed func(int64) bool
 	AdminChecker    AdminChecker
+	AccessObserver  AccessAvailabilityObserver
 }
 
 type sessionRecord struct {
@@ -113,6 +120,7 @@ type Manager struct {
 	now             func() time.Time
 	operatorAllowed func(int64) bool
 	adminChecker    AdminChecker
+	accessObserver  AccessAvailabilityObserver
 
 	mu             sync.Mutex
 	sessions       map[string]sessionRecord
@@ -132,7 +140,7 @@ func New(config Config) (*Manager, error) {
 		sessionTTL:      durationAtMost(config.SessionTTL, defaultSessionTTL),
 		operatorLinkTTL: durationAtMost(config.OperatorLinkTTL, defaultLinkTTL),
 		maxEntries:      positiveOr(config.MaxEntries, defaultMaxEntries), now: functionOr(config.Now, time.Now),
-		operatorAllowed: config.OperatorAllowed, adminChecker: config.AdminChecker,
+		operatorAllowed: config.OperatorAllowed, adminChecker: config.AdminChecker, accessObserver: config.AccessObserver,
 		sessions: make(map[string]sessionRecord), sessionByUser: make(map[int64]string),
 		replayedHashes: make(map[string]time.Time), links: make(map[string]linkRecord),
 		linkHistory: make(map[string]linkTombstone),
@@ -296,10 +304,23 @@ func (m *Manager) ValidateCSRF(request *http.Request, session Session) error {
 	return nil
 }
 
+func (m *Manager) accessUnavailable() error {
+	if m.accessObserver != nil {
+		m.accessObserver.RecordConsoleAccessUnavailable()
+	}
+	return ErrAccessUnavailable
+}
+
+func (m *Manager) accessVerified() {
+	if m.accessObserver != nil {
+		m.accessObserver.RecordConsoleAccessVerified()
+	}
+}
+
 // AuthorizeChat verifies the session principal with the freshness required by intent.
 func (m *Manager) AuthorizeChat(ctx context.Context, session Session, chatID int64, intent AccessIntent) error {
 	if m.adminChecker == nil || session.Principal.TelegramID <= 0 || chatID == 0 {
-		return ErrAccessUnavailable
+		return m.accessUnavailable()
 	}
 	var allowed bool
 	var err error
@@ -309,11 +330,12 @@ func (m *Manager) AuthorizeChat(ctx context.Context, session Session, chatID int
 	case ReadAccess:
 		allowed, err = m.adminChecker.CachedAdmin(ctx, chatID, session.Principal.TelegramID)
 	default:
-		return ErrAccessUnavailable
+		return m.accessUnavailable()
 	}
 	if err != nil {
-		return ErrAccessUnavailable
+		return m.accessUnavailable()
 	}
+	m.accessVerified()
 	if !allowed {
 		return ErrAccessDenied
 	}

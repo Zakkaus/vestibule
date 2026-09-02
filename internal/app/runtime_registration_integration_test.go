@@ -267,7 +267,7 @@ func TestConfiguredGroupsKeepTenantStateIsolated(t *testing.T) {
 	service, err := verification.New(
 		state, telegram.NewVerificationGateway(connector), database.NewVerificationStore(db),
 		cfg, &i18n.Messages, nil, verification.Identity{ID: botID, Username: "tenant_test_bot"},
-		verificationStateNamespace(stateDirectory),
+		verificationStateNamespace(stateDirectory), nil,
 	)
 	if err != nil {
 		t.Fatal(err)

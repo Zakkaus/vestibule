@@ -8,6 +8,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/console/auth"
 	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/status"
+	"github.com/Zakkaus/vestibule/internal/verification"
 )
 
 // PersistenceService supplies the settings persistence state needed by diagnostics.
@@ -15,11 +16,22 @@ type PersistenceService interface {
 	Persistence() settings.PersistenceStatus
 }
 
+// RollbackObservationsService supplies process-local cutover measurements.
+type RollbackObservationsService interface {
+	Snapshot() status.RollbackSnapshot
+}
+
+// RollbackRejectionService supplies privacy-preserving rejected-challenge counts.
+type RollbackRejectionService interface {
+	RecentRejections(context.Context, time.Time) ([]verification.RejectionReasonCount, error)
+}
+
 type diagnosticsResponse struct {
 	Version     string                         `json:"version"`
 	Health      diagnosticsHealthResponse      `json:"health"`
 	BotAPI      diagnosticsBotAPIResponse      `json:"bot_api"`
 	Persistence diagnosticsPersistenceResponse `json:"persistence"`
+	Rollback    diagnosticsRollbackResponse    `json:"rollback_observations"`
 	Replacement diagnosticsReplacementResponse `json:"replacement"`
 }
 
@@ -62,13 +74,20 @@ func (s *Server) readDiagnostics(writer http.ResponseWriter, request *http.Reque
 		writeError(writer, http.StatusForbidden, "diagnostics_access_denied")
 		return
 	}
-	if s.health == nil || s.persistence == nil {
+	if s.health == nil || s.persistence == nil || s.rollbackObservations == nil || s.rollbackRejections == nil {
 		writeError(writer, http.StatusServiceUnavailable, "diagnostics_unavailable")
 		return
 	}
 	ctx, cancel := context.WithTimeout(request.Context(), healthProbeTimeout)
 	defer cancel()
 	health := s.health.Snapshot()
+	observations := s.rollbackObservations.Snapshot()
+	rejectionCtx, cancelRejections := context.WithTimeout(request.Context(), healthProbeTimeout)
+	defer cancelRejections()
+	rejections, err := s.rollbackRejections.RecentRejections(
+		rejectionCtx, observations.ObservedAt.Add(-verification.RollbackRejectionWindow),
+	)
+	rollback := diagnosticsRollbackView(observations, rejections, err == nil)
 	replacement := status.ReplacementStatus{}
 	if s.replacement != nil {
 		replacement = s.replacement.Status()
@@ -76,7 +95,9 @@ func (s *Server) readDiagnostics(writer http.ResponseWriter, request *http.Reque
 	writeJSON(
 		writer,
 		http.StatusOK,
-		diagnosticsView(s.version, health, s.health.Ready(ctx), s.persistence.Persistence(), replacement),
+		diagnosticsView(
+			s.version, health, s.health.Ready(ctx), s.persistence.Persistence(), replacement, rollback,
+		),
 	)
 }
 
@@ -86,6 +107,7 @@ func diagnosticsView(
 	ready bool,
 	persistence settings.PersistenceStatus,
 	replacement status.ReplacementStatus,
+	rollback diagnosticsRollbackResponse,
 ) diagnosticsResponse {
 	response := diagnosticsResponse{
 		Version: version,
@@ -98,6 +120,7 @@ func diagnosticsView(
 			Durable:    persistence.Durable,
 			Writable:   persistence.Writable,
 		},
+		Rollback: rollback,
 		Replacement: diagnosticsReplacementResponse{
 			UnitAvailable: replacement.UnitAvailable,
 		},
