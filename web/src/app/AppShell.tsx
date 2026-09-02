@@ -158,7 +158,8 @@ export function AppShell() {
           className="brand"
           to={{ pathname: "/groups", search: selectedGroupSearch }}
         >
-          <Icon name="layoutDashboard" />
+          {/* Placeholder mark: the same borrowed icon as the favicon. */}
+          <Icon name="shieldCheck" />
           <span className="name">{t("app.name")}</span>
         </Link>
         <div className="rule" />
