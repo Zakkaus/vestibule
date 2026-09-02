@@ -9,7 +9,7 @@ selected=all
 
 if [ "$#" -gt 0 ]; then
 	[ "$#" -eq 2 ] && [ "$1" = --case ] || {
-		echo "usage: test-install.sh [--case hardening|lifecycle|container|container-credentials|bot-env|failure-cleanup|rollback-preflight|checksums]" >&2
+		echo "usage: test-install.sh [--case hardening|lifecycle|container|container-credentials|bot-env|failure-cleanup|rollback-unit-state|rollback-preflight|checksums]" >&2
 		exit 2
 	}
 	selected=$2
@@ -116,8 +116,8 @@ case $1 in
 			chmod 600 "${VESTIBULE_ROOT}/var/lib/vestibule/claim.json"
 		fi
 		;;
-	is-enabled) printf 'enabled\n' ;;
-	is-active) printf 'active\n' ;;
+	is-enabled) printf '%s\n' "${FAKE_ENABLED:-enabled}" ;;
+	is-active) printf '%s\n' "${FAKE_ACTIVE:-active}" ;;
 esac
 [ "${FAIL_SYSTEMCTL:-}" != "$1" ] || exit 42
 EOF
@@ -444,6 +444,38 @@ case_failure_cleanup() {
 	pass "failed installation removes only resources created by that run"
 }
 
+case_rollback_unit_state() {
+	# A failed installation has to leave the unit as it found it. The native installer
+	# disables the service before it replaces anything, so a rollback that only restarts
+	# leaves a service running now and not after a reboot -- the failure nobody sees until
+	# the next boot.
+	for state in "enabled active enable restart" "disabled inactive disable stop"; do
+		set -- $state
+		was_enabled=$1
+		was_active=$2
+		want_enable=$3
+		want_active=$4
+		new_sandbox "rollback-unit-state-${was_enabled}"
+		run_success "${sandbox}/install.out" v1.0.0
+		: > "$systemctl_log"
+		FAKE_ENABLED=$was_enabled
+		FAKE_ACTIVE=$was_active
+		export FAKE_ENABLED FAKE_ACTIVE
+		fail_systemctl=restart
+		if run_installer v2.0.0 > "${sandbox}/rollback.out" 2>&1; then
+			fail "upgrade unexpectedly succeeded when systemctl restart failed"
+		fi
+		unset FAKE_ENABLED FAKE_ACTIVE
+		[ -s "$systemctl_log" ] ||
+			fail "rollback of a $was_enabled unit issued no systemctl call at all; the run said: $(tail -3 "${sandbox}/rollback.out" | tr '\n' ';')"
+		grep -qx "$want_enable vestibule" "$systemctl_log" ||
+			fail "rollback of a $was_enabled unit did not issue '$want_enable': $(tr '\n' ';' < "$systemctl_log")"
+		grep -qx "$want_active vestibule" "$systemctl_log" ||
+			fail "rollback of an $was_active unit did not issue '$want_active': $(tr '\n' ';' < "$systemctl_log")"
+	done
+	pass "a failed installation restores the unit's enabled and running state"
+}
+
 case_rollback_preflight() {
 	new_sandbox rollback-preflight
 	run_success "${sandbox}/install.out" v1.0.0
@@ -488,6 +520,7 @@ run_case() {
 		container-credentials) case_container_requires_bot_api_credentials ;;
 		bot-env) case_bot_env ;;
 		failure-cleanup) case_failure_cleanup ;;
+		rollback-unit-state) case_rollback_unit_state ;;
 		rollback-preflight) case_rollback_preflight ;;
 		checksums) case_checksums ;;
 		*) fail "unknown test case: $1" ;;
@@ -495,7 +528,7 @@ run_case() {
 }
 
 if [ "$selected" = all ]; then
-	for test_case in hardening lifecycle container container-credentials bot-env failure-cleanup rollback-preflight checksums; do
+	for test_case in hardening lifecycle container container-credentials bot-env failure-cleanup rollback-unit-state rollback-preflight checksums; do
 		run_case "$test_case"
 	done
 else
