@@ -26,6 +26,9 @@ instance* does is up to its operator, and section 4 is where they say so.
   groups. It uses them for the anti-spam and auto-reply features and does not
   store message text.
 - **Direct messages to the bot**, which is how an applicant answers a challenge.
+  After a verification settles, the question and its result are **not deleted** from that
+  private chat -- it is the applicant's own record of what happened. The challenge posted
+  in the group is deleted, because there it publicly shows that someone was being stopped.
 
 ## 2. What it stores
 

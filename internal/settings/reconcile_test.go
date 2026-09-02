@@ -7,74 +7,94 @@ import (
 
 const testRuntimeGroup int64 = -1009000000009
 
-// Promoting a runtime-registered group into the user file, or retiring a configured group, is
-// ordinary maintenance. Neither may silently discard stored overrides or registration metadata.
-func TestConfigDriftKeepsRuntimeDecisions(t *testing.T) {
-	cases := []struct {
-		name         string
-		mutate       func(base *SettingsBaseline)
-		wantWritable bool
-	}{
-		{
-			name: "registered group promoted into config",
-			mutate: func(base *SettingsBaseline) {
-				promoted := base.Factory
-				promoted.ID = testRuntimeGroup
-				base.Groups = append(base.Groups, promoted)
-			},
-		},
-		{
-			name: "configured group retired",
-			mutate: func(base *SettingsBaseline) {
-				base.Groups = base.Groups[1:]
-			},
-			wantWritable: true,
-		},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			path := filepath.Join(t.TempDir(), "settings.json")
-			first, err := NewStore(path, testSettingsBaseline(), nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-			registration := first.Registrations()
-			registration.OwnerID = 42
-			registration.RegisteredGroups = []RegisteredGroup{{ID: testRuntimeGroup, RegisteredBy: 42, Title: "Runtime"}}
-			if _, err := first.CommitRegistrations(registration.Revision, registration); err != nil {
-				t.Fatal(err)
-			}
-			target := testGroupB
-			group, _ := first.Settings(target)
-			overrides := group.Overrides()
-			disabled := false
-			overrides.Enabled = &disabled
-			if _, err := first.Update(target, group.Revision(), overrides); err != nil {
-				t.Fatal(err)
-			}
+func registerRuntimeTestGroup(t *testing.T, store *Store) {
+	t.Helper()
+	registration := store.Registrations()
+	registration.OwnerID = 42
+	registration.RegisteredGroups = []RegisteredGroup{{
+		ID: testRuntimeGroup, RegisteredBy: 42, Title: "Runtime",
+	}}
+	_, err := store.CommitRegistrations(registration.Revision, registration)
+	requireNoError(t, err)
+}
 
-			base := testSettingsBaseline()
-			tc.mutate(&base)
-			second, err := NewStore(path, base, nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-			survived, ok := second.Settings(target)
-			if !ok {
-				t.Fatal("the configured group must survive reconciliation")
-			}
-			if survived.Enabled().Value || survived.Enabled().Source != SourceChatOverride {
-				t.Errorf("Enabled = %#v, want the administrator's runtime override to survive", survived.Enabled())
-			}
-			if got := second.Registrations().OwnerID; got != 42 {
-				t.Errorf("OwnerID = %d, want 42: reconciliation must not forget who owns the bot", got)
-			}
-			if !second.IsGroup(testRuntimeGroup) {
-				t.Error("the runtime group is still guarded, whether it is registered or configured")
-			}
-			if got := second.Persistence().Writable; got != tc.wantWritable {
-				t.Errorf("writable = %v, want %v", got, tc.wantWritable)
-			}
-		})
+func disableTestGroup(t *testing.T, store *Store, groupID int64) {
+	t.Helper()
+	group := requireSettingsView(t, store, groupID)
+	overrides := group.Overrides()
+	overrides.Enabled = ptr(false)
+	_, err := store.Update(groupID, group.Revision(), overrides)
+	requireNoError(t, err)
+}
+
+func baselineWithoutGroup(t *testing.T, groupID int64) SettingsBaseline {
+	t.Helper()
+	baseline := testSettingsBaseline()
+	groups := make([]GroupBaseline, 0, len(baseline.Groups)-1)
+	found := false
+	for _, group := range baseline.Groups {
+		if group.ID == groupID {
+			found = true
+			continue
+		}
+		groups = append(groups, group)
 	}
+	if !found {
+		t.Fatalf("baseline does not contain group %d", groupID)
+	}
+	baseline.Groups = groups
+	return baseline
+}
+
+func TestConfiguredGroupPromotionKeepsRuntimeDecisions(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	first, err := NewStore(path, testSettingsBaseline(), nil)
+	requireNoError(t, err)
+	registerRuntimeTestGroup(t, first)
+	disableTestGroup(t, first, testRuntimeGroup)
+
+	baseline := testSettingsBaseline()
+	promoted := cloneGroupBaseline(baseline.Factory)
+	promoted.ID = testRuntimeGroup
+	baseline.Groups = append(baseline.Groups, promoted)
+	second, err := NewStore(path, baseline, nil)
+	requireNoError(t, err)
+
+	group := requireSettingsView(t, second, testRuntimeGroup)
+	requireEqual(t, group.Enabled(), Setting[bool]{Value: false, Source: SourceChatOverride},
+		"promoted group's runtime override")
+	registration := second.Registrations()
+	requireEqual(t, registration.OwnerID, int64(42), "owner after configured-group promotion")
+	requireEqual(t, len(registration.RegisteredGroups), 0, "runtime registrations after promotion")
+	if second.Persistence().Writable {
+		t.Error("promotion reconciliation remained writable without operator acknowledgement")
+	}
+}
+
+func TestConfiguredGroupRetirementPreservesOverrideForReaddition(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	first, err := NewStore(path, testSettingsBaseline(), nil)
+	requireNoError(t, err)
+	registerRuntimeTestGroup(t, first)
+	disableTestGroup(t, first, testGroupB)
+
+	retired, err := NewStore(path, baselineWithoutGroup(t, testGroupB), nil)
+	requireNoError(t, err)
+	if _, ok := retired.Settings(testGroupB); ok {
+		t.Fatal("retired configured group remained active without runtime registration")
+	}
+	if !retired.Persistence().Writable {
+		t.Error("retiring a configured group made unrelated settings read-only")
+	}
+	registration := retired.Registrations()
+	requireEqual(t, registration.OwnerID, int64(42), "owner after configured-group retirement")
+	if len(registration.RegisteredGroups) != 1 || registration.RegisteredGroups[0].ID != testRuntimeGroup {
+		t.Errorf("runtime registrations after retirement = %#v, want group %d", registration.RegisteredGroups, testRuntimeGroup)
+	}
+
+	restored, err := NewStore(path, testSettingsBaseline(), nil)
+	requireNoError(t, err)
+	group := requireSettingsView(t, restored, testGroupB)
+	requireEqual(t, group.Enabled(), Setting[bool]{Value: false, Source: SourceChatOverride},
+		"re-added group's retained runtime override")
 }
