@@ -35,8 +35,12 @@ IGNORED_SCRIPTS = set()
 
 def invocations(text: str) -> set:
     found = set()
-    # Repository scripts, with or without an interpreter in front.
-    for match in re.finditer(r"scripts/[A-Za-z0-9_./-]+\.(?:py|sh)", text):
+    # Repository scripts, with or without an interpreter in front. The negative
+    # look-behind keeps a script that lives outside the repository from being
+    # read as one inside it: the Chinese checker is invoked as
+    # ~/.claude/.../scripts/chinese_lint.py, and matching from "scripts/" alone
+    # turned it into a repository gate that CI appeared not to run.
+    for match in re.finditer(r"(?<![A-Za-z0-9_./~-])scripts/[A-Za-z0-9_./-]+\.(?:py|sh)", text):
         found.add(match.group(0))
     # npm scripts.
     for match in re.finditer(r"npm run ([a-z0-9:-]+)", text):
@@ -92,6 +96,35 @@ def main() -> int:
         if action not in contributing:
             missing.append(action + " (a CI action)")
 
+    # The other direction, which was missing and cost something: CONTRIBUTING
+    # said the vendored copies must stay byte-identical and gave the command,
+    # CI never ran it, and this check could not see that because it only asked
+    # whether every gate CI runs is documented. A documented gate nobody runs
+    # reads exactly like a gate.
+    unrun = []
+    for gate in sorted(documented):
+        if not gate.startswith("scripts/"):
+            # An invocation whose path is outside the repository cannot run on a
+            # runner. Those are local by construction; the count is printed so
+            # the exemption stays a decision rather than a hole.
+            continue
+        # The first version of this line also accepted the gate's directory
+        # appearing anywhere in the workflow, which is "scripts/" and therefore
+        # always true, so every documented gate was exempted and removing one
+        # from CI still passed. Ask for the gate itself.
+        if gate in workflow:
+            continue
+        unrun.append(gate)
+
+    if unrun:
+        print("FAIL check-gate-list: CONTRIBUTING documents these and CI does not run them")
+        for item in unrun:
+            print("  " + item)
+        print("\nA gate the document lists and no workflow runs is enforced by")
+        print("whoever remembers it. Either wire it into CI or say in the document")
+        print("why it cannot run there.")
+        return 1
+
     if missing:
         print("FAIL check-gate-list: CI runs these and CONTRIBUTING does not name them")
         for item in missing:
@@ -101,7 +134,8 @@ def main() -> int:
         print("have predicted from reading the repository.")
         return 1
 
-    print("check-gate-list: passed; every gate CI runs is named in CONTRIBUTING")
+    print("check-gate-list: passed; %d gates, each one CI runs is documented and "
+          "each one documented is run" % len(documented))
     return 0
 
 
