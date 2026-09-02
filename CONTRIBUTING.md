@@ -199,6 +199,7 @@ python3 scripts/check-vendored.py    # copies match scripts/vendored-manifest.js
 python3 scripts/check-locale-catalogues.py  # three catalogues agree, and the code's keys exist
 python3 scripts/check-inherited-commands.py  # every command the previous generation answered still exists
 python3 scripts/check-one-clock.py           # internal/verification reads time through its injected clock
+python3 scripts/check-one-transport.py       # no screen reaches the API without the CSRF-bearing transport
 
 # "Has the source moved forward" needs the source, which lives on a developer's
 # machine, so it stays local. When it reports drift, re-copy and re-record the
