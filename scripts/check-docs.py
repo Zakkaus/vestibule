@@ -195,7 +195,11 @@ def check_open_questions_have_a_future(plan_text: str) -> None:
         failures.append("plan: the open-questions table is gone")
         return
     region = plan_text[marker:plan_text.find("###", marker + 3)]
-    for match in re.finditer(r"^\| ([^|]+?) \| 阶段([零一二三四五六七八九十]+)([^|]*) \|",
+    # The space before the closing pipe was required, so a row written without
+    # one was not merely mis-parsed — it was invisible. 控制台域名 pointed at a
+    # phase that had since finished and this check passed, which is the failure
+    # it exists to prevent.
+    for match in re.finditer(r"^\| ([^|]+?) \| 阶段([零一二三四五六七八九十]+)([^|]*?)\s*\|",
                              region, re.M):
         question, phase, note = match.group(1).strip(), match.group(2), match.group(3)
         if phase in done:
