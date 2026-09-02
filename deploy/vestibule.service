@@ -15,6 +15,7 @@ NotifyAccess=main
 WatchdogSec=120s
 ExecStart=/usr/bin/env -- /usr/local/bin/vestibule --config /etc/vestibule/config.json
 EnvironmentFile=/etc/vestibule/bot.env
+EnvironmentFile=-/etc/vestibule/setup.env
 # persistent state dir (/var/lib/vestibule) so in-progress verifications survive restarts
 StateDirectory=vestibule
 StateDirectoryMode=0700

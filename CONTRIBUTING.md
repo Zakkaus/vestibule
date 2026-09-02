@@ -161,10 +161,11 @@ safe default is indistinguishable from a forgotten declaration without it.
 
 ## Before opening a PR
 
-CI runs these. The release workflow runs the Go half plus phase-acceptance
-coverage before publishing binaries. It skips frontend and document checks that
-do not bear on a Go binary, and the baseline ratchet, which compares a branch
-against its base and has nothing to compare on a tag. Run them locally first.
+CI runs these. The release workflow runs the Go and native-deployment checks,
+the exhaustive console-route contract, and phase-acceptance coverage before
+publishing binaries. It skips frontend and document checks that do not bear on
+a release, and the baseline ratchet, which compares a branch against its base
+and has nothing to compare on a tag. Run them locally first.
 **Clear the build and type caches first**: a stale cache turns a red gate green
 locally.
 
@@ -177,6 +178,8 @@ go vet ./...
 go build ./... && go build -tags gentoo ./...
 go test -race ./... && go test -race -tags gentoo ./...
 scripts/test-static-sqlite.sh    # the release build configuration, run rather than compiled
+scripts/test-install.sh           # isolated install, upgrade, rollback, status, and uninstall
+scripts/accept-phase9.sh          # phase-nine clauses stay full-sized; incomplete host paths print EXEMPT
 go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
 go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
 go run github.com/securego/gosec/v2/cmd/gosec@v2.28.0 -exclude=G304,G703,G706 ./...
@@ -189,6 +192,7 @@ python3 scripts/check-privacy-tables.py   # docs/PRIVACY.md names every table ho
 python3 scripts/check-migration-declarations.py migrations  # every migration declares rollback compatibility
 python3 scripts/check-schema-manifest.py deploy/vestibule-schema-manifest  # released schema metadata matches migrations.Table
 python3 scripts/check-phase-seams.py     # no screen reaches for a later phase's endpoints
+python3 scripts/check-console-routes.py  # implemented console routes match the exhaustive architecture table
 
 python3 scripts/check-phase-acceptance.py  # every completed plan phase has acceptance coverage
 # The vendored copies must stay byte-identical to the design system they came
