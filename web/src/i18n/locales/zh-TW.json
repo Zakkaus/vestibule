@@ -93,7 +93,6 @@
   "groups": {
     "title": "群組與頻道",
     "description": "這裡只列出目前帳號有權管理的群組。選擇一個群組，繼續查看它的等待佇列。",
-    "managedCount_one": "{{count}} 個可管理的群組",
     "managedCount_other": "{{count}} 個可管理的群組",
     "groupOption": "群組 {{id}}",
     "authorized": "已授權",
@@ -299,7 +298,6 @@
     },
     "save": {
       "label": "儲存管理與處罰設定",
-      "unsaved_one": "{{count}} 項變更尚未儲存",
       "unsaved_other": "{{count}} 項變更尚未儲存"
     },
     "actions": {
@@ -394,7 +392,6 @@
       "disabled": "停用",
       "enabledByDefault": "啟用（預設）",
       "disabledByDefault": "停用（預設）",
-      "seconds_one": "{{count}} 秒",
       "seconds_other": "{{count}} 秒"
     },
     "errors": {
@@ -477,7 +474,6 @@
     },
     "save": {
       "label": "儲存免驗證來源設定",
-      "unsaved_one": "{{count}} 項變更尚未儲存",
       "unsaved_other": "{{count}} 項變更尚未儲存"
     },
     "actions": {
@@ -734,7 +730,6 @@
     "questionBank": {
       "title": "選擇題",
       "description": "每道題至少有兩個選項。正確答案以選項在清單中的位置儲存。",
-      "count_one": "共 {{count}} 道選擇題",
       "count_other": "共 {{count}} 道選擇題",
       "empty": "尚無選擇題。新增第一道題後才能用於選擇題驗證。",
       "itemTitle": "選擇題 {{number}}",
@@ -753,7 +748,6 @@
       "builtin": "內建本地化題目",
       "custom": "自訂備用題",
       "builtinDescription": "機器人會按上面的答題語言使用隨程式提供的備用題目。",
-      "count_one": "共 {{count}} 道自訂備用題",
       "count_other": "共 {{count}} 道自訂備用題",
       "itemTitle": "備用題 {{number}}",
       "prompt": "題面",
@@ -1226,15 +1220,10 @@
     "values": {
       "enabled": "已啟用",
       "disabled": "已停用",
-      "seconds_one": "{{count}} 秒",
       "seconds_other": "{{count}} 秒",
-      "rules_one": "{{count}} 條",
       "rules_other": "{{count}} 條",
-      "groups_one": "{{count}} 個群組",
       "groups_other": "{{count}} 個群組",
-      "channels_one": "{{count}} 個頻道",
       "channels_other": "{{count}} 個頻道",
-      "warnings_one": "{{count}} 次警告",
       "warnings_other": "{{count}} 次警告",
       "verifyMode": {
         "kernel": "核心版本題",
@@ -1288,7 +1277,6 @@
       },
       "queue": {
         "title": "等待佇列",
-        "description_one": "有 {{count}} 份申請等待處理。",
         "description_other": "有 {{count}} 份申請等待處理。"
       },
       "diagnosticsUnavailable": {

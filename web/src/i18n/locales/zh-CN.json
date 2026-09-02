@@ -93,7 +93,6 @@
   "groups": {
     "title": "群与频道",
     "description": "这里仅列出当前账号有权管理的群。选择一个群，继续查看它的等待队列。",
-    "managedCount_one": "{{count}} 个可管理的群",
     "managedCount_other": "{{count}} 个可管理的群",
     "groupOption": "群 {{id}}",
     "authorized": "已授权",
@@ -299,7 +298,6 @@
     },
     "save": {
       "label": "保存管理与处罚设置",
-      "unsaved_one": "{{count}} 项改动未保存",
       "unsaved_other": "{{count}} 项改动未保存"
     },
     "actions": {
@@ -394,7 +392,6 @@
       "disabled": "关闭",
       "enabledByDefault": "开启（默认）",
       "disabledByDefault": "关闭（默认）",
-      "seconds_one": "{{count}} 秒",
       "seconds_other": "{{count}} 秒"
     },
     "errors": {
@@ -477,7 +474,6 @@
     },
     "save": {
       "label": "保存免验证来源设置",
-      "unsaved_one": "{{count}} 项改动未保存",
       "unsaved_other": "{{count}} 项改动未保存"
     },
     "actions": {
@@ -734,7 +730,6 @@
     "questionBank": {
       "title": "选择题",
       "description": "每道题至少有两个选项。正确答案以选项在列表中的位置保存。",
-      "count_one": "共 {{count}} 道选择题",
       "count_other": "共 {{count}} 道选择题",
       "empty": "尚无选择题。添加第一题后才能在选择题验证中使用。",
       "itemTitle": "选择题 {{number}}",
@@ -753,7 +748,6 @@
       "builtin": "内置本地化题目",
       "custom": "自定义备用题",
       "builtinDescription": "机器人会按上面的答题语言使用随程序提供的备用题目。",
-      "count_one": "共 {{count}} 道自定义备用题",
       "count_other": "共 {{count}} 道自定义备用题",
       "itemTitle": "备用题 {{number}}",
       "prompt": "题面",
@@ -1226,15 +1220,10 @@
     "values": {
       "enabled": "已启用",
       "disabled": "已停用",
-      "seconds_one": "{{count}} 秒",
       "seconds_other": "{{count}} 秒",
-      "rules_one": "{{count}} 条",
       "rules_other": "{{count}} 条",
-      "groups_one": "{{count}} 个群",
       "groups_other": "{{count}} 个群",
-      "channels_one": "{{count}} 个频道",
       "channels_other": "{{count}} 个频道",
-      "warnings_one": "{{count}} 次警告",
       "warnings_other": "{{count}} 次警告",
       "verifyMode": {
         "kernel": "内核版本题",
@@ -1288,7 +1277,6 @@
       },
       "queue": {
         "title": "等待队列",
-        "description_one": "有 {{count}} 份申请等待处理。",
         "description_other": "有 {{count}} 份申请等待处理。"
       },
       "diagnosticsUnavailable": {
