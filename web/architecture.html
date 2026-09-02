@@ -1678,7 +1678,8 @@ Sender {
     id         <span class="k-val">BIGINT</span> <span class="k-key">PRIMARY KEY</span>,
     title      <span class="k-val">TEXT</span>   <span class="k-key">NOT NULL</span>,
     left_at    <span class="k-val">BIGINT</span>,          <span class="k-cm">-- 非空表示 bot 已被移出，数据待清理</span>
-    settings   <span class="k-val">TEXT</span>   <span class="k-key">NOT NULL DEFAULT</span> <span class="k-val">'{}'</span>
+    settings   <span class="k-val">TEXT</span>   <span class="k-key">NOT NULL DEFAULT</span> <span class="k-val">'{}'</span>,
+    settings_revision <span class="k-val">BIGINT</span> <span class="k-key">NOT NULL DEFAULT</span> <span class="k-val">0</span>  <span class="k-cm">-- migrations/01-settings.sql；控制台写入靠它检冲突</span>
 );
 
 <span class="k-key">CREATE TABLE</span> challenge (
@@ -1741,6 +1742,7 @@ Sender {
     ordinal    <span class="k-val">INTEGER</span> <span class="k-key">NOT NULL</span>,
     enabled    <span class="k-val">BOOLEAN</span> <span class="k-key">NOT NULL DEFAULT</span> <span class="k-val">TRUE</span>,
     definition <span class="k-val">TEXT</span>   <span class="k-key">NOT NULL</span>    <span class="k-cm">-- 题面、条件、回复内容，三语</span>
+);
 
 <span class="k-cm">-- 以下四张表承载上一代那四份 JSON 状态。它们不在本节最初的设计里，</span>
 <span class="k-cm">-- 是阶段三第一片换介质时按现有状态的实际形状定下来的。</span>

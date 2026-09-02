@@ -363,6 +363,31 @@ def check_phase_table_agrees_with_its_sections(text: str) -> None:
                             "section" % (phase, row, branch))
 
 
+
+def table_columns(text: str) -> dict:
+    """Column names per table, from CREATE TABLE blocks and later ADD COLUMN statements.
+
+    A constraint line is not a column, and neither is a comment. The document writes the
+    same DDL with annotations, so only the first identifier on each line is read.
+    """
+    tables = {}
+    for match in re.finditer(r"CREATE\s+TABLE\s+([a-z_]+)\s*\((.*?)\n\);", text, re.S):
+        name, body = match.group(1), match.group(2)
+        columns = set()
+        for line in body.splitlines():
+            line = re.sub(r"--.*$", "", line).strip()
+            if not line or line.startswith(("PRIMARY KEY", "FOREIGN KEY", "UNIQUE", "CHECK",
+                                            "CONSTRAINT")):
+                continue
+            first = re.match(r"([a-z_]+)", line)
+            if first:
+                columns.add(first.group(1))
+        tables.setdefault(name, set()).update(columns)
+    for name, column in re.findall(r"ALTER\s+TABLE\s+([a-z_]+)\s+ADD\s+COLUMN\s+([a-z_]+)",
+                                   text):
+        tables.setdefault(name, set()).add(column)
+    return tables
+
 def check_schema_matches_migration() -> None:
     """The architecture's schema and the migration name the same tables.
 
@@ -371,29 +396,56 @@ def check_schema_matches_migration() -> None:
     record what is established, and a schema is the one part of it a machine can
     hold to that.
 
-    Names only, not column-by-column equivalence: the document annotates and
-    reorders, and a checker that demands byte equality gets switched off.
+    Names, and the set of column names — not byte equality. The document annotates
+    and reorders, and a checker demanding byte equality gets switched off; a set of
+    names tolerates both and still catches a column that only one side has.
+
+    Two had drifted at once. chat.settings_revision is added by 01-settings.sql and
+    the document showed only what 00-latest.sql creates, so a reader planning a
+    migration from this section got a table without the column the console's
+    conflict check depends on. And the rule table's block had lost its closing
+    paren, so it read as one table running into the next comment. Names alone saw
+    neither.
     """
-    migration = ROOT / "migrations" / "00-latest.sql"
+    migrations = sorted((ROOT / "migrations").glob("*.sql"))
     arch = ROOT / "docs" / "ARCHITECTURE.md"
-    if not migration.exists() or not arch.exists():
+    if not migrations or not arch.exists():
+        failures.append("schema: %d migrations and ARCHITECTURE.md %s, so nothing was "
+                        "compared" % (len(migrations), "exists" if arch.exists() else "missing"))
         return
+    migration_text = "\n".join(path.read_text(encoding="utf-8") for path in migrations)
 
     def named(text: str) -> set:
         pattern = r"CREATE\s+(?:UNIQUE\s+)?(TABLE|INDEX)\s+([a-z_]+)"
         return {(kind.lower(), name) for kind, name in re.findall(pattern, text)}
 
-    in_sql = named(migration.read_text(encoding="utf-8"))
-    in_doc = named(arch.read_text(encoding="utf-8"))
+    arch_text = arch.read_text(encoding="utf-8")
+    in_sql = named(migration_text)
+    in_doc = named(arch_text)
     # dbutil creates and owns this one; the document explains it in prose.
     in_sql.discard(("table", "version"))
 
     for kind, name in sorted(in_sql - in_doc):
-        failures.append("schema: migrations/00-latest.sql creates %s %s, "
+        failures.append("schema: the migrations create %s %s, "
                         "which docs/ARCHITECTURE.md does not show" % (kind, name))
     for kind, name in sorted(in_doc - in_sql):
         failures.append("schema: docs/ARCHITECTURE.md shows %s %s, "
-                        "which migrations/00-latest.sql does not create" % (kind, name))
+                        "which no migration creates" % (kind, name))
+
+    sql_columns = table_columns(migration_text)
+    doc_columns = table_columns(arch_text)
+    if not sql_columns or not doc_columns:
+        failures.append("schema: parsed %d tables from the migrations and %d from the "
+                        "document, so no column was compared"
+                        % (len(sql_columns), len(doc_columns)))
+        return
+    for table in sorted(set(sql_columns) & set(doc_columns)):
+        for column in sorted(sql_columns[table] - doc_columns[table]):
+            failures.append("schema: %s.%s exists in the migrations and not in "
+                            "docs/ARCHITECTURE.md" % (table, column))
+        for column in sorted(doc_columns[table] - sql_columns[table]):
+            failures.append("schema: docs/ARCHITECTURE.md gives %s a column %s that no "
+                            "migration creates" % (table, column))
 
 
 def list_items(text: str) -> list[str]:
