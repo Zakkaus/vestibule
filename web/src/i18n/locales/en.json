@@ -983,6 +983,8 @@
     },
     "errors": {
       "authenticationExpired": "The session has expired. Open the console again from Telegram.",
+      "accessDenied": "Only an operator can read release information or start an upgrade.",
+      "csrfInvalid": "This page's security token has expired. Refresh the page before trying again.",
       "authenticationInvalid": "This console session cannot be verified. Open the console again from Telegram.",
       "authenticationUnavailable": "Instance-operator access cannot be confirmed right now. Try again.",
       "statusNetwork": "The connection was interrupted. Current version status was not loaded; try again.",
