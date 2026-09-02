@@ -40,6 +40,7 @@ LIVE_ROUTES = {
     "GET /api/chats/{id}/stats": ("stats.go", "statsRoute", ("request.Method == http.MethodGet",)),
     "GET /api/status": ("server.go", "apiRoute", ('request.URL.Path == "/api/status"',)),
     "GET /api/process/settings": ("server.go", "apiRoute", ('request.URL.Path == "/api/process/settings"',)),
+    "POST /api/status/upgrade": ("server.go", "apiRoute", ('request.URL.Path == "/api/status/upgrade"', "http.MethodPost")),
 }
 
 # These table rows are intentionally ahead of the implementation. Keep this list
@@ -52,7 +53,6 @@ DEFERRED_ROWS = {
     "GET /api/chats/{id}/packages",
     "POST /api/chats/{id}/packages",
     "GET · PATCH /api/me/preferences",
-    "POST /api/status/upgrade",
     "GET /verify/{token}",
 }
 
@@ -133,7 +133,7 @@ def main() -> int:
     print(
         "EXEMPT route-table rows not implemented: "
         + ", ".join(sorted(DEFERRED_ROWS))
-        + " — ownership is pending at docs/PLAN-v5.md:1062"
+        + " — remaining ownership is recorded in docs/PLAN-v5.md"
     )
     print(
         "check-console-routes: passed; %d live rows match, %d deferred rows named"

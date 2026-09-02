@@ -1,0 +1,76 @@
+services:
+  app:
+    image: "${VESTIBULE_APP_IMAGE:?VESTIBULE_APP_IMAGE is required}"
+    init: true
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+      bot-api:
+        condition: service_started
+    env_file:
+      - ./bot.env
+    environment:
+      CONSOLE_ADDR: 0.0.0.0:8080
+      STATE_DIRECTORY: /var/lib/vestibule
+      TELEGRAM_API_URL: http://bot-api:8081
+      VT_DATABASE_TYPE: postgres
+      VT_DATABASE_URI: "${VESTIBULE_DATABASE_URI:?VESTIBULE_DATABASE_URI is required}"
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - type: bind
+        source: "${VESTIBULE_STATE_DIRECTORY:?VESTIBULE_STATE_DIRECTORY is required}"
+        target: /var/lib/vestibule
+      - type: bind
+        source: "${VESTIBULE_CONFIG_PATH:?VESTIBULE_CONFIG_PATH is required}"
+        target: /etc/vestibule/config.json
+        read_only: true
+    user: "65532:65532"
+    read_only: true
+    tmpfs:
+      - /tmp:uid=65532,gid=65532,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges
+
+  database:
+    image: postgres:18.2-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vestibule
+      POSTGRES_USER: vestibule
+      POSTGRES_PASSWORD: "${VESTIBULE_POSTGRES_PASSWORD:?VESTIBULE_POSTGRES_PASSWORD is required}"
+    volumes:
+      - vestibule-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vestibule -d vestibule"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges
+
+  bot-api:
+    image: "${VESTIBULE_BOT_API_IMAGE:?VESTIBULE_BOT_API_IMAGE is required}"
+    restart: unless-stopped
+    env_file:
+      - ./bot-api.env
+    volumes:
+      - type: bind
+        source: "${VESTIBULE_BOT_API_STATE_DIRECTORY:?VESTIBULE_BOT_API_STATE_DIRECTORY is required}"
+        target: /var/lib/telegram-bot-api
+    user: "65532:65532"
+    read_only: true
+    tmpfs:
+      - /tmp:uid=65532,gid=65532,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges
+
+volumes:
+  vestibule-postgres:

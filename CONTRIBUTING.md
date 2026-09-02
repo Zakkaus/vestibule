@@ -161,11 +161,11 @@ safe default is indistinguishable from a forgotten declaration without it.
 
 ## Before opening a PR
 
-CI runs these. The release workflow runs the Go and native-deployment checks,
-the exhaustive console-route contract, and phase-acceptance coverage before
-publishing binaries. It skips frontend and document checks that do not bear on
-a release, and the baseline ratchet, which compares a branch against its base
-and has nothing to compare on a tag. Run them locally first.
+CI runs these. The release workflow runs the Go, deployment, and host-replacement
+checks, the exhaustive console-route contract, and phase-acceptance coverage before
+publishing binaries and container images. It skips frontend and document checks that do
+not bear on a release, and the baseline ratchet, which compares a branch against its
+base and has nothing to compare on a tag. Run them locally first.
 **Clear the build and type caches first**: a stale cache turns a red gate green
 locally.
 
@@ -179,6 +179,7 @@ go build ./... && go build -tags gentoo ./...
 go test -race ./... && go test -race -tags gentoo ./...
 scripts/test-static-sqlite.sh    # the release build configuration, run rather than compiled
 scripts/test-install.sh           # isolated install, upgrade, rollback, status, and uninstall
+scripts/test-replacement.sh       # isolated host-unit request validation, rollback, and Docker-socket boundary
 scripts/accept-phase9.sh          # phase-nine clauses stay full-sized; incomplete host paths print EXEMPT
 go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
 go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...

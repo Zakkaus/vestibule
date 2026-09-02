@@ -1,0 +1,210 @@
+#!/bin/sh
+# Consume a version-only request from the application state directory as host root.
+set -eu
+
+name=vestibule
+root=${VESTIBULE_ROOT:-}
+case $root in
+	/) root= ;;
+	'' | /*) ;;
+	*) printf 'vestibule-replace: VESTIBULE_ROOT must be absolute\n' >&2; exit 1 ;;
+esac
+
+state_dir=${root}/var/lib/${name}
+confdir=${root}/etc/${name}
+request_file=${state_dir}/replacement-request
+result_file=${state_dir}/replacement-result.env
+deployment_file=${confdir}/deployment.env
+container_env=${confdir}/container.env
+container_previous=${container_env}.previous
+compose_file=${confdir}/compose.yaml
+installer=${VESTIBULE_REPLACE_INSTALLER:-${root}/usr/local/libexec/vestibule-install}
+compose_bin=${VESTIBULE_REPLACE_COMPOSE:-docker}
+health_command=${VESTIBULE_REPLACE_HEALTH_COMMAND:-}
+live_url=${VESTIBULE_REPLACE_LIVE_URL:-http://127.0.0.1:8080/livez}
+ready_url=${VESTIBULE_REPLACE_HEALTH_URL:-http://127.0.0.1:8080/readyz}
+health_attempts=${VESTIBULE_REPLACE_HEALTH_ATTEMPTS:-12}
+version=
+deployment=
+rollback_needed=no
+consumed_request=$request_file
+
+write_result() {
+	result_status=$1
+	result_reason=$2
+	result_version=$version
+	[ -n "$result_version" ] || result_version=invalid
+	temporary=${result_file}.new.$$
+	umask 077
+	printf 'status=%s\nrequested_version=%s\nreason=%s\n' \
+		"$result_status" "$result_version" "$result_reason" > "$temporary"
+	chmod 600 "$temporary"
+	if [ -d "$state_dir" ]; then
+		chown --reference="$state_dir" "$temporary" 2>/dev/null || :
+	fi
+	mv -f -- "$temporary" "$result_file"
+}
+
+reject_request() {
+	version=
+	rm -f -- "$consumed_request"
+	write_result rejected invalid_request
+	printf 'vestibule-replace: request must contain exactly one target version\n' >&2
+	exit 1
+}
+read_request() {
+	[ -f "$request_file" ] || exit 0
+	consumed_request=${request_file}.processing.$$
+	if ! mv -f -- "$request_file" "$consumed_request"; then
+		[ ! -f "$request_file" ] && exit 0
+		write_result failed request_claim_failed
+		printf 'vestibule-replace: could not claim replacement request\n' >&2
+		exit 1
+	fi
+	{
+		if ! IFS= read -r version; then
+			reject_request
+		fi
+		if IFS= read -r extra || [ -n "$extra" ]; then
+			reject_request
+		fi
+	} < "$consumed_request"
+	case $version in
+		'' | *[!A-Za-z0-9._-]*) reject_request ;;
+	esac
+	rm -f -- "$consumed_request"
+}
+
+load_deployment() {
+	[ -f "$deployment_file" ] || return 1
+	seen=no
+	deployment=
+	while IFS= read -r line || [ -n "$line" ]; do
+		case $line in
+			deployment=native | deployment=container)
+				[ "$seen" = no ] || return 1
+				deployment=${line#deployment=}
+				seen=yes
+				;;
+			*) return 1 ;;
+		esac
+	done < "$deployment_file"
+	[ "$seen" = yes ]
+}
+
+run_compose() {
+	"$compose_bin" compose --project-directory "$confdir" --env-file "$container_env" \
+		-f "$compose_file" "$@"
+}
+
+stage_container_version() {
+	[ -f "$container_env" ] || return 1
+	temporary=${container_env}.new.$$
+	awk -F= -v image="ghcr.io/zakkaus/vestibule:${version}" '
+		$1 == "VESTIBULE_APP_IMAGE" {
+			if (seen++) exit 1
+			print "VESTIBULE_APP_IMAGE=" image
+			next
+		}
+		{ print }
+		END { if (seen != 1) exit 1 }
+	' "$container_env" > "$temporary" || {
+		rm -f -- "$temporary"
+		return 1
+	}
+	chmod 600 "$temporary"
+	mv -f -- "$temporary" "$container_env"
+}
+
+apply_container() {
+	[ -f "$compose_file" ] || return 1
+	cp -p -- "$container_env" "$container_previous"
+	stage_container_version || return 1
+	run_compose pull app && run_compose up -d --no-deps app
+}
+
+rollback_container() {
+	[ -f "$container_previous" ] || return 1
+	temporary=${container_env}.rollback.$$
+	cp -p -- "$container_previous" "$temporary"
+	chmod 600 "$temporary"
+	mv -f -- "$temporary" "$container_env"
+	run_compose up -d --no-deps app
+}
+
+apply_release() {
+	case $deployment in
+		native)
+			"$installer" --upgrade "$version"
+			;;
+		container)
+			rollback_needed=yes
+			apply_container
+			;;
+	esac
+}
+
+rollback_release() {
+	case $deployment in
+		native) "$installer" --rollback ;;
+		container) rollback_container ;;
+	esac
+}
+
+probe_url() {
+	if command -v curl >/dev/null 2>&1; then
+		curl --fail --silent --show-error --max-time 5 "$1" >/dev/null
+	elif command -v wget >/dev/null 2>&1; then
+		wget -q -T 5 -O /dev/null "$1"
+	else
+		return 1
+	fi
+}
+
+run_healthcheck() {
+	case $health_attempts in
+		'' | *[!0-9]* | 0) return 1 ;;
+	esac
+	attempt=1
+	while [ "$attempt" -le "$health_attempts" ]; do
+		if [ -n "$health_command" ]; then
+			if "$health_command"; then
+				return 0
+			fi
+		elif probe_url "$live_url" && probe_url "$ready_url"; then
+			return 0
+		fi
+		if [ "$attempt" -lt "$health_attempts" ]; then
+			sleep 5
+		fi
+		attempt=$((attempt + 1))
+	done
+	return 1
+}
+
+read_request
+if ! load_deployment; then
+	write_result failed invalid_deployment
+	printf 'vestibule-replace: invalid deployment record\n' >&2
+	exit 1
+fi
+if ! apply_release; then
+	if [ "$rollback_needed" = yes ] && rollback_release; then
+		write_result rolled_back apply_failed
+		exit 0
+	fi
+	write_result failed apply_failed
+	printf 'vestibule-replace: replacement did not apply\n' >&2
+	exit 1
+fi
+if run_healthcheck; then
+	write_result applied complete
+	exit 0
+fi
+if rollback_release && run_healthcheck; then
+	write_result rolled_back healthcheck_failed
+	exit 0
+fi
+write_result rollback_failed healthcheck_failed
+printf 'vestibule-replace: replacement is unhealthy and rollback did not restore health\n' >&2
+exit 1
