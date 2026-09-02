@@ -265,7 +265,16 @@ internal/app  verification  rules  telegram  console  settings  database  status
 
 - 两种入群模式、可信群绕过、冷却、群内与私聊投递、确认送达后才计时、nonce/epoch 防旧事件、管理员结算、失败不误罚、挑战清理和不重复验证。
 - 真实 `uname` 输出与命令回显的判定、跨群 fallback 隔离、三次尝试、归一化后的规则命中，以及结构信号不依赖 Telegram 或数据库。
-- Telegram 的私聊不自动删除、已删除消息视为成功、敏感操作现查管理员、恢复群默认权限、发送经队列并遵守 `429` 退避；日志在所有调用点都不得泄露 bot token。
+- 已删除消息视为成功、敏感操作现查管理员、恢复群默认权限、发送经队列并遵守 `429` 退避；日志在所有调用点都不得泄露 bot token。
+
+**私聊消息的清理是有意反转的，不是保住的行为。** 上一代结算时把群内和私聊的挑战都删掉
+（`~/code/refs/gentoo-zh-verify-bot/internal/verify/service.go:2173-2176`，
+断言在 `~/code/refs/gentoo-zh-verify-bot/internal/verify/verify_test.go:1232`）。这一代只删群内那条：
+群内消息是公开的挑战证据，删掉它是为了不把某个人被拦下这件事留在群里；
+私聊里的题目和结果是申请人自己那一份记录，删掉它等于替他抹掉发生过什么。
+架构文档记着这个决定（`docs/ARCHITECTURE.md:802`、`:849`）。
+它写在这里而不是上一行，是因为切换前的对照要看得见这是一处可见的行为变化，
+而不是把它当成没变过 —— 它还牵动隐私说明里申请人私聊留下什么。
 - 设置的来源、稀疏覆盖、revision 冲突与整份校验；控制台和 Telegram 命令的目标群隔离、过期与重放防护、写入 fail closed。
 - lookup 的“未找到”与上游故障区分、有界 HTTP 与缓存、版本排序和固定上游样本；moderation 与 feed 的处罚、cursor、投递失败和暂停语义。
 - 生命周期的路由优先级、单个 Update 只进入预期 handler、先注册后拉取、关闭顺序和运行时群加入/移出语义；所有用户可见文本继续经 `i18n`。
