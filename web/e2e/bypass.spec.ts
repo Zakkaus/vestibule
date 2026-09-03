@@ -1,6 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { selectAppOption } from "./app-select";
 
 const selectedGroupID = "-1001163306055";
+const otherGroupID = "-1009000000003";
 const actorID = "741928306";
 
 type SettingSource = "factory default" | "user file" | "chat override";
@@ -67,10 +69,14 @@ async function mockBypassTransport(
       return;
     }
     if (path === "/api/chats" && request.method() === "GET") {
-      await fulfillJSON(route, { chats: [{ id: selectedGroupID }] });
+      await fulfillJSON(route, { chats: [{ id: selectedGroupID }, { id: otherGroupID }] });
       return;
     }
-    if (path === `/api/chats/${selectedGroupID}/settings` && request.method() === "GET") {
+    if (
+      (path === `/api/chats/${selectedGroupID}/settings` ||
+        path === `/api/chats/${otherGroupID}/settings`) &&
+      request.method() === "GET"
+    ) {
       await readSettings(route);
       return;
     }
@@ -289,4 +295,104 @@ test("bypass explains the risk of each required-channel failure direction", asyn
   await expect(setting).toContainText("未关注频道的人也可能进入");
   await page.locator("#bypass-required-channel-fail-open").click();
   await expect(setting).toContainText("正常申请人也可能被误拒");
+});
+
+test("bypass discards a previous group's delayed settings response", async ({ page }) => {
+  let markSettingsRequested!: () => void;
+  let releaseSettings!: () => void;
+  const settingsRequested = new Promise<void>((resolve) => {
+    markSettingsRequested = resolve;
+  });
+  const firstSettingsResponse = new Promise<void>((resolve) => {
+    releaseSettings = resolve;
+  });
+  let markSettingsResponseSettled!: () => void;
+  const settingsResponseSettled = new Promise<void>((resolve) => {
+    markSettingsResponseSettled = resolve;
+  });
+
+  await mockBypassTransport(
+    page,
+    async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (path === `/api/chats/${selectedGroupID}/settings`) {
+        markSettingsRequested();
+        await firstSettingsResponse;
+        await fulfillJSON(route, settingsResponse({ channel_display: sourced("@group-a") }));
+        markSettingsResponseSettled();
+        return;
+      }
+      await fulfillJSON(
+        route,
+        settingsResponse({ revision: 8, channel_display: sourced("@group-b", "chat override") })
+      );
+    },
+    async () => {
+      throw new Error("A delayed read must not write bypass settings");
+    }
+  );
+
+  await page.goto(`/bypass?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
+  await settingsRequested;
+  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await expect(page).toHaveURL(new RegExp(`/bypass\\?group=${otherGroupID}$`));
+  await expect(page.locator("#bypass-channel-display")).toHaveValue("@group-b");
+
+  releaseSettings();
+  await settingsResponseSettled;
+  await expect(page.locator("#bypass-channel-display")).toHaveValue("@group-b");
+});
+
+test("bypass ignores a previous group's delayed settings save", async ({ page }) => {
+  let markPatchRequested!: () => void;
+  let releasePatch!: () => void;
+  const patchRequested = new Promise<void>((resolve) => {
+    markPatchRequested = resolve;
+  });
+  const patchResponse = new Promise<void>((resolve) => {
+    releasePatch = resolve;
+  });
+  let markPatchResponseSettled!: () => void;
+  const patchResponseSettled = new Promise<void>((resolve) => {
+    markPatchResponseSettled = resolve;
+  });
+
+  await openLiveBypass(
+    page,
+    async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      await fulfillJSON(
+        route,
+        path === `/api/chats/${otherGroupID}/settings`
+          ? settingsResponse({
+              revision: 8,
+              channel_display: sourced("@group-b", "chat override")
+            })
+          : settingsResponse()
+      );
+    },
+    async (route) => {
+      markPatchRequested();
+      await patchResponse;
+      await fulfillJSON(
+        route,
+        settingsResponse({
+          revision: 8,
+          channel_display: sourced("@group-a", "chat override")
+        })
+      );
+      markPatchResponseSettled();
+    }
+  );
+
+  await page.locator("#bypass-channel-display").fill("@group-a");
+  await page.getByRole("button", { name: "保存" }).click();
+  await patchRequested;
+  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await expect(page).toHaveURL(new RegExp(`/bypass\\?group=${otherGroupID}$`));
+  await expect(page.locator("#bypass-channel-display")).toHaveValue("@group-b");
+
+  releasePatch();
+  await patchResponseSettled;
+  await expect(page.locator("#bypass-channel-display")).toHaveValue("@group-b");
 });

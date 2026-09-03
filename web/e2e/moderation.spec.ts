@@ -1,6 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { selectAppOption } from "./app-select";
 
 const selectedGroupID = "-1001163306055";
+const otherGroupID = "-1009000000001";
 const actorID = "741928306";
 
 const baseSettings = {
@@ -53,10 +55,14 @@ async function mockModerationTransport(
       return;
     }
     if (path === "/api/chats" && request.method() === "GET") {
-      await fulfillJSON(route, { chats: [{ id: selectedGroupID }] });
+      await fulfillJSON(route, { chats: [{ id: selectedGroupID }, { id: otherGroupID }] });
       return;
     }
-    if (path === `/api/chats/${selectedGroupID}/settings` && request.method() === "GET") {
+    if (
+      (path === `/api/chats/${selectedGroupID}/settings` ||
+        path === `/api/chats/${otherGroupID}/settings`) &&
+      request.method() === "GET"
+    ) {
       readRequests += 1;
       await readSettings(route, readRequests);
       return;
@@ -258,4 +264,106 @@ test("moderation identifies another administrator's revision conflict before rel
   await expect(adminLogInput).toHaveValue("-1007000000002");
   await expect(page.locator("[data-moderation-savebar]")).toHaveCount(0);
   await expect(page.locator('[data-moderation-feedback="conflict"]')).toHaveCount(0);
+});
+
+test("moderation discards a previous group's delayed settings response", async ({ page }) => {
+  let markSettingsRequested!: () => void;
+  let releaseSettings!: () => void;
+  const settingsRequested = new Promise<void>((resolve) => {
+    markSettingsRequested = resolve;
+  });
+  const firstSettingsResponse = new Promise<void>((resolve) => {
+    releaseSettings = resolve;
+  });
+  let markSettingsResponseSettled!: () => void;
+  const settingsResponseSettled = new Promise<void>((resolve) => {
+    markSettingsResponseSettled = resolve;
+  });
+
+  await mockModerationTransport(page, async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === `/api/chats/${selectedGroupID}/settings`) {
+      markSettingsRequested();
+      await firstSettingsResponse;
+      await fulfillJSON(
+        route,
+        settingsPayload({ warn_limit: { value: 3, source: "chat override" } })
+      );
+      markSettingsResponseSettled();
+      return;
+    }
+    await fulfillJSON(
+      route,
+      settingsPayload({ warn_limit: { value: 9, source: "chat override" } })
+    );
+  });
+
+  await page.goto(`/moderation?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
+  await settingsRequested;
+  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await expect(page).toHaveURL(new RegExp(`/moderation\\?group=${otherGroupID}$`));
+  await expect(page.getByLabel("警告上限")).toHaveValue("9");
+
+  releaseSettings();
+  await settingsResponseSettled;
+  await expect(page.getByLabel("警告上限")).toHaveValue("9");
+});
+
+test("moderation ignores a previous group's delayed settings save", async ({ page }) => {
+  let markPatchRequested!: () => void;
+  let releasePatch!: () => void;
+  const patchRequested = new Promise<void>((resolve) => {
+    markPatchRequested = resolve;
+  });
+  const patchResponse = new Promise<void>((resolve) => {
+    releasePatch = resolve;
+  });
+  let markPatchResponseSettled!: () => void;
+  const patchResponseSettled = new Promise<void>((resolve) => {
+    markPatchResponseSettled = resolve;
+  });
+
+  await openModeration(
+    page,
+    async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      await fulfillJSON(
+        route,
+        settingsPayload(
+          path === `/api/chats/${otherGroupID}/settings`
+            ? {
+                warn_limit: { value: 9, source: "chat override" },
+                antispam_enabled: { value: true, source: "chat override" }
+              }
+            : {}
+        )
+      );
+    },
+    async (route) => {
+      markPatchRequested();
+      await patchResponse;
+      await fulfillJSON(
+        route,
+        settingsPayload({
+          antispam_enabled: { value: false, source: "chat override" }
+        })
+      );
+      markPatchResponseSettled();
+    }
+  );
+
+  await page.getByRole("switch", { name: "拦截频道马甲" }).click();
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await patchRequested;
+  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await expect(page).toHaveURL(new RegExp(`/moderation\\?group=${otherGroupID}$`));
+  await expect(page.getByLabel("警告上限")).toHaveValue("9");
+
+  releasePatch();
+  await patchResponseSettled;
+  await expect(page.getByLabel("警告上限")).toHaveValue("9");
+  await expect(page.getByRole("switch", { name: "拦截频道马甲" })).toHaveAttribute(
+    "aria-checked",
+    "true"
+  );
 });
