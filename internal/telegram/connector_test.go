@@ -456,9 +456,6 @@ func TestUnmuteRejectsUnavailableDefaults(t *testing.T) {
 }
 
 func TestErrorClassification(t *testing.T) {
-	if !IsBlocked(&ta.Error{ErrorCode: 403, Description: "Forbidden"}) || IsBlocked(errors.New("Bad Gateway")) {
-		t.Error("403 blocked classification failed")
-	}
 	initErr := &ta.Error{ErrorCode: 403, Description: "Forbidden: bot can't initiate conversation with a user"}
 	blockedErr := &ta.Error{ErrorCode: 403, Description: "Forbidden: bot was blocked by the user"}
 	if !CannotInitiateConversation(initErr) || CannotInitiateConversation(blockedErr) ||

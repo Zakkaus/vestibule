@@ -50,6 +50,7 @@ func TestDestinationFailuresAreNotPermanentPerMessage(t *testing.T) {
 		"Bad Request: CHAT_WRITE_FORBIDDEN",
 		"Bad Request: CHAT_SEND_PLAIN_FORBIDDEN",
 		"Bad Request: TOPIC_CLOSED",
+		"Bad Request: CHAT_RESTRICTED",
 		"Bad Request: chat not found",
 		"Bad Request: group chat was upgraded to a supergroup chat, migrate to chat id",
 	}
@@ -76,6 +77,7 @@ func TestGroupUnreachable(t *testing.T) {
 		{errors.New(`api: 403 "Forbidden: bot is not a member of the supergroup chat"`), true},
 		{errors.New(`api: 403 "Forbidden: bot was kicked from the supergroup chat"`), true},
 		{errors.New(`api: 400 "Bad Request: chat not found"`), true},
+		{errors.New(`api: 400 "Bad Request: the group chat was deleted"`), true},
 		{errors.New(`api: 400 "Bad Request: not enough rights"`), false},
 		{errors.New("connection reset by peer"), false},
 		{nil, false},
