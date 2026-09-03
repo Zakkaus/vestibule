@@ -68,15 +68,3 @@ func ApplicantGone(err error) bool {
 	code := queue.ErrorCode(err)
 	return code == 0 || code == 403
 }
-
-// IsBlocked reports Telegram 403 responses indicating that the bot cannot contact the target.
-func IsBlocked(err error) bool {
-	if err == nil {
-		return false
-	}
-	if queue.ErrorCode(err) == 403 {
-		return true
-	}
-	message := strings.ToLower(err.Error())
-	return strings.Contains(message, "bot was blocked") || strings.Contains(message, "forbidden: bot")
-}
