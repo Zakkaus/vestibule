@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -166,12 +167,22 @@ func TestAccessibleChatsBoundsConcurrentChecks(t *testing.T) {
 
 func signedInitData(t *testing.T, botToken string, now time.Time, userID int64) string {
 	t.Helper()
-	values := url.Values{
+	return signedInitDataValues(t, botToken, url.Values{
 		"auth_date": {strconv.FormatInt(now.Unix(), 10)},
 		"query_id":  {"query"},
 		"user":      {`{"id":` + strconv.FormatInt(userID, 10) + `}`},
+	})
+}
+
+func signedInitDataValues(t *testing.T, botToken string, values url.Values) string {
+	t.Helper()
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		if key != "hash" {
+			keys = append(keys, key)
+		}
 	}
-	keys := []string{"auth_date", "query_id", "user"}
+	sort.Strings(keys)
 	parts := make([]string, 0, len(keys))
 	for _, key := range keys {
 		parts = append(parts, key+"="+values.Get(key))
