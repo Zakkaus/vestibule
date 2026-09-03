@@ -93,7 +93,7 @@ func (s *errorTransitionStore) TransitionChallenge(string, ChallengeTransition) 
 	return false, errors.New("temporary transition failure")
 }
 
-func TestOnAnswerReturnsStoreErrorButKeepsLocalPending(t *testing.T) {
+func TestFailedChallengeSettlementIsRetriedThreeTimesBeforeGivingUp(t *testing.T) {
 	const gid, uid = int64(-100), int64(5)
 	state := &errorTransitionStore{}
 	service := newTestService(&settings.Config{VerifyMaxFails: 3})
@@ -115,8 +115,8 @@ func TestOnAnswerReturnsStoreErrorButKeepsLocalPending(t *testing.T) {
 	if err == nil {
 		t.Fatal("database transition error was reported as an already-settled success")
 	}
-	if state.calls != storeWriteMaxAttempts || bot.approves != 0 {
-		t.Fatalf("transition calls/approvals = %d/%d, want %d/0", state.calls, bot.approves, storeWriteMaxAttempts)
+	if state.calls != 3 || bot.approves != 0 {
+		t.Fatalf("failed challenge settlement made %d durable write attempts and %d approvals; want three attempts before giving up and no approval", state.calls, bot.approves)
 	}
 	if service.pend[key] == nil {
 		t.Fatal("database transition error discarded the local pending")
