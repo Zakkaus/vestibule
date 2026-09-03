@@ -48,3 +48,53 @@ func TestConfigDoesNotDeduplicateFeedsWithoutAChat(t *testing.T) {
 			"deduplicates, the behaviour changed and the comment above is stale", len(cfg.Feeds))
 	}
 }
+
+func TestConfigValidatesLegacyAndLaterFeedsBeforeDeduplication(t *testing.T) {
+	const chatID int64 = -1009000002261
+	legacy, err := LoadConfig(writeConfig(t, map[string]any{
+		"feed": map[string]any{"chat_id": chatID, "lang": "en", "interval_seconds": 300},
+	}))
+	requireNoError(t, err)
+	if len(legacy.Feeds) != 1 || legacy.Feeds[0].ChatID != chatID {
+		t.Fatalf("legacy feeds = %+v, want one destination; an existing feed would stop delivering after upgrade",
+			legacy.Feeds)
+	}
+
+	valid, err := LoadConfig(writeConfig(t, map[string]any{
+		"feeds": []map[string]any{
+			{"chat_id": chatID, "lang": "en", "interval_seconds": 300},
+			{"chat_id": chatID, "lang": "zh", "interval_seconds": 600},
+		},
+	}))
+	requireNoError(t, err)
+	if len(valid.Feeds) != 1 {
+		t.Fatalf("valid duplicate feeds = %+v, want the first destination after deduplication", valid.Feeds)
+	}
+
+	for name, config := range map[string]map[string]any{
+		"later duplicate interval": {
+			"feeds": []map[string]any{
+				{"chat_id": chatID, "lang": "en", "interval_seconds": 300},
+				{"chat_id": chatID, "lang": "zh", "interval_seconds": 86401},
+			},
+		},
+		"later duplicate language": {
+			"feeds": []map[string]any{
+				{"chat_id": chatID, "lang": "en", "interval_seconds": 300},
+				{"chat_id": chatID, "lang": "de", "interval_seconds": 600},
+			},
+		},
+		"legacy interval": {
+			"feed": map[string]any{"chat_id": chatID, "lang": "en", "interval_seconds": 86401},
+		},
+		"legacy language": {
+			"feed": map[string]any{"chat_id": chatID, "lang": "de", "interval_seconds": 300},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := LoadConfig(writeConfig(t, config)); err == nil {
+				t.Fatal("invalid feed loaded; a malformed destination could be silently ignored or polled")
+			}
+		})
+	}
+}
