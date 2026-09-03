@@ -96,3 +96,68 @@ func TestAnUnclaimedInstanceStopsOnTheSignalSystemdSends(t *testing.T) {
 		t.Fatal("still running 25 seconds after SIGTERM; systemd would kill it at TimeoutStopSec")
 	}
 }
+
+// A startup that failed has to exit non-zero. Restart=always brings the process back either way,
+// but `systemctl start` reports the result of the first attempt, and a deployment health gate that
+// reads a clean exit concludes the bot came up when it never did.
+func TestAStartupFailureExitsNonZero(t *testing.T) {
+	directory := t.TempDir()
+	config := filepath.Join(directory, "config.json")
+	if err := os.WriteFile(config, []byte(`{}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	command := exec.Command(buildBot(t), "--config", config)
+	command.Env = append(os.Environ(),
+		"STATE_DIRECTORY="+directory, "BOT_TOKEN=", "SETUP_TOKEN=", "NOTIFY_SOCKET=",
+		"CONSOLE_ADDR="+freeAddress(t),
+		// A driver name no dialect answers to. The failure is deterministic, needs no network,
+		// and happens while the service graph is being assembled -- which is where a real
+		// misconfigured deployment fails too.
+		"VT_DATABASE_TYPE=not-a-dialect")
+	out, err := command.CombinedOutput()
+	if err == nil {
+		t.Fatalf("the process exited successfully after failing to start:\n%s", out)
+	}
+	if !strings.Contains(string(out), "not-a-dialect") {
+		t.Errorf("output does not say what failed:\n%s", out)
+	}
+	// TestVersionPrintsAndExitsWithoutStarting is the control: a run that does what it was asked
+	// exits zero through the same main.
+}
+
+// syntheticToken has the shape telego requires and the shape the redacting writer looks for. It is
+// not a real credential; the digits and the suffix are made up.
+const syntheticToken = "9999999999:AAFnotarealtokennotarealtoken000000"
+
+// Every Telegram client error carries the API URL, and the URL carries the token, so an ordinary
+// log.Printf("...: %v", err) prints the credential. The unit runs under DynamicUser, whose journal
+// is readable by anyone in systemd-journal, and the token is enough to take the bot over. The
+// guard is the writer the process installs before anything can log, so no call site has to
+// remember -- and nothing checked that cmd/bot still installs it.
+func TestTheBotTokenNeverReachesTheLog(t *testing.T) {
+	directory := t.TempDir()
+	config := filepath.Join(directory, "config.json")
+	if err := os.WriteFile(config, []byte(`{}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	command := exec.Command(buildBot(t), "--config", config)
+	command.Env = append(os.Environ(),
+		"STATE_DIRECTORY="+directory, "BOT_TOKEN="+syntheticToken, "SETUP_TOKEN=", "NOTIFY_SOCKET=",
+		"CONSOLE_ADDR="+freeAddress(t),
+		// Port 1 refuses immediately, so the first call the bot makes fails with an error that
+		// quotes the request URL -- the token in it and all.
+		"TELEGRAM_API_URL=http://127.0.0.1:1")
+	out, err := command.CombinedOutput()
+	if err == nil {
+		t.Fatalf("the bot started against a closed port:\n%s", out)
+	}
+	if strings.Contains(string(out), syntheticToken) {
+		t.Errorf("the bot token was written to the log verbatim:\n%s", out)
+	}
+	// Without this the test would also pass if the process logged nothing at all, or if the
+	// failure happened before any Telegram call was attempted.
+	if !strings.Contains(string(out), "/bot<redacted>") {
+		t.Errorf("no redacted API URL in the output, so nothing proves a token-bearing line was "+
+			"logged and stripped:\n%s", out)
+	}
+}
