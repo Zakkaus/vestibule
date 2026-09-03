@@ -4,6 +4,9 @@ import (
 	"testing"
 
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
+	"github.com/mymmrac/telego"
 )
 
 func TestParseBanDuration(t *testing.T) {
@@ -31,6 +34,51 @@ func TestParseBanDuration(t *testing.T) {
 		if _, ok := parseBanDuration(input); ok {
 			t.Errorf("parseBanDuration(%q) should be invalid", input)
 		}
+	}
+}
+
+func TestBareBanTimeReportsCurrentGroupPolicy(t *testing.T) {
+	const (
+		groupID    int64 = -1009000000501
+		banSeconds int   = 7200
+	)
+	telegram := newFakeMod()
+	telegram.memberByID = map[int64]telego.ChatMember{
+		7: &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator},
+	}
+	service := newTestService(t, &settings.Config{
+		GroupIDs:         []int64{groupID},
+		Groups:           []settings.GroupConfig{{ID: groupID}},
+		BanSeconds:       banSeconds,
+		NotifyTTLSeconds: -1,
+		Lang:             "en",
+	}, telegram, "")
+
+	runFakeHandler(t, newAPITestBot(t, telegram), service.OnBanTime, telego.Update{Message: &telego.Message{
+		MessageID: 11,
+		Chat:      telego.Chat{ID: groupID, Type: telego.ChatTypeSupergroup},
+		From:      &telego.User{ID: 7, FirstName: "Admin"},
+		Text:      "/bantime",
+	}})
+
+	l := service.groupLanguage(groupID)
+	want := i18n.Messages.Moderate.BanTime.Current.Render(
+		l,
+		tgfmt.ModerationBanDurationStatus(l, banSeconds),
+		i18n.Messages.Moderate.BanTime.TemporaryDescription.For(l),
+		i18n.Messages.Moderate.BanTime.Usage.For(l),
+	)
+	if got := telegram.lastSendText; got != want {
+		t.Fatalf("bare /bantime notice = %q, want current policy %q; administrators would not learn the group's current ban duration", got, want)
+	}
+}
+
+func TestBanDurationBeyondInt32LimitIsRefused(t *testing.T) {
+	if got, ok := parseBanDuration("3600"); !ok || got != 3600 {
+		t.Fatalf("valid ban duration = (%d, %t), want (3600, true)", got, ok)
+	}
+	if got, ok := parseBanDuration("99999999999"); ok {
+		t.Fatalf("out-of-range /bantime duration was accepted as %d seconds; it becomes a permanent ban policy instead of being refused", got)
 	}
 }
 

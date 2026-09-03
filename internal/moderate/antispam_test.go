@@ -68,6 +68,43 @@ func TestBCAllowUpdatesOnlyInvokingGroup(t *testing.T) {
 	}
 }
 
+func TestBCDenyRemovesWhitelistWithoutUnbanning(t *testing.T) {
+	const (
+		groupID  int64 = -1009000000503
+		senderID int64 = -1009000000504
+	)
+	telegram := newFakeMod()
+	telegram.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
+	service := newTestService(t, &settings.Config{
+		GroupIDs: []int64{groupID},
+		Groups: []settings.GroupConfig{{
+			ID:               groupID,
+			ChannelWhitelist: &[]int64{senderID},
+		}},
+		NotifyTTLSeconds: -1,
+		Lang:             "en",
+	}, telegram, "")
+
+	service.BlockChannel(context.Background(), ChannelSenderCommand{
+		ChatID:    groupID,
+		MessageID: 1,
+		CallerID:  7,
+		Text:      "/bc deny 9000000504",
+	})
+
+	if service.channelWhitelisted(groupID, senderID) {
+		t.Fatal("/bc deny left the channel whitelisted; later adverts would be treated as trusted")
+	}
+	if len(telegram.senderUnbans) != 0 {
+		t.Fatalf("/bc deny called UnbanSenderChat %d times; it would lift the sender-chat ban used to block that advertiser", len(telegram.senderUnbans))
+	}
+	l := service.groupLanguage(groupID)
+	assertModerationNotifications(t, telegram, fakeModNotification{
+		chatID: groupID,
+		text:   i18n.Messages.Moderate.Antispam.Removed.Render(l, senderID),
+	})
+}
+
 func TestFilterChannelSenderUsesTelegramTransport(t *testing.T) {
 	const (
 		groupID  int64 = -100
