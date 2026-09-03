@@ -246,148 +246,238 @@ var topLevelUserValueRules = [...]topLevelUserValueRule{
 	},
 }
 
-type groupUserValueRule func(*GroupBaseline, *GroupConfig)
+// groupUserValueRule carries one group-scoped configuration key into the baseline.
+// The key is named so a test can say which setting a rule stands for; anonymous
+// closures could only be addressed by position, which no reader can check.
+type groupUserValueRule struct {
+	key   string
+	apply func(*GroupBaseline, *GroupConfig)
+}
 
 var groupUserValueRules = [...]groupUserValueRule{
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.Enabled != nil {
-			group.Enabled = userFileValue(*cfg.Enabled)
-		}
+	{
+		key: "enabled",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.Enabled != nil {
+				group.Enabled = userFileValue(*cfg.Enabled)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if ValidDeliveryMode(cfg.DeliveryMode) {
-			group.DeliveryMode = userFileValue(cfg.DeliveryMode)
-		}
+	{
+		key: "delivery_mode",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if ValidDeliveryMode(cfg.DeliveryMode) {
+				group.DeliveryMode = userFileValue(cfg.DeliveryMode)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if ValidMode(cfg.VerifyMode) {
-			group.VerifyMode = userFileValue(cfg.VerifyMode)
-		}
+	{
+		key: "verify_mode",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if ValidMode(cfg.VerifyMode) {
+				group.VerifyMode = userFileValue(cfg.VerifyMode)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.NameSpoiler != nil {
-			group.NameSpoiler = userFileValue(*cfg.NameSpoiler)
-		}
+	{
+		key: "name_spoiler",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.NameSpoiler != nil {
+				group.NameSpoiler = userFileValue(*cfg.NameSpoiler)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.BanSeconds != nil {
-			group.BanSeconds = userFileValue(ClampBanSeconds(*cfg.BanSeconds))
-		}
+	{
+		key: "ban_seconds",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.BanSeconds != nil {
+				group.BanSeconds = userFileValue(ClampBanSeconds(*cfg.BanSeconds))
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.LookupTTLSeconds != nil {
-			group.LookupTTLSeconds = userFileValue(*cfg.LookupTTLSeconds)
-		}
+	{
+		key: "lookup_ttl_seconds",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.LookupTTLSeconds != nil {
+				group.LookupTTLSeconds = userFileValue(*cfg.LookupTTLSeconds)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.LookupAutoDeleteEnabled != nil {
-			group.LookupAutoDeleteEnabled = userFileValue(*cfg.LookupAutoDeleteEnabled)
-		}
+	{
+		key: "lookup_auto_delete_enabled",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.LookupAutoDeleteEnabled != nil {
+				group.LookupAutoDeleteEnabled = userFileValue(*cfg.LookupAutoDeleteEnabled)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.TimeoutSeconds != nil {
-			group.TimeoutSeconds = userFileValue(*cfg.TimeoutSeconds)
-		}
+	{
+		key: "timeout_seconds",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.TimeoutSeconds != nil {
+				group.TimeoutSeconds = userFileValue(*cfg.TimeoutSeconds)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.VerifyMaxFails != nil {
-			group.VerifyMaxFails = userFileValue(*cfg.VerifyMaxFails)
-		}
+	{
+		key: "verify_max_fails",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.VerifyMaxFails != nil {
+				group.VerifyMaxFails = userFileValue(*cfg.VerifyMaxFails)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.VerifyRetrySeconds != nil {
-			group.VerifyRetrySeconds = userFileValue(*cfg.VerifyRetrySeconds)
-		}
+	{
+		key: "verify_retry_seconds",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.VerifyRetrySeconds != nil {
+				group.VerifyRetrySeconds = userFileValue(*cfg.VerifyRetrySeconds)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.MuteSeconds != nil {
-			group.MuteSeconds = userFileValue(*cfg.MuteSeconds)
-		}
+	{
+		key: "mute_seconds",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.MuteSeconds != nil {
+				group.MuteSeconds = userFileValue(*cfg.MuteSeconds)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.VerifyInvited != nil {
-			group.VerifyInvited = userFileValue(*cfg.VerifyInvited)
-		}
+	{
+		key: "verify_invited",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.VerifyInvited != nil {
+				group.VerifyInvited = userFileValue(*cfg.VerifyInvited)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.WarnLimit != nil {
-			group.WarnLimit = userFileValue(*cfg.WarnLimit)
-		}
+	{
+		key: "warn_limit",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.WarnLimit != nil {
+				group.WarnLimit = userFileValue(*cfg.WarnLimit)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.AntispamEnabled != nil {
-			group.AntispamEnabled = userFileValue(*cfg.AntispamEnabled)
-		}
+	{
+		key: "antispam_enabled",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.AntispamEnabled != nil {
+				group.AntispamEnabled = userFileValue(*cfg.AntispamEnabled)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.ChannelWhitelist != nil {
-			group.ChannelWhitelist = userFileValue(append([]int64(nil), (*cfg.ChannelWhitelist)...))
-		}
+	{
+		key: "channel_whitelist",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.ChannelWhitelist != nil {
+				group.ChannelWhitelist = userFileValue(append([]int64(nil), (*cfg.ChannelWhitelist)...))
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.TrustedMemberGroupIDs != nil {
-			group.TrustedMemberGroupIDs = userFileValue(append([]int64(nil), cfg.TrustedMemberGroupIDs...))
-		}
+	{
+		key: "trusted_member_group_ids",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.TrustedMemberGroupIDs != nil {
+				group.TrustedMemberGroupIDs = userFileValue(append([]int64(nil), cfg.TrustedMemberGroupIDs...))
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.KnownChatIDs != nil {
-			group.KnownChatIDs = userFileValue(append([]int64(nil), (*cfg.KnownChatIDs)...))
-		}
+	{
+		key: "known_chat_ids",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.KnownChatIDs != nil {
+				group.KnownChatIDs = userFileValue(append([]int64(nil), (*cfg.KnownChatIDs)...))
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.RequiredChannelID != nil {
-			group.RequiredChannelID = userFileValue(*cfg.RequiredChannelID)
-		}
+	{
+		key: "required_channel_id",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.RequiredChannelID != nil {
+				group.RequiredChannelID = userFileValue(*cfg.RequiredChannelID)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.ChannelDisplay != "" {
-			group.ChannelDisplay = userFileValue(cfg.ChannelDisplay)
-		}
+	{
+		key: "channel_display",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.ChannelDisplay != "" {
+				group.ChannelDisplay = userFileValue(cfg.ChannelDisplay)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.ChannelInviteURL != "" {
-			group.ChannelInviteURL = userFileValue(cfg.ChannelInviteURL)
-		}
+	{
+		key: "channel_invite_url",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.ChannelInviteURL != "" {
+				group.ChannelInviteURL = userFileValue(cfg.ChannelInviteURL)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.Questions != nil {
-			group.Questions = userFileValue(cloneQuestions(cfg.Questions))
-		}
+	{
+		key: "questions",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.Questions != nil {
+				group.Questions = userFileValue(cloneQuestions(cfg.Questions))
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.FallbackQuestions != nil {
-			group.FallbackQuestions = userFileValue(cloneShortQuestions(*cfg.FallbackQuestions))
-		}
+	{
+		key: "fallback_questions",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.FallbackQuestions != nil {
+				group.FallbackQuestions = userFileValue(cloneShortQuestions(*cfg.FallbackQuestions))
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.FallbackBuiltin != nil {
-			group.FallbackBuiltin = userFileValue(*cfg.FallbackBuiltin)
-		}
+	{
+		key: "fallback_builtin",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.FallbackBuiltin != nil {
+				group.FallbackBuiltin = userFileValue(*cfg.FallbackBuiltin)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.Lang != "" {
-			group.Lang = userFileValue(cfg.Lang)
-		}
+	{
+		key: "lang",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.Lang != "" {
+				group.Lang = userFileValue(cfg.Lang)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.RichMessages != nil {
-			group.RichMessages = userFileValue(*cfg.RichMessages)
-		}
+	{
+		key: "rich_messages",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.RichMessages != nil {
+				group.RichMessages = userFileValue(*cfg.RichMessages)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.PrivateQueryPerMin != nil {
-			group.PrivateQueryPerMin = userFileValue(*cfg.PrivateQueryPerMin)
-		}
+	{
+		key: "private_query_per_min",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.PrivateQueryPerMin != nil {
+				group.PrivateQueryPerMin = userFileValue(*cfg.PrivateQueryPerMin)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.AdminLogChatID != nil {
-			group.AdminLogChatID = userFileValue(*cfg.AdminLogChatID)
-		}
+	{
+		key: "admin_log_chat_id",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.AdminLogChatID != nil {
+				group.AdminLogChatID = userFileValue(*cfg.AdminLogChatID)
+			}
+		},
 	},
-	func(group *GroupBaseline, cfg *GroupConfig) {
-		if cfg.RequiredChannelFailOpen != nil {
-			group.RequiredChannelFailOpen = userFileValue(*cfg.RequiredChannelFailOpen)
-		}
+	{
+		key: "required_channel_fail_open",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.RequiredChannelFailOpen != nil {
+				group.RequiredChannelFailOpen = userFileValue(*cfg.RequiredChannelFailOpen)
+			}
+		},
 	},
 }
 
@@ -400,7 +490,7 @@ func applyTopLevelUserValues(group GroupBaseline, cfg *Config, presence configPr
 
 func applyGroupUserValues(group GroupBaseline, cfg *GroupConfig) GroupBaseline {
 	for _, rule := range groupUserValueRules {
-		rule(&group, cfg)
+		rule.apply(&group, cfg)
 	}
 	return group
 }
