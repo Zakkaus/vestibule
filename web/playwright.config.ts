@@ -1,7 +1,10 @@
 import { defineConfig } from "@playwright/test";
 
-const devBaseURL = "http://127.0.0.1:4173";
-const previewBaseURL = "http://127.0.0.1:4174";
+const portOffset = Number.parseInt(process.env.PLAYWRIGHT_PORT_OFFSET ?? "0", 10);
+const devPort = 4173 + portOffset;
+const previewPort = 4174 + portOffset;
+const devBaseURL = `http://127.0.0.1:${devPort}`;
+const previewBaseURL = `http://127.0.0.1:${previewPort}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -35,7 +38,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "npm run dev -- --host 127.0.0.1 --port 4173 --strictPort",
+      command: `npm run dev -- --host 127.0.0.1 --port ${devPort} --strictPort`,
       url: devBaseURL,
       reuseExistingServer: false,
       stdout: "pipe",
@@ -44,7 +47,7 @@ export default defineConfig({
     },
     {
       command:
-        "npm run build && npm run preview -- --host 127.0.0.1 --port 4174 --strictPort",
+        `npm run build && npm run preview -- --host 127.0.0.1 --port ${previewPort} --strictPort`,
       url: previewBaseURL,
       reuseExistingServer: false,
       stdout: "pipe",

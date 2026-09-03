@@ -1,6 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { selectAppOption } from "./app-select";
 
 const selectedGroupID = "-1009000000701";
+const otherGroupID = "-1009000000703";
 const actorID = "9000000702";
 
 type SettingSource = "factory default" | "user file" | "chat override";
@@ -55,10 +57,14 @@ async function mockCapabilitiesTransport(
       return;
     }
     if (path === "/api/chats" && request.method() === "GET") {
-      await fulfillJSON(route, { chats: [{ id: selectedGroupID }] });
+      await fulfillJSON(route, { chats: [{ id: selectedGroupID }, { id: otherGroupID }] });
       return;
     }
-    if (path === `/api/chats/${selectedGroupID}/settings` && request.method() === "GET") {
+    if (
+      (path === `/api/chats/${selectedGroupID}/settings` ||
+        path === `/api/chats/${otherGroupID}/settings`) &&
+      request.method() === "GET"
+    ) {
       readRequests += 1;
       await readSettings(route, readRequests);
       return;
@@ -320,5 +326,108 @@ test("capabilities names a revision conflict and reloads the latest value", asyn
   await expect(page.locator('[data-capabilities-feedback="conflict"]')).toHaveCount(0);
   await expect(page.locator('[data-capability-card="verification"]')).toContainText(
     "来源：此群覆盖"
+  );
+});
+
+test("capabilities discards a previous group's delayed settings response", async ({ page }) => {
+  let markSettingsRequested!: () => void;
+  let releaseSettings!: () => void;
+  const settingsRequested = new Promise<void>((resolve) => {
+    markSettingsRequested = resolve;
+  });
+  const firstSettingsResponse = new Promise<void>((resolve) => {
+    releaseSettings = resolve;
+  });
+  let markSettingsResponseSettled!: () => void;
+  const settingsResponseSettled = new Promise<void>((resolve) => {
+    markSettingsResponseSettled = resolve;
+  });
+
+  await mockCapabilitiesTransport(
+    page,
+    async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (path === `/api/chats/${selectedGroupID}/settings`) {
+        markSettingsRequested();
+        await firstSettingsResponse;
+        await fulfillJSON(route, settingsPayload());
+        markSettingsResponseSettled();
+        return;
+      }
+      await fulfillJSON(
+        route,
+        settingsPayload({ enabled: { value: true, source: "chat override" } })
+      );
+    }
+  );
+
+  await page.goto(`/capabilities?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
+  await settingsRequested;
+  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await expect(page).toHaveURL(new RegExp(`/capabilities\\?group=${otherGroupID}$`));
+  await expect(page.getByRole("switch", { name: "自动入群验证" })).toHaveAttribute(
+    "aria-checked",
+    "true"
+  );
+
+  releaseSettings();
+  await settingsResponseSettled;
+  await expect(page.getByRole("switch", { name: "自动入群验证" })).toHaveAttribute(
+    "aria-checked",
+    "true"
+  );
+});
+
+test("capabilities ignores a previous group's delayed settings save", async ({ page }) => {
+  let markPatchRequested!: () => void;
+  let releasePatch!: () => void;
+  const patchRequested = new Promise<void>((resolve) => {
+    markPatchRequested = resolve;
+  });
+  const patchResponse = new Promise<void>((resolve) => {
+    releasePatch = resolve;
+  });
+  let markPatchResponseSettled!: () => void;
+  const patchResponseSettled = new Promise<void>((resolve) => {
+    markPatchResponseSettled = resolve;
+  });
+
+  await openCapabilities(
+    page,
+    async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      await fulfillJSON(
+        route,
+        path === `/api/chats/${otherGroupID}/settings`
+          ? settingsPayload({ enabled: { value: false, source: "chat override" } })
+          : settingsPayload()
+      );
+    },
+    async (route) => {
+      markPatchRequested();
+      await patchResponse;
+      await fulfillJSON(
+        route,
+        settingsPayload({ revision: 8, enabled: { value: true, source: "chat override" } })
+      );
+      markPatchResponseSettled();
+    }
+  );
+
+  await page.getByRole("switch", { name: "自动入群验证" }).click();
+  await page.getByRole("button", { name: "保存更改" }).click();
+  await patchRequested;
+  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await expect(page).toHaveURL(new RegExp(`/capabilities\\?group=${otherGroupID}$`));
+  await expect(page.getByRole("switch", { name: "自动入群验证" })).toHaveAttribute(
+    "aria-checked",
+    "false"
+  );
+
+  releasePatch();
+  await patchResponseSettled;
+  await expect(page.getByRole("switch", { name: "自动入群验证" })).toHaveAttribute(
+    "aria-checked",
+    "false"
   );
 });

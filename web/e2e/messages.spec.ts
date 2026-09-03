@@ -1,6 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { selectAppOption } from "./app-select";
 
 const selectedGroupID = "-1001163306055";
+const otherGroupID = "-1009000000004";
 const actorID = "741928306";
 
 type SettingSource = "factory default" | "user file" | "chat override";
@@ -102,10 +104,14 @@ async function mockMessagesTransport(
       return;
     }
     if (path === "/api/chats" && request.method() === "GET") {
-      await fulfillJSON(route, { chats: [{ id: selectedGroupID }] });
+      await fulfillJSON(route, { chats: [{ id: selectedGroupID }, { id: otherGroupID }] });
       return;
     }
-    if (path === `/api/chats/${selectedGroupID}/settings` && request.method() === "GET") {
+    if (
+      (path === `/api/chats/${selectedGroupID}/settings` ||
+        path === `/api/chats/${otherGroupID}/settings`) &&
+      request.method() === "GET"
+    ) {
       await readSettings(route);
       return;
     }
@@ -113,7 +119,11 @@ async function mockMessagesTransport(
       await patchSettings(route);
       return;
     }
-    if (path === `/api/chats/${selectedGroupID}/rules` && request.method() === "GET") {
+    if (
+      (path === `/api/chats/${selectedGroupID}/rules` ||
+        path === `/api/chats/${otherGroupID}/rules`) &&
+      request.method() === "GET"
+    ) {
       await readRules(route);
       return;
     }
@@ -316,4 +326,231 @@ test("messages reloads settings after a revision conflict", async ({ page }) => 
   await expect(page.locator("[data-messages-settings-feedback]")).toHaveAttribute("data-tone", "error");
   await expect(page.locator("#messages-name-spoiler")).toHaveAttribute("aria-checked", "false");
   await expect.poll(() => readCount).toBe(2);
+});
+
+function otherGroupRules(): readonly RuleResponse[] {
+  return [
+    {
+      id: "b-rule",
+      collection: "auto_reply",
+      ordinal: 0,
+      enabled: false,
+      definition: { match: ["group-b"], reply: { text: "Group B reply" } }
+    }
+  ];
+}
+
+test("messages settings discard a previous group's delayed response", async ({ page }) => {
+  let markSettingsRequested!: () => void;
+  let releaseSettings!: () => void;
+  const settingsRequested = new Promise<void>((resolve) => {
+    markSettingsRequested = resolve;
+  });
+  const firstSettingsResponse = new Promise<void>((resolve) => {
+    releaseSettings = resolve;
+  });
+  let markSettingsResponseSettled!: () => void;
+  const settingsResponseSettled = new Promise<void>((resolve) => {
+    markSettingsResponseSettled = resolve;
+  });
+
+  await mockMessagesTransport(
+    page,
+    async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (path === `/api/chats/${selectedGroupID}/settings`) {
+        markSettingsRequested();
+        await firstSettingsResponse;
+        await fulfillJSON(route, settingsResponse({ name_spoiler: sourced(true) }));
+        markSettingsResponseSettled();
+        return;
+      }
+      await fulfillJSON(
+        route,
+        settingsResponse({ revision: 8, name_spoiler: sourced(false, "chat override") })
+      );
+    },
+    async () => {
+      throw new Error("A delayed settings read must not write messages settings");
+    },
+    async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      await fulfillJSON(route, { items: path.includes(otherGroupID) ? otherGroupRules() : initialRules() });
+    },
+    async () => {
+      throw new Error("A delayed settings read must not write message rules");
+    }
+  );
+
+  await page.goto(`/messages?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
+  await settingsRequested;
+  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await expect(page).toHaveURL(new RegExp(`/messages\\?group=${otherGroupID}$`));
+  await expect(page.locator("#messages-name-spoiler")).toHaveAttribute("aria-checked", "false");
+
+  releaseSettings();
+  await settingsResponseSettled;
+  await expect(page.locator("#messages-name-spoiler")).toHaveAttribute("aria-checked", "false");
+});
+
+test("messages settings ignore a previous group's delayed save", async ({ page }) => {
+  let markPatchRequested!: () => void;
+  let releasePatch!: () => void;
+  const patchRequested = new Promise<void>((resolve) => {
+    markPatchRequested = resolve;
+  });
+  const patchResponse = new Promise<void>((resolve) => {
+    releasePatch = resolve;
+  });
+  let markPatchResponseSettled!: () => void;
+  const patchResponseSettled = new Promise<void>((resolve) => {
+    markPatchResponseSettled = resolve;
+  });
+
+  await openLiveMessages(
+    page,
+    async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      await fulfillJSON(
+        route,
+        path === `/api/chats/${otherGroupID}/settings`
+          ? settingsResponse({ revision: 8, name_spoiler: sourced(true, "chat override") })
+          : settingsResponse()
+      );
+    },
+    async (route) => {
+      markPatchRequested();
+      await patchResponse;
+      await fulfillJSON(
+        route,
+        settingsResponse({ revision: 8, name_spoiler: sourced(false, "chat override") })
+      );
+      markPatchResponseSettled();
+    },
+    async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      await fulfillJSON(route, { items: path.includes(otherGroupID) ? otherGroupRules() : initialRules() });
+    },
+    async () => {
+      throw new Error("A settings save must not write message rules");
+    }
+  );
+
+  await page.locator("#messages-name-spoiler").click();
+  await page.locator("[data-messages-settings-savebar] [data-slot='button']").click();
+  await patchRequested;
+  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await expect(page).toHaveURL(new RegExp(`/messages\\?group=${otherGroupID}$`));
+  await expect(page.locator("#messages-name-spoiler")).toHaveAttribute("aria-checked", "true");
+
+  releasePatch();
+  await patchResponseSettled;
+  await expect(page.locator("#messages-name-spoiler")).toHaveAttribute("aria-checked", "true");
+});
+
+test("message rules discard a previous group's delayed response", async ({ page }) => {
+  let markRulesRequested!: () => void;
+  let releaseRules!: () => void;
+  const rulesRequested = new Promise<void>((resolve) => {
+    markRulesRequested = resolve;
+  });
+  const firstRulesResponse = new Promise<void>((resolve) => {
+    releaseRules = resolve;
+  });
+  let markRulesResponseSettled!: () => void;
+  const rulesResponseSettled = new Promise<void>((resolve) => {
+    markRulesResponseSettled = resolve;
+  });
+
+  await mockMessagesTransport(
+    page,
+    async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      await fulfillJSON(
+        route,
+        path.includes(otherGroupID)
+          ? settingsResponse({ revision: 8, name_spoiler: sourced(false, "chat override") })
+          : settingsResponse()
+      );
+    },
+    async () => {
+      throw new Error("A delayed rules read must not write messages settings");
+    },
+    async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (path === `/api/chats/${selectedGroupID}/rules`) {
+        markRulesRequested();
+        await firstRulesResponse;
+        await fulfillJSON(route, { items: initialRules() });
+        markRulesResponseSettled();
+        return;
+      }
+      await fulfillJSON(route, { items: otherGroupRules() });
+    },
+    async () => {
+      throw new Error("A delayed rules read must not write message rules");
+    }
+  );
+
+  await page.goto(`/messages?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
+  await rulesRequested;
+  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await expect(page).toHaveURL(new RegExp(`/messages\\?group=${otherGroupID}$`));
+  await expect(page.locator("[data-messages-rule-item]").first()).toContainText("ID：b-rule");
+
+  releaseRules();
+  await rulesResponseSettled;
+  await expect(page.locator("[data-messages-rule-item]").first()).toContainText("ID：b-rule");
+});
+
+test("message rules ignore a previous group's delayed save", async ({ page }) => {
+  const rules = initialRules();
+  let markWriteRequested!: () => void;
+  let releaseWrite!: () => void;
+  const writeRequested = new Promise<void>((resolve) => {
+    markWriteRequested = resolve;
+  });
+  const writeResponse = new Promise<void>((resolve) => {
+    releaseWrite = resolve;
+  });
+  let markWriteResponseSettled!: () => void;
+  const writeResponseSettled = new Promise<void>((resolve) => {
+    markWriteResponseSettled = resolve;
+  });
+
+  await openLiveMessages(
+    page,
+    async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      await fulfillJSON(
+        route,
+        path.includes(otherGroupID)
+          ? settingsResponse({ revision: 8, name_spoiler: sourced(false, "chat override") })
+          : settingsResponse()
+      );
+    },
+    async () => {
+      throw new Error("A rules save must not write messages settings");
+    },
+    async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      await fulfillJSON(route, { items: path.includes(otherGroupID) ? otherGroupRules() : rules });
+    },
+    async (route) => {
+      markWriteRequested();
+      await writeResponse;
+      await fulfillJSON(route, { ...rules[0], enabled: false });
+      markWriteResponseSettled();
+    }
+  );
+
+  await page.locator("[data-messages-rule-item]").first().getByRole("switch").click();
+  await writeRequested;
+  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await expect(page).toHaveURL(new RegExp(`/messages\\?group=${otherGroupID}$`));
+  await expect(page.locator("[data-messages-rule-item]").first()).toContainText("ID：b-rule");
+
+  releaseWrite();
+  await writeResponseSettled;
+  await expect(page.locator("[data-messages-rule-item]").first()).toContainText("ID：b-rule");
 });
