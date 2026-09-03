@@ -126,7 +126,7 @@ func (c *dispatchCaller) Call(_ context.Context, endpoint string, data *ta.Reque
 			Chat:      telego.Chat{ID: params.ChatID, Type: telego.ChatTypePrivate},
 			Text:      params.Text,
 		})
-	case "answerCallbackQuery", "deleteMessage", "banChatSenderChat",
+	case "answerCallbackQuery", "deleteMessage", "banChatSenderChat", "restrictChatMember",
 		"approveChatJoinRequest", "declineChatJoinRequest":
 		c.record(dispatchAPICall{method: method, body: body})
 		return apiResponse(true)
