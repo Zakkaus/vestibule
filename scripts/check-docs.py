@@ -10,6 +10,7 @@ Each check exists because the thing it catches shipped once and looked fine.
 import re
 import sys
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parent.parent
 PLAN = ROOT / "docs" / "PLAN-v5.md"
@@ -17,6 +18,8 @@ PLAN = ROOT / "docs" / "PLAN-v5.md"
 # A plan and an architecture describe the target state, so they may name files
 # that do not exist yet. A README describes the present and may not.
 FORWARD_LOOKING = {"docs/PLAN-v5.md", "docs/ARCHITECTURE.md"}
+FROZEN_DOCUMENTS = ROOT / "docs" / "previous-generation"
+
 
 CN_NUM = {"零": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6,
           "七": 7, "八": 8, "九": 9, "十": 10, "十一": 11, "十二": 12,
@@ -25,6 +28,9 @@ CN_NUM = {"零": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6,
 HEADING = re.compile(r"^(#{1,6}) .*$", re.M)
 HOME_PATH = re.compile(r"(?<![\w/])/(?:home|Users)/[A-Za-z0-9._-]+/")
 REF = re.compile(r"`((?:docs|web|scripts)/[A-Za-z0-9_./-]+\.(?:md|html|py|sh|ya?ml))`")
+MARKDOWN_LINK = re.compile(
+    r"(?<!!)\[[^\]\n]*\]\(\s*(?:<([^>\n]*)>|([^\s)]+))"
+)
 
 # CONTRIBUTING.md opens by declaring itself the single statement of the rules.
 # A second document that restates who may merge, push, release or tag does not
@@ -134,8 +140,25 @@ def check_links(path: Path, text: str) -> None:
     """Every document a present-tense document names has to exist."""
     for ref in sorted(set(REF.findall(text))):
         if not (ROOT / ref).exists():
-            failures.append("%s: names %s, which does not exist"
+            failures.append("%s: names %s, which does not exist; readers cannot follow it"
                             % (path.relative_to(ROOT), ref))
+
+    for match in MARKDOWN_LINK.finditer(text):
+        destination = match.group(1) or match.group(2)
+        parsed = urlsplit(destination)
+        # A fragment does not name another file. Schemes and network locations are
+        # external destinations, while an absolute path is not repository-local.
+        if not parsed.path or parsed.scheme or parsed.netloc or parsed.path.startswith("/"):
+            continue
+        target = (path.parent / unquote(parsed.path)).resolve()
+        if not target.exists():
+            try:
+                target_name = target.relative_to(ROOT)
+            except ValueError:
+                target_name = target
+            failures.append("%s: link target %s resolves to %s, which does not exist; "
+                            "readers cannot follow it"
+                            % (path.relative_to(ROOT), destination, target_name))
 
 
 def check_screen_coverage() -> None:
@@ -627,7 +650,8 @@ def main() -> int:
         check_headings(path, text)
         check_home_paths(path, text)
         check_phase_count(path, text, phases)
-        if str(path.relative_to(ROOT)) not in FORWARD_LOOKING:
+        if (str(path.relative_to(ROOT)) not in FORWARD_LOOKING
+                and not path.is_relative_to(FROZEN_DOCUMENTS)):
             check_links(path, text)
 
     check_rules_are_stated_once(documents)

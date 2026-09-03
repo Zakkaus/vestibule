@@ -8,6 +8,7 @@ exemption rather than treating the deferred rows as a pass.
 """
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -93,6 +94,81 @@ def function_body(path: Path, name: str) -> str:
     next_function = text.find("\nfunc ", start + len(marker))
     return text[start:] if next_function < 0 else text[start:next_function]
 
+def route_has_method(documented: set[str], method: str, path: str) -> str | None:
+    """Return the matching table row, if its method includes this operation."""
+    for route in documented:
+        methods, _, documented_path = route.rpartition(" ")
+        if documented_path != path:
+            continue
+        if method in {part.strip() for part in methods.split("·")}:
+            return route
+    return None
+
+
+def documented_path(documented: set[str], path: str) -> bool:
+    return any(route.rpartition(" ")[2] == path for route in documented)
+
+
+def implemented_path_segments(documented: set[str]) -> list[str]:
+    """Find source branches that add paths beyond the named live routes."""
+    failures = []
+    for function in ("serveHTTP", "apiRoute", "statusRoute"):
+        try:
+            body = function_body(API / "server.go", function)
+        except ValueError as error:
+            failures.append(str(error))
+            continue
+        for path in sorted(set(re.findall(r'request\.URL\.Path\s*==\s*"([^"]+)"', body))):
+            if not documented_path(documented, path):
+                failures.append(
+                    f"implemented exact path {path!r} has no exhaustive route-table "
+                    "row; clients cannot discover or safely rely on it"
+                )
+
+    try:
+        chat_body = function_body(API / "server.go", "chatRoute")
+    except ValueError as error:
+        return failures + [str(error)]
+
+    for segment in sorted(set(re.findall(r'case\s+"([^"]+)":', chat_body))):
+        path = f"/api/chats/{{id}}/{segment}"
+        routes = [route for route in documented if route.rpartition(" ")[2] == path]
+        if not routes:
+            failures.append(
+                f"implemented chat path segment {segment!r} has no exhaustive "
+                "route-table row; clients cannot discover or safely rely on it"
+            )
+        elif any(route in DEFERRED_ROWS for route in routes):
+            failures.append(
+                f"implemented chat path segment {segment!r} is still marked "
+                f"deferred by the route table ({', '.join(sorted(routes))})"
+            )
+
+    try:
+        audit_body = function_body(API / "server.go", "auditRoute")
+    except ValueError as error:
+        return failures + [str(error)]
+    get_start = audit_body.find("case http.MethodGet:")
+    post_start = audit_body.find("case http.MethodPost:", get_start + 1)
+    if get_start < 0:
+        get_body = ""
+    else:
+        get_body = audit_body[get_start:post_start if post_start >= 0 else len(audit_body)]
+    for segment in sorted(set(re.findall(r'rest\s*\[\s*0\s*\]\s*==\s*"([^"]+)"', get_body))):
+        path = f"/api/chats/{{id}}/audit/{segment}"
+        route = route_has_method(documented, "GET", path)
+        if route is None:
+            failures.append(
+                f"implemented GET audit path segment {segment!r} has no "
+                "exhaustive route-table row; clients cannot discover or safely rely on it"
+            )
+        elif route in DEFERRED_ROWS:
+            failures.append(
+                f"implemented GET audit path segment {segment!r} is still marked "
+                f"deferred by the route table ({route})"
+            )
+    return failures
+
 
 def main() -> int:
     try:
@@ -114,6 +190,7 @@ def main() -> int:
         for token in tokens:
             if token not in body:
                 failures.append(f"{route}: {filename}:{function} no longer contains {token!r}")
+    failures.extend(implemented_path_segments(documented))
 
     not_live = documented - set(LIVE_ROUTES)
     if not_live != DEFERRED_ROWS:

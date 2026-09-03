@@ -38,6 +38,8 @@ jobs:
           python3 scripts/check-log-privacy.py
           python3 scripts/check-mutations-authorise.py
           python3 scripts/check-whole-table-writes.py
+          python3 scripts/test-gate-self-coverage.py
+
           python3 scripts/check-migration-declarations.py migrations
           python3 scripts/check-schema-manifest.py deploy/vestibule-schema-manifest
           python3 scripts/check-console-routes.py

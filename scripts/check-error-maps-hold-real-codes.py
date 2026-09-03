@@ -30,8 +30,56 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 FEATURES = ROOT / "web" / "src" / "features"
 EMIT = re.compile(r'writeError\([^,]+,\s*[^,]+,\s*"([a-z_]+)"')
 PRESENTER = re.compile(r"function [A-Za-z]*[Ee]rror(?:MessageKey|Presentation)\(.*?\n\}", re.S)
+ERROR_CODE_SWITCH = re.compile(r"\bswitch\s*\(\s*error\.code\s*\)\s*\{")
 TABLE = re.compile(r"(?:errorMessageKeys|keyByCode)[^=]*=\s*\{(.*?)\n\s*\};", re.S)
 ROW = re.compile(r"^\s*([a-z_]{4,}):", re.M)
+
+def error_code_switches(component: str):
+    """Return switch bodies and whether any switch had an unbalanced brace."""
+    bodies = []
+    unbalanced = 0
+    for opener in ERROR_CODE_SWITCH.finditer(component):
+        depth = 1
+        quote = None
+        escaped = False
+        comment = None
+        index = opener.end()
+        while index < len(component):
+            char = component[index]
+            next_char = component[index + 1] if index + 1 < len(component) else ""
+            if comment == "line":
+                if char == "\n":
+                    comment = None
+            elif comment == "block":
+                if char == "*" and next_char == "/":
+                    comment = None
+                    index += 1
+            elif quote is not None:
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif char == quote:
+                    quote = None
+            elif char == "/" and next_char == "/":
+                comment = "line"
+                index += 1
+            elif char == "/" and next_char == "*":
+                comment = "block"
+                index += 1
+            elif char in "\"'`":
+                quote = char
+            elif char == "{":
+                depth += 1
+            elif char == "}":
+                depth -= 1
+                if depth == 0:
+                    bodies.append(component[opener.end():index])
+                    break
+            index += 1
+        else:
+            unbalanced += 1
+    return bodies, unbalanced
 
 
 def emitted_codes() -> set:
@@ -48,8 +96,12 @@ def emitted_codes() -> set:
 
 def mapped_codes(component: str) -> set:
     codes = set()
-    for body in PRESENTER.findall(component):
+    switch_bodies, _ = error_code_switches(component)
+    for body in switch_bodies:
         codes |= set(re.findall(r'case "([a-z_]+)"', body))
+        for table in TABLE.findall(body):
+            codes |= set(ROW.findall(table))
+    for body in PRESENTER.findall(component):
         for table in TABLE.findall(body):
             codes |= set(ROW.findall(table))
     for table in TABLE.findall(component):
@@ -69,10 +121,18 @@ def main() -> int:
     presenters = 0
     for screen in sorted(p for p in FEATURES.iterdir() if p.is_dir()):
         component = "".join(path.read_text() for path in sorted(screen.glob("*.tsx")))
+        switch_bodies, unbalanced_switches = error_code_switches(component)
+        switch_codes = set()
+        for body in switch_bodies:
+            switch_codes |= set(re.findall(r'case "([a-z_]+)"', body))
         codes = mapped_codes(component)
-        if PRESENTER.search(component):
+        named_presenter = PRESENTER.search(component) is not None
+        has_error_switch = bool(switch_bodies) or unbalanced_switches > 0
+        if named_presenter or has_error_switch:
             presenters += 1
-            if not codes:
+            if not codes or unbalanced_switches or (
+                has_error_switch and not switch_codes
+            ):
                 # A screen that presents errors and yields no code means the shapes this
                 # reads for have moved. Zero rows overall would be caught below; this
                 # catches losing most of them, which otherwise still reports a pass.
