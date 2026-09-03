@@ -68,7 +68,6 @@
     "token_label": "Telegram 机器人令牌",
     "submit": "认领实例",
     "token_required": "必须提供 Telegram 机器人令牌。",
-    "claim_failed": "无法认领此实例。请确认令牌有效后重试。",
     "claimed": "实例已认领，机器人已启动。",
     "binding": "在 Telegram 中打开此链接以绑定部署者身份。",
     "binding_action": "在 Telegram 中绑定",

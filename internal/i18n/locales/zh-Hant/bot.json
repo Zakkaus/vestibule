@@ -68,7 +68,6 @@
     "token_label": "Telegram 機器人權杖",
     "submit": "認領執行個體",
     "token_required": "必須提供 Telegram 機器人權杖。",
-    "claim_failed": "無法認領此執行個體。請確認權杖有效後重試。",
     "claimed": "執行個體已認領，機器人已啟動。",
     "binding": "請在 Telegram 中開啟此連結以綁定部署者身分。",
     "binding_action": "在 Telegram 中綁定",

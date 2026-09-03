@@ -158,8 +158,6 @@ type BotSetupCatalog struct {
 	Submit Text
 	// TokenRequired reports an empty token input.
 	TokenRequired Text
-	// ClaimFailed reports a rejected or unavailable claim without exposing credentials.
-	ClaimFailed Text
 	// Claimed confirms that the bot is running after a successful claim.
 	Claimed Text
 	// Binding explains the Telegram owner-binding step.

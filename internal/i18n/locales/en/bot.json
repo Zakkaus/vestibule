@@ -68,7 +68,6 @@
     "token_label": "Telegram bot token",
     "submit": "Claim instance",
     "token_required": "A Telegram bot token is required.",
-    "claim_failed": "Could not claim this instance. Check the token and try again.",
     "claimed": "This instance is claimed and the bot is running.",
     "binding": "Open this link in Telegram to bind the deployer account.",
     "binding_action": "Bind in Telegram",
