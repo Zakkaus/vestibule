@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"errors"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -19,6 +20,89 @@ func testSQLiteConfig(t *testing.T) Config {
 		Type: "sqlite3-fk-wal",
 		URI:  "file:" + filepath.Join(t.TempDir(), "vestibule.db") + "?_txlock=immediate",
 	}
+}
+
+func TestResolveConfigInfersPostgreSQLFromURI(t *testing.T) {
+	const postgresURI = "postgres://vestibule@localhost/vestibule"
+
+	databaseType, _, err := resolveConfig(Config{URI: postgresURI})
+	if err != nil {
+		t.Fatalf("resolve PostgreSQL URI: %v", err)
+	}
+	if databaseType != "postgres" {
+		t.Fatalf(
+			"PostgreSQL URI selected database type %q, want postgres; SQLite would open the DSN as a local file",
+			databaseType,
+		)
+	}
+}
+
+func TestResolveConfigRejectsPostgreSQLWithoutURI(t *testing.T) {
+	const postgresURI = "postgres://vestibule@localhost/vestibule"
+	cfg := Config{Type: "postgres", StateDirectory: t.TempDir()}
+	valid := cfg
+	valid.URI = postgresURI
+
+	databaseType, uri, err := resolveConfig(valid)
+	if err != nil {
+		t.Fatalf("valid PostgreSQL configuration was refused: %v", err)
+	}
+	if databaseType != "postgres" || uri != postgresURI {
+		t.Fatalf("valid PostgreSQL configuration resolved as type %q URI %q", databaseType, uri)
+	}
+
+	databaseType, uri, err = resolveConfig(cfg)
+	if err == nil {
+		t.Fatalf(
+			"PostgreSQL without a URI resolved as type %q URI %q; startup would use a SQLite location",
+			databaseType,
+			uri,
+		)
+	}
+	if !strings.Contains(err.Error(), "database URI is required for PostgreSQL") {
+		t.Fatalf("PostgreSQL without a URI returned an unactionable error: %v", err)
+	}
+}
+
+func TestResolveConfigUsesSharedInMemorySQLiteWhenStateDirectoryIsEmpty(t *testing.T) {
+	databaseType, rawURI, err := resolveConfig(Config{})
+	if err != nil {
+		t.Fatalf("empty state directory did not resolve to shared in-memory SQLite: %v", err)
+	}
+
+	uri := parseDatabaseURI(t, rawURI)
+	query := uri.Query()
+	if databaseType != DefaultType ||
+		uri.Scheme != "file" ||
+		uri.Opaque != "vestibule-memory" ||
+		query.Get("mode") != "memory" ||
+		query.Get("cache") != "shared" {
+		t.Fatalf("empty state directory resolved as type %q URI %q, want shared in-memory SQLite", databaseType, rawURI)
+	}
+}
+
+func TestResolveConfigUsesImmediateSQLiteWriteTransactions(t *testing.T) {
+	_, rawURI, err := resolveConfig(Config{StateDirectory: t.TempDir()})
+	if err != nil {
+		t.Fatalf("resolve SQLite file URI: %v", err)
+	}
+
+	uri := parseDatabaseURI(t, rawURI)
+	if txLock := uri.Query().Get("_txlock"); txLock != "immediate" {
+		t.Fatalf(
+			"SQLite transaction lock mode = %q, want immediate; deferred transactions can fail part-way through concurrent writes",
+			txLock,
+		)
+	}
+}
+
+func parseDatabaseURI(t *testing.T, rawURI string) *url.URL {
+	t.Helper()
+	uri, err := url.Parse(rawURI)
+	if err != nil {
+		t.Fatalf("parse database URI %q: %v", rawURI, err)
+	}
+	return uri
 }
 
 func TestOpenMigratesSQLite(t *testing.T) {
