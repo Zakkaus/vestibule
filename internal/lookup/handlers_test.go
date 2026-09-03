@@ -200,6 +200,49 @@ func TestAllLookupCommandHandlersSendCatalogueAnswers(t *testing.T) {
 	}
 }
 
+func TestPkgsExcludesDebianTestingFromTheStableLine(t *testing.T) {
+	relInfo.mu.Lock()
+	oldDebian, oldFetched, oldRefreshing := relInfo.debian, relInfo.fetched, relInfo.refreshing
+	relInfo.debian = map[string]string{"13": "stable", "14": "testing"}
+	relInfo.fetched, relInfo.refreshing = time.Now(), false
+	relInfo.mu.Unlock()
+	t.Cleanup(func() {
+		relInfo.mu.Lock()
+		relInfo.debian, relInfo.fetched, relInfo.refreshing = oldDebian, oldFetched, oldRefreshing
+		relInfo.mu.Unlock()
+	})
+
+	withLookupHTTP(t, func(request *http.Request) (int, string) {
+		switch request.URL.Host {
+		case "repology.org":
+			return http.StatusOK, `[{"repo":"debian_13","version":"1.0"},{"repo":"debian_14","version":"2.0"}]`
+		case "packages.gentoo.org":
+			return http.StatusOK, ""
+		default:
+			return http.StatusNotFound, ""
+		}
+	})
+	const chatID = int64(-1009000000017)
+	caller := &lookupTelegramCaller{}
+	bot := newLookupTestBot(t, caller)
+	service := New(nil, telegram.NewConnector(bot), &settings.Config{
+		Groups:   []settings.GroupConfig{{ID: chatID, Lang: "en"}},
+		GroupIDs: []int64{chatID},
+	}, "")
+
+	runLookupHandler(t, bot, service.OnPkgs, lookupMessage("/pkgs demo", chatID, 88, telego.ChatTypeSupergroup))
+	if got := len(caller.methodCalls("sendMessage")); got != 1 {
+		t.Fatalf("Debian package lookup sent %d replies, want 1", got)
+	}
+	text := sentLookupMessage(t, caller, 0).Text
+	if !strings.Contains(text, "1.0") || !strings.Contains(text, "13 stable") {
+		t.Fatalf("Debian testing replaced the stable line: %q; people cannot install testing versions on stable Debian", text)
+	}
+	if strings.Contains(text, "2.0") || strings.Contains(text, "14 testing") {
+		t.Fatalf("Debian testing leaked into the stable line: %q; people cannot install testing versions on stable Debian", text)
+	}
+}
+
 type lookupRoundTripFunc func(*http.Request) (*http.Response, error)
 
 func (fn lookupRoundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {

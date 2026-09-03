@@ -360,3 +360,18 @@ func TestARevisionIsSplitOffBeforeTheSuffixesAreCompared(t *testing.T) {
 		}
 	}
 }
+
+// A known Gentoo suffix carries a decimal payload. `_pre-release` is not one: the payload is
+// not a number, so the whole token stays an unknown post-release component instead of being
+// read as a pre-release, and the ordering stays defined either way.
+func TestKnownSuffixRequiresDecimalPayload(t *testing.T) {
+	if !verLess("1.0_pre2", "1.0") {
+		t.Fatal("a valid pre-release suffix must sort before the release")
+	}
+	if !verLess("1.0", "1.0_pre-release") {
+		t.Fatal("a malformed pre-release suffix must remain an unknown post-release component; otherwise versions can be ordered arbitrarily")
+	}
+	if verLess("1.0_pre-release", "1.0") {
+		t.Fatal("a malformed pre-release suffix must not sort before the release")
+	}
+}
