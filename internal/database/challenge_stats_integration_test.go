@@ -94,6 +94,41 @@ func TestConsoleStatsPreservesUnknownChallengeKind(t *testing.T) {
 	}
 }
 
+// Repeated outcomes must stay in their local-day bucket, old rows must stay outside the
+// requested interval, and superseded attempts must not turn a valid report into an error.
+func TestConsoleStatsCountsOnlyTerminalRowsInsideTheirRequestedDays(t *testing.T) {
+	db, service := newStatsIntegrationService(t)
+	location := mustLocation(t, "UTC")
+	from := time.Date(2026, time.July, 1, 0, 0, 0, 0, location)
+	boundary := from.AddDate(0, 0, 1)
+	to := boundary.AddDate(0, 0, 1)
+
+	seedStatsChallenge(t, db, "before-request", 21, verification.ChallengeApproved, "rule", from.Unix()-1)
+	seedStatsChallenge(t, db, "first-a", 22, verification.ChallengeApproved, "rule", from.Unix()+1)
+	seedStatsChallenge(t, db, "first-b", 23, verification.ChallengeApproved, "rule", from.Unix()+2)
+	seedStatsChallenge(t, db, "second", 24, verification.ChallengeApproved, "rule", boundary.Unix()+1)
+	seedStatsChallenge(t, db, "superseded", 25, verification.ChallengeSuperseded, "rule", from.Unix()+3)
+
+	report, err := service.ConsoleStats(context.Background(), verification.ConsoleStatsRequest{
+		GroupID: statsIntegrationChatID, From: from, To: to, Location: location,
+	})
+	if err != nil {
+		t.Fatalf("statistics for valid terminal rows became unavailable after an abandoned "+
+			"challenge was stored: %v", err)
+	}
+	if len(report.Trend) != 2 {
+		t.Fatalf("statistics trend has %d days, want 2", len(report.Trend))
+	}
+	first := report.Trend[0].Outcome
+	second := report.Trend[1].Outcome
+	if first.Challenges != 2 || first.Approved != 2 || second.Challenges != 1 || second.Approved != 1 ||
+		report.Summary.Challenges != 3 || report.Summary.Approved != 3 {
+		t.Fatalf("daily approved counts = [%d, %d] with summary %d, want [2, 1] with "+
+			"summary 3; rows were collapsed, moved between days, or counted outside the request",
+			first.Approved, second.Approved, report.Summary.Approved)
+	}
+}
+
 func TestRecentRejectionsUsesTwentyFourHourWindowAndGroupsReasons(t *testing.T) {
 	db, service := newStatsIntegrationService(t)
 	end := time.Date(2026, time.September, 3, 14, 0, 0, 0, time.UTC)
@@ -119,6 +154,41 @@ func TestRecentRejectionsUsesTwentyFourHourWindowAndGroupsReasons(t *testing.T) 
 	}
 	if len(byReason) != 3 || byReason["wrong_answer"] != 2 || byReason["rejected"] != 1 || byReason["<null>"] != 1 {
 		t.Fatalf("recent rejection reasons = %#v, want wrong_answer=2 rejected=1 null=1", byReason)
+	}
+}
+
+// Rollback diagnostics are global counts by reason. The same reason remains one row when
+// challenges came from different groups and mechanisms, while a different reason remains a
+// separate positive control. Stable reason order makes consecutive operator reads comparable.
+func TestRecentRejectionsCombinesReasonsAcrossGroupsAndKinds(t *testing.T) {
+	db, service := newStatsIntegrationService(t)
+	const neighbourChatID int64 = -1009000000703
+	if _, err := db.Exec(context.Background(), "INSERT INTO chat (id, title) VALUES ($1, $2)",
+		neighbourChatID, "Neighbour statistics test chat"); err != nil {
+		t.Fatal(err)
+	}
+	since := time.Unix(50, 0).UTC()
+	seedRollbackRejectionInGroup(t, db, "wrong-rule", statsIntegrationChatID, 31,
+		verification.ChallengeDeclined, "rule", "wrong_answer", 100)
+	seedRollbackRejectionInGroup(t, db, "wrong-captcha", statsIntegrationChatID, 32,
+		verification.ChallengeDeclined, "captcha", "wrong_answer", 101)
+	seedRollbackRejectionInGroup(t, db, "wrong-neighbour", neighbourChatID, 33,
+		verification.ChallengeDeclined, "pow", "wrong_answer", 102)
+	seedRollbackRejectionInGroup(t, db, "external", statsIntegrationChatID, 34,
+		verification.ChallengeDeclined, "membership", "external_unmet", 103)
+
+	counts, err := service.RecentRejections(context.Background(), since)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(counts) != 2 {
+		t.Fatalf("recent rejection diagnostics returned %d groups, want one total for each "+
+			"of 2 reasons; splitting by group or mechanism obscures the rollback review", len(counts))
+	}
+	if counts[0].Reason == nil || *counts[0].Reason != "external_unmet" || counts[0].Count != 1 ||
+		counts[1].Reason == nil || *counts[1].Reason != "wrong_answer" || counts[1].Count != 3 {
+		t.Fatalf("recent rejection groups = %#v, want external_unmet=1 then wrong_answer=3; "+
+			"split or unstable groups obscure the rollback review", counts)
 	}
 }
 
@@ -185,11 +255,27 @@ func seedRollbackRejection(
 	settledAt int64,
 ) {
 	t.Helper()
+	seedRollbackRejectionInGroup(
+		t, db, id, statsIntegrationChatID, userID, state, "rule", reason, settledAt,
+	)
+}
+
+func seedRollbackRejectionInGroup(
+	t *testing.T,
+	db *database.Database,
+	id string,
+	chatID, userID int64,
+	state verification.ChallengeState,
+	kind string,
+	reason any,
+	settledAt int64,
+) {
+	t.Helper()
 	_, err := db.Exec(context.Background(), `
 		INSERT INTO challenge
 			(id, chat_id, user_id, state, kind, payload, delivery, reason, expires_at, settled_at, epoch)
-		VALUES ($1, $2, $3, $4, 'rule', '{}', '{}', $5, $6, $7, 1)`,
-		id, statsIntegrationChatID, userID, state, reason, settledAt, settledAt)
+		VALUES ($1, $2, $3, $4, $5, '{}', '{}', $6, $7, $8, 1)`,
+		id, chatID, userID, state, kind, reason, settledAt, settledAt)
 	if err != nil {
 		t.Fatal(err)
 	}

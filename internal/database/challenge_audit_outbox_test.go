@@ -137,6 +137,176 @@ func TestChallengeAuditReturnsOneRowPerSettledChallenge(t *testing.T) {
 	}
 }
 
+// The settlement join accepts three action kinds, but the existing audit fixtures exercised
+// only settle_ban. Losing either other member makes a completed approval or decline look as if
+// it never reached Telegram, so an operator cannot distinguish completed work from missing work.
+func TestChallengeAuditReportsEverySettlementActionKind(t *testing.T) {
+	const chatID int64 = -1009000000831
+	ctx := context.Background()
+	db, err := Open(ctx, testSQLiteConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	state := NewVerificationStore(db)
+
+	cases := []struct {
+		nonce  string
+		userID int64
+		state  verification.ChallengeState
+		reason string
+		kind   string
+	}{
+		{nonce: "approved", userID: 7701, state: verification.ChallengeApproved, kind: "settle_approve"},
+		{nonce: "declined", userID: 7702, state: verification.ChallengeDeclined, reason: "wrong_answer", kind: "settle_decline"},
+		{nonce: "banned", userID: 7703, state: verification.ChallengeBanned, kind: "settle_ban"},
+	}
+	for index, test := range cases {
+		record := verification.PendingRecord{
+			GroupID: chatID, UserID: test.userID, Name: test.nonce, Nonce: test.nonce,
+			Deadline: 90, Epoch: 1,
+		}
+		actionID := "settlement-" + test.nonce
+		requireAuditTransition(t, state, record, test.state, test.reason, int64(100+index), 9,
+			verification.ActionIntent{
+				ID: actionID, Kind: test.kind, Payload: `{}`, NextTryAt: 100,
+				ClaimOwner: "settler", ClaimUntil: 130,
+			})
+		requireAuditActionCompletion(t, state, actionID, "settler", int64(110+index))
+	}
+
+	records, err := state.LoadChallengeAudit(ctx, chatID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(records) != len(cases) {
+		t.Fatalf("challenge audit returned %d records, want %d completed decisions", len(records), len(cases))
+	}
+	byNonce := make(map[string]verification.ChallengeAuditRecord, len(records))
+	for _, record := range records {
+		byNonce[record.Record.Nonce] = record
+	}
+	for _, test := range cases {
+		record, ok := byNonce[test.nonce]
+		if !ok {
+			t.Fatalf("challenge audit omitted the completed %s decision", test.state)
+		}
+		if record.State != test.state || record.SettlementAction != verification.ChallengeActionDone {
+			t.Fatalf("completed %s decision appears as state %q with settlement action %q; "+
+				"the operator cannot tell whether it reached Telegram",
+				test.state, record.State, record.SettlementAction)
+		}
+	}
+}
+
+// An undo row belongs to one challenge. Without the undo join's challenge identity, every
+// settled challenge in the group inherits that row and the console tells operators that an
+// unrelated person's ban is also being undone.
+func TestChallengeAuditKeepsUndoWithItsChallenge(t *testing.T) {
+	const chatID int64 = -1009000000832
+	ctx := context.Background()
+	db, err := Open(ctx, testSQLiteConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	state := NewVerificationStore(db)
+
+	target := verification.PendingRecord{
+		GroupID: chatID, UserID: 7801, Name: "Target", Nonce: "target", Deadline: 90, Epoch: 1,
+	}
+	neighbour := verification.PendingRecord{
+		GroupID: chatID, UserID: 7802, Name: "Neighbour", Nonce: "neighbour", Deadline: 90, Epoch: 1,
+	}
+	for index, record := range []verification.PendingRecord{target, neighbour} {
+		actionID := "settle-ban-" + record.Nonce
+		requireAuditTransition(t, state, record, verification.ChallengeBanned, "", int64(100+index), 9,
+			verification.ActionIntent{
+				ID: actionID, Kind: "settle_ban", Payload: `{}`, NextTryAt: 100,
+				ClaimOwner: "settler", ClaimUntil: 130,
+			})
+		requireAuditActionCompletion(t, state, actionID, "settler", int64(110+index))
+	}
+
+	records, err := state.LoadChallengeAudit(ctx, chatID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var expected verification.ChallengeAuditRecord
+	for _, record := range records {
+		if record.ID == challengeID(target.Ref()) {
+			expected = record
+			break
+		}
+	}
+	if expected.ID == "" {
+		t.Fatal("challenge audit omitted the ban selected for undo")
+	}
+	inserted, err := state.EnqueueChallengeUndo(ctx, expected, verification.ActionIntent{
+		ID: "undo-target", Kind: "undo_ban",
+		Payload:   `{"chat_id":-1009000000832,"user_id":7801}`,
+		NextTryAt: 120, ClaimOwner: "operator", ClaimUntil: 150,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !inserted {
+		t.Fatal("valid undo was refused")
+	}
+
+	records, err = state.LoadChallengeAudit(ctx, chatID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	undoByID := make(map[string]verification.ChallengeActionState, len(records))
+	for _, record := range records {
+		undoByID[record.ID] = record.UndoAction
+	}
+	if undoByID[challengeID(target.Ref())] != verification.ChallengeActionPending {
+		t.Fatalf("selected ban has undo state %q, want pending", undoByID[challengeID(target.Ref())])
+	}
+	if got := undoByID[challengeID(neighbour.Ref())]; got != verification.ChallengeActionNone {
+		t.Fatalf("unrelated ban inherited undo state %q; the console now claims the wrong "+
+			"person's ban is being undone", got)
+	}
+}
+
+// Settlement timestamps have one-second precision, so ties are normal. The identifier
+// tie-break keeps repeated reads stable instead of letting equally recent people swap places.
+func TestChallengeAuditBreaksEqualSettlementTimesByID(t *testing.T) {
+	const chatID int64 = -1009000000833
+	ctx := context.Background()
+	db, err := Open(ctx, testSQLiteConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	state := NewVerificationStore(db)
+
+	first := verification.PendingRecord{
+		GroupID: chatID, UserID: 7901, Name: "First", Nonce: "first", Deadline: 90, Epoch: 1,
+	}
+	second := verification.PendingRecord{
+		GroupID: chatID, UserID: 7902, Name: "Second", Nonce: "second", Deadline: 90, Epoch: 1,
+	}
+	requireAuditTransition(t, state, first, verification.ChallengeApproved, "", 100, 9)
+	requireAuditTransition(t, state, second, verification.ChallengeApproved, "", 100, 9)
+
+	records, err := state.LoadChallengeAudit(ctx, chatID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(records) != 2 {
+		t.Fatalf("challenge audit returned %d tied records, want 2", len(records))
+	}
+	wantFirst := challengeID(second.Ref())
+	if records[0].ID != wantFirst || records[1].ID != challengeID(first.Ref()) {
+		t.Fatalf("equal-time audit order = [%q, %q], want identifier-descending order "+
+			"starting with %q; otherwise people swap places between console reads",
+			records[0].ID, records[1].ID, wantFirst)
+	}
+}
+
 func auditUndoAction(
 	t *testing.T,
 	ctx context.Context,
