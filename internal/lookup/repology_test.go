@@ -1,6 +1,7 @@
 package lookup
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -50,5 +51,29 @@ func TestRepologyNameShape(t *testing.T) {
 		if repologyNameRe.MatchString(name) {
 			t.Errorf("%q must not reach the network", name)
 		}
+	}
+}
+
+func TestRepologyCapsNamedFamiliesAndCountsRemainder(t *testing.T) {
+	originalFamilies := distroFamilies
+	baseFamily := distroFamilies[0]
+	distroFamilies = nil
+	t.Cleanup(func() { distroFamilies = originalFamilies })
+
+	pkgs := make([]repologyPkg, 0, repologyRows+2)
+	for i := range repologyRows + 2 {
+		family := baseFamily
+		family.label = fmt.Sprintf("Test family %02d", i)
+		family.prefixes = []string{fmt.Sprintf("testfamily%02d", i)}
+		distroFamilies = append(distroFamilies, family)
+		pkgs = append(pkgs, repologyPkg{Repo: family.prefixes[0], Version: "1.0"})
+	}
+
+	entries, others := repologyByFamily(pkgs)
+	if len(entries) != repologyRows {
+		t.Errorf("Repology reply lists %d families, want at most %d so Telegram can deliver it", len(entries), repologyRows)
+	}
+	if others != 2 {
+		t.Errorf("Repology overflow count = %d, want 2 omitted families", others)
 	}
 }

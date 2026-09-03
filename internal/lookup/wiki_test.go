@@ -43,6 +43,36 @@ func TestPickWikiTitlesDedup(t *testing.T) {
 	}
 }
 
+func TestPickWikiTitlesPrioritizesRequesterLanguageAndFiltersForeignPages(t *testing.T) {
+	a := wikiSource{classify: classifyArch}
+	got := a.pickWikiTitles(i18n.LangZH, []string{
+		"English first",
+		"Russian only (Русский)",
+		"Fallback topic (Русский)",
+		"日本語ページ",
+		"Japanese only (日本語)",
+		"Chinese first (简体中文)",
+		"Fallback topic",
+		"Chinese second (简体中文)",
+		"English second",
+		"Polish only (Polski)",
+	}, 4)
+	want := []string{
+		"Chinese first (简体中文)",
+		"Chinese second (简体中文)",
+		"English first",
+		"Fallback topic",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("wiki language selection = %v, want %v; foreign pages must not displace Chinese or English results", got, want)
+	}
+
+	got = a.pickWikiTitles(i18n.LangZH, []string{"Fallback topic (Русский)", "Fallback topic"}, 1)
+	if want := []string{"Fallback topic"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("English wiki page was not preferred over an unsupported translation: got %v", got)
+	}
+}
+
 func TestWikiResultNotice(t *testing.T) {
 	l := i18n.LangZH
 	noMatches := i18n.Messages.LookupContent.Wiki.NoMatches.For(l)

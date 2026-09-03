@@ -111,6 +111,38 @@ func TestResolveUseSourcesAvailability(t *testing.T) {
 	}
 }
 
+func TestResolveUseSourcesAcceptsOnlyExactPackageNames(t *testing.T) {
+	resetLookupPackageCaches(t)
+	pkgC.mu.Lock()
+	pkgC.pkgs["guru"] = map[string]string{
+		"app-editors/vim":      "9.1",
+		"app-editors/vim-core": "9.1",
+	}
+	pkgC.mu.Unlock()
+
+	srcs, _ := resolveUseSourcesWith(
+		context.Background(),
+		"vim",
+		map[string]bool{"guru": true},
+		func(context.Context, string) (pkgFullInfo, bool, bool) {
+			return pkgFullInfo{}, false, true
+		},
+		func(context.Context, string) ([]string, bool) {
+			return []string{"app-editors/vim", "app-editors/neovim"}, true
+		},
+	)
+
+	exact, ok := srcs["app-editors/vim"]
+	if !ok || !exact.official || len(exact.ovs) != 1 || exact.ovs[0] != "guru" {
+		t.Fatalf("valid exact /use match was not retained from both sources: %+v", exact)
+	}
+	for atom := range srcs {
+		if atom != "app-editors/vim" {
+			t.Errorf("bare /use vim treated fuzzy package %q as an exact match", atom)
+		}
+	}
+}
+
 func TestRenderUseLookupMiss(t *testing.T) {
 	for _, l := range i18n.Languages() {
 		for _, tc := range []struct {
