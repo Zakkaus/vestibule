@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/Zakkaus/vestibule/internal/rules"
@@ -128,5 +129,77 @@ func TestUpdatingARuleCannotReachAnotherGroupsRule(t *testing.T) {
 	}
 	if len(after) != 1 || !after[0].Enabled || string(after[0].Definition) != string(theirs.Definition) {
 		t.Fatalf("the neighbour's rule after another group named it = %#v, want it untouched", after)
+	}
+}
+
+func TestUpdatingAMissingRuleReportsRuleNotFound(t *testing.T) {
+	const chatID int64 = -1009000000805
+	ctx := context.Background()
+	db, err := Open(ctx, testSQLiteConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err = ensureChat(ctx, db, chatID); err != nil {
+		t.Fatal(err)
+	}
+	store := NewRuleStore(db)
+	expected := rules.Record{
+		ID: "missing-rule", ChatID: chatID, Collection: "challenge", Ordinal: 0, Enabled: true,
+		Definition: json.RawMessage(`{"kind":"contains","value":"before"}`),
+	}
+	next := expected
+	next.Enabled = false
+	next.Definition = json.RawMessage(`{"kind":"contains","value":"after"}`)
+
+	_, changed, err := store.UpdateRule(ctx, chatID, expected, next)
+	if changed || !errors.Is(err, rules.ErrRuleNotFound) {
+		t.Fatalf("missing rule update = changed %t, err %v; want no change and ErrRuleNotFound "+
+			"so a stale console update is reported as rule_not_found", changed, err)
+	}
+
+	if _, _, err = store.ReplaceRules(ctx, chatID, expected.Collection, nil, []rules.Record{expected}); err != nil {
+		t.Fatal(err)
+	}
+	updated, changed, err := store.UpdateRule(ctx, chatID, expected, next)
+	if err != nil || !changed {
+		t.Fatalf("existing rule update = changed %t, err %v; want a successful positive control", changed, err)
+	}
+	if updated.Enabled || string(updated.Definition) != string(next.Definition) {
+		t.Fatalf("existing rule update returned %#v, want %#v", updated, next)
+	}
+}
+
+func TestReplacingRulesForAMissingChatReportsRuleChatNotFound(t *testing.T) {
+	const chatID int64 = -1009000000806
+	ctx := context.Background()
+	db, err := Open(ctx, testSQLiteConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	store := NewRuleStore(db)
+	record := rules.Record{
+		ID: "chatless-rule", ChatID: chatID, Collection: "challenge", Ordinal: 0, Enabled: true,
+		Definition: json.RawMessage(`{"kind":"contains","value":"candidate"}`),
+	}
+
+	_, changed, err := store.ReplaceRules(ctx, chatID, record.Collection, nil, []rules.Record{record})
+	if changed || !errors.Is(err, rules.ErrRuleChatNotFound) {
+		t.Fatalf("rules replace for an unpersisted chat = changed %t, err %v; want no change and "+
+			"ErrRuleChatNotFound so the console reports chat_not_found rather than rules_unavailable",
+			changed, err)
+	}
+
+	if err = ensureChat(ctx, db, chatID); err != nil {
+		t.Fatal(err)
+	}
+	stored, changed, err := store.ReplaceRules(ctx, chatID, record.Collection, nil, []rules.Record{record})
+	if err != nil || !changed {
+		t.Fatalf("rules replace for a persisted chat = changed %t, err %v; want a successful positive control",
+			changed, err)
+	}
+	if len(stored) != 1 || stored[0].ID != record.ID {
+		t.Fatalf("rules replace for a persisted chat returned %#v, want %#v", stored, []rules.Record{record})
 	}
 }
