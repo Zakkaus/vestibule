@@ -53,6 +53,10 @@ type Config struct {
 	ObserveOnly          bool
 	Setup                SetupService
 	SetupClaimed         func()
+	// BotUsername is the Telegram handle this instance answers on. The screen a
+	// visitor without a session lands on has to name the bot they should open,
+	// and that name is different for every deployment.
+	BotUsername string
 }
 
 // Server owns listener admission and HTTP handler draining separately for ordered shutdown.
@@ -72,6 +76,7 @@ type Server struct {
 	observeOnly          bool
 	setup                SetupService
 	setupClaimed         func()
+	botUsername          string
 	routes               atomic.Pointer[routeSet]
 	mu                   sync.Mutex
 	listener             net.Listener
@@ -154,6 +159,8 @@ func (s *Server) serveHTTP(writer http.ResponseWriter, request *http.Request) {
 
 func (s *Server) apiRoute(writer http.ResponseWriter, request *http.Request) {
 	switch {
+	case request.Method == http.MethodGet && request.URL.Path == "/api/instance":
+		s.instance(writer, request)
 	case request.Method == http.MethodGet && request.URL.Path == "/api/session":
 		s.currentSession(writer, request)
 	case request.Method == http.MethodPost && request.URL.Path == "/api/session":

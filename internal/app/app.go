@@ -203,6 +203,7 @@ func claimedConsoleConfig(runtime *services) api.Config {
 		Release:              runtime.release,
 		Version:              runtime.version,
 		ObserveOnly:          runtime.cfg.ObserveOnly,
+		BotUsername:          runtime.identity.Username,
 	}
 }
 

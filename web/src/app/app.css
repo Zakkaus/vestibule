@@ -116,6 +116,12 @@ body {
    value itself, and the arrow. Under space-between the value drifted into the
    middle of the control, away from the glyph it belongs to; letting it take the
    free space keeps the pair together at the start and the arrow at the end. */
+/* Chrome drops the stacked label, so the control keeps its own minimum rather
+   than the width a label above it used to impose. */
+[data-utility-controls][data-variant="chrome"] [data-utility-control] {
+  gap: 0;
+}
+
 [data-slot="select-trigger"] [data-icon] {
   flex: none;
   inline-size: 1rem;
@@ -276,15 +282,30 @@ body {
 }
 
 
+/* The markers are glyphs rather than numerals: several of these states carry one
+   step, and "1." in front of a lone instruction is a list pretending to be a
+   sequence. The element stays an ordered list, because the states that do carry
+   three steps carry them in order. */
 [data-entry-steps] {
   display: grid;
   gap: var(--sp-3);
   margin: 0;
-  padding-inline-start: var(--sp-5);
+  padding: 0;
+  list-style: none;
 }
 
 [data-entry-steps] li {
-  padding-inline-start: var(--sp-1);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--sp-2);
+  align-items: start;
+}
+
+[data-entry-steps] [data-icon] {
+  inline-size: 1rem;
+  block-size: 1rem;
+  margin-block-start: 0.1875rem;
+  color: var(--muted-foreground);
 }
 
 [data-console-header] {
@@ -305,7 +326,6 @@ body {
    edge. Hidden at every width rather than only on the desktop, because each
    control's value already names it: "All manageable groups", "Follow system",
    "English". The select keeps its aria-label, so the name is still announced. */
-[data-console-header] [data-utility-control] > span,
 [data-console-header] [data-group-switcher] > span {
   position: absolute;
   inline-size: 1px;

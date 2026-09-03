@@ -22,6 +22,7 @@ TABLE_END = "**这张表是穷举的"
 LIVE_ROUTES = {
     "GET /livez": ("server.go", "serveHTTP", ('request.URL.Path == "/livez"',)),
     "GET /readyz": ("server.go", "serveHTTP", ('request.URL.Path == "/readyz"',)),
+    "GET /api/instance": ("instance.go", "instance", ("instanceResponse{BotUsername:",)),
     "POST /api/session": ("server.go", "apiRoute", ('request.URL.Path == "/api/session"', "http.MethodPost")),
     "GET /api/session": ("server.go", "apiRoute", ('request.URL.Path == "/api/session"', "http.MethodGet")),
     "GET /enter/{token}": ("server.go", "serveHTTP", ('strings.HasPrefix(request.URL.Path, "/enter/")',)),
