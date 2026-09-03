@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -34,6 +35,83 @@ func TestImportLegacyStatePersistsFixtureSnapshots(t *testing.T) {
 
 	assertImportedVerificationFixture(t, db)
 	assertImportedWarningFixture(t, db)
+}
+
+func TestLegacyImportPreservesEveryPendingChallengeField(t *testing.T) {
+	ctx := context.Background()
+	db, err := Open(ctx, testSQLiteConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	stateDirectory := copyLegacyFixtures(t)
+	if err := os.WriteFile(filepath.Join(stateDirectory, "pending.json"), []byte(`[
+  {
+    "user_id": 81101,
+    "group_id": -1009000000105,
+    "group_msg_id": 0,
+    "private_msg_id": 0,
+    "challenge_delivered": true,
+    "mode": "kernel",
+    "lang": "en",
+    "fb_answers": ["fallback.example"],
+    "fallback_pending": true,
+    "prompted": true,
+    "hinted": true,
+    "sample_bounced": true,
+    "no_linux_reminded": true,
+    "os_clarified": true,
+    "tries": 3,
+    "q_text": "Which package manager is correct?",
+    "q_opts": ["Portage", "apt"],
+    "correct_idx": 0,
+    "nonce": "all-legacy-fields",
+    "name": "Legacy Applicant",
+    "created_at": 4070000000,
+    "deadline": 4070000100,
+    "epoch": 4,
+    "deferred_since": 4069999000,
+    "deferral_cap_reached": true,
+    "gate": "mute",
+    "invited": true,
+    "held": true,
+    "hold_until": 4070000200,
+    "channel_unreadable": true,
+    "passing": true,
+    "settle_failures": 2,
+    "settle_pending_said": true,
+    "failed_at": 4070000050
+  }
+]`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	report, err := ImportLegacyState(ctx, db, ImportOptions{
+		StateDirectory: stateDirectory, BackupDirectory: filepath.Join(t.TempDir(), "backup"), Pending: PendingCarry,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.PendingRows != 1 {
+		t.Fatalf("legacy import pending rows = %d, want 1", report.PendingRows)
+	}
+	got, err := NewVerificationStore(db).LoadPending("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []verification.PendingRecord{{
+		UserID: 81101, GroupID: -1009000000105, ChallengeDelivered: true,
+		Mode: "kernel", Lang: "en", FbAnswers: []string{"fallback.example"}, FallbackPending: true,
+		Prompted: true, Hinted: true, SampleBounced: true, NoLinuxReminded: true, OSClarified: true, Tries: 3,
+		QText: "Which package manager is correct?", QOpts: []string{"Portage", "apt"}, Nonce: "all-legacy-fields",
+		Name: "Legacy Applicant", CreatedAt: 4_070_000_000, Deadline: 4_070_000_100, Epoch: 4,
+		DeferredSince: 4_069_999_000, DeferralCapReached: true, Gate: "mute", Invited: true, Held: true,
+		HoldUntil: 4_070_000_200, ChannelUnreadable: true, Passing: true, SettleFailures: 2,
+		SettlePendingSaid: true, FailedAt: 4_070_000_050,
+	}}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("legacy import lost live challenge state: got=%#v want=%#v", got, want)
+	}
 }
 func assertImportedVerificationFixture(t *testing.T, db *Database) {
 	t.Helper()
