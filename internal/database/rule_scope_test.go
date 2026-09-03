@@ -78,3 +78,55 @@ func TestReplaceRulesTouchesOnlyItsOwnGroup(t *testing.T) {
 		t.Errorf("the edited group holds %+v, want only the replacement", edits)
 	}
 }
+
+// Updating one rule names it twice over: by identifier and by group. Rule identifiers are unique
+// across the instance, so the group half never changes which row is found -- and neutralising it
+// together with the collection and the ordinal left every test passing. What the group half
+// stops is a request that names a rule belonging to somebody else: the caller is authorised for
+// its own group, hands in that group's identifier, and points at another group's rule. Without
+// the predicate the other group's rule is what gets written.
+func TestUpdatingARuleCannotReachAnotherGroupsRule(t *testing.T) {
+	const (
+		caller     int64 = -1009000000803
+		neighbour  int64 = -1009000000804
+		collection       = "challenge"
+	)
+	ctx := context.Background()
+	db, err := Open(ctx, testSQLiteConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	for _, chatID := range []int64{caller, neighbour} {
+		if err := ensureChat(ctx, db, chatID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	store := NewRuleStore(db)
+
+	theirs := rules.Record{
+		ID: "rule-of-the-neighbour", ChatID: neighbour, Collection: collection, Ordinal: 0,
+		Enabled: true, Definition: json.RawMessage(`{"kind":"contains","value":"theirs"}`),
+	}
+	if _, _, err = store.ReplaceRules(ctx, neighbour, collection, nil, []rules.Record{theirs}); err != nil {
+		t.Fatal(err)
+	}
+
+	// The caller's own group, its own identifier, and the neighbour's rule.
+	expected := theirs
+	expected.ChatID = caller
+	next := expected
+	next.Enabled = false
+	next.Definition = json.RawMessage(`{"kind":"contains","value":"taken"}`)
+	if _, changed, err := store.UpdateRule(ctx, caller, expected, next); changed || err == nil {
+		t.Fatalf("updating another group's rule = changed %t, err %v; want no change and a refusal", changed, err)
+	}
+
+	after, err := store.ListRules(ctx, neighbour, collection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(after) != 1 || !after[0].Enabled || string(after[0].Definition) != string(theirs.Definition) {
+		t.Fatalf("the neighbour's rule after another group named it = %#v, want it untouched", after)
+	}
+}
