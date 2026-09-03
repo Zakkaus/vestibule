@@ -17,10 +17,10 @@ counts happen to match, and four failures were possible and invisible:
 All four were at zero when this was written, which is the cheapest moment to
 freeze them.
 
-What it cannot see, stated rather than hidden: keys built at runtime. 149 call
-sites pass something other than a string literal — an indexed lookup or a
-template. Those resolve at runtime and this check skips them; the count is
-printed so the gap stays visible.
+Runtime keys are held too. The check validates every dotted key value declared in
+source and enumerates each computed-key family from its source domain. A new
+computed shape fails until the checker can enumerate it, rather than becoming an
+unchecked path.
 
 Usage: check-locale-catalogues.py [locales-dir] [source-dir]
 """
@@ -33,8 +33,14 @@ ROOT = Path(__file__).resolve().parent.parent
 PLACEHOLDER = re.compile(r"\{\{\s*([A-Za-z0-9_]+)\s*\}\}")
 LITERAL_KEY = re.compile(r"(?<![A-Za-z0-9_$])t\(\s*\"([A-Za-z0-9_.]+)\"")
 DYNAMIC_KEY = re.compile(r"(?<![A-Za-z0-9_$])t\(\s*(?![\"'])")
+KEY_LITERAL = re.compile(
+    r"""(?<![A-Za-z0-9_$])(["'])([A-Za-z][A-Za-z0-9_-]*(?:\.[A-Za-z][A-Za-z0-9_-]*)+)\1"""
+)
+KEY_TEMPLATE = re.compile(r"`([A-Za-z][A-Za-z0-9_.]*)\$\{([^}]*)\}([A-Za-z0-9_.]*)`")
+QUOTED_VALUE = re.compile(r"""["']([A-Za-z][A-Za-z0-9_-]*)["']""")
 HAN = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
 CHINESE_CATALOGUES = {"zh-CN", "zh-TW"}
+NON_TRANSLATION_DOTTED_LITERALS = {"github.com"}
 LANGUAGE_NEUTRAL_CHINESE_VALUES = {
     "locale.en": "English",
     "groups.applicants.withUsername": "@{{username}} · {{id}}",
@@ -68,6 +74,57 @@ def plural_stem(key: str) -> str:
         if key.endswith(suffix):
             return key[: -len(suffix)]
     return key
+
+def key_exists(catalogue: dict, key: str) -> bool:
+    return key in catalogue or any(key + suffix in catalogue for suffix in PLURAL_SUFFIXES)
+
+
+def quoted_values(source: str) -> set[str]:
+    return set(QUOTED_VALUE.findall(source))
+
+
+def declared_array_values(sources: dict[Path, str], path: Path, name: str) -> set[str] | None:
+    source = sources.get(path)
+    if source is None:
+        return None
+    match = re.search(
+        r"\b(?:export\s+)?const\s+" + re.escape(name) + r"\s*=\s*\[(.*?)\]\s*as const",
+        source,
+        re.DOTALL,
+    )
+    return quoted_values(match.group(1)) if match else None
+
+
+def declared_type_values(sources: dict[Path, str], path: Path, name: str) -> set[str] | None:
+    source = sources.get(path)
+    if source is None:
+        return None
+    match = re.search(r"\btype\s+" + re.escape(name) + r"\s*=\s*(.*?);", source, re.DOTALL)
+    return quoted_values(match.group(1)) if match else None
+
+
+def runtime_template_values(
+    sources: dict[Path, str], prefix: str, expression: str, suffix: str
+) -> set[str] | None:
+    expression = expression.strip()
+    if (prefix, expression, suffix) == ("challenge.state.", "record.result.state", ""):
+        values = declared_array_values(sources, Path("lib/challenge.ts"), "challengeStates")
+    elif (prefix, expression, suffix) == ("home.attention.tones.", "item.tone", ""):
+        source = sources.get(Path("features/home/HomeScreen.tsx"))
+        values = set(re.findall(r'\btone:\s*"([A-Za-z][A-Za-z0-9_-]*)"', source)) if source else None
+    elif (prefix, expression, suffix) == ("stats.filters.errors.", "error", ""):
+        values = declared_type_values(sources, Path("features/stats/StatsScreen.tsx"), "QueryError")
+    elif (prefix, expression, suffix) == ("stats.summary.", "label", ""):
+        source = sources.get(Path("features/stats/StatsViews.tsx"))
+        match = re.search(r"\bconst\s+entries\s*=\s*\[(.*?)\]\s*as const;", source, re.DOTALL) if source else None
+        values = set(re.findall(r'\[\s*"([A-Za-z][A-Za-z0-9_-]*)"\s*,', match.group(1))) if match else None
+    elif prefix == "version.errors." and expression == "scope":
+        source = sources.get(Path("features/version/VersionScreen.tsx"))
+        match = re.search(r'\bscope:\s*((?:"[A-Za-z][A-Za-z0-9_-]*"\s*\|\s*)+"[A-Za-z][A-Za-z0-9_-]*")', source) if source else None
+        values = quoted_values(match.group(1)) if match else None
+    else:
+        return None
+    return {prefix + value + suffix for value in values} if values else None
 
 failures: list[str] = []
 
@@ -181,25 +238,55 @@ def main() -> int:
 
     literal = 0
     dynamic = 0
+    literal_keys = set()
+    runtime_keys: dict[str, tuple[Path, int]] = {}
+    source_files: list[tuple[Path, str]] = []
+    source_texts: dict[Path, str] = {}
     for path in sorted(source_dir.rglob("*")):
         if path.suffix not in (".ts", ".tsx") or locales_dir in path.parents:
             continue
         text = path.read_text(encoding="utf-8")
+        source_files.append((path, text))
+        source_texts[path.relative_to(source_dir)] = text
+    for path, text in source_files:
         dynamic += len(DYNAMIC_KEY.findall(text))
         for match in LITERAL_KEY.finditer(text):
             literal += 1
             key = match.group(1)
-            if key in source:
-                continue
-            if any(key + suffix in source for suffix in PLURAL_SUFFIXES):
+            literal_keys.add(key)
+            if key_exists(source, key):
                 continue
             line = text[: match.start()].count("\n") + 1
             failures.append("%s:%d asks for %s and %s.json does not define it"
                             % (path.relative_to(ROOT), line, key, source_name))
+        for match in KEY_LITERAL.finditer(text):
+            key = match.group(2)
+            if key in NON_TRANSLATION_DOTTED_LITERALS:
+                continue
+            line = text[: match.start()].count("\n") + 1
+            runtime_keys.setdefault(key, (path, line))
+        for match in KEY_TEMPLATE.finditer(text):
+            prefix, expression, suffix = match.groups()
+            line = text[: match.start()].count("\n") + 1
+            values = runtime_template_values(source_texts, prefix, expression, suffix)
+            if values is None:
+                failures.append("%s:%d builds %s${%s}%s but its variants are not "
+                                "enumerated; an operator could see an unchecked raw key"
+                                % (path.relative_to(ROOT), line, prefix, expression, suffix))
+                continue
+            for key in values:
+                runtime_keys.setdefault(key, (path, line))
 
     if literal == 0:
         failures.append("no literal translation key was found in %s — has the call "
                         "shape changed?" % source_dir)
+
+    for key, (path, line) in sorted(runtime_keys.items()):
+        if key in literal_keys or key_exists(source, key):
+            continue
+        failures.append("%s:%d declares runtime key %s but %s.json does not define it; "
+                        "operators would see the raw key"
+                        % (path.relative_to(ROOT), line, key, source_name))
 
     # The other direction. The check above asks whether every key the code names
     # exists; nothing asked whether every key defined is named by anything. A
@@ -207,14 +294,10 @@ def main() -> int:
     # a screen that stopped using them, and it was at zero when this was added,
     # which is the cheap moment to hold it there.
     #
-    # A key built at runtime is reached through a prefix, so a key counts as used
-    # when any proper prefix of it appears inside a template literal. That is
-    # deliberately generous: this check exists to catch a whole entry going cold,
-    # not to prove each leaf is live.
-    sources = ""
-    for path in sorted(source_dir.rglob("*")):
-        if path.suffix in (".ts", ".tsx") and locales_dir not in path.parents:
-            sources += path.read_text(encoding="utf-8")
+    # Runtime templates still count through their prefix here. This direction
+    # catches a whole entry going cold; the keyed checks above prove which
+    # concrete values each template can request.
+    sources = "".join(text for _, text in source_files)
     for key in sorted(source):
         stem = key
         for suffix in PLURAL_SUFFIXES:
@@ -238,9 +321,9 @@ def main() -> int:
         return 1
 
     print("check-locale-catalogues: passed; %d catalogues have non-empty localized "
-          "values, agree on %d keys and their placeholders, every key is reached "
-          "and %d literal ones resolve, %d runtime keys not checked"
-          % (len(catalogues), len(source), literal, dynamic))
+          "values, agree on %d keys and their placeholders, every key is reached, "
+          "%d literal calls and %d runtime calls resolve through %d declared key values"
+          % (len(catalogues), len(source), literal, dynamic, len(runtime_keys)))
     return 0
 
 

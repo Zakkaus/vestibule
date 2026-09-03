@@ -19,24 +19,25 @@ var (
 
 func TestFromTelegram(t *testing.T) {
 	tests := map[string]Lang{
-		"zh-hans": LangZH,
-		"zh-CN":   LangZH,
-		"zh":      LangZH,
-		"zh-sg":   LangZH,
-		"zh-hant": LangZHHant,
-		"zh-TW":   LangZHHant,
-		"zh-hk":   LangZHHant,
-		"zh-MO":   LangZHHant,
-		"yue":     LangZHHant,
-		"en":      LangEN,
-		"en-US":   LangEN,
-		"ru":      LangEN,
-		"ja":      LangEN,
-		"":        LangEN,
+		"zh-hans":   LangZH,
+		"zh-CN":     LangZH,
+		"zh":        LangZH,
+		"zh-sg":     LangZH,
+		" zh-Hant ": LangZHHant,
+		"zh-hant":   LangZHHant,
+		"zh-TW":     LangZHHant,
+		"zh-hk":     LangZHHant,
+		"zh-MO":     LangZHHant,
+		"yue":       LangZHHant,
+		"en":        LangEN,
+		"en-US":     LangEN,
+		"ru":        LangEN,
+		"ja":        LangEN,
+		"":          LangEN,
 	}
 	for tag, want := range tests {
 		if got := FromTelegram(tag); got != want {
-			t.Errorf("FromTelegram(%q) = %s, want %s", tag, got, want)
+			t.Errorf("FromTelegram(%q) = %s, want %s; an applicant would receive the wrong catalogue", tag, got, want)
 		}
 	}
 }
@@ -45,6 +46,7 @@ func TestFromRequester(t *testing.T) {
 	for code, want := range map[string]Lang{
 		"en":      LangEN,
 		"en-US":   LangEN,
+		"en_US":   LangEN,
 		"zh-CN":   LangZH,
 		"zh-Hant": LangZHHant,
 		"yue-HK":  LangZHHant,
@@ -52,7 +54,15 @@ func TestFromRequester(t *testing.T) {
 		"fr":      LangZHHant,
 	} {
 		if got := FromRequester(code, LangZHHant); got != want {
-			t.Errorf("FromRequester(%q, zh-Hant) = %v, want %v", code, got, want)
+			t.Errorf("FromRequester(%q, zh-Hant) = %v, want %v; a requester would receive the wrong catalogue", code, got, want)
+		}
+	}
+}
+
+func TestFromRequesterKeepsConfiguredFallbackForUnsupportedLanguage(t *testing.T) {
+	for _, fallback := range Languages() {
+		if got := FromRequester("fr-CA", fallback); got != fallback {
+			t.Errorf("FromRequester(%q, %s) = %s, want %s; an unsupported requester language would replace the group's configured catalogue", "fr-CA", fallback, got, fallback)
 		}
 	}
 }
@@ -85,17 +95,18 @@ func TestFromRequesterNormalizesTagsBeforeMatching(t *testing.T) {
 
 func TestFromStored(t *testing.T) {
 	tests := map[string]Lang{
-		"":        LangZH,
-		"zh":      LangZH,
-		"zh-hans": LangZH,
-		"zh-Hant": LangZHHant,
-		"zh-hant": LangZHHant,
-		"en":      LangEN,
-		"unknown": LangZH,
+		"":          LangZH,
+		"zh":        LangZH,
+		"zh-hans":   LangZH,
+		" zh-Hant ": LangZHHant,
+		"zh-Hant":   LangZHHant,
+		"zh-hant":   LangZHHant,
+		"en":        LangEN,
+		"unknown":   LangZH,
 	}
 	for tag, want := range tests {
 		if got := FromStored(tag); got != want {
-			t.Errorf("FromStored(%q) = %s, want %s", tag, got, want)
+			t.Errorf("FromStored(%q) = %s, want %s; a persisted language would render the wrong catalogue", tag, got, want)
 		}
 	}
 }
@@ -110,6 +121,22 @@ func TestLangString(t *testing.T) {
 		if got := language.String(); got != want {
 			t.Errorf("Lang(%d).String() = %q, want %q", language, got, want)
 		}
+	}
+}
+
+func TestUnsupportedLanguageUsesSimplifiedChineseCatalogue(t *testing.T) {
+	invalid := Lang(langCount)
+	if got, want := invalid.String(), LangZH.String(); got != want {
+		t.Errorf("Lang(%d).String() = %q, want %q; an invalid persisted language would not fall back to Simplified Chinese", invalid, got, want)
+	}
+	if got, want := Messages.Verification.Mode.Kernel.For(invalid), Messages.Verification.Mode.Kernel.For(LangZH); got != want {
+		t.Errorf("Text.For(%d) = %q, want %q; an invalid language would not render the default catalogue", invalid, got, want)
+	}
+	if got, want := Messages.Verification.Duration.Days.Render(invalid, 2), Messages.Verification.Duration.Days.Render(LangZH, 2); got != want {
+		t.Errorf("Format.Render(%d) = %q, want %q; an invalid language would not render the default catalogue", invalid, got, want)
+	}
+	if got, want := Messages.Verification.Input.OtherOSPhrases.For(invalid), Messages.Verification.Input.OtherOSPhrases.For(LangZH); !slices.Equal(got, want) {
+		t.Errorf("StringList.For(%d) = %q, want %q; an invalid language would not render the default catalogue", invalid, got, want)
 	}
 }
 
