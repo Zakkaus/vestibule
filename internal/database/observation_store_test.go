@@ -117,3 +117,56 @@ func observedActionsByOperation(
 	}
 	return indexed
 }
+
+func TestObservationStoreAcceptsEverySuppressedWriteShape(t *testing.T) {
+	ctx := context.Background()
+	db, err := Open(ctx, testSQLiteConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	store, err := NewObservationStore(ctx, db, time.Now)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wantActions := everyObservedAction()
+	for _, action := range wantActions {
+		if err = store.RecordObservedAction(ctx, action); err != nil {
+			t.Fatalf("%s observation was rejected before cutover comparison: %v", action.Operation, err)
+		}
+	}
+	stored := observedActionsByOperation(t, ctx, store)
+	if len(stored) != len(wantActions) {
+		t.Fatalf("stored %d observed write shapes, want all %d", len(stored), len(wantActions))
+	}
+	for _, want := range wantActions {
+		if got := stored[want.Operation].ObservedAction; got != want {
+			t.Errorf("stored %s observation = %+v, want %+v", want.Operation, got, want)
+		}
+	}
+}
+
+func everyObservedAction() []verification.ObservedAction {
+	const (
+		chatID = int64(-1009000000625)
+		userID = int64(9000000626)
+	)
+	return []verification.ObservedAction{
+		{Operation: verification.ObservedSend, Flag: true},
+		{Operation: verification.ObservedSendHTMLFallback},
+		{Operation: verification.ObservedDelete},
+		{Operation: verification.ObservedNotify, Seconds: 60},
+		{Operation: verification.ObservedAlert},
+		{Operation: verification.ObservedAuditLog},
+		{Operation: verification.ObservedFailAlert},
+		{Operation: verification.ObservedApproveJoin, ChatID: chatID, UserID: userID},
+		{Operation: verification.ObservedDeclineJoin, ChatID: chatID, UserID: userID},
+		{Operation: verification.ObservedBan, ChatID: chatID, UserID: userID, Seconds: 3600, Flag: true},
+		{Operation: verification.ObservedUnban, ChatID: chatID, UserID: userID, Flag: true},
+		{Operation: verification.ObservedMute, ChatID: chatID, UserID: userID, Seconds: 180},
+		{Operation: verification.ObservedUnmute, ChatID: chatID, UserID: userID},
+		{Operation: verification.ObservedAckFast},
+		{Operation: verification.ObservedAckResult, Flag: true},
+	}
+}

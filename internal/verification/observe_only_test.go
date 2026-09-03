@@ -1,9 +1,12 @@
 package verification
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -270,12 +273,155 @@ func TestObservationModeDisabledReturnsLiveGatewayUnchanged(t *testing.T) {
 	}
 }
 
-func TestObserveOnlyGatewayDoesNotDelegateWhenRecordingFails(t *testing.T) {
-	live := newFakeVerifyBot()
+type observedErrorWriteCase struct {
+	operation ObservedOperation
+	invoke    func(Gateway) error
+	leaked    func(*fakeVerifyBot) bool
+}
+
+func TestObserveOnlyGatewayRefusesSuccessWhenObservationCannotBeStored(t *testing.T) {
 	failure := errors.New("observation store unavailable")
-	gateway := ApplyObservationMode(live, &observationRecorderSpy{err: failure}, true)
-	err := gateway.ApproveJoin(context.Background(), observeTestChatID, observeTestUserID)
-	if !errors.Is(err, failure) || live.approves != 0 {
-		t.Fatalf("ApproveJoin error = %v, live approvals = %d; want recorder error and no live call", err, live.approves)
+	for _, test := range observedErrorWriteCases() {
+		t.Run(string(test.operation), func(t *testing.T) {
+			if err := test.invoke(ApplyObservationMode(
+				newFakeVerifyBot(), &observationRecorderSpy{}, true,
+			)); err != nil {
+				t.Fatalf("%s failed with a healthy recorder: %v", test.operation, err)
+			}
+
+			live := newFakeVerifyBot()
+			err := test.invoke(ApplyObservationMode(live, &observationRecorderSpy{err: failure}, true))
+			if err == nil {
+				t.Errorf("%s reported success after its durable observation failed", test.operation)
+			} else if !errors.Is(err, failure) {
+				t.Errorf("%s error = %v, want observation storage failure", test.operation, err)
+			}
+			if test.leaked(live) {
+				t.Errorf("%s reached the live gateway after its observation failed", test.operation)
+			}
+		})
+	}
+}
+
+func observedErrorWriteCases() []observedErrorWriteCase {
+	return []observedErrorWriteCase{
+		{
+			operation: ObservedSend,
+			invoke: func(gateway Gateway) error {
+				_, err := gateway.Send(context.Background(), OutgoingMessage{ChatID: observeTestUserID})
+				return err
+			},
+			leaked: func(live *fakeVerifyBot) bool { return live.sends != 0 },
+		},
+		{
+			operation: ObservedSendHTMLFallback,
+			invoke: func(gateway Gateway) error {
+				_, err := gateway.SendHTMLFallback(context.Background(), observeTestUserID, "rich", "plain")
+				return err
+			},
+			leaked: func(live *fakeVerifyBot) bool { return live.sends != 0 },
+		},
+		{
+			operation: ObservedDelete,
+			invoke: func(gateway Gateway) error {
+				return gateway.Delete(context.Background(), observeTestChatID, 17)
+			},
+			leaked: func(live *fakeVerifyBot) bool { return live.deletes != 0 },
+		},
+		errorMemberWriteCase(ObservedApproveJoin, func(gateway Gateway) error {
+			return gateway.ApproveJoin(context.Background(), observeTestChatID, observeTestUserID)
+		}, func(live *fakeVerifyBot) bool { return live.approves != 0 }),
+		errorMemberWriteCase(ObservedDeclineJoin, func(gateway Gateway) error {
+			return gateway.DeclineJoin(context.Background(), observeTestChatID, observeTestUserID)
+		}, func(live *fakeVerifyBot) bool { return live.declines != 0 }),
+		errorMemberWriteCase(ObservedBan, func(gateway Gateway) error {
+			return gateway.Ban(context.Background(), observeTestChatID, observeTestUserID, 3600, true)
+		}, func(live *fakeVerifyBot) bool { return live.bans != 0 }),
+		errorMemberWriteCase(ObservedUnban, func(gateway Gateway) error {
+			return gateway.Unban(context.Background(), observeTestChatID, observeTestUserID, true)
+		}, func(live *fakeVerifyBot) bool { return live.unbans != 0 }),
+		errorMemberWriteCase(ObservedMute, func(gateway Gateway) error {
+			return gateway.Mute(context.Background(), observeTestChatID, observeTestUserID, 180)
+		}, func(live *fakeVerifyBot) bool { return live.mutes != 0 }),
+		errorMemberWriteCase(ObservedUnmute, func(gateway Gateway) error {
+			return gateway.Unmute(context.Background(), observeTestChatID, observeTestUserID)
+		}, func(live *fakeVerifyBot) bool { return live.unmutes != 0 }),
+		{
+			operation: ObservedAckFast,
+			invoke: func(gateway Gateway) error {
+				return gateway.AckFast(context.Background(), "callback")
+			},
+			leaked: func(live *fakeVerifyBot) bool { return live.answers != 0 },
+		},
+		{
+			operation: ObservedAckResult,
+			invoke: func(gateway Gateway) error {
+				return gateway.AckResult(context.Background(), "callback", AckResult{Alert: true})
+			},
+			leaked: func(live *fakeVerifyBot) bool { return live.answers != 0 },
+		},
+	}
+}
+
+func errorMemberWriteCase(
+	operation ObservedOperation,
+	invoke func(Gateway) error,
+	leaked func(*fakeVerifyBot) bool,
+) observedErrorWriteCase {
+	return observedErrorWriteCase{operation: operation, invoke: invoke, leaked: leaked}
+}
+
+func TestObservationModeRequiresItsDependenciesAndAcceptsValidOnes(t *testing.T) {
+	live := newFakeVerifyBot()
+	if gateway := ApplyObservationMode(live, nil, false); gateway != live {
+		t.Fatal("disabled observation mode did not accept the live gateway without a recorder")
+	}
+	if _, ok := ApplyObservationMode(live, &observationRecorderSpy{}, true).(*ObserveOnlyGateway); !ok {
+		t.Fatal("enabled observation mode did not accept a live gateway and recorder")
+	}
+
+	for _, test := range []struct {
+		name string
+		call func()
+	}{
+		{name: "disabled without live gateway", call: func() { ApplyObservationMode(nil, nil, false) }},
+		{name: "enabled without live gateway", call: func() {
+			ApplyObservationMode(nil, &observationRecorderSpy{}, true)
+		}},
+		{name: "enabled without recorder", call: func() { ApplyObservationMode(live, nil, true) }},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			defer func() {
+				if recover() == nil {
+					t.Fatal("observation mode accepted missing dependencies and could leak or lose writes")
+				}
+			}()
+			test.call()
+		})
+	}
+}
+
+func TestObserveOnlyGatewayReturnsDistinctNonPlatformMessageIDs(t *testing.T) {
+	gateway := ApplyObservationMode(newFakeVerifyBot(), &observationRecorderSpy{}, true)
+	first, err := gateway.Send(context.Background(), OutgoingMessage{ChatID: observeTestUserID})
+	requireNoError(t, err)
+	second, err := gateway.SendHTMLFallback(context.Background(), observeTestUserID, "rich", "plain")
+	requireNoError(t, err)
+	if first >= 0 || second >= 0 || first == second {
+		t.Fatalf("synthetic message IDs = %d and %d, want distinct negative non-platform IDs", first, second)
+	}
+}
+
+func TestObserveOnlyVoidWriteLogsObservationFailure(t *testing.T) {
+	var output bytes.Buffer
+	previous := log.Writer()
+	log.SetOutput(&output)
+	t.Cleanup(func() { log.SetOutput(previous) })
+
+	failure := errors.New("observation store unavailable")
+	gateway := ApplyObservationMode(newFakeVerifyBot(), &observationRecorderSpy{err: failure}, true)
+	gateway.Notify(context.Background(), observeTestChatID, "notice", 60)
+	if logged := output.String(); !strings.Contains(logged, "observe-only: record notify: observation store unavailable") {
+		t.Fatalf("failed void-write observation was silent; log = %q", logged)
 	}
 }
