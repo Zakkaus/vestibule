@@ -1,6 +1,9 @@
 package ids
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 func TestParseChannelID(t *testing.T) {
 	for _, test := range []struct {
@@ -52,5 +55,32 @@ func TestUpdateChannelWhitelistBoundsNewestEntries(t *testing.T) {
 				t.Error("newest whitelist entry was evicted")
 			}
 		})
+	}
+}
+
+func TestDenyingAbsentChannelLeavesWhitelistUnchanged(t *testing.T) {
+	current := []int64{-1009000001611, -1009000001612}
+	denied := int64(-1009000001613)
+
+	got := UpdateChannelWhitelist(slices.Clone(current), denied, false)
+	if !slices.Equal(got, current) {
+		t.Fatalf("denying an absent channel changed the whitelist to %v; want unchanged %v", got, current)
+	}
+
+	got = UpdateChannelWhitelist(slices.Clone(current), denied, true)
+	want := append(slices.Clone(current), denied)
+	if !slices.Equal(got, want) {
+		t.Fatalf("allowing an absent channel produced %v; want %v", got, want)
+	}
+}
+
+func TestDenyingPresentChannelRemovesOnlyThatEntry(t *testing.T) {
+	denied := int64(-1009000001622)
+	current := []int64{-1009000001621, denied, -1009000001623}
+
+	got := UpdateChannelWhitelist(slices.Clone(current), denied, false)
+	want := []int64{-1009000001621, -1009000001623}
+	if !slices.Equal(got, want) {
+		t.Fatalf("denied channel remained whitelisted: got %v, want %v", got, want)
 	}
 }

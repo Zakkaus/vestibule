@@ -147,3 +147,27 @@ func TestScheduleBoundsPendingCleanup(t *testing.T) {
 		t.Fatalf("pending cleanup = %d, want %d", got, cleanupTimerMax)
 	}
 }
+
+func TestDeleteRetryRequiresReservedSlot(t *testing.T) {
+	withShortDeleteRetry(t)
+	retryErr := errors.New("unexpected EOF")
+
+	fullClient := &deleteClient{}
+	fullQueue := NewDeleteQueue(fullClient)
+	fullQueue.pending.Store(cleanupTimerMax)
+	fullQueue.afterDelete(-1009000001681, 42, retryErr, 1)
+	time.Sleep(20 * time.Millisecond)
+	if got := fullQueue.Pending(); got != cleanupTimerMax {
+		t.Fatalf("unreserved delete retry unbalanced pending count to %d; want %d", got, cleanupTimerMax)
+	}
+	if got := len(fullClient.snapshot()); got != 0 {
+		t.Fatalf("delete retry ran %d times without a reserved timer slot", got)
+	}
+
+	availableClient := &deleteClient{}
+	availableQueue := NewDeleteQueue(availableClient)
+	availableQueue.pending.Store(cleanupTimerMax - 1)
+	availableQueue.afterDelete(-1009000001682, 43, retryErr, 1)
+	waitForDeleteCalls(t, availableClient, 1)
+	waitForPending(t, availableQueue, cleanupTimerMax-1)
+}
