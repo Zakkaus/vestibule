@@ -56,6 +56,39 @@ func TestFamilyChannels(t *testing.T) {
 	}
 }
 
+func TestFamilyChannelsSkipsExcludedRollingLabels(t *testing.T) {
+	got := familyChannels([]repologyPkg{
+		{Repo: "debian_unstable", Version: "9.0"},
+		{Repo: "debian_13", Version: "8.0"},
+	}, []string{"debian_"}, func(label string) bool { return label == "unstable" })
+	want := []channelLine{{ver: "8.0", label: "13"}}
+	if len(got) != len(want) || got[0] != want[0] {
+		t.Fatalf("excluded rolling channel was shown as current: got %v, want %v", got, want)
+	}
+}
+
+func TestFamilyChannelsKeepsTheBetterVersionWithinARelease(t *testing.T) {
+	got := familyChannels([]repologyPkg{
+		{Repo: "ubuntu_24_04", Version: "1.0"},
+		{Repo: "ubuntu_24_04", Version: "2.0"},
+	}, []string{"ubuntu_"}, nil)
+	want := []channelLine{{ver: "2.0", label: "24.04"}}
+	if len(got) != len(want) || got[0] != want[0] {
+		t.Fatalf("single release kept an inferior package version: got %v, want %v", got, want)
+	}
+}
+
+func TestFamilyChannelsFallsBackWhenEveryLabelIsExcluded(t *testing.T) {
+	got := familyChannels([]repologyPkg{
+		{Repo: "ubuntu_20_04", Version: "2.0"},
+		{Repo: "ubuntu_22_04", Version: "1.0"},
+	}, []string{"ubuntu_"}, func(string) bool { return true })
+	want := []channelLine{{ver: "2.0", label: "20.04"}}
+	if len(got) != len(want) || got[0] != want[0] {
+		t.Fatalf("all-excluded family lost its raw newest fallback: got %v, want %v", got, want)
+	}
+}
+
 func TestVerTier(t *testing.T) {
 	for _, c := range []struct {
 		v    string
@@ -114,6 +147,21 @@ func TestReleaseLabel(t *testing.T) {
 		if got := releaseLabel(c.repo, c.prefixes); got != c.want {
 			t.Errorf("releaseLabel(%q) = %q, want %q", c.repo, got, c.want)
 		}
+	}
+}
+
+func TestReleaseLabelStripsTheStableNixChannelPrefix(t *testing.T) {
+	if got, want := releaseLabel("nix_stable_25_11", []string{"nix_"}), "25.11"; got != want {
+		t.Fatalf("stable Nix channel label = %q, want %q", got, want)
+	}
+}
+
+func TestReleaseLabelRejectsRepositoriesOutsideTheFamily(t *testing.T) {
+	if got := releaseLabel("freebsd", []string{"debian_"}); got != "" {
+		t.Fatalf("unmatched repository leaked raw label %q, want empty", got)
+	}
+	if got, want := releaseLabel("debian_13", []string{"debian_"}), "13"; got != want {
+		t.Fatalf("matching repository label = %q, want %q", got, want)
 	}
 }
 

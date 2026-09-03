@@ -113,3 +113,26 @@ func TestDebianTestingIsNotOfferedAsTheDebianVersion(t *testing.T) {
 		t.Errorf("/pkgs nano with no testing series = %q, want the newest series shown", answer)
 	}
 }
+
+// Debian release roles tell readers whether a numbered version is installable today, while the
+// unstable alias identifies the rolling channel as sid.
+func TestPkgsLabelsDebianReleasesWithTheirRoles(t *testing.T) {
+	upstream := func(request *http.Request) (int, string) {
+		switch {
+		case strings.Contains(request.URL.Path, "/project/"):
+			return http.StatusOK, `[{"repo":"debian_unstable","version":"3.0"},{"repo":"debian_13","version":"2.0"}]`
+		case strings.HasSuffix(request.URL.Path, "/packages/search"):
+			return http.StatusOK, "<html></html>"
+		}
+		return http.StatusNotFound, ""
+	}
+
+	withDebianReleaseRoles(t, map[string]string{"13": "stable"})
+	answer := pkgsAnswer(t, "demo", upstream)
+	if !strings.Contains(answer, "unstable/sid") {
+		t.Errorf("/pkgs omitted Debian's sid identity from the unstable label: %q", answer)
+	}
+	if !strings.Contains(answer, "13 stable") {
+		t.Errorf("/pkgs omitted Debian's installable release role from version 13: %q", answer)
+	}
+}
