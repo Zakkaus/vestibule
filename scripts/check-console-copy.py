@@ -21,7 +21,23 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 COMPONENTS = ROOT / "web" / "src"
-ATTRIBUTES = ("aria-label", "title", "placeholder", "alt")
+LITERAL_ATTRIBUTE = re.compile(
+    r"""\b(?P<attribute>aria-label|title|placeholder|alt)\s*=\s*
+        (?:\{\s*)?(?P<quote>["'`])
+        (?P<value>(?:\\.|(?! (?P=quote) ).)*)
+        (?P=quote)(?:\s*\})?""",
+    re.S | re.X,
+)
+JSX_TEXT = re.compile(
+    r"""<(?P<tag>[A-Za-z][A-Za-z0-9._:-]*)\b[^<>]*>
+        (?P<text>[^<>{}]*[A-Za-z一-鿿][^<>{}]*)
+        </(?P=tag)\s*>""",
+    re.S | re.X,
+)
+
+
+def line_number(source: str, offset: int) -> int:
+    return source.count("\n", 0, offset) + 1
 
 
 def main() -> int:
@@ -36,20 +52,32 @@ def main() -> int:
     for path in sorted(COMPONENTS.rglob("*.tsx")):
         scanned += 1
         name = path.relative_to(ROOT)
-        for number, line in enumerate(path.read_text(encoding="utf-8").split("\n"), 1):
-            stripped = line.strip()
-            if stripped.startswith("//") or stripped.startswith("*"):
+        source = path.read_text(encoding="utf-8")
+        for match in LITERAL_ATTRIBUTE.finditer(source):
+            quote = match.group("quote")
+            value = match.group("value")
+            if quote == "`" and "${" in value:
                 continue
-            for attribute in ATTRIBUTES:
-                for match in re.finditer(r'%s=\{?"([^"]{2,})"' % attribute, stripped):
-                    findings.append("  %s:%d %s=\"%s\" is not from the locale table"
-                                    % (name, number, attribute, match.group(1)))
-            for match in re.finditer(r">\s*([A-Za-z一-鿿][^<>{}]{2,})\s*<", stripped):
-                text = match.group(1).strip()
-                if not re.search(r"[A-Za-z一-鿿]", text):
-                    continue
-                findings.append("  %s:%d the words %r are on screen and not from the "
-                                "locale table" % (name, number, text[:50]))
+            findings.append(
+                "  %s:%d %s=%s%s%s is not from the locale table"
+                % (
+                    name,
+                    line_number(source, match.start()),
+                    match.group("attribute"),
+                    quote,
+                    value,
+                    quote,
+                )
+            )
+        for match in JSX_TEXT.finditer(source):
+            text = match.group("text").strip()
+            if not re.search(r"[A-Za-z一-鿿]", text):
+                continue
+            findings.append(
+                "  %s:%d the words %r are on screen and not from the "
+                "locale table"
+                % (name, line_number(source, match.start()), text[:50])
+            )
 
     if not scanned:
         print("FAIL check-console-copy: no .tsx files found — has the console moved?")

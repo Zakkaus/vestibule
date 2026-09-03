@@ -23,9 +23,27 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-# A delete with no chat_id predicate takes every group's rows with it.
-WHOLE_TABLE = re.compile(r'"(DELETE FROM ([a-z_]+)(?![^"]*chat_id)[^"]*)"')
+# A delete with no chat_id predicate takes every group's rows with it. Go permits
+# interpreted strings and raw strings; inspect both kinds instead of making SQL
+# shape depend on the quoting style.
+GO_STRING = re.compile(r'"(?:\\.|[^"\\])*"|`[^`]*`', re.S)
+DELETE_FROM = re.compile(r"\bDELETE\s+FROM\s+([a-z_][a-z0-9_]*)\b", re.I)
+CHAT_ID = re.compile(r"\bchat_id\b", re.I)
 PER_GROUP_TABLE = re.compile(r"CREATE TABLE (\w+) \((.*?)\n\);", re.S)
+
+
+def whole_table_writes(text: str):
+    """Yield (statement, table, source offset) for unscoped DELETE literals."""
+    for literal in GO_STRING.finditer(text):
+        body = literal.group(0)
+        sql = body[1:-1]
+        for delete in DELETE_FROM.finditer(sql):
+            statement = sql[delete.start():].split(";", 1)[0]
+            if CHAT_ID.search(statement):
+                continue
+            yield statement, delete.group(1), literal.start() + 1 + delete.start()
+
+
 
 GUARDED = {
     "replacePending":
@@ -75,14 +93,13 @@ def main() -> int:
         scanned += 1
         text = path.read_text(encoding="utf-8")
         functions = enclosing_functions(text)
-        for match in WHOLE_TABLE.finditer(text):
-            statement, table = match.group(1), match.group(2)
+        for statement, table, offset in whole_table_writes(text):
             if table not in tables:
                 continue
             found += 1
             owner = "(top level)"
             for start, name in functions:
-                if start <= match.start():
+                if start <= offset:
                     owner = name
                 else:
                     break

@@ -31,6 +31,9 @@ jobs:
         run: |
           base="${{ github.event.pull_request.base.sha || 'HEAD^' }}"
           python3 scripts/check-baseline-ratchet.py "$base"
+      - name: Static gates reject the regressions they are meant to stop
+        run: python3 scripts/test-gate-self-coverage.py
+
 
       - name: go vet
         run: go vet ./...

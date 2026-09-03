@@ -41,7 +41,7 @@ FOREIGN_PREFIXES = {
     "lookup/": "the previous generation's lookup package",
     "moderate/": "the previous generation's moderation package",
     "panel/": "the previous generation's panel package",
-    "internal/store/": "this tree before the rewrite moved settings into internal/settings",
+    "internal/store/settings.go:": "the previous generation's settings migration",
     "~/code/refs/": "an absolute path into the reference checkout",
     "telego@": "a package in the Go module cache",
     "state.go:": "a bare filename, quoted from a claim the plan goes on to reject",
@@ -111,7 +111,8 @@ def main() -> int:
                     if prefix is None:
                         failures.append(
                             f"{name}:{number}: {path_text}:{cited_line} names a path this "
-                            f"repository does not have, and no declared prefix covers it"
+                            "repository does not have, and no declared prefix covers it; "
+                            "readers cannot verify the claim"
                         )
                     else:
                         foreign_used.add(prefix)

@@ -23,8 +23,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 BASELINE = "scripts/baseline.txt"
-# A boundary row carries no magnitude; its value column is always 0.
-NO_MAGNITUDE = {"package-boundary"}
+# Boundary violations are findings too: adding one to the baseline is new debt.
 
 
 def rows(text):
@@ -36,8 +35,6 @@ def rows(text):
         if len(fields) < 5:
             continue
         kind, path, _line, name, value = fields[0], fields[1], fields[2], fields[3], fields[4]
-        if kind in NO_MAGNITUDE:
-            continue
         try:
             out[(kind, path, name)] = int(value)
         except ValueError:
