@@ -441,6 +441,45 @@ func TestFetchOverlayRejectsTruncatedTree(t *testing.T) {
 	}
 }
 
+func TestOverlayTreesKeepRepositoryPathsOutOfPackageAtoms(t *testing.T) {
+	const tree = `{"tree":[
+		{"path":"app-editors/demo/demo-1.2.3.ebuild","type":"blob"},
+		{"path":"metadata/layout/layout-1.ebuild","type":"blob"},
+		{"path":"profiles/default/default-1.ebuild","type":"blob"},
+		{"path":"eclass/helper/helper-1.ebuild","type":"blob"},
+		{"path":"licenses/GPL-2/GPL-2-1.ebuild","type":"blob"},
+		{"path":"scripts/rebuild/rebuild-1.ebuild","type":"blob"},
+		{"path":".github/workflows/workflows-1.ebuild","type":"blob"},
+		{"path":".gitlab/ci/ci-1.ebuild","type":"blob"},
+		{"path":"notacategory/tool/tool-1.ebuild","type":"blob"}
+	],"truncated":false}`
+
+	oldClient := httpClient
+	httpClient = &http.Client{Transport: pkgRoundTripper(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(tree))}, nil
+	})}
+	t.Cleanup(func() { httpClient = oldClient })
+
+	pkgs, err := fetchOverlay(context.Background(), overlay{name: "test", repo: "owner/repo", branch: "main"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pkgs["app-editors/demo"] != "1.2.3" {
+		t.Errorf("package atoms = %v, want valid app-editors/demo at version 1.2.3", pkgs)
+	}
+	for _, atom := range []string{
+		"metadata/layout", "profiles/default", "eclass/helper", "licenses/GPL-2",
+		"scripts/rebuild", ".github/workflows", ".gitlab/ci", "notacategory/tool",
+	} {
+		if _, ok := pkgs[atom]; ok {
+			t.Errorf("%q became an installable package atom: repository paths would get links to nothing", atom)
+		}
+	}
+	if len(pkgs) != 1 {
+		t.Errorf("package atoms = %v, want only app-editors/demo: repository paths must not become package atoms", pkgs)
+	}
+}
+
 func TestPkgCacheFailedRefreshKeepsPreviousOverlay(t *testing.T) {
 	tests := []struct {
 		name string
