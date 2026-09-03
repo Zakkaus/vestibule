@@ -65,6 +65,34 @@ func TestVerLess(t *testing.T) {
 	}
 }
 
+func TestVersionTokensWithSharedPrefixKeepLongerRemainderNewer(t *testing.T) {
+	for _, tc := range []struct {
+		older string
+		newer string
+	}{
+		{older: "r", newer: "r2"},
+		{older: "1.2", newer: "1.2a"},
+	} {
+		if got := cmpToken(tc.older, tc.newer); got >= 0 {
+			t.Errorf("cmpToken(%q, %q) = %d, want less than zero; an older package could be reported as latest", tc.older, tc.newer, got)
+		}
+		if got := cmpToken(tc.newer, tc.older); got <= 0 {
+			t.Errorf("cmpToken(%q, %q) = %d, want greater than zero; an older package could be reported as latest", tc.newer, tc.older, got)
+		}
+	}
+}
+
+func TestUnknownUnderscoreSuffixesAreOrderedByRawToken(t *testing.T) {
+	older := "1.2_20240101"
+	newer := "1.2_20250101"
+	if !verLess(older, newer) {
+		t.Errorf("verLess(%q, %q) = false, so an older unknown-suffix package could be reported as latest", older, newer)
+	}
+	if verLess(newer, older) {
+		t.Errorf("verLess(%q, %q) = true, so an older unknown-suffix package could be reported as latest", newer, older)
+	}
+}
+
 func TestCommandArg(t *testing.T) {
 	for _, c := range []struct{ in, want string }{
 		{"/pkg vim", "vim"},
