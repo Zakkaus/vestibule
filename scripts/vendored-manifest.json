@@ -65,7 +65,7 @@
     {
       "file": "scripts/design-checks/style-rules.py",
       "source": "checks/style-rules.py",
-      "sha256": "5f22996dc8ebf260720ae33e3fc3cc0996f8ea645981d456d9511254f7d43ca3"
+      "sha256": "da728c7d55cc8c33411bf4d40401bf25a819e0b1b2eace4e398e60679768e71f"
     },
     {
       "file": "scripts/design-checks/theme-leak.py",
