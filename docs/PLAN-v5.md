@@ -1102,10 +1102,12 @@ Bot API 规定，机器人必须持有 `can_invite_users` 管理员权限才会�
   读数：`rollback_observations.console_access`。它记录群访问验证返回
   `ErrAccessUnavailable` 的连续段；任一成功验证会清零。读 `streak.problem_span_seconds` 与
   `streak.exceeds_threshold`，同样以超过 `600` 秒为界。
-  **这个读数量的不是条文点名的那件事。** `ErrAccessUnavailable` 出自 `AuthorizeChat`
-  核验会话主体对某个群的权限，不出自 `RedeemOperatorLink`（`internal/console/auth/manager.go:229`）
-  或会话查找。会话兑换本身整体失败时，这个读数仍然显示正常。
-  切换之前要把兑换失败也计入，否则这一条只覆盖了它名字的一半。
+  这个读数原先只出自 `AuthorizeChat` 核验会话主体对某个群的权限，
+  兑换会话整体失败时它仍然显示正常 —— 只覆盖了它名字的一半。现在补上了：
+  `redemptionUnavailable`（`internal/console/auth/manager.go:252`）在**该发而没发出会话**
+  的两种失败上记账，即会话表已满与拿不到凭据熵；成功兑换记一次恢复。
+  链接无效、过期、已兑换**不计**，那是这个实例答对了，
+  计进去会让运维重复点一个旧链接就触发退回。
 - 数据库写入失败率超过百分之一。
   读数：`rollback_observations.database_writes`。`scope` 是 `retry_store_write`，
   `window_seconds` 固定为 `600`；`total_writes` 是窗口内完成的逻辑写入数，
