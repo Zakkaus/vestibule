@@ -51,6 +51,25 @@ func assertRecoveredChallengeDelivery(t *testing.T, got ChallengeDeliverySnapsho
 	}
 }
 
+func TestSuccessfulDeliveryClearsResolvedIncidentCounters(t *testing.T) {
+	now := time.Date(2026, time.September, 3, 10, 0, 0, 0, time.UTC)
+	observations := NewRollbackObservations(func() time.Time { return now })
+
+	observations.RecordChallengeDeliveryFailure()
+	observations.RecordChallengeDeliveryDuplicate()
+	beforeRecovery := observations.Snapshot().ChallengeDelivery
+	if beforeRecovery.FailedDeliveries != 1 || beforeRecovery.DuplicateDeliveries != 1 {
+		t.Fatalf("delivery incident counters before recovery = %+v, want one failed and one duplicate delivery", beforeRecovery)
+	}
+
+	now = now.Add(time.Second)
+	observations.RecordChallengeDeliverySuccess()
+	recovered := observations.Snapshot().ChallengeDelivery
+	if recovered.FailedDeliveries != 0 || recovered.DuplicateDeliveries != 0 {
+		t.Fatalf("resolved delivery incident remains in rollback diagnostics: %+v", recovered)
+	}
+}
+
 func TestDatabaseWriteFailureRateUsesLogicalWriteWindow(t *testing.T) {
 	now := time.Date(2026, time.September, 3, 10, 0, 0, 0, time.UTC)
 	observations := NewRollbackObservations(func() time.Time { return now })
