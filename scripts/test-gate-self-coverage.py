@@ -361,6 +361,21 @@ func (s *Server) exportAudit(writer http.ResponseWriter, request *http.Request, 
             ),
         )
 
+    def test_a_deployment_bot_handle_cannot_be_compiled_into_the_shipped_code(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-no-baked-identity.py",
+            "the entry screen names one deployment's bot to every other deployment's operator",
+            ("@example_verify_bot", "has to come from the instance"),
+            lambda: self.replace_text(
+                tree,
+                "web/src/features/entry/instance.ts",
+                "const transport = createApiTransport(() => undefined);",
+                'const transport = createApiTransport(() => undefined);\nconst fallback = "@example_verify_bot";\nvoid fallback;',
+            ),
+        )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

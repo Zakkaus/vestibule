@@ -4,7 +4,13 @@ import { Navigate, useSearchParams } from "react-router-dom";
 import { retryConsoleSession, useConsoleSession } from "../../app/session";
 import type { ApiRequestError } from "../../lib/api";
 import { Icon } from "../../icons";
-import { entryFixtureFor, entryFixtures, type EntryFixture } from "./fixtures";
+import {
+  entryFixtureFor,
+  entryFixtures,
+  unclaimedEntryFixture,
+  type EntryFixture
+} from "./fixtures";
+import { useInstanceBot } from "./instance";
 
 type EntryFixtureContentProps = Readonly<{
   fixture: EntryFixture;
@@ -13,6 +19,15 @@ type EntryFixtureContentProps = Readonly<{
 
 function EntryFixtureContent({ fixture, transportFailure }: EntryFixtureContentProps) {
   const { t } = useTranslation();
+  // Every deployment runs its own bot, so the handle is read from the instance
+  // rather than compiled into the bundle. Until the answer arrives the copy says
+  // "this instance's bot"; once it arrives empty, the screen above has already
+  // switched to the unclaimed state, which names no bot at all.
+  const botUsername = useInstanceBot();
+  const interpolation = {
+    ...fixture.interpolation,
+    botUsername: botUsername ? botUsername : t("entry.thisBot")
+  };
 
   return (
     <section
@@ -22,13 +37,21 @@ function EntryFixtureContent({ fixture, transportFailure }: EntryFixtureContentP
       aria-labelledby="entry-title"
     >
       <div data-slot="card">
-        <h1 id="entry-title">{t(fixture.titleKey, fixture.interpolation)}</h1>
-        <p data-entry-copy>{t(fixture.descriptionKey, fixture.interpolation)}</p>
+        <h1 id="entry-title">
+          <span data-state-heading>
+            <Icon name={fixture.icon} />
+            {t(fixture.titleKey, interpolation)}
+          </span>
+        </h1>
+        <p data-entry-copy>{t(fixture.descriptionKey, interpolation)}</p>
         <section aria-labelledby="entry-next-steps">
           <h2 id="entry-next-steps">{t("entry.nextSteps")}</h2>
           <ol data-entry-steps>
             {fixture.stepKeys.map((stepKey) => (
-              <li key={stepKey}>{t(stepKey, fixture.interpolation)}</li>
+              <li key={stepKey}>
+                <Icon name="chevronRight" />
+                <span>{t(stepKey, interpolation)}</span>
+              </li>
             ))}
           </ol>
         </section>
@@ -129,6 +152,15 @@ function fixtureForBlockedSession(
 export function EntryScreen() {
   const [searchParams] = useSearchParams();
   const session = useConsoleSession();
+  const botUsername = useInstanceBot();
+
+  // An unclaimed instance has no bot, so none of the states below apply: there
+  // is nothing to open in Telegram and no session anyone could hold. The empty
+  // string is the answer having arrived and being empty, which is how the server
+  // reports an instance nobody has claimed.
+  if (botUsername === "" && searchParams.get("state") === null) {
+    return <EntryFixtureContent fixture={unclaimedEntryFixture} />;
+  }
 
   if (session.state === "ready") {
     return <Navigate to="/groups" replace />;

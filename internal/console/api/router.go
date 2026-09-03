@@ -30,6 +30,7 @@ func (s *Server) ReplaceRoutes(config Config) {
 		observeOnly:          config.ObserveOnly,
 		setup:                config.Setup,
 		setupClaimed:         config.SetupClaimed,
+		botUsername:          config.BotUsername,
 	}
 	s.routes.Store(&routeSet{server: routes})
 }

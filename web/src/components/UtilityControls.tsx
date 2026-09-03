@@ -41,7 +41,16 @@ const themeLabelKeys: Record<ThemePreference, string> = {
   dark: "theme.dark"
 };
 
-export function UtilityControls() {
+type UtilityControlsProps = Readonly<{
+  /** "chrome" drops the label above each control: in a corner of the screen the
+      glyph and the current value already say which control this is, and the two
+      stacked names said more about themselves than the card below them said
+      about what to do next. "labelled" is the settings-page treatment, where the
+      control is the content of the screen and its name belongs on screen. */
+  variant?: "labelled" | "chrome";
+}>;
+
+export function UtilityControls({ variant = "labelled" }: UtilityControlsProps) {
   const { t } = useTranslation();
   const [theme, setTheme] = useState<ThemePreference>(readThemePreference);
 
@@ -87,12 +96,15 @@ export function UtilityControls() {
   }));
 
 
+  const chrome = variant === "chrome";
+
   return (
-    <div data-utility-controls>
+    <div data-utility-controls data-variant={variant}>
       <div data-utility-control>
-        <span id={themeLabelId}>{t("theme.label")}</span>
+        {chrome ? null : <span id={themeLabelId}>{t("theme.label")}</span>}
         <AppSelect
-          aria-labelledby={themeLabelId}
+          aria-label={chrome ? t("theme.label") : undefined}
+          aria-labelledby={chrome ? undefined : themeLabelId}
           icon={themeIcons[theme]}
           value={theme}
           options={themeOptions}
@@ -100,9 +112,10 @@ export function UtilityControls() {
         />
       </div>
       <div data-utility-control>
-        <span id={localeLabelId}>{t("locale.label")}</span>
+        {chrome ? null : <span id={localeLabelId}>{t("locale.label")}</span>}
         <AppSelect
-          aria-labelledby={localeLabelId}
+          aria-label={chrome ? t("locale.label") : undefined}
+          aria-labelledby={chrome ? undefined : localeLabelId}
           icon="languages"
           value={locale}
           options={localeOptions}
