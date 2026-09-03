@@ -11,6 +11,12 @@ import (
 
 const sampleToken = "8684199281:AAFpLshbWf1GR6DqiZo2S0mxU8J_wfT0cqk"
 
+type testErrorWriter struct{ err error }
+
+func (w testErrorWriter) Write([]byte) (int, error) {
+	return 0, w.err
+}
+
 func TestRedactTokenRemovesItFromAnAPIError(t *testing.T) {
 	err := fmt.Errorf(`telego: getUpdates: request call: http do request: Post "http://127.0.0.1:8081/bot%s/getUpdates": connection refused`, sampleToken)
 	got := RedactToken(err.Error())
@@ -19,6 +25,17 @@ func TestRedactTokenRemovesItFromAnAPIError(t *testing.T) {
 	}
 	if !strings.Contains(got, "/bot<redacted>") || !strings.Contains(got, "connection refused") {
 		t.Errorf("redaction lost the rest of the message: %q", got)
+	}
+}
+
+func TestRedactionConsumesEverySupportedTokenCharacter(t *testing.T) {
+	for _, character := range []string{"_", "-"} {
+		token := "12345:" + character + strings.Repeat("x", 19)
+		input := "Post https://api.telegram.org/bot" + token + "/getMe failed"
+		want := "Post https://api.telegram.org/bot<redacted>/getMe failed"
+		if got := RedactToken(input); got != want {
+			t.Errorf("redaction left credential bytes after %q: got %q, want %q", character, got, want)
+		}
 	}
 }
 
@@ -49,6 +66,15 @@ func TestRedactingWriterReportsTheCallersLength(t *testing.T) {
 	}
 	if n != len(p) {
 		t.Errorf("Write reported %d of %d bytes; a short count looks like a partial write to log", n, len(p))
+	}
+}
+
+func TestRedactingWriterPropagatesDestinationErrors(t *testing.T) {
+	wantErr := errors.New("log destination unavailable")
+	p := []byte("/bot" + sampleToken + "/getMe\n")
+	n, err := RedactingWriter(testErrorWriter{err: wantErr}).Write(p)
+	if n != 0 || !errors.Is(err, wantErr) {
+		t.Fatalf("destination failure was hidden: Write returned n=%d err=%v", n, err)
 	}
 }
 
