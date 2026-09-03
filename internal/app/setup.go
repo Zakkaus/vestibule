@@ -6,6 +6,7 @@ import (
 	"crypto/subtle"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -196,6 +197,7 @@ func (c *setupCoordinator) Claim(_ context.Context, token string) (api.SetupResu
 	options := c.options
 	options.Token = token
 	if err := activateServices(c.root, c.runtime, options, c.progress); err != nil {
+		log.Printf("setup claim failed during activation: %v", err)
 		return api.SetupResult{}, c.rollback(err)
 	}
 	bindingURL, err := ownerBindingURL(c.runtime)
@@ -211,7 +213,7 @@ func (c *setupCoordinator) Claim(_ context.Context, token string) (api.SetupResu
 		return api.SetupResult{}, c.rollback(err)
 	}
 	c.activated <- active
-	return api.SetupResult{Claimed: true, BindingURL: bindingURL}, nil
+	return api.SetupResult{Claimed: true, BotUsername: c.runtime.identity.Username, BindingURL: bindingURL}, nil
 }
 
 func (c *setupCoordinator) rollback(cause error) error {

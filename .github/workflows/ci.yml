@@ -168,6 +168,13 @@ jobs:
           done
           python3 scripts/check-type-ramp.py
           python3 scripts/check-css-coverage.py web/src/app/app.css web/src/app/app.css.fixture.html
+          # The deployment guide is served by the Go binary and never enters the
+          # asset pipeline, so it is scanned on its own rather than with the set
+          # above. Left out, it would be the one stylesheet no gate ever reads.
+          for c in coverage-floor style-rules undefined-var shadowed theme-leak comment-boundaries percentage-min; do
+            python3 "scripts/design-checks/$c.py" internal/console/api/setup.css
+          done
+          python3 scripts/check-css-coverage.py internal/console/api/setup.css internal/console/api/setup.css.fixture.html
           python3 scripts/check-console-html.py
           for f in tokens components shell; do
             diff -q "$HOME/design-system/app/$f.css" "web/src/styles/$f.css" \

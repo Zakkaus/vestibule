@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claim this instance</title>
+<style></style>
+</head>
+<body>
+<main data-setup-main>
+<article data-setup-card>
+<header data-setup-head>
+<p data-setup-eyebrow>Deployment</p>
+<h1>Claim this instance</h1>
+<p data-setup-lede>The script has finished its part on this machine. The rest is filled in here, so no credential reaches your shell history.</p>
+</header>
+<ol data-setup-steps aria-label="Deployment steps">
+<li data-setup-step data-state="done">
+<span data-setup-step-mark aria-hidden="true">&#x2713;</span>
+<span data-setup-step-body><span data-setup-step-name>Open the console</span><span data-setup-step-note>The one-time link the install script printed has handed this console to you.</span></span>
+</li>
+<li data-setup-step data-state="current">
+<span data-setup-step-mark aria-hidden="true">2</span>
+<span data-setup-step-body><span data-setup-step-name>Enter the bot token</span><span data-setup-step-note>Asked for here rather than on the terminal, so it stays out of shell history and out of the scrollback.</span></span>
+</li>
+<li data-setup-step data-state="pending">
+<span data-setup-step-mark aria-hidden="true">3</span>
+<span data-setup-step-body><span data-setup-step-name>Bind your account</span><span data-setup-step-note>The bot exists only once the token is accepted, so only from here on can it receive a private passphrase.</span></span>
+</li>
+<li data-setup-step data-state="pending">
+<span data-setup-step-mark aria-hidden="true">4</span>
+<span data-setup-step-body><span data-setup-step-name>Add the first group</span><span data-setup-step-note>The instance waits for the group to appear, then checks each permission the bot needs.</span></span>
+</li>
+</ol>
+<p data-setup-alert id="setup-error" role="alert">Telegram did not accept this token. Check that the whole line was pasted, including the digits before the colon.</p>
+
+<form method="post" data-setup-form>
+<label for="bot-token">Telegram bot token</label>
+<input id="bot-token" name="bot_token" type="password" autocomplete="off" spellcheck="false" required aria-invalid="true" aria-describedby="setup-error">
+<p data-setup-hint>Ask @BotFather in Telegram for a bot, then paste the whole line it gives you, including the digits before the colon.</p>
+<button type="submit" data-setup-action>Claim instance</button>
+</form>
+
+</article>
+</main>
+</body>
+</html><!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claim this instance</title>
+<style></style>
+</head>
+<body>
+<main data-setup-main>
+<article data-setup-card>
+<header data-setup-head>
+<p data-setup-eyebrow>Deployment</p>
+<h1>Claim this instance</h1>
+<p data-setup-lede>The script has finished its part on this machine. The rest is filled in here, so no credential reaches your shell history.</p>
+</header>
+<ol data-setup-steps aria-label="Deployment steps">
+<li data-setup-step data-state="done">
+<span data-setup-step-mark aria-hidden="true">&#x2713;</span>
+<span data-setup-step-body><span data-setup-step-name>Open the console</span><span data-setup-step-note>The one-time link the install script printed has handed this console to you.</span></span>
+</li>
+<li data-setup-step data-state="done">
+<span data-setup-step-mark aria-hidden="true">&#x2713;</span>
+<span data-setup-step-body><span data-setup-step-name>Enter the bot token</span><span data-setup-step-note>Asked for here rather than on the terminal, so it stays out of shell history and out of the scrollback.</span></span>
+</li>
+<li data-setup-step data-state="current">
+<span data-setup-step-mark aria-hidden="true">3</span>
+<span data-setup-step-body><span data-setup-step-name>Bind your account</span><span data-setup-step-note>The bot exists only once the token is accepted, so only from here on can it receive a private passphrase.</span></span>
+</li>
+<li data-setup-step data-state="pending">
+<span data-setup-step-mark aria-hidden="true">4</span>
+<span data-setup-step-body><span data-setup-step-name>Add the first group</span><span data-setup-step-note>The instance waits for the group to appear, then checks each permission the bot needs.</span></span>
+</li>
+</ol>
+
+
+<section data-setup-panel>
+<p data-setup-ok>This instance is claimed and the bot is running.</p>
+<p data-setup-bot>Connected as <b>@example_bot</b></p>
+<p data-setup-note>Open this link in Telegram to bind the deployer account.</p><a data-setup-action href="https://t.me/example_bot?start=owner_x">Bind in Telegram</a><p data-setup-note>Once the account is bound, add the bot to your first group. The console opens on the group list.</p>
+</section>
+
+</article>
+</main>
+</body>
+</html>

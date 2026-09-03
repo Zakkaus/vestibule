@@ -64,13 +64,29 @@
   },
   "setup": {
     "title": "Claim this instance",
-    "description": "Enter the Telegram bot token to start this instance.",
+    "description": "The script has finished its part on this machine. The rest is filled in here, so no credential reaches your shell history.",
     "token_label": "Telegram bot token",
     "submit": "Claim instance",
     "token_required": "A Telegram bot token is required.",
     "claim_failed": "Could not claim this instance. Check the token and try again.",
     "claimed": "This instance is claimed and the bot is running.",
     "binding": "Open this link in Telegram to bind the deployer account.",
-    "binding_action": "Bind in Telegram"
+    "binding_action": "Bind in Telegram",
+    "eyebrow": "Deployment",
+    "steps_label": "Deployment steps",
+    "step_console": "Open the console",
+    "step_console_note": "The one-time link the install script printed has handed this console to you.",
+    "step_token": "Enter the bot token",
+    "step_token_note": "Asked for here rather than on the terminal, so it stays out of shell history and out of the scrollback.",
+    "step_binding": "Bind your account",
+    "step_binding_note": "The bot exists only once the token is accepted, so only from here on can it receive a private passphrase.",
+    "step_group": "Add the first group",
+    "step_group_note": "The instance waits for the group to appear, then checks each permission the bot needs.",
+    "token_hint": "Ask @BotFather in Telegram for a bot, then paste the whole line it gives you, including the digits before the colon.",
+    "token_rejected": "Telegram did not accept this token. Check that the whole line was pasted, including the digits before the colon.",
+    "telegram_unreachable": "Telegram could not be reached, so the token was never judged. What needs attention is the network or proxy on this machine, not the token.",
+    "instance_fault": "The token was accepted, but the instance did not start. This is not a token problem; the reason is in the server log.",
+    "bot_name_label": "Connected as",
+    "after_binding": "Once the account is bound, add the bot to your first group. The console opens on the group list."
   }
 }

@@ -1,0 +1,367 @@
+/* ─────────────────────────────────────────────────────────────
+   Deployment guide — the one screen that exists before the console.
+
+   This page is served by the Go binary, not by the built frontend, so it
+   cannot link the application's stylesheet: at this moment nothing has been
+   claimed and no asset pipeline is running. It therefore carries its own
+   token block, and the values are the application's values so the two
+   screens read as one product rather than as a bare form standing in front
+   of a designed console.
+
+   Kept as a file rather than a Go string literal so the same design gates
+   that scan the application stylesheets can scan this one. A stylesheet
+   inside a template is invisible to every check the repository owns.
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  color-scheme: light;
+
+  --tint-h: 0;
+  --tint-c: 0;
+  --h-bad: 25;
+  --h-ok: 155;
+
+  --background: oklch(0.985 var(--tint-c) var(--tint-h));
+  --foreground: oklch(0.07 var(--tint-c) var(--tint-h));
+  --card: oklch(1 var(--tint-c) var(--tint-h));
+  --muted: oklch(0.955 var(--tint-c) var(--tint-h));
+  --muted-foreground: oklch(0.40 var(--tint-c) var(--tint-h));
+  --primary: oklch(0.10 var(--tint-c) var(--tint-h));
+  --primary-foreground: oklch(0.99 var(--tint-c) var(--tint-h));
+  --border: oklch(0.85 var(--tint-c) var(--tint-h));
+  --input: oklch(0.85 var(--tint-c) var(--tint-h));
+  --ring: oklch(0.10 var(--tint-c) var(--tint-h));
+  --surface-raised: oklch(0.97 var(--tint-c) var(--tint-h));
+
+  --status-error-bg: oklch(0.53 0.18 var(--h-bad) / 12%);
+  --status-error-fg: oklch(0.45 0.18 var(--h-bad));
+  --status-ok-bg: oklch(0.45 0.12 var(--h-ok) / 12%);
+  --status-ok-fg: oklch(0.40 0.12 var(--h-ok));
+
+  /* Elevation cannot mean the same thing in both themes: a black shadow on a
+     near-black ground is invisible, so dark draws a light inset ring instead. */
+  --elev-1: 0 1px 3px -1px oklch(0 0 0 / 4%), 0 1px 2px -1px oklch(0 0 0 / 3%);
+  --elev-2: 0 4px 16px -4px oklch(0 0 0 / 8%), 0 2px 4px -2px oklch(0 0 0 / 4%);
+  --card-shadow: var(--elev-1);
+  --focus-ring: 0 0 0 2px oklch(0.10 0 0 / 8%);
+
+  --radius: 0.625rem;
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-full: 9999px;
+
+  --sp: 0.5rem;
+  --sp-1: calc(var(--sp) * 0.5);
+  --sp-2: var(--sp);
+  --sp-3: calc(var(--sp) * 1.5);
+  --sp-4: calc(var(--sp) * 2);
+  --sp-5: calc(var(--sp) * 3);
+  --sp-6: calc(var(--sp) * 4);
+  --sp-7: calc(var(--sp) * 6);
+
+  --hairline: 1px;
+  --control-h: 2.25rem;
+  --dur-hover: 0.2s;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    "Noto Sans SC", "PingFang SC", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* Defined twice on purpose: under prefers-color-scheme for the default
+   "follow the system", and under [data-theme] so an explicit choice — which
+   the console writes on the root element and this page inherits when the two
+   are served from one origin — wins in both directions. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --background: oklch(0.06 var(--tint-c) var(--tint-h));
+    --foreground: oklch(0.95 var(--tint-c) var(--tint-h));
+    --card: oklch(0.125 var(--tint-c) var(--tint-h));
+    --muted: oklch(0.195 var(--tint-c) var(--tint-h));
+    --muted-foreground: oklch(0.64 var(--tint-c) var(--tint-h));
+    --primary: oklch(0.95 var(--tint-c) var(--tint-h));
+    --primary-foreground: oklch(0.07 var(--tint-c) var(--tint-h));
+    --border: oklch(0.36 var(--tint-c) var(--tint-h));
+    --input: oklch(0.34 var(--tint-c) var(--tint-h));
+    --ring: oklch(0.95 var(--tint-c) var(--tint-h));
+    --surface-raised: oklch(0.165 var(--tint-c) var(--tint-h));
+
+    --status-error-bg: oklch(0.58 0.18 var(--h-bad) / 15%);
+    --status-error-fg: oklch(0.89 0.18 var(--h-bad));
+    --status-ok-bg: oklch(0.55 0.12 var(--h-ok) / 15%);
+    --status-ok-fg: oklch(0.80 0.12 var(--h-ok));
+
+    --elev-1: inset 0 1px 0 oklch(1 0 0 / 9%);
+    --elev-2: inset 0 1px 0 oklch(1 0 0 / 14%), 0 8px 24px -8px oklch(0 0 0 / 65%);
+    --card-shadow: var(--elev-2);
+    --focus-ring: 0 0 0 2px oklch(1 0 0 / 18%);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: oklch(0.06 var(--tint-c) var(--tint-h));
+  --foreground: oklch(0.95 var(--tint-c) var(--tint-h));
+  --card: oklch(0.125 var(--tint-c) var(--tint-h));
+  --muted: oklch(0.195 var(--tint-c) var(--tint-h));
+  --muted-foreground: oklch(0.64 var(--tint-c) var(--tint-h));
+  --primary: oklch(0.95 var(--tint-c) var(--tint-h));
+  --primary-foreground: oklch(0.07 var(--tint-c) var(--tint-h));
+  --border: oklch(0.36 var(--tint-c) var(--tint-h));
+  --input: oklch(0.34 var(--tint-c) var(--tint-h));
+  --ring: oklch(0.95 var(--tint-c) var(--tint-h));
+  --surface-raised: oklch(0.165 var(--tint-c) var(--tint-h));
+
+  --status-error-bg: oklch(0.58 0.18 var(--h-bad) / 15%);
+  --status-error-fg: oklch(0.89 0.18 var(--h-bad));
+  --status-ok-bg: oklch(0.55 0.12 var(--h-ok) / 15%);
+  --status-ok-fg: oklch(0.80 0.12 var(--h-ok));
+
+  --elev-1: inset 0 1px 0 oklch(1 0 0 / 9%);
+  --elev-2: inset 0 1px 0 oklch(1 0 0 / 14%), 0 8px 24px -8px oklch(0 0 0 / 65%);
+  --card-shadow: var(--elev-2);
+  --focus-ring: 0 0 0 2px oklch(1 0 0 / 18%);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* One centred column, no sidebar and no group switcher, because at this moment
+   there is no group to switch to. The entry screen uses the same shell. */
+[data-setup-main] {
+  display: grid;
+  place-items: center;
+  min-block-size: 100dvb;
+  padding: var(--sp-6) var(--sp-4);
+}
+
+[data-setup-card] {
+  display: grid;
+  gap: var(--sp-6);
+  inline-size: min(100%, 34rem);
+  padding: var(--sp-6);
+  background: var(--card);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--card-shadow);
+}
+
+[data-setup-head] {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+[data-setup-eyebrow] {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+[data-setup-card] h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+[data-setup-lede] {
+  margin: 0;
+  color: var(--muted-foreground);
+}
+
+/* The four steps are the spine of this screen: every one of them says what it
+   is before it is done, so nobody is asked to paste a credential into a form
+   whose place in the sequence they cannot see. */
+[data-setup-steps] {
+  display: grid;
+  gap: var(--sp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-setup-step] {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--sp-3);
+  align-items: start;
+}
+
+[data-setup-step-mark] {
+  display: grid;
+  place-items: center;
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  margin-block-start: 0.0625rem;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  border-radius: var(--radius-full);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+[data-setup-step][data-state="current"] [data-setup-step-mark] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+[data-setup-step][data-state="done"] [data-setup-step-mark] {
+  background: var(--status-ok-bg);
+  color: var(--status-ok-fg);
+}
+
+[data-setup-step-body] {
+  display: grid;
+  gap: var(--sp-1);
+  min-inline-size: 0;
+}
+
+[data-setup-step-name] {
+  font-weight: 600;
+}
+
+[data-setup-step][data-state="pending"] [data-setup-step-name] {
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+
+[data-setup-step-note] {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+[data-setup-panel],
+[data-setup-form] {
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  background: var(--surface-raised);
+  border-radius: var(--radius-md);
+}
+
+[data-setup-form] label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+[data-setup-form] input {
+  inline-size: 100%;
+  min-block-size: var(--control-h);
+  padding-inline: var(--sp-3);
+  background: var(--card);
+  color: var(--foreground);
+  border: var(--hairline) solid var(--input);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  transition: border-color var(--dur-hover) ease, box-shadow var(--dur-hover) ease;
+}
+
+[data-setup-form] input:focus {
+  border-color: var(--foreground);
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+[data-setup-form] input[aria-invalid="true"] {
+  border-color: var(--status-error-fg);
+}
+
+[data-setup-hint] {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+[data-setup-action] {
+  display: inline-grid;
+  place-items: center;
+  min-block-size: var(--control-h);
+  padding-inline: var(--sp-4);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: var(--hairline) solid var(--primary);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity var(--dur-hover) ease;
+}
+
+@media (hover: hover) {
+  [data-setup-action]:hover {
+    opacity: 0.88;
+  }
+}
+
+[data-setup-action]:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Failure is a state with a next step, not a red sentence: the three causes
+   send the reader to three different places, so they are never merged. */
+[data-setup-alert] {
+  margin: 0;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--status-error-bg);
+  color: var(--status-error-fg);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+}
+
+[data-setup-ok] {
+  margin: 0;
+  color: var(--status-ok-fg);
+  font-weight: 600;
+}
+
+[data-setup-bot] {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+[data-setup-bot] b {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+[data-setup-note] {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-setup-action],
+  [data-setup-form] input {
+    transition: none;
+  }
+}
