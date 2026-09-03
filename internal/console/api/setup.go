@@ -205,7 +205,10 @@ func renderSetup(writer http.ResponseWriter, request *http.Request, statusCode i
 func setupPageFor(language i18n.Lang, failure string, result SetupResult) setupPage {
 	setup := i18n.Messages.Bot.Setup
 	return setupPage{
-		Language:      language.String(),
+		Language: language.String(),
+		// #nosec G203 -- setupStyle is the embedded contents of setup.css, fixed at
+		// build time and reachable by no request. The conversion exists because a
+		// stylesheet is not HTML text, not because anything untrusted passes here.
 		Style:         template.CSS(setupStyle),
 		Eyebrow:       setup.Eyebrow.For(language),
 		Title:         setup.Title.For(language),
