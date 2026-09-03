@@ -142,3 +142,99 @@ func TestImportLegacyStateRejectsSilentlyDroppedSnapshot(t *testing.T) {
 		t.Fatalf("ImportLegacyState error = %v, want validation mismatch", err)
 	}
 }
+
+func TestImportReportsSuccessWhenEverySnapshotMatches(t *testing.T) {
+	ctx := context.Background()
+	db, err := Open(ctx, testSQLiteConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	if _, err := ImportLegacyState(ctx, db, ImportOptions{
+		StateDirectory:  copyLegacyFixtures(t),
+		BackupDirectory: filepath.Join(t.TempDir(), "backup"),
+		Pending:         PendingCarry,
+	}); err != nil {
+		t.Fatalf("import with matching snapshots: %v", err)
+	}
+}
+
+func TestImportDetectsAnExtraPendingRecord(t *testing.T) {
+	assertImportRejectsChangedSnapshot(t, `
+		CREATE TRIGGER add_extra_imported_pending
+		AFTER INSERT ON challenge
+		WHEN NEW.state = 'pending' AND NEW.user_id = 7001
+		BEGIN
+			INSERT INTO chat (id, title) VALUES (-1009000000000, '');
+			INSERT INTO challenge
+				(id, chat_id, user_id, state, kind, payload, delivery, attempts, expires_at, epoch)
+			VALUES
+				(NEW.id || '-extra', -1009000000000, NEW.user_id, NEW.state, NEW.kind,
+				 NEW.payload, NEW.delivery, NEW.attempts, NEW.expires_at, NEW.epoch);
+		END`, "validate pending records", "an extra pending challenge")
+}
+
+func TestImportDetectsChangedPendingRecordFields(t *testing.T) {
+	assertImportRejectsChangedSnapshot(t, `
+		CREATE TRIGGER change_imported_pending
+		AFTER INSERT ON challenge
+		WHEN NEW.state = 'pending'
+		BEGIN
+			UPDATE challenge SET attempts = attempts + 1 WHERE id = NEW.id;
+		END`, "validate pending records", "changed pending challenge fields")
+}
+
+func TestImportDetectsAChangedAgentTally(t *testing.T) {
+	assertImportRejectsChangedSnapshot(t, `
+		CREATE TRIGGER change_imported_agents
+		AFTER INSERT ON agent_tally
+		BEGIN
+			UPDATE agent_tally SET count = count + 1 WHERE model = NEW.model;
+		END`, "validate agent tally", "a changed agent tally")
+}
+
+func TestImportDetectsAChangedHeartbeat(t *testing.T) {
+	assertImportRejectsChangedSnapshot(t, `
+		CREATE TRIGGER change_imported_heartbeat
+		AFTER INSERT ON verification_runtime
+		WHEN NEW.key = 'last_online'
+		BEGIN
+			UPDATE verification_runtime SET value = value + 1 WHERE key = NEW.key;
+		END`, "validate heartbeat", "a changed heartbeat")
+}
+
+func TestImportDetectsChangedWarningCounters(t *testing.T) {
+	assertImportRejectsChangedSnapshot(t, `
+		CREATE TRIGGER change_imported_warnings
+		AFTER INSERT ON warning_counter
+		BEGIN
+			UPDATE warning_counter
+			SET count = count + 1
+			WHERE chat_id = NEW.chat_id AND user_id = NEW.user_id;
+		END`, "validate warning records", "changed warning counters")
+}
+
+func assertImportRejectsChangedSnapshot(t *testing.T, trigger, validation, harm string) {
+	t.Helper()
+	ctx := context.Background()
+	db, err := Open(ctx, testSQLiteConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if _, err := db.Exec(ctx, trigger); err != nil {
+		t.Fatalf("install trigger for %s: %v", harm, err)
+	}
+	_, err = ImportLegacyState(ctx, db, ImportOptions{
+		StateDirectory:  copyLegacyFixtures(t),
+		BackupDirectory: filepath.Join(t.TempDir(), "backup"),
+		Pending:         PendingCarry,
+	})
+	if err == nil {
+		t.Fatalf("import reported success after %s; its validation report would falsely prove the JSON snapshot reached the database", harm)
+	}
+	if !strings.Contains(err.Error(), validation) {
+		t.Fatalf("import after %s error = %q, want %q", harm, err, validation)
+	}
+}

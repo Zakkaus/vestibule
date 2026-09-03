@@ -32,7 +32,22 @@ PHYSICAL = re.compile(
     r"(?:margin|padding)-(?:left|right|top|bottom)|top|bottom|left|right)\s*:")
 HEX = re.compile(r"#([0-9a-fA-F]{3,8})\b")
 FUNC = re.compile(r"\b(rgba?|hsla?|oklch|oklab|lch|lab)\(([^()]*(?:\([^()]*\)[^()]*)*)\)")
-STATUS_RULE = re.compile(r"\.status-[a-z]+[^{]*\{[^}]*\}", re.S)
+# The five status classes are the whole allowance. The first pattern here accepted any
+# selector that merely began with one, descendants included, so `.status-ok .icon { color:
+# #e00 }` put an invented hue on an arbitrary element inside a status region and was waved
+# through. A selector list of status classes is still one rule about those classes.
+STATUS_RULE = re.compile(r"(?:\.status-[a-z]+\s*,\s*)*\.status-[a-z]+\s*\{[^}]*\}", re.S)
+# A relative colour derives from a token, but only the channels it leaves as keywords. In
+# oklch(from var(--x) l 0.3 25) the lightness is derived and the chroma and hue are literals,
+# which is a hue invented outside the token layer through the idiom that looks most like
+# staying inside it.
+RELATIVE_CHANNELS = {"oklch": (2, 3), "lch": (2, 3), "oklab": (2, 3), "lab": (2, 3),
+                     "hsl": (1, 2), "hsla": (1, 2), "rgb": (1, 2), "rgba": (1, 2)}
+# Hue can also be written where CSS is not: an SVG presentation attribute is markup, so the
+# extractor never sees it, and a diagram in the page that documents the hue rule was free to
+# break it. currentColor, none and a token reference are not literals.
+SVG_PAINT = re.compile(r"\b(fill|stroke|stop-color|flood-color|lighting-color)=\"([^\"]+)\"")
+PAINT_OK = re.compile(r"^(none|currentcolor|inherit|transparent|url\(|var\()", re.I)
 # A hue does not have to be written in numbers. `color: crimson` passed every check here: the
 # detector above knows hexadecimal and colour functions, and CSS also has a hundred and forty
 # names. The achromatic ones are left out for the same reason hex_has_hue lets #333 through --
@@ -175,11 +190,32 @@ def check(path: Path) -> None:
         if hex_has_hue(m.group(1)):
             failures.append("%s: hue outside the token layer: #%s" % (path.name, m.group(1)))
     for m in FUNC.finditer(outside):
-        if "from var(" in m.group(2):        # derived from a token, not invented
+        if "from var(" in m.group(2):
+            # Derived from a token in the channels it leaves alone. A numeric literal in a
+            # chroma or hue position is invented, whatever it was derived from.
+            channels = m.group(2).split("/")[0].split()
+            after = channels[2:] if len(channels) > 2 else []
+            invented = [i for i in RELATIVE_CHANNELS.get(m.group(1), ())
+                        if i < len(after) and re.fullmatch(r"-?[\d.]+%?", after[i])]
+            if invented:
+                failures.append("%s: hue outside the token layer: %s(%s) invents a channel it did "
+                                "not derive" % (path.name, m.group(1), m.group(2).strip()[:40]))
             continue
         if func_has_hue(m.group(1), m.group(2)):
             failures.append("%s: hue outside the token layer: %s(%s)"
                             % (path.name, m.group(1), m.group(2).strip()[:40]))
+    if path.suffix != ".css":
+        raw = path.read_text(encoding="utf-8")
+        for m in SVG_PAINT.finditer(raw):
+            value = m.group(2).strip()
+            if PAINT_OK.match(value):
+                continue
+            if HEX.search(value) or FUNC.search(value) or value.lower() in NAMED_HUES:
+                failures.append("%s: hue outside the token layer: %s=\"%s\" on line %d — an SVG "
+                                "presentation attribute is still a colour"
+                                % (path.name, m.group(1), value[:24],
+                                   raw.count("\n", 0, m.start()) + 1))
+
     for m in DECLARATION.finditer(outside):
         for token in re.split(r"[\s,()/]+", m.group(2).lower()):
             name = token.strip()
