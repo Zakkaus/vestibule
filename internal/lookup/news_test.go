@@ -218,3 +218,15 @@ func TestRenderNewsAvailability(t *testing.T) {
 		})
 	}
 }
+
+func TestNewsRenderingLimitsRepliesToEightItems(t *testing.T) {
+	items := make([]NewsItem, 9)
+	for i := range items {
+		items[i] = NewsItem{Date: "2026-09-03", Title: "Kernel news", URL: "https://example.test/news"}
+	}
+
+	got := renderNews(i18n.LangEN, "", items, true)
+	if count := strings.Count(got, "\n • "); count != 8 {
+		t.Errorf("/news rendered %d items; more than eight can make its Telegram reply too long", count)
+	}
+}

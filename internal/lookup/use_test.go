@@ -244,3 +244,62 @@ func TestUSEFlagSignsAreRemovedAndPlusMeansDefaultEnabled(t *testing.T) {
 		}
 	}
 }
+
+func TestUseRenderingLimitsLocalFlagsToTwelve(t *testing.T) {
+	flags := make([]useFlag, 13)
+	for i := range flags {
+		flags[i] = useFlag{name: "flag-" + string(rune('a'+i))}
+	}
+
+	got := renderUse(i18n.LangEN, pkgFullInfo{atom: "app-editors/example", local: flags}, "", "", false, nil)
+	if count := strings.Count(got, "\n • "); count != 12 {
+		t.Errorf("/use rendered %d local flags; more than twelve risks a Telegram message rejection", count)
+	}
+	truncated := i18n.Messages.LookupPackages.Use.TruncatedCount.Render(i18n.LangEN, len(flags))
+	if !strings.Contains(got, truncated) {
+		t.Errorf("/use omitted its local flag truncation notice %q", truncated)
+	}
+	if strings.Contains(got, ">flag-m</a>") {
+		t.Error("/use showed a thirteenth local flag instead of keeping the reply compact")
+	}
+}
+
+func TestUseRenderingKeepsFlagDescriptionsURLFreeAndBrief(t *testing.T) {
+	longDescription := strings.Repeat("界", 65)
+	tests := []struct {
+		name, description, want, unwanted string
+	}{
+		{
+			name:        "removes URLs",
+			description: "Enables diagnostics http://localhost/path",
+			want:        "Enables diagnostics",
+			unwanted:    "localhost",
+		},
+		{
+			name:        "keeps only the first sentence",
+			description: "Enables compact replies. This second sentence must not be shown",
+			want:        "Enables compact replies",
+			unwanted:    "second sentence",
+		},
+		{
+			name:        "caps a long rune sequence",
+			description: longDescription,
+			want:        strings.Repeat("界", 64) + "…",
+			unwanted:    longDescription,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := renderUse(i18n.LangEN, pkgFullInfo{
+				atom:  "app-editors/example",
+				local: []useFlag{{name: "example", desc: tt.description}},
+			}, "", "", false, nil)
+			if !strings.Contains(got, tt.want) {
+				t.Errorf("/use omitted expected compact description %q: %q", tt.want, got)
+			}
+			if strings.Contains(got, tt.unwanted) {
+				t.Errorf("/use kept %q in a local flag description; it can turn a compact reply into a wall of text", tt.unwanted)
+			}
+		})
+	}
+}
