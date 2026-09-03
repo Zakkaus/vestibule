@@ -74,7 +74,8 @@ type commandRequest struct {
 }
 
 type commandRecordingCaller struct {
-	requests []commandRequest
+	requests   []commandRequest
+	failOnCall int
 }
 
 func (c *commandRecordingCaller) Call(_ context.Context, url string, data *ta.RequestData) (*ta.Response, error) {
@@ -86,6 +87,9 @@ func (c *commandRecordingCaller) Call(_ context.Context, url string, data *ta.Re
 		return nil, err
 	}
 	c.requests = append(c.requests, request)
+	if c.failOnCall == len(c.requests) {
+		return nil, fmt.Errorf("simulated command registration failure")
+	}
 	return apiResponse(true)
 }
 
@@ -342,6 +346,76 @@ func TestSetupCommandsAddsOwnerPrivateMenuFromRuntimeState(t *testing.T) {
 	}
 	if ownerMenus != 3 || languages[""] != 1 || languages["zh"] != 1 || languages["en"] != 1 {
 		t.Fatalf("owner private menus/languages = %d/%v, want three localized scopes", ownerMenus, languages)
+	}
+}
+
+func TestSetupCommandsUsesCurrentGroupLanguageOverride(t *testing.T) {
+	const groupID int64 = -1009000000502
+	cfg := &settings.Config{
+		Groups:    []settings.GroupConfig{{ID: groupID, Lang: "en"}},
+		GroupIDs:  []int64{groupID},
+		WarnLimit: 3,
+	}
+	store, err := settings.NewStore(t.TempDir()+"/settings.json", botTestSettingsBaseline(t, cfg), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	caller := &commandRecordingCaller{}
+	service := &Updates{cfg: cfg, settings: store, handlers: HandlerSet{Commands: testCommandModules(t)}}
+	service.SetupCommands(context.Background(), testBot(t, caller))
+	if len(caller.requests) != 6 {
+		t.Fatalf("English group command menu requests = %d, want six default scopes", len(caller.requests))
+	}
+	group, ok := store.Settings(groupID)
+	if !ok {
+		t.Fatalf("configured group %d has no runtime settings", groupID)
+	}
+	overrides := group.Overrides()
+	language := "zh-Hant"
+	overrides.Lang = &language
+	if _, err := store.Update(groupID, group.Revision(), overrides); err != nil {
+		t.Fatal(err)
+	}
+	service.SetupCommands(context.Background(), testBot(t, caller))
+
+	seen := map[string]bool{}
+	for _, request := range caller.requests[6:] {
+		switch request.Scope.Type {
+		case "chat":
+			if string(request.Scope.ChatID) != fmt.Sprint(groupID) {
+				t.Fatalf("Traditional Chinese member menu targeted %s, want %d", request.Scope.ChatID, groupID)
+			}
+			if difference := commandDifference(request.Commands, expectedMemberCommands(i18n.LangZHHant)); difference != "" {
+				t.Errorf("Traditional Chinese member menu: %s", difference)
+			}
+		case "chat_administrators":
+			if string(request.Scope.ChatID) != fmt.Sprint(groupID) {
+				t.Fatalf("Traditional Chinese administrator menu targeted %s, want %d", request.Scope.ChatID, groupID)
+			}
+			if difference := commandDifference(request.Commands, expectedAdminCommands(i18n.LangZHHant, cfg.WarnLimit)); difference != "" {
+				t.Errorf("Traditional Chinese administrator menu: %s", difference)
+			}
+		default:
+			continue
+		}
+		seen[request.Scope.Type] = true
+	}
+	if !seen["chat"] || !seen["chat_administrators"] {
+		t.Fatalf("runtime language override did not register both Traditional Chinese group menus: %v", seen)
+	}
+}
+
+func TestSetupCommandsContinuesAfterOneScopeRegistrationFails(t *testing.T) {
+	cfg := &settings.Config{WarnLimit: 3}
+	store, err := settings.NewStore(t.TempDir()+"/settings.json", botTestSettingsBaseline(t, cfg), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	caller := &commandRecordingCaller{failOnCall: 2}
+	service := &Updates{cfg: cfg, settings: store, handlers: HandlerSet{Commands: testCommandModules(t)}}
+	service.SetupCommands(context.Background(), testBot(t, caller))
+	if got, want := len(caller.requests), 6; got != want {
+		t.Fatalf("a failed command scope stopped later menu registration: got %d requests, want %d", got, want)
 	}
 }
 
