@@ -51,6 +51,7 @@ jobs:
           python3 scripts/check-message-fields-are-read.py
           python3 scripts/check-handlers-act-on-what-they-authorised.py
           python3 scripts/check-citations-resolve.py
+          python3 scripts/check-binary-contract.py
           python3 scripts/gen-arch-md.py --check
           go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
           go build ./...
