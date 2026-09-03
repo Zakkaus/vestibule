@@ -42,6 +42,16 @@ jobs:
           python3 scripts/check-schema-manifest.py deploy/vestibule-schema-manifest
           python3 scripts/check-console-routes.py
           python3 scripts/check-phase-acceptance.py
+          python3 scripts/check-acceptance-exemptions.py
+          python3 scripts/check-docs.py
+          python3 scripts/check-gate-list.py
+          python3 scripts/check-release-gate.py
+          python3 scripts/check-limits.py
+          python3 scripts/check-privacy-tables.py
+          python3 scripts/check-message-fields-are-read.py
+          python3 scripts/check-handlers-act-on-what-they-authorised.py
+          python3 scripts/check-citations-resolve.py
+          python3 scripts/gen-arch-md.py --check
           go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
           go build ./...
           go build -tags gentoo ./...
