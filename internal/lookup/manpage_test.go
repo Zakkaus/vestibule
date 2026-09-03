@@ -36,12 +36,63 @@ func TestManPageParsing(t *testing.T) {
 	}
 }
 
+func TestManPageQuotesKeepNameAndSynopsisWithinLineLimits(t *testing.T) {
+	const page = `NAME
+       manpage - first NAME line
+       second NAME line
+       third NAME line
+
+SYNOPSIS
+       manpage [OPTION]
+       synopsis line two
+       synopsis line three
+       synopsis line four
+       synopsis line five
+       synopsis line six
+       synopsis line seven
+
+DESCRIPTION
+       This section must not be quoted.
+`
+	const wantTitle = `manpage - first NAME line
+second NAME line`
+	const wantSynopsis = `manpage [OPTION]
+synopsis line two
+synopsis line three
+synopsis line four
+synopsis line five
+synopsis line six`
+
+	title, synopsis := parseManPage(page)
+	if title != wantTitle {
+		t.Errorf("NAME quote = %q, want %q: an unbounded NAME quote can make the Telegram reply too large", title, wantTitle)
+	}
+	if synopsis != wantSynopsis {
+		t.Errorf("SYNOPSIS quote = %q, want %q: an unbounded SYNOPSIS can make the Telegram reply too large", synopsis, wantSynopsis)
+	}
+}
+
 // A page without the sections still resolves; the caller falls back to the page name.
 func TestManPageWithoutSections(t *testing.T) {
 	title, synopsis := parseManPage("SOMEPAGE(9)\n\n       free text only\n")
 	if title != "" || synopsis != "" {
 		t.Errorf("title = %q synopsis = %q, want both empty", title, synopsis)
 	}
+}
+
+func TestManPageWithoutNameUsesPageIDAsTitle(t *testing.T) {
+	const url = "https://man.archlinux.org/man/printf.3.txt"
+	withFixtureBody(t, url, `SYNOPSIS
+       int printf(const char *format, ...);
+`, func() {
+		page, found, failed := fetchManPage(context.Background(), "printf", "3")
+		if !found || failed {
+			t.Fatal("a reachable manual page without NAME must still resolve")
+		}
+		if page.title != "printf.3" {
+			t.Errorf("title = %q, want %q: without the fallback, the reply link has an empty anchor", page.title, "printf.3")
+		}
+	})
 }
 
 // Only a page name reaches the network; anything that could steer the request is refused before
