@@ -111,22 +111,31 @@ func assertRollbackRejections(
 ) {
 	t.Helper()
 	if response.Code != http.StatusOK || calls != 1 || !rejections.SourceAvailable ||
-		!rejections.HumanReviewRequired ||
-		rejections.WindowSeconds != int64(verification.RollbackRejectionWindow/time.Second) ||
-		len(rejections.ByReason) != 1 || rejections.ByReason[0].Reason == nil ||
-		*rejections.ByReason[0].Reason != reason || rejections.ByReason[0].Count != 2 {
+		!rejections.HumanReviewRequired || len(rejections.ByReason) != 1 ||
+		rejections.ByReason[0].Reason == nil || *rejections.ByReason[0].Reason != reason ||
+		rejections.ByReason[0].Count != 2 {
 		t.Fatalf("status=%d calls=%d rollback rejections=%+v", response.Code, calls, rejections)
+	}
+	if rejections.WindowSeconds != 86_400 {
+		t.Fatalf("false-rejection review no longer covers the required day: %+v", rejections)
 	}
 }
 
 func assertRollbackObservationThresholds(t *testing.T, rollback diagnosticsRollbackResponse) {
 	t.Helper()
-	if !rollback.Rejections.WindowStart.Equal(rollback.Rejections.WindowEnd.Add(-verification.RollbackRejectionWindow)) ||
-		rollback.ChallengeDelivery.Streak.ThresholdSeconds != int64(status.RollbackObservationWindow/time.Second) ||
-		rollback.ConsoleAccess.Streak.ThresholdSeconds != int64(status.RollbackObservationWindow/time.Second) ||
-		rollback.DatabaseWrites.Scope != retryStoreWriteScope ||
-		rollback.DatabaseWrites.WindowSeconds != int64(status.RollbackObservationWindow/time.Second) {
-		t.Fatalf("rollback diagnostics response = %+v", rollback)
+	if !rollback.Rejections.WindowStart.Equal(rollback.Rejections.WindowEnd.Add(-24 * time.Hour)) {
+		t.Errorf("false-rejection review bounds no longer cover one day: %+v", rollback.Rejections)
+	}
+	if rollback.ChallengeDelivery.Streak.ThresholdSeconds != 600 {
+		t.Errorf("challenge-delivery rollback threshold is no longer ten minutes: %+v", rollback.ChallengeDelivery)
+	}
+	if rollback.ConsoleAccess.Streak.ThresholdSeconds != 600 {
+		t.Errorf("console-access rollback threshold is no longer ten minutes: %+v", rollback.ConsoleAccess)
+	}
+	if rollback.DatabaseWrites.Scope != retryStoreWriteScope ||
+		rollback.DatabaseWrites.WindowSeconds != 600 {
+		t.Errorf("database-write rollback reading no longer covers the required ten-minute scope: %+v",
+			rollback.DatabaseWrites)
 	}
 }
 
