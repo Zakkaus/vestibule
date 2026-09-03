@@ -2,7 +2,7 @@
 """Hold the console's three locale catalogues to each other, and to the code.
 
 Nothing checked them. Agents edit all three every time a screen is added, the
-counts happen to match, and three failures were possible and invisible:
+counts happen to match, and four failures were possible and invisible:
 
   - a key added to one catalogue and forgotten in another, which renders the key
     itself on screen in that language and nowhere else;
@@ -11,8 +11,10 @@ counts happen to match, and three failures were possible and invisible:
     see this: the key is present and the value looks like a sentence;
   - a mistyped key in a component. i18next has no typed key union here, so
     t("hom.title") compiles and renders "hom.title".
+  - an empty or untranslated value, which leaves a blank control or changes the
+    language in the middle of an otherwise localized screen.
 
-All three were at zero when this was written, which is the cheapest moment to
+All four were at zero when this was written, which is the cheapest moment to
 freeze them.
 
 What it cannot see, stated rather than hidden: keys built at runtime. 149 call
@@ -31,6 +33,15 @@ ROOT = Path(__file__).resolve().parent.parent
 PLACEHOLDER = re.compile(r"\{\{\s*([A-Za-z0-9_]+)\s*\}\}")
 LITERAL_KEY = re.compile(r"(?<![A-Za-z0-9_$])t\(\s*\"([A-Za-z0-9_.]+)\"")
 DYNAMIC_KEY = re.compile(r"(?<![A-Za-z0-9_$])t\(\s*(?![\"'])")
+HAN = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
+CHINESE_CATALOGUES = {"zh-CN", "zh-TW"}
+LANGUAGE_NEUTRAL_CHINESE_VALUES = {
+    "locale.en": "English",
+    "groups.applicants.withUsername": "@{{username}} · {{id}}",
+    "groups.applicants.idOnly": "ID {{id}}",
+    "diagnostics.values.percent": "{{value}}%",
+    "messages.rules.identifier": "ID：{{id}}",
+}
 # i18next resolves a plural key to one of these suffixes at call time, so a
 # component asks for the bare key and the catalogue never holds it.
 PLURAL_SUFFIXES = ("_zero", "_one", "_two", "_few", "_many", "_other")
@@ -71,6 +82,32 @@ def flatten(value: dict, prefix: str = "") -> dict:
             flat[path] = item
     return flat
 
+def check_values_are_nonempty_and_localized(name: str, catalogue: dict) -> None:
+    if name != "en" and name not in CHINESE_CATALOGUES:
+        failures.append("%s.json has no value-language rule, so untranslated "
+                        "entries would be invisible to this check" % name)
+        return
+    for key, value in sorted(catalogue.items()):
+        if not isinstance(value, str):
+            failures.append("%s.json %s is not a string, so it cannot label the "
+                            "interface" % (name, key))
+            continue
+        if not value.strip():
+            failures.append("%s.json %s is empty; operators would see a blank "
+                            "label or message" % (name, key))
+            continue
+        match = HAN.search(value)
+        if name == "en" and match:
+            failures.append("%s.json %s contains Chinese character %r; English "
+                            "operators would receive untranslated text"
+                            % (name, key, match.group()))
+        if name in CHINESE_CATALOGUES and not match:
+            if LANGUAGE_NEUTRAL_CHINESE_VALUES.get(key) == value:
+                continue
+            failures.append("%s.json %s contains no Chinese text and is not a "
+                            "language-neutral UI value; Chinese operators would "
+                            "receive untranslated text" % (name, key))
+
 
 def main() -> int:
     locales_dir = ROOT / (sys.argv[1] if len(sys.argv) > 1 else "web/src/i18n/locales")
@@ -83,6 +120,7 @@ def main() -> int:
     catalogues = {}
     for path in sorted(locales_dir.glob("*.json")):
         catalogues[path.stem] = flatten(json.loads(path.read_text(encoding="utf-8")))
+        check_values_are_nonempty_and_localized(path.stem, catalogues[path.stem])
     if len(catalogues) < 2:
         print("FAIL check-locale-catalogues: found %d catalogue(s) in %s; there is "
               "nothing to compare" % (len(catalogues), locales_dir))
@@ -199,9 +237,10 @@ def main() -> int:
             print("  " + failure)
         return 1
 
-    print("check-locale-catalogues: passed; %d catalogues agree on %d keys and their "
-          "placeholders, every key is reached and %d literal ones resolve, %d runtime "
-          "keys not checked" % (len(catalogues), len(source), literal, dynamic))
+    print("check-locale-catalogues: passed; %d catalogues have non-empty localized "
+          "values, agree on %d keys and their placeholders, every key is reached "
+          "and %d literal ones resolve, %d runtime keys not checked"
+          % (len(catalogues), len(source), literal, dynamic))
     return 0
 
 

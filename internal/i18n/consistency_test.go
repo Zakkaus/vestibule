@@ -149,6 +149,54 @@ var englishOnlyTerms = []englishOnlyTerm{
 const simplifiedExclusiveCharacters = "内终机虚拟业统讯链区设备传发范点选时请员组锁验证获详暂闻词优显页数据来仅标状测试树号检软构码删隐输纯单复并长执运读认计达动离线错误绝欢联这与为开关过进还没无从对实现报应网队别义种类级权储够该会处带户术态务随将连续"
 const traditionalExclusiveCharacters = "內終機虛擬業統訊鏈區設備傳發範點選時請員組鎖驗證獲詳暫聞詞優顯頁數據來僅標狀測試樹號檢軟構碼刪隱輸純單複復並長執運讀認計達動離線錯誤絕歡聯這與為開關過進還沒無從對實現報應網隊別義種類級權儲夠該會處帶戶術態務隨將連續"
 
+var languageNeutralWords = map[string]struct{}{
+	"a": {}, "arch": {}, "arm64": {}, "b": {}, "bbs": {}, "bug": {},
+	"config": {}, "cvss": {}, "d": {}, "flag": {}, "global": {}, "href": {},
+	"i": {}, "json": {}, "keyword": {}, "li": {}, "local": {}, "overlay": {},
+	"rawhide": {}, "s": {}, "stable": {}, "testing": {}, "use": {}, "v": {},
+	"windows": {},
+}
+
+var languageNeutralCatalogEntries = map[string]struct{}{
+	"feed.bug.field_separator":                        {},
+	"feed.bug.status_resolution_separator":            {},
+	"lookup_content.bbs.arch_bbs":                     {},
+	"lookup_content.bug.details.resolution_separator": {},
+	"lookup_content.bug.heading":                      {},
+	"lookup_content.wiki.source_join":                 {},
+	"lookup_distros.armpkgs.available":                {},
+	"lookup_distros.armpkgs.fedora_rawhide":           {},
+	"lookup_distros.armpkgs.row":                      {},
+	"lookup_distros.armpkgs.stable_only":              {},
+	"lookup_distros.armpkgs.stable_testing":           {},
+	"lookup_distros.cve.heading":                      {},
+	"lookup_distros.cve.severity":                     {},
+	"lookup_distros.kernel.row":                       {},
+	"lookup_distros.man.heading":                      {},
+	"lookup_distros.pkgs.plain_heading":               {},
+	"lookup_distros.pkgs.plain_row":                   {},
+	"lookup_distros.pkgs.release_role":                {},
+	"lookup_distros.pkgs.rich_row":                    {},
+	"lookup_distros.repology.row":                     {},
+	"lookup_packages.arm.stable_only":                 {},
+	"lookup_packages.arm.stable_testing":              {},
+	"lookup_packages.source.list_separator":           {},
+	"lookup_packages.source.overlay":                  {},
+	"lookup_packages.use.global_flags":                {},
+	"lookup_packages.use.local_flags":                 {},
+	"lookup_packages.use.source_label":                {},
+	"lookup_packages.use.value_separator":             {},
+	"moderate.duration.status":                        {},
+	"panel.settings.source.config":                    {},
+	"panel.settings.value.answer_item":                {},
+	"panel.settings.value.group_button":               {},
+	"panel.settings.value.id_item":                    {},
+	"panel.settings.value.option_item":                {},
+	"panel.settings.value.question_item":              {},
+	"panel.settings.value.sourced":                    {},
+	"verification.input.other_os_phrases[0]":          {},
+}
+
 func TestLocaleTerminologyConsistency(t *testing.T) {
 	forEachCatalogString(func(locale Lang, _, location, text string) {
 		for _, rule := range forbiddenLocaleTerms {
@@ -203,6 +251,48 @@ func TestChineseLocaleScripts(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestCatalogueEntriesUseTheirLocaleLanguage(t *testing.T) {
+	forEachCatalogString(func(locale Lang, path, location, text string) {
+		switch locale {
+		case LangZH, LangZHHant:
+			subsystem, key := catalogPath(path)
+			_, languageNeutral := languageNeutralCatalogEntries[subsystem+"."+key]
+			if strings.ContainsFunc(text, isHan) || languageNeutral && containsOnlyLanguageNeutralWords(text) {
+				return
+			}
+			t.Errorf("%s contains no Chinese text: %q; Chinese readers would receive untranslated text", location, text)
+		case LangEN:
+			for _, character := range text {
+				if isHan(character) {
+					t.Errorf("%s contains Chinese character %q; English readers would receive untranslated text", location, character)
+					return
+				}
+			}
+		}
+	})
+}
+
+func containsOnlyLanguageNeutralWords(text string) bool {
+	words := strings.FieldsFunc(text, func(character rune) bool {
+		return !isASCIIAlphaNumeric(character)
+	})
+	for _, word := range words {
+		if _, err := strconv.Atoi(word); err == nil {
+			continue
+		}
+		if _, ok := languageNeutralWords[strings.ToLower(word)]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func isASCIIAlphaNumeric(character rune) bool {
+	return character >= 'a' && character <= 'z' ||
+		character >= 'A' && character <= 'Z' ||
+		character >= '0' && character <= '9'
 }
 
 func forEachCatalogString(visit func(locale Lang, path, location, text string)) {
