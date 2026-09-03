@@ -20,12 +20,12 @@
     {
       "file": "scripts/design-checks/comment-boundaries.py",
       "source": "checks/comment-boundaries.py",
-      "sha256": "4232f7e665cbbcb2efb7d58c447fd0e5c42d6060b03d561bb7ac8fbec3e1276b"
+      "sha256": "c4a255fc0b5485d245fbd838b01aa4b810ee67e3a6f66ab5e0db5c7bed31a8fe"
     },
     {
       "file": "scripts/design-checks/coverage-floor.py",
       "source": "checks/coverage-floor.py",
-      "sha256": "e8b03bc89ac33c1438d2673dcb516830e9fad5662337f00d47b220aaf9152f16"
+      "sha256": "6b0ce8500d1dcefbefa1840ae1dd88c870ccf9a0b18cf9e9c6b2af6dd2c7dca9"
     },
     {
       "file": "scripts/design-checks/css-coverage.py",
@@ -35,47 +35,52 @@
     {
       "file": "scripts/design-checks/html-structure.py",
       "source": "checks/html-structure.py",
-      "sha256": "952b041decbfcb50d6cce89a4e75d7599865280eb52264d7342de7f02869aad9"
+      "sha256": "35dfd3050a9fa0b448fd87d3f38b0b29b036832d0c53968b9e9bcaba9e4290e4"
     },
     {
       "file": "scripts/design-checks/padding-ratio.py",
       "source": "checks/padding-ratio.py",
-      "sha256": "cabebade96c8d9c50dd4e23d1eb16919212796f21ba843dcc065851a6fe9f820"
+      "sha256": "01c522ac396a73c99ea58e9905a1fa4e80150f4d30045d2367a92b0333c32b33"
     },
     {
       "file": "scripts/design-checks/peer-consistency.py",
       "source": "checks/peer-consistency.py",
-      "sha256": "6874493f116aa21ec4ad25f70fa7fed4b8339421eba23c63f7e3e2300a30f07b"
+      "sha256": "f55228951e8d3ab968873f93300df0ff4e7345c6dde537debc54b4fc2417a59b"
     },
     {
       "file": "scripts/design-checks/percentage-min.py",
       "source": "checks/percentage-min.py",
-      "sha256": "a78d1f5818fe1ef6985fb7149821619e3cedc06c51514b79b21e5f682f638bdb"
+      "sha256": "518ff417443a32a44934e5ddfad32a73ba214bc797668ce71b7b6aa7eea31e70"
     },
     {
       "file": "scripts/design-checks/shadowed.py",
       "source": "checks/shadowed.py",
-      "sha256": "90666a0def35bc7ed6dedb9498020e5aa94fe48fd3ea7f4579b1c348c8ec8b82"
+      "sha256": "d1d206cee4ef700d928ef14f9c4fa2e8dd7493ce334d7ae2096e12a82199c19f"
     },
     {
       "file": "scripts/design-checks/shorthand-across-layers.py",
       "source": "checks/shorthand-across-layers.py",
-      "sha256": "155996b672adfcba1e228a952e569e38dd66dab011c293cd3e448f5b7d5ccad7"
+      "sha256": "8d76ba7c787f7fc0347422caf5b3e8d6e26160f0f0f20e9e0acf65aff45447b2"
     },
     {
       "file": "scripts/design-checks/style-rules.py",
       "source": "checks/style-rules.py",
-      "sha256": "fd755e2b5f1499fbe4817f94c6b00a9c94127375076c3dbd7f7742cda7443bc5"
+      "sha256": "5f22996dc8ebf260720ae33e3fc3cc0996f8ea645981d456d9511254f7d43ca3"
     },
     {
       "file": "scripts/design-checks/theme-leak.py",
       "source": "checks/theme-leak.py",
-      "sha256": "de44d2869c84108c64d025bc7260815653a4056df0e00d7348a998738bf8b1ac"
+      "sha256": "a3741ff397694baab14d4e0eb3dc81899ce0295d58c54c040690c5a1a479771a"
     },
     {
       "file": "scripts/design-checks/undefined-var.py",
       "source": "checks/undefined-var.py",
-      "sha256": "45b86e9ecc6f9781f7cab44769b3c3ba85e5eec300b4e3d6583cfd5823389ec0"
+      "sha256": "ca3db23de6098cd6445cd3f4ab6d0e9bdb2c20185c9bf5e2d0b0d892c07c5b76"
+    },
+    {
+      "file": "scripts/design-checks/_page_css.py",
+      "source": "checks/_page_css.py",
+      "sha256": "52d1c321e58d2d1cb516ec68e364026db54d0fe1c808fa838198f0ade40c4f05"
     }
   ]
 }
