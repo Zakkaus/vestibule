@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"context"
+	"errors"
 	"runtime"
 	"sync/atomic"
 	"testing"
@@ -52,6 +53,69 @@ func TestPrepareUpdateHandlerRegistersBeforePolling(t *testing.T) {
 	if err := handler.Stop(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestPrepareUpdateHandlerRollsBackRunningHandlerWhenPollingStartFails(t *testing.T) {
+	startErr := errors.New("polling unavailable")
+
+	t.Run("failed polling start", func(t *testing.T) {
+		var started *th.BotHandler
+		handler, done, err := prepareUpdateHandler(
+			context.Background(),
+			&telego.Bot{},
+			func(handler *th.BotHandler) {
+				started = handler
+			},
+			func() (<-chan telego.Update, error) {
+				return nil, startErr
+			},
+		)
+		if !errors.Is(err, startErr) {
+			t.Fatalf("polling start error = %v, want %v; callers would continue after a failed poll start", err, startErr)
+		}
+		if handler != nil || done != nil {
+			t.Fatalf("failed polling start returned handler %p and done %v; neither may escape a rolled-back start", handler, done)
+		}
+		if started == nil {
+			t.Fatal("failed polling start did not reach the started handler")
+		}
+		if started.IsRunning() {
+			if stopErr := started.Stop(); stopErr != nil {
+				t.Fatalf("cleanup after leaked update handler: %v", stopErr)
+			}
+			t.Fatal("failed polling start left the update handler running; a retry would create a second consumer")
+		}
+	})
+
+	t.Run("valid polling start", func(t *testing.T) {
+		source := make(chan telego.Update)
+		close(source)
+		handler, done, err := prepareUpdateHandler(
+			context.Background(),
+			&telego.Bot{},
+			func(*th.BotHandler) {},
+			func() (<-chan telego.Update, error) {
+				return source, nil
+			},
+		)
+		if err != nil {
+			t.Fatalf("valid polling start failed: %v", err)
+		}
+		if handler == nil || done == nil {
+			t.Fatal("valid polling start did not return its running handler")
+		}
+		select {
+		case handlerErr := <-done:
+			if handlerErr != nil {
+				t.Fatalf("valid polling handler stopped with error: %v", handlerErr)
+			}
+		case <-time.After(time.Second):
+			t.Fatal("valid polling source closed but its handler did not stop")
+		}
+		if err := handler.Stop(); err != nil {
+			t.Fatal(err)
+		}
+	})
 }
 
 func TestForwardUpdatesDrainsConfirmedBufferedUpdateOnStartupCancellation(t *testing.T) {
@@ -140,6 +204,78 @@ func TestForwardUpdatesDrainsConfirmedBufferedUpdateOnShutdown(t *testing.T) {
 	<-forwardDone
 }
 
+func TestForwardUpdatesDrainsConfirmedUpdateAfterCancellationWinsSourceWait(t *testing.T) {
+	ctx := newBlockingCancelContext()
+	source := make(chan telego.Update, 1)
+	destination := make(chan telego.Update, 1)
+	inFlight := make(chan struct{}, 1)
+	forwardDone := make(chan struct{})
+	go func() {
+		defer close(forwardDone)
+		forwardUpdates(ctx, source, destination, inFlight)
+	}()
+
+	ctx.cancel()
+	update := telego.Update{UpdateID: 89}
+	source <- update
+	close(source)
+
+	select {
+	case got, ok := <-destination:
+		if !ok {
+			t.Fatal("cancellation won before the source read and discarded a confirmed update")
+		}
+		if got.UpdateID != update.UpdateID {
+			t.Fatalf("forwarded update ID = %d, want %d", got.UpdateID, update.UpdateID)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("confirmed update remained blocked after cancellation won the source wait")
+	}
+	<-inFlight
+	select {
+	case <-forwardDone:
+	case <-time.After(time.Second):
+		t.Fatal("forwarder did not finish after draining the canceled source")
+	}
+}
+
+func TestForwardUpdatesDeliversCurrentUpdateWhenCancellationInterruptsBlockedSend(t *testing.T) {
+	ctx := newBlockingCancelContext()
+	update := telego.Update{UpdateID: 97}
+	source := make(chan telego.Update, 1)
+	source <- update
+	destination := make(chan telego.Update)
+	inFlight := make(chan struct{}, 1)
+	forwardDone := make(chan struct{})
+	go func() {
+		defer close(forwardDone)
+		forwardUpdates(ctx, source, destination, inFlight)
+	}()
+
+	waitForBufferedSourceRead(source)
+	waitForInFlightPermit(inFlight)
+	ctx.cancel()
+	close(source)
+
+	select {
+	case got, ok := <-destination:
+		if !ok {
+			t.Fatal("cancellation interrupted a blocked send and discarded the update already taken from Telegram")
+		}
+		if got.UpdateID != update.UpdateID {
+			t.Fatalf("forwarded update ID = %d, want %d", got.UpdateID, update.UpdateID)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("update already taken from Telegram remained blocked after cancellation")
+	}
+	<-inFlight
+	select {
+	case <-forwardDone:
+	case <-time.After(time.Second):
+		t.Fatal("forwarder did not finish after delivering the interrupted send")
+	}
+}
+
 type blockingCancelContext struct {
 	done     chan struct{}
 	canceled atomic.Bool
@@ -175,6 +311,12 @@ func (c *blockingCancelContext) cancel() {
 
 func waitForBufferedSourceRead(source <-chan telego.Update) {
 	for len(source) != 0 {
+		runtime.Gosched()
+	}
+}
+
+func waitForInFlightPermit(inFlight <-chan struct{}) {
+	for len(inFlight) == 0 {
 		runtime.Gosched()
 	}
 }
@@ -222,6 +364,59 @@ func TestUpdateHandlerConcurrencyIsBounded(t *testing.T) {
 	case <-time.After(30 * time.Millisecond):
 	}
 	close(release)
+	if err := <-handlerDone; err != nil {
+		t.Fatal(err)
+	}
+	if err := handler.Stop(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUpdateHandlerErrorsReturnInFlightPermit(t *testing.T) {
+	const updateN = maxConcurrentUpdateHandlers + 1
+	source := make(chan telego.Update, updateN)
+	for id := range updateN {
+		source <- telego.Update{UpdateID: id + 1}
+	}
+	close(source)
+
+	bot, err := telego.NewBot(
+		"123456:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+		telego.WithLogger(silentPollingLogger{}),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	started := make(chan struct{}, updateN)
+	handler, handlerDone, err := prepareUpdateHandler(
+		context.Background(),
+		bot,
+		func(handler *th.BotHandler) {
+			handler.Handle(func(_ *th.Context, _ telego.Update) error {
+				started <- struct{}{}
+				return errors.New("handler failed")
+			})
+		},
+		func() (<-chan telego.Update, error) {
+			return source, nil
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		stopCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		_ = handler.StopWithContext(stopCtx)
+	})
+	for count := range updateN {
+		select {
+		case <-started:
+		case <-time.After(time.Second):
+			t.Fatalf("only %d of %d updates started after handler errors; failed handlers retained in-flight permits and stalled polling", count, updateN)
+		}
+	}
 	if err := <-handlerDone; err != nil {
 		t.Fatal(err)
 	}
