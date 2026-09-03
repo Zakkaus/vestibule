@@ -2,6 +2,7 @@ package lookup
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -40,6 +41,158 @@ func TestEnsureReleaseInfoEmptyDoesNotOverwrite(t *testing.T) {
 	if relInfo.fetched.Equal(now) {
 		t.Error("an empty fetch must take the short retry window (fetched != now), not full-TTL freshness")
 	}
+}
+
+func TestReleaseMetadataDoesNotRefreshBeforeItsDailyTTLExpires(t *testing.T) {
+	resetReleaseInfoForTest(t)
+
+	var debianFetches, ubuntuFetches int
+	fetchDebianStatusFn = func(context.Context, time.Time) debianReleaseData {
+		debianFetches++
+		return debianReleaseData{
+			roles:  map[string]string{"13": "stable"},
+			series: map[string]bool{"trixie": true},
+		}
+	}
+	fetchUbuntuFn = func(context.Context, time.Time) (map[string]bool, map[string]bool, map[string]bool, map[string]bool) {
+		ubuntuFetches++
+		return map[string]bool{"24.04": true}, map[string]bool{"24.04": true}, map[string]bool{"24.04": true}, map[string]bool{"noble": true}
+	}
+
+	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
+	ensureReleaseInfo(context.Background(), now)
+	ensureReleaseInfo(context.Background(), now.Add(relInfoTTL-time.Second))
+	if debianFetches != 1 || ubuntuFetches != 1 {
+		t.Fatalf("release metadata refreshed before its daily TTL expired: Debian=%d Ubuntu=%d, want one fetch each", debianFetches, ubuntuFetches)
+	}
+
+	ensureReleaseInfo(context.Background(), now.Add(relInfoTTL))
+	if debianFetches != 2 || ubuntuFetches != 2 {
+		t.Errorf("release metadata was not refetched once the daily TTL expired: Debian=%d Ubuntu=%d, want two fetches each", debianFetches, ubuntuFetches)
+	}
+}
+
+func TestConcurrentColdReleaseMetadataLookupsShareOneRefresh(t *testing.T) {
+	resetReleaseInfoForTest(t)
+
+	started := make(chan struct{})
+	release := make(chan struct{})
+	firstDone := make(chan struct{})
+	released := false
+	releaseFirst := func() {
+		if !released {
+			close(release)
+			released = true
+		}
+	}
+	t.Cleanup(func() {
+		releaseFirst()
+		select {
+		case <-firstDone:
+		case <-time.After(time.Second):
+			t.Error("the first release metadata refresh did not finish")
+		}
+	})
+
+	var debianFetches, ubuntuFetches atomic.Int32
+	fetchDebianStatusFn = func(context.Context, time.Time) debianReleaseData {
+		if debianFetches.Add(1) == 1 {
+			close(started)
+			<-release
+		}
+		return debianReleaseData{
+			roles:  map[string]string{"13": "stable"},
+			series: map[string]bool{"trixie": true},
+		}
+	}
+	fetchUbuntuFn = func(context.Context, time.Time) (map[string]bool, map[string]bool, map[string]bool, map[string]bool) {
+		ubuntuFetches.Add(1)
+		return map[string]bool{"24.04": true}, map[string]bool{"24.04": true}, map[string]bool{"24.04": true}, map[string]bool{"noble": true}
+	}
+
+	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
+	go func() {
+		ensureReleaseInfo(context.Background(), now)
+		close(firstDone)
+	}()
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("the first cold release metadata lookup did not begin its fetch")
+	}
+
+	secondDone := make(chan struct{})
+	go func() {
+		ensureReleaseInfo(context.Background(), now)
+		close(secondDone)
+	}()
+	select {
+	case <-secondDone:
+	case <-time.After(time.Second):
+		t.Fatal("a concurrent cold lookup blocked instead of returning the current release metadata")
+	}
+	if got := debianFetches.Load(); got != 1 {
+		t.Fatalf("a concurrent cold lookup started a second release metadata refresh: Debian CSV fetched %d times, want 1", got)
+	}
+
+	releaseFirst()
+	select {
+	case <-firstDone:
+	case <-time.After(time.Second):
+		t.Fatal("the first release metadata refresh did not finish")
+	}
+	if debianFetches.Load() != 1 || ubuntuFetches.Load() != 1 {
+		t.Errorf("cold lookup coalescing fetched release metadata more than once: Debian=%d Ubuntu=%d", debianFetches.Load(), ubuntuFetches.Load())
+	}
+}
+
+func TestFailedColdReleaseMetadataRefreshIsMarkedAttempted(t *testing.T) {
+	resetReleaseInfoForTest(t)
+
+	var debianFetches, ubuntuFetches int
+	fetchDebianStatusFn = func(context.Context, time.Time) debianReleaseData {
+		debianFetches++
+		return debianReleaseData{}
+	}
+	fetchUbuntuFn = func(context.Context, time.Time) (map[string]bool, map[string]bool, map[string]bool, map[string]bool) {
+		ubuntuFetches++
+		return map[string]bool{}, map[string]bool{}, map[string]bool{}, map[string]bool{}
+	}
+
+	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
+	ensureReleaseInfo(context.Background(), now)
+	relInfo.mu.Lock()
+	attempted := relInfo.debian != nil
+	relInfo.mu.Unlock()
+	if !attempted {
+		t.Fatal("a failed cold refresh left release metadata unmarked, so every lookup retries upstream")
+	}
+
+	ensureReleaseInfo(context.Background(), now.Add(relInfoRetryTTL-time.Second))
+	if debianFetches != 1 || ubuntuFetches != 1 {
+		t.Errorf("a failed refresh retried before its short retry window expired: Debian=%d Ubuntu=%d, want one fetch each", debianFetches, ubuntuFetches)
+	}
+}
+
+func resetReleaseInfoForTest(t *testing.T) {
+	t.Helper()
+	relInfo.mu.Lock()
+	oldDebian, oldDebianSer := relInfo.debian, relInfo.debianSer
+	oldUbuntu, oldUbuntuRel, oldUbuntuEOL, oldUbuntuSer := relInfo.ubuntu, relInfo.ubuntuRel, relInfo.ubuntuEOL, relInfo.ubuntuSer
+	oldFetched, oldRefreshing := relInfo.fetched, relInfo.refreshing
+	relInfo.debian, relInfo.debianSer, relInfo.ubuntu, relInfo.ubuntuRel, relInfo.ubuntuEOL, relInfo.ubuntuSer = nil, nil, nil, nil, nil, nil
+	relInfo.fetched, relInfo.refreshing = time.Time{}, false
+	relInfo.mu.Unlock()
+
+	oldDebianFetch, oldUbuntuFetch := fetchDebianStatusFn, fetchUbuntuFn
+	t.Cleanup(func() {
+		relInfo.mu.Lock()
+		relInfo.debian, relInfo.debianSer = oldDebian, oldDebianSer
+		relInfo.ubuntu, relInfo.ubuntuRel, relInfo.ubuntuEOL, relInfo.ubuntuSer = oldUbuntu, oldUbuntuRel, oldUbuntuEOL, oldUbuntuSer
+		relInfo.fetched, relInfo.refreshing = oldFetched, oldRefreshing
+		relInfo.mu.Unlock()
+		fetchDebianStatusFn, fetchUbuntuFn = oldDebianFetch, oldUbuntuFetch
+	})
 }
 
 func TestDeriveDebianStatus(t *testing.T) {
