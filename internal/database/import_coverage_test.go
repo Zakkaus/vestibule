@@ -142,3 +142,75 @@ func TestImportLegacyStateRejectsSilentlyDroppedSnapshot(t *testing.T) {
 		t.Fatalf("ImportLegacyState error = %v, want validation mismatch", err)
 	}
 }
+
+func TestImportRefusesSuccessWhenPendingChallengesDifferFromJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		trigger string
+		harm    string
+	}{
+		{name: "matching snapshot succeeds"},
+		{
+			name: "extra database row",
+			trigger: `
+				CREATE TRIGGER add_unread_pending
+				AFTER INSERT ON challenge
+				WHEN NEW.user_id=7001
+				BEGIN
+					INSERT INTO challenge (
+						id, chat_id, user_id, state, kind, payload, delivery, attempts, expires_at, epoch
+					) VALUES (
+						'extra-imported-pending', NEW.chat_id, 9001, 'pending', 'rule', '{}', '{}', 0, 0, 0
+					);
+				END`,
+			harm: "ImportLegacyState reported success after the database gained a pending challenge " +
+				"absent from the JSON; verification would falsely certify an incomplete migration",
+		},
+		{
+			name: "mangled database payload",
+			trigger: `
+				CREATE TRIGGER mangle_imported_pending
+				AFTER INSERT ON challenge
+				WHEN NEW.user_id=7001
+				BEGIN
+					UPDATE challenge SET payload='{}' WHERE id=NEW.id;
+				END`,
+			harm: "ImportLegacyState reported success after a pending challenge payload was mangled " +
+				"in the database; the applicant's open verification would be silently lost",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			db, err := Open(ctx, testSQLiteConfig(t))
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = db.Close() })
+			if tc.trigger != "" {
+				if _, err = db.Exec(ctx, tc.trigger); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			report, err := ImportLegacyState(ctx, db, ImportOptions{
+				StateDirectory:  copyLegacyFixtures(t),
+				BackupDirectory: filepath.Join(t.TempDir(), "backup"),
+				Pending:         PendingCarry,
+			})
+			if tc.trigger == "" {
+				if err != nil || report.PendingRows != 2 {
+					t.Fatalf("matching pending import = rows %d, err %v; want two rows and a successful positive control",
+						report.PendingRows, err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatal(tc.harm)
+			}
+			if !strings.Contains(err.Error(), "validate pending records") {
+				t.Fatalf("ImportLegacyState error = %v, want pending validation mismatch", err)
+			}
+		})
+	}
+}

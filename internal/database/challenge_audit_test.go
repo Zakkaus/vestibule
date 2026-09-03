@@ -102,6 +102,53 @@ func TestChallengeAuditRejectsUndoAfterNewerDecision(t *testing.T) {
 	}, false)
 }
 
+func TestChallengeUndoWaitsForTheBanActionToFinish(t *testing.T) {
+	const chatID int64 = -1009000000807
+	db, err := Open(context.Background(), testSQLiteConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	state := NewVerificationStore(db)
+	banned := verification.PendingRecord{
+		GroupID: chatID, UserID: 45, Name: "Applicant", Nonce: "unfinished-ban",
+		Deadline: 90, Epoch: 1,
+	}
+	settlement := verification.ActionIntent{
+		ID: "settle-ban-unfinished", Kind: "settle_ban", Payload: `{}`, NextTryAt: 100,
+		ClaimOwner: "settler", ClaimUntil: 130,
+	}
+	requireAuditTransition(t, state, banned, verification.ChallengeBanned, "", 100, 9, settlement)
+	records, err := state.LoadChallengeAudit(context.Background(), chatID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(records) != 1 || records[0].SettlementAction != verification.ChallengeActionPending {
+		t.Fatalf("unfinished ban audit = %#v, want one pending settlement action", records)
+	}
+	undo := verification.ActionIntent{
+		ID: "undo-unfinished-ban", Kind: "undo_ban",
+		Payload:   `{"chat_id":-1009000000807,"user_id":45}`,
+		NextTryAt: 110, ClaimOwner: "operator", ClaimUntil: 140,
+	}
+
+	inserted, err := state.EnqueueChallengeUndo(context.Background(), records[0], undo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if inserted {
+		t.Fatal("challenge undo was queued before its ban finished; the outbox can unban first " +
+			"and leave the applicant banned with no undo remaining")
+	}
+
+	requireAuditActionCompletion(t, state, settlement.ID, settlement.ClaimOwner, 111)
+	inserted, err = state.EnqueueChallengeUndo(context.Background(), records[0], undo)
+	if err != nil || !inserted {
+		t.Fatalf("challenge undo after its ban finished = %t, %v; want a successful positive control",
+			inserted, err)
+	}
+}
+
 func requireAuditActionCompletion(
 	t *testing.T,
 	state *VerificationStore,
