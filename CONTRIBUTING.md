@@ -227,6 +227,7 @@ python3 scripts/check-one-clock.py           # internal/verification reads time 
 python3 scripts/check-one-transport.py       # no screen reaches the API without the CSRF-bearing transport
 python3 scripts/check-links-resolve.py       # no link points at a route that does not exist
 python3 scripts/check-citations-resolve.py   # a documented file:line points at what the sentence names
+python3 scripts/check-release-gate.py       # a tag gates whatever CI gates, or says why not
 python3 scripts/check-writing-screens-know-a-stale-token.py  # a writing screen names csrf_invalid
 python3 scripts/check-error-maps-hold-real-codes.py  # a screen maps only codes the API sends
 python3 scripts/check-log-privacy.py         # no message body or challenge answer reaches the log
