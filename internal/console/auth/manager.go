@@ -243,15 +243,33 @@ func (m *Manager) RedeemOperatorLink(token string) (Grant, error) {
 		m.rememberLinkLocked(token, ErrOperatorLinkExpired, now)
 		return Grant{}, ErrOperatorLinkExpired
 	}
+	// The rollback condition this feeds is "the console cannot exchange a link for a session".
+	// A link that is invalid, expired or already redeemed is this instance answering correctly,
+	// and counting those would fire a rollback on an operator clicking a stale link twice. The
+	// two below are the instance failing to issue a session it should have issued, which is the
+	// same shape as a failed access verification and belongs in the same reading.
 	if !m.hasSessionCapacityLocked(link.principal.TelegramID) {
-		return Grant{}, ErrSessionCapacity
+		return Grant{}, m.redemptionUnavailable(ErrSessionCapacity)
 	}
 	credential, csrf, err := credentialPair()
 	if err != nil {
-		return Grant{}, err
+		return Grant{}, m.redemptionUnavailable(err)
 	}
 	m.rememberLinkLocked(token, ErrOperatorLinkRedeemed, now)
-	return m.createSessionLocked(link.principal, credential, csrf, now.Add(m.sessionTTL)), nil
+	grant := m.createSessionLocked(link.principal, credential, csrf, now.Add(m.sessionTTL))
+	m.accessVerified()
+	return grant, nil
+}
+
+// redemptionUnavailable records that the console could not hand out a session and returns the
+// cause unchanged. Before this, the console_access reading covered only AuthorizeChat, so a
+// console that could not exchange any link at all still read as healthy — half of what the
+// reading is named for.
+func (m *Manager) redemptionUnavailable(cause error) error {
+	if m.accessObserver != nil {
+		m.accessObserver.RecordConsoleAccessUnavailable()
+	}
+	return cause
 }
 
 func (m *Manager) hasSessionCapacityLocked(telegramID int64) bool {
