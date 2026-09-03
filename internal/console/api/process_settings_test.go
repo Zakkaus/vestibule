@@ -67,6 +67,26 @@ func TestGetProcessSettingsReturnsValuesAndSources(t *testing.T) {
 	}
 }
 
+func TestGetProcessSettingsReturnsEmptyResourcesAsArrays(t *testing.T) {
+	config := loadProcessSettingsConfig(t, map[string]any{})
+	service := &apiTestProcessSettingsService{view: config.ProcessSettings()}
+	server, cookies := processSettingsTestServer(t, auth.RoleOperator, service)
+	response := processSettingsRequest(server, cookies, http.MethodGet)
+
+	var body map[string]struct {
+		Value json.RawMessage `json:"value"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"feeds", "overlays"} {
+		if string(body[name].Value) != "[]" {
+			t.Fatalf("%s value = %s, want []; the console parser rejects null where it needs an array",
+				name, body[name].Value)
+		}
+	}
+}
+
 func assertProcessSettingsResponse(
 	t *testing.T,
 	response *httptest.ResponseRecorder,
