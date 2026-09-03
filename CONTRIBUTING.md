@@ -254,8 +254,12 @@ for c in coverage-floor style-rules undefined-var shadowed theme-leak comment-bo
   python3 "scripts/design-checks/$c.py" web/dist/assets/*.css; done
 for c in coverage-floor comment-boundaries padding-ratio peer-consistency percentage-min shorthand-across-layers; do \
   python3 "scripts/design-checks/$c.py" web/src/styles/tokens.css web/src/styles/components.css web/src/styles/shell.css web/src/app/app.css; done
-for c in html-structure coverage-floor style-rules css-coverage shadowed undefined-var theme-leak comment-boundaries percentage-min; do \
+python3 scripts/check-type-ramp.py
+python3 scripts/check-css-coverage.py web/src/app/app.css web/src/app/app.css.fixture.html
+python3 scripts/check-console-html.py
+for c in html-structure coverage-floor style-rules shadowed undefined-var theme-leak comment-boundaries percentage-min; do \
   python3 "scripts/design-checks/$c.py" web/design.html web/architecture.html; done
+python3 scripts/check-css-coverage.py web/design.html web/architecture.html
 cd web && npm run e2e && cd ..  # the console journey and the render gate, in Chromium
 ```
 

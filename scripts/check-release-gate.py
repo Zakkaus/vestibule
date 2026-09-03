@@ -35,7 +35,7 @@ EXCLUDED = {
     "Zakk-LLM/Chinese-skill":
         "it reads the prose in the repository, which no published asset carries",
     # The console is not among the published assets: the release ships the Go binaries, the images
-    # and the deployment files, and nothing in the binary embeds a bundle. These four read the
+    # and the deployment files, and nothing in the binary embeds a bundle. These checks read the
     # console's own sources, so a tag cannot publish anything they would have caught.
     "scripts/check-console-copy.py": "it reads the console sources, which the release does not publish",
     "scripts/check-phase-seams.py": "it reads the console screens, which the release does not publish",
@@ -43,6 +43,12 @@ EXCLUDED = {
         "it reads the console screens, which the release does not publish",
     "scripts/check-error-maps-hold-real-codes.py":
         "it reads the console screens, which the release does not publish",
+    "scripts/check-css-coverage.py":
+        "it reads the console stylesheets and their demonstration markup, which the release does not publish",
+    "scripts/check-type-ramp.py":
+        "it reads the console stylesheets and reference pages, which the release does not publish",
+    "scripts/check-console-html.py":
+        "it reads console HTML and CSS demonstration markup, which the release does not publish",
     "scripts/design-checks": "they read the console stylesheets and the two reference pages, none of which the release publishes",
 }
 
