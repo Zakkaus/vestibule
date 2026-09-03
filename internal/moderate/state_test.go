@@ -22,6 +22,20 @@ const (
 	stateCompatGroupB int64 = -1009999900005
 )
 
+type snapshotWarningStore struct {
+	loaded []WarningRecord
+	saved  []WarningRecord
+}
+
+func (s *snapshotWarningStore) LoadWarnings() ([]WarningRecord, error) {
+	return s.loaded, nil
+}
+
+func (s *snapshotWarningStore) SaveWarnings(snapshot func() []WarningRecord) error {
+	s.saved = snapshot()
+	return nil
+}
+
 func TestWarningsPersistence(t *testing.T) {
 	stateDirectory := t.TempDir()
 	telegram := newFakeMod()
@@ -54,6 +68,39 @@ func TestWarningsPersistence(t *testing.T) {
 	}
 	if got, ok := restored.warnings.counters[cleared]; ok {
 		t.Errorf("cleared warning %v came back with count %d", cleared, got)
+	}
+}
+
+func TestWarningSnapshotsPersistAndRestoreOnlyPositiveCounters(t *testing.T) {
+	positive := WarningRecord{GroupID: stateCompatGroupA, UserID: 7201, Count: 2}
+	nonpositive := []WarningRecord{
+		{GroupID: stateCompatGroupA, UserID: 7202, Count: 0},
+		{GroupID: stateCompatGroupB, UserID: 7203, Count: -1},
+	}
+	store := &snapshotWarningStore{
+		loaded: append([]WarningRecord{positive}, nonpositive...),
+	}
+	state := newWarningState(store)
+	if err := state.load(); err != nil {
+		t.Fatal(err)
+	}
+
+	positiveKey := warningKey{groupID: positive.GroupID, userID: positive.UserID}
+	if got := state.counters[positiveKey]; got != positive.Count {
+		t.Fatalf("positive warning count did not restore: got %d, want %d", got, positive.Count)
+	}
+	for _, record := range nonpositive {
+		key := warningKey{groupID: record.GroupID, userID: record.UserID}
+		if got, ok := state.counters[key]; ok {
+			t.Errorf("nonpositive stored warning count %d restored as a live counter for %v; a member could receive an extra warning allowance", got, key)
+		}
+		state.counters[key] = record.Count
+	}
+	if err := state.save(); err != nil {
+		t.Fatal(err)
+	}
+	if want := []WarningRecord{positive}; !reflect.DeepEqual(store.saved, want) {
+		t.Fatalf("warning snapshot persisted nonpositive counters: got %#v, want only %#v; invalid state would survive restart", store.saved, want)
 	}
 }
 
@@ -179,25 +226,27 @@ func testWarnStateWriteFailure(t *testing.T, adminLogID int64) {
 	}
 }
 
-func TestWarnCounterBound(t *testing.T) {
+func TestWarningCounterMapKeepsAtMost4096Entries(t *testing.T) {
+	const maxEntries = 4096
+
 	for _, test := range []struct {
 		name         string
 		evicted      warningKey
 		evictedCount int
 	}{
-		{name: "lowest count is evicted", evicted: warningKey{groupID: -200, userID: 1}, evictedCount: 1},
-		{name: "key order breaks equal-count ties", evicted: warningKey{groupID: -200, userID: 1}, evictedCount: 2},
+		{name: "lowest count is evicted", evicted: warningKey{groupID: stateCompatGroupB, userID: 1}, evictedCount: 1},
+		{name: "key order breaks equal-count ties", evicted: warningKey{groupID: stateCompatGroupB, userID: 1}, evictedCount: 2},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			state := newWarningState(nil)
-			for index := range warnCounterMax {
-				state.counters[warningKey{groupID: -100, userID: int64(index + 1)}] = 2
+			for index := range maxEntries {
+				state.counters[warningKey{groupID: stateCompatGroupA, userID: int64(index + 1)}] = 2
 			}
 			state.counters[test.evicted] = test.evictedCount - 1
 			state.increment(test.evicted.groupID, test.evicted.userID)
 
-			if len(state.counters) != warnCounterMax {
-				t.Fatalf("warning counters = %d, want %d", len(state.counters), warnCounterMax)
+			if len(state.counters) != maxEntries {
+				t.Fatalf("warning counters = %d, want %d; an unbounded map can grow across many groups", len(state.counters), maxEntries)
 			}
 			if _, ok := state.counters[test.evicted]; ok {
 				t.Errorf("eviction candidate %v remains in warning counters", test.evicted)
