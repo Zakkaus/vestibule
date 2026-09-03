@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -127,4 +128,41 @@ func observationDecisionUpdate() verification.Update {
 		Chat: verification.Chat{ID: observationDecisionGroup, Type: verification.ChatTypeSupergroup},
 		From: verification.User{ID: observationDecisionUser, FirstName: "Applicant", LanguageCode: "en"},
 	}}
+}
+
+func TestObserveOnlyModeReturnsStartupErrorWithoutDurableRecorder(t *testing.T) {
+	ctx := context.Background()
+	db, err := database.Open(ctx, database.Config{StateDirectory: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	live := &observationDecisionGateway{}
+	gateway, panicValue, err := gatewayForModeWithoutPanic(
+		ctx, &settings.Config{ObserveOnly: true}, db, live,
+	)
+	if panicValue != nil || err != nil || gateway == nil || gateway == live {
+		t.Fatalf("healthy observe-only startup returned gateway=%T error=%v panic=%v", gateway, err, panicValue)
+	}
+
+	gateway, panicValue, err = gatewayForModeWithoutPanic(
+		ctx, &settings.Config{ObserveOnly: true}, nil, live,
+	)
+	if panicValue != nil {
+		t.Fatalf("missing durable observation store panicked instead of returning a startup error: %v", panicValue)
+	}
+	if gateway != nil || err == nil || !strings.Contains(err.Error(), "observation store requires a database") {
+		t.Fatalf("startup without durable observation store returned gateway=%T error=%v, want a recorder error", gateway, err)
+	}
+}
+
+func gatewayForModeWithoutPanic(
+	ctx context.Context,
+	cfg *settings.Config,
+	db *database.Database,
+	live verification.Gateway,
+) (gateway verification.Gateway, panicValue any, err error) {
+	defer func() { panicValue = recover() }()
+	gateway, err = verificationGatewayForMode(ctx, cfg, db, live)
+	return gateway, nil, err
 }
