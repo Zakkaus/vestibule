@@ -11,10 +11,13 @@ import circleMinus from "./lucide/circle-minus.svg?raw";
 import clipboardList from "./lucide/clipboard-list.svg?raw";
 import inbox from "./lucide/inbox.svg?raw";
 import info from "./lucide/info.svg?raw";
+import languages from "./lucide/languages.svg?raw";
 import layoutDashboard from "./lucide/layout-dashboard.svg?raw";
 import listX from "./lucide/list-x.svg?raw";
 import loaderCircle from "./lucide/loader-circle.svg?raw";
 import messagesSquare from "./lucide/messages-square.svg?raw";
+import monitor from "./lucide/monitor.svg?raw";
+import moon from "./lucide/moon.svg?raw";
 import pencil from "./lucide/pencil.svg?raw";
 import plus from "./lucide/plus.svg?raw";
 import refreshCw from "./lucide/refresh-cw.svg?raw";
@@ -26,6 +29,7 @@ import shieldAlert from "./lucide/shield-alert.svg?raw";
 import shieldCheck from "./lucide/shield-check.svg?raw";
 import shieldOff from "./lucide/shield-off.svg?raw";
 import slidersHorizontal from "./lucide/sliders-horizontal.svg?raw";
+import sun from "./lucide/sun.svg?raw";
 import trash2 from "./lucide/trash-2.svg?raw";
 import undo2 from "./lucide/undo-2.svg?raw";
 import unlock from "./lucide/unlock.svg?raw";
@@ -46,10 +50,13 @@ const sources = {
   clipboardList,
   inbox,
   info,
+  languages,
   layoutDashboard,
   listX,
   loaderCircle,
   messagesSquare,
+  monitor,
+  moon,
   pencil,
   plus,
   refreshCw,
@@ -61,6 +68,7 @@ const sources = {
   shieldCheck,
   shieldOff,
   slidersHorizontal,
+  sun,
   trash2,
   undo2,
   unlock,

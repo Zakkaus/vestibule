@@ -1,4 +1,5 @@
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
+import { Icon, type IconName } from "../icons";
 
 export type AppSelectOption<Value extends string> = Readonly<{
   label: string;
@@ -12,6 +13,9 @@ type AppSelectProps<Value extends string> = Readonly<{
   "aria-label"?: string;
   "aria-labelledby"?: string;
   disabled?: boolean;
+  /** Leading glyph for the current value. Callers that have no glyph omit it,
+      and the trigger lays out the same either way. */
+  icon?: IconName;
   id?: string;
   onValueChange: (value: Value) => void;
   options: readonly AppSelectOption<Value>[];
@@ -33,6 +37,7 @@ export function AppSelect<Value extends string>({
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
   disabled = false,
+  icon,
   id,
   onValueChange,
   options,
@@ -234,7 +239,8 @@ export function AppSelect<Value extends string>({
         }}
         onKeyDown={handleTriggerKeyDown}
       >
-        {selectedOption?.label}
+        {icon ? <Icon name={icon} /> : null}
+        <span data-slot="select-value">{selectedOption?.label}</span>
       </button>
       {open ? (
         <div
@@ -262,6 +268,7 @@ export function AppSelect<Value extends string>({
               onClick={() => choose(index)}
               onKeyDown={(event) => handleOptionKeyDown(event, index)}
             >
+              <Icon name="circleCheck" />
               {option.label}
             </div>
           ))}
