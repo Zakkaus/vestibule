@@ -230,6 +230,7 @@ python3 scripts/check-writing-screens-know-a-stale-token.py  # a writing screen 
 python3 scripts/check-error-maps-hold-real-codes.py  # a screen maps only codes the API sends
 python3 scripts/check-log-privacy.py         # no message body or challenge answer reaches the log
 python3 scripts/check-mutations-authorise.py # every mutating handler authorises before it writes
+python3 scripts/check-handlers-act-on-what-they-authorised.py  # and acts on that chat
 python3 scripts/check-whole-table-writes.py  # a whole-table write names the guard that keeps it honest
 
 # "Has the source moved forward" needs the source, which lives on a developer's

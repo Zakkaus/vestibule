@@ -111,6 +111,8 @@ jobs:
         run: python3 scripts/check-log-privacy.py
       - name: A handler that changes something authorises first
         run: python3 scripts/check-mutations-authorise.py
+      - name: A handler acts on the chat it authorised
+        run: python3 scripts/check-handlers-act-on-what-they-authorised.py
       - name: A write that clears a per-group table records its guard
         run: python3 scripts/check-whole-table-writes.py
       - name: Chinese prose — docs/PRIVACY.zh-CN.md
