@@ -103,6 +103,8 @@ jobs:
         run: python3 scripts/check-one-transport.py
       - name: Every console link points at a route that exists
         run: python3 scripts/check-links-resolve.py
+      - name: A documented file and line points at what the sentence names
+        run: python3 scripts/check-citations-resolve.py
       - name: A screen that writes recognises a stale security token
         run: python3 scripts/check-writing-screens-know-a-stale-token.py
       - name: A screen only maps error codes the API can send
