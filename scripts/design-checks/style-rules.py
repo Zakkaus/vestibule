@@ -33,6 +33,37 @@ PHYSICAL = re.compile(
 HEX = re.compile(r"#([0-9a-fA-F]{3,8})\b")
 FUNC = re.compile(r"\b(rgba?|hsla?|oklch|oklab|lch|lab)\(([^()]*(?:\([^()]*\)[^()]*)*)\)")
 STATUS_RULE = re.compile(r"\.status-[a-z]+[^{]*\{[^}]*\}", re.S)
+# A hue does not have to be written in numbers. `color: crimson` passed every check here: the
+# detector above knows hexadecimal and colour functions, and CSS also has a hundred and forty
+# names. The achromatic ones are left out for the same reason hex_has_hue lets #333 through --
+# what the rule forbids is a hue, not a literal.
+NAMED_ACHROMATIC = {
+    "transparent", "currentcolor", "white", "black", "gray", "grey", "silver", "gainsboro",
+    "whitesmoke", "dimgray", "dimgrey", "darkgray", "darkgrey", "lightgray", "lightgrey",
+    "slategray", "slategrey", "darkslategray", "darkslategrey", "lightslategray", "lightslategrey",
+}
+NAMED_HUES = {
+    "aliceblue", "antiquewhite", "aqua", "aquamarine", "azure", "beige", "bisque", "blanchedalmond",
+    "blue", "blueviolet", "brown", "burlywood", "cadetblue", "chartreuse", "chocolate", "coral",
+    "cornflowerblue", "cornsilk", "crimson", "cyan", "darkblue", "darkcyan", "darkgoldenrod",
+    "darkgreen", "darkkhaki", "darkmagenta", "darkolivegreen", "darkorange", "darkorchid",
+    "darkred", "darksalmon", "darkseagreen", "darkslateblue", "darkturquoise", "darkviolet",
+    "deeppink", "deepskyblue", "dodgerblue", "firebrick", "floralwhite", "forestgreen", "fuchsia",
+    "ghostwhite", "gold", "goldenrod", "green", "greenyellow", "honeydew", "hotpink", "indianred",
+    "indigo", "ivory", "khaki", "lavender", "lavenderblush", "lawngreen", "lemonchiffon",
+    "lightblue", "lightcoral", "lightcyan", "lightgoldenrodyellow", "lightgreen", "lightpink",
+    "lightsalmon", "lightseagreen", "lightskyblue", "lightsteelblue", "lightyellow", "lime",
+    "limegreen", "linen", "magenta", "maroon", "mediumaquamarine", "mediumblue", "mediumorchid",
+    "mediumpurple", "mediumseagreen", "mediumslateblue", "mediumspringgreen", "mediumturquoise",
+    "mediumvioletred", "midnightblue", "mintcream", "mistyrose", "moccasin", "navajowhite", "navy",
+    "oldlace", "olive", "olivedrab", "orange", "orangered", "orchid", "palegoldenrod", "palegreen",
+    "paleturquoise", "palevioletred", "papayawhip", "peachpuff", "peru", "pink", "plum",
+    "powderblue", "purple", "rebeccapurple", "red", "rosybrown", "royalblue", "saddlebrown",
+    "salmon", "sandybrown", "seagreen", "seashell", "sienna", "skyblue", "slateblue", "snow",
+    "springgreen", "steelblue", "tan", "teal", "thistle", "tomato", "turquoise", "violet", "wheat",
+    "yellow", "yellowgreen",
+}
+DECLARATION = re.compile(r"(?<![\w-])([-\w]+)\s*:\s*([^;{}]*)")
 # A palette scope is a token layer too: it redeclares seeds and surface values
 # under an attribute instead of under :root, and hue is exactly what it exists
 # to carry.
@@ -149,6 +180,13 @@ def check(path: Path) -> None:
         if func_has_hue(m.group(1), m.group(2)):
             failures.append("%s: hue outside the token layer: %s(%s)"
                             % (path.name, m.group(1), m.group(2).strip()[:40]))
+    for m in DECLARATION.finditer(outside):
+        for token in re.split(r"[\s,()/]+", m.group(2).lower()):
+            name = token.strip()
+            if name in NAMED_HUES and name not in NAMED_ACHROMATIC:
+                failures.append("%s: hue outside the token layer: %s on stylesheet line %d"
+                                % (path.name, name, outside.count("\n", 0, m.start()) + 1))
+                break
 
 
 def main(argv: list[str]) -> int:

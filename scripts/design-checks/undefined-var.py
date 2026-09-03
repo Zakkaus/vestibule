@@ -25,6 +25,8 @@ import re
 import sys
 from pathlib import Path
 
+from _page_css import page_css
+
 # Properties a consumer is expected to define. A reference to one of these is a
 # documented extension point, not a mistake — but it must carry a fallback.
 EXTENSION_POINTS: set[str] = set()
@@ -37,18 +39,8 @@ def blank(m: re.Match) -> str:
 
 
 def stylesheet(path: Path) -> str:
-    text = path.read_text(encoding="utf-8")
-    if path.suffix != ".css":
-        keep = [m.span(1) for m in re.finditer(r"<style[^>]*>(.*?)</style>", text, re.S)]
-        out, pos = [], 0
-        for start, end in keep:
-            out.append("\n" * text.count("\n", pos, start))
-            out.append(text[start:end])
-            pos = end
-        out.append("\n" * text.count("\n", pos))
-        text = "".join(out)
-    return re.sub(r"/\*.*?\*/", blank, text, flags=re.S)
-
+    """The page's CSS, blocks and style="" attributes alike. See _page_css.py."""
+    return page_css(path)
 
 DEF = re.compile(r"(--[\w-]+)\s*:")
 # A name is not "defined" everywhere just because it is defined somewhere. A token

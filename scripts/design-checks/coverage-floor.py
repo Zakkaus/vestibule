@@ -21,16 +21,14 @@ import re
 import sys
 from pathlib import Path
 
+from _page_css import page_css
+
 failures: list[str] = []
 
 
 def stylesheet(path: Path) -> str:
-    text = path.read_text(encoding="utf-8")
-    if path.suffix != ".css":
-        text = "\n".join(m.group(1) for m in
-                         re.finditer(r"<style[^>]*>(.*?)</style>", text, re.S))
-    return re.sub(r"/\*.*?\*/", "", text, flags=re.S)
-
+    """The page's CSS, blocks and style="" attributes alike. See _page_css.py."""
+    return page_css(path)
 
 def main(argv: list[str]) -> int:
     if not argv:

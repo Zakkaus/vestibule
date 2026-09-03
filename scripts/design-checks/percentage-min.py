@@ -23,6 +23,8 @@ import re
 import sys
 from pathlib import Path
 
+from _page_css import page_css
+
 MIN_SIZE = re.compile(
     r"(?:^|[;{])\s*(min-(?:inline|block)-size|min-width|min-height)\s*:\s*([^;}]+)")
 failures: list[str] = []
@@ -30,12 +32,8 @@ seen = 0
 
 
 def stylesheet(path: Path) -> str:
-    text = path.read_text(encoding="utf-8")
-    if path.suffix != ".css":
-        text = "\n".join(m.group(1) for m in
-                         re.finditer(r"<style[^>]*>(.*?)</style>", text, re.S))
-    return re.sub(r"/\*.*?\*/", lambda m: "\n" * m.group(0).count("\n"), text, flags=re.S)
-
+    """The page's CSS, blocks and style="" attributes alike. See _page_css.py."""
+    return page_css(path)
 
 def check(path: Path) -> None:
     global seen

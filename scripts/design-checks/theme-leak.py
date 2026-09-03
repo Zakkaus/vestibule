@@ -17,6 +17,8 @@ import re
 import sys
 from pathlib import Path
 
+from _page_css import page_css
+
 THEME = re.compile(r"prefers-color-scheme|\[data-theme")
 # A selector that only ever styles the document element is the token layer.
 # Exactly the document element and nothing after it. A descendant selector such
@@ -34,11 +36,8 @@ failures: list[str] = []
 
 
 def stylesheet(path: Path) -> str:
-    text = path.read_text(encoding="utf-8")
-    if path.suffix != ".css":
-        text = "".join(m.group(1) for m in re.finditer(r"<style[^>]*>(.*?)</style>", text, re.S))
-    return re.sub(r"/\*.*?\*/", lambda m: "\n" * m.group(0).count("\n"), text, flags=re.S)
-
+    """The page's CSS, blocks and style="" attributes alike. See _page_css.py."""
+    return page_css(path)
 
 def rules(css: str, inside_theme: bool = False, offset: int = 0):
     """Yield (selector, line, inside a theme media query, body) for every rule."""

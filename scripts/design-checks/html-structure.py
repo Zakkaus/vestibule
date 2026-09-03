@@ -28,6 +28,10 @@ HOME = re.compile(r"(?<![\w/])/(?:home|Users)/[A-Za-z0-9._-]+/")
 MARKDOWN = re.compile(r"\*\*[^*\n]{1,80}\*\*")
 
 failures: list[str] = []
+# Counted so the green control can assert the parse happened. A pass line that
+# says only "passed" is the same output a checker with a dead regex prints, and
+# a control that greps for it stays green while nothing is being read.
+tally = {"elements": 0, "ids": 0, "anchors": 0}
 
 
 class Balance(HTMLParser):
@@ -37,6 +41,7 @@ class Balance(HTMLParser):
         self.problems: list[str] = []
 
     def handle_starttag(self, tag, attrs):
+        tally["elements"] += 1
         if tag not in VOID:
             self.stack.append((tag, self.getpos()[0]))
 
@@ -73,8 +78,10 @@ def check(path: Path) -> None:
                             % (name, line, (m.group('d') or m.group('s')), ids[(m.group('d') or m.group('s'))]))
         else:
             ids[(m.group('d') or m.group('s'))] = line
+    tally["ids"] += len(ids)
 
     for m in re.finditer(r'''href=(?:"#(?P<d>[^"]+)"|'#(?P<s>[^']+)')''', text):
+        tally["anchors"] += 1
         if (m.group('d') or m.group('s')) and (m.group('d') or m.group('s')) not in ids:
             failures.append("%s: line %d: anchor #%s has no target"
                             % (name, text.count("\n", 0, m.start()) + 1, (m.group('d') or m.group('s'))))
@@ -115,7 +122,7 @@ def main(argv: list[str]) -> int:
         for f in failures:
             print("FAIL html-structure: " + f)
         return 1
-    print("html-structure: passed")
+    print("html-structure: passed; %d file(s), %d elements, %d ids, %d fragment links" % (len(argv), tally["elements"], tally["ids"], tally["anchors"]))
     return 0
 
 
