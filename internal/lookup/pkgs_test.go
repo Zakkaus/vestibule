@@ -458,3 +458,24 @@ func TestPkgCacheFailedRefreshKeepsPreviousOverlay(t *testing.T) {
 		})
 	}
 }
+
+// A family prefix has to end on an underscore boundary. Repology's archpower_* repositories are
+// the Arch Linux PowerPC port; attributed to Arch they put a PowerPC version on the Arch row of
+// /pkgs, and a reader installs on the strength of a number that is not Arch's.
+func TestAFamilyPrefixMatchesOnlyOnAnUnderscoreBoundary(t *testing.T) {
+	for _, c := range []struct{ repo, want string }{
+		{"archpower", ""},         // the PowerPC port, not Arch
+		{"archpower_core", ""},    //
+		{"archpower_extra", ""},   //
+		{"aurpkgs", ""},           // the same boundary rule on a second family
+		{"debianports", ""},       //
+		{"arch", "Arch"},          // positive control: the family repo itself
+		{"debian_13", "Debian"},   // positive control: a prefixed release repo
+		{"alpine_3_21", "Alpine"}, //
+	} {
+		if got := famOf(c.repo); got != c.want {
+			t.Errorf("famOf(%q) = %q, want %q: a version from another distribution would be shown under the %q row",
+				c.repo, got, c.want, got)
+		}
+	}
+}

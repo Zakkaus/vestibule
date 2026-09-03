@@ -252,3 +252,83 @@ func TestRenderPkgAvailability(t *testing.T) {
 		}
 	}
 }
+
+// Gentoo numbers letter-suffixed releases above the bare version they patch (openssl 1.1.1w is
+// newer than 1.1.1). When two tokens share a prefix, the one with characters left over is the
+// greater one; reverse that and /pkg reports the older release as the latest available version.
+func TestALetterSuffixedReleaseIsNewerThanTheBareVersion(t *testing.T) {
+	for _, c := range []struct {
+		a, b string
+		want bool // want verLess(a, b)
+	}{
+		{"1.1.1", "1.1.1w", true},   // dev-libs/openssl: the letter patch level is newer
+		{"1.1.1w", "1.1.1", false},  // ...and never older
+		{"1.1.1s", "1.1.1w", true},  // two letter patch levels still order between themselves
+		{"6.0", "6.0a", true},       // app-arch/unzip-6.0 vs a lettered respin
+		{"1.2", "1.2a", true},       // the shared-prefix rule, at its smallest
+		{"1.2a", "1.2", false},      //
+		{"1.2a", "1.2a", false},     // equal is not less
+		{"1.0-r2", "1.0-r10", true}, // positive control: the numeric path is untouched
+	} {
+		if got := verLess(c.a, c.b); got != c.want {
+			t.Errorf("verLess(%q, %q) = %v, want %v: the latest version shown for a letter-suffixed package would be the older release",
+				c.a, c.b, got, c.want)
+		}
+	}
+	for _, c := range []struct {
+		a, b string
+		want int
+	}{
+		{"1w", "1", 1},  // leftover characters make the token greater
+		{"1", "1w", -1}, // and their absence makes it smaller
+		{"1", "1", 0},   // positive control: nothing left over on either side
+	} {
+		if got := cmpToken(c.a, c.b); got != c.want {
+			t.Errorf("cmpToken(%q, %q) = %d, want %d", c.a, c.b, got, c.want)
+		}
+	}
+}
+
+// An underscore component that is not one of Gentoo's five known suffixes still has to order.
+// Repology carries date-stamped versions in that shape, and comparing them as equal lets /pkgs
+// present a year-old version as the newest one the family ships.
+func TestUnknownUnderscoreSuffixesOrderByTheirRawToken(t *testing.T) {
+	for _, c := range []struct {
+		older, newer string
+	}{
+		{"1.2_20240101", "1.2_20250101"}, // date-stamped snapshots, a year apart
+		{"1.2_git20240101", "1.2_git20250101"},
+		{"3.0_alpha", "3.0_alpha2"}, // positive control: a known suffix still orders
+	} {
+		if !verLess(c.older, c.newer) {
+			t.Errorf("verLess(%q, %q) = false, want true: the older version would be offered as the family's newest",
+				c.older, c.newer)
+		}
+		if verLess(c.newer, c.older) {
+			t.Errorf("verLess(%q, %q) = true, want false: the newer version would be treated as the older one",
+				c.newer, c.older)
+		}
+	}
+}
+
+// A -rN revision is split off before the rest is parsed. Without the split, "1.0_p1-r1" reads as
+// an unknown suffix that sorts after every release, so it outranks the genuinely newer "1.0_p2"
+// and /pkg names the older patch level as the latest version.
+func TestARevisionIsSplitOffBeforeTheSuffixesAreCompared(t *testing.T) {
+	for _, c := range []struct {
+		older, newer string
+	}{
+		{"1.0_p1-r1", "1.0_p2"},    // a revision of p1 is still older than p2
+		{"1.0_rc1-r1", "1.0_rc2"},  //
+		{"1.0_p1-r1", "1.0_p1-r2"}, // positive control: revisions order among themselves
+		{"1.0", "1.0-r1"},          // positive control: a revision is newer than the bare version
+	} {
+		if !verLess(c.older, c.newer) {
+			t.Errorf("verLess(%q, %q) = false, want true: the older patch level would be reported as the newest version",
+				c.older, c.newer)
+		}
+		if verLess(c.newer, c.older) {
+			t.Errorf("verLess(%q, %q) = true, want false", c.newer, c.older)
+		}
+	}
+}
