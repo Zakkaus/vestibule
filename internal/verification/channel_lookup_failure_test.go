@@ -84,3 +84,65 @@ func TestKernelPassRefusesApplicantLookupFailureWhenBotCanReadRequiredChannel(t 
 		}
 	}
 }
+
+// An applicant lookup can fail even though the bot can still read its own channel membership.
+// The applicant is refused until the lookup works, but that operational failure must not become
+// a strike or a ban; a confirmed member remains the positive control.
+func TestUnreadableApplicantLookupDoesNotChargeTheApplicant(t *testing.T) {
+	const (
+		groupID           int64 = -1009000000843
+		requiredChannelID int64 = -1009000000844
+		applicantID       int64 = 843
+		botID             int64 = 844
+	)
+	newService := func() *Service {
+		return newTestService(&settings.Config{
+			GroupIDs:          []int64{groupID},
+			RequiredChannelID: requiredChannelID,
+			VerifyMaxFails:    3,
+		})
+	}
+
+	service := newService()
+	service.botID = botID
+	key := pkey{gid: groupID, uid: applicantID}
+	unreadablePending := &pending{nonce: "unreadable-applicant", lang: i18n.LangEN, deadline: time.Now().Add(time.Hour)}
+	service.pend[key] = unreadablePending
+	base := newFakeVerifyBot()
+	base.memberByID = map[int64]ChatMember{
+		botID: &ChatMemberMember{Status: MemberStatusMember},
+	}
+	unreadable := &applicantMembershipLookupFailureBot{
+		fakeVerifyBot: base, applicantID: applicantID, err: errors.New("applicant membership lookup failed"),
+	}
+
+	if service.isChannelMember(context.Background(), unreadable, groupID, applicantID, i18n.LangEN) {
+		t.Fatal("an unreadable required-channel lookup must not silently admit the applicant")
+	}
+	if !service.channelWasUnreadable(groupID, applicantID) {
+		t.Fatal("an unreadable applicant lookup must be remembered so the applicant is not charged for it")
+	}
+	if _, banned := service.finishDecline(context.Background(), unreadable, groupID, applicantID, unreadablePending, "timeout"); banned {
+		t.Fatal("an unreadable required-channel lookup must not cause an automatic ban")
+	}
+	service.mu.Lock()
+	strikes := len(service.vfail)
+	service.mu.Unlock()
+	if strikes != 0 {
+		t.Errorf("strike records = %d, want 0: the bot could not read the applicant's channel membership", strikes)
+	}
+
+	confirmed := newService()
+	confirmed.botID = botID
+	confirmed.pend[key] = &pending{nonce: "confirmed-member", lang: i18n.LangEN, deadline: time.Now().Add(time.Hour)}
+	healthy := newFakeVerifyBot()
+	healthy.memberByID = map[int64]ChatMember{
+		applicantID: &ChatMemberMember{Status: MemberStatusMember},
+	}
+	if !confirmed.isChannelMember(context.Background(), healthy, groupID, applicantID, i18n.LangEN) {
+		t.Fatal("a confirmed required-channel member must pass the gate")
+	}
+	if confirmed.channelWasUnreadable(groupID, applicantID) {
+		t.Fatal("a readable membership answer must clear the unreadable marker")
+	}
+}

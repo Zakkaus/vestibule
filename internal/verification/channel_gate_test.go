@@ -76,3 +76,89 @@ func TestReadableChannelGateStillStrikes(t *testing.T) {
 }
 
 func boolPtr(b bool) *bool { return &b }
+
+// When the bot cannot read the required channel, telling the applicant to join it is
+// misleading. The prompt must explain the access problem; a confirmed member is the control.
+func TestUnreadableChannelGateExplainsTheAccessProblem(t *testing.T) {
+	const (
+		groupID           int64 = -1009000000851
+		requiredChannelID int64 = -1009000000852
+		applicantID       int64 = 851
+		botID             int64 = 852
+	)
+	cfg := &settings.Config{
+		GroupIDs:                []int64{groupID},
+		RequiredChannelID:       requiredChannelID,
+		RequiredChannelFailOpen: boolPtr(false),
+	}
+	service := newTestService(cfg)
+	service.botID = botID
+	service.pend[pkey{gid: groupID, uid: applicantID}] = &pending{
+		nonce: "unreadable-prompt", lang: i18n.LangEN, deadline: time.Now().Add(time.Hour),
+	}
+	unreadable := &fakeVerifyBot{memberErr: errors.New("channel lookup unavailable")}
+
+	if service.isChannelMember(context.Background(), unreadable, groupID, applicantID, i18n.LangEN) {
+		t.Fatal("an unreadable required channel must not silently admit the applicant in a fail-closed group")
+	}
+	if _, err := service.sendChannelPrompt(context.Background(), unreadable, groupID, applicantID, i18n.LangEN); err != nil {
+		t.Fatalf("send unreadable-channel prompt: %v", err)
+	}
+	want := service.messages.Verification.Channel.Unreadable.For(i18n.LangEN)
+	if unreadable.lastSendText != want {
+		t.Errorf("unreadable-channel prompt = %q, want %q; the applicant must not be told to join a channel the bot cannot read", unreadable.lastSendText, want)
+	}
+
+	confirmed := newTestService(cfg)
+	confirmed.botID = botID
+	confirmed.pend[pkey{gid: groupID, uid: applicantID}] = &pending{
+		nonce: "confirmed-prompt", lang: i18n.LangEN, deadline: time.Now().Add(time.Hour),
+	}
+	healthy := &fakeVerifyBot{member: &ChatMemberMember{Status: MemberStatusMember}}
+	if !confirmed.isChannelMember(context.Background(), healthy, groupID, applicantID, i18n.LangEN) {
+		t.Fatal("a confirmed required-channel member must pass the same gate")
+	}
+}
+
+// The unreadable marker must survive a restart: otherwise a later timeout turns a channel
+// outage into the applicant's strike and eventually an automatic ban.
+func TestUnreadableChannelGateSurvivesRestart(t *testing.T) {
+	const (
+		groupID           int64 = -1009000000861
+		requiredChannelID int64 = -1009000000862
+		applicantID       int64 = 861
+	)
+	cfg := &settings.Config{
+		GroupIDs:          []int64{groupID},
+		RequiredChannelID: requiredChannelID,
+		VerifyMaxFails:    3,
+	}
+	dir := t.TempDir()
+	key := pkey{gid: groupID, uid: applicantID}
+	seed := newTestService(cfg)
+	seed.statePath = dir + "/pending.json"
+	seed.pend[key] = &pending{
+		nonce: "unreadable-restart", mode: settings.ModeKernel, lang: i18n.LangEN, deadline: time.Now().Add(time.Hour), channelUnreadable: true,
+	}
+	seed.save()
+
+	restored := newTestService(cfg)
+	restored.statePath = dir + "/pending.json"
+	restored.load(&fakeVerifyBot{})
+	pending, ok := restored.pend[key]
+	if !ok {
+		t.Fatal("the pending verification must survive the restart")
+	}
+	if !restored.channelWasUnreadable(groupID, applicantID) {
+		t.Fatal("an unreadable channel gate must remain unreadable after restart")
+	}
+	if _, banned := restored.finishDecline(context.Background(), &fakeVerifyBot{}, groupID, applicantID, pending, "timeout"); banned {
+		t.Fatal("a restored unreadable channel gate must not cause an automatic ban")
+	}
+	restored.mu.Lock()
+	strikes := len(restored.vfail)
+	restored.mu.Unlock()
+	if strikes != 0 {
+		t.Errorf("restored unreadable gate created %d strike records, want 0", strikes)
+	}
+}
