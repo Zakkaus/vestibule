@@ -106,6 +106,33 @@ func TestRankSearchHitsFixture(t *testing.T) {
 	}
 }
 
+func TestPackageNamePrefixOutranksSubstringSearchHit(t *testing.T) {
+	body := []byte(`<html><body>
+<a href="/packages/dev-ml/core_kernel">dev-ml/core_kernel</a>
+<a href="/packages/sys-apps/kernel-tools">sys-apps/kernel-tools</a>
+</body></html>`)
+
+	hits := rankSearchHits(body, "kernel")
+	if len(hits) != 2 || hits[0] != "sys-apps/kernel-tools" || hits[1] != "dev-ml/core_kernel" {
+		t.Errorf("a package name beginning with %q ranked below a substring-only hit: got %v", "kernel", hits)
+	}
+}
+
+func TestPackageSearchReturnsOnlyRealCategoryPackageAtoms(t *testing.T) {
+	body := []byte(`<html><body>
+<a href="/packages/sys-apps/openrc">sys-apps/openrc</a>
+<a href="/packages/metadata/md5-cache">metadata/md5-cache</a>
+<a href="/packages/profiles/package.mask">profiles/package.mask</a>
+<a href="/packages/licenses/GPL-2">licenses/GPL-2</a>
+<a href="/packages/sys-apps">category page</a>
+</body></html>`)
+
+	hits := rankSearchHits(body, "openrc")
+	if len(hits) != 1 || hits[0] != "sys-apps/openrc" {
+		t.Errorf("package search admitted a non-atom href or lost its valid atom: got %v, want [sys-apps/openrc]", hits)
+	}
+}
+
 func upstreamFixture(t *testing.T, name string) []byte {
 	t.Helper()
 	body, err := os.ReadFile("../../testdata/upstream/" + name)

@@ -5,11 +5,29 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/Zakkaus/vestibule/internal/i18n"
 )
+
+type newsLookupResult struct {
+	items     []NewsItem
+	available bool
+}
+
+func expectFreshNewsLookup(t *testing.T, results <-chan newsLookupResult) {
+	t.Helper()
+	select {
+	case got := <-results:
+		if !got.available || len(got.items) != 1 || got.items[0].Title != "Refreshed news" {
+			t.Errorf("the initial valid news lookup did not complete with fresh items: %+v, available=%v", got.items, got.available)
+		}
+	case <-time.After(time.Second):
+		t.Error("the initial news lookup did not finish after the fetch was released")
+	}
+}
 
 func TestGetNewsAvailability(t *testing.T) {
 	newsC.mu.Lock()
@@ -77,6 +95,75 @@ func TestGetNewsAvailability(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestConcurrentNewsLookupReturnsPreviousItemsWithoutSecondFetch(t *testing.T) {
+	newsC.mu.Lock()
+	oldItems, oldFetched, oldLoading := newsC.items, newsC.fetched, newsC.loading
+	previous := []NewsItem{{Date: "2026-08-23", Title: "Cached news", URL: "https://example.test/cached"}}
+	newsC.items, newsC.fetched, newsC.loading = previous, time.Time{}, false
+	newsC.mu.Unlock()
+	oldURL := newsURL
+	t.Cleanup(func() {
+		newsC.mu.Lock()
+		newsC.items, newsC.fetched, newsC.loading = oldItems, oldFetched, oldLoading
+		newsC.mu.Unlock()
+		newsURL = oldURL
+	})
+	started := make(chan struct{})
+	release := make(chan struct{})
+	firstDone := make(chan struct{})
+	released := false
+	releaseFirst := func() {
+		if !released {
+			close(release)
+			released = true
+		}
+	}
+	var fetches atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if fetches.Add(1) == 1 {
+			close(started)
+			<-release
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`<a href="/support/news-items/2026-08-24-refreshed.html">Refreshed news<`))
+	}))
+	t.Cleanup(func() {
+		releaseFirst()
+		select {
+		case <-firstDone:
+		case <-time.After(time.Second):
+			t.Error("the first news refresh did not finish")
+		}
+		srv.Close()
+	})
+	newsURL = srv.URL
+	firstResult := make(chan newsLookupResult, 1)
+	go func() {
+		items, available := GetNews(context.Background())
+		firstResult <- newsLookupResult{items: items, available: available}
+		close(firstDone)
+	}()
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("the first news lookup did not begin its fetch")
+	}
+
+	items, available := GetNews(context.Background())
+	if available {
+		t.Error("a concurrent lookup reported a stale cache as freshly fetched")
+	}
+	if len(items) != 1 || items[0].Title != previous[0].Title {
+		t.Errorf("a concurrent lookup did not return the previous news items: got %+v, want %+v", items, previous)
+	}
+	if got := fetches.Load(); got != 1 {
+		t.Fatalf("a concurrent news lookup started a second upstream fetch: got %d fetches, want 1", got)
+	}
+
+	releaseFirst()
+	expectFreshNewsLookup(t, firstResult)
 }
 
 func TestRenderNewsAvailability(t *testing.T) {
