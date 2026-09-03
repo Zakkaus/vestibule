@@ -3,6 +3,8 @@ package ids
 import (
 	"slices"
 	"testing"
+
+	"github.com/mymmrac/telego"
 )
 
 func TestParseChannelID(t *testing.T) {
@@ -25,6 +27,29 @@ func TestParseChannelID(t *testing.T) {
 		if ok != test.ok || (ok && got != test.want) {
 			t.Errorf("ParseChannelID(%q) = (%d, %v), want (%d, %v)", test.input, got, ok, test.want, test.ok)
 		}
+	}
+}
+
+func TestBareChannelIDsWhoseCanonicalFormOverflowsAreRejected(t *testing.T) {
+	const valid = "9999900006"
+	if got, ok := ParseChannelID(valid); !ok || got != -1009999900006 {
+		t.Fatalf("valid bare channel ID %q = (%d, %v), want (-1009999900006, true)", valid, got, ok)
+	}
+
+	const tooLarge = "9223372036854775807"
+	if got, ok := ParseChannelID(tooLarge); ok {
+		t.Fatalf("overflowing bare channel ID %q was accepted as %d: an administrator could whitelist the wrong sender chat",
+			tooLarge, got)
+	}
+}
+
+func TestMissingTelegramMessagesHaveNoIdentifier(t *testing.T) {
+	const messageID = 73
+	if got := MessageID(&telego.Message{MessageID: messageID}); got != messageID {
+		t.Fatalf("returned Telegram message ID = %d, want %d", got, messageID)
+	}
+	if got := MessageID(nil); got != 0 {
+		t.Fatalf("missing Telegram message ID = %d, want 0: failed sends could schedule deletion of an unrelated message", got)
 	}
 }
 
