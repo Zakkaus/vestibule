@@ -185,3 +185,30 @@ func TestAppendUseAvailabilityNote(t *testing.T) {
 		}
 	}
 }
+
+func TestUSEFlagSignsAreRemovedAndPlusMeansDefaultEnabled(t *testing.T) {
+	got := toUseFlags([]useEntry{
+		{Name: "+ssl", Description: "TLS support"},
+		{Name: "-bindist", Description: "Distribution restriction"},
+		{Name: "nls", Description: "Native language support"},
+	})
+	want := []struct {
+		name string
+		def  bool
+	}{
+		{name: "ssl", def: true},
+		{name: "bindist", def: false},
+		{name: "nls", def: false},
+	}
+	if len(got) != len(want) {
+		t.Fatalf("toUseFlags() returned %d flags, want %d", len(got), len(want))
+	}
+	for i := range want {
+		if got[i].name != want[i].name || got[i].def != want[i].def {
+			t.Errorf(
+				"USE flag %q became name=%q default=%v, want name=%q default=%v; +/- prefixes are metadata, not part of the linked flag name",
+				got[i].name, got[i].name, got[i].def, want[i].name, want[i].def,
+			)
+		}
+	}
+}
