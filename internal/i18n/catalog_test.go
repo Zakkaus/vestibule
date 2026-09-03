@@ -57,6 +57,32 @@ func TestFromRequester(t *testing.T) {
 	}
 }
 
+func TestFromRequesterServesCantoneseInTraditionalChinese(t *testing.T) {
+	const code = "yue-HK"
+	if got := FromRequester(code, LangEN); got != LangZHHant {
+		t.Fatalf("FromRequester(%q, en) = %s, want zh-Hant; Cantonese requester would receive the fallback catalogue", code, got)
+	}
+}
+
+func TestFromRequesterNormalizesTagsBeforeMatching(t *testing.T) {
+	tests := []struct {
+		name     string
+		code     string
+		fallback Lang
+		want     Lang
+	}{
+		{name: "upper-case Traditional Chinese", code: "ZH-TW", fallback: LangZH, want: LangZHHant},
+		{name: "surrounding whitespace", code: " en-US ", fallback: LangZH, want: LangEN},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := FromRequester(test.code, test.fallback); got != test.want {
+				t.Errorf("FromRequester(%q, %s) = %s, want %s; requester would receive the fallback catalogue", test.code, test.fallback, got, test.want)
+			}
+		})
+	}
+}
+
 func TestFromStored(t *testing.T) {
 	tests := map[string]Lang{
 		"":        LangZH,
@@ -187,18 +213,22 @@ func visitCatalog(value reflect.Value, path string, visit func(string, reflect.V
 }
 
 func catalogEntry(path string, locale Lang) string {
-	parts := strings.Split(strings.TrimPrefix(path, "Messages."), ".")
-	subsystem := fieldKey(parts[0])
-	for i := 1; i < len(parts); i++ {
-		parts[i-1] = catalogJSONSegment(parts[i])
-	}
-	key := strings.Join(parts[:len(parts)-1], ".")
+	subsystem, key := catalogPath(path)
 	return fmt.Sprintf(
 		"subsystem %s file %s key %s",
 		subsystem,
 		localeFilePath(locale.String(), subsystem),
 		key,
 	)
+}
+
+func catalogPath(path string) (string, string) {
+	parts := strings.Split(strings.TrimPrefix(path, "Messages."), ".")
+	subsystem := fieldKey(parts[0])
+	for i := 1; i < len(parts); i++ {
+		parts[i-1] = catalogJSONSegment(parts[i])
+	}
+	return subsystem, strings.Join(parts[:len(parts)-1], ".")
 }
 
 func catalogJSONSegment(segment string) string {
