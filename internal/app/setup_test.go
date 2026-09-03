@@ -108,6 +108,162 @@ func TestRunClaimsWithoutRestartAndRemovesSetupRoute(t *testing.T) {
 	}
 }
 
+func TestOnlyRecordedSetupTokenOpensClaimPage(t *testing.T) {
+	telegram, _ := newSetupTelegramAPI(t)
+	address := reserveSetupConsoleAddress(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- Run(ctx, Options{
+			ConfigPath:     filepath.Join(t.TempDir(), "missing-config.json"),
+			StateDirectory: t.TempDir(),
+			ConsoleAddr:    address,
+			SetupToken:     appSetupLinkToken,
+			TelegramAPIURL: telegram.URL,
+		})
+	}()
+	t.Cleanup(func() {
+		cancel()
+		if err := <-done; err != nil {
+			t.Errorf("unclaimed Run error: %v", err)
+		}
+	})
+
+	baseURL := "http://" + address
+	waitForSetupHTTP(t, baseURL+"/setup/"+appSetupLinkToken, http.StatusOK)
+	response, err := http.Get(baseURL + "/setup/unrecorded-setup-token")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = io.Copy(io.Discard, response.Body)
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("unrecorded setup token exposed the instance-claim page: status=%d, want 404", response.StatusCode)
+	}
+}
+
+func TestClaimedRestartRecoversStoredBotToken(t *testing.T) {
+	telegram, calls := newSetupTelegramAPI(t)
+	stateDirectory := t.TempDir()
+	claimPath := filepath.Join(stateDirectory, claimStateFile)
+	if err := os.WriteFile(claimPath, []byte(`{"bot_token":"`+appSetupBotToken+`"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	address := reserveSetupConsoleAddress(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- Run(ctx, Options{
+			ConfigPath:     filepath.Join(stateDirectory, "missing-config.json"),
+			StateDirectory: stateDirectory,
+			ConsoleAddr:    address,
+			TelegramAPIURL: telegram.URL,
+		})
+	}()
+	t.Cleanup(func() {
+		cancel()
+		if err := <-done; err != nil {
+			t.Errorf("claimed Run error: %v", err)
+		}
+	})
+
+	baseURL := "http://" + address
+	waitForSetupHTTP(t, baseURL+"/livez", http.StatusOK)
+	response, err := http.Get(baseURL + "/readyz")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = io.Copy(io.Discard, response.Body)
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("claimed restart stayed unready; the bot token in claim.json was not recovered: status=%d, want 200", response.StatusCode)
+	}
+	if got := calls.Load(); got == 0 {
+		t.Fatal("claimed restart became ready without reconnecting the bot token preserved in claim.json")
+	}
+}
+
+func TestFailedClaimReopensSetupForValidBotToken(t *testing.T) {
+	rejectedBotToken := "2:" + strings.Repeat("b", 35)
+	telegram := newSetupTelegramAPIForBotToken(t, appSetupBotToken)
+	stateDirectory := t.TempDir()
+	address := reserveSetupConsoleAddress(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- Run(ctx, Options{
+			ConfigPath:     filepath.Join(stateDirectory, "missing-config.json"),
+			StateDirectory: stateDirectory,
+			ConsoleAddr:    address,
+			SetupToken:     appSetupLinkToken,
+			TelegramAPIURL: telegram.URL,
+		})
+	}()
+	t.Cleanup(func() {
+		cancel()
+		if err := <-done; err != nil {
+			t.Errorf("setup Run error: %v", err)
+		}
+	})
+
+	baseURL := "http://" + address
+	setupURL := baseURL + "/setup/" + appSetupLinkToken
+	waitForSetupHTTP(t, setupURL, http.StatusOK)
+	if response := postSetupForm(t, setupURL, rejectedBotToken); response.StatusCode != http.StatusUnprocessableEntity {
+		t.Fatalf("rejected bot token claim status=%d, want 422", response.StatusCode)
+	}
+	retry, err := http.Get(setupURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = io.Copy(io.Discard, retry.Body)
+	_ = retry.Body.Close()
+	if retry.StatusCode != http.StatusOK {
+		t.Fatalf("failed bot-token claim closed setup permanently: retry status=%d, want 200", retry.StatusCode)
+	}
+	if response := postSetupForm(t, setupURL, appSetupBotToken); response.StatusCode != http.StatusOK {
+		t.Fatalf("valid bot token could not claim the instance after a failed attempt: status=%d, want 200", response.StatusCode)
+	}
+	waitForSetupHTTP(t, baseURL+"/readyz", http.StatusOK)
+}
+
+func TestStartupRejectsReadableClaimState(t *testing.T) {
+	stateDirectory := t.TempDir()
+	claimPath := filepath.Join(stateDirectory, claimStateFile)
+	if err := os.WriteFile(claimPath, []byte(`{"bot_token":"`+appSetupBotToken+`"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(claimPath, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := openSetupState(stateDirectory, ""); err == nil {
+		t.Fatal("startup accepted a readable claim state; another local account could copy the live bot token")
+	}
+	if err := os.Chmod(claimPath, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	state, err := openSetupState(stateDirectory, "")
+	if err != nil {
+		t.Fatalf("startup rejected a private claim state: %v", err)
+	}
+	if got := state.BotToken(); got != appSetupBotToken {
+		t.Fatalf("private claim state bot token=%q, want preserved credential", got)
+	}
+}
+
+func TestStartupRejectsMismatchedSetupToken(t *testing.T) {
+	stateDirectory := t.TempDir()
+	if _, err := openSetupState(stateDirectory, appSetupLinkToken); err != nil {
+		t.Fatalf("start with the recorded setup token: %v", err)
+	}
+	if _, err := openSetupState(stateDirectory, "replacement-setup-token"); err == nil {
+		t.Fatal("startup accepted a replacement SETUP_TOKEN while the old claim link remained active")
+	}
+	if _, err := openSetupState(stateDirectory, appSetupLinkToken); err != nil {
+		t.Fatalf("startup rejected the setup token recorded in claim.json: %v", err)
+	}
+}
+
 func newSetupTelegramAPI(t *testing.T) (*httptest.Server, *atomic.Int32) {
 	t.Helper()
 	var calls atomic.Int32
@@ -126,6 +282,28 @@ func newSetupTelegramAPI(t *testing.T) (*httptest.Server, *atomic.Int32) {
 	}))
 	t.Cleanup(server.Close)
 	return server, &calls
+}
+
+func newSetupTelegramAPIForBotToken(t *testing.T, acceptedToken string) *httptest.Server {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.HasSuffix(request.URL.Path, "/getMe"):
+			if !strings.Contains(request.URL.Path, "/bot"+acceptedToken+"/") {
+				_, _ = io.WriteString(writer, `{"ok":false,"error_code":401,"description":"Unauthorized"}`)
+				return
+			}
+			_, _ = io.WriteString(writer, `{"ok":true,"result":{"id":1,"is_bot":true,"first_name":"Test","username":"test_bot"}}`)
+		case strings.HasSuffix(request.URL.Path, "/getUpdates"):
+			time.Sleep(10 * time.Millisecond)
+			_, _ = io.WriteString(writer, `{"ok":true,"result":[]}`)
+		default:
+			_, _ = io.WriteString(writer, `{"ok":true,"result":true}`)
+		}
+	}))
+	t.Cleanup(server.Close)
+	return server
 }
 
 func reserveSetupConsoleAddress(t *testing.T) string {
