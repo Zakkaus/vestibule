@@ -311,3 +311,94 @@ func consoleStatsResponse(counts ...ChallengeStatsCount) (report ConsoleStatsRep
 func consoleStatsIsMidnight(value time.Time) bool {
 	return value.Hour() == 0 && value.Minute() == 0 && value.Second() == 0 && value.Nanosecond() == 0
 }
+
+// The bucket list itself, which the other cases here never look at. A gap or an overlap puts a
+// day's settlements in the wrong column of the operator's trend, or in no column at all, while
+// every other assertion in this file still passes.
+func TestConsoleStatsMakesNoBucketsForAnEmptyRange(t *testing.T) {
+	location := consoleStatsBucketLocation(t)
+	from := time.Date(2026, time.March, 8, 0, 0, 0, 0, location)
+	report, buckets, err := newConsoleStatsReport(ConsoleStatsRequest{
+		GroupID: consoleStatsTestChatID, From: from, To: from, Location: location,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.From != "2026-03-08" || report.To != "2026-03-08" || report.Timezone != location.String() {
+		t.Fatalf("empty statistics range report=%+v", report)
+	}
+	if len(report.Trend) != 0 || report.Interceptions == nil || len(report.Interceptions) != 0 || len(buckets) != 0 {
+		t.Fatalf("empty statistics range produced trend=%d interceptions=%+v buckets=%d",
+			len(report.Trend), report.Interceptions, len(buckets))
+	}
+}
+
+func TestConsoleStatsFillsTheMaximumRangeWithContiguousBuckets(t *testing.T) {
+	end := time.Date(2025, time.January, 1, 0, 0, 0, 0, time.UTC)
+	start := end.AddDate(0, 0, -maxConsoleStatsDays)
+	report, buckets, err := newConsoleStatsReport(ConsoleStatsRequest{
+		GroupID: consoleStatsTestChatID, From: start, To: end, Location: time.UTC,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(report.Trend) != maxConsoleStatsDays || len(buckets) != maxConsoleStatsDays {
+		t.Fatalf("maximum range produced trend=%d buckets=%d, want %d of each",
+			len(report.Trend), len(buckets), maxConsoleStatsDays)
+	}
+	if buckets[0].StartAt != start.Unix() || buckets[len(buckets)-1].EndAt != end.Unix() {
+		t.Fatalf("maximum range spans %d..%d, want %d..%d",
+			buckets[0].StartAt, buckets[len(buckets)-1].EndAt, start.Unix(), end.Unix())
+	}
+	requireContiguousBuckets(t, buckets)
+}
+
+func TestConsoleStatsBucketsOneLocalDayEach(t *testing.T) {
+	location := consoleStatsBucketLocation(t)
+	from := time.Date(2026, time.March, 8, 0, 0, 0, 0, location)
+	report, buckets, err := newConsoleStatsReport(ConsoleStatsRequest{
+		GroupID: consoleStatsTestChatID, From: from, To: from.AddDate(0, 0, 3), Location: location,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantDates := []string{"2026-03-08", "2026-03-09", "2026-03-10"}
+	if report.From != wantDates[0] || report.To != "2026-03-11" || len(report.Trend) != len(wantDates) ||
+		len(buckets) != len(wantDates) {
+		t.Fatalf("ordinary range report=%+v buckets=%d", report, len(buckets))
+	}
+	for index, date := range wantDates {
+		start := from.AddDate(0, 0, index)
+		want := ChallengeStatsBucket{StartAt: start.Unix(), EndAt: start.AddDate(0, 0, 1).Unix()}
+		if report.Trend[index].Date != date || report.Trend[index].Outcome != (ConsoleStatsOutcome{}) {
+			t.Fatalf("trend row %d = %+v, want date %s and no outcome", index, report.Trend[index], date)
+		}
+		if buckets[index] != want {
+			t.Fatalf("bucket %d = %+v, want %+v", index, buckets[index], want)
+		}
+	}
+	requireContiguousBuckets(t, buckets)
+}
+
+func consoleStatsBucketLocation(t *testing.T) *time.Location {
+	t.Helper()
+	location, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return location
+}
+
+// Every bucket is a positive interval starting where the previous one ended.
+func requireContiguousBuckets(t *testing.T, buckets []ChallengeStatsBucket) {
+	t.Helper()
+	for index := range buckets {
+		if buckets[index].EndAt <= buckets[index].StartAt {
+			t.Fatalf("bucket %d is not a positive interval: %+v", index, buckets[index])
+		}
+		if index > 0 && buckets[index-1].EndAt != buckets[index].StartAt {
+			t.Fatalf("bucket %d starts at %d, but bucket %d ended at %d",
+				index, buckets[index].StartAt, index-1, buckets[index-1].EndAt)
+		}
+	}
+}
