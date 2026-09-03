@@ -59,6 +59,9 @@ def base_declarations(paths: list[Path]) -> dict[str, dict[str, str]]:
     for path in paths:
         text = path.read_text(encoding="utf-8")
         if path.suffix != ".css":
+            # Blocks only, deliberately: this check matches named component rules, and a
+            # style="" attribute has no selector to match. See _page_css.py for the checks
+            # whose subject is any declaration, wherever it is written.
             text = "\n".join(m.group(1) for m in
                              re.finditer(r"<style[^>]*>(.*?)</style>", text, re.S))
         text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)

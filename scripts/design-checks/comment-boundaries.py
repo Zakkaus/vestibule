@@ -26,18 +26,16 @@ import re
 import sys
 from pathlib import Path
 
+from _page_css import page_css
+
 failures: list[str] = []
 # Characters that cannot appear in the part of a selector preceding a `{`.
 ILLEGAL_IN_SELECTOR = re.compile(r"[;{}]|[^\s]\s*/\*")
 
 
 def stylesheet(path: Path) -> str:
-    text = path.read_text(encoding="utf-8")
-    if path.suffix != ".css":
-        text = "".join(m.group(1) for m in
-                       re.finditer(r"<style[^>]*>(.*?)</style>", text, re.S))
-    return text
-
+    """The page's CSS, blocks and style="" attributes alike. See _page_css.py."""
+    return page_css(path)
 
 def check(path: Path) -> None:
     css = stylesheet(path)

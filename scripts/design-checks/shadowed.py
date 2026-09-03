@@ -38,6 +38,8 @@ import re
 import sys
 from pathlib import Path
 
+from _page_css import page_css
+
 # A repeat inside one block is a deliberate fallback only when the two declarations
 # are two generations of the same value: an old one every engine parses, then a
 # newer one that wins where it is understood and is dropped where it is not. The
@@ -65,19 +67,8 @@ def blank(m: re.Match) -> str:
 
 
 def stylesheet(path: Path) -> str:
-    """Return the file with everything that is not CSS blanked, newlines kept."""
-    text = path.read_text(encoding="utf-8")
-    if path.suffix != ".css":
-        keep = [m.span(1) for m in re.finditer(r"<style[^>]*>(.*?)</style>", text, re.S)]
-        out, pos = [], 0
-        for start, end in keep:
-            out.append("\n" * text.count("\n", pos, start))
-            out.append(text[start:end])
-            pos = end
-        out.append("\n" * text.count("\n", pos))
-        text = "".join(out)
-    return re.sub(r"/\*.*?\*/", blank, text, flags=re.S)
-
+    """The page's CSS, blocks and style="" attributes alike. See _page_css.py."""
+    return page_css(path)
 
 BLOCK = re.compile(r"([^{}]*)\{([^{}]*)\}")
 DECL = re.compile(r"(?:^|;)\s*(--[\w-]+|[a-zA-Z-]+)\s*:([^;]*)")
