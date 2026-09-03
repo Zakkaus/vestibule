@@ -139,6 +139,15 @@ func TestFamOf(t *testing.T) {
 	}
 }
 
+func TestArchFamilyPrefixRequiresAnUnderscoreBoundary(t *testing.T) {
+	if got := famOf("archpower_2026"); got != "" {
+		t.Fatalf("archpower repository was labeled %q; PowerPC packages must not appear as Arch", got)
+	}
+	if got := famOf("arch_extra"); got != "Arch" {
+		t.Fatalf("an Arch repository with an underscore boundary was labeled %q, want Arch", got)
+	}
+}
+
 func TestBareDateSnapshot(t *testing.T) {
 	for _, v := range []string{"20250315", "20260327", "20210106"} {
 		if !bareDate(v) {
