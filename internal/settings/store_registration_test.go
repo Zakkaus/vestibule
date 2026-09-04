@@ -244,6 +244,12 @@ func TestSettingsRegistrationCommitCreatesRuntimeGroup(t *testing.T) {
 	requireEqual(t, settings.IsGroup(-1009000000003), true, "registration runtime group")
 }
 
+func TestSettingsChatTitleReturnsRegisteredRuntimeMetadata(t *testing.T) {
+	settings, _, _ := newRegistrationFixture(t)
+	requireEqual(t, settings.ChatTitle(-1009000000003), "Runtime", "registered group title")
+	requireEqual(t, settings.ChatTitle(testGroupA), "", "configured group title")
+}
+
 func TestSettingsRegistrationRoundTripPreservesMetadataAndOverrides(t *testing.T) {
 	settings, path, _ := newRegistrationFixture(t)
 	updateRegistrationRuntimeGroup(t, settings)

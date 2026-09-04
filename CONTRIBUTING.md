@@ -242,8 +242,9 @@ python3 scripts/check-whole-table-writes.py  # a whole-table write names the gua
 # machine, so it stays local. When it reports drift, re-copy and re-record the
 # manifest; do not edit either side by hand. Read the direction before acting.
 CHECKS=~/.claude/skills/web-ui/examples/design-language
+DESIGN_STYLES=~/design-system/app
 python3 "$CHECKS/checks/vendored.py" --source "$CHECKS/checks" scripts/design-checks/*.py
-python3 "$CHECKS/checks/vendored.py" --source "$CHECKS/app"    web/src/styles/*.css
+python3 "$CHECKS/checks/vendored.py" --source "$DESIGN_STYLES" web/src/styles/*.css
 
 # The prose checker, the way CI runs it. Naming the gate was not enough: this
 # document said CI runs it and gave no command, so it stayed a habit locally

@@ -49,6 +49,14 @@ func (v *Service) ConsoleGroups() []int64 {
 	return v.settings.ChatIDs()
 }
 
+// ConsoleGroupTitle returns a runtime-registered group title when one is known.
+func (v *Service) ConsoleGroupTitle(groupID int64) string {
+	if v.settings == nil {
+		return ""
+	}
+	return v.settings.ChatTitle(groupID)
+}
+
 // ConsoleQueue reads durable pending challenges. Terminal history stays outside the console queue.
 func (v *Service) ConsoleQueue(ctx context.Context, groupID int64) ([]ConsoleQueueEntry, error) {
 	if err := ctx.Err(); err != nil {

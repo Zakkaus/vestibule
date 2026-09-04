@@ -18,7 +18,14 @@
   },
   "navigation": {
     "label": "控制台导航",
-    "workspace": "工作区",
+    "sections": {
+      "daily": "日常",
+      "verification": "验证",
+      "group": "群",
+      "content": "内容",
+      "observe": "观察",
+      "console": "这台控制台"
+    },
     "queue": "等待队列",
     "groups": "群与频道",
     "preferences": "偏好"
@@ -152,7 +159,7 @@
     },
     "actions": {
       "openQueue": "查看等待队列",
-      "openQueueFor": "查看群 {{id}} 的等待队列",
+      "openQueueFor": "查看 {{group}} 的等待队列",
       "retry": "重新读取"
     },
     "mode": {

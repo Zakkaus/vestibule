@@ -23,12 +23,32 @@ type RouteHandle = {
 
 type NavigationCapability = "instance-status";
 
+type NavigationGroupID =
+  | "daily"
+  | "verification"
+  | "group"
+  | "content"
+  | "observe"
+  | "console";
+
+type NavigationGroup = Readonly<{
+  id: NavigationGroupID;
+  labelKey: string;
+}>;
+
 type NavigationItem = Readonly<{
   path: string;
   labelKey: string;
   icon: IconName;
+  group: NavigationGroupID;
   capability?: NavigationCapability;
 }>;
+
+type NavigationSection = Readonly<{
+  group: NavigationGroup;
+  items: readonly NavigationItem[];
+}>;
+
 
 const capabilityChecks: Readonly<
   Record<NavigationCapability, (state: ConsoleSessionState) => boolean>
@@ -36,116 +56,157 @@ const capabilityChecks: Readonly<
   "instance-status": canViewInstanceStatus
 };
 
+const navigationGroups: readonly NavigationGroup[] = [
+  { id: "daily", labelKey: "navigation.sections.daily" },
+  { id: "verification", labelKey: "navigation.sections.verification" },
+  { id: "group", labelKey: "navigation.sections.group" },
+  { id: "content", labelKey: "navigation.sections.content" },
+  { id: "observe", labelKey: "navigation.sections.observe" },
+  { id: "console", labelKey: "navigation.sections.console" }
+];
+
 const navigationItems: readonly NavigationItem[] = [
   {
     path: "/home",
     labelKey: "home.navigation",
-    icon: "layoutDashboard"
+    icon: "layoutDashboard",
+    group: "daily"
   },
   {
     path: "/queue",
     labelKey: "navigation.queue",
-    icon: "inbox"
+    icon: "inbox",
+    group: "daily"
   },
   {
     path: "/audit",
     labelKey: "audit.navigation",
-    icon: "clipboardList"
-  },
-  {
-    path: "/stats",
-    labelKey: "stats.navigation",
-    icon: "chartNoAxesCombined"
-  },
-  {
-    path: "/diagnostics",
-    labelKey: "diagnostics.navigation",
-    icon: "activity"
+    icon: "clipboardList",
+    group: "daily"
   },
   {
     path: "/verification",
     labelKey: "verification.navigation",
-    icon: "shieldCheck"
-  },
-  {
-    path: "/bypass",
-    labelKey: "bypass.navigation",
-    icon: "shieldOff"
+    icon: "shieldCheck",
+    group: "verification"
   },
   {
     path: "/questions",
     labelKey: "questions.navigation",
-    icon: "circleHelp"
+    icon: "circleHelp",
+    group: "verification"
   },
   {
-    path: "/feeds",
-    labelKey: "feeds.navigation",
-    icon: "rss"
+    path: "/bypass",
+    labelKey: "bypass.navigation",
+    icon: "shieldOff",
+    group: "verification"
   },
   {
     path: "/groups",
     labelKey: "navigation.groups",
-    icon: "usersRound"
+    icon: "usersRound",
+    group: "group"
   },
   {
     path: "/moderation",
     labelKey: "moderation.navigation",
-    icon: "shieldAlert"
+    icon: "shieldAlert",
+    group: "group"
   },
   {
     path: "/messages",
     labelKey: "messages.navigation",
-    icon: "messagesSquare"
+    icon: "messagesSquare",
+    group: "group"
+  },
+  {
+    path: "/feeds",
+    labelKey: "feeds.navigation",
+    icon: "rss",
+    group: "content"
+  },
+  {
+    path: "/stats",
+    labelKey: "stats.navigation",
+    icon: "chartNoAxesCombined",
+    group: "observe"
+  },
+  {
+    path: "/diagnostics",
+    labelKey: "diagnostics.navigation",
+    icon: "activity",
+    group: "observe"
   },
   {
     path: "/version",
     labelKey: "version.navigation",
     icon: "refreshCw",
+    group: "console",
     capability: "instance-status"
   },
   {
     path: "/capabilities",
     labelKey: "capabilities.navigation",
-    icon: "slidersHorizontal"
+    icon: "slidersHorizontal",
+    group: "console"
   },
   {
     path: "/preferences",
     labelKey: "navigation.preferences",
-    icon: "settings"
+    icon: "settings",
+    group: "console"
   }
 ];
 
+function navigationSections(items: readonly NavigationItem[]): readonly NavigationSection[] {
+  const sections: NavigationSection[] = [];
+
+  for (const group of navigationGroups) {
+    const groupItems = items.filter((item) => item.group === group.id);
+    if (groupItems.length > 0) {
+      sections.push({ group, items: groupItems });
+    }
+  }
+
+  return sections;
+}
+
+
 function ConsoleNavigation({
-  items,
+  sections,
   selectedGroupSearch
-}: Readonly<{ items: readonly NavigationItem[]; selectedGroupSearch: string }>) {
+}: Readonly<{ sections: readonly NavigationSection[]; selectedGroupSearch: string }>) {
   const { t } = useTranslation();
   const location = useLocation();
 
   return (
     <nav className="nav" aria-label={t("navigation.label")}>
-      <div className="nav-group">
-        <span className="nav-label">{t("navigation.workspace")}</span>
-        {items.map((item) => {
-          const isActive = location.pathname === item.path;
+      {sections.map(({ group, items }) => (
+        <div key={group.id} className="nav-group" data-navigation-group={group.id}>
+          <span className="nav-label">{t(group.labelKey)}</span>
+          {items.map((item) => {
+            const isActive = location.pathname === item.path;
 
-          return (
-            <Link
-              key={item.path}
-              className="nav-item"
-              to={{ pathname: item.path, search: selectedGroupSearch }}
-              aria-current={isActive ? "page" : undefined}
-              data-active={isActive ? "" : undefined}
-            >
-              <Icon name={item.icon} />
-              {t(item.labelKey)}
-            </Link>
-          );
-        })}
-      </div>
+            return (
+              <Link
+                key={item.path}
+                className="nav-item"
+                to={{ pathname: item.path, search: selectedGroupSearch }}
+                aria-current={isActive ? "page" : undefined}
+                data-active={isActive ? "" : undefined}
+              >
+                <Icon name={item.icon} />
+                {t(item.labelKey)}
+              </Link>
+            );
+          })}
+        </div>
+      ))}
     </nav>
   );
 }
+
 
 export function AppShell() {
   const { t } = useTranslation();
@@ -158,6 +219,8 @@ export function AppShell() {
   const visibleNavigationItems = navigationItems.filter((item) =>
     item.capability === undefined || capabilityChecks[item.capability](session)
   );
+  const visibleNavigationSections = navigationSections(visibleNavigationItems);
+
   const currentNavigationItem = visibleNavigationItems.find((item) => item.path === location.pathname);
   const matches = useMatches();
   const routeHandle = matches.at(-1)?.handle as RouteHandle | undefined;
@@ -190,13 +253,19 @@ export function AppShell() {
           <span className="name">{t("app.name")}</span>
         </Link>
         <div className="rule" />
-        <ConsoleNavigation items={visibleNavigationItems} selectedGroupSearch={selectedGroupSearch} />
+        <ConsoleNavigation
+          sections={visibleNavigationSections}
+          selectedGroupSearch={selectedGroupSearch}
+        />
       </aside>
       <div className="shell-main">
         <header className="shell-header" data-console-header>
           <details data-mobile-navigation>
             <summary>{t("shell.mobileNavigation")}</summary>
-            <ConsoleNavigation items={visibleNavigationItems} selectedGroupSearch={selectedGroupSearch} />
+            <ConsoleNavigation
+              sections={visibleNavigationSections}
+              selectedGroupSearch={selectedGroupSearch}
+            />
           </details>
           <span data-header-title>
             {currentNavigationItem ? t(currentNavigationItem.labelKey) : t("app.name")}

@@ -147,10 +147,13 @@ func TestSessionResponsesPreserveExpiryAndIdentifiers(t *testing.T) {
 	}
 }
 
-func TestChatResponsesPreserveAuthorizedIdentifiers(t *testing.T) {
+func TestChatResponsesPreserveAuthorizedIdentifiersAndTitles(t *testing.T) {
 	const chatID int64 = -1009000000231
 	checker := &apiTestAdminChecker{allowed: true}
-	service := &apiTestQueueService{groups: []int64{chatID}}
+	service := &apiTestQueueService{
+		groups:      []int64{chatID},
+		groupTitles: map[int64]string{chatID: "Runtime"},
+	}
 	server, cookies, _ := apiTestServer(t, checker, service, nil)
 	response := getAuthenticatedPath(server, cookies, "/api/chats")
 	var body struct {
@@ -159,8 +162,9 @@ func TestChatResponsesPreserveAuthorizedIdentifiers(t *testing.T) {
 	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}
-	if response.Code != http.StatusOK || !reflect.DeepEqual(body.Chats, []chatResponse{{ID: "-1009000000231"}}) {
-		t.Fatalf("chat list response lost the authorized Telegram chat identifier: status=%d chats=%+v", response.Code, body.Chats)
+	want := []chatResponse{{ID: "-1009000000231", Title: "Runtime"}}
+	if response.Code != http.StatusOK || !reflect.DeepEqual(body.Chats, want) {
+		t.Fatalf("chat list response lost the authorized Telegram chat identifier or title: status=%d chats=%+v", response.Code, body.Chats)
 	}
 }
 

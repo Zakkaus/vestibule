@@ -18,7 +18,14 @@
   },
   "navigation": {
     "label": "控制台導覽",
-    "workspace": "工作區",
+    "sections": {
+      "daily": "日常",
+      "verification": "驗證",
+      "group": "群組",
+      "content": "內容",
+      "observe": "觀察",
+      "console": "這台控制台"
+    },
     "queue": "等待佇列",
     "groups": "群組與頻道",
     "preferences": "偏好"
@@ -152,7 +159,7 @@
     },
     "actions": {
       "openQueue": "檢視等待佇列",
-      "openQueueFor": "檢視群組 {{id}} 的等待佇列",
+      "openQueueFor": "檢視 {{group}} 的等待佇列",
       "retry": "重新讀取"
     },
     "mode": {
