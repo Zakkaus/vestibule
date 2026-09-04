@@ -305,7 +305,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 
 #### 文件处置
 
-**2 个来源文件。** 原清单还将 `internal/verification/state.go:22–177` 误列为结构信号：
+**2 个来源文件。** 原清单还将 `state.go:21–177` 误列为结构信号：
 
 - 该段代码在两代实现中均为 **AI tripwire 的自称模型计数**，属于 `agents.json` 状态，
   已归入阶段三。
