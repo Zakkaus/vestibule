@@ -97,7 +97,6 @@ function QuestionOptionRow({
         type="button"
         data-slot="button"
         data-variant="outline"
-        data-size="sm"
         aria-pressed={question.answer === optionIndex}
         aria-label={t("questions.questionBank.correctAnswerFor", { number: optionIndex + 1 })}
         aria-disabled={readOnly ? "true" : undefined}
@@ -130,7 +129,6 @@ function QuestionOptionRow({
         type="button"
         data-slot="button"
         data-variant="link"
-        data-size="sm"
         aria-disabled={readOnly ? "true" : undefined}
         aria-label={t("questions.actions.removeOptionFor", { number: optionIndex + 1 })}
         onClick={() => {
@@ -229,7 +227,6 @@ function QuestionItem({
           type="button"
           data-slot="button"
           data-variant="destructive"
-          data-size="sm"
           aria-disabled={readOnly ? "true" : undefined}
           onClick={() => {
             if (!readOnly) {

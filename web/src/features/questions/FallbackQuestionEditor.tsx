@@ -60,7 +60,6 @@ function FallbackAnswerRow({
         type="button"
         data-slot="button"
         data-variant="link"
-        data-size="sm"
         aria-disabled={readOnly ? "true" : undefined}
         aria-label={t("questions.actions.removeAnswerFor", { number: answerIndex + 1 })}
         onClick={() => {
@@ -108,7 +107,6 @@ function FallbackQuestionItem({
           type="button"
           data-slot="button"
           data-variant="destructive"
-          data-size="sm"
           aria-disabled={readOnly ? "true" : undefined}
           onClick={() => {
             if (!readOnly) {
