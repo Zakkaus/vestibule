@@ -112,6 +112,25 @@ body {
   gap: var(--sp-3);
 }
 
+/* The trigger carries three children now: the glyph for the current value, the
+   value itself, and the arrow. Under space-between the value drifted into the
+   middle of the control, away from the glyph it belongs to; letting it take the
+   free space keeps the pair together at the start and the arrow at the end. */
+[data-slot="select-trigger"] [data-icon] {
+  flex: none;
+  inline-size: 1rem;
+  block-size: 1rem;
+  color: var(--muted-foreground);
+}
+
+[data-slot="select-value"] {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 [data-utility-control] {
   display: grid;
   gap: var(--sp-1);
@@ -120,7 +139,9 @@ body {
 }
 
 [data-utility-control] [data-slot="select"] {
-  min-inline-size: 0;
+  /* One length shared by the trigger and its menu, so neither can end up narrower than the other
+     for want of a percentage that would resolve to zero here. */
+  min-inline-size: 8rem;
   max-inline-size: 100%;
   font-size: 0.8125rem;
 }
@@ -144,7 +165,21 @@ body {
   position: absolute;
   z-index: 1;
   inset-block-start: calc(100% + var(--sp-1));
-  inset-inline: 0;
+  /* Anchored to the trigger's start edge and sized to its longest option. Pinning both edges made
+     the menu exactly as wide as whatever the current value happens to be, so a two-character value
+     left the four-character option wrapping onto a second line. A percentage minimum is not the
+     way back: this menu's containing block shrinks to fit, and the spec resolves a percentage min
+     to zero there. */
+  inset-inline-start: 0;
+  inset-inline-end: auto;
+  /* At least as wide as the trigger it drops out of, and at least as wide as its
+     longest option. A percentage minimum cannot say the first half: this menu's
+     containing block shrinks to fit and the spec resolves a percentage min to
+     zero there, so the length goes on inline-size and the intrinsic size goes on
+     the minimum, which is the pair that survives both. */
+  inline-size: 100%;
+  min-inline-size: max-content;
+  max-inline-size: min(18rem, 80vw);
   display: grid;
   gap: var(--sp-1);
   max-block-size: calc(var(--control-h-lg) * 6);
@@ -159,8 +194,10 @@ body {
 [data-slot="option"] {
   display: flex;
   align-items: center;
+  gap: var(--sp-2);
   min-block-size: var(--control-h);
   padding-inline: var(--sp-3);
+  white-space: nowrap;
   border-radius: var(--radius-md);
   color: var(--foreground);
   cursor: pointer;
@@ -184,10 +221,27 @@ body {
 }
 
 
+/* This card is the whole screen rather than one tile among several, so it takes
+   neither the shared card padding nor a measure sized for running prose: at one
+   ring of --sp-4 a two-line message sat against its own border, which is what
+   made a single sentence read as cramped. The width is stated in rem so this
+   screen and the deployment guide, which is rendered by the Go binary and cannot
+   share a stylesheet with it, come out the same size. */
 [data-entry-page] {
   display: grid;
-  inline-size: min(100%, 58ch);
+  inline-size: min(100%, 34rem);
   gap: var(--sp-5);
+}
+
+[data-entry-page] [data-slot="card"] {
+  gap: var(--sp-5);
+  padding: var(--sp-6);
+}
+
+/* A control that spans the card reads as the page's one action; these are the
+   way out of a state, not the point of it. */
+[data-entry-page] [data-slot="button"] {
+  justify-self: start;
 }
 [data-entry-page] [data-slot="card"],
 [data-entry-page] section {
@@ -3000,4 +3054,19 @@ body {
   [data-version-action="upgrade"] {
     inline-size: 100%;
   }
+}
+
+/* The chosen option carries a mark of its own. Selection was shown by background alone, which is
+   the same treatment hover uses, so a pointer resting on a neighbour made two rows look chosen. */
+[data-slot="option"] [data-icon] {
+  flex: none;
+  inline-size: 1rem;
+  block-size: 1rem;
+  color: var(--muted-foreground);
+  visibility: hidden;
+}
+
+[data-slot="option"][aria-selected="true"] [data-icon] {
+  visibility: visible;
+  color: var(--foreground);
 }

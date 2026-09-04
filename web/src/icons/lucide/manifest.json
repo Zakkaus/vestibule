@@ -84,6 +84,12 @@
       "sha256": "19498e8c7d1e25d97faeffd11eb7ed35bd2cf097b36235a3bbcf9d77dd1e63c9"
     },
     {
+      "name": "languages",
+      "file": "languages.svg",
+      "source": "package/icons/languages.svg",
+      "sha256": "926a6e0ebf2d92b0059c071e1fe77d6f155b47861d7de068f35966a17a98808f"
+    },
+    {
       "name": "layout-dashboard",
       "file": "layout-dashboard.svg",
       "source": "package/icons/layout-dashboard.svg",
@@ -106,6 +112,18 @@
       "file": "messages-square.svg",
       "source": "package/icons/messages-square.svg",
       "sha256": "5cafd9381f003d2b032ff4465be21cf59cfcc88ea133e17525a5a28e18b1fc41"
+    },
+    {
+      "name": "monitor",
+      "file": "monitor.svg",
+      "source": "package/icons/monitor.svg",
+      "sha256": "856063dc7e2ecb21b6cc1b2ef20a02217ec9d30d6cd83e6d379a6d88c4b75208"
+    },
+    {
+      "name": "moon",
+      "file": "moon.svg",
+      "source": "package/icons/moon.svg",
+      "sha256": "a2d186db1c79ce3fec18fcc0aee05c5d30d76feb3f1f8c01ff64a94571506242"
     },
     {
       "name": "pencil",
@@ -172,6 +190,12 @@
       "file": "sliders-horizontal.svg",
       "source": "package/icons/sliders-horizontal.svg",
       "sha256": "3553f5e026f5bdf7e512e57ae54a672ced42df62d1dd2b8de0fc1a898d56e7d5"
+    },
+    {
+      "name": "sun",
+      "file": "sun.svg",
+      "source": "package/icons/sun.svg",
+      "sha256": "9f8e98e311a0c744490c73ef5ce26243bcfca741cbefcd25db2a2cb1e1d3446b"
     },
     {
       "name": "trash-2",

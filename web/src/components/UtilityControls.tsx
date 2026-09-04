@@ -16,12 +16,23 @@ import {
   themePreferences,
   type ThemePreference
 } from "../app/theme";
+import type { IconName } from "../icons";
 import { AppSelect } from "./AppSelect";
 
 const localeLabelKeys: Record<AppLocale, string> = {
   "zh-CN": "locale.zhCN",
   "zh-TW": "locale.zhTW",
   en: "locale.en"
+};
+
+// The glyph belongs to the preference, not to the control: the theme icon has
+// to say which of the three is chosen, and a Record over the same closed set
+// that defines the preferences makes a fourth one a compile error rather than a
+// control that silently keeps the old icon.
+const themeIcons: Record<ThemePreference, IconName> = {
+  system: "monitor",
+  light: "sun",
+  dark: "moon"
 };
 
 const themeLabelKeys: Record<ThemePreference, string> = {
@@ -82,6 +93,7 @@ export function UtilityControls() {
         <span id={themeLabelId}>{t("theme.label")}</span>
         <AppSelect
           aria-labelledby={themeLabelId}
+          icon={themeIcons[theme]}
           value={theme}
           options={themeOptions}
           onValueChange={changeTheme}
@@ -91,6 +103,7 @@ export function UtilityControls() {
         <span id={localeLabelId}>{t("locale.label")}</span>
         <AppSelect
           aria-labelledby={localeLabelId}
+          icon="languages"
           value={locale}
           options={localeOptions}
           onValueChange={changeLocale}
