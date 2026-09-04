@@ -14,16 +14,16 @@ import { useInstanceBot } from "./instance";
 
 type EntryFixtureContentProps = Readonly<{
   fixture: EntryFixture;
+  botUsername?: string;
   transportFailure?: ApiRequestError;
 }>;
 
-function EntryFixtureContent({ fixture, transportFailure }: EntryFixtureContentProps) {
+function EntryFixtureContent({ fixture, botUsername, transportFailure }: EntryFixtureContentProps) {
   const { t } = useTranslation();
   // Every deployment runs its own bot, so the handle is read from the instance
   // rather than compiled into the bundle. Until the answer arrives the copy says
-  // "this instance's bot"; once it arrives empty, the screen above has already
-  // switched to the unclaimed state, which names no bot at all.
-  const botUsername = useInstanceBot();
+  // "this instance's bot"; once it arrives empty, the screen has already switched
+  // to the unclaimed state, which names no bot at all.
   const interpolation = {
     ...fixture.interpolation,
     botUsername: botUsername ? botUsername : t("entry.thisBot")
@@ -159,7 +159,7 @@ export function EntryScreen() {
   // string is the answer having arrived and being empty, which is how the server
   // reports an instance nobody has claimed.
   if (botUsername === "" && searchParams.get("state") === null) {
-    return <EntryFixtureContent fixture={unclaimedEntryFixture} />;
+    return <EntryFixtureContent fixture={unclaimedEntryFixture} botUsername={botUsername} />;
   }
 
   if (session.state === "ready") {
@@ -170,6 +170,7 @@ export function EntryScreen() {
     const fixture = entryFixtureFor("no-groups");
     return (
       <EntryFixtureContent
+        botUsername={botUsername}
         fixture={{
           ...fixture,
           interpolation: {
@@ -191,7 +192,13 @@ export function EntryScreen() {
 
   const fixture = fixtureForBlockedSession(session.error, searchParams.get("state"));
   if (fixture) {
-    return <EntryFixtureContent fixture={fixture} transportFailure={session.error} />;
+    return (
+      <EntryFixtureContent
+        fixture={fixture}
+        botUsername={botUsername}
+        transportFailure={session.error}
+      />
+    );
   }
 
   return <EntryUnavailable error={session.error} />;
