@@ -246,8 +246,8 @@ func TestSettingsRegistrationCommitCreatesRuntimeGroup(t *testing.T) {
 
 func TestSettingsChatTitleReturnsRegisteredRuntimeMetadata(t *testing.T) {
 	settings, _, _ := newRegistrationFixture(t)
-	requireEqual(t, settings.ChatTitle(-1009000000003), "Runtime", "registered group title")
-	requireEqual(t, settings.ChatTitle(testGroupA), "", "configured group title")
+	requireEqual(t, firstOf(settings.RegisteredGroupTitle(-1009000000003)), "Runtime", "registered group title")
+	requireEqual(t, firstOf(settings.RegisteredGroupTitle(testGroupA)), "", "configured group title")
 }
 
 func TestSettingsRegistrationRoundTripPreservesMetadataAndOverrides(t *testing.T) {
@@ -336,3 +336,6 @@ func TestSettingsUnreadableExistingPathDisablesWrites(t *testing.T) {
 		t.Fatal("unreadable state path was overwritten")
 	}
 }
+
+// firstOf drops the found flag so a title assertion reads as one value.
+func firstOf(title string, _ bool) string { return title }
