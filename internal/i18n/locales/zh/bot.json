@@ -54,7 +54,7 @@
   },
   "registration": {
     "owner_claimed": "部署者身份已绑定。现在可以添加群组。",
-    "owner_claim_refused": "此所有者认领链接无效、已使用或已过期。",
+    "owner_claim_refused": "这条所有者认领链接不能用：它已经被使用，或者已经过期。进程每次启动都会把一条新的打印到服务日志里，就是 OWNER UNCLAIMED 那一行。",
     "owner_claim_save_failed": "无法保存所有者认领状态。请恢复服务状态目录的写入权限后，使用相同链接重试。",
     "enrollment_owner_only": "仅机器人所有者可创建群组登记链接。",
     "enrollment_link": "群组登记链接（%[1]d 分钟内有效且只能使用一次）：\n%[2]s",

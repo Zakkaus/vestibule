@@ -348,7 +348,11 @@ type Config struct {
 func (c *Config) OwnerClaimLifetime() time.Duration {
 	seconds := c.OwnerClaimLifetimeSeconds
 	if seconds <= 0 || seconds > maxOwnerClaimLifetimeSeconds {
-		seconds = 10 * 60
+		// One hour, not ten minutes. The link is minted while the deployer is at a
+		// terminal and consumed in Telegram, which is a different device and often
+		// a different room; ten minutes turned "I will do that in a moment" into a
+		// restart. It is still one use, and it still expires.
+		seconds = 60 * 60
 	}
 	duration, _ := SecondsToDuration(seconds)
 	return duration

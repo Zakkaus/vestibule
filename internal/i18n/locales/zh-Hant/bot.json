@@ -54,7 +54,7 @@
   },
   "registration": {
     "owner_claimed": "部署者身分已綁定。現在可以新增群組。",
-    "owner_claim_refused": "該擁有者認領連結無效、已使用或已過期。",
+    "owner_claim_refused": "這條擁有者認領連結不能用：它已經被使用，或者已經過期。行程每次啟動都會把一條新的印到服務記錄檔裡，就是 OWNER UNCLAIMED 那一行。",
     "owner_claim_save_failed": "無法儲存擁有者認領狀態。請恢復服務狀態目錄的寫入權限後，使用相同連結重試。",
     "enrollment_owner_only": "僅機器人擁有者可建立群組登記連結。",
     "enrollment_link": "群組登記連結（%[1]d 分鐘內有效且只能使用一次）：\n%[2]s",

@@ -54,7 +54,7 @@
   },
   "registration": {
     "owner_claimed": "Deployer ownership is now bound to this account. You can add groups.",
-    "owner_claim_refused": "This owner-claim link is invalid, used, or expired.",
+    "owner_claim_refused": "That owner link is not valid: it was used, or it expired. A fresh one is printed to the service log every time the process starts, on the line beginning OWNER UNCLAIMED.",
     "owner_claim_save_failed": "Could not save the owner claim. Restore write access to the service state directory, then retry the same link.",
     "enrollment_owner_only": "Only the bot owner can create group-enrollment links.",
     "enrollment_link": "Group-enrollment link (valid for %[1]d minutes and one use):\n%[2]s",
