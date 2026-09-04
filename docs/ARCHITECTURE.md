@@ -1040,7 +1040,8 @@ migrations/01-settings.sql      settings_revision
 ```
 
 - **没有全局默认记录，也没有控制群。**新群从内嵌 factory 取得默认值； 用户文件中的旧式顶层值只展开到文件列出的群，不会传播给后来注册的群。
-- **进程级凭据不进入每群设置。**`BOT_TOKEN`、 `VT_DATABASE_TYPE`、`VT_DATABASE_URI` 与 `TELEGRAM_API_URL` 在进程装配边界读取。未认领时，进程随机生成 名为 `SETUP_TOKEN` 的认领口令；部署者不能指定。仅将该口令的哈希保存到 `STATE_DIRECTORY/claim.json`；认领后，Bot token 以 `0600` 权限保存到同一文件，并删除该哈希。
+- **进程级凭据不进入每群设置。**`BOT_TOKEN`、 `VT_DATABASE_TYPE`、`VT_DATABASE_URI` 与 `TELEGRAM_API_URL` 在进程装配边界读取。未认领时，仅将认领口令的哈希保存到 `STATE_DIRECTORY/claim.json`；认领后，Bot token 以 `0600` 权限保存到同一文件，并删除该哈希。
+- **认领口令由进程生成，不由人选。**没有配置 `SETUP_TOKEN` 时，进程用 32 字节随机数生成一个，把完整地址打印到日志， 哈希写进 `claim.json`。开这条地址的人给进程一个 bot token 并成为它的属主， 因此人选的口令就是可以被猜到的口令：显式配置的 `SETUP_TOKEN` 短于 24 个字符时进程拒绝启动，而不是带着一条可猜的认领地址开始监听。
 - **设置升级由 configupgrade 处理。**加载器以当前结构为模板， 只复制白名单字段；未知字段和废弃字段不进入规范表示。升级规则不按版本串联。
 - **所有当前字段都必须同时进入默认文件和复制规则。**反射测试核对 `GroupOverrides`，防止新增字段只在一种加载路径生效。
 
