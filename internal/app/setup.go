@@ -2,8 +2,10 @@ package app
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
@@ -47,33 +49,79 @@ type setupActivationError struct {
 
 func (e setupActivationError) Error() string { return "instance activation failed" }
 func (e setupActivationError) Unwrap() error { return e.cause }
-func openSetupState(stateDirectory, setupToken string) (*setupState, error) {
+
+// minimumSetupTokenLength is the floor for an operator-supplied setup token.
+// Whoever holds this token can hand the instance a bot and become its owner, so
+// a guessable one is the whole instance. Anything short enough to be typed from
+// memory is short enough to be guessed, and there is no reason to type it: the
+// process generates one and prints the address to open.
+const minimumSetupTokenLength = 24
+
+// setupLink is the address the deployer opens, returned only when this process
+// generated the token itself. An operator who supplied one already has it.
+type setupLink struct {
+	Token     string
+	Generated bool
+}
+
+func openSetupState(stateDirectory, setupToken string) (*setupState, setupLink, error) {
 	state := &setupState{}
 	if stateDirectory == "" {
-		return state, nil
+		return state, setupLink{}, nil
 	}
 	state.path = filepath.Join(stateDirectory, claimStateFile)
 	if err := verifyClaimFileMode(state.path); err != nil {
-		return nil, err
+		return nil, setupLink{}, err
 	}
 	if err := store.Load(state.path, &state.record); err != nil {
-		return nil, fmt.Errorf("load claim state: %w", err)
+		return nil, setupLink{}, fmt.Errorf("load claim state: %w", err)
 	}
 	setupToken = strings.TrimSpace(setupToken)
-	if state.record.BotToken != "" || setupToken == "" {
-		return state, nil
+	if state.record.BotToken != "" {
+		return state, setupLink{}, nil
+	}
+	if setupToken == "" {
+		// Nobody supplied one, so this process makes it. The alternative was an
+		// instance with no way in at all, which is what pushed operators toward
+		// choosing the token by hand -- and a token chosen by hand is a token
+		// somebody else can guess.
+		generated, err := randomSetupToken()
+		if err != nil {
+			return nil, setupLink{}, err
+		}
+		state.record.SetupTokenHash = hashSetupToken(generated)
+		if err := state.saveLocked(); err != nil {
+			return nil, setupLink{}, err
+		}
+		return state, setupLink{Token: generated, Generated: true}, nil
+	}
+	if len([]rune(setupToken)) < minimumSetupTokenLength {
+		return nil, setupLink{}, fmt.Errorf(
+			"SETUP_TOKEN is %d characters, and the claim link needs at least %d: "+
+				"whoever opens it owns this instance. Leave SETUP_TOKEN unset and this "+
+				"process generates one and prints the address to open",
+			len([]rune(setupToken)), minimumSetupTokenLength)
 	}
 	hash := hashSetupToken(setupToken)
 	if state.record.SetupTokenHash != "" && !constantTimeEqual(state.record.SetupTokenHash, hash) {
-		return nil, errors.New("configured setup token does not match claim state")
+		return nil, setupLink{}, errors.New("configured setup token does not match claim state")
 	}
 	if state.record.SetupTokenHash == "" {
 		state.record.SetupTokenHash = hash
 		if err := state.saveLocked(); err != nil {
-			return nil, err
+			return nil, setupLink{}, err
 		}
 	}
-	return state, nil
+	return state, setupLink{Token: setupToken}, nil
+}
+
+// randomSetupToken produces a token nobody can guess and nobody has to type.
+func randomSetupToken() (string, error) {
+	raw := make([]byte, 32)
+	if _, err := rand.Read(raw); err != nil {
+		return "", fmt.Errorf("generate setup token: %w", err)
+	}
+	return base64.RawURLEncoding.EncodeToString(raw), nil
 }
 
 func verifyClaimFileMode(path string) error {
@@ -232,4 +280,21 @@ func ownerBindingURL(runtime *services) (string, error) {
 		return "", nil
 	}
 	return fmt.Sprintf("https://t.me/%s?start=owner_%s", runtime.identity.Username, nonce), nil
+}
+
+// logSetupLink prints the address the deployer opens to claim this instance.
+// It is printed because there is nowhere else it could come from: nothing is
+// running yet, so there is no bot to send it and no console to sign into. It is
+// printed only when this process generated the token; an operator who supplied
+// one already has it, and their journal does not need a copy.
+func logSetupLink(options Options, link setupLink) {
+	if !link.Generated {
+		log.Printf("instance is unclaimed; waiting for a setup claim at /setup/<SETUP_TOKEN>")
+		return
+	}
+	base := strings.TrimSuffix(strings.TrimSpace(options.ConsoleURL), "/")
+	if base == "" {
+		base = "http://" + consoleAddress(options.ConsoleAddr)
+	}
+	log.Printf("instance is unclaimed. Open this address to claim it, once: %s/setup/%s", base, link.Token)
 }

@@ -2126,8 +2126,13 @@ migrations/01-settings.sql      settings_revision</div>
       <li><strong>进程级凭据不进入每群设置。</strong><code>BOT_TOKEN</code>、
         <code>VT_DATABASE_TYPE</code>、<code>VT_DATABASE_URI</code> 与
         <code>TELEGRAM_API_URL</code> 在进程装配边界读取。未认领时，
-        <code>SETUP_TOKEN</code> 只以哈希保存到 <code>STATE_DIRECTORY/claim.json</code>；
+        认领口令只以哈希保存到 <code>STATE_DIRECTORY/claim.json</code>；
         认领后 Bot token 以 <code>0600</code> 权限保存到同一文件，并删除该哈希。</li>
+      <li><strong>认领口令由进程生成，不由人选。</strong>没有配置
+        <code>SETUP_TOKEN</code> 时，进程用 32 字节随机数生成一个，把完整地址打印到日志，
+        哈希写进 <code>claim.json</code>。开这条地址的人给进程一个 bot token 并成为它的属主，
+        因此人选的口令就是可以被猜到的口令：显式配置的 <code>SETUP_TOKEN</code>
+        短于 24 个字符时进程拒绝启动，而不是带着一条可猜的认领地址开始监听。</li>
       <li><strong>设置升级由 configupgrade 处理。</strong>加载器以当前结构为模板，
         只复制白名单字段；未知字段和废弃字段不进入规范表示。升级规则不按版本串联。</li>
       <li><strong>所有当前字段都必须同时进入默认文件和复制规则。</strong>反射测试核对

@@ -92,7 +92,7 @@ func Run(ctx context.Context, options Options) error {
 	}
 	defer closeRuntimeDatabase(runtime)
 
-	claimState, err := openSetupState(options.StateDirectory, options.SetupToken)
+	claimState, link, err := openSetupState(options.StateDirectory, options.SetupToken)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func Run(ctx context.Context, options Options) error {
 	if options.Token != "" {
 		return runClaimed(ctx, options, runtime, progress, startupComplete, notifierDone)
 	}
-	return runUnclaimed(ctx, options, runtime, claimState, progress, startupComplete, notifierDone)
+	return runUnclaimed(ctx, options, runtime, claimState, link, progress, startupComplete, notifierDone)
 }
 
 func runClaimed(
@@ -140,6 +140,7 @@ func runUnclaimed(
 	options Options,
 	runtime *services,
 	claimState *setupState,
+	link setupLink,
 	progress chan<- struct{},
 	startupComplete chan<- struct{},
 	notifierDone <-chan error,
@@ -154,7 +155,7 @@ func runUnclaimed(
 	if err := console.Start(consoleAddress(options.ConsoleAddr)); err != nil {
 		return fmt.Errorf("start console HTTP: %w", err)
 	}
-	log.Printf("instance is unclaimed; waiting for a setup claim")
+	logSetupLink(options, link)
 	close(startupComplete)
 	select {
 	case active := <-activated:
