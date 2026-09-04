@@ -3,6 +3,7 @@ package telegram
 import (
 	"errors"
 	"fmt"
+	"net"
 	"net/url"
 	"path"
 	"strings"
@@ -53,20 +54,54 @@ func NewConsoleLinkHandler(bot *telego.Bot, issuer ConsoleLinkIssuer, rawURL str
 		if err != nil {
 			return fmt.Errorf("issue console link: %w", err)
 		}
-		if _, err := bot.SendMessage(ctx.Context(), tu.Message(tu.ID(message.Chat.ID), consoleEntryURL(base, token))); err != nil {
+		language := i18n.FromTelegram(message.From.LanguageCode)
+		if _, err := bot.SendMessage(ctx.Context(), consoleLinkMessage(message.Chat.ID, base, token, language)); err != nil {
 			return fmt.Errorf("send console link: %w", err)
 		}
 		return nil
 	}, nil
 }
 
+// consoleLinkMessage puts the address behind a button. The link carries a
+// one-time credential in its path, and a credential pasted as message text is a
+// credential sitting in the chat: selectable, forwardable, and shown in every
+// preview of that conversation. A loopback console cannot be reached from a
+// phone at all, so there the address is the text, next to the reason it is.
+func consoleLinkMessage(chatID int64, base *url.URL, token string, language i18n.Lang) *telego.SendMessageParams {
+	entry := consoleEntryURL(base, token)
+	catalog := i18n.Messages.Bot.Menu.Owner
+	if isLoopbackHost(base.Hostname()) {
+		return tu.Message(tu.ID(chatID), catalog.ConsoleLocal.For(language)+"\n\n"+entry)
+	}
+	return tu.Message(tu.ID(chatID), catalog.ConsoleSent.For(language)).
+		WithReplyMarkup(&telego.InlineKeyboardMarkup{InlineKeyboard: [][]telego.InlineKeyboardButton{{{
+			Text: catalog.ConsoleOpen.For(language), URL: entry,
+		}}}})
+}
+
+// consoleBaseURL accepts plain HTTP only on the loopback interface. A console
+// bound to localhost is a supported deployment -- it is what an operator gets
+// without a domain, reached over a port forward -- and requiring HTTPS there
+// meant the instance refused to activate at all rather than admit it has no
+// certificate for a host that cannot have one.
 func consoleBaseURL(rawURL string) (*url.URL, error) {
 	base, err := url.Parse(rawURL)
-	if err != nil || base.Host == "" || base.Scheme != "https" {
-		return nil, errors.New("CONSOLE_URL must be an absolute HTTPS URL")
+	if err != nil || base.Host == "" {
+		return nil, errors.New("CONSOLE_URL must be an absolute URL")
+	}
+	if base.Scheme != "https" && !(base.Scheme == "http" && isLoopbackHost(base.Hostname())) {
+		return nil, errors.New("CONSOLE_URL must be an absolute HTTPS URL, or HTTP on the loopback interface")
 	}
 	base.RawQuery, base.Fragment = "", ""
 	return base, nil
+}
+
+func isLoopbackHost(host string) bool {
+	if host == "localhost" {
+		return true
+	}
+	address := net.ParseIP(host)
+	return address != nil && address.IsLoopback()
 }
 
 func consoleEntryURL(base *url.URL, token string) string {

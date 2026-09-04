@@ -39,7 +39,10 @@
       "enroll": "创建一次性群组登记链接",
       "unregister": "取消登记运行时群组",
       "console": "获取一次性控制台链接",
-      "console_denied": "只有部署这台实例时绑定的账号能打开控制台。如果那是你，在机器上重新打开部署链接并从那里绑定。"
+      "console_denied": "只有部署这台实例时绑定的账号能打开控制台。如果那是你，在机器上重新打开部署链接并从那里绑定。",
+      "console_sent": "一次性链接，只能用一次，且只对你有效。",
+      "console_open": "打开控制台",
+      "console_local": "这台控制台只监听本机，因此只能在它所在的机器上打开。请先做端口转发，再打开："
     }
   },
   "lifecycle": {
@@ -90,5 +93,17 @@
     "bot_name_label": "已连上",
     "after_binding": "绑定之后把机器人拉进第一个群，控制台会停在群列表。",
     "console_action": "打开控制台"
+  },
+  "error_page": {
+    "eyebrow": "控制台",
+    "steps_label": "该做什么",
+    "action": "前往控制台",
+    "not_found_title": "这个地址不在这里",
+    "not_found_description": "要么是地址打错了，要么它是一条一次性链接、已经被用过。一次性链接在被打开的那一刻就失效，这正是它一次性的含义。",
+    "refused_title": "控制台不以这种方式回应这个请求",
+    "refused_description": "地址存在，但不接受这种请求。请从控制台自己的地址进入。",
+    "step_manager": "群组管理员在 Telegram 中从 %[1]s 打开控制台。",
+    "step_operator": "运维向机器人索取一条新的一次性链接。",
+    "step_unclaimed": "这台实例还没有被认领，它的入口是安装脚本打印的那条一次性链接。"
   }
 }

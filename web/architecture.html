@@ -2128,6 +2128,11 @@ migrations/01-settings.sql      settings_revision</div>
         <code>TELEGRAM_API_URL</code> 在进程装配边界读取。未认领时，
         认领口令只以哈希保存到 <code>STATE_DIRECTORY/claim.json</code>；
         认领后 Bot token 以 <code>0600</code> 权限保存到同一文件，并删除该哈希。</li>
+      <li><strong>控制台地址在回环上可以是 HTTP。</strong>一次性链接把凭据写在路径里，
+        因此在网络上必须是 HTTPS；回环不是网络，请求不离开这台机器，
+        从别处到达它意味着一次端口转发，那条链路的传输由隧道负责。
+        一律要求 HTTPS 的结果是：设计文档为「没有域名」写的那种部署
+        （只监听本机、用端口转发打开）根本无法启动。</li>
       <li><strong>认领口令由进程生成，不由人选。</strong>没有配置
         <code>SETUP_TOKEN</code> 时，进程用 32 字节随机数生成一个，把完整地址打印到日志，
         哈希写进 <code>claim.json</code>。开这条地址的人给进程一个 bot token 并成为它的属主，

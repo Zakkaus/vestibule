@@ -8,12 +8,12 @@
 <style></style>
 </head>
 <body>
-<main data-setup-main>
-<article data-setup-card>
-<header data-setup-head>
-<p data-setup-eyebrow>Deployment</p>
+<main data-page-main>
+<article data-page-card>
+<header data-page-head>
+<p data-page-eyebrow>Deployment</p>
 <h1>Claim this instance</h1>
-<p data-setup-lede>The script has finished its part on this machine. The rest is filled in here, so no credential reaches your shell history.</p>
+<p data-page-lede>The script has finished its part on this machine. The rest is filled in here, so no credential reaches your shell history.</p>
 </header>
 <ol data-setup-steps aria-label="Deployment steps">
 <li data-setup-step data-state="done">
@@ -33,13 +33,13 @@
 <span data-setup-step-body><span data-setup-step-name>Add the first group</span><span data-setup-step-note>The instance waits for the group to appear, then checks each permission the bot needs.</span></span>
 </li>
 </ol>
-<p data-setup-alert id="setup-error" role="alert">Telegram did not accept this token. Check that the whole line was pasted, including the digits before the colon.</p>
+<p data-page-alert id="setup-error" role="alert">Telegram did not accept this token. Check that the whole line was pasted, including the digits before the colon.</p>
 
 <form method="post" data-setup-form>
 <label for="bot-token">Telegram bot token</label>
 <input id="bot-token" name="bot_token" type="password" autocomplete="off" spellcheck="false" required aria-invalid="true" aria-describedby="setup-error">
 <p data-setup-hint>Ask @BotFather in Telegram for a bot, then paste the whole line it gives you, including the digits before the colon.</p>
-<button type="submit" data-setup-action>Claim instance</button>
+<button type="submit" data-page-action>Claim instance</button>
 </form>
 
 </article>
@@ -55,12 +55,12 @@
 <style></style>
 </head>
 <body>
-<main data-setup-main>
-<article data-setup-card>
-<header data-setup-head>
-<p data-setup-eyebrow>Deployment</p>
+<main data-page-main>
+<article data-page-card>
+<header data-page-head>
+<p data-page-eyebrow>Deployment</p>
 <h1>Claim this instance</h1>
-<p data-setup-lede>The script has finished its part on this machine. The rest is filled in here, so no credential reaches your shell history.</p>
+<p data-page-lede>The script has finished its part on this machine. The rest is filled in here, so no credential reaches your shell history.</p>
 </header>
 <ol data-setup-steps aria-label="Deployment steps">
 <li data-setup-step data-state="done">
@@ -85,10 +85,82 @@
 <section data-setup-panel>
 <p data-setup-ok>This instance is claimed and the bot is running.</p>
 <p data-setup-bot>Connected as <b>@example_bot</b></p>
-<p data-setup-note>Open this link in Telegram to bind the deployer account.</p><a data-setup-action href="https://t.me/example_bot?start=owner_x">Bind in Telegram</a><p data-setup-note>Once the account is bound, add the bot to your first group. The console opens on the group list.</p>
-<a data-setup-action data-setup-onward href="/">Open the console</a>
+<p data-page-note>Open this link in Telegram to bind the deployer account.</p><a data-page-action href="https://t.me/example_bot?start=owner_x">Bind in Telegram</a><p data-page-note>Once the account is bound, add the bot to your first group. The console opens on the group list.</p>
+<a data-page-action data-page-onward href="/">Open the console</a>
 </section>
 
+</article>
+</main>
+</body>
+</html><!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>This address is not here</title>
+<style></style>
+</head>
+<body>
+<main data-page-main>
+<article data-page-card>
+<header data-page-head>
+<p data-page-eyebrow>Console</p>
+<h1>This address is not here</h1>
+<p data-page-lede>Either it was mistyped, or it was a one-time link and has already been used. A one-time link stops working the moment it is opened, which is what makes it one-time.</p>
+</header>
+<section data-error-steps aria-label="What to do instead">
+<p data-page-note>What to do instead</p>
+<ul><li>Group administrators open the console from @example_bot in Telegram.</li><li>Operators ask the bot for a fresh one-time link.</li></ul>
+</section>
+<a data-page-action data-page-onward href="/">Go to the console</a>
+</article>
+</main>
+</body>
+</html><!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The console will not answer this request</title>
+<style></style>
+</head>
+<body>
+<main data-page-main>
+<article data-page-card>
+<header data-page-head>
+<p data-page-eyebrow>Console</p>
+<h1>The console will not answer this request</h1>
+<p data-page-lede>The address exists, but not for this kind of request. Open the console from its own address instead.</p>
+</header>
+
+<a data-page-action data-page-onward href="/">Go to the console</a>
+</article>
+</main>
+</body>
+</html><!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>This address is not here</title>
+<style></style>
+</head>
+<body>
+<main data-page-main>
+<article data-page-card>
+<header data-page-head>
+<p data-page-eyebrow>Console</p>
+<h1>This address is not here</h1>
+<p data-page-lede>Either it was mistyped, or it was a one-time link and has already been used. A one-time link stops working the moment it is opened, which is what makes it one-time.</p>
+</header>
+<section data-error-steps aria-label="What to do instead">
+<p data-page-note>What to do instead</p>
+<ul><li>Nobody has claimed this instance yet. Its way in is the one-time link the install script printed.</li></ul>
+</section>
+<a data-page-action data-page-onward href="/">Go to the console</a>
 </article>
 </main>
 </body>
