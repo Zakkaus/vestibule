@@ -5,7 +5,65 @@ body {
 }
 
 [data-app-shell] [data-slot="card"] {
-  padding: var(--sp-3) var(--sp-4);
+  padding: var(--sp-4) var(--sp-5);
+}
+
+/* Content rhythm moves from page boundaries, to card stacks, to card sections. */
+[data-entry-page],
+[data-groups-page],
+[data-preferences-page],
+[data-moderation-page],
+[data-record-page],
+[data-verification-page],
+[data-bypass-page],
+[data-questions-page],
+[data-capabilities-page],
+[data-feeds-page],
+[data-stats-page],
+[data-messages-page],
+[data-diagnostics-page],
+[data-home-page],
+[data-version-page] {
+  display: grid;
+  gap: var(--sp-6);
+}
+
+[data-home-content],
+[data-moderation-form],
+[data-verification-form],
+[data-bypass-form],
+[data-questions-form],
+[data-capabilities-form],
+[data-capabilities-list],
+[data-feeds-content],
+[data-stats-results],
+[data-messages-settings-form],
+[data-diagnostics-content],
+[data-version-content] {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+[data-entry-page] [data-slot="card"],
+[data-preference-local],
+[data-moderation-settings-card],
+[data-verification-section],
+[data-bypass-settings-card],
+[data-bypass-member-whitelist],
+[data-questions-section],
+[data-question-item],
+[data-capability-card],
+[data-feeds-section],
+[data-stats-chart-section],
+[data-stats-table-section],
+[data-messages-settings-section],
+[data-messages-rules-section],
+[data-diagnostics-readonly],
+[data-diagnostics-section],
+[data-home-section],
+[data-version-section] {
+  display: grid;
+  gap: var(--sp-4);
 }
 [data-slot="button"] {
   text-decoration: none;
@@ -250,13 +308,10 @@ body {
    screen and the deployment guide, which is rendered by the Go binary and cannot
    share a stylesheet with it, come out the same size. */
 [data-entry-page] {
-  display: grid;
   inline-size: min(100%, 34rem);
-  gap: var(--sp-5);
 }
 
 [data-entry-page] [data-slot="card"] {
-  gap: var(--sp-5);
   padding: var(--sp-6);
 }
 
@@ -265,7 +320,6 @@ body {
 [data-entry-page] [data-slot="button"] {
   justify-self: start;
 }
-[data-entry-page] [data-slot="card"],
 [data-entry-page] section {
   display: grid;
   gap: var(--sp-4);
@@ -381,20 +435,9 @@ body {
   display: none;
 }
 
-[data-groups-page] {
-  display: grid;
-  gap: var(--sp-5);
-}
-
-[data-preferences-page] {
-  display: grid;
-  gap: var(--sp-5);
-}
 
 [data-preference-local] {
-  display: grid;
   inline-size: min(100%, 42rem);
-  gap: var(--sp-4);
 }
 
 [data-preference-local] h2,
@@ -411,20 +454,11 @@ body {
   justify-content: start;
 }
 
-[data-moderation-page],
-[data-moderation-form] {
-  display: grid;
-  gap: var(--sp-5);
-}
 
 [data-moderation-form] {
   inline-size: min(100%, 52rem);
 }
 
-[data-moderation-settings-card] {
-  display: grid;
-  gap: var(--sp-4);
-}
 
 
 [data-moderation-state-card] {
@@ -463,7 +497,7 @@ body {
 [data-setting-copy] {
   display: grid;
   min-inline-size: 0;
-  gap: var(--sp-2);
+  gap: var(--sp-1);
 }
 
 [data-setting-heading] {
@@ -568,7 +602,7 @@ body {
 
 [data-group-list] {
   display: grid;
-  gap: var(--sp-3);
+  gap: var(--sp-4);
 }
 
 [data-group-state] {
@@ -741,10 +775,6 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-[data-record-page] {
-  display: grid;
-  gap: var(--sp-5);
-}
 
 [data-record-table-scroll] {
   overflow-x: auto;
@@ -1040,7 +1070,7 @@ body {
 
   [data-record-card-list] {
     display: grid;
-    gap: var(--sp-3);
+    gap: var(--sp-4);
   }
 
   [data-record-card-row] {
@@ -1117,7 +1147,7 @@ body {
 
   [data-moderation-settings-card] [data-slot="setting"] {
     flex-direction: column;
-    gap: var(--sp-3);
+    gap: var(--sp-2);
   }
 
   [data-setting-control] {
@@ -1143,11 +1173,6 @@ body {
   }
 }
 
-[data-verification-page],
-[data-verification-form] {
-  display: grid;
-  gap: var(--sp-5);
-}
 
 [data-verification-state-card] {
   display: grid;
@@ -1181,10 +1206,6 @@ body {
 }
 
 
-[data-verification-section] {
-  display: grid;
-  gap: var(--sp-4);
-}
 
 [data-verification-section] > [data-slot="setting"] {
   padding: 0;
@@ -1267,6 +1288,7 @@ body {
   [data-verification-setting] {
     align-items: stretch;
     flex-direction: column;
+    gap: var(--sp-2);
   }
 
   [data-verification-setting-control] {
@@ -1289,13 +1311,6 @@ body {
   }
 }
 
-[data-bypass-page],
-[data-bypass-form],
-[data-questions-page],
-[data-questions-form] {
-  display: grid;
-  gap: var(--sp-5);
-}
 
 [data-bypass-state-card] {
   display: grid;
@@ -1358,11 +1373,6 @@ body {
   color: var(--muted-foreground);
 }
 
-[data-bypass-settings-card],
-[data-bypass-member-whitelist] {
-  display: grid;
-  gap: var(--sp-4);
-}
 
 [data-bypass-settings-card] [data-slot="setting"] {
   align-items: start;
@@ -1370,16 +1380,13 @@ body {
   border-block-end: 0;
 }
 
-[data-questions-section],
 [data-question-bank-editor],
 [data-fallback-question-editor],
-[data-question-list],
-[data-question-item] {
+[data-question-list] {
   display: grid;
   gap: var(--sp-4);
 }
 
-[data-question-field],
 [data-question-options],
 [data-fallback-answers],
 [data-question-option-list],
@@ -1388,11 +1395,20 @@ body {
   gap: var(--sp-3);
 }
 
+[data-question-field] {
+  display: grid;
+  gap: var(--sp-2);
+}
+
 [data-questions-section-heading],
-[data-question-setting-copy],
-[data-question-option-field] {
+[data-question-setting-copy] {
   display: grid;
   gap: var(--sp-1);
+}
+
+[data-question-option-field] {
+  display: grid;
+  gap: var(--sp-2);
 }
 
 [data-question-setting-copy] > label,
@@ -1596,7 +1612,7 @@ body {
 @media (max-width: 48rem) {
   [data-bypass-settings-card] [data-slot="setting"] {
     flex-direction: column;
-    gap: var(--sp-3);
+    gap: var(--sp-2);
   }
 
   [data-bypass-settings-card] [data-setting-control] {
@@ -1617,6 +1633,7 @@ body {
   [data-question-setting] {
     align-items: stretch;
     flex-direction: column;
+    gap: var(--sp-2);
   }
 
   [data-question-setting-control],
@@ -1655,12 +1672,6 @@ body {
   }
 }
 
-[data-capabilities-page],
-[data-capabilities-form],
-[data-capabilities-list] {
-  display: grid;
-  gap: var(--sp-5);
-}
 
 [data-capabilities-form] {
   inline-size: min(100%, 52rem);
@@ -1695,10 +1706,6 @@ body {
   color: var(--foreground);
 }
 
-[data-capability-card] {
-  display: grid;
-  gap: var(--sp-4);
-}
 
 [data-capability-header] {
   display: flex;
@@ -1808,12 +1815,6 @@ body {
   }
 }
 
-[data-feeds-page],
-[data-feeds-content],
-[data-stats-page] {
-  display: grid;
-  gap: var(--sp-5);
-}
 
 [data-feeds-content] {
   inline-size: min(100%, 52rem);
@@ -1829,16 +1830,12 @@ body {
 }
 
 [data-feeds-readonly],
-[data-feeds-section],
 [data-feed-item],
 [data-overlay-item] {
   display: grid;
   gap: var(--sp-3);
 }
 
-[data-feeds-section] {
-  gap: var(--sp-4);
-}
 
 [data-feeds-state-card] h2,
 [data-feeds-state-card] p,
@@ -1985,7 +1982,7 @@ body {
 [data-stats-field] {
   display: grid;
   min-inline-size: 0;
-  gap: var(--sp-1);
+  gap: var(--sp-2);
   color: var(--muted-foreground);
   font-size: 0.8125rem;
 }
@@ -2012,15 +2009,9 @@ body {
   font-size: 0.8125rem;
 }
 
-[data-stats-results] {
-  display: grid;
-  gap: var(--sp-5);
-}
 
 [data-stats-results-heading],
-[data-stats-summary],
-[data-stats-chart-section],
-[data-stats-table-section] {
+[data-stats-summary] {
   display: grid;
   gap: var(--sp-3);
 }
@@ -2057,10 +2048,6 @@ body {
   line-height: 1.2;
 }
 
-[data-stats-chart-section],
-[data-stats-table-section] {
-  gap: var(--sp-4);
-}
 
 [data-stats-chart-scroll],
 [data-stats-table-scroll] {
@@ -2126,11 +2113,6 @@ body {
   overflow-wrap: anywhere;
 }
 
-[data-messages-page],
-[data-messages-settings-form] {
-  display: grid;
-  gap: var(--sp-5);
-}
 
 [data-messages-state-card],
 [data-messages-copy-gap] {
@@ -2177,11 +2159,6 @@ body {
   color: var(--foreground);
 }
 
-[data-messages-settings-section],
-[data-messages-rules-section] {
-  display: grid;
-  gap: var(--sp-4);
-}
 
 [data-messages-section-heading] {
   display: grid;
@@ -2370,7 +2347,7 @@ body {
   [data-messages-settings-section] [data-slot="setting"],
   [data-messages-rule-item] [data-slot="setting"] {
     flex-direction: column;
-    gap: var(--sp-3);
+    gap: var(--sp-2);
   }
 
   [data-messages-settings-section] [data-setting-control],
@@ -2416,11 +2393,6 @@ body {
   }
 }
 
-[data-diagnostics-page],
-[data-diagnostics-content] {
-  display: grid;
-  gap: var(--sp-5);
-}
 
 [data-diagnostics-content] {
   inline-size: min(100%, 52rem);
@@ -2434,11 +2406,6 @@ body {
   gap: var(--sp-3);
 }
 
-[data-diagnostics-readonly],
-[data-diagnostics-section] {
-  display: grid;
-  gap: var(--sp-4);
-}
 
 [data-diagnostics-state-card] h2,
 [data-diagnostics-state-card] p,
@@ -2631,16 +2598,6 @@ body {
   }
 }
 
-[data-home-page],
-[data-home-content] {
-  display: grid;
-  gap: var(--sp-5);
-}
-
-[data-home-section] {
-  display: grid;
-  gap: var(--sp-3);
-}
 
 [data-home-state-card] {
   display: grid;
@@ -2717,11 +2674,18 @@ body {
 [data-home-metrics],
 [data-home-entries] {
   display: grid;
+  /* The entry cards carry a hard offset, so their minimum column is wider than
+     the metrics beside them: at 13rem a card's own shadow reached its
+     neighbour. The gaps themselves come from the ladder below. */
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
-  /* Wide enough that the offset below never lands on the neighbour. A card that
-     casts a hard shadow needs the gap the shadow occupies plus the gap it was
-     going to have anyway. */
-  gap: var(--sp-5);
+}
+
+[data-home-metrics] {
+  gap: var(--sp-3);
+}
+
+[data-home-entries] {
+  gap: var(--sp-4);
 }
 
 [data-home-metric] {
@@ -2952,11 +2916,6 @@ a[data-home-entry]:active,
   }
 }
 
-[data-version-page],
-[data-version-content] {
-  display: grid;
-  gap: var(--sp-5);
-}
 
 [data-version-content] {
   inline-size: min(100%, 56rem);
@@ -2970,10 +2929,6 @@ a[data-home-entry]:active,
   gap: var(--sp-3);
 }
 
-[data-version-section] {
-  display: grid;
-  gap: var(--sp-4);
-}
 
 [data-version-state-card] h2,
 [data-version-state-card] p,
