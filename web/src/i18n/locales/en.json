@@ -18,7 +18,14 @@
   },
   "navigation": {
     "label": "Console navigation",
-    "workspace": "Workspace",
+    "sections": {
+      "daily": "Daily",
+      "verification": "Verification",
+      "group": "Groups",
+      "content": "Content",
+      "observe": "Observability",
+      "console": "This console"
+    },
     "queue": "Waiting queue",
     "groups": "Groups and channels",
     "preferences": "Preferences"
@@ -153,7 +160,7 @@
     },
     "actions": {
       "openQueue": "View waiting queue",
-      "openQueueFor": "View the waiting queue for group {{id}}",
+      "openQueueFor": "View the waiting queue for {{group}}",
       "retry": "Load again"
     },
     "mode": {

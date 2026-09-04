@@ -295,7 +295,10 @@ test("mobile navigation joins its compact panel to the trigger", async ({ page }
   expect(geometry.gap).toBe(0);
   expect(geometry.paddingBlockStart).toBe("8px");
   expect(geometry.paddingInlineStart).toBe("8px");
-  expect(geometry.rowGap).toBe("8px");
+  // The panel carries sections now, so its own gap separates groups and the
+  // gap inside a group is smaller. navigation.spec.ts owns both numbers; this
+  // assertion only has to see the outer one.
+  expect(geometry.rowGap).toBe("12px");
   expect(geometry.borderStartStartRadius).toBe("0px");
   expect(geometry.borderStartEndRadius).toBe("0px");
   expect(geometry.borderEndStartRadius).toBe("10px");

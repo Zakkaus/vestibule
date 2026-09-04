@@ -93,7 +93,7 @@ function GroupStateCard({
   );
 }
 
-function OpenQueueLink({ groupId }: Readonly<{ groupId: string }>) {
+function OpenQueueLink({ groupId, groupName }: Readonly<{ groupId: string; groupName: string }>) {
   const { t } = useTranslation();
   const query = new URLSearchParams({ group: groupId });
 
@@ -104,7 +104,7 @@ function OpenQueueLink({ groupId }: Readonly<{ groupId: string }>) {
       data-variant="primary"
       data-select-group={groupId}
       to={`/queue?${query.toString()}`}
-      aria-label={t("groups.actions.openQueueFor", { id: groupId })}
+      aria-label={t("groups.actions.openQueueFor", { group: groupName })}
     >
       <Icon name="arrowRight" />
       {t("groups.actions.openQueue")}
@@ -118,25 +118,29 @@ function LiveGroupList({
 }: Readonly<{ chats: readonly ConsoleChat[]; selectedGroupId: string }>) {
   const { t } = useTranslation();
 
-  return chats.map((chat) => (
-    <article
-      key={chat.id}
-      data-slot="card"
-      data-group-row
-      data-selected={selectedGroupId === chat.id ? "" : undefined}
-    >
-      <div data-group-primary>
-        <div data-group-heading>
-          <h2>{t("groups.groupOption", { id: chat.id })}</h2>
-          <StatusBadge tone="neutral">{t("groups.authorized")}</StatusBadge>
+  return chats.map((chat) => {
+    const groupName = chat.title ?? t("groups.groupOption", { id: chat.id });
+
+    return (
+      <article
+        key={chat.id}
+        data-slot="card"
+        data-group-row
+        data-selected={selectedGroupId === chat.id ? "" : undefined}
+      >
+        <div data-group-primary>
+          <div data-group-heading>
+            <h2>{groupName}</h2>
+            <StatusBadge tone="neutral">{t("groups.authorized")}</StatusBadge>
+          </div>
+          <p data-live-group-note>{t("groups.liveGroupNote")}</p>
         </div>
-        <p data-live-group-note>{t("groups.liveGroupNote")}</p>
-      </div>
-      <div data-group-actions>
-        <OpenQueueLink groupId={chat.id} />
-      </div>
-    </article>
-  ));
+        <div data-group-actions>
+          <OpenQueueLink groupId={chat.id} groupName={groupName} />
+        </div>
+      </article>
+    );
+  });
 }
 
 type FixtureGroupPrimaryProps = Readonly<{
@@ -257,7 +261,7 @@ function FixtureGroupDetails({ group }: Readonly<{ group: GroupFixture }>) {
         </ul>
       </section>
       <div data-group-actions>
-        <OpenQueueLink groupId={group.id} />
+        <OpenQueueLink groupId={group.id} groupName={t(group.nameKey)} />
       </div>
     </div>
   );

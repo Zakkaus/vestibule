@@ -90,6 +90,7 @@ func (c *apiTestAdminChecker) counts() apiTestAdminCounts {
 
 type apiTestQueueService struct {
 	groups          []int64
+	groupTitles     map[int64]string
 	entries         []verification.ConsoleQueueEntry
 	settledEntry    verification.ConsoleQueueEntry
 	settleErr       error
@@ -110,6 +111,10 @@ type apiTestQueueService struct {
 
 func (s *apiTestQueueService) ConsoleGroups() []int64 {
 	return append([]int64(nil), s.groups...)
+}
+
+func (s *apiTestQueueService) ConsoleGroupTitle(groupID int64) string {
+	return s.groupTitles[groupID]
 }
 
 func (s *apiTestQueueService) ConsoleQueue(context.Context, int64) ([]verification.ConsoleQueueEntry, error) {
