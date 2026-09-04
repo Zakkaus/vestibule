@@ -130,7 +130,7 @@ test("capabilities explains both states, shows provenance, and keeps one writer 
 
 });
 
-test("capabilities uses shared controls and the established setting-screen geometry", async ({
+test("capabilities keeps the shared control contract and stepped setting geometry", async ({
   page
 }) => {
   await openCapabilities(page, async (route) => fulfillJSON(route, settingsPayload()));
@@ -164,13 +164,12 @@ test("capabilities uses shared controls and the established setting-screen geome
       renderedGap: bounds[1]!.top - bounds[0]!.bottom
     };
   });
-  expect(new Set(capabilityGeometry.gaps).size, "all capability levels use one gap").toBe(1);
-  expect(capabilityGeometry.gaps[0]).not.toBe("normal");
-  expect(capabilityGeometry.renderedGap).toBeCloseTo(
-    Number.parseFloat(capabilityGeometry.gaps[0]!),
-    1
-  );
-  expect(new Set(capabilityGeometry.radii).size, "capability cards share one radius").toBe(1);
+  expect(capabilityGeometry.gaps).toEqual(["32px", "24px", "24px"]);
+  expect(capabilityGeometry.renderedGap).toBeCloseTo(24, 1);
+  expect(
+    capabilityGeometry.radii.every((radius) => radius === capabilityGeometry.radii[0]),
+    "capability cards share one radius"
+  ).toBe(true);
 
   await page.getByRole("link", { name: "在管理与处罚中调整" }).click();
   await expect(page.locator("[data-moderation-page]")).toHaveAttribute(
@@ -185,14 +184,11 @@ test("capabilities uses shared controls and the established setting-screen geome
       document.querySelector<HTMLElement>("[data-moderation-settings-card]")!
     ).borderRadius
   }));
+  expect(establishedGeometry.gaps).toEqual(["32px", "24px"]);
   expect(
-    new Set([...capabilityGeometry.gaps, ...establishedGeometry.gaps]).size,
-    "capability spacing matches an established setting screen"
-  ).toBe(1);
-  expect(
-    new Set([...capabilityGeometry.radii, establishedGeometry.radius]).size,
+    capabilityGeometry.radii.every((radius) => radius === establishedGeometry.radius),
     "capability card radius matches an established setting screen"
-  ).toBe(1);
+  ).toBe(true);
 });
 
 test("capabilities saves one sparse change once and preserves CSRF and revision", async ({ page }) => {

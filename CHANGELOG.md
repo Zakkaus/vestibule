@@ -17,6 +17,8 @@ All notable changes to this project are documented here. The format is based on
 - The console group switcher now shows the durable title captured when a runtime group is
   registered. Configured groups and legacy registrations without a title fall back to the
   Telegram group ID without making a `GetChat` request for each console load.
+### Changed
+- Console content pages now use a shared 32/24/16/8/4 px spacing rhythm for page, card-stack, section, and field relationships. Card insets expand from 12 × 16 px to 16 × 24 px; controls and navigation are unchanged.
 
 ## [4.5.6] - 2026-08-29
 
