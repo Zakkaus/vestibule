@@ -855,12 +855,12 @@ test("queue waits for a real response before rendering empty", async ({ page }) 
 
   await page.goto(`/queue?group=${selectedGroupId}`, { waitUntil: "domcontentloaded" });
   await expect(page.locator("[data-queue-page]")).toHaveAttribute("data-queue-state", "loading");
-  await expect(page.getByRole("heading", { name: "还没有人申请" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "尚无人申请" })).toHaveCount(0);
   await queueRequested;
   resolveQueue();
 
   await expect(page.locator("[data-queue-page]")).toHaveAttribute("data-queue-state", "empty");
-  await expect(page.getByRole("heading", { name: "还没有人申请" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "尚无人申请" })).toBeVisible();
 });
 
 test("queue uses the API code for an unavailable load", async ({ page }) => {

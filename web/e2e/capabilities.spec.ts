@@ -119,7 +119,7 @@ test("capabilities explains both states, shows provenance, and keeps one writer 
   await expect(antispam).toContainText("来源：配置文件");
   await expect(antispam).toContainText("已开启");
   await expect(antispam).toContainText(
-    "BotFather 隐私模式关闭时，未受信任的频道身份发言会被删除；确认它不是本群关联频道后，该频道身份会被封禁，并向处罚记录群发出提醒。"
+    "BotFather 隐私模式关闭时，机器人会删除由未受信任的频道身份发送的消息。确认该身份不是本群关联频道后，机器人会封禁该频道身份，并向处罚记录群发送提醒。"
   );
   await expect(antispam).toContainText("机器人不检查频道身份，相关消息会继续交给后续处理。");
   await expect(antispam.getByRole("switch")).toHaveCount(0);

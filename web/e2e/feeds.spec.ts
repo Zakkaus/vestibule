@@ -104,7 +104,7 @@ test("feed delivery renders process values, array records, and API provenance wi
   const processMethods = await openLoadedFeeds(page, configuredProcessSettings);
   const screen = page.locator("[data-feeds-page]");
 
-  await expect(screen.locator("[data-feeds-readonly]")).toContainText("此屏没有写入路径");
+  await expect(screen.locator("[data-feeds-readonly]")).toContainText("此页面不提供写入功能");
   await expect(screen.locator("input, textarea, select, button")).toHaveCount(0);
   await expect(screen.getByText("保存", { exact: true })).toHaveCount(0);
   expect(processMethods).toEqual(["GET"]);
@@ -151,7 +151,7 @@ test("feed delivery identifies operator-only access instead of reporting a load 
   const screen = page.locator("[data-feeds-page]");
   await expect(screen).toHaveAttribute("data-feeds-state", "access-denied");
   await expect(screen.getByRole("heading", { name: "没有权限查看进程设置" })).toBeVisible();
-  await expect(screen).toContainText("此屏仅向运维开放");
+  await expect(screen).toContainText("此页面仅供运维人员使用");
   await expect(screen.getByText("无法读取订阅推送配置", { exact: true })).toHaveCount(0);
   await expect(screen.getByRole("button", { name: "重试" })).toHaveCount(0);
   expect(processMethods).toEqual(["GET"]);
