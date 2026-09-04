@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- **Question editor controls used mixed height tiers.** Option and fallback-answer rows combined
+  `sm` buttons with default-height fields. Their row actions and item deletions now use the
+  default tier.
+
+### Changed
+- **The mobile navigation panel now connects to its trigger.** Its open state shares the trigger
+  edge and uses denser token-based spacing while retaining the lower panel radius.
+
 ## [4.5.6] - 2026-08-29
 
 ### Fixed
