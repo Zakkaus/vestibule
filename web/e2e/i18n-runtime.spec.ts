@@ -63,7 +63,10 @@ async function preferenceControls(page: Page): Promise<PreferenceControls> {
   return { locale: triggers.nth(1) };
 }
 
-async function expectActiveLocale(page: Page, locale: string): Promise<void> {
+// The control reports the preference, which is "system" until somebody chooses a
+// language, the same way the theme control reports "follow the system". The
+// catalogue that is actually active is on <html lang> and in the rendered text.
+async function expectActiveLocale(page: Page, locale: string, preference = locale): Promise<void> {
   const controls = await preferenceControls(page);
   await expect(page.locator("html"), "the console would select the wrong catalogue").toHaveAttribute(
     "lang",
@@ -71,7 +74,7 @@ async function expectActiveLocale(page: Page, locale: string): Promise<void> {
   );
   await expect(controls.locale, "the application would activate a different catalogue than the document language").toHaveAttribute(
     "data-value",
-    locale
+    preference
   );
 }
 
@@ -101,7 +104,7 @@ test("browser and stored language choices select an available console catalogue"
         await mockConsoleSession(page);
         await page.goto(consoleURL(testInfo, "/preferences"));
         await waitForPreferences(page);
-        await expectActiveLocale(page, localeCase.want);
+        await expectActiveLocale(page, localeCase.want, localeCase.storedLocale ?? "system");
       } finally {
         await context.close();
       }
@@ -140,7 +143,7 @@ test("unsupported document language starts the default console catalogue", async
   await expect(page.locator("html")).toHaveAttribute("lang", "fr-CA");
   await expect(controls.locale, "an unsupported document language would start the wrong console catalogue").toHaveAttribute(
     "data-value",
-    "zh-CN"
+    "system"
   );
 });
 
@@ -161,7 +164,7 @@ test("language switching keeps working when locale storage rejects persistence",
   const controls = await preferenceControls(page);
   await selectAppOption(controls.locale, "en");
 
-  await expectActiveLocale(page, "en");
+  await expectActiveLocale(page, "en", "system");
   await expect(page.evaluate((key) => localStorage.getItem(key), localeStorageKey)).resolves.toBeNull();
 });
 

@@ -25,8 +25,9 @@ func (r *recordingIssuer) IssueOperatorLink(telegramID int64) (string, time.Time
 }
 
 // The console link is the whole of an operator session: whoever receives one controls the
-// instance. Its only gate is the issuer's owner check -- the handler has none of its own, and
-// answers a refusal with silence. Nothing tested that a stranger gets that silence.
+// instance. Its only gate is the issuer's owner check -- the handler has none of its own.
+// A stranger is now answered rather than ignored, so what has to hold is that the answer
+// carries no token, not that there is no answer.
 func TestConsoleLinkGoesOnlyToTheOwner(t *testing.T) {
 	const owner, stranger = int64(7), int64(8)
 	for _, tc := range []struct {
@@ -34,11 +35,12 @@ func TestConsoleLinkGoesOnlyToTheOwner(t *testing.T) {
 		from      int64
 		chatType  string
 		wantSends int
+		wantToken bool
 	}{
-		{"the owner in a private chat", owner, telego.ChatTypePrivate, 1},
-		{"a stranger in a private chat", stranger, telego.ChatTypePrivate, 0},
-		{"the owner asking in a group", owner, telego.ChatTypeSupergroup, 0},
-		{"a stranger asking in a group", stranger, telego.ChatTypeSupergroup, 0},
+		{"the owner in a private chat", owner, telego.ChatTypePrivate, 1, true},
+		{"a stranger in a private chat", stranger, telego.ChatTypePrivate, 1, false},
+		{"the owner asking in a group", owner, telego.ChatTypeSupergroup, 0, false},
+		{"a stranger asking in a group", stranger, telego.ChatTypeSupergroup, 0, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			caller := &scriptedCaller{responses: map[string][]scriptedResult{}}
@@ -67,8 +69,10 @@ func TestConsoleLinkGoesOnlyToTheOwner(t *testing.T) {
 					"owner hands them the instance", len(sends), tc.wantSends)
 			}
 			for _, call := range sends {
-				if !strings.Contains(string(call.body), "issued-token") {
-					t.Errorf("the message sent carries no token: %s", call.body)
+				carries := strings.Contains(string(call.body), "issued-token")
+				if carries != tc.wantToken {
+					t.Errorf("the message sent carries a token = %t, want %t: %s",
+						carries, tc.wantToken, call.body)
 				}
 			}
 		})

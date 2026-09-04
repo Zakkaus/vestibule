@@ -148,6 +148,8 @@ func (s *Server) serveHTTP(writer http.ResponseWriter, request *http.Request) {
 		s.ready(writer, request)
 	case s.setup != nil && strings.HasPrefix(request.URL.Path, "/setup/"):
 		s.setupRoute(writer, request)
+	case strings.HasPrefix(request.URL.Path, "/setup/"):
+		s.consumedSetupLink(writer, request)
 	case request.Method == http.MethodGet && strings.HasPrefix(request.URL.Path, "/enter/"):
 		s.enter(writer, request)
 	case strings.HasPrefix(request.URL.Path, "/api/"):

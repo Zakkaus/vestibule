@@ -196,7 +196,7 @@ test("an explicitly selected app locale persists after a real reload", async ({ 
   const browserLanguage = await page.evaluate(() => navigator.language);
   expect(browserLanguage.startsWith("zh")).toBe(true);
   expect(await page.evaluate(() => localStorage.getItem("verify-console-locale"))).toBeNull();
-  await expect(controls.locale).toHaveAttribute("data-value", "zh-CN");
+  await expect(controls.locale).toHaveAttribute("data-value", "system");
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
 
   await selectAppOption(controls.locale, "en");
@@ -229,7 +229,7 @@ test.describe("browser-language locale selection", () => {
     const controls = await preferenceControls(page);
 
     await expect(page.locator("[data-preferences-page] h1")).toHaveText("Preferences");
-    await expect(controls.locale).toHaveAttribute("data-value", "en");
+    await expect(controls.locale).toHaveAttribute("data-value", "system");
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     expect(await page.evaluate(() => localStorage.getItem("verify-console-locale"))).toBeNull();
     expect(requests).toEqual(expectedShellRequests.slice(0, 2));
@@ -250,7 +250,7 @@ test.describe("Traditional Chinese browser-language locale selection", () => {
     await waitForPreferences(page);
     const controls = await preferenceControls(page);
 
-    await expect(controls.locale).toHaveAttribute("data-value", "zh-TW");
+    await expect(controls.locale).toHaveAttribute("data-value", "system");
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-TW");
     expect(await page.evaluate(() => localStorage.getItem("verify-console-locale"))).toBeNull();
     expect(requests).toEqual(expectedShellRequests.slice(0, 2));

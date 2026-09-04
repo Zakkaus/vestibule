@@ -326,6 +326,17 @@ body {
   outline-offset: 2px;
 }
 
+/* The way onward, once the guide has nothing left to ask for. It is set apart
+   from the binding link above it because the two are not alternatives: binding
+   happens in Telegram, and this is where the person lands afterwards. */
+[data-setup-onward] {
+  justify-self: start;
+  margin-block-start: var(--sp-2);
+  background: transparent;
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
 /* Failure is a state with a next step, not a red sentence: the three causes
    send the reader to three different places, so they are never merged. */
 [data-setup-alert] {

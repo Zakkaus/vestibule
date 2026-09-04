@@ -194,6 +194,10 @@ func coreOwnerModule() runtimeModule {
 		Commands: []telegram.CommandDefinition{
 			{Name: "enroll", Description: menu.Enroll.For, Audience: telegram.CommandOwner, External: true},
 			{Name: "unregister", Description: menu.Unregister.For, Audience: telegram.CommandOwner, External: true},
+			// /console was implemented and listed nowhere: not in the menu, not in
+			// help, and silent when it refused. The one person who needs it is the
+			// one who just deployed the instance and has no other way in.
+			{Name: "console", Description: menu.Console.For, Audience: telegram.CommandOwner, External: true},
 		},
 	}}
 }

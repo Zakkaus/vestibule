@@ -86,12 +86,14 @@ type setupPage struct {
 	BindingURL    string
 	BindingAction string
 	AfterBinding  string
+	ConsoleAction string
 }
 
 var setupPageTemplate = template.Must(template.New("setup").Parse(`<!doctype html>
 <html lang="{{.Language}}">
 <head>
 <meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{.Title}}</title>
 <style>{{.Style}}</style>
@@ -116,6 +118,7 @@ var setupPageTemplate = template.Must(template.New("setup").Parse(`<!doctype htm
 <p data-setup-ok>{{.Claimed}}</p>
 {{if .BotName}}<p data-setup-bot>{{.BotNameLabel}} <b>{{.BotName}}</b></p>{{end}}
 {{if .BindingURL}}<p data-setup-note>{{.Binding}}</p><a data-setup-action href="{{.BindingURL}}">{{.BindingAction}}</a><p data-setup-note>{{.AfterBinding}}</p>{{end}}
+<a data-setup-action data-setup-onward href="/">{{.ConsoleAction}}</a>
 </section>
 {{else}}
 <form method="post" data-setup-form>
@@ -226,6 +229,7 @@ func setupPageFor(language i18n.Lang, failure string, result SetupResult) setupP
 		BindingURL:    result.BindingURL,
 		BindingAction: setup.BindingAction.For(language),
 		AfterBinding:  setup.AfterBinding.For(language),
+		ConsoleAction: setup.ConsoleAction.For(language),
 	}
 }
 
@@ -281,4 +285,13 @@ func claimedSetupText(language i18n.Lang, result SetupResult) string {
 
 func setupLanguage(request *http.Request) i18n.Lang {
 	return i18n.FromRequester(request.Header.Get("Accept-Language"), i18n.LangZH)
+}
+
+// consumedSetupLink answers a setup path on an instance that is already claimed.
+// Whoever is here finished the guide, went to Telegram to bind their account,
+// and came back to the tab it was open in. They were being handed a bare JSON
+// 404, which is what a consumed one-time link looks like from the inside and
+// nothing at all from the outside; the console is where they belong.
+func (s *Server) consumedSetupLink(writer http.ResponseWriter, request *http.Request) {
+	http.Redirect(writer, request, "/", http.StatusSeeOther)
 }

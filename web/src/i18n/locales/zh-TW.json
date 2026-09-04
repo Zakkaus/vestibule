@@ -11,6 +11,7 @@
   },
   "locale": {
     "label": "語言",
+    "system": "跟隨瀏覽器",
     "zhCN": "中文（簡體）",
     "zhTW": "中文（繁體）",
     "en": "English"

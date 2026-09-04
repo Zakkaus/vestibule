@@ -74,8 +74,14 @@ func TestSetupClaimsOnlyOnce(t *testing.T) {
 
 	first := postSetup(server, setupTestLinkToken, setupTestBotToken)
 	second := postSetup(server, setupTestLinkToken, setupTestBotToken)
-	if first.Code != http.StatusOK || second.Code != http.StatusNotFound || len(service.claims) != 1 {
-		t.Fatalf("claim responses first=%d second=%d claims=%d, want 200, 404, 1", first.Code, second.Code, len(service.claims))
+	// The second attempt reaches no claim at all. It is answered with the way to
+	// the console rather than an error, because on a claimed instance the only
+	// person at this address is the one who just finished here.
+	if first.Code != http.StatusOK || second.Code != http.StatusSeeOther || len(service.claims) != 1 {
+		t.Fatalf("claim responses first=%d second=%d claims=%d, want 200, 303, 1", first.Code, second.Code, len(service.claims))
+	}
+	if location := second.Header().Get("Location"); location != "/" {
+		t.Fatalf("the second attempt was sent to %q, want the console at /", location)
 	}
 }
 
@@ -86,9 +92,16 @@ func TestSetupRouteDisappearsAfterClaim(t *testing.T) {
 	if response := postSetup(server, setupTestLinkToken, setupTestBotToken); response.Code != http.StatusOK {
 		t.Fatalf("claim status=%d, want 200", response.Code)
 	}
+	// The link is consumed, and the person who consumed it comes back to the tab
+	// it was open in after binding their account in Telegram. A bare JSON 404 is
+	// what that looks like from the inside and nothing at all from the outside.
 	afterClaim := getPath(server, "/setup/"+setupTestLinkToken)
-	if afterClaim.Code != http.StatusNotFound || decodeError(afterClaim) != "not_found" {
-		t.Fatalf("setup after claim status=%d error=%q, want 404/not_found", afterClaim.Code, decodeError(afterClaim))
+	if afterClaim.Code != http.StatusSeeOther || afterClaim.Header().Get("Location") != "/" {
+		t.Fatalf("setup after claim status=%d location=%q, want 303 to /",
+			afterClaim.Code, afterClaim.Header().Get("Location"))
+	}
+	if body := afterClaim.Body.String(); strings.Contains(body, "not_found") {
+		t.Fatalf("setup after claim still answered with an error payload: %q", body)
 	}
 }
 
