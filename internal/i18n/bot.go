@@ -158,12 +158,42 @@ type BotSetupCatalog struct {
 	Submit Text
 	// TokenRequired reports an empty token input.
 	TokenRequired Text
-	// ClaimFailed reports a rejected or unavailable claim without exposing credentials.
-	ClaimFailed Text
 	// Claimed confirms that the bot is running after a successful claim.
 	Claimed Text
 	// Binding explains the Telegram owner-binding step.
 	Binding Text
 	// BindingAction labels the Telegram owner-binding link.
 	BindingAction Text
+	// Eyebrow names the screen above its title.
+	Eyebrow Text
+	// StepsLabel names the deployment step list for assistive technology.
+	StepsLabel Text
+	// StepConsole names the first deployment step.
+	StepConsole Text
+	// StepConsoleNote explains why the first step happens in a browser.
+	StepConsoleNote Text
+	// StepToken names the second deployment step.
+	StepToken Text
+	// StepTokenNote explains why the token is asked for here and not on a terminal.
+	StepTokenNote Text
+	// StepBinding names the third deployment step.
+	StepBinding Text
+	// StepBindingNote explains why binding cannot happen before the bot exists.
+	StepBindingNote Text
+	// StepGroup names the fourth deployment step.
+	StepGroup Text
+	// StepGroupNote explains what the instance checks once a group appears.
+	StepGroupNote Text
+	// TokenHint says where a bot token comes from.
+	TokenHint Text
+	// TokenRejected reports that Telegram answered and refused the token.
+	TokenRejected Text
+	// TelegramUnreachable reports that the token was never judged because Telegram did not answer.
+	TelegramUnreachable Text
+	// InstanceFault reports a claim that failed after the token was accepted.
+	InstanceFault Text
+	// BotNameLabel introduces the bot name Telegram returned for the token.
+	BotNameLabel Text
+	// AfterBinding says what happens once the deployer account is bound.
+	AfterBinding Text
 }

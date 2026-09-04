@@ -64,13 +64,28 @@
   },
   "setup": {
     "title": "认领此实例",
-    "description": "输入 Telegram 机器人令牌以启动此实例。",
+    "description": "脚本在这台机器上的部分已经完成。其余配置在浏览器里填，令牌不进命令行历史。",
     "token_label": "Telegram 机器人令牌",
     "submit": "认领实例",
     "token_required": "必须提供 Telegram 机器人令牌。",
-    "claim_failed": "无法认领此实例。请确认令牌有效后重试。",
     "claimed": "实例已认领，机器人已启动。",
     "binding": "在 Telegram 中打开此链接以绑定部署者身份。",
-    "binding_action": "在 Telegram 中绑定"
+    "binding_action": "在 Telegram 中绑定",
+    "eyebrow": "部署",
+    "steps_label": "部署步骤",
+    "step_console": "打开控制台",
+    "step_console_note": "安装脚本打印的一次性链接已经把这台控制台交给你。",
+    "step_token": "填机器人令牌",
+    "step_token_note": "在这里填而不在终端里问，令牌就不会留在命令行历史，也不会因为终端回滚被人看到。",
+    "step_binding": "绑定你的账号",
+    "step_binding_note": "令牌被接受之后机器人才存在，此时才收得到私聊口令。",
+    "step_group": "拉进第一个群",
+    "step_group_note": "等群出现，并逐项检查机器人需要的权限。",
+    "token_hint": "在 Telegram 里向 @BotFather 要一个机器人，把它给你的那一整行贴进来，包含冒号前的数字。",
+    "token_rejected": "Telegram 没有接受这个令牌。请确认整行都已贴上，包含冒号前的数字。",
+    "telegram_unreachable": "连不上 Telegram，令牌还没有被判定。需要处理的是这台机器的网络或代理，不是令牌。",
+    "instance_fault": "令牌已被接受，但实例没能启动。这不是令牌的问题，原因写在服务器日志里。",
+    "bot_name_label": "已连上",
+    "after_binding": "绑定之后把机器人拉进第一个群，控制台会停在群列表。"
   }
 }

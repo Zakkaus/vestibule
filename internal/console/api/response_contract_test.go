@@ -244,9 +244,13 @@ func TestSetupPageCarriesLocalizedClaimStateAndSecurityHeaders(t *testing.T) {
 			t.Fatalf("setup form omitted %s %q from the rendered claim response", name, text)
 		}
 	}
+	// The policy admits exactly the stylesheet this binary embedded, by hash, so
+	// the assertion is on that hash rather than on a copied literal that would
+	// have to be re-typed on every edit to setup.css.
+	wantPolicy := "default-src 'none'; base-uri 'none'; form-action 'self'; style-src " + styleHash(setupStyle)
 	if formResponse.Code != http.StatusUnprocessableEntity ||
 		formResponse.Header().Get("Content-Type") != "text/html; charset=utf-8" ||
-		formResponse.Header().Get("Content-Security-Policy") != "default-src 'none'; base-uri 'none'; form-action 'self'" ||
+		formResponse.Header().Get("Content-Security-Policy") != wantPolicy ||
 		formResponse.Header().Get("Referrer-Policy") != "no-referrer" {
 		t.Fatalf("setup response lost its status, media type, or browser protections: status=%d headers=%v",
 			formResponse.Code, formResponse.Header())

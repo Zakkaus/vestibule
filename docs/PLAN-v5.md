@@ -356,7 +356,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 | 三个 `Save` 的错误被丢弃 | `internal/verification/state.go:108`、`:298`、`:754` 都走 `retryStoreWrite`，失败落日志 |
 | `moderate` 的 `LoadWarnings` 同形状 | `internal/moderate/state.go:36` 记下 `loadErr` 并把错误返回 |
 | 构造函数无法返回恢复错误 | `internal/verification/service.go:193` 与 `internal/moderate/service.go:55` 都返回 `error` |
-| 装配层只能继续启动 | `internal/app/app.go:82-85` 在 `newBaseServices` 返回错误时终止启动 |
+| 装配层只能继续启动 | `internal/app/app.go:89-92` 在 `newBaseServices` 返回错误时终止启动 |
 
 「出错」与「条件不匹配影响 0 行」的区分由
 `internal/database/verification_store.go:198` 的 `changedRow` 承担：读不出受影响行数是错误，

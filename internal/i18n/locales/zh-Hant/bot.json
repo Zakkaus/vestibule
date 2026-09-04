@@ -64,13 +64,28 @@
   },
   "setup": {
     "title": "認領此執行個體",
-    "description": "輸入 Telegram 機器人權杖以啟動此執行個體。",
+    "description": "指令碼在這台機器上的部分已經完成。其餘設定在瀏覽器裡填，權杖不進指令列歷史。",
     "token_label": "Telegram 機器人權杖",
     "submit": "認領執行個體",
     "token_required": "必須提供 Telegram 機器人權杖。",
-    "claim_failed": "無法認領此執行個體。請確認權杖有效後重試。",
     "claimed": "執行個體已認領，機器人已啟動。",
     "binding": "請在 Telegram 中開啟此連結以綁定部署者身分。",
-    "binding_action": "在 Telegram 中綁定"
+    "binding_action": "在 Telegram 中綁定",
+    "eyebrow": "部署",
+    "steps_label": "部署步驟",
+    "step_console": "開啟控制台",
+    "step_console_note": "安裝指令碼印出的一次性連結已經把這台控制台交給你。",
+    "step_token": "填機器人權杖",
+    "step_token_note": "在這裡填而不在終端機裡問，權杖就不會留在指令列歷史，也不會因為終端機回捲被人看到。",
+    "step_binding": "綁定你的帳號",
+    "step_binding_note": "權杖被接受之後機器人才存在，此時才收得到私訊口令。",
+    "step_group": "拉進第一個群組",
+    "step_group_note": "等群組出現，並逐項檢查機器人需要的權限。",
+    "token_hint": "在 Telegram 裡向 @BotFather 要一個機器人，把它給你的那一整行貼進來，包含冒號前的數字。",
+    "token_rejected": "Telegram 沒有接受這個權杖。請確認整行都已貼上，包含冒號前的數字。",
+    "telegram_unreachable": "連不上 Telegram，權杖還沒有被判定。需要處理的是這台機器的網路或代理，不是權杖。",
+    "instance_fault": "權杖已被接受，但執行個體沒能啟動。這不是權杖的問題，原因寫在伺服器記錄檔裡。",
+    "bot_name_label": "已連上",
+    "after_binding": "綁定之後把機器人拉進第一個群組，控制台會停在群組列表。"
   }
 }

@@ -3,8 +3,10 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 	"time"
 
@@ -20,6 +22,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
+	"github.com/mymmrac/telego/telegoapi"
 )
 
 // Options contains process inputs read by cmd/bot.
@@ -311,7 +314,7 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 	}
 	bot, err := newBot(options, progress)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %w", api.ErrSetupTokenRejected, err)
 	}
 	connector := telegram.NewConnector(bot)
 	consoleAuth, consoleHandler, err := newConsoleAuthentication(
@@ -329,7 +332,7 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 	startedAt := time.Now()
 	me, err := heartbeatBot.GetMe(ctx)
 	if err != nil {
-		return fmt.Errorf("GetMe failed (required for the verification deep link): %w", err)
+		return fmt.Errorf("%w: GetMe failed (required for the verification deep link): %w", claimFailureFor(err), err)
 	}
 	logPrivacyMode(me)
 	identity := verification.Identity{ID: me.ID, Username: me.Username}
@@ -376,6 +379,18 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 	runtime.consoleAuth = consoleAuth
 	runtime.identity = identity
 	return nil
+}
+
+// claimFailureFor says which half of a failed GetMe the person on the setup page
+// can act on. A token Telegram answered and refused has to be pasted again; a
+// Telegram that never answered has to be fixed on the machine, and the token is
+// not the problem. One message for both sends half of them to the wrong place.
+func claimFailureFor(err error) error {
+	var apiError *telegoapi.Error
+	if errors.As(err, &apiError) && apiError.ErrorCode == http.StatusUnauthorized {
+		return api.ErrSetupTokenRejected
+	}
+	return api.ErrSetupTelegramUnreachable
 }
 
 func verificationStateNamespace(stateDirectory string) string {
