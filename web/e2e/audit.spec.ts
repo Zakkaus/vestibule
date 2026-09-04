@@ -183,10 +183,10 @@ test("audit loading does not masquerade as an empty history", async ({ page }) =
   await page.goto(`/audit?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
   await readRequested;
   await expect(page.locator("[data-audit-page]")).toHaveAttribute("data-audit-state", "loading");
-  await expect(page.getByRole("heading", { name: "还没有已结算的判定" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "尚无已结算的判定" })).toHaveCount(0);
   resolveRead();
   await expect(page.locator("[data-audit-page]")).toHaveAttribute("data-audit-state", "empty");
-  await expect(page.getByRole("heading", { name: "还没有已结算的判定" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "尚无已结算的判定" })).toBeVisible();
 });
 
 test("audit discards group A's delayed read after the visible group switcher selects group B", async ({

@@ -152,7 +152,7 @@ test("moderation sends one sparse change with CSRF and accepts an unchanged revi
     }
   );
 
-  await page.getByRole("switch", { name: "拦截频道马甲" }).click();
+  await page.getByRole("switch", { name: "拦截冒充频道身份的发言" }).click();
   await page.getByRole("button", { name: "保存", exact: true }).click();
   await patchRequested;
   expect(csrfHeader).toBe("moderation-csrf");
@@ -174,7 +174,7 @@ test("moderation sends one sparse change with CSRF and accepts an unchanged revi
     "data-save-state",
     "saved"
   );
-  await expect(page.getByRole("switch", { name: "拦截频道马甲" })).toHaveAttribute(
+  await expect(page.getByRole("switch", { name: "拦截冒充频道身份的发言" })).toHaveAttribute(
     "aria-checked",
     "false"
   );
@@ -248,7 +248,7 @@ test("moderation identifies another administrator's revision conflict before rel
   await adminLogInput.fill("");
   await page.getByRole("button", { name: "保存", exact: true }).click();
   await expect(page.locator('[data-moderation-feedback="conflict"]')).toContainText(
-    "别人改过这些设置了。重新载入后再保存。"
+    "其他人已修改这些设置。请重新载入后再保存。"
   );
   await expect(page.getByText("无法保存管理与处罚设置。请重试。")).toHaveCount(0);
   expect(requestBody).toEqual({
@@ -352,7 +352,7 @@ test("moderation ignores a previous group's delayed settings save", async ({ pag
     }
   );
 
-  await page.getByRole("switch", { name: "拦截频道马甲" }).click();
+  await page.getByRole("switch", { name: "拦截冒充频道身份的发言" }).click();
   await page.getByRole("button", { name: "保存", exact: true }).click();
   await patchRequested;
   await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
@@ -362,7 +362,7 @@ test("moderation ignores a previous group's delayed settings save", async ({ pag
   releasePatch();
   await patchResponseSettled;
   await expect(page.getByLabel("警告上限")).toHaveValue("9");
-  await expect(page.getByRole("switch", { name: "拦截频道马甲" })).toHaveAttribute(
+  await expect(page.getByRole("switch", { name: "拦截冒充频道身份的发言" })).toHaveAttribute(
     "aria-checked",
     "true"
   );

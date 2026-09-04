@@ -59,9 +59,9 @@
     },
     "expired": {
       "title": "这条链接已过期",
-      "description": "一次性链接有有效期。过期不表示账号或控制台出了问题。",
+      "description": "一次性链接有有效期。过期并不表示账号或控制台发生故障。",
       "steps": {
-        "request": "向 {{botUsername}} 再要一条一次性链接。"
+        "request": "向 {{botUsername}} 索取新的一次性链接。"
       }
     },
     "redeemed": {
@@ -98,7 +98,7 @@
     "reason": {
       "wrongAnswer": "答错",
       "rejected": "答对但触发否决条件",
-      "externalUnmet": "外部条件查不到"
+      "externalUnmet": "无法查询外部条件"
     }
   },
   "groups": {
@@ -166,9 +166,9 @@
     },
     "prerequisites": {
       "heading": "验证前置",
-      "joinRequestsEnabled": "群已开启批准",
+      "joinRequestsEnabled": "群已启用入群申请",
       "botIsAdministrator": "机器人是管理员",
-      "joinEventsDeclared": "拉取时声明申请事件",
+      "joinEventsDeclared": "获取时已声明入群申请事件",
       "present": "已具备",
       "missing": "缺失"
     },
@@ -246,7 +246,7 @@
       "targetUnavailable": "暂时无法确认此申请人的群成员状态。请重试。"
     },
     "empty": {
-      "title": "还没有人申请",
+      "title": "尚无人申请",
       "description": "收到第一份申请后，等待中的人会出现在这里。"
     },
     "filteredEmpty": {
@@ -266,7 +266,7 @@
   "moderation": {
     "navigation": "管理与处罚",
     "title": "管理与处罚",
-    "description": "调整当前群的警告上限、频道身份拦截和处罚记录去向。",
+    "description": "调整当前群的警告上限、频道身份冒充防护和处罚记录去向。",
     "loading": {
       "title": "正在载入管理与处罚设置",
       "description": "正在读取当前群的有效设置和设置来源…"
@@ -296,8 +296,8 @@
       "description": "同一成员累计达到这个次数后，机器人会将其移出群。"
     },
     "antispam": {
-      "label": "拦截频道马甲",
-      "description": "删除未受信任的频道身份发言；确认它不是本群关联频道后，再封禁该频道身份。此项默认开启。"
+      "label": "拦截冒充频道身份的发言",
+      "description": "删除由未受信任的频道身份发送的消息。确认该身份不是本群关联频道后，封禁该频道身份。此项默认启用。"
     },
     "adminLog": {
       "label": "处罚记录群",
@@ -321,7 +321,7 @@
     },
     "feedback": {
       "saved": "管理与处罚设置已保存。",
-      "conflict": "别人改过这些设置了。重新载入后再保存。"
+      "conflict": "其他人已修改这些设置。请重新载入后再保存。"
     },
     "errors": {
       "authenticationInvalid": "控制台会话无效。请从 Telegram 重新打开控制台。",
@@ -346,7 +346,7 @@
     },
     "accessDenied": {
       "title": "没有权限查看进程设置",
-      "description": "此屏仅向运维开放。群管理员只能查看自己所管理群的配置，不能读取整个进程的订阅设置。"
+      "description": "此页面仅供运维人员使用。群管理员只能查看自己所管理群的配置，不能读取整个进程的订阅设置。"
     },
     "unavailable": {
       "title": "无法读取订阅推送配置",
@@ -355,7 +355,7 @@
     "readOnly": {
       "title": "由配置文件管理",
       "badge": "只读",
-      "description": "这些值来自程序默认配置或启动配置文件。此屏没有写入路径；控制台只展示接口返回的当前值和来源。"
+      "description": "这些值来自程序默认配置或启动配置文件。此页面不提供写入功能；控制台只显示接口返回的当前值和来源。"
     },
     "source": {
       "value": "来源：{{source}}",
@@ -381,7 +381,7 @@
     },
     "newsURL": {
       "title": "新闻源地址",
-      "description": "进程抓取新闻项目时使用的全局地址。",
+      "description": "进程获取新闻条目时使用的全局 URL。",
       "empty": "未配置新闻源地址"
     },
     "overlays": {
@@ -418,7 +418,7 @@
   "bypass": {
     "navigation": "免验证来源",
     "title": "免验证来源",
-    "description": "管理当前群的信任群、必关频道和频道身份白名单。",
+    "description": "管理当前群的信任群、必须加入的频道和频道身份白名单。",
     "loading": {
       "title": "正在载入免验证来源设置",
       "description": "正在读取当前群的有效设置和设置来源…"
@@ -446,13 +446,13 @@
     "trusted": {
       "title": "信任群",
       "label": "信任这些群的成员",
-      "description": "确认是任一信任群成员的申请人会跳过验证。查不到成员身份时仍会继续验证。每行一个 Telegram 群 ID。"
+      "description": "已确认属于任一信任群的申请人会跳过验证。无法读取成员身份时，仍会继续验证。每行输入一个 Telegram 群 ID。"
     },
     "requiredChannel": {
-      "title": "必关频道",
+      "title": "必须加入的频道",
       "sectionDescription": "申请人必须是此频道成员，才能通过此条件。",
       "id": {
-        "label": "必关频道 ID",
+        "label": "必须加入的频道 ID",
         "description": "留空或填 0 会关闭此条件。启用后，必须填写以 @ 开头的显示名或频道邀请链接。"
       },
       "display": {
@@ -465,8 +465,8 @@
       },
       "failOpen": {
         "label": "无法检查频道时仍放行",
-        "description": "机器人既无法读取申请人，也无法读取自己在必关频道中的成员身份时，决定是否放行已完成其余验证的申请。",
-        "enabled": "当前会放行已完成其余验证的申请。机器人无法检查频道时，未关注频道的人也可能进入；必关频道验证会失去作用。",
+        "description": "当机器人无法读取申请人及自身在必须加入的频道中的成员身份时，可选择是否放行已通过其余所有验证的申请人。",
+        "enabled": "当前会放行已通过其余所有验证的申请人。机器人无法检查频道时，未加入该频道的人也可能进入；必须加入的频道验证不再保护此群。",
         "disabled": "当前会拒绝申请。机器人临时失去频道权限或 Telegram 查询失败时，正常申请人也可能被误拒，需要稍后重新申请。"
       }
     },
@@ -482,7 +482,7 @@
     "validation": {
       "integer": "请输入整数频道 ID，或留空关闭此条件。",
       "list": "每行填写一个非 0 的整数 Telegram ID，且不能重复。",
-      "reachableChannel": "必关频道已启用时，必须填写以 @ 开头的显示名或频道邀请链接。"
+      "reachableChannel": "必须加入的频道已启用时，必须填写以 @ 开头的显示名或频道邀请链接。"
     },
     "save": {
       "label": "保存免验证来源设置",
@@ -497,7 +497,7 @@
     },
     "feedback": {
       "saved": "免验证来源设置已保存。",
-      "conflict": "别人改过这些设置了。已重新载入最新值，请重新应用仍需要的更改。"
+      "conflict": "其他人已修改这些设置。已重新载入最新值，请重新应用仍需要的更改。"
     },
     "errors": {
       "authenticationExpired": "会话已过期。请从 Telegram 重新打开控制台。",
@@ -579,7 +579,7 @@
       "undoUnavailable": "暂时无法撤销这项封禁。请重试。"
     },
     "empty": {
-      "title": "还没有已结算的判定",
+      "title": "尚无已结算的判定",
       "description": "验证判定结算后会显示在这里，并保留原始历史。"
     }
   },
@@ -606,7 +606,7 @@
     },
     "delivery": {
       "title": "投递渠道",
-      "description": "选择挑战发送到哪里。",
+      "description": "选择挑战的发送位置。",
       "label": "挑战投递",
       "group": "仅群内",
       "dm": "私聊优先",
@@ -634,7 +634,7 @@
         "description": "请输入 30 至 1,800 之间的整数秒。"
       },
       "maxFails": {
-        "label": "自动封禁失败次数",
+        "label": "自动封禁失败上限",
         "description": "0 或负数会关闭自动封禁。"
       },
       "retry": {
@@ -732,7 +732,7 @@
     },
     "language": {
       "title": "答题语言",
-      "description": "选择机器人向申请人显示题目和验证文案时使用的语言。",
+      "description": "选择机器人向申请人显示题目和验证消息时使用的语言。",
       "label": "群内答题语言",
       "settingDescription": "可选简体中文、繁体中文或英语；内置备用题也使用此语言。",
       "zh": "简体中文",
@@ -764,7 +764,7 @@
       "itemTitle": "备用题 {{number}}",
       "prompt": "题面",
       "answers": "可接受答案",
-      "answersDescription": "判定会走服务端的真实答案归一化逻辑；这里仅维护完整答案列表。",
+      "answersDescription": "判定使用与实际挑战相同的服务端答案归一化规则。请在此输入每个完整的可接受回答。",
       "answer": "答案 {{number}}",
       "confirmDelete": "删除备用题 {{number}}？保存后，这道题会从当前群的备用题库中移除。"
     },
@@ -825,8 +825,8 @@
       "description": "正在读取此实例已经上报的状态…"
     },
     "accessDenied": {
-      "title": "这是实例状态，不归群管理员查看",
-      "description": "此屏仅向运维开放。群管理员可管理自己的群，但不能读取整台实例的运行状态。"
+      "title": "群管理员无权查看实例状态",
+      "description": "此页面仅供运维人员使用。群管理员可管理自己的群，但不能读取整个实例的运行状态。"
     },
     "unavailable": {
       "title": "无法读取实例状态",
@@ -835,7 +835,7 @@
     "readOnly": {
       "title": "只读状态",
       "badge": "只读",
-      "description": "此屏不会修改运行时状态。接口只返回当前已经上报的实例状态。"
+      "description": "此页面不会修改运行时状态。接口仅返回实例已上报的状态。"
     },
     "sections": {
       "health": {
@@ -856,7 +856,7 @@
       },
       "rollback": {
         "title": "回退条件读数",
-        "description": "阶段十提前写死的四条回退条件对应的读数。此屏只给出数值和阈值，是否回退由人判断。"
+        "description": "第十阶段预先固定的四项回退条件对应的读数。此页面仅显示数值和阈值，是否回退由人工判断。"
       }
     },
     "labels": {
@@ -913,7 +913,7 @@
     "notReported": {
       "permissionPreflight": "没有按群权限结果，不能以 Telegram 就绪代替。",
       "queryCache": "没有缓存状态或命中数据。",
-      "queryRateLimit": "查询限流是按群设置，不与实例状态混在此屏。"
+      "queryRateLimit": "查询限流按群设置，不纳入此实例状态。"
     },
     "errors": {
       "authenticationExpired": "会话已过期。请重新从 Telegram 进入控制台。",
@@ -933,7 +933,7 @@
         "rate": "{{rate}}（{{failed}} / {{total}} 次写入）"
       },
       "rejections": {
-        "reading": "最近 {{window}}内按原因汇总的拒绝与封禁结算数。这是给人核查的原料，不代表已经误拒。",
+        "reading": "最近 {{window}} 内按原因汇总的拒绝与封禁结算数。这是供人工核查的数据，不代表有人被错误拒绝。",
         "unavailable": "本次没有读到拒绝记录，下面不显示数字。",
         "none": "窗口内没有拒绝或封禁结算。"
       }
@@ -942,7 +942,7 @@
   "version": {
     "navigation": "版本",
     "title": "版本",
-    "description": "查看当前版本，按需检查正式发布，并在升级前确认回退条件。",
+    "description": "查看正在运行的版本，按需检查已发布的版本，并在升级前确认回退兼容性。",
     "actions": {
       "retry": "重试",
       "cancel": "取消"
@@ -956,7 +956,7 @@
     },
     "accessDenied": {
       "title": "这是实例运维信息",
-      "description": "此屏仅向运维开放。群管理员不能读取版本信息或发起升级。"
+      "description": "此页面仅供运维人员使用。群管理员不能读取版本信息或发起升级。"
     },
     "unavailable": {
       "title": "无法读取版本状态"
@@ -975,7 +975,7 @@
       "reasonCode": "原因代码",
       "none": "尚未记录替换结果。",
       "status": {
-        "applied": "升级已应用",
+        "applied": "升级已完成",
         "failed": "升级失败",
         "rejected": "请求被拒绝",
         "rolledBack": "已自动回退",
@@ -993,24 +993,24 @@
       }
     },
     "release": {
-      "title": "可用新版",
+      "title": "可用的新版本",
       "description": "只有按下检查更新才会访问 GitHub。查询失败不影响当前版本和宿主状态。",
       "check": "检查更新",
       "checking": "正在检查",
       "notChecked": "尚未检查。此页不会在后台访问发布源。",
-      "available": "有新版",
-      "current": "已是最新",
+      "available": "有可用的新版本",
+      "current": "已是最新版本",
       "notes": "变更说明",
       "noNotes": "此发布没有变更说明。",
-      "open": "查看完整发布页面"
+      "open": "打开完整发布页面"
     },
     "rollback": {
-      "safe": "可以回退",
-      "blocked": "不能回退",
-      "available": "目标 schema 为 v{{target}}，最低回退 schema 为 v{{minimum}}；当前保留版本支持 schema v{{retained}}。",
-      "schemaIncompatible": "无法回退：目标 schema v{{target}} 要求保留版本至少支持 schema v{{minimum}}，但当前保留版本只支持 schema v{{retained}}。",
+      "safe": "可回退",
+      "blocked": "不可回退",
+      "available": "目标 schema 为 v{{target}}，最低回退 schema 为 v{{minimum}}。当前保留版本支持 schema v{{retained}}。",
+      "schemaIncompatible": "无法回退。目标 schema v{{target}} 要求保留版本至少支持 schema v{{minimum}}。当前保留版本只支持 schema v{{retained}}。",
       "unknownTarget": "无法确认目标 schema v{{target}} 的兼容范围，因此不会发起升级。",
-      "notEarlier": "当前保留版本的 schema v{{retained}} 高于目标 schema v{{target}}，因此它不是可用的回退版本。",
+      "notEarlier": "当前保留版本的 schema v{{retained}} 高于目标 schema v{{target}}。因此，它不是可用的回退版本。",
       "unknown": "无法确认此版本的回退条件，因此不会发起升级。"
     },
     "manual": {
@@ -1021,7 +1021,7 @@
     },
     "upgrade": {
       "action": "升级到此版本",
-      "confirm": "确认让宿主替换单元升级到 {{version}}？升级会重启应用；健康检查失败时，宿主会按已显示的回退条件处理。",
+      "confirm": "是否允许宿主替换单元升级到 {{version}}？升级会重启应用；健康检查失败时，宿主会按上方显示的回退条件处理。",
       "confirmAction": "确认升级",
       "requesting": "正在提交升级",
       "monitoring": "等待宿主结果",
@@ -1034,7 +1034,7 @@
     },
     "errors": {
       "authenticationExpired": "会话已过期。请重新从 Telegram 进入控制台。",
-      "accessDenied": "只有运维可以查看发布信息或发起升级。",
+      "accessDenied": "只有运维人员可以查看发布信息或发起升级。",
       "csrfInvalid": "此页的安全令牌已过期。刷新页面后再重试。",
       "authenticationInvalid": "无法验证此控制台会话。请从 Telegram 重新打开控制台。",
       "authenticationUnavailable": "暂时无法确认此会话的实例运维权限。请重试。",
@@ -1109,7 +1109,7 @@
     },
     "daily": {
       "title": "每日结果",
-      "description": "图看趋势，表看数字。",
+      "description": "图表显示趋势，表格显示精确数值。",
       "date": "日期",
       "challenges": "挑战",
       "approved": "通过",
@@ -1123,7 +1123,7 @@
       "description": "验证方式名称直接来自统计接口。",
       "kind": "验证方式",
       "count": "拦截量",
-      "empty": "所选日期范围内没有拦截结果。"
+      "empty": "所选日期范围内未发生拦截。"
     },
     "errors": {
       "authenticationExpired": "会话已过期。请从 Telegram 重新打开控制台。",
@@ -1168,8 +1168,8 @@
     },
     "rules": {
       "title": "自动回复规则",
-      "description": "规则定义由服务端解释。这里保留定义本身，只管理启停和匹配顺序。",
-      "saveSemantics": "启停会立即保存一条规则；调整顺序会替换同一规则集合。",
+      "description": "规则定义由服务端解释。此页面保留每条定义，仅管理启用状态和匹配顺序。",
+      "saveSemantics": "更改启用状态会立即保存一条规则；调整顺序会替换整个规则集合。",
       "loading": {
         "title": "正在载入自动回复规则",
         "description": "正在读取当前群保存的规则集合…"
@@ -1195,7 +1195,7 @@
       "down": "下移",
       "itemSaving": "正在保存…",
       "empty": {
-        "title": "还没有自动回复规则",
+        "title": "尚无自动回复规则",
         "description": "规则集合为空时会显示在这里。"
       },
       "feedback": {
@@ -1208,7 +1208,7 @@
       "title": "消息显示",
       "description": "调整当前群消息中的显示名和富文本发送方式。",
       "nameSpoiler": {
-        "label": "剧透申请人显示名",
+        "label": "隐藏申请人显示名",
         "description": "在公开验证消息中隐藏申请人的显示名。"
       },
       "richMessages": {
@@ -1238,7 +1238,7 @@
       "factoryDefault": "出厂默认",
       "userFile": "配置文件",
       "chatOverride": "此群覆盖",
-      "pending": "本次未保存",
+      "pending": "当前会话未保存",
       "restoring": "待恢复继承值"
     },
     "actions": {
@@ -1250,13 +1250,13 @@
     },
     "settingsFeedback": {
       "saved": "已保存消息设置。",
-      "conflict": "其他管理员已经更改消息设置。已载入最新值；请重新应用需要的更改。"
+      "conflict": "其他管理员已经更改消息设置。已载入最新值；请重新应用仍需要的更改。"
     },
     "copyGap": {
-      "title": "尚未提供的文案",
-      "description": "进出提示和验证全流程文案尚未提供读取或保存字段，因此此屏不使用其他设置替代它们。",
-      "joinLeave": "进出提示",
-      "verification": "验证全流程文案"
+      "title": "文案字段不可用",
+      "description": "加入和离开通知以及验证流程文案尚未提供读取或保存字段，因此此页面不会以其他设置替代这些字段。",
+      "joinLeave": "加入和离开通知",
+      "verification": "验证流程文案"
     },
     "validation": {
       "integer": "请输入整数。",
@@ -1274,7 +1274,7 @@
       "loadUnavailable": "消息与文案暂时不可用。请重试。",
       "loadSettingsUnavailable": "暂时无法读取消息设置。请重试。",
       "saveSettingsUnavailable": "暂时无法保存消息设置。请重试。",
-      "invalidRule": "规则定义无效。请重新读取规则后再试。",
+      "invalidRule": "规则定义无效。请重新读取规则后重试。",
       "ruleNotFound": "这条规则已不存在。请重新读取规则。",
       "ruleConflict": "规则已被其他管理员更改。请重新读取规则。",
       "rulesUnavailable": "自动回复规则暂时不可用。请重试。",
@@ -1286,7 +1286,7 @@
   "capabilities": {
     "navigation": "功能",
     "title": "功能",
-    "description": "查看当前群的整组能力及开关后果。需要细调的能力仍在对应页面保存，避免同一项出现两个保存入口。",
+    "description": "查看当前群的各项功能以及启用或停用后的影响。详细控制仍保留在各自页面，以确保每项设置只有一个保存入口。",
     "loading": {
       "title": "正在载入功能",
       "description": "正在读取当前群的功能状态…"
@@ -1308,16 +1308,16 @@
       "disabled": "已关闭"
     },
     "outcomes": {
-      "label": "开关后果",
-      "enabled": "开启后",
-      "disabled": "关闭后"
+      "label": "各状态的影响",
+      "enabled": "启用后",
+      "disabled": "停用后"
     },
     "source": {
       "value": "来源：{{source}}",
       "factoryDefault": "出厂默认",
       "userFile": "配置文件",
       "chatOverride": "此群覆盖",
-      "pending": "本次未保存",
+      "pending": "当前会话未保存",
       "restoring": "待恢复继承值"
     },
     "verification": {
@@ -1328,9 +1328,9 @@
       "details": "设置验证方式"
     },
     "antispam": {
-      "title": "拦截频道马甲",
-      "summary": "决定机器人是否拦截未受信任的频道身份发言。",
-      "enabled": "BotFather 隐私模式关闭时，未受信任的频道身份发言会被删除；确认它不是本群关联频道后，该频道身份会被封禁，并向处罚记录群发出提醒。",
+      "title": "频道身份冒充防护",
+      "summary": "决定机器人是否拦截由未受信任的频道身份发送的消息。",
+      "enabled": "BotFather 隐私模式关闭时，机器人会删除由未受信任的频道身份发送的消息。确认该身份不是本群关联频道后，机器人会封禁该频道身份，并向处罚记录群发送提醒。",
       "disabled": "机器人不检查频道身份，相关消息会继续交给后续处理。",
       "details": "在管理与处罚中调整"
     },
@@ -1358,7 +1358,7 @@
       "accessUnavailable": "暂时无法确认你对此群的管理权限。请重试。",
       "chatNotFound": "此群已不再可在控制台中管理。",
       "csrfInvalid": "此页的安全令牌已过期。刷新页面后再重试。",
-      "invalidSettings": "功能设置无效。重新载入后再试。",
+      "invalidSettings": "功能设置无效。请重新载入后重试。",
       "settingsUnavailable": "功能设置暂时不可用。请重试。",
       "loadUnavailable": "暂时无法读取功能。请重试。",
       "saveUnavailable": "暂时无法保存功能设置。请重试。",
@@ -1368,10 +1368,10 @@
   "home": {
     "navigation": "首页",
     "title": "首页",
-    "description": "查看当前所选群的概况、待办、近七天趋势和常用配置。",
+    "description": "查看当前所选群的概况、待处理事项、近七天趋势和常用配置。",
     "roles": {
       "manager": "群管理员",
-      "operator": "运维"
+      "operator": "运维人员"
     },
     "context": {
       "title": "群 {{id}}",
@@ -1450,7 +1450,7 @@
       },
       "diagnosticsUnavailable": {
         "title": "无法读取实例诊断",
-        "description": "首页仍显示群数据。请到诊断屏确认实例状态。"
+        "description": "首页仍显示群数据。请在诊断页面查看实例状态。"
       },
       "health": {
         "title": "实例尚未就绪",
@@ -1466,16 +1466,16 @@
       },
       "persistenceUnwritable": {
         "title": "设置持久化不可写",
-        "description": "配置已存在，但当前无法写入。"
+        "description": "持久化目标已存在，但当前无法写入。"
       },
       "persistenceVolatile": {
-        "title": "设置持久化不耐久",
+        "title": "设置存储不具备持久性",
         "description": "当前存储不会保证设置在实例重启后保留。"
       }
     },
     "trend": {
       "title": "近七天趋势",
-      "description": "缩略图只显示走向。精确数值在统计屏查看。",
+      "description": "缩略图仅显示趋势。请在统计页面查看精确数值。",
       "openStats": "查看统计",
       "empty": "所选范围内没有可绘制的日期。",
       "chartTitle": "近七天挑战量与通过率",

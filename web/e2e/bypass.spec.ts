@@ -222,7 +222,7 @@ test("bypass conflict reloads the newest revision and tells the administrator", 
     "aria-checked",
     "false"
   );
-  await expect(page.locator("[data-bypass-feedback]")).toContainText("别人改过这些设置了");
+  await expect(page.locator("[data-bypass-feedback]")).toContainText("其他人已修改这些设置");
 });
 
 test("bypass rejects an invalid ID list before it starts a PATCH request", async ({ page }) => {
@@ -292,7 +292,7 @@ test("bypass explains the risk of each required-channel failure direction", asyn
   );
 
   const setting = page.locator("[data-bypass-setting=requiredChannelFailOpen]");
-  await expect(setting).toContainText("未关注频道的人也可能进入");
+  await expect(setting).toContainText("未加入该频道的人也可能进入");
   await page.locator("#bypass-required-channel-fail-open").click();
   await expect(setting).toContainText("正常申请人也可能被误拒");
 });

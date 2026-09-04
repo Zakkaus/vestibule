@@ -161,7 +161,7 @@ test("version screen explains an incompatible rollback with schema versions", as
   await screen.getByRole("button", { name: "检查更新" }).click();
 
   await expect(screen.locator('[data-version-rollback="blocked"]')).toContainText(
-    "目标 schema v3 要求保留版本至少支持 schema v3，但当前保留版本只支持 schema v2"
+    "目标 schema v3 要求保留版本至少支持 schema v3。当前保留版本只支持 schema v2"
   );
   await expect(screen.locator("[data-version-action=\"upgrade\"]")).toHaveCount(0);
 });

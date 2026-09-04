@@ -199,9 +199,9 @@ test("diagnostics tells group managers that instance state is not a load failure
   const screen = page.locator("[data-diagnostics-page]");
   await expect(screen).toHaveAttribute("data-diagnostics-state", "access-denied");
   await expect(
-    screen.getByRole("heading", { name: "这是实例状态，不归群管理员查看" })
+    screen.getByRole("heading", { name: "群管理员无权查看实例状态" })
   ).toBeVisible();
-  await expect(screen).toContainText("此屏仅向运维开放");
+  await expect(screen).toContainText("此页面仅供运维人员使用");
   await expect(screen.getByText("无法读取实例状态", { exact: true })).toHaveCount(0);
   await expect(screen.getByRole("button", { name: "重试" })).toHaveCount(0);
   expect(statusMethods).toEqual(["GET"]);
@@ -377,7 +377,7 @@ test("diagnostics shows the write denominator and leaves declines as raw materia
   const rejections = screen.locator('[data-diagnostics-rollback-item="rejections"]');
   await expect(rejections).toHaveAttribute("data-diagnostics-rollback-state", "listed");
   await expect(rejections).toContainText("需人工判读");
-  await expect(rejections).toContainText("不代表已经误拒");
+  await expect(rejections).toContainText("不代表有人被错误拒绝");
   await expect(rejections).toContainText("最近 24 小时");
   await expect(
     rejections.locator('[data-diagnostics-rejection-reason="challenge_timeout"]')
