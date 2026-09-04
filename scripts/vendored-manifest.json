@@ -5,12 +5,12 @@
     {
       "file": "web/src/styles/components.css",
       "source": "app/components.css",
-      "sha256": "a29f24429583c0dfb9b99f105cc0a6dc6dddf1716386f8d72c517257b33149a8"
+      "sha256": "90c47415307fdd6e189ada69fb971c11671d381e16c5f37d675c3524867f2732"
     },
     {
       "file": "web/src/styles/shell.css",
       "source": "app/shell.css",
-      "sha256": "62a895bdd72d274060c6d63c12da255aa71dc42abf42c0ef320dbcb424260ac9"
+      "sha256": "77b2ea645c97c9af807fd8eb93c171d5620c17aba6cd025484df9a4cdf6cec4c"
     },
     {
       "file": "web/src/styles/tokens.css",
