@@ -461,3 +461,23 @@ test("verification retains a draft through transient access failures and removes
   );
   await expect(page.locator("[data-verification-form]")).toHaveCount(0);
 });
+
+test("an interrupted verification save provides the settings reload it names", async ({ page }) => {
+  let settingsReads = 0;
+  await openLiveVerification(
+    page,
+    async (route) => {
+      settingsReads += 1;
+      await fulfillJSON(route, settingsResponse());
+    },
+    async (route) => route.abort("failed")
+  );
+
+  await selectAppOption(page.locator("#verification-mode"), "quiz");
+  await page.getByRole("button", { name: "保存更改" }).click();
+  const feedback = page.locator("[data-verification-feedback]");
+  await expect(feedback).toContainText("连接已中断");
+  await feedback.getByRole("button", { name: "重新读取" }).click();
+  await expect.poll(() => settingsReads).toBe(2);
+  await expect(feedback).toHaveCount(0);
+});

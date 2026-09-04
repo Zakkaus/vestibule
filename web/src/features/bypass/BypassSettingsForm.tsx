@@ -339,12 +339,14 @@ function FailOpenSetting({ state, pending, onChange, onSetRestoring }: FailOpenS
 
 function BypassFeedbackNotice({
   feedback,
-  errorMessageKey
+  errorMessageKey,
+  onReload
 }: Readonly<{
   feedback: BypassFeedback;
   errorMessageKey: (
     error: Extract<BypassFeedback, { kind: "error" }>["error"]
   ) => string;
+  onReload: () => void;
 }>) {
   const { t } = useTranslation();
   const messageKey =
@@ -353,6 +355,7 @@ function BypassFeedbackNotice({
       : feedback.kind === "conflict"
         ? "bypass.feedback.conflict"
         : errorMessageKey(feedback.error);
+  const reloadable = feedback.kind === "error" && feedback.error.kind === "network";
   return (
     <div
       data-bypass-feedback={feedback.kind}
@@ -361,6 +364,18 @@ function BypassFeedbackNotice({
     >
       <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
       {t(messageKey)}
+      {reloadable ? (
+        <button
+          type="button"
+          data-slot="button"
+          data-variant="outline"
+          data-size="sm"
+          onClick={onReload}
+        >
+          <Icon name="refreshCw" />
+          {t("bypass.actions.reload")}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -373,6 +388,7 @@ type BypassSettingsFormProps = Readonly<{
   onSetRestoring: (field: BypassField, enabled: boolean) => void;
   onDiscard: () => void;
   onSave: () => void;
+  onReload: () => void;
   errorMessageKey: (error: Extract<BypassFeedback, { kind: "error" }>["error"]) => string;
 }>;
 
@@ -384,6 +400,7 @@ export function BypassSettingsForm({
   onSetRestoring,
   onDiscard,
   onSave,
+  onReload,
   errorMessageKey
 }: BypassSettingsFormProps) {
   const { t } = useTranslation();
@@ -546,7 +563,11 @@ export function BypassSettingsForm({
         </aside>
       ) : null}
       {state.feedback ? (
-        <BypassFeedbackNotice feedback={state.feedback} errorMessageKey={errorMessageKey} />
+        <BypassFeedbackNotice
+          feedback={state.feedback}
+          errorMessageKey={errorMessageKey}
+          onReload={onReload}
+        />
       ) : null}
     </form>
   );

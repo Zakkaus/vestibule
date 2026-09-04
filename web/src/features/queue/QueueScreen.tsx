@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
-import { consoleApi, useConsoleSession } from "../../app/session";
+import { consoleApi, retryConsoleAccess, useConsoleSession } from "../../app/session";
 import { useConsoleSize } from "../../components/ConsoleProvider";
 import type { StatusTone } from "../../components/StatusBadge";
 import type { ApiRequestError } from "../../lib/api";
@@ -114,8 +114,17 @@ function queueErrorMessageKey(error: ApiRequestError, fallback: string): string 
   return fallback;
 }
 
-function QueueFeedbackNotice({ feedback }: Readonly<{ feedback: QueueFeedback }>) {
+function QueueFeedbackNotice({
+  feedback,
+  onReload
+}: Readonly<{ feedback: QueueFeedback; onReload: () => void }>) {
   const { t } = useTranslation();
+  // A dropped connection and a settlement the server rejected as stale both leave the
+  // screen showing something the operator cannot act on. Naming the recovery is not the
+  // same as offering it, so the notice carries the reload it names.
+  const reloadable =
+    feedback.messageKey === "queue.errors.network" ||
+    feedback.messageKey === "queue.errors.invalidSettlement";
   const session = useConsoleSession();
   const group = groupName(
     feedback.record.groupKey,
@@ -149,6 +158,13 @@ function QueueFeedbackNotice({ feedback }: Readonly<{ feedback: QueueFeedback }>
           approved: t(challengeResults.approved.labelKey)
         })}
       </Text>
+      {reloadable ? (
+        <ButtonGroup>
+          <Button variant="secondary" onPress={onReload}>
+            {t("queue.actions.reload")}
+          </Button>
+        </ButtonGroup>
+      ) : null}
     </InlineAlert>
   );
 }
@@ -166,6 +182,13 @@ export function QueueScreen() {
   const filterQuery = searchParams.get("q") ?? "";
   const [pendingActions, setPendingActions] = useState<PendingQueueActions>({});
   const [feedback, setFeedback] = useState<QueueFeedback | null>(null);
+
+  function reloadQueue(): void {
+    setFeedback(null);
+    if (!retryConsoleAccess(session)) {
+      setReloadVersion((currentVersion) => currentVersion + 1);
+    }
+  }
   const [reloadVersion, setReloadVersion] = useState(0);
   const filterSize = useConsoleSize("L");
   const inFlightRecordIdsRef = useRef(new Set<string>());
@@ -509,7 +532,7 @@ export function QueueScreen() {
         {queueState.kind === "unavailable" ? (
           <QueueUnavailableState
             messageKey={queueErrorMessageKey(queueState.error, "queue.errors.loadUnavailable")}
-            onRetry={() => setReloadVersion((currentVersion) => currentVersion + 1)}
+            onRetry={reloadQueue}
           />
         ) : null}
         {isDataReady ? (
@@ -526,7 +549,7 @@ export function QueueScreen() {
         ) : null}
       </Content>
 
-      {feedback ? <QueueFeedbackNotice feedback={feedback} /> : null}
+      {feedback ? <QueueFeedbackNotice feedback={feedback} onReload={reloadQueue} /> : null}
     </Content>
   );
 }
