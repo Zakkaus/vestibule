@@ -58,11 +58,18 @@
    block above it and reads as that block's underline, not as a separator. */
 .rule { block-size: 1px; background: var(--border); margin: var(--sp-3) var(--sp-4); }
 
-.nav { display: flex; flex-direction: column; gap: var(--sp-4); padding: 0 var(--sp-3) var(--sp-4); flex: 1; overflow-y: auto; }
+/* The top padding is not decoration: without it the first group's label sits
+   flush against the header band's bottom edge, with air below it and none
+   above, and the column reads as having slipped upward. */
+.nav { display: flex; flex-direction: column; gap: var(--sp-4); padding: var(--sp-3) var(--sp-3) var(--sp-4); flex: 1; overflow-y: auto; }
 .nav-group { display: flex; flex-direction: column; gap: var(--sp-2); }
+/* The group owns the spacing between its own children, gap included. The label
+   also carried a bottom margin, so label-to-first-item was 1.5 times
+   item-to-item and the column read as unevenly spaced. One relationship, one
+   declaration. */
 .nav-label {
   font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em;
-  color: var(--muted-foreground); padding: 0 var(--sp-3); margin-block-end: var(--sp-1);
+  color: var(--muted-foreground); padding: 0 var(--sp-3);
 }
 .nav-item {
   position: relative; display: flex; align-items: center; gap: var(--sp-3);

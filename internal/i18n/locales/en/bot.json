@@ -42,7 +42,7 @@
       "console_denied": "Only the account bound when this instance was deployed can open the console, and nothing is bound yet. The binding link is printed to the service log on every start, on the line beginning OWNER UNCLAIMED; restart the process to print a fresh one.",
       "console_sent": "One-time link, good once and only for you.",
       "console_open": "Open the console",
-      "console_local": "This console listens on the loopback interface, so it opens only from the machine it runs on. Forward the port, then open:"
+      "console_local": "This console listens on the loopback interface, so this address opens only from the machine it runs on. If you are somewhere else, forward the port first."
     }
   },
   "lifecycle": {

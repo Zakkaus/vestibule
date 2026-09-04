@@ -87,8 +87,13 @@ body {
   padding: var(--sp-3) var(--sp-5);
 }
 
+/* The console's own ring. It was 24px at the sides, the same as the padding
+   inside a card, so a card's border landed one card-padding from the window
+   edge and the page read as pushed against it. The block half stays smaller
+   than the inline half, which is what the ratio check asks of every text
+   surface. */
 [data-app-shell][data-shell-variant="console"] .shell-content {
-  padding: var(--sp-3) var(--sp-5);
+  padding: var(--sp-4) var(--sp-6);
 }
 
 
@@ -1002,7 +1007,7 @@ body {
   }
 
   [data-app-shell][data-shell-variant="console"] .shell-content {
-    padding: var(--sp-2) var(--sp-4);
+    padding: var(--sp-3) var(--sp-4);
   }
 
 
@@ -2689,8 +2694,11 @@ body {
 [data-home-metrics],
 [data-home-entries] {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
-  gap: var(--sp-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  /* Wide enough that the offset below never lands on the neighbour. A card that
+     casts a hard shadow needs the gap the shadow occupies plus the gap it was
+     going to have anyway. */
+  gap: var(--sp-5);
 }
 
 [data-home-metric] {
@@ -2774,12 +2782,47 @@ body {
   background: var(--fill-ok);
 }
 
+/* These four are the way into every settings screen, and they were reading as
+   four grey rectangles: a hairline border, no elevation, and the same weight as
+   the read-only panels above them. They carry a drawn edge and a hard offset
+   instead of a blurred one, so the entry points look like something to press
+   rather than something to read. Both halves resolve through --foreground, so
+   dark gets a light edge on a dark ground without a rule of its own. */
 [data-home-entry] {
   display: grid;
   min-inline-size: 0;
   align-content: start;
-  gap: var(--sp-3);
+  gap: var(--sp-4);
+  padding: var(--sp-5);
+  border: calc(var(--hairline) * 2) solid var(--foreground);
+  border-radius: var(--radius-md);
+  box-shadow: var(--sp-1) var(--sp-1) 0 0 var(--foreground);
   text-decoration: none;
+  transition:
+    translate var(--dur-press) ease,
+    box-shadow var(--dur-press) ease;
+}
+
+/* Pressing moves the card onto its own shadow. The distance travelled is the
+   offset, so the outer edge of the pair never moves and the row does not
+   reflow under the pointer. */
+@media (hover: hover) {
+  [data-home-entry]:hover {
+    translate: 0 0;
+    box-shadow: var(--sp-2) var(--sp-2) 0 0 var(--foreground);
+  }
+}
+
+a[data-home-entry]:active,
+[data-home-entry][data-clickable]:active {
+  translate: var(--sp-1) var(--sp-1);
+  box-shadow: 0 0 0 0 var(--foreground);
+  transform: none;
+  scale: 1;
+}
+
+[data-home-entry] p {
+  color: var(--muted-foreground);
 }
 
 [data-home-entry-heading] {
@@ -2791,15 +2834,44 @@ body {
 }
 
 [data-home-entry] h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1.4;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
 }
 
+/* The arrow is the affordance, so it sits in a drawn square of its own rather
+   than floating as a glyph at the end of the heading row. */
+[data-home-entry-heading] > span[aria-hidden] {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+@media (hover: hover) {
+  [data-home-entry]:hover [data-home-entry-heading] > span[aria-hidden] {
+    background: var(--foreground);
+    border-color: var(--foreground);
+    color: var(--background);
+  }
+}
+
+/* The values sit on their own surface inside the card. They are a readout, not
+   part of the card's own sentence, and running them straight on the card put a
+   label, a number and a provenance chip on three visual planes at once. */
 [data-home-entry-values] {
   display: grid;
-  gap: var(--sp-2);
+  gap: var(--sp-3);
   margin: 0;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface-raised);
+  border-radius: var(--radius-sm);
 }
 
 [data-home-entry-value] {

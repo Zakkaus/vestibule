@@ -197,6 +197,13 @@ a[data-slot="card"]:active, [data-slot="card"][data-clickable]:active {
    Pair with a status class from tokens.css. */
 [data-slot="badge"] {
   display: inline-flex;
+  /* A badge is a label on something, so it is as wide as its own text. Inside a
+     grid it was being stretched to the column: three words of status painted
+     across the full width of a card, which reads as a progress bar. inline-flex
+     does not protect against this; the grid's default justify-items does the
+     stretching. */
+  justify-self: start;
+  align-self: start;
   align-items: center;
   gap: var(--sp-1);
   line-height: 1;
