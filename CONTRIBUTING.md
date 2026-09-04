@@ -259,8 +259,8 @@ for c in coverage-floor comment-boundaries padding-ratio peer-consistency percen
 python3 scripts/check-type-ramp.py
 python3 scripts/check-css-coverage.py web/src/app/app.css web/src/app/app.css.fixture.html
 for c in coverage-floor style-rules undefined-var shadowed theme-leak comment-boundaries percentage-min; do \
-  python3 "scripts/design-checks/$c.py" internal/console/api/setup.css; done
-python3 scripts/check-css-coverage.py internal/console/api/setup.css internal/console/api/setup.css.fixture.html
+  python3 "scripts/design-checks/$c.py" internal/console/api/page.css; done
+python3 scripts/check-css-coverage.py internal/console/api/page.css internal/console/api/page.css.fixture.html
 python3 scripts/check-console-html.py
 for c in html-structure coverage-floor style-rules shadowed undefined-var theme-leak comment-boundaries percentage-min; do \
   python3 "scripts/design-checks/$c.py" web/design.html web/architecture.html; done

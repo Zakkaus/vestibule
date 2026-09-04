@@ -39,7 +39,10 @@
       "enroll": "Create a one-use group-enrollment link",
       "unregister": "Unregister a runtime group",
       "console": "Send a one-time console link",
-      "console_denied": "Only the account bound when this instance was deployed can open the console. If that is you, open the setup link again on the machine and bind from there."
+      "console_denied": "Only the account bound when this instance was deployed can open the console. If that is you, open the setup link again on the machine and bind from there.",
+      "console_sent": "One-time link, good once and only for you.",
+      "console_open": "Open the console",
+      "console_local": "This console listens on the loopback interface, so it opens only from the machine it runs on. Forward the port, then open:"
     }
   },
   "lifecycle": {
@@ -90,5 +93,17 @@
     "bot_name_label": "Connected as",
     "after_binding": "Once the account is bound, add the bot to your first group. The console opens on the group list.",
     "console_action": "Open the console"
+  },
+  "error_page": {
+    "eyebrow": "Console",
+    "steps_label": "What to do instead",
+    "action": "Go to the console",
+    "not_found_title": "This address is not here",
+    "not_found_description": "Either it was mistyped, or it was a one-time link and has already been used. A one-time link stops working the moment it is opened, which is what makes it one-time.",
+    "refused_title": "The console will not answer this request",
+    "refused_description": "The address exists, but not for this kind of request. Open the console from its own address instead.",
+    "step_manager": "Group administrators open the console from %[1]s in Telegram.",
+    "step_operator": "Operators ask the bot for a fresh one-time link.",
+    "step_unclaimed": "Nobody has claimed this instance yet. Its way in is the one-time link the install script printed."
   }
 }

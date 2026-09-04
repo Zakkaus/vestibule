@@ -155,7 +155,7 @@ func (s *Server) serveHTTP(writer http.ResponseWriter, request *http.Request) {
 	case strings.HasPrefix(request.URL.Path, "/api/"):
 		s.apiRoute(writer, request)
 	default:
-		writeError(writer, http.StatusNotFound, "not_found")
+		s.writeNotFound(writer, request)
 	}
 }
 

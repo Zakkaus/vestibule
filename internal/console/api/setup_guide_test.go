@@ -79,7 +79,7 @@ func TestSetupShowsTheBotNameTelegramReturned(t *testing.T) {
 // those gates read the rendered markup to tell a used selector from a dead one.
 // This test writes that markup, so the fixture cannot drift from the template.
 func TestSetupFixtureMatchesTheRenderedPage(t *testing.T) {
-	const fixturePath = "setup.css.fixture.html"
+	const fixturePath = "page.css.fixture.html"
 	var rendered strings.Builder
 	for _, page := range []setupPage{
 		setupPageFor(i18n.LangEN, i18n.Messages.Bot.Setup.TokenRejected.For(i18n.LangEN), SetupResult{}),
@@ -88,6 +88,19 @@ func TestSetupFixtureMatchesTheRenderedPage(t *testing.T) {
 		page.Style = ""
 		if err := setupPageTemplate.Execute(&rendered, page); err != nil {
 			t.Fatalf("rendering the fixture failed: %v", err)
+		}
+	}
+	// The error page shares this stylesheet, so it shares the fixture: a rule only
+	// it uses would otherwise read as dead CSS.
+	claimed := &Server{botUsername: "example_bot"}
+	for _, page := range []errorPage{
+		claimed.errorPageFor(i18n.LangEN, 404),
+		claimed.errorPageFor(i18n.LangEN, 405),
+		(&Server{}).errorPageFor(i18n.LangEN, 404),
+	} {
+		page.Style = ""
+		if err := errorPageTemplate.Execute(&rendered, page); err != nil {
+			t.Fatalf("rendering the error fixture failed: %v", err)
 		}
 	}
 	want := rendered.String()
