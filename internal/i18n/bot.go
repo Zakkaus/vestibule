@@ -10,6 +10,8 @@ type BotCatalog struct {
 	DirectMessage BotDirectMessageCatalog
 	// Registration contains owner claim and runtime group-registration text.
 	Registration BotRegistrationCatalog
+	// Console contains operator-console access notices.
+	Console BotConsoleCatalog
 	// Setup contains browser bootstrap text before the instance is claimed.
 	Setup BotSetupCatalog
 }
@@ -96,10 +98,18 @@ type BotAdminMenuCatalog struct {
 
 // BotOwnerMenuCatalog contains private bot-owner command descriptions.
 type BotOwnerMenuCatalog struct {
+	// Console describes one-use operator-console link delivery.
+	Console Text
 	// Enroll describes one-use group-enrollment link creation.
 	Enroll Text
 	// Unregister describes runtime-group removal.
 	Unregister Text
+}
+
+// BotConsoleCatalog contains operator-console access notices.
+type BotConsoleCatalog struct {
+	// OwnerOnly rejects a console-link request by a non-owner.
+	OwnerOnly Text
 }
 
 // BotLifecycleCatalog contains process-level bot alerts.

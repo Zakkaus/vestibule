@@ -194,6 +194,63 @@ func TestHelpUsesProcessPrivateQueryRate(t *testing.T) {
 	}
 }
 
+func TestPrivateHelpIncludesOwnerCommandsOnlyForOwner(t *testing.T) {
+	const ownerID int64 = 7
+	cfg := &settings.Config{}
+	store, err := settings.NewStore(filepath.Join(t.TempDir(), "settings.json"), testSettingsBaseline(t, cfg), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	registration := store.Registrations()
+	registration.OwnerID = ownerID
+	if _, err := store.CommitRegistrations(registration.Revision, registration); err != nil {
+		t.Fatal(err)
+	}
+	fake := newFakeAdminBot()
+	bot := newAPITestBot(t, fake)
+	administration, verification := newAdminTestApplication(t, cfg, store, bot)
+	defer verification.Shutdown()
+	member := i18n.Messages.Bot.Menu.Member
+	owner := i18n.Messages.Bot.Menu.Owner
+	commands, err := telegram.NewCommandModules(telegram.CommandModule{
+		Name: "core",
+		Commands: []telegram.CommandDefinition{
+			{Name: "help", Description: member.Help.For, Audience: telegram.CommandMember, RouteName: "panel.help", Handler: func(_ *th.Context, _ telego.Update) error { return nil }},
+			{Name: "console", Description: owner.Console.For, Audience: telegram.CommandOwner, External: true},
+			{Name: "enroll", Description: owner.Enroll.For, Audience: telegram.CommandOwner, External: true},
+			{Name: "unregister", Description: owner.Unregister.For, Audience: telegram.CommandOwner, External: true},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	administration.SetCommandModules(commands)
+	for _, tc := range []struct {
+		name  string
+		user  int64
+		owner bool
+	}{
+		{name: "owner", user: ownerID, owner: true},
+		{name: "other private user", user: ownerID + 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fake.lastSendText = ""
+			runFakeHandler(t, bot, administration.OnHelp, telego.Update{Message: &telego.Message{
+				Chat: telego.Chat{ID: tc.user, Type: telego.ChatTypePrivate},
+				From: &telego.User{ID: tc.user, LanguageCode: "en"},
+				Text: "/help",
+			}})
+			want := commands.MemberHelp(i18n.LangEN)
+			if tc.owner {
+				want += "\n\n" + commands.OwnerHelp(i18n.LangEN)
+			}
+			if got := fake.lastSendText; got != want {
+				t.Errorf("private help = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
 func TestHelpOmitsDisabledModuleCommands(t *testing.T) {
 	cfg := &settings.Config{PrivateQueryPerMin: 3}
 	store, err := settings.NewStore("", testSettingsBaseline(t, cfg), nil)

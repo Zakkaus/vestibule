@@ -31,6 +31,7 @@ func newRuntimeModules(
 	administration *panel.Panel,
 	moderation *moderate.Service,
 	lookups *lookup.Service,
+	consoleAvailable bool,
 ) (*runtimeModules, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("command modules require config")
@@ -41,7 +42,7 @@ func newRuntimeModules(
 		linuxModule(lookups),
 		coreStatusModule(administration),
 		coreAdministrationModule(cfg, administration, moderation),
-		coreOwnerModule(),
+		coreOwnerModule(consoleAvailable),
 	}
 	commandModules := make([]telegram.CommandModule, 0, len(declared))
 	starters := make([]func(context.Context) <-chan struct{}, 0, 1)
@@ -187,13 +188,20 @@ func coreAdministrationModule(
 	}}
 }
 
-func coreOwnerModule() runtimeModule {
+func coreOwnerModule(consoleAvailable bool) runtimeModule {
 	menu := i18n.Messages.Bot.Menu.Owner
+	commands := make([]telegram.CommandDefinition, 0, 3)
+	if consoleAvailable {
+		commands = append(commands, telegram.CommandDefinition{
+			Name: "console", Description: menu.Console.For, Audience: telegram.CommandOwner, External: true,
+		})
+	}
+	commands = append(commands,
+		telegram.CommandDefinition{Name: "enroll", Description: menu.Enroll.For, Audience: telegram.CommandOwner, External: true},
+		telegram.CommandDefinition{Name: "unregister", Description: menu.Unregister.For, Audience: telegram.CommandOwner, External: true},
+	)
 	return runtimeModule{commands: telegram.CommandModule{
-		Name: "core-owner",
-		Commands: []telegram.CommandDefinition{
-			{Name: "enroll", Description: menu.Enroll.For, Audience: telegram.CommandOwner, External: true},
-			{Name: "unregister", Description: menu.Unregister.For, Audience: telegram.CommandOwner, External: true},
-		},
+		Name:     "core-owner",
+		Commands: commands,
 	}}
 }

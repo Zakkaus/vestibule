@@ -36,6 +36,7 @@
       "ban_time": "【管理】设置封禁时长"
     },
     "owner": {
+      "console": "打开控制台",
       "enroll": "创建一次性群组登记链接",
       "unregister": "取消登记运行时群组"
     }
@@ -61,6 +62,9 @@
     "unregister_refused": "无法取消登记该群组。请使用 /unregister <group-id> 指定已登记的运行时群组 ID。",
     "unregister_save_failed": "无法持久保存群组取消登记结果。请恢复服务状态目录的写入权限后重试。",
     "group_unregistered": "已取消登记群组“%[1]s”，并删除其运行设置。"
+  },
+  "console": {
+    "owner_only": "仅机器人所有者可打开控制台。"
   },
   "setup": {
     "title": "认领此实例",

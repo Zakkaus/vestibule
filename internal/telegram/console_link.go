@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Zakkaus/vestibule/internal/console/auth"
+	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -39,6 +40,12 @@ func NewConsoleLinkHandler(bot *telego.Bot, issuer ConsoleLinkIssuer, rawURL str
 		}
 		token, _, err := issuer.IssueOperatorLink(message.From.ID)
 		if errors.Is(err, auth.ErrOperatorNotAllowed) {
+			language := i18n.FromRequester(message.From.LanguageCode, i18n.LangEN)
+			if _, err := bot.SendMessage(ctx.Context(), tu.Message(
+				tu.ID(message.Chat.ID), i18n.Messages.Bot.Console.OwnerOnly.For(language),
+			)); err != nil {
+				return fmt.Errorf("send console access refusal: %w", err)
+			}
 			return nil
 		}
 		if err != nil {

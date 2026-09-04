@@ -186,6 +186,7 @@ func expectedAdminCommands(language i18n.Lang, warnLimit int) []telego.BotComman
 func expectedOwnerCommands(language i18n.Lang) []telego.BotCommand {
 	menu := i18n.Messages.Bot.Menu.Owner
 	return append([]telego.BotCommand{
+		{Command: "console", Description: menu.Console.For(language)},
 		{Command: "enroll", Description: menu.Enroll.For(language)},
 		{Command: "unregister", Description: menu.Unregister.For(language)},
 	}, expectedMemberCommands(language)...)

@@ -107,6 +107,10 @@ func (v *Panel) isGroup(groupID int64) bool {
 	return v.cfg.IsGroup(groupID)
 }
 
+func (v *Panel) isOwner(userID int64) bool {
+	return userID != 0 && v.settings != nil && v.settings.Registrations().OwnerID == userID
+}
+
 func (v *Panel) privateQueryPerMin() int {
 	return v.cfg.PrivateQueryPerMin
 }
@@ -332,6 +336,13 @@ func (v *Panel) administratorHelpText(l i18n.Lang) string {
 	return v.commands.AdministratorHelp(l, v.cfg.WarnLimit)
 }
 
+func (v *Panel) ownerHelpText(l i18n.Lang) string {
+	if !v.commands.HasCommands() {
+		return ""
+	}
+	return v.commands.OwnerHelp(l)
+}
+
 func (v *Panel) hasPrivateQueries() bool {
 	return !v.commands.HasCommands() || v.commands.HasPrivateQueries()
 }
@@ -381,6 +392,11 @@ func (v *Panel) OnHelp(ctx *th.Context, update telego.Update) error {
 		_ = bot.DeleteMessage(c, &telego.DeleteMessageParams{ChatID: tu.ID(chatID), MessageID: msg.MessageID})
 		v.notify(c, bot, chatID, help)
 		return nil
+	}
+	if v.isOwner(msg.From.ID) {
+		if ownerHelp := v.ownerHelpText(l); ownerHelp != "" {
+			help += "\n\n" + ownerHelp
+		}
 	}
 	if v.hasPrivateQueries() {
 		help += "\n\n" + i18n.Messages.Panel.Help.DirectMessageNote.Render(l, v.privateQueryPerMin())
