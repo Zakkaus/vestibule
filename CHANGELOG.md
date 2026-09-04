@@ -4,6 +4,11 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- **The configured owner console was undiscoverable.** `/console` ran only for the owner but was absent from their menu and `/help`, while other private users received no reply. It now appears only when its handler is configured; owner help lists active owner commands and denied private calls receive a localized refusal.
+
 ## [4.5.6] - 2026-08-29
 
 ### Fixed

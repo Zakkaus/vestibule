@@ -36,6 +36,7 @@
       "ban_time": "【管理】設定封禁時長"
     },
     "owner": {
+      "console": "開啟控制台",
       "enroll": "建立一次性群組登記連結",
       "unregister": "取消登記執行階段群組"
     }
@@ -61,6 +62,9 @@
     "unregister_refused": "無法取消登記該群組。請使用 /unregister <group-id> 指定已登記的執行階段群組 ID。",
     "unregister_save_failed": "無法持久儲存群組移除結果。請恢復服務狀態目錄的寫入權限後重試。",
     "group_unregistered": "已取消登記群組「%[1]s」，並刪除其執行階段設定。"
+  },
+  "console": {
+    "owner_only": "僅機器人擁有者可開啟控制台。"
   },
   "setup": {
     "title": "認領此執行個體",

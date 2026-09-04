@@ -36,6 +36,7 @@
       "ban_time": "[Administrator] Set ban duration"
     },
     "owner": {
+      "console": "Open the console",
       "enroll": "Create a one-use group-enrollment link",
       "unregister": "Unregister a runtime group"
     }
@@ -61,6 +62,9 @@
     "unregister_refused": "Could not unregister that group. Use /unregister <group-id> with a runtime-registered group ID.",
     "unregister_save_failed": "Could not persist group removal. Restore write access to the service state directory, then retry.",
     "group_unregistered": "Unregistered group “%[1]s” and removed its runtime settings."
+  },
+  "console": {
+    "owner_only": "Only the bot owner can open the console."
   },
   "setup": {
     "title": "Claim this instance",

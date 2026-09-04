@@ -359,7 +359,9 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 		runtime.settings, connector, runtime.cfg, &i18n.Messages,
 		verificationService, moderation, lookups, options.Version, startedAt,
 	)
-	modules, err := newRuntimeModules(runtime.cfg, bot, options.StateDirectory, administration, moderation, lookups)
+	modules, err := newRuntimeModules(
+		runtime.cfg, bot, options.StateDirectory, administration, moderation, lookups, consoleHandler != nil,
+	)
 	if err != nil {
 		return err
 	}
