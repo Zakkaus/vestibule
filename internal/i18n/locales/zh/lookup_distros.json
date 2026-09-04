@@ -54,7 +54,7 @@
     "usage": "用法：/pkgs <包名>。示例：/pkgs firefox。比较 Gentoo、AUR、Arch、Alpine、Debian、Ubuntu、Nixpkgs、Fedora、RHEL、CentOS Stream 和 openSUSE 等发行版的包版本；Debian 等显示 stable/testing 通道，RHEL 数据来自 AlmaLinux 和 Rocky Linux。",
     "no_supported_distro": "未在 Gentoo、AUR、Arch、Alpine、Debian、Ubuntu、Nixpkgs、Fedora、RHEL、CentOS Stream、EPEL 或 openSUSE 中找到「%[1]s」的已打包版本。它可能只由其他发行版提供。",
     "heading": "📦 <a href=\"%[1]s\">%[2]s</a> 跨发行版版本",
-    "closest_match": " <i>（与「%[1]s」最接近的匹配）</i>",
+    "closest_match": " <i>（与「%[1]s」最匹配的项目）</i>",
     "plain_heading": "%[1]s：",
     "release_role": " <i>（%[1]s）</i>",
     "plain_row": "\n • <b>%[1]s</b>：%[2]s%[3]s",
@@ -68,9 +68,9 @@
   "repology": {
     "heading": "📦 <a href=\"%[1]s\">%[2]s</a> 在各发行版中的版本：",
     "more": "另有 %[1]d 个仓库未列出。",
-    "not_found": "❓ repology 中没有「%[1]s」。请检查名称。",
+    "not_found": "❓ Repology 中没有「%[1]s」。请检查名称。",
     "row": "%[1]s　<b>%[2]s</b>",
-    "unavailable": "⚠️ 暂时无法读取 repology 数据。请稍后重试。",
-    "usage": "用法：/repology <软件包名>　示例：/repology bash"
+    "unavailable": "⚠️ 暂时无法读取 Repology 数据。请稍后重试。",
+    "usage": "用法：/repology <包名>　示例：/repology bash"
   }
 }

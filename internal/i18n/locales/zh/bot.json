@@ -14,7 +14,7 @@
       "ping": "查看机器人状态和运行时长",
       "pkg": "搜索 Gentoo 包",
       "pkgs": "比较各发行版的包版本",
-      "repology": "查询软件包在各发行版仓库中的版本",
+      "repology": "查询包在各发行版仓库中的版本",
       "stats": "查看今日通过、拒绝人数",
       "use": "查看包信息和 USE flag",
       "wiki": "搜索 Gentoo Wiki、ArchWiki"
@@ -39,10 +39,10 @@
       "enroll": "创建一次性群组登记链接",
       "unregister": "取消登记运行时群组",
       "console": "获取一次性控制台链接",
-      "console_denied": "只有部署这台实例时绑定的账号能打开控制台，而现在还没有绑定。绑定链接在每次启动时都会打印到服务日志里，就是 OWNER UNCLAIMED 那一行；重启进程会打印一条新的。",
-      "console_sent": "一次性链接，只能用一次，且只对你有效。",
+      "console_denied": "只有部署此实例时绑定的账号才能打开控制台，但当前尚未完成绑定。绑定链接会在每次启动时写入服务日志，位于以 OWNER UNCLAIMED 开头的行中。重启进程后会输出新链接。",
+      "console_sent": "此一次性链接仅对当前账号有效，使用一次后即失效。",
       "console_open": "打开控制台",
-      "console_local": "这台控制台只监听本机，因此只能在它所在的机器上打开。请先做端口转发，再打开："
+      "console_local": "控制台仅监听本机地址，因此只能从所在主机打开。请先设置端口转发，再打开以下地址："
     }
   },
   "lifecycle": {
@@ -69,7 +69,7 @@
   },
   "setup": {
     "title": "认领此实例",
-    "description": "脚本在这台机器上的部分已经完成。其余配置在浏览器里填，令牌不进命令行历史。",
+    "description": "安装脚本已完成需要在本机执行的步骤。请在浏览器中完成其余配置，以免令牌写入命令行历史。",
     "token_label": "Telegram 机器人令牌",
     "submit": "认领实例",
     "token_required": "必须提供 Telegram 机器人令牌。",
@@ -79,31 +79,31 @@
     "eyebrow": "部署",
     "steps_label": "部署步骤",
     "step_console": "打开控制台",
-    "step_console_note": "安装脚本打印的一次性链接已经把这台控制台交给你。",
-    "step_token": "填机器人令牌",
-    "step_token_note": "在这里填而不在终端里问，令牌就不会留在命令行历史，也不会因为终端回滚被人看到。",
-    "step_binding": "绑定你的账号",
-    "step_binding_note": "令牌被接受之后机器人才存在，此时才收得到私聊口令。",
-    "step_group": "拉进第一个群",
-    "step_group_note": "等群出现，并逐项检查机器人需要的权限。",
-    "token_hint": "在 Telegram 里向 @BotFather 要一个机器人，把它给你的那一整行贴进来，包含冒号前的数字。",
-    "token_rejected": "Telegram 没有接受这个令牌。请确认整行都已贴上，包含冒号前的数字。",
-    "telegram_unreachable": "连不上 Telegram，令牌还没有被判定。需要处理的是这台机器的网络或代理，不是令牌。",
-    "instance_fault": "令牌已被接受，但实例没能启动。这不是令牌的问题，原因写在服务器日志里。",
-    "bot_name_label": "已连上",
-    "after_binding": "绑定之后把机器人拉进第一个群，控制台会停在群列表。",
+    "step_console_note": "安装脚本输出的一次性链接已授权你使用此控制台。",
+    "step_token": "输入机器人令牌",
+    "step_token_note": "在此处输入令牌，可避免令牌写入命令行历史或显示在终端输出记录中。",
+    "step_binding": "绑定部署者账号",
+    "step_binding_note": "机器人仅在令牌通过验证后启动，随后才能接收私聊口令。",
+    "step_group": "将机器人加入首个群组",
+    "step_group_note": "实例会等待群组出现，再逐项检查机器人所需权限。",
+    "token_hint": "请在 Telegram 中通过 @BotFather 创建机器人，然后粘贴其提供的完整令牌，包括冒号前的数字。",
+    "token_rejected": "Telegram 未接受此令牌。请确认已粘贴完整令牌，包括冒号前的数字。",
+    "telegram_unreachable": "无法连接 Telegram，因此尚未验证令牌。请先检查本机的网络或代理设置，无需更换令牌。",
+    "instance_fault": "令牌已通过验证，但实例无法启动。请查看服务器日志中的错误原因。",
+    "bot_name_label": "已连接",
+    "after_binding": "绑定部署者账号后，请将机器人加入首个群组。控制台将显示群组列表。",
     "console_action": "打开控制台"
   },
   "error_page": {
     "eyebrow": "控制台",
-    "steps_label": "该做什么",
+    "steps_label": "后续操作",
     "action": "前往控制台",
-    "not_found_title": "这个地址不在这里",
-    "not_found_description": "要么是地址打错了，要么它是一条一次性链接、已经被用过。一次性链接在被打开的那一刻就失效，这正是它一次性的含义。",
-    "refused_title": "控制台不以这种方式回应这个请求",
-    "refused_description": "地址存在，但不接受这种请求。请从控制台自己的地址进入。",
-    "step_manager": "群组管理员在 Telegram 中从 %[1]s 打开控制台。",
+    "not_found_title": "找不到此页面",
+    "not_found_description": "地址可能输入有误，或一次性链接已被使用。一次性链接打开后会立即失效。",
+    "refused_title": "无法以此方式访问控制台",
+    "refused_description": "此地址存在，但不支持当前访问方式。请改从控制台地址进入。",
+    "step_manager": "群组管理员可在 Telegram 中通过 %[1]s 打开控制台。",
     "step_operator": "运维向机器人索取一条新的一次性链接。",
-    "step_unclaimed": "这台实例还没有被认领，它的入口是安装脚本打印的那条一次性链接。"
+    "step_unclaimed": "此实例尚未认领。请使用安装脚本输出的一次性链接进行认领。"
   }
 }

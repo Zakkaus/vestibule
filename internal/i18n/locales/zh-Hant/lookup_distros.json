@@ -68,9 +68,9 @@
   "repology": {
     "heading": "📦 <a href=\"%[1]s\">%[2]s</a> 在各發行版中的版本：",
     "more": "另有 %[1]d 個軟體庫未列出。",
-    "not_found": "❓ repology 中沒有「%[1]s」。請檢查名稱。",
+    "not_found": "❓ Repology 中沒有「%[1]s」。請檢查名稱。",
     "row": "%[1]s　<b>%[2]s</b>",
-    "unavailable": "⚠️ 暫時無法讀取 repology 資料。請稍後重試。",
+    "unavailable": "⚠️ 暫時無法讀取 Repology 資料。請稍後重試。",
     "usage": "用法：/repology <套件名稱>　範例：/repology bash"
   }
 }
