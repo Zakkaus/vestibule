@@ -82,7 +82,9 @@ func (s *Server) writePageError(writer http.ResponseWriter, request *http.Reques
 func (s *Server) errorPageFor(language i18n.Lang, statusCode int) errorPage {
 	catalog := i18n.Messages.Bot.ErrorPage
 	page := errorPage{
-		Language:   language.String(),
+		Language: language.String(),
+		// #nosec G203 -- pageStyle is the embedded contents of page.css, fixed at
+		// build time and reachable by no request.
 		Style:      template.CSS(pageStyle),
 		Eyebrow:    catalog.Eyebrow.For(language),
 		StepsLabel: catalog.StepsLabel.For(language),
