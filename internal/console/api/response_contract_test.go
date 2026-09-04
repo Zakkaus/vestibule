@@ -8,7 +8,9 @@ import (
 	"html"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -159,6 +161,49 @@ func TestChatResponsesPreserveAuthorizedIdentifiers(t *testing.T) {
 	}
 	if response.Code != http.StatusOK || !reflect.DeepEqual(body.Chats, []chatResponse{{ID: "-1009000000231"}}) {
 		t.Fatalf("chat list response lost the authorized Telegram chat identifier: status=%d chats=%+v", response.Code, body.Chats)
+	}
+}
+
+func TestChatResponsesIncludeRegisteredTitlesAndKeepMissingTitlesOptional(t *testing.T) {
+	const (
+		namedChatID   int64 = -1009000000232
+		unnamedChatID int64 = -1009000000233
+		title               = "<Moderators> 🧪"
+	)
+	baseline, err := settings.LoadBaseline("", &settings.Config{GroupIDs: []int64{unnamedChatID}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	store, err := settings.NewStore(filepath.Join(t.TempDir(), "settings.json"), baseline, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	registration := store.Registrations()
+	registration.OwnerID = 9
+	registration.RegisteredGroups = []settings.RegisteredGroup{{
+		ID: namedChatID, RegisteredBy: 9, Title: title,
+	}}
+	if _, err = store.CommitRegistrations(registration.Revision, registration); err != nil {
+		t.Fatal(err)
+	}
+
+	checker := &apiTestAdminChecker{allowed: true}
+	service := &apiTestQueueService{groups: []int64{namedChatID, unnamedChatID}}
+	server, cookies, _ := apiTestServer(t, checker, service, nil, &apiTestSettingsService{store: store})
+	response := getAuthenticatedPath(server, cookies, "/api/chats")
+	var body struct {
+		Chats []chatResponse `json:"chats"`
+	}
+	if err = json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	want := []chatResponse{
+		{ID: strconv.FormatInt(namedChatID, 10), Title: title},
+		{ID: strconv.FormatInt(unnamedChatID, 10)},
+	}
+	if response.Code != http.StatusOK || !reflect.DeepEqual(body.Chats, want) {
+		t.Fatalf("chat list response lost its registered title or ID fallback: status=%d chats=%+v want=%+v",
+			response.Code, body.Chats, want)
 	}
 }
 

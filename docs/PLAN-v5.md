@@ -702,7 +702,7 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 `GET /api/status/release` 和 `POST /api/status/upgrade`（`internal/console/api/server.go:136-184`）；而
 `/api/chats/` 那条现在按群展开成
 `queue`、`audit`、`stats`、`settings`、`rules` 五组
-（`internal/console/api/server.go:285-310`）。下面这条次序就是照着这个缺口定的，
+（`internal/console/api/server.go:291-301`）。下面这条次序就是照着这个缺口定的，
 八屏所等的设置端点已经建成。
 而 13 屏里有 8 屏管的全是设置：验证方式、题库、免验证来源、管理与处罚、
 消息与文案、订阅推送、功能，以及偏好屏里属于群的那一半。
@@ -710,7 +710,7 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 派过去的人要么停下来问（对的），要么自己发明一个（坏的）。
 
 能力本身不缺：`internal/settings/store.go:339` 的 `Settings(chatID)` 读，
-`389` 的 `Update(groupID, expectedRevision, next)` 写，
+`399` 的 `Update(groupID, expectedRevision, next)` 写，
 后者自带乐观 revision，和队列结算那条 `expected` 是同一个形状。
 缺的只是把它接出来。
 

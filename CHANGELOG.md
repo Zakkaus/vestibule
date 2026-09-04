@@ -14,6 +14,9 @@ All notable changes to this project are documented here. The format is based on
 ### Changed
 - **The mobile navigation panel now connects to its trigger.** Its open state shares the trigger
   edge and uses denser token-based spacing while retaining the lower panel radius.
+- The console group switcher now shows the durable title captured when a runtime group is
+  registered. Configured groups and legacy registrations without a title fall back to the
+  Telegram group ID without making a `GetChat` request for each console load.
 
 ## [4.5.6] - 2026-08-29
 
