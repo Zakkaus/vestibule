@@ -100,6 +100,10 @@ type BotOwnerMenuCatalog struct {
 	Enroll Text
 	// Unregister describes runtime-group removal.
 	Unregister Text
+	// Console describes asking the bot for a one-time console link.
+	Console Text
+	// ConsoleDenied explains why an account was not sent a console link.
+	ConsoleDenied Text
 }
 
 // BotLifecycleCatalog contains process-level bot alerts.
@@ -196,4 +200,6 @@ type BotSetupCatalog struct {
 	BotNameLabel Text
 	// AfterBinding says what happens once the deployer account is bound.
 	AfterBinding Text
+	// ConsoleAction labels the link onward to the console.
+	ConsoleAction Text
 }

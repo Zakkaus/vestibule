@@ -37,7 +37,9 @@
     },
     "owner": {
       "enroll": "Create a one-use group-enrollment link",
-      "unregister": "Unregister a runtime group"
+      "unregister": "Unregister a runtime group",
+      "console": "Send a one-time console link",
+      "console_denied": "Only the account bound when this instance was deployed can open the console. If that is you, open the setup link again on the machine and bind from there."
     }
   },
   "lifecycle": {
@@ -86,6 +88,7 @@
     "telegram_unreachable": "Telegram could not be reached, so the token was never judged. What needs attention is the network or proxy on this machine, not the token.",
     "instance_fault": "The token was accepted, but the instance did not start. This is not a token problem; the reason is in the server log.",
     "bot_name_label": "Connected as",
-    "after_binding": "Once the account is bound, add the bot to your first group. The console opens on the group list."
+    "after_binding": "Once the account is bound, add the bot to your first group. The console opens on the group list.",
+    "console_action": "Open the console"
   }
 }

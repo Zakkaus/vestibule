@@ -2,16 +2,31 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
+    <!-- Declared before any stylesheet parses, so the browser paints its own
+         surfaces — scrollbars, form controls, the canvas behind the first
+         frame — in the mode this page actually supports. Without it a dark
+         reader gets a white flash and white scrollbars. -->
+    <meta name="color-scheme" content="light dark" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>验证控制台</title>
     <script>
       (() => {
         const themeKey = "verify-console-theme";
         const localeKey = "verify-console-locale";
+        // Reads the browser's whole ordered list, not just its first entry: a
+        // browser asking for ja, then zh-TW, then en used to land on the default
+        // rather than on the second language it actually asked for. Hong Kong and
+        // Macau tags are traditional, and were being answered in simplified.
         const localeFromBrowser = () => {
-          const language = navigator.language;
-          if (language === "zh-TW" || language.startsWith("zh-Hant")) return "zh-TW";
-          if (language.startsWith("en")) return "en";
+          const requested = navigator.languages && navigator.languages.length
+            ? navigator.languages
+            : [navigator.language || ""];
+          for (const language of requested) {
+            const tag = String(language).toLowerCase();
+            if (tag === "zh-tw" || tag === "zh-hk" || tag === "zh-mo" || tag.indexOf("zh-hant") === 0) return "zh-TW";
+            if (tag.indexOf("en") === 0) return "en";
+            if (tag.indexOf("zh") === 0) return "zh-CN";
+          }
           return "zh-CN";
         };
 

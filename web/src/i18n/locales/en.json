@@ -11,6 +11,7 @@
   },
   "locale": {
     "label": "Language",
+    "system": "Follow the browser",
     "zhCN": "Chinese, Simplified",
     "zhTW": "Chinese, Traditional",
     "en": "English"

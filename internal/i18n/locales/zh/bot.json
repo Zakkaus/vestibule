@@ -37,7 +37,9 @@
     },
     "owner": {
       "enroll": "创建一次性群组登记链接",
-      "unregister": "取消登记运行时群组"
+      "unregister": "取消登记运行时群组",
+      "console": "获取一次性控制台链接",
+      "console_denied": "只有部署这台实例时绑定的账号能打开控制台。如果那是你，在机器上重新打开部署链接并从那里绑定。"
     }
   },
   "lifecycle": {
@@ -86,6 +88,7 @@
     "telegram_unreachable": "连不上 Telegram，令牌还没有被判定。需要处理的是这台机器的网络或代理，不是令牌。",
     "instance_fault": "令牌已被接受，但实例没能启动。这不是令牌的问题，原因写在服务器日志里。",
     "bot_name_label": "已连上",
-    "after_binding": "绑定之后把机器人拉进第一个群，控制台会停在群列表。"
+    "after_binding": "绑定之后把机器人拉进第一个群，控制台会停在群列表。",
+    "console_action": "打开控制台"
   }
 }

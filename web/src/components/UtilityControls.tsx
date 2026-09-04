@@ -2,13 +2,12 @@ import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
-  DEFAULT_LOCALE,
-  isAppLocale,
-  locales,
+  isLocalePreference,
+  localePreferences,
+  readLocalePreference,
   setAppLocale,
-  type AppLocale
+  type LocalePreference
 } from "../i18n";
-import i18n from "../i18n";
 import {
   applyThemePreference,
   THEME_PREFERENCE_CHANGE_EVENT,
@@ -19,7 +18,8 @@ import {
 import type { IconName } from "../icons";
 import { AppSelect } from "./AppSelect";
 
-const localeLabelKeys: Record<AppLocale, string> = {
+const localeLabelKeys: Record<LocalePreference, string> = {
+  system: "locale.system",
   "zh-CN": "locale.zhCN",
   "zh-TW": "locale.zhTW",
   en: "locale.en"
@@ -65,8 +65,7 @@ export function UtilityControls({ variant = "labelled" }: UtilityControlsProps) 
     };
   }, []);
 
-  const resolvedLocale = i18n.resolvedLanguage ?? i18n.language;
-  const locale = isAppLocale(resolvedLocale) ? resolvedLocale : DEFAULT_LOCALE;
+  const locale = readLocalePreference();
 
   function changeTheme(nextTheme: string): void {
     if (!themePreferences.includes(nextTheme as ThemePreference)) {
@@ -78,7 +77,7 @@ export function UtilityControls({ variant = "labelled" }: UtilityControlsProps) 
   }
 
   function changeLocale(nextLocale: string): void {
-    if (!isAppLocale(nextLocale)) {
+    if (!isLocalePreference(nextLocale)) {
       return;
     }
 
@@ -90,9 +89,9 @@ export function UtilityControls({ variant = "labelled" }: UtilityControlsProps) 
     label: t(themeLabelKeys[preference]),
     value: preference
   }));
-  const localeOptions = locales.map((optionLocale) => ({
-    label: t(localeLabelKeys[optionLocale]),
-    value: optionLocale
+  const localeOptions = localePreferences.map((preference) => ({
+    label: t(localeLabelKeys[preference]),
+    value: preference
   }));
 
 

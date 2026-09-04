@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Zakkaus/vestibule/internal/console/auth"
+	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -39,6 +40,14 @@ func NewConsoleLinkHandler(bot *telego.Bot, issuer ConsoleLinkIssuer, rawURL str
 		}
 		token, _, err := issuer.IssueOperatorLink(message.From.ID)
 		if errors.Is(err, auth.ErrOperatorNotAllowed) {
+			// Silence was the old answer, and it is indistinguishable from a bot
+			// that is down, a command that does not exist, and a message that
+			// never arrived. The one person who needs this command is the one who
+			// just deployed the instance and has no other way in.
+			denied := i18n.Messages.Bot.Menu.Owner.ConsoleDenied.For(i18n.FromTelegram(message.From.LanguageCode))
+			if _, sendErr := bot.SendMessage(ctx.Context(), tu.Message(tu.ID(message.Chat.ID), denied)); sendErr != nil {
+				return fmt.Errorf("send console refusal: %w", sendErr)
+			}
 			return nil
 		}
 		if err != nil {
