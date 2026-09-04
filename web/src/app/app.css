@@ -87,8 +87,13 @@ body {
   padding: var(--sp-3) var(--sp-5);
 }
 
+/* The console's own ring. It was 24px at the sides, the same as the padding
+   inside a card, so a card's border landed one card-padding from the window
+   edge and the page read as pushed against it. The block half stays smaller
+   than the inline half, which is what the ratio check asks of every text
+   surface. */
 [data-app-shell][data-shell-variant="console"] .shell-content {
-  padding: var(--sp-3) var(--sp-5);
+  padding: var(--sp-4) var(--sp-6);
 }
 
 
@@ -1002,7 +1007,7 @@ body {
   }
 
   [data-app-shell][data-shell-variant="console"] .shell-content {
-    padding: var(--sp-2) var(--sp-4);
+    padding: var(--sp-3) var(--sp-4);
   }
 
 

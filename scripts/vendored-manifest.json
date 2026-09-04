@@ -10,7 +10,7 @@
     {
       "file": "web/src/styles/shell.css",
       "source": "app/shell.css",
-      "sha256": "1d03fb66515ed6e0e313345e8d4449f4c049d092726ad98b93b65b9ef95c99ed"
+      "sha256": "62a895bdd72d274060c6d63c12da255aa71dc42abf42c0ef320dbcb424260ac9"
     },
     {
       "file": "web/src/styles/tokens.css",
