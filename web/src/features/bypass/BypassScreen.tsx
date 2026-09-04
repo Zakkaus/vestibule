@@ -88,6 +88,7 @@ function BypassStateContent({ controller }: Readonly<{ controller: BypassControl
         onSetRestoring={controller.setRestoring}
         onDiscard={controller.discard}
         onSave={controller.save}
+        onReload={controller.reload}
         errorMessageKey={(error) => bypassErrorMessageKey(error, "bypass.errors.saveUnavailable")}
       />
     );

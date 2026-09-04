@@ -1694,8 +1694,10 @@ li::marker { color: var(--border); }
       </div>
     </div>
     <p style="font-size:0.875rem;">宿主替换单元不存在时，升级按钮完全不出现。
-      界面说明应用只能写升级意图、不能替换宿主进程或容器，再给出 compose 镜像设置与
-      <code>docker compose pull app</code>、<code>docker compose up -d --no-deps app</code>。
+      界面说明应用只能写升级意图、不能替换宿主进程或容器。对于由安装程序管理的容器部署，
+      界面要求在 Compose 目录的 <code>container.env</code> 中写入镜像设置，再执行
+      <code>docker compose --env-file container.env pull app</code> 和
+      <code>docker compose --env-file container.env up -d --no-deps app</code>。
       判断只看 <code>unit_available</code>，不猜部署方式，也不把这种正常差异写成功能故障。</p>
     <p style="font-size:0.875rem;">上一次替换失败、自动回退或回退失败时，状态、请求版本和宿主原因都常驻显示。
       升级期间按钮用 <code>aria-disabled</code> 与处理器守卫阻止重复提交；

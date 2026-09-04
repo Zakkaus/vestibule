@@ -146,7 +146,10 @@ test("version screen with no host unit never renders an upgrade button", async (
     "VESTIBULE_APP_IMAGE=ghcr.io/zakkaus/vestibule:v5.2.0"
   );
   await expect(screen.locator("[data-version-manual-command]")).toContainText(
-    "docker compose up -d --no-deps app"
+    "docker compose --env-file container.env pull app"
+  );
+  await expect(screen.locator("[data-version-manual-command]")).toContainText(
+    "docker compose --env-file container.env up -d --no-deps app"
   );
 });
 
@@ -244,4 +247,40 @@ test("version screen shows the previous replacement failure reason", async ({ pa
 
   await expect(result).toContainText("新版本未通过存活或就绪探针");
   await expect(result).toContainText("healthcheck_failed");
+});
+
+test("a failed upgrade offers another confirmed request instead of only dismissing the result", async ({
+  page
+}) => {
+  const observations = await mockVersionTransport(page, {
+    role: "operator",
+    status: async (route, current) => fulfillJSON(
+      route,
+      versionStatus(
+        true,
+        current.upgradeRequests > 0
+          ? {
+              status: "rolled_back",
+              requested_version: "v5.2.0",
+              reason: "healthcheck_failed"
+            }
+          : null
+      )
+    ),
+    release: async (route) => fulfillJSON(route, latestRelease(safeRollback)),
+    upgrade: async (route) => fulfillJSON(route, { status: "requested" }, 202)
+  });
+  await page.goto("/version");
+  const screen = page.locator("[data-version-page]");
+  await screen.getByRole("button", { name: "检查更新" }).click();
+  await screen.getByRole("button", { name: "升级到此版本" }).click();
+  await screen.getByRole("button", { name: "确认升级" }).click();
+  await expect(screen.locator('[data-version-upgrade-outcome="failed"]')).toBeVisible();
+
+  await screen.getByRole("button", { name: "再次升级" }).click();
+  await expect(screen.locator("[data-version-upgrade-confirmation]")).toBeVisible();
+  expect(observations.upgradeRequests).toBe(1);
+
+  await screen.getByRole("button", { name: "确认升级" }).click();
+  await expect.poll(() => observations.upgradeRequests).toBe(2);
 });

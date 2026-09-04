@@ -2,7 +2,11 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { consoleApi, useConsoleSession } from "../../app/session";
+import {
+  consoleApi,
+  retryConsoleAccess,
+  useConsoleSession
+} from "../../app/session";
 import { Icon } from "../../icons";
 import type { IconName } from "../../icons";
 import type { ApiRequestError } from "../../lib/api";
@@ -23,7 +27,7 @@ type CapabilitiesScreenState =
 type SaveFeedback =
   | Readonly<{ kind: "saved" }>
   | Readonly<{ kind: "conflict" }>
-  | Readonly<{ kind: "error"; messageKey: string }>;
+  | Readonly<{ kind: "error"; error: ApiRequestError }>;
 
 const errorMessageKeys: Readonly<Record<string, string>> = {
   authentication_expired: "capabilities.errors.authenticationExpired",
@@ -193,6 +197,12 @@ export function CapabilitiesScreen() {
     setFeedback(null);
   }
 
+  function reloadCapabilities(): void {
+    if (!retryConsoleAccess(session)) {
+      setReloadVersion((version) => version + 1);
+    }
+  }
+
   async function submitSettings(): Promise<void> {
     if (!settings || draftEnabled === null || !chatID || !hasChanges || saving) {
       return;
@@ -229,10 +239,7 @@ export function CapabilitiesScreen() {
       return;
     }
     setSaving(false);
-    setFeedback({
-      kind: "error",
-      messageKey: capabilityErrorMessageKey(result.error, "capabilities.errors.saveUnavailable")
-    });
+    setFeedback({ kind: "error", error: result.error });
   }
 
   return (
@@ -292,7 +299,7 @@ export function CapabilitiesScreen() {
             data-slot="button"
             data-variant="outline"
             data-size="sm"
-            onClick={() => setReloadVersion((version) => version + 1)}
+            onClick={reloadCapabilities}
           >
             <Icon name="refreshCw" />
             {t("capabilities.actions.retry")}
@@ -409,16 +416,19 @@ export function CapabilitiesScreen() {
                 ? "capabilities.feedback.saved"
                 : feedback.kind === "conflict"
                   ? "capabilities.feedback.conflict"
-                  : feedback.messageKey
+                  : capabilityErrorMessageKey(feedback.error, "capabilities.errors.saveUnavailable")
             )}
           </span>
-          {feedback.kind === "conflict" ? (
+          {feedback.kind === "conflict" ||
+          (feedback.kind === "error" &&
+            (feedback.error.kind === "network" ||
+              (feedback.error.kind === "api" && feedback.error.code === "invalid_settings"))) ? (
             <button
               type="button"
               data-slot="button"
               data-variant="outline"
               data-size="sm"
-              onClick={() => setReloadVersion((version) => version + 1)}
+              onClick={reloadCapabilities}
             >
               <Icon name="refreshCw" />
               {t("capabilities.actions.reload")}

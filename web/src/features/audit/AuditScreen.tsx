@@ -2,7 +2,11 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { consoleApi, useConsoleSession } from "../../app/session";
+import {
+  consoleApi,
+  retryConsoleAccess,
+  useConsoleSession
+} from "../../app/session";
 import { Icon } from "../../icons";
 import type { IconName } from "../../icons";
 import type { StatusTone } from "../../components/StatusBadge";
@@ -60,8 +64,12 @@ function auditErrorMessageKey(error: ApiRequestError, fallback: string): string 
   return fallback;
 }
 
-function AuditFeedbackNotice({ feedback }: Readonly<{ feedback: AuditFeedback }>) {
+function AuditFeedbackNotice({
+  feedback,
+  onReload
+}: Readonly<{ feedback: AuditFeedback; onReload: () => void }>) {
   const { t } = useTranslation();
+  const reloadable = feedback.messageKey === "audit.errors.network";
 
   return (
     <div
@@ -85,6 +93,18 @@ function AuditFeedbackNotice({ feedback }: Readonly<{ feedback: AuditFeedback }>
         }
       />
       {t(feedback.messageKey, { user: feedback.record.user })}
+      {reloadable ? (
+        <button
+          type="button"
+          data-slot="button"
+          data-variant="outline"
+          data-size="sm"
+          onClick={onReload}
+        >
+          <Icon name="refreshCw" />
+          {t("audit.actions.reload")}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -376,6 +396,13 @@ export function AuditScreen() {
       });
   }
 
+  function reloadAudit(): void {
+    setFeedback(null);
+    if (!retryConsoleAccess(session)) {
+      setReloadVersion((currentVersion) => currentVersion + 1);
+    }
+  }
+
   const dataState =
     auditState.kind === "fixture"
       ? auditState.fixture.id
@@ -443,7 +470,7 @@ export function AuditScreen() {
             data-slot="button"
             data-variant="outline"
             data-size="sm"
-            onClick={() => setReloadVersion((currentVersion) => currentVersion + 1)}
+            onClick={reloadAudit}
           >
             <Icon name="refreshCw" />
             {t("audit.unavailable.retry")}
@@ -467,7 +494,7 @@ export function AuditScreen() {
         />
       ) : null}
 
-      {feedback ? <AuditFeedbackNotice feedback={feedback} /> : null}
+      {feedback ? <AuditFeedbackNotice feedback={feedback} onReload={reloadAudit} /> : null}
     </section>
   );
 }

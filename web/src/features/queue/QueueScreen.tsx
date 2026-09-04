@@ -2,7 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { consoleApi, useConsoleSession } from "../../app/session";
+import {
+  consoleApi,
+  retryConsoleAccess,
+  useConsoleSession
+} from "../../app/session";
 import type { StatusTone } from "../../components/StatusBadge";
 import type { ApiRequestError } from "../../lib/api";
 import { Icon } from "../../icons";
@@ -63,11 +67,17 @@ function queueErrorMessageKey(error: ApiRequestError, fallback: string): string 
   return fallback;
 }
 
-function QueueFeedbackNotice({ feedback }: Readonly<{ feedback: QueueFeedback }>) {
+function QueueFeedbackNotice({
+  feedback,
+  onReload
+}: Readonly<{ feedback: QueueFeedback; onReload: () => void }>) {
   const { t } = useTranslation();
   const group = feedback.record.groupLabelKey
     ? t(feedback.record.groupLabelKey)
     : feedback.record.groupKey;
+  const reloadable =
+    feedback.messageKey === "queue.errors.network" ||
+    feedback.messageKey === "queue.errors.invalidSettlement";
 
   return (
     <div
@@ -95,6 +105,18 @@ function QueueFeedbackNotice({ feedback }: Readonly<{ feedback: QueueFeedback }>
         group,
         approved: t(challengeResults.approved.labelKey)
       })}
+      {reloadable ? (
+        <button
+          type="button"
+          data-slot="button"
+          data-variant="outline"
+          data-size="sm"
+          onClick={onReload}
+        >
+          <Icon name="refreshCw" />
+          {t("queue.actions.reload")}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -454,6 +476,13 @@ export function QueueScreen() {
       });
   }
 
+  function reloadQueue(): void {
+    setFeedback(null);
+    if (!retryConsoleAccess(session)) {
+      setReloadVersion((currentVersion) => currentVersion + 1);
+    }
+  }
+
   function clearFixture(): void {
     setSearchParams((currentSearchParams) => {
       const nextSearchParams = new URLSearchParams(currentSearchParams);
@@ -493,7 +522,7 @@ export function QueueScreen() {
       {queueState.kind === "unavailable" ? (
         <QueueUnavailableState
           error={queueState.error}
-          onRetry={() => setReloadVersion((currentVersion) => currentVersion + 1)}
+          onRetry={reloadQueue}
         />
       ) : null}
       {(queueState.kind === "fixture" || queueState.kind === "loaded") && records.length > 0 ? (
@@ -512,7 +541,7 @@ export function QueueScreen() {
         <QueueEmptyState />
       ) : null}
 
-      {feedback ? <QueueFeedbackNotice feedback={feedback} /> : null}
+      {feedback ? <QueueFeedbackNotice feedback={feedback} onReload={reloadQueue} /> : null}
     </section>
   );
 }

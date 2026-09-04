@@ -1,7 +1,11 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
-import { consoleApi, useConsoleSession } from "../../app/session";
+import {
+  consoleApi,
+  retryConsoleAccess,
+  useConsoleSession
+} from "../../app/session";
 import { StatusBadge } from "../../components/StatusBadge";
 import { Icon } from "../../icons";
 import type { IconName } from "../../icons";
@@ -358,6 +362,13 @@ export function FeedsScreen() {
     };
   }, [reloadVersion, session]);
 
+  function reloadFeeds(): void {
+    if (session.state === "blocked" && retryConsoleAccess(session)) {
+      return;
+    }
+    setReloadVersion((version) => version + 1);
+  }
+
   return (
     <section
       data-feeds-page
@@ -400,7 +411,7 @@ export function FeedsScreen() {
             data-slot="button"
             data-variant="outline"
             data-size="sm"
-            onClick={() => setReloadVersion((version) => version + 1)}
+            onClick={reloadFeeds}
           >
             <Icon name="refreshCw" />
             {t("feeds.unavailable.retry")}

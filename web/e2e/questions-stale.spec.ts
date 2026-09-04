@@ -167,3 +167,28 @@ test("questions ignore a previous group's delayed settings save", async ({ page 
   await patchResponseSettled;
   await expect(page.getByLabel("题面").first()).toHaveValue(groupBQuestion.q);
 });
+
+test("an interrupted question save provides the question-bank reload it names", async ({ page }) => {
+  let settingsReads = 0;
+  await mockQuestionTransport(
+    page,
+    async (route, groupID) => {
+      settingsReads += 1;
+      await fulfillJSON(
+        route,
+        groupID === groupAID ? settingsPayload(groupAQuestion, 7) : settingsPayload(groupBQuestion, 8)
+      );
+    },
+    async (route) => route.abort("failed")
+  );
+  await page.goto(`/questions?group=${groupAID}`);
+  await expect(page.locator("[data-questions-page]")).toHaveAttribute("data-questions-state", "loaded");
+
+  await page.getByLabel("题面").first().fill("Unsaved after a network failure");
+  await page.getByRole("button", { name: "保存更改" }).click();
+  const feedback = page.locator("[data-questions-feedback]");
+  await expect(feedback).toContainText("连接已中断");
+  await feedback.getByRole("button", { name: "重新读取" }).click();
+  await expect.poll(() => settingsReads).toBe(2);
+  await expect(feedback).toHaveCount(0);
+});

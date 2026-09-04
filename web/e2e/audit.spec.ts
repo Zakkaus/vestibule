@@ -401,3 +401,25 @@ test("narrow audit card completes undo from the keyboard", async ({ page }) => {
   await expect(card).toHaveAttribute("data-undo-state", "completed");
   await expect(card.getByRole("button")).toHaveCount(0);
 });
+
+test("an interrupted undo provides the activity-log reload it names", async ({ page }) => {
+  let auditReads = 0;
+  await openLiveAudit(
+    page,
+    async (route) => route.abort("failed"),
+    async (route) => {
+      auditReads += 1;
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: [availableAuditEntry] })
+      });
+    }
+  );
+
+  await page.getByRole("button", { name: "撤销对 @undo_target 的封禁" }).click();
+  const feedback = page.locator("[data-audit-feedback]");
+  await expect(feedback).toContainText("连接已中断");
+  await feedback.getByRole("button", { name: "重新读取" }).click();
+  await expect.poll(() => auditReads).toBe(2);
+  await expect(feedback).toHaveCount(0);
+});

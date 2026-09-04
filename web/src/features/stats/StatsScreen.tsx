@@ -2,7 +2,10 @@ import { useCallback, useMemo, useState, type FormEvent, type ReactNode } from "
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { useConsoleSession } from "../../app/session";
+import {
+  retryConsoleAccess,
+  useConsoleSession
+} from "../../app/session";
 import type { ApiRequestError } from "../../lib/api";
 import { Icon, type IconName } from "../../icons";
 import type { StatsQuery } from "./api";
@@ -397,7 +400,7 @@ function useStatsScreenState(browserZone: string) {
   }
 
   function reload(): void {
-    if (loading) {
+    if (loading || retryConsoleAccess(session)) {
       return;
     }
     setSubmitting(true);

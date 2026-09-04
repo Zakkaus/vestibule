@@ -224,7 +224,8 @@
       "release": "Release",
       "releaseFor": "Release {{user}}",
       "releasing": "Releasing…",
-      "releasingFor": "Releasing {{user}}"
+      "releasingFor": "Releasing {{user}}",
+      "reload": "Reload queue"
     },
     "feedback": {
       "releaseSuccess": "Released {{user}}. They can now enter “{{group}}”.",
@@ -497,7 +498,8 @@
       "cancelRestore": "Cancel restore",
       "discard": "Discard",
       "save": "Save",
-      "saving": "Saving…"
+      "saving": "Saving…",
+      "reload": "Reload settings"
     },
     "feedback": {
       "saved": "Verification bypass sources saved.",
@@ -554,7 +556,8 @@
       "undo": "Undo ban",
       "undoFor": "Undo the ban for {{user}}",
       "undoing": "Undoing…",
-      "undoingFor": "Undoing the ban for {{user}}"
+      "undoingFor": "Undoing the ban for {{user}}",
+      "reload": "Reload activity log"
     },
     "undoState": {
       "pending": "Undo pending",
@@ -673,7 +676,8 @@
     "actions": {
       "restore": "Restore inherited value",
       "save": "Save changes",
-      "saving": "Saving…"
+      "saving": "Saving…",
+      "reload": "Reload settings"
     },
     "feedback": {
       "saved": "Verification settings were saved.",
@@ -789,7 +793,8 @@
       "removeAnswer": "Remove",
       "removeAnswerFor": "Remove answer {{number}}",
       "save": "Save changes",
-      "saving": "Saving…"
+      "saving": "Saving…",
+      "reload": "Reload question bank"
     },
     "save": {
       "dirty": "There are unsaved question-bank changes.",
@@ -1021,7 +1026,7 @@
     },
     "manual": {
       "title": "Update on the host",
-      "description": "This instance has no host replacement unit; the application is not broken. It can write upgrade intent but cannot replace the host process or container. Set the compose image to the value below, then run the commands from the compose directory.",
+      "description": "This instance has no host replacement unit; the application is not broken. It can write upgrade intent but cannot replace the host process or container. For an installer-managed container deployment, set the line below in the container.env file in the Compose directory, then run these commands there.",
       "imageLabel": "Image setting",
       "commandsLabel": "Host commands"
     },
@@ -1249,6 +1254,7 @@
     },
     "actions": {
       "retry": "Try again",
+      "reload": "Reload",
       "restore": "Restore inherited value",
       "cancelRestore": "Cancel restore",
       "saveSettings": "Save message settings",

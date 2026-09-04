@@ -2,7 +2,10 @@ import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { useConsoleSession } from "../../app/session";
+import {
+  retryConsoleAccess,
+  useConsoleSession
+} from "../../app/session";
 import type { ApiRequestError } from "../../lib/api";
 import { Icon, type IconName } from "../../icons";
 import { MessageSettingsForm } from "./MessageSettingsForm";
@@ -68,7 +71,10 @@ function StateCard({
   );
 }
 
-function SettingsFeedbackNotice({ feedback }: Readonly<{ feedback: MessageSettingsFeedback }>) {
+function SettingsFeedbackNotice({
+  feedback,
+  onReload
+}: Readonly<{ feedback: MessageSettingsFeedback; onReload: () => void }>) {
   const { t } = useTranslation();
   const messageKey =
     feedback.kind === "saved"
@@ -76,6 +82,7 @@ function SettingsFeedbackNotice({ feedback }: Readonly<{ feedback: MessageSettin
       : feedback.kind === "conflict"
         ? "messages.settingsFeedback.conflict"
         : errorMessageKey(feedback.error, "messages.errors.saveSettingsUnavailable");
+  const reloadable = feedback.kind === "error" && feedback.error.kind === "network";
 
   return (
     <div
@@ -85,6 +92,18 @@ function SettingsFeedbackNotice({ feedback }: Readonly<{ feedback: MessageSettin
     >
       <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
       {t(messageKey)}
+      {reloadable ? (
+        <button
+          type="button"
+          data-slot="button"
+          data-variant="outline"
+          data-size="sm"
+          onClick={onReload}
+        >
+          <Icon name="refreshCw" />
+          {t("messages.actions.reload")}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -102,6 +121,13 @@ export function MessagesScreen() {
   const pageBusy =
     ready &&
     (settings.state.kind === "loading" || rules.state.kind === "loading" || settings.saving || rules.busy !== null);
+  const dataState = !ready
+    ? session.state
+    : settings.state.kind === "unavailable" || rules.state.kind === "unavailable"
+      ? "unavailable"
+      : settings.state.kind === "loading" || rules.state.kind === "loading"
+        ? "loading"
+        : "loaded";
 
   let content: ReactNode;
   if (session.state === "loading" || session.state === "checking-groups") {
@@ -121,7 +147,20 @@ export function MessagesScreen() {
         titleKey="messages.unavailable.title"
         descriptionKey={errorMessageKey(session.error, "messages.errors.loadUnavailable")}
         role="alert"
-      />
+      >
+        <button
+          type="button"
+          data-slot="button"
+          data-variant="outline"
+          data-size="sm"
+          onClick={() => {
+            retryConsoleAccess(session);
+          }}
+        >
+          <Icon name="refreshCw" />
+          {t("messages.actions.retry")}
+        </button>
+      </StateCard>
     );
   } else if (session.state === "no-groups") {
     content = (
@@ -160,7 +199,13 @@ export function MessagesScreen() {
                 ? t("messages.rules.feedback.orderSaved", { collection: rules.feedback.collection })
                 : rules.feedback.kind === "conflict"
                   ? t("messages.rules.feedback.conflict")
-                  : t(errorMessageKey(rules.feedback.error, "messages.errors.saveRulesUnavailable"))
+                  : t(errorMessageKey(rules.feedback.error, "messages.errors.saveRulesUnavailable")),
+          reloadable:
+            rules.feedback.kind === "error" &&
+            (rules.feedback.error.kind === "network" ||
+              (rules.feedback.error.kind === "api" &&
+                (rules.feedback.error.code === "invalid_rule" ||
+                  rules.feedback.error.code === "rule_not_found")))
         }
       : null;
 
@@ -199,6 +244,7 @@ export function MessagesScreen() {
             items={rules.state.items}
             busy={rules.busy}
             feedback={rulesFeedback}
+            onReload={rules.retry}
             onToggle={rules.toggle}
             onMove={rules.move}
           />
@@ -247,7 +293,9 @@ export function MessagesScreen() {
               onDraftChange={settings.setDraft}
               onSetRestoring={settings.setRestoring}
             />
-            {settings.feedback ? <SettingsFeedbackNotice feedback={settings.feedback} /> : null}
+            {settings.feedback ? (
+              <SettingsFeedbackNotice feedback={settings.feedback} onReload={settings.retry} />
+            ) : null}
           </>
         ) : null}
 
@@ -269,7 +317,7 @@ export function MessagesScreen() {
   return (
     <section
       data-messages-page
-      data-messages-state={ready ? "loaded" : session.state}
+      data-messages-state={dataState}
       aria-busy={pageBusy || undefined}
       aria-labelledby="messages-title"
     >

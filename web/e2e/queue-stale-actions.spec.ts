@@ -265,3 +265,26 @@ test("queue sends one release for a forced second click and shows the confirmed 
   );
   expect(releaseRequests).toBe(1);
 });
+
+test("an interrupted release provides the queue reload it names", async ({ page }) => {
+  let queueReads = 0;
+  await mockQueueTransport(
+    page,
+    async (route) => {
+      queueReads += 1;
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: [groupAQueueEntry] })
+      });
+    },
+    async (route) => route.abort("failed")
+  );
+  await page.goto(`/queue?group=${groupAID}`);
+
+  await queueRow(page, "@queue_group_a").getByRole("button").click();
+  const feedback = page.locator("[data-queue-feedback]");
+  await expect(feedback).toContainText("连接已中断");
+  await feedback.getByRole("button", { name: "重新读取" }).click();
+  await expect.poll(() => queueReads).toBe(2);
+  await expect(feedback).toHaveCount(0);
+});
