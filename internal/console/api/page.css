@@ -1,5 +1,7 @@
 /* ─────────────────────────────────────────────────────────────
-   Deployment guide — the one screen that exists before the console.
+   The pages the Go binary renders itself: the deployment guide, which exists
+   before the console does, and the error page, which exists when the console
+   has nothing at the address somebody asked for.
 
    This page is served by the Go binary, not by the built frontend, so it
    cannot link the application's stylesheet: at this moment nothing has been
@@ -145,14 +147,14 @@ body {
 
 /* One centred column, no sidebar and no group switcher, because at this moment
    there is no group to switch to. The entry screen uses the same shell. */
-[data-setup-main] {
+[data-page-main] {
   display: grid;
   place-items: center;
   min-block-size: 100dvb;
   padding: var(--sp-6) var(--sp-4);
 }
 
-[data-setup-card] {
+[data-page-card] {
   display: grid;
   gap: var(--sp-6);
   inline-size: min(100%, 34rem);
@@ -163,12 +165,12 @@ body {
   box-shadow: var(--card-shadow);
 }
 
-[data-setup-head] {
+[data-page-head] {
   display: grid;
   gap: var(--sp-2);
 }
 
-[data-setup-eyebrow] {
+[data-page-eyebrow] {
   margin: 0;
   color: var(--muted-foreground);
   font-size: 0.75rem;
@@ -177,7 +179,7 @@ body {
   text-transform: uppercase;
 }
 
-[data-setup-card] h1 {
+[data-page-card] h1 {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
@@ -185,7 +187,7 @@ body {
   line-height: 1.25;
 }
 
-[data-setup-lede] {
+[data-page-lede] {
   margin: 0;
   color: var(--muted-foreground);
 }
@@ -298,7 +300,7 @@ body {
   line-height: 1.5;
 }
 
-[data-setup-action] {
+[data-page-action] {
   display: inline-grid;
   place-items: center;
   min-block-size: var(--control-h);
@@ -316,19 +318,59 @@ body {
 }
 
 @media (hover: hover) {
-  [data-setup-action]:hover {
+  [data-page-action]:hover {
     opacity: 0.88;
   }
 }
 
-[data-setup-action]:focus-visible {
+[data-page-action]:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
+/* The way onward, once the guide has nothing left to ask for. It is set apart
+   from the binding link above it because the two are not alternatives: binding
+   happens in Telegram, and this is where the person lands afterwards. */
+[data-page-onward] {
+  justify-self: start;
+  margin-block-start: var(--sp-2);
+  background: transparent;
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
+/* What to do instead. The browser's own list styling put a disc bullet and an
+   indent nothing else on the page uses next to the one paragraph that has to be
+   read, so the marker is the page's own. */
+[data-error-steps] {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+[data-error-steps] ul {
+  display: grid;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-error-steps] li {
+  padding-inline-start: var(--sp-4);
+  position: relative;
+  line-height: 1.6;
+}
+
+[data-error-steps] li::before {
+  content: "\2192";
+  position: absolute;
+  inset-inline-start: 0;
+  color: var(--muted-foreground);
+}
+
 /* Failure is a state with a next step, not a red sentence: the three causes
    send the reader to three different places, so they are never merged. */
-[data-setup-alert] {
+[data-page-alert] {
   margin: 0;
   padding: var(--sp-3) var(--sp-4);
   background: var(--status-error-bg);
@@ -353,14 +395,14 @@ body {
   font-weight: 600;
 }
 
-[data-setup-note] {
+[data-page-note] {
   margin: 0;
   color: var(--muted-foreground);
   font-size: 0.8125rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-setup-action],
+  [data-page-action],
   [data-setup-form] input {
     transition: none;
   }

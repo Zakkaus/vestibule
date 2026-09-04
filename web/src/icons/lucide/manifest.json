@@ -36,6 +36,12 @@
       "sha256": "8051a14306173c670ea6de268446552bd61a403936bc4df73a69c561c4f14829"
     },
     {
+      "name": "chevron-right",
+      "file": "chevron-right.svg",
+      "source": "package/icons/chevron-right.svg",
+      "sha256": "a5ef4bb30b27242097b8b0780e89eba39f68d0932d3bdd6538c64db83df08d81"
+    },
+    {
       "name": "chevron-up",
       "file": "chevron-up.svg",
       "source": "package/icons/chevron-up.svg",
@@ -94,6 +100,12 @@
       "file": "layout-dashboard.svg",
       "source": "package/icons/layout-dashboard.svg",
       "sha256": "9764c11fc03a8f3205bf75f2276d291b5dffbf0599b2e5a52bc142758882b7b9"
+    },
+    {
+      "name": "link-2-off",
+      "file": "link-2-off.svg",
+      "source": "package/icons/link-2-off.svg",
+      "sha256": "4bc36185ef2bd0d153e91699e437f49fbbec9ccfe24f88fc4ed4e2f4d6f657da"
     },
     {
       "name": "list-x",
@@ -196,6 +208,12 @@
       "file": "sun.svg",
       "source": "package/icons/sun.svg",
       "sha256": "9f8e98e311a0c744490c73ef5ce26243bcfca741cbefcd25db2a2cb1e1d3446b"
+    },
+    {
+      "name": "timer-off",
+      "file": "timer-off.svg",
+      "source": "package/icons/timer-off.svg",
+      "sha256": "a26d5551132bcd995910e2e686862504622650bccb63cd0c3ed6c199b96d5816"
     },
     {
       "name": "trash-2",

@@ -565,8 +565,8 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 #### 落地之后要补的另一件：运维进来之后写不了
 
 `GET /enter/{token}` 只写 HttpOnly 会话 Cookie 然后 `303` 回首页
-（`internal/console/api/server.go:247-253`），而 CSRF token 只在
-`POST /api/session` 的 JSON 响应里出现（`internal/console/api/server.go:217-234`）；结算又严格要求
+（`internal/console/api/server.go:246-263`），而 CSRF token 只在
+`POST /api/session` 的 JSON 响应里出现（`internal/console/api/server.go:223-243`）；结算又严格要求
 `X-CSRF-Token`（`internal/console/auth/manager.go:291-297`）。
 
 于是**运维走一次性链接进来，能读群和队列，但任何写入都做不了** ——

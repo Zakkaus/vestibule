@@ -15,7 +15,12 @@ import (
 	"time"
 )
 
-const appSetupLinkToken = "app-setup-link-token"
+// Long enough to be a credential rather than a word: the process refuses a
+// setup token short enough to guess, because whoever opens that link owns
+// the instance.
+const appSetupLinkToken = "app-setup-link-token-for-tests-only"
+
+const replacementSetupToken = "a-different-setup-token-for-tests"
 
 var appSetupBotToken = "1:" + strings.Repeat("a", 35)
 
@@ -236,13 +241,13 @@ func TestStartupRejectsReadableClaimState(t *testing.T) {
 	if err := os.Chmod(claimPath, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := openSetupState(stateDirectory, ""); err == nil {
+	if _, _, err := openSetupState(stateDirectory, ""); err == nil {
 		t.Fatal("startup accepted a readable claim state; another local account could copy the live bot token")
 	}
 	if err := os.Chmod(claimPath, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	state, err := openSetupState(stateDirectory, "")
+	state, _, err := openSetupState(stateDirectory, "")
 	if err != nil {
 		t.Fatalf("startup rejected a private claim state: %v", err)
 	}
@@ -253,13 +258,13 @@ func TestStartupRejectsReadableClaimState(t *testing.T) {
 
 func TestStartupRejectsMismatchedSetupToken(t *testing.T) {
 	stateDirectory := t.TempDir()
-	if _, err := openSetupState(stateDirectory, appSetupLinkToken); err != nil {
+	if _, _, err := openSetupState(stateDirectory, appSetupLinkToken); err != nil {
 		t.Fatalf("start with the recorded setup token: %v", err)
 	}
-	if _, err := openSetupState(stateDirectory, "replacement-setup-token"); err == nil {
+	if _, _, err := openSetupState(stateDirectory, replacementSetupToken); err == nil {
 		t.Fatal("startup accepted a replacement SETUP_TOKEN while the old claim link remained active")
 	}
-	if _, err := openSetupState(stateDirectory, appSetupLinkToken); err != nil {
+	if _, _, err := openSetupState(stateDirectory, appSetupLinkToken); err != nil {
 		t.Fatalf("startup rejected the setup token recorded in claim.json: %v", err)
 	}
 }
@@ -352,4 +357,48 @@ func postSetupForm(t *testing.T, endpoint, botToken string) *http.Response {
 	_, _ = io.Copy(io.Discard, response.Body)
 	_ = response.Body.Close()
 	return response
+}
+
+// The claim link is the whole instance: whoever opens it hands the process a bot
+// token and becomes its owner. Before this, an instance with no SETUP_TOKEN had
+// no way in at all, which pushed operators into choosing the token by hand -- and
+// a token chosen by hand is a token somebody else can guess.
+func TestStartupGeneratesAClaimLinkNobodyCanGuess(t *testing.T) {
+	first, firstLink, err := openSetupState(t.TempDir(), "")
+	if err != nil {
+		t.Fatalf("startup without a configured setup token failed: %v", err)
+	}
+	if !firstLink.Generated || firstLink.Token == "" {
+		t.Fatal("startup left an unclaimed instance with no claim link, so nobody can claim it")
+	}
+	if len(firstLink.Token) < minimumSetupTokenLength {
+		t.Fatalf("the generated claim token is %d characters, under the floor of %d",
+			len(firstLink.Token), minimumSetupTokenLength)
+	}
+	if !first.setupAvailable(firstLink.Token) {
+		t.Fatal("the generated token does not open the setup route it was generated for")
+	}
+	if first.setupAvailable(firstLink.Token + "x") {
+		t.Fatal("a token that is not the generated one still opens the setup route")
+	}
+
+	_, secondLink, err := openSetupState(t.TempDir(), "")
+	if err != nil {
+		t.Fatalf("second startup failed: %v", err)
+	}
+	if secondLink.Token == firstLink.Token {
+		t.Fatal("two instances generated the same claim token; it is not random")
+	}
+}
+
+// A short token is the hole this closes, and refusing to start is the only
+// answer that does not leave a guessable claim link listening.
+func TestStartupRefusesAGuessableSetupToken(t *testing.T) {
+	if _, _, err := openSetupState(t.TempDir(), "vestibule"); err == nil {
+		t.Fatal("startup accepted a nine-character SETUP_TOKEN; anyone who guesses it owns the instance")
+	}
+	long := strings.Repeat("k", minimumSetupTokenLength)
+	if _, _, err := openSetupState(t.TempDir(), long); err != nil {
+		t.Fatalf("startup refused a token at the documented floor: %v", err)
+	}
 }

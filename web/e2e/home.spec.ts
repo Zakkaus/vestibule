@@ -160,6 +160,14 @@ async function mockHomeTransport(
       return;
     }
 
+    if (pathname === "/api/instance" && request.method() === "GET") {
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_username: "example_bot" })
+      });
+      return;
+    }
+
     throw new Error(`Unexpected API request: ${request.method()} ${pathname}`);
   });
 

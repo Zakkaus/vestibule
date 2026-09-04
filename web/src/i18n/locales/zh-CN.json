@@ -11,6 +11,7 @@
   },
   "locale": {
     "label": "语言",
+    "system": "跟随浏览器",
     "zhCN": "中文（简体）",
     "zhTW": "中文（繁体）",
     "en": "English"
@@ -29,6 +30,15 @@
   },
   "entry": {
     "nextSteps": "下一步",
+    "thisBot": "这台实例的机器人",
+    "unclaimed": {
+      "title": "这台实例还没有被认领",
+      "description": "认领之前这里没有机器人，也没有可以进入的控制台。",
+      "steps": {
+        "link": "在部署这台机器的终端里找出安装脚本打印的一次性链接。",
+        "token": "打开那条链接，填入 Telegram 机器人令牌。"
+      }
+    },
     "loading": {
       "title": "正在打开控制台",
       "description": "正在确认当前会话。"
@@ -40,7 +50,7 @@
     },
     "noSession": {
       "title": "从 Telegram 打开控制台",
-      "description": "群管理员请在 Telegram 中打开 {{botUsername}} 的菜单。运维请向 {{botUsername}} 索取一次性链接。",
+      "description": "这台控制台没有登录画面，入口在 Telegram 里。",
       "steps": {
         "openBot": "在 Telegram 中打开 {{botUsername}}。",
         "manager": "群管理员从机器人的菜单进入控制台。",

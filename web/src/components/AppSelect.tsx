@@ -268,7 +268,6 @@ export function AppSelect<Value extends string>({
               onClick={() => choose(index)}
               onKeyDown={(event) => handleOptionKeyDown(event, index)}
             >
-              <Icon name="circleCheck" />
               {option.label}
             </div>
           ))}

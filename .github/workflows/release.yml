@@ -29,6 +29,7 @@ jobs:
           go vet ./...
           scripts/lint.sh
           python3 scripts/check-test-chat-ids.py internal cmd testdata
+          python3 scripts/check-no-baked-identity.py
           python3 scripts/check-vendored.py
           python3 scripts/check-locale-catalogues.py
           python3 scripts/check-inherited-commands.py

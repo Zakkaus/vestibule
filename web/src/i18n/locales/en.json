@@ -11,6 +11,7 @@
   },
   "locale": {
     "label": "Language",
+    "system": "Follow the browser",
     "zhCN": "Chinese, Simplified",
     "zhTW": "Chinese, Traditional",
     "en": "English"
@@ -29,6 +30,15 @@
   },
   "entry": {
     "nextSteps": "Next steps",
+    "thisBot": "this instance's bot",
+    "unclaimed": {
+      "title": "Nobody has claimed this instance",
+      "description": "Until it is claimed there is no bot here, and no console to enter.",
+      "steps": {
+        "link": "Find the one-time link the install script printed, on the machine you deployed to.",
+        "token": "Open that link and enter the Telegram bot token."
+      }
+    },
     "loading": {
       "title": "Opening the console",
       "description": "Checking the current session."
@@ -40,7 +50,7 @@
     },
     "noSession": {
       "title": "Open the console from Telegram",
-      "description": "Group administrators open the bot menu inside Telegram. Operators request a one-time link from {{botUsername}}.",
+      "description": "This console has no sign-in screen; the way in is inside Telegram.",
       "steps": {
         "openBot": "Open {{botUsername}} in Telegram.",
         "manager": "Group administrators enter the console from the bot menu.",

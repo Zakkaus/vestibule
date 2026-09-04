@@ -37,7 +37,12 @@
     },
     "owner": {
       "enroll": "建立一次性群組登記連結",
-      "unregister": "取消登記執行階段群組"
+      "unregister": "取消登記執行階段群組",
+      "console": "取得一次性控制台連結",
+      "console_denied": "只有部署這台執行個體時綁定的帳號能開啟控制台，而現在還沒有綁定。綁定連結在每次啟動時都會印到服務記錄檔裡，就是 OWNER UNCLAIMED 那一行；重新啟動行程會印出一條新的。",
+      "console_sent": "一次性連結，只能用一次，且只對你有效。",
+      "console_open": "開啟控制台",
+      "console_local": "這台控制台只監聽本機，因此只能在它所在的機器上開啟。請先做連接埠轉送，再開啟："
     }
   },
   "lifecycle": {
@@ -49,7 +54,7 @@
   },
   "registration": {
     "owner_claimed": "部署者身分已綁定。現在可以新增群組。",
-    "owner_claim_refused": "該擁有者認領連結無效、已使用或已過期。",
+    "owner_claim_refused": "這條擁有者認領連結不能用：它已經被使用，或者已經過期。行程每次啟動都會把一條新的印到服務記錄檔裡，就是 OWNER UNCLAIMED 那一行。",
     "owner_claim_save_failed": "無法儲存擁有者認領狀態。請恢復服務狀態目錄的寫入權限後，使用相同連結重試。",
     "enrollment_owner_only": "僅機器人擁有者可建立群組登記連結。",
     "enrollment_link": "群組登記連結（%[1]d 分鐘內有效且只能使用一次）：\n%[2]s",
@@ -86,6 +91,19 @@
     "telegram_unreachable": "連不上 Telegram，權杖還沒有被判定。需要處理的是這台機器的網路或代理，不是權杖。",
     "instance_fault": "權杖已被接受，但執行個體沒能啟動。這不是權杖的問題，原因寫在伺服器記錄檔裡。",
     "bot_name_label": "已連上",
-    "after_binding": "綁定之後把機器人拉進第一個群組，控制台會停在群組列表。"
+    "after_binding": "綁定之後把機器人拉進第一個群組，控制台會停在群組列表。",
+    "console_action": "開啟控制台"
+  },
+  "error_page": {
+    "eyebrow": "控制台",
+    "steps_label": "該做什麼",
+    "action": "前往控制台",
+    "not_found_title": "這個地址不在這裡",
+    "not_found_description": "要麼是地址打錯了，要麼它是一條一次性連結、已經被用過。一次性連結在被開啟的那一刻就失效，這正是它一次性的含義。",
+    "refused_title": "控制台不以這種方式回應這個請求",
+    "refused_description": "地址存在，但不接受這種請求。請從控制台自己的地址進入。",
+    "step_manager": "群組管理員在 Telegram 中從 %[1]s 開啟控制台。",
+    "step_operator": "維運人員向機器人索取一條新的一次性連結。",
+    "step_unclaimed": "這台執行個體還沒有被認領，它的入口是安裝指令碼印出的那條一次性連結。"
   }
 }

@@ -11,6 +11,7 @@
   },
   "locale": {
     "label": "語言",
+    "system": "跟隨瀏覽器",
     "zhCN": "中文（簡體）",
     "zhTW": "中文（繁體）",
     "en": "English"
@@ -29,6 +30,15 @@
   },
   "entry": {
     "nextSteps": "下一步",
+    "thisBot": "這台執行個體的機器人",
+    "unclaimed": {
+      "title": "這台執行個體還沒有被認領",
+      "description": "認領之前這裡沒有機器人，也沒有可以進入的控制台。",
+      "steps": {
+        "link": "在部署這台機器的終端機裡找出安裝指令碼印出的一次性連結。",
+        "token": "開啟那條連結，填入 Telegram 機器人權杖。"
+      }
+    },
     "loading": {
       "title": "正在開啟控制台",
       "description": "正在確認目前的工作階段。"
@@ -40,7 +50,7 @@
     },
     "noSession": {
       "title": "從 Telegram 開啟控制台",
-      "description": "群組管理員請在 Telegram 中開啟 {{botUsername}} 的選單。維運人員請向 {{botUsername}} 索取一次性連結。",
+      "description": "這台控制台沒有登入畫面，入口在 Telegram 裡。",
       "steps": {
         "openBot": "在 Telegram 中開啟 {{botUsername}}。",
         "manager": "群組管理員從機器人的選單進入控制台。",

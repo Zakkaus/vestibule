@@ -169,7 +169,7 @@ export function AppShell() {
     return (
       <div data-app-shell data-shell-variant={shellVariant}>
         <header data-entry-utilities>
-          <UtilityControls />
+          <UtilityControls variant="chrome" />
         </header>
         <main data-entry-main>
           <Outlet />
@@ -203,7 +203,7 @@ export function AppShell() {
           </span>
           <div data-header-controls>
             <GroupSwitcher />
-            <UtilityControls />
+            <UtilityControls variant="chrome" />
           </div>
         </header>
         <main className="shell-content">

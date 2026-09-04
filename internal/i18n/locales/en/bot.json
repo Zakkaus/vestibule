@@ -37,7 +37,12 @@
     },
     "owner": {
       "enroll": "Create a one-use group-enrollment link",
-      "unregister": "Unregister a runtime group"
+      "unregister": "Unregister a runtime group",
+      "console": "Send a one-time console link",
+      "console_denied": "Only the account bound when this instance was deployed can open the console, and nothing is bound yet. The binding link is printed to the service log on every start, on the line beginning OWNER UNCLAIMED; restart the process to print a fresh one.",
+      "console_sent": "One-time link, good once and only for you.",
+      "console_open": "Open the console",
+      "console_local": "This console listens on the loopback interface, so it opens only from the machine it runs on. Forward the port, then open:"
     }
   },
   "lifecycle": {
@@ -49,7 +54,7 @@
   },
   "registration": {
     "owner_claimed": "Deployer ownership is now bound to this account. You can add groups.",
-    "owner_claim_refused": "This owner-claim link is invalid, used, or expired.",
+    "owner_claim_refused": "That owner link is not valid: it was used, or it expired. A fresh one is printed to the service log every time the process starts, on the line beginning OWNER UNCLAIMED.",
     "owner_claim_save_failed": "Could not save the owner claim. Restore write access to the service state directory, then retry the same link.",
     "enrollment_owner_only": "Only the bot owner can create group-enrollment links.",
     "enrollment_link": "Group-enrollment link (valid for %[1]d minutes and one use):\n%[2]s",
@@ -86,6 +91,19 @@
     "telegram_unreachable": "Telegram could not be reached, so the token was never judged. What needs attention is the network or proxy on this machine, not the token.",
     "instance_fault": "The token was accepted, but the instance did not start. This is not a token problem; the reason is in the server log.",
     "bot_name_label": "Connected as",
-    "after_binding": "Once the account is bound, add the bot to your first group. The console opens on the group list."
+    "after_binding": "Once the account is bound, add the bot to your first group. The console opens on the group list.",
+    "console_action": "Open the console"
+  },
+  "error_page": {
+    "eyebrow": "Console",
+    "steps_label": "What to do instead",
+    "action": "Go to the console",
+    "not_found_title": "This address is not here",
+    "not_found_description": "Either it was mistyped, or it was a one-time link and has already been used. A one-time link stops working the moment it is opened, which is what makes it one-time.",
+    "refused_title": "The console will not answer this request",
+    "refused_description": "The address exists, but not for this kind of request. Open the console from its own address instead.",
+    "step_manager": "Group administrators open the console from %[1]s in Telegram.",
+    "step_operator": "Operators ask the bot for a fresh one-time link.",
+    "step_unclaimed": "Nobody has claimed this instance yet. Its way in is the one-time link the install script printed."
   }
 }

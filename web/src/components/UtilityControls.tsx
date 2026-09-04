@@ -2,13 +2,12 @@ import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
-  DEFAULT_LOCALE,
-  isAppLocale,
-  locales,
+  isLocalePreference,
+  localePreferences,
+  readLocalePreference,
   setAppLocale,
-  type AppLocale
+  type LocalePreference
 } from "../i18n";
-import i18n from "../i18n";
 import {
   applyThemePreference,
   THEME_PREFERENCE_CHANGE_EVENT,
@@ -19,7 +18,8 @@ import {
 import type { IconName } from "../icons";
 import { AppSelect } from "./AppSelect";
 
-const localeLabelKeys: Record<AppLocale, string> = {
+const localeLabelKeys: Record<LocalePreference, string> = {
+  system: "locale.system",
   "zh-CN": "locale.zhCN",
   "zh-TW": "locale.zhTW",
   en: "locale.en"
@@ -41,7 +41,16 @@ const themeLabelKeys: Record<ThemePreference, string> = {
   dark: "theme.dark"
 };
 
-export function UtilityControls() {
+type UtilityControlsProps = Readonly<{
+  /** "chrome" drops the label above each control: in a corner of the screen the
+      glyph and the current value already say which control this is, and the two
+      stacked names said more about themselves than the card below them said
+      about what to do next. "labelled" is the settings-page treatment, where the
+      control is the content of the screen and its name belongs on screen. */
+  variant?: "labelled" | "chrome";
+}>;
+
+export function UtilityControls({ variant = "labelled" }: UtilityControlsProps) {
   const { t } = useTranslation();
   const [theme, setTheme] = useState<ThemePreference>(readThemePreference);
 
@@ -56,8 +65,7 @@ export function UtilityControls() {
     };
   }, []);
 
-  const resolvedLocale = i18n.resolvedLanguage ?? i18n.language;
-  const locale = isAppLocale(resolvedLocale) ? resolvedLocale : DEFAULT_LOCALE;
+  const locale = readLocalePreference();
 
   function changeTheme(nextTheme: string): void {
     if (!themePreferences.includes(nextTheme as ThemePreference)) {
@@ -69,7 +77,7 @@ export function UtilityControls() {
   }
 
   function changeLocale(nextLocale: string): void {
-    if (!isAppLocale(nextLocale)) {
+    if (!isLocalePreference(nextLocale)) {
       return;
     }
 
@@ -81,18 +89,21 @@ export function UtilityControls() {
     label: t(themeLabelKeys[preference]),
     value: preference
   }));
-  const localeOptions = locales.map((optionLocale) => ({
-    label: t(localeLabelKeys[optionLocale]),
-    value: optionLocale
+  const localeOptions = localePreferences.map((preference) => ({
+    label: t(localeLabelKeys[preference]),
+    value: preference
   }));
 
 
+  const chrome = variant === "chrome";
+
   return (
-    <div data-utility-controls>
+    <div data-utility-controls data-variant={variant}>
       <div data-utility-control>
-        <span id={themeLabelId}>{t("theme.label")}</span>
+        {chrome ? null : <span id={themeLabelId}>{t("theme.label")}</span>}
         <AppSelect
-          aria-labelledby={themeLabelId}
+          aria-label={chrome ? t("theme.label") : undefined}
+          aria-labelledby={chrome ? undefined : themeLabelId}
           icon={themeIcons[theme]}
           value={theme}
           options={themeOptions}
@@ -100,9 +111,10 @@ export function UtilityControls() {
         />
       </div>
       <div data-utility-control>
-        <span id={localeLabelId}>{t("locale.label")}</span>
+        {chrome ? null : <span id={localeLabelId}>{t("locale.label")}</span>}
         <AppSelect
-          aria-labelledby={localeLabelId}
+          aria-label={chrome ? t("locale.label") : undefined}
+          aria-labelledby={chrome ? undefined : localeLabelId}
           icon="languages"
           value={locale}
           options={localeOptions}

@@ -12,6 +12,8 @@ type BotCatalog struct {
 	Registration BotRegistrationCatalog
 	// Setup contains browser bootstrap text before the instance is claimed.
 	Setup BotSetupCatalog
+	// ErrorPage contains the browser page for an address the console does not have.
+	ErrorPage BotErrorPageCatalog
 }
 
 // BotMenuCatalog contains member, administrator, and owner command descriptions.
@@ -100,6 +102,16 @@ type BotOwnerMenuCatalog struct {
 	Enroll Text
 	// Unregister describes runtime-group removal.
 	Unregister Text
+	// Console describes asking the bot for a one-time console link.
+	Console Text
+	// ConsoleDenied explains why an account was not sent a console link.
+	ConsoleDenied Text
+	// ConsoleSent introduces the button that opens the console.
+	ConsoleSent Text
+	// ConsoleOpen labels that button.
+	ConsoleOpen Text
+	// ConsoleLocal introduces a loopback address, which no button can reach.
+	ConsoleLocal Text
 }
 
 // BotLifecycleCatalog contains process-level bot alerts.
@@ -144,6 +156,32 @@ type BotRegistrationCatalog struct {
 	UnregisterSaveFailed Text
 	// GroupUnregistered formats completed runtime-group removal.
 	GroupUnregistered Format
+}
+
+// BotErrorPageCatalog contains the page a browser gets when the console has
+// nothing at the address it asked for.
+type BotErrorPageCatalog struct {
+	// Eyebrow names the screen above its title.
+	Eyebrow Text
+	// StepsLabel introduces what to do instead.
+	StepsLabel Text
+	// Action labels the link back to the console.
+	Action Text
+	// NotFoundTitle names an address the console does not have.
+	NotFoundTitle Text
+	// NotFoundDescription says why an address stops existing.
+	NotFoundDescription Text
+	// RefusedTitle names a request the console will not answer this way.
+	RefusedTitle Text
+	// RefusedDescription says what to do about it.
+	RefusedDescription Text
+	// StepManager tells a group administrator where the console opens, with the
+	// bot's handle as its one argument.
+	StepManager Format
+	// StepOperator tells an operator how to ask for a link.
+	StepOperator Text
+	// StepUnclaimed tells a visitor to an unclaimed instance where its way in is.
+	StepUnclaimed Text
 }
 
 // BotSetupCatalog contains browser bootstrap text for an unclaimed instance.
@@ -196,4 +234,6 @@ type BotSetupCatalog struct {
 	BotNameLabel Text
 	// AfterBinding says what happens once the deployer account is bound.
 	AfterBinding Text
+	// ConsoleAction labels the link onward to the console.
+	ConsoleAction Text
 }

@@ -3,6 +3,7 @@ import arrowRight from "./lucide/arrow-right.svg?raw";
 import bookOpen from "./lucide/book-open.svg?raw";
 import chartNoAxesCombined from "./lucide/chart-no-axes-combined.svg?raw";
 import chevronDown from "./lucide/chevron-down.svg?raw";
+import chevronRight from "./lucide/chevron-right.svg?raw";
 import chevronUp from "./lucide/chevron-up.svg?raw";
 import circleAlert from "./lucide/circle-alert.svg?raw";
 import circleCheck from "./lucide/circle-check.svg?raw";
@@ -13,6 +14,7 @@ import inbox from "./lucide/inbox.svg?raw";
 import info from "./lucide/info.svg?raw";
 import languages from "./lucide/languages.svg?raw";
 import layoutDashboard from "./lucide/layout-dashboard.svg?raw";
+import link2Off from "./lucide/link-2-off.svg?raw";
 import listX from "./lucide/list-x.svg?raw";
 import loaderCircle from "./lucide/loader-circle.svg?raw";
 import messagesSquare from "./lucide/messages-square.svg?raw";
@@ -30,6 +32,7 @@ import shieldCheck from "./lucide/shield-check.svg?raw";
 import shieldOff from "./lucide/shield-off.svg?raw";
 import slidersHorizontal from "./lucide/sliders-horizontal.svg?raw";
 import sun from "./lucide/sun.svg?raw";
+import timerOff from "./lucide/timer-off.svg?raw";
 import trash2 from "./lucide/trash-2.svg?raw";
 import undo2 from "./lucide/undo-2.svg?raw";
 import unlock from "./lucide/unlock.svg?raw";
@@ -42,6 +45,7 @@ const sources = {
   bookOpen,
   chartNoAxesCombined,
   chevronDown,
+  chevronRight,
   chevronUp,
   circleAlert,
   circleCheck,
@@ -52,6 +56,7 @@ const sources = {
   info,
   languages,
   layoutDashboard,
+  link2Off,
   listX,
   loaderCircle,
   messagesSquare,
@@ -69,6 +74,7 @@ const sources = {
   shieldOff,
   slidersHorizontal,
   sun,
+  timerOff,
   trash2,
   undo2,
   unlock,
