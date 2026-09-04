@@ -2239,7 +2239,7 @@ migrations/01-settings.sql      settings_revision</div>
         <tr><td class="mono">GET /api/instance</td><td>把这台执行个体的机器人用户名交给还没有会话的浏览器。入口屏要说清该去开哪个机器人，而那个名字每台部署都不同，编进前端包里就会把别人的部署名字端给所有人。未被认领时返回空字符串，入口屏据此改说「还没有被认领」，不提任何机器人。机器人用户名在 Telegram 里本来就是公开的，因此这条不需要会话</td></tr>
         <tr><td class="mono">GET /api/session</td><td>把当前会话的 CSRF 令牌交给已经持有 Cookie 的浏览器。<b>运维那条路需要它</b>：一次性链接只写 Cookie 再跳转，令牌没有别的出口，于是那种会话能读却不能写。签发令牌只在这一处，不另设可读 Cookie</td></tr>
           <tr><td class="mono">GET /enter/{token}</td><td>运维入口。机器人发的一次性链接落在这里，换成会话后重定向。<b>令牌用过即失效</b>，整条链与 Telegram 的登录服务无关</td></tr>
-        <tr><td class="mono">GET /api/chats</td><td>群与频道屏。该管理员可管理的群，由 getChatMember 求交集得出，不存租户表</td></tr>
+        <tr><td class="mono">GET /api/chats</td><td>群与频道屏。返回该管理员可管理的群及可用群名（<code>{id, title?}</code>）。权限列表由 getChatMember 求交集；群名取运行时注册状态，不在请求时调用 Telegram。群注销时删除，重新注册时刷新。配置群与没有群名的旧记录回退显示 ID；注册期间在 Telegram 中改名不会主动刷新</td></tr>
         <tr><td class="mono">GET /api/chats/{id}/overview</td><td>首页四层所需数据，一次返回</td></tr>
         <tr><td class="mono">GET /api/chats/{id}/queue</td><td>等待队列</td></tr>
           <tr><td class="mono">POST /api/chats/{id}/queue/{cid}</td><td>人工结算一条：放行、拒绝、封禁。

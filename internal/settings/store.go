@@ -380,6 +380,16 @@ func (s *Store) ChatIDs() []int64 {
 	return append([]int64(nil), s.snapshot.Load().groupIDs...)
 }
 
+// RegisteredGroupTitle returns the durable title captured for a runtime registration.
+func (s *Store) RegisteredGroupTitle(chatID int64) (string, bool) {
+	for _, group := range s.snapshot.Load().registration.RegisteredGroups {
+		if group.ID == chatID && group.Title != "" {
+			return group.Title, true
+		}
+	}
+	return "", false
+}
+
 // Registrations returns a detached copy of owner and runtime-group metadata.
 func (s *Store) Registrations() RegistrationState {
 	return cloneRegistrationState(s.snapshot.Load().registration)

@@ -273,24 +273,6 @@ func (s *Server) enterFailure(writer http.ResponseWriter, request *http.Request,
 	http.Redirect(writer, request, "/?state="+state, http.StatusSeeOther)
 }
 
-func (s *Server) chats(writer http.ResponseWriter, request *http.Request) {
-	session, ok := s.session(writer, request)
-	if !ok {
-		return
-	}
-	if s.verification == nil {
-		writeError(writer, http.StatusServiceUnavailable, "verification_unavailable")
-		return
-	}
-	candidates := s.verification.ConsoleGroups()
-	allowed := s.authenticator.AccessibleChats(request.Context(), session, candidates)
-	chats := make([]chatResponse, 0, len(allowed))
-	for _, chatID := range allowed {
-		chats = append(chats, chatResponse{ID: strconv.FormatInt(chatID, 10)})
-	}
-	writeJSON(writer, http.StatusOK, map[string]any{"chats": chats})
-}
-
 func (s *Server) chatRoute(writer http.ResponseWriter, request *http.Request) {
 	parts := strings.Split(strings.TrimPrefix(request.URL.Path, "/api/chats/"), "/")
 	if len(parts) < 2 {
@@ -522,10 +504,6 @@ func newSessionResponse(grant auth.Grant) sessionResponse {
 	response.Subject.TelegramID = strconv.FormatInt(grant.Session.Principal.TelegramID, 10)
 	response.Subject.Role = grant.Session.Principal.Role
 	return response
-}
-
-type chatResponse struct {
-	ID string `json:"id"`
 }
 
 type settlementRequest struct {

@@ -19,6 +19,7 @@ export type ConsoleSession = Readonly<{
 
 export type ConsoleChat = Readonly<{
   id: string;
+  title?: string;
 }>;
 
 export type ConsoleSessionState =
@@ -107,7 +108,11 @@ function chatsFromPayload(payload: unknown): readonly ConsoleChat[] | undefined 
     ) {
       return undefined;
     }
-    chats.push({ id: chat.id });
+    const title = "title" in chat ? chat.title : undefined;
+    if (title !== undefined && typeof title !== "string") {
+      return undefined;
+    }
+    chats.push({ id: chat.id, title });
   }
 
   return chats;

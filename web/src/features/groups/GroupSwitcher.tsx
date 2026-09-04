@@ -19,7 +19,7 @@ export function GroupSwitcher() {
     session.state === "ready"
       ? session.chats.map((chat) => ({
           id: chat.id,
-          label: t("groups.groupOption", { id: chat.id })
+          label: chat.title && chat.title.trim() ? chat.title : chat.id
         }))
       : fixtureFallback
         ? groupFixtures.map((group) => ({

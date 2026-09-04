@@ -23,6 +23,10 @@ func (s *apiTestSettingsService) Settings(groupID int64) (settings.GroupView, bo
 	return s.store.Settings(groupID)
 }
 
+func (s *apiTestSettingsService) RegisteredGroupTitle(groupID int64) (string, bool) {
+	return s.store.RegisteredGroupTitle(groupID)
+}
+
 func (s *apiTestSettingsService) Update(
 	groupID int64,
 	expectedRevision uint64,

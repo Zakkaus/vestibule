@@ -13,6 +13,7 @@ import (
 // SettingsService is the settings use case required by the HTTP adapter.
 type SettingsService interface {
 	Settings(int64) (settings.GroupView, bool)
+	RegisteredGroupTitle(int64) (string, bool)
 	Update(int64, uint64, settings.GroupOverrides) (settings.CommitResult, error)
 }
 
