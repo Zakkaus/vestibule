@@ -427,3 +427,23 @@ test("capabilities ignores a previous group's delayed settings save", async ({ p
     "false"
   );
 });
+
+test("invalid capability feedback provides the reload action it names", async ({ page }) => {
+  let settingsReads = 0;
+  await openCapabilities(
+    page,
+    async (route, requestNumber) => {
+      settingsReads = requestNumber;
+      await fulfillJSON(route, settingsPayload());
+    },
+    async (route) => fulfillJSON(route, { error: { code: "invalid_settings" } }, 422)
+  );
+
+  await page.getByRole("switch", { name: "自动入群验证" }).click();
+  await page.getByRole("button", { name: "保存更改" }).click();
+  const feedback = page.locator('[data-capabilities-feedback="error"]');
+  await expect(feedback).toContainText("功能设置无效。重新载入后再试。");
+  await feedback.getByRole("button", { name: "重新载入" }).click();
+  await expect.poll(() => settingsReads).toBe(2);
+  await expect(feedback).toHaveCount(0);
+});

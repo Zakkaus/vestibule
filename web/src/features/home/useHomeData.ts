@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   consoleApi,
+  retryConsoleAccess,
   type ConsoleRole,
   type ConsoleSessionState
 } from "../../app/session";
@@ -145,7 +146,11 @@ export function useHomeData(
   const [state, setState] = useState<HomeDataState>({ kind: "loading" });
   const [reloadVersion, setReloadVersion] = useState(0);
   const statsQuery = useMemo(homeStatsQuery, []);
-  const reload = useCallback(() => setReloadVersion((version) => version + 1), []);
+  const reload = useCallback(() => {
+    if (!retryConsoleAccess(session)) {
+      setReloadVersion((version) => version + 1);
+    }
+  }, [session]);
 
   useEffect(() => {
     let active = true;

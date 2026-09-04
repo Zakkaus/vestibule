@@ -11,6 +11,7 @@ import { useSearchParams } from "react-router-dom";
 
 import {
   consoleApi,
+  retryConsoleAccess,
   useConsoleSession,
   type ConsoleSessionState
 } from "../../app/session";
@@ -285,6 +286,10 @@ export function useBypassSettings(): BypassController {
     setRestoring: (field, enabled) => dispatch({ type: "restore", field, enabled }),
     discard: () => dispatch({ type: "discard" }),
     save,
-    reload: () => setReloadVersion((currentVersion) => currentVersion + 1)
+    reload: () => {
+      if (!retryConsoleAccess(session)) {
+        setReloadVersion((currentVersion) => currentVersion + 1);
+      }
+    }
   };
 }

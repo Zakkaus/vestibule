@@ -223,7 +223,8 @@
       "release": "放行",
       "releaseFor": "放行 {{user}}",
       "releasing": "放行中…",
-      "releasingFor": "正在放行 {{user}}"
+      "releasingFor": "正在放行 {{user}}",
+      "reload": "重新讀取"
     },
     "feedback": {
       "releaseSuccess": "已放行 {{user}}，現在可以進入「{{group}}」。",
@@ -493,7 +494,8 @@
       "cancelRestore": "取消還原",
       "discard": "放棄",
       "save": "儲存",
-      "saving": "正在儲存…"
+      "saving": "正在儲存…",
+      "reload": "重新讀取"
     },
     "feedback": {
       "saved": "免驗證來源設定已儲存。",
@@ -550,7 +552,8 @@
       "undo": "撤銷封鎖",
       "undoFor": "撤銷對 {{user}} 的封鎖",
       "undoing": "正在撤銷…",
-      "undoingFor": "正在撤銷對 {{user}} 的封鎖"
+      "undoingFor": "正在撤銷對 {{user}} 的封鎖",
+      "reload": "重新讀取"
     },
     "undoState": {
       "pending": "等待撤銷",
@@ -669,7 +672,8 @@
     "actions": {
       "restore": "恢復繼承值",
       "save": "儲存變更",
-      "saving": "正在儲存…"
+      "saving": "正在儲存…",
+      "reload": "重新讀取"
     },
     "feedback": {
       "saved": "已儲存驗證設定。",
@@ -783,7 +787,8 @@
       "removeAnswer": "移除",
       "removeAnswerFor": "移除答案 {{number}}",
       "save": "儲存變更",
-      "saving": "正在儲存…"
+      "saving": "正在儲存…",
+      "reload": "重新讀取"
     },
     "save": {
       "dirty": "有尚未儲存的題庫變更。",
@@ -1015,7 +1020,7 @@
     },
     "manual": {
       "title": "請在主機上手動更新",
-      "description": "此執行個體沒有主機端替換單元，並非應用程式故障。應用程式只能寫入升級意圖，不能替換主機程序或容器。請先把 compose 使用的映像改成下列值，再於 compose 目錄執行命令。",
+      "description": "此執行個體沒有主機端替換單元，並非應用程式故障。應用程式只能寫入升級意圖，不能替換主機程序或容器。使用安裝程式管理容器部署時，請在 Compose 目錄的 container.env 檔案中設定下列內容，再執行這些命令。",
       "imageLabel": "映像設定",
       "commandsLabel": "主機命令"
     },
@@ -1243,6 +1248,7 @@
     },
     "actions": {
       "retry": "重試",
+      "reload": "重新讀取",
       "restore": "恢復繼承值",
       "cancelRestore": "取消恢復",
       "saveSettings": "儲存訊息設定",

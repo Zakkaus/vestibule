@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
-import { consoleApi, useConsoleSession } from "../../app/session";
+import {
+  consoleApi,
+  retryConsoleAccess,
+  useConsoleSession
+} from "../../app/session";
 import { StatusBadge } from "../../components/StatusBadge";
 import { Icon } from "../../icons";
 import type { IconName } from "../../icons";
@@ -273,6 +277,9 @@ function useDiagnosticsScreenState(): Readonly<{
   return {
     screenState,
     reload() {
+      if (session.state === "blocked" && retryConsoleAccess(session)) {
+        return;
+      }
       setReloadVersion((version) => version + 1);
     }
   };

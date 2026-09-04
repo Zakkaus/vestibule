@@ -2,7 +2,11 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "rea
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { consoleApi, useConsoleSession } from "../../app/session";
+import {
+  consoleApi,
+  retryConsoleAccess,
+  useConsoleSession
+} from "../../app/session";
 import { Icon, type IconName } from "../../icons";
 import type { ApiRequestError } from "../../lib/api";
 import {
@@ -31,7 +35,7 @@ type VerificationScreenState =
 type SaveFeedback =
   | Readonly<{ kind: "saved" }>
   | Readonly<{ kind: "conflict" }>
-  | Readonly<{ kind: "error"; messageKey: string }>;
+  | Readonly<{ kind: "error"; error: ApiRequestError }>;
 
 const errorMessageKeys: Readonly<Record<string, string>> = {
   authentication_expired: "verification.errors.authenticationExpired",
@@ -256,11 +260,14 @@ export function VerificationScreen() {
       setSaving(false);
       return;
     }
-    setFeedback({
-      kind: "error",
-      messageKey: verificationErrorMessageKey(result.error, "verification.errors.saveUnavailable")
-    });
+    setFeedback({ kind: "error", error: result.error });
     setSaving(false);
+  }
+
+  function reloadVerification(): void {
+    if (!retryConsoleAccess(session)) {
+      setReloadVersion((version) => version + 1);
+    }
   }
 
   function submit(event: FormEvent<HTMLFormElement>): void {
@@ -328,7 +335,7 @@ export function VerificationScreen() {
             data-slot="button"
             data-variant="outline"
             data-size="sm"
-            onClick={() => setReloadVersion((version) => version + 1)}
+            onClick={reloadVerification}
           >
             <Icon name="refreshCw" />
             {t("verification.unavailable.retry")}
@@ -361,8 +368,20 @@ export function VerificationScreen() {
               ? "verification.feedback.saved"
               : feedback.kind === "conflict"
                 ? "verification.feedback.conflict"
-                : feedback.messageKey
+                : verificationErrorMessageKey(feedback.error, "verification.errors.saveUnavailable")
           )}
+          {feedback.kind === "error" && feedback.error.kind === "network" ? (
+            <button
+              type="button"
+              data-slot="button"
+              data-variant="outline"
+              data-size="sm"
+              onClick={reloadVerification}
+            >
+              <Icon name="refreshCw" />
+              {t("verification.actions.reload")}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </section>

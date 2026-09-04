@@ -12,6 +12,7 @@ import { useSearchParams } from "react-router-dom";
 
 import {
   consoleApi,
+  retryConsoleAccess,
   useConsoleSession,
   type ConsoleSessionState
 } from "../../app/session";
@@ -308,7 +309,11 @@ export function useQuestionSettings(): QuestionsController {
     restore,
     restoreFallback,
     save,
-    reload: () => setReloadVersion((version) => version + 1),
+    reload: () => {
+      if (!retryConsoleAccess(session)) {
+        setReloadVersion((version) => version + 1);
+      }
+    },
     feedback
   };
 }

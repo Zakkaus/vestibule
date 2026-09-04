@@ -152,7 +152,10 @@ function QuestionsStateContent({ controller }: Readonly<{ controller: QuestionsC
   );
 }
 
-function QuestionsFeedbackNotice({ feedback }: Readonly<{ feedback: QuestionsFeedback }>) {
+function QuestionsFeedbackNotice({
+  feedback,
+  onReload
+}: Readonly<{ feedback: QuestionsFeedback; onReload: () => void }>) {
   const { t } = useTranslation();
   const messageKey =
     feedback.kind === "saved"
@@ -161,6 +164,7 @@ function QuestionsFeedbackNotice({ feedback }: Readonly<{ feedback: QuestionsFee
         ? "questions.feedback.conflict"
         : questionErrorMessageKey(feedback.error, "questions.errors.saveUnavailable");
   const isError = feedback.kind !== "saved";
+  const reloadable = feedback.kind === "error" && feedback.error.kind === "network";
   return (
     <div
       data-questions-feedback={feedback.kind}
@@ -172,6 +176,18 @@ function QuestionsFeedbackNotice({ feedback }: Readonly<{ feedback: QuestionsFee
         <Icon name={isError ? "circleAlert" : "circleCheck"} />
         {t(messageKey)}
       </span>
+      {reloadable ? (
+        <button
+          type="button"
+          data-slot="button"
+          data-variant="outline"
+          data-size="sm"
+          onClick={onReload}
+        >
+          <Icon name="refreshCw" />
+          {t("questions.actions.reload")}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -191,7 +207,9 @@ export function QuestionsScreen() {
         <p>{t("questions.description")}</p>
       </header>
       <QuestionsStateContent controller={controller} />
-      {controller.feedback ? <QuestionsFeedbackNotice feedback={controller.feedback} /> : null}
+      {controller.feedback ? (
+        <QuestionsFeedbackNotice feedback={controller.feedback} onReload={controller.reload} />
+      ) : null}
     </section>
   );
 }

@@ -223,7 +223,8 @@
       "release": "放行",
       "releaseFor": "放行 {{user}}",
       "releasing": "放行中…",
-      "releasingFor": "正在放行 {{user}}"
+      "releasingFor": "正在放行 {{user}}",
+      "reload": "重新读取"
     },
     "feedback": {
       "releaseSuccess": "已放行 {{user}}，现在可以进入「{{group}}」。",
@@ -493,7 +494,8 @@
       "cancelRestore": "取消恢复",
       "discard": "放弃",
       "save": "保存",
-      "saving": "正在保存…"
+      "saving": "正在保存…",
+      "reload": "重新读取"
     },
     "feedback": {
       "saved": "免验证来源设置已保存。",
@@ -550,7 +552,8 @@
       "undo": "撤销封禁",
       "undoFor": "撤销对 {{user}} 的封禁",
       "undoing": "正在撤销…",
-      "undoingFor": "正在撤销对 {{user}} 的封禁"
+      "undoingFor": "正在撤销对 {{user}} 的封禁",
+      "reload": "重新读取"
     },
     "undoState": {
       "pending": "等待撤销",
@@ -669,7 +672,8 @@
     "actions": {
       "restore": "恢复继承值",
       "save": "保存更改",
-      "saving": "正在保存…"
+      "saving": "正在保存…",
+      "reload": "重新读取"
     },
     "feedback": {
       "saved": "已保存验证设置。",
@@ -783,7 +787,8 @@
       "removeAnswer": "移除",
       "removeAnswerFor": "移除答案 {{number}}",
       "save": "保存更改",
-      "saving": "正在保存…"
+      "saving": "正在保存…",
+      "reload": "重新读取"
     },
     "save": {
       "dirty": "有未保存的题库更改。",
@@ -1015,7 +1020,7 @@
     },
     "manual": {
       "title": "请在宿主上手动更新",
-      "description": "此实例没有宿主替换单元，并非应用故障。应用只能写入升级意图，不能替换宿主进程或容器。先把 compose 使用的镜像改为下列值，再在 compose 目录执行命令。",
+      "description": "此实例没有宿主替换单元，并非应用故障。应用只能写入升级意图，不能替换宿主进程或容器。使用安装程序管理容器部署时，请在 Compose 目录的 container.env 文件中设置下列内容，再执行这些命令。",
       "imageLabel": "镜像设置",
       "commandsLabel": "宿主命令"
     },
@@ -1243,6 +1248,7 @@
     },
     "actions": {
       "retry": "重试",
+      "reload": "重新读取",
       "restore": "恢复继承值",
       "cancelRestore": "取消恢复",
       "saveSettings": "保存消息设置",
