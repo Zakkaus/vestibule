@@ -116,6 +116,17 @@ body {
    value itself, and the arrow. Under space-between the value drifted into the
    middle of the control, away from the glyph it belongs to; letting it take the
    free space keeps the pair together at the start and the arrow at the end. */
+/* These controls sit in the top corner, so a menu anchored to its trigger's
+   start edge grows toward the viewport edge and off it: the widest option in
+   English is "Chinese, Simplified", which is far wider than the trigger. It is
+   anchored to the end edge here, so it grows back into the page instead. A
+   max-inline-size cannot solve this — min-inline-size wins over max in CSS, and
+   the minimum is what stops the options wrapping. */
+[data-utility-controls][data-variant="chrome"] [data-slot="select-content"] {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+}
+
 /* Chrome drops the stacked label, so the control keeps its own minimum rather
    than the width a label above it used to impose. */
 [data-utility-controls][data-variant="chrome"] [data-utility-control] {
@@ -3076,17 +3087,11 @@ body {
   }
 }
 
-/* The chosen option carries a mark of its own. Selection was shown by background alone, which is
-   the same treatment hover uses, so a pointer resting on a neighbour made two rows look chosen. */
-[data-slot="option"] [data-icon] {
-  flex: none;
-  inline-size: 1rem;
-  block-size: 1rem;
-  color: var(--muted-foreground);
-  visibility: hidden;
-}
-
-[data-slot="option"][aria-selected="true"] [data-icon] {
-  visibility: visible;
+/* The chosen option is set in the weight of the foreground while the others are
+   not. Selection used to be shown by background alone, which is the treatment
+   hover uses, so a pointer resting on a neighbour made two rows look chosen.
+   Weight is the difference hover does not touch. */
+[data-slot="option"][aria-selected="true"] {
   color: var(--foreground);
+  font-weight: 600;
 }

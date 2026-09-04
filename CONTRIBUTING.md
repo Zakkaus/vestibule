@@ -223,6 +223,7 @@ python3 scripts/check-acceptance-exemptions.py  # every EXEMPT reason can still 
 python3 scripts/check-vendored.py    # copies match scripts/vendored-manifest.json
 python3 scripts/check-locale-catalogues.py  # three catalogues agree, and the code's keys exist
 python3 scripts/check-inherited-commands.py  # every command the previous generation answered still exists
+python3 scripts/check-no-baked-identity.py  # no deployment's bot handle in shipped code
 python3 scripts/check-message-fields-are-read.py  # a declared message field has a reader
 python3 scripts/check-one-clock.py           # internal/verification reads time through its injected clock
 python3 scripts/check-one-transport.py       # no screen reaches the API without the CSRF-bearing transport

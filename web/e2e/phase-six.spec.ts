@@ -155,6 +155,14 @@ async function mockQueueTransport(
       return;
     }
 
+    if (path === "/api/instance" && request.method() === "GET") {
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_username: "example_bot" })
+      });
+      return;
+    }
+
     throw new Error(`Unexpected API request: ${request.method()} ${path}`);
   });
 }
@@ -183,6 +191,14 @@ async function openLiveQueue(
     "data-queue-state",
     "populated"
   );
+}
+
+// The entry screen reads which bot this instance runs, independently of the
+// session handshake and in no fixed order relative to it. These assertions are
+// about the handshake's order, so that one read is filtered out rather than
+// pinned to a position it does not actually have.
+function handshake(requests: readonly string[]): string[] {
+  return requests.filter((entry) => entry !== "GET /api/instance");
 }
 
 test("Mini App session exchange reaches a successful release", async ({ page }) => {
@@ -273,6 +289,14 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
       return;
     }
 
+    if (path === "/api/instance" && request.method() === "GET") {
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_username: "example_bot" })
+      });
+      return;
+    }
+
     throw new Error(`Unexpected API request: ${request.method()} ${path}`);
   });
 
@@ -280,7 +304,7 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
     await page.goto("/");
     await expect(page).toHaveURL(new RegExp(`/home\\?group=${selectedGroupId}$`));
     await expect(page.locator("[data-home-page]")).toHaveAttribute("data-home-state", "loaded");
-    expect(sessionRequests.slice(0, 3)).toEqual([
+    expect(handshake(sessionRequests).slice(0, 3)).toEqual([
       "GET /api/session",
       "POST /api/session",
       "GET /api/chats"
@@ -395,13 +419,21 @@ test("operator cookie session skips Mini App exchange", async ({ page, baseURL }
       return;
     }
 
+    if (path === "/api/instance" && request.method() === "GET") {
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_username: "example_bot" })
+      });
+      return;
+    }
+
     throw new Error(`Unexpected API request: ${request.method()} ${path}`);
   });
 
   await page.goto("/");
   await expect(page).toHaveURL(new RegExp(`/home\\?group=${selectedGroupId}$`));
   await expect(page.locator("[data-home-page]")).toHaveAttribute("data-home-state", "loaded");
-  expect(requests.slice(0, 2)).toEqual(["GET /api/session", "GET /api/chats"]);
+  expect(handshake(requests).slice(0, 2)).toEqual(["GET /api/session", "GET /api/chats"]);
   expect(requests).not.toContain("POST /api/session");
 });
 
@@ -433,6 +465,14 @@ test("a valid session with no groups identifies the Telegram account", async ({ 
       return;
     }
 
+    if (path === "/api/instance" && request.method() === "GET") {
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_username: "example_bot" })
+      });
+      return;
+    }
+
     throw new Error(`Unexpected API request: ${request.method()} ${path}`);
   });
 
@@ -443,7 +483,7 @@ test("a valid session with no groups identifies the Telegram account", async ({ 
     page.getByRole("heading", { name: "这个账号尚未获任何群授权" })
   ).toBeVisible();
   await expect(entry).toContainText("741928306");
-  expect(requests).toEqual(["GET /api/session", "GET /api/chats"]);
+  expect(handshake(requests)).toEqual(["GET /api/session", "GET /api/chats"]);
 });
 
 test("group list keeps loading distinct from a settled empty result", async ({ page }) => {
@@ -471,6 +511,14 @@ test("group list keeps loading distinct from a settled empty result", async ({ p
       });
       return;
     }
+    if (path === "/api/instance" && request.method() === "GET") {
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_username: "example_bot" })
+      });
+      return;
+    }
+
     throw new Error(`Unexpected API request: ${request.method()} ${path}`);
   });
 
@@ -527,7 +575,15 @@ for (const errorCase of groupListErrorCases) {
         );
         return;
       }
-      throw new Error(`Unexpected API request: ${request.method()} ${path}`);
+      if (path === "/api/instance" && request.method() === "GET") {
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_username: "example_bot" })
+      });
+      return;
+    }
+
+    throw new Error(`Unexpected API request: ${request.method()} ${path}`);
     });
 
     await page.goto("/groups");
@@ -590,6 +646,14 @@ test("keyboard selection carries the group boundary to the queue", async ({ page
       });
       return;
     }
+    if (path === "/api/instance" && request.method() === "GET") {
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_username: "example_bot" })
+      });
+      return;
+    }
+
     throw new Error(`Unexpected API request: ${request.method()} ${path}`);
   });
 
@@ -655,6 +719,14 @@ test("widest locale keeps group controls inside the desktop header", async ({ pa
       });
       return;
     }
+    if (path === "/api/instance" && request.method() === "GET") {
+      await route.fulfill({
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_username: "example_bot" })
+      });
+      return;
+    }
+
     throw new Error(`Unexpected API request: ${request.method()} ${path}`);
   });
 
