@@ -3,6 +3,7 @@ package telegram
 import (
 	"errors"
 	"fmt"
+	"net/netip"
 	"net/url"
 	"path"
 	"strings"
@@ -53,8 +54,16 @@ func NewConsoleLinkHandler(bot *telego.Bot, issuer ConsoleLinkIssuer, rawURL str
 
 func consoleBaseURL(rawURL string) (*url.URL, error) {
 	base, err := url.Parse(rawURL)
-	if err != nil || base.Host == "" || base.Scheme != "https" {
-		return nil, errors.New("CONSOLE_URL must be an absolute HTTPS URL")
+	if err != nil || base.Host == "" {
+		return nil, errors.New("CONSOLE_URL must be an absolute HTTPS URL or an HTTP URL on a loopback address")
+	}
+	schemeAllowed := base.Scheme == "https"
+	if base.Scheme == "http" {
+		address, addressErr := netip.ParseAddr(base.Hostname())
+		schemeAllowed = addressErr == nil && address.IsLoopback()
+	}
+	if !schemeAllowed {
+		return nil, errors.New("CONSOLE_URL must be an absolute HTTPS URL or an HTTP URL on a loopback address")
 	}
 	base.RawQuery, base.Fragment = "", ""
 	return base, nil

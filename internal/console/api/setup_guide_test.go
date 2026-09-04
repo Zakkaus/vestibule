@@ -47,7 +47,7 @@ func TestSetupNamesWhichHalfOfAFailedClaimTheReaderCanAct(t *testing.T) {
 	}{
 		"token refused":            {err: fmt.Errorf("claim: %w", ErrSetupTokenRejected), want: setup.TokenRejected.For(i18n.LangEN)},
 		"telegram unreached":       {err: fmt.Errorf("claim: %w", ErrSetupTelegramUnreachable), want: setup.TelegramUnreachable.For(i18n.LangEN)},
-		"instance would-not-start": {err: fmt.Errorf("console link: CONSOLE_URL must be an absolute HTTPS URL"), want: setup.InstanceFault.For(i18n.LangEN)},
+		"instance would-not-start": {err: fmt.Errorf("console link: CONSOLE_URL must be an absolute HTTPS URL or an HTTP URL on a loopback address"), want: setup.InstanceFault.For(i18n.LangEN)},
 	} {
 		got := claimFailureText(i18n.LangEN, testCase.err)
 		if got != testCase.want {
