@@ -18,6 +18,7 @@ func (s *Server) ReplaceRoutes(config Config) {
 		authenticator:        config.Authenticator,
 		verification:         config.Verification,
 		settings:             config.Settings,
+		chatTitleResolver:    config.ChatTitleResolver,
 		rules:                config.Rules,
 		processSettings:      config.ProcessSettings,
 		health:               config.Health,
