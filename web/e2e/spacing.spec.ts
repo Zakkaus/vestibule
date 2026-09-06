@@ -214,7 +214,12 @@ async function openSpacingRoute(page: Page, path: string): Promise<void> {
   });
 }
 
+// One test walks every route, and each route costs a navigation plus a font
+// wait. That total is proportional to the number of screens, not to anything the
+// default per-test budget knows about, so the budget is stated here instead of
+// being discovered on a slow machine as a timeout on whichever route was last.
 test("content pages use the stepped page and card hierarchy", async ({ page }) => {
+  test.slow();
   await mockSpacingTransport(page);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.emulateMedia({ colorScheme: "light" });
