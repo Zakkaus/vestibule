@@ -32,6 +32,7 @@
   },
   "shell": {
     "mobileNavigation": "開啟導覽",
+    "closeNavigation": "關閉導覽",
     "groupSwitcher": "目前群組",
     "allGroups": "全部可管理的群組"
   },
@@ -1482,14 +1483,9 @@
     },
     "trend": {
       "title": "近七天趨勢",
-      "description": "縮圖僅顯示趨勢。請在統計畫面檢視精確數值。",
+      "tableDescription": "所選七天內每天的驗證數量與通過率。",
       "openStats": "檢視統計",
-      "empty": "所選範圍內沒有可繪製的日期。",
-      "chartTitle": "近七天挑戰量與通過率",
-      "chartDescription": "長條表示每天的挑戰量，折線表示每天的通過率。",
-      "legendLabel": "趨勢圖圖例",
-      "challenges": "挑戰量",
-      "passRate": "通過率"
+      "tableLabel": "每日驗證結果"
     },
     "entries": {
       "title": "常用設定",

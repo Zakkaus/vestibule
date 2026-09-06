@@ -70,7 +70,7 @@ test("navigation groups follow the console responsibility map", async ({ page })
   await page.goto("/groups");
   await expect(page.locator("[data-groups-source='api']")).toBeVisible();
 
-  const sections = await navigationSections(page, ".shell-aside");
+  const sections = await navigationSections(page, "[data-library-sidebar]");
   expect(sections).toEqual(operatorSections);
   expect(sections.every((section) => section.paths.length > 0)).toBe(true);
 });
@@ -81,7 +81,7 @@ test("group titles replace transport identifiers", async ({ page }) => {
   await page.goto("/groups");
   await expect(page.locator("[data-groups-source='api']")).toBeVisible();
 
-  await page.locator("[data-group-switcher] [data-slot='select-trigger']").click();
+  await page.locator("[data-control='group']").click();
   await expect(page.getByRole("option", { name: selectedGroupTitle })).toBeVisible();
   await expect(page.getByRole("heading", { name: selectedGroupTitle })).toBeVisible();
 });
@@ -92,7 +92,7 @@ test("capability filtering leaves no empty navigation section", async ({ page })
   await page.goto("/groups");
   await expect(page.locator("[data-groups-source='api']")).toBeVisible();
 
-  const sections = await navigationSections(page, ".shell-aside");
+  const sections = await navigationSections(page, "[data-library-sidebar]");
   expect(sections).toEqual([
     ...operatorSections.slice(0, -1),
     { id: "console", paths: ["/capabilities", "/preferences"] }
@@ -100,109 +100,22 @@ test("capability filtering leaves no empty navigation section", async ({ page })
   expect(sections.every((section) => section.paths.length > 0)).toBe(true);
 });
 
-test("sidebar navigation uses one spacing hierarchy", async ({ page }) => {
-  await mockNavigationTransport(page, "operator");
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/groups");
-  await expect(page.locator("[data-groups-source='api']")).toBeVisible();
-
-  const spacing = await page.locator(".shell-aside .nav").evaluate((navigation) => {
-    const daily = navigation.querySelector<HTMLElement>("[data-navigation-group='daily']");
-    const verification = navigation.querySelector<HTMLElement>(
-      "[data-navigation-group='verification']"
-    );
-    const label = daily?.querySelector<HTMLElement>(".nav-label");
-    const items = daily ? [...daily.querySelectorAll<HTMLElement>(".nav-item")] : [];
-    const nextLabel = verification?.querySelector<HTMLElement>(".nav-label");
-
-    if (!daily || !verification || !label || !nextLabel || items.length < 2) {
-      throw new Error("Navigation spacing targets are missing");
-    }
-
-    const labelRect = label.getBoundingClientRect();
-    const firstItem = items[0].getBoundingClientRect();
-    const secondItem = items[1].getBoundingClientRect();
-    const lastItem = items.at(-1)?.getBoundingClientRect();
-    const nextLabelRect = nextLabel.getBoundingClientRect();
-    if (!lastItem) {
-      throw new Error("Daily navigation group has no final item");
-    }
-
-    return {
-      groupGap: window.getComputedStyle(navigation).rowGap,
-      itemGap: window.getComputedStyle(daily).rowGap,
-      labelMarginEnd: window.getComputedStyle(label).marginBlockEnd,
-      labelToItem: firstItem.top - labelRect.bottom,
-      itemToItem: secondItem.top - firstItem.bottom,
-      groupToGroup: nextLabelRect.top - lastItem.bottom
-    };
-  });
-
-  expect(spacing.groupGap).toBe("16px");
-  expect(spacing.itemGap).toBe("8px");
-  expect(spacing.labelMarginEnd).toBe("0px");
-  expect(spacing.labelToItem).toBeCloseTo(8, 1);
-  expect(spacing.itemToItem).toBeCloseTo(8, 1);
-  expect(spacing.groupToGroup).toBeCloseTo(16, 1);
-});
 
 test.describe("mobile navigation", () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
-  test("joins the panel to its trigger with compact touch navigation", async ({ page }) => {
+  test("opens all navigation groups and restores focus on dismissal", async ({ page }) => {
     await mockNavigationTransport(page, "operator");
     await page.goto("/groups");
     await expect(page.locator("[data-groups-source='api']")).toBeVisible();
-
-    const trigger = page.locator("[data-mobile-navigation] summary");
-    await expect(trigger).toBeVisible();
-    await trigger.click();
-
-    const panel = page.locator("[data-mobile-navigation][open] nav");
+    const trigger = page.getByRole("button", { name: "打开导航" });
+    await trigger.focus();
+    await page.keyboard.press("Enter");
+    const panel = page.getByRole("dialog", { name: "控制台导航" });
     await expect(panel).toBeVisible();
-    expect(await navigationSections(page, "[data-mobile-navigation][open]")).toEqual(operatorSections);
-
-    const geometry = await page.locator("[data-mobile-navigation]").evaluate((details) => {
-      const trigger = details.querySelector<HTMLElement>("summary");
-      const panel = details.querySelector<HTMLElement>("nav");
-      const daily = panel?.querySelector<HTMLElement>("[data-navigation-group='daily']");
-      const label = daily?.querySelector<HTMLElement>(".nav-label");
-      const items = daily ? [...daily.querySelectorAll<HTMLElement>(".nav-item")] : [];
-      if (!trigger || !panel || !label || items.length < 2) {
-        throw new Error("Mobile navigation geometry targets are missing");
-      }
-      const triggerRect = trigger.getBoundingClientRect();
-      const panelRect = panel.getBoundingClientRect();
-      const labelRect = label.getBoundingClientRect();
-      const firstItem = items[0].getBoundingClientRect();
-      const secondItem = items[1].getBoundingClientRect();
-      const triggerStyle = window.getComputedStyle(trigger);
-      const panelStyle = window.getComputedStyle(panel);
-      return {
-        triggerHeight: triggerRect.height,
-        panelOffset: panelRect.top - triggerRect.bottom,
-        panelStartOffset: panelRect.left - triggerRect.left,
-        panelPadding: `${panelStyle.paddingTop} ${panelStyle.paddingRight} ${panelStyle.paddingBottom} ${panelStyle.paddingLeft}`,
-        sectionGap: panelStyle.rowGap,
-        itemGap: window.getComputedStyle(daily).rowGap,
-        labelToItem: firstItem.top - labelRect.bottom,
-        itemToItem: secondItem.top - firstItem.bottom,
-        triggerEndRadius: triggerStyle.borderEndStartRadius,
-        panelStartRadius: panelStyle.borderStartStartRadius,
-        panelStartBorder: panelStyle.borderBlockStartWidth
-      };
-    });
-
-    expect(geometry.triggerHeight).toBeGreaterThanOrEqual(44);
-    expect(geometry.panelOffset).toBeCloseTo(0, 1);
-    expect(geometry.panelStartOffset).toBeCloseTo(0, 1);
-    expect(geometry.panelPadding).toBe("8px 8px 8px 8px");
-    expect(geometry.sectionGap).toBe("12px");
-    expect(geometry.itemGap).toBe("4px");
-    expect(geometry.labelToItem).toBeCloseTo(4, 1);
-    expect(geometry.itemToItem).toBeCloseTo(4, 1);
-    expect(geometry.triggerEndRadius).toBe("0px");
-    expect(geometry.panelStartRadius).toBe("0px");
-    expect(geometry.panelStartBorder).toBe("0px");
+    expect(await navigationSections(page, "[role='dialog']")).toEqual(operatorSections);
+    await page.keyboard.press("Escape");
+    await expect(panel).toBeHidden();
+    await expect(trigger).toBeFocused();
   });
 });

@@ -2,7 +2,8 @@ import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
 import { useConsoleSession } from "../../app/session";
-import { AppSelect } from "../../components/AppSelect";
+import { Select } from "@mantine/core";
+import { Icon } from "../../icons";
 import {
   allGroupsSelection,
   groupFixtures,
@@ -56,16 +57,18 @@ export function GroupSwitcher() {
   }
 
   return (
-    <label data-group-switcher>
-      <span>{t("shell.groupSwitcher")}</span>
-      <AppSelect
-        aria-busy={isLoading || undefined}
-        aria-label={t("shell.groupSwitcher")}
-        disabled={options.length === 0}
-        value={selectedGroupId}
-        options={selectionOptions}
-        onValueChange={changeSelectedGroup}
-      />
-    </label>
+    <Select
+      data-library-group-switcher
+      data-control="group"
+      data-value={selectedGroupId}
+      aria-busy={isLoading || undefined}
+      aria-label={t("shell.groupSwitcher")}
+      disabled={options.length === 0}
+      value={selectedGroupId}
+      data={selectionOptions}
+      leftSection={<Icon name="usersRound" />}
+      onChange={(value) => { if (value !== null) changeSelectedGroup(value); }}
+      miw={0}
+    />
   );
 }

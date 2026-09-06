@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Flex, Select } from "@mantine/core";
 
 import {
   isLocalePreference,
@@ -15,7 +16,7 @@ import {
   themePreferences,
   type ThemePreference
 } from "../app/theme";
-import type { IconName } from "../icons";
+import { Icon, type IconName } from "../icons";
 import { AppSelect } from "./AppSelect";
 
 const localeLabelKeys: Record<LocalePreference, string> = {
@@ -95,15 +96,41 @@ export function UtilityControls({ variant = "labelled" }: UtilityControlsProps) 
   }));
 
 
-  const chrome = variant === "chrome";
+  if (variant === "chrome") {
+    return (
+      <Flex data-library-utilities gap="sm" direction={{ base: "column", xs: "row" }} miw={0}>
+        <Select
+          aria-label={t("theme.label")}
+          data-control="theme"
+          data-value={theme}
+          leftSection={<Icon name={themeIcons[theme]} />}
+          value={theme}
+          data={themeOptions}
+          onChange={(value) => { if (value !== null) changeTheme(value); }}
+          miw={0}
+          w="100%"
+        />
+        <Select
+          aria-label={t("locale.label")}
+          data-control="locale"
+          data-value={locale}
+          leftSection={<Icon name="languages" />}
+          value={locale}
+          data={localeOptions}
+          onChange={(value) => { if (value !== null) changeLocale(value); }}
+          miw={0}
+          w="100%"
+        />
+      </Flex>
+    );
+  }
 
   return (
     <div data-utility-controls data-variant={variant}>
       <div data-utility-control>
-        {chrome ? null : <span id={themeLabelId}>{t("theme.label")}</span>}
+        <span id={themeLabelId}>{t("theme.label")}</span>
         <AppSelect
-          aria-label={chrome ? t("theme.label") : undefined}
-          aria-labelledby={chrome ? undefined : themeLabelId}
+          aria-labelledby={themeLabelId}
           icon={themeIcons[theme]}
           value={theme}
           options={themeOptions}
@@ -111,10 +138,9 @@ export function UtilityControls({ variant = "labelled" }: UtilityControlsProps) 
         />
       </div>
       <div data-utility-control>
-        {chrome ? null : <span id={localeLabelId}>{t("locale.label")}</span>}
+        <span id={localeLabelId}>{t("locale.label")}</span>
         <AppSelect
-          aria-label={chrome ? t("locale.label") : undefined}
-          aria-labelledby={chrome ? undefined : localeLabelId}
+          aria-labelledby={localeLabelId}
           icon="languages"
           value={locale}
           options={localeOptions}

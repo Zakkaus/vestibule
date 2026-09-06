@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+import { Alert, Button, Group, Paper, Stack, Text, Title } from "@mantine/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
@@ -5,7 +7,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { consoleApi, useConsoleSession } from "../../app/session";
 import type { StatusTone } from "../../components/StatusBadge";
 import type { ApiRequestError } from "../../lib/api";
-import { Icon } from "../../icons";
+import { Icon, type IconName } from "../../icons";
 import { challengeResults } from "../../lib/challenge";
 import { loadQueue, releaseQueueRecord, type QueueRecord } from "./api";
 import { queueFixtureFor, type QueueFilter, type QueueFixture } from "./fixtures";
@@ -36,6 +38,22 @@ const accessRevocationCodes: Readonly<Record<string, true>> = {
   chat_not_found: true
 };
 
+const feedbackColorByTone: Readonly<Record<StatusTone, string>> = {
+  ok: "teal",
+  info: "blue",
+  pending: "yellow",
+  error: "red",
+  neutral: "gray"
+};
+
+const feedbackIconByTone: Readonly<Record<StatusTone, IconName>> = {
+  ok: "circleCheck",
+  info: "info",
+  pending: "loaderCircle",
+  error: "circleAlert",
+  neutral: "circleMinus"
+};
+
 type QueueScreenState =
   | Readonly<{ kind: "loading" }>
   | Readonly<{ kind: "fixture"; fixture: QueueFixture }>
@@ -51,6 +69,17 @@ type QueueFeedback = Readonly<{
   record: QueueRecord;
 }>;
 
+type QueueStateCardProps = Readonly<{
+  id: string;
+  icon: IconName;
+  descriptionKey?: string;
+  titleKey: string;
+  role?: "alert";
+  live?: "polite";
+  dataQueueUnavailable?: boolean;
+  children?: ReactNode;
+}>;
+
 function queueErrorMessageKey(error: ApiRequestError, fallback: string): string {
   if (error.kind === "network") {
     return "queue.errors.network";
@@ -62,6 +91,42 @@ function queueErrorMessageKey(error: ApiRequestError, fallback: string): string 
 
   return fallback;
 }
+function QueueStateCard({
+  id,
+  icon,
+  titleKey,
+  descriptionKey,
+  role,
+  live,
+  dataQueueUnavailable,
+  children
+}: QueueStateCardProps) {
+  const { t } = useTranslation();
+
+  return (
+    <Paper
+      withBorder
+      p="lg"
+      data-queue-empty
+      data-queue-state-card={id}
+      data-queue-unavailable={dataQueueUnavailable ? true : undefined}
+      role={role}
+      aria-live={live}
+      aria-labelledby={`queue-${id}-title`}
+    >
+      <Stack gap="sm">
+        <Group gap="xs" align="center">
+          <Icon name={icon} />
+          <Title id={`queue-${id}-title`} order={2} size="h3">
+            {t(titleKey)}
+          </Title>
+        </Group>
+        {descriptionKey ? <Text>{t(descriptionKey)}</Text> : null}
+        {children}
+      </Stack>
+    </Paper>
+  );
+}
 
 function QueueFeedbackNotice({ feedback }: Readonly<{ feedback: QueueFeedback }>) {
   const { t } = useTranslation();
@@ -70,60 +135,44 @@ function QueueFeedbackNotice({ feedback }: Readonly<{ feedback: QueueFeedback }>
     : feedback.record.groupKey;
 
   return (
-    <div
-      data-record-feedback
+    <Alert
       data-queue-feedback
       data-tone={feedback.tone}
       role={feedback.tone === "error" ? "alert" : "status"}
       aria-atomic="true"
+      color={feedbackColorByTone[feedback.tone]}
+      variant="light"
+      icon={<Icon name={feedbackIconByTone[feedback.tone]} />}
     >
-      <Icon
-        name={
-          feedback.tone === "ok"
-            ? "circleCheck"
-            : feedback.tone === "info"
-              ? "info"
-              : feedback.tone === "pending"
-                ? "loaderCircle"
-                : feedback.tone === "error"
-                  ? "circleAlert"
-                  : "circleMinus"
-        }
-      />
       {t(feedback.messageKey, {
         user: feedback.record.user,
         group,
         approved: t(challengeResults.approved.labelKey)
       })}
-    </div>
+    </Alert>
   );
 }
 
 function QueueEmptyState() {
-  const { t } = useTranslation();
-
   return (
-    <section data-slot="card" data-record-empty data-queue-empty aria-labelledby="queue-empty-title">
-      <h2 id="queue-empty-title" data-state-heading>
-        <Icon name="inbox" />
-        {t("queue.empty.title")}
-      </h2>
-      <p>{t("queue.empty.description")}</p>
-    </section>
+    <QueueStateCard
+      id="empty"
+      icon="inbox"
+      titleKey="queue.empty.title"
+      descriptionKey="queue.empty.description"
+    />
   );
 }
 
 function QueueLoadingState() {
-  const { t } = useTranslation();
-
   return (
-    <section data-slot="card" data-record-empty data-queue-empty aria-live="polite" aria-labelledby="queue-loading-title">
-      <h2 id="queue-loading-title" data-state-heading>
-        <Icon name="loaderCircle" />
-        {t("queue.loading.title")}
-      </h2>
-      <p>{t("queue.loading.description")}</p>
-    </section>
+    <QueueStateCard
+      id="loading"
+      icon="loaderCircle"
+      titleKey="queue.loading.title"
+      descriptionKey="queue.loading.description"
+      live="polite"
+    />
   );
 }
 
@@ -131,31 +180,33 @@ function QueueGroupRequiredState() {
   const { t } = useTranslation();
 
   return (
-    <section data-slot="card" data-record-empty data-queue-empty aria-labelledby="queue-group-required-title">
-      <h2 id="queue-group-required-title" data-state-heading>
-        <Icon name="usersRound" />
-        {t("queue.groupRequired.title")}
-      </h2>
-      <p>{t("queue.groupRequired.description")}</p>
-      <Link to="/groups" data-slot="button" data-variant="primary" data-size="sm">
-        <Icon name="usersRound" />
+    <QueueStateCard
+      id="group-required"
+      icon="usersRound"
+      titleKey="queue.groupRequired.title"
+      descriptionKey="queue.groupRequired.description"
+    >
+      <Button
+        component={Link}
+        to="/groups"
+        size="sm"
+        variant="filled"
+        leftSection={<Icon name="usersRound" />}
+      >
         {t("queue.groupRequired.select")}
-      </Link>
-    </section>
+      </Button>
+    </QueueStateCard>
   );
 }
 
 function QueueNoGroupsState() {
-  const { t } = useTranslation();
-
   return (
-    <section data-slot="card" data-record-empty data-queue-empty aria-labelledby="queue-no-groups-title">
-      <h2 id="queue-no-groups-title" data-state-heading>
-        <Icon name="usersRound" />
-        {t("queue.noGroups.title")}
-      </h2>
-      <p>{t("queue.noGroups.description")}</p>
-    </section>
+    <QueueStateCard
+      id="no-groups"
+      icon="usersRound"
+      titleKey="queue.noGroups.title"
+      descriptionKey="queue.noGroups.description"
+    />
   );
 }
 
@@ -166,17 +217,24 @@ function QueueUnavailableState({
   const { t } = useTranslation();
 
   return (
-    <section data-slot="card" data-record-empty data-queue-empty data-queue-unavailable role="alert" aria-labelledby="queue-unavailable-title">
-      <h2 id="queue-unavailable-title" data-state-heading>
-        <Icon name="circleAlert" />
-        {t("queue.unavailable.title")}
-      </h2>
-      <p>{t(queueErrorMessageKey(error, "queue.errors.loadUnavailable"))}</p>
-      <button type="button" data-slot="button" data-variant="outline" data-size="sm" onClick={onRetry}>
-        <Icon name="refreshCw" />
+    <QueueStateCard
+      id="unavailable"
+      icon="circleAlert"
+      titleKey="queue.unavailable.title"
+      descriptionKey={queueErrorMessageKey(error, "queue.errors.loadUnavailable")}
+      role="alert"
+      dataQueueUnavailable
+    >
+      <Button
+        type="button"
+        size="sm"
+        variant="default"
+        onClick={onRetry}
+        leftSection={<Icon name="refreshCw" />}
+      >
         {t("queue.unavailable.retry")}
-      </button>
-    </section>
+      </Button>
+    </QueueStateCard>
   );
 }
 
@@ -190,24 +248,27 @@ function QueueFilteredEmptyState({ filter, onClear }: QueueFilteredEmptyStatePro
   const group = filter.groupLabelKey ? t(filter.groupLabelKey) : filter.groupKey;
 
   return (
-    <section data-slot="card" data-record-empty data-queue-empty aria-labelledby="queue-filtered-empty-title">
-      <h2 id="queue-filtered-empty-title" data-state-heading>
-        <Icon name="inbox" />
-        {t("queue.filteredEmpty.title")}
-      </h2>
-      <p>
+    <QueueStateCard
+      id="filtered-empty"
+      icon="inbox"
+      titleKey="queue.filteredEmpty.title"
+    >
+      <Text>
         {t("queue.filteredEmpty.currentCondition", {
           group,
           result: t(filter.result.labelKey)
         })}
-      </p>
-      <div>
-        <button type="button" data-slot="button" data-variant="ghost" data-size="sm" onClick={onClear}>
-          <Icon name="listX" />
-          {t("queue.filteredEmpty.clear")}
-        </button>
-      </div>
-    </section>
+      </Text>
+      <Button
+        type="button"
+        size="sm"
+        variant="light"
+        onClick={onClear}
+        leftSection={<Icon name="listX" />}
+      >
+        {t("queue.filteredEmpty.clear")}
+      </Button>
+    </QueueStateCard>
   );
 }
 
@@ -473,19 +534,28 @@ export function QueueScreen() {
         : queueState.kind;
 
   return (
-    <section
-      data-record-page
+    <Stack
+      component="section"
+      gap="lg"
       data-queue-page
       data-queue-state={dataState}
       aria-busy={queueState.kind === "loading" ? true : undefined}
       aria-labelledby="queue-title"
     >
-      <header data-page-heading>
-        <h1 id="queue-title">
+      <Group
+        component="header"
+        justify="space-between"
+        align="center"
+        data-queue-toolbar
+        data-queue-heading
+      >
+        <Group gap="xs" align="center">
           <Icon name="inbox" />
-          {t("queue.title")}
-        </h1>
-      </header>
+          <Title id="queue-title" order={1}>
+            {t("queue.title")}
+          </Title>
+        </Group>
+      </Group>
 
       {queueState.kind === "loading" ? <QueueLoadingState /> : null}
       {queueState.kind === "group-required" ? <QueueGroupRequiredState /> : null}
@@ -513,6 +583,6 @@ export function QueueScreen() {
       ) : null}
 
       {feedback ? <QueueFeedbackNotice feedback={feedback} /> : null}
-    </section>
+    </Stack>
   );
 }

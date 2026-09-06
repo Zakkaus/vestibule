@@ -7,6 +7,7 @@ import {
   renderCell,
   renderWidths,
   themeSurface,
+  textContrastFailures,
   type FocusObservation,
   type FocusTarget,
   type RenderCell,
@@ -261,4 +262,16 @@ test("render gate tabs through every queue row action with a visible focus ring"
   ).toEqual(
     expectedQueueActions.map((target) => `${target.queueRowId}:${target.queueActionId}`)
   );
+});
+
+test("sample status, action, and helper text meet normal-text contrast in both themes", async ({ page }) => {
+  const route = routes.find((candidate) => candidate.urlPath === "/queue");
+  if (!route) throw new Error("The queue route is required for status and action contrast coverage");
+  for (const width of renderWidths) {
+    for (const theme of ["light", "dark"] as const) {
+      await renderCell(page, { route, width, theme }, "en");
+      await expect(page.locator("[data-queue-page]").getByRole("button").first()).toBeVisible();
+      await expect.poll(() => textContrastFailures(page, "[data-library-page]")).toEqual([]);
+    }
+  }
 });

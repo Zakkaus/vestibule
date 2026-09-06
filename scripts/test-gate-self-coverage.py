@@ -8,6 +8,7 @@ also runs the unmodified and restored copy as a positive control.
 """
 from __future__ import annotations
 
+import importlib.util
 import shutil
 import subprocess
 import sys
@@ -375,6 +376,67 @@ func (s *Server) exportAudit(writer http.ResponseWriter, request *http.Request, 
                 'const transport = createApiTransport(() => undefined);\nconst fallback = "@example_verify_bot";\nvoid fallback;',
             ),
         )
+    def test_component_library_gate_rejects_unowned_compiled_css(self) -> None:
+        tree = self.temporary_tree()
+        spec = importlib.util.spec_from_file_location(
+            "check_mantine_css_fixture", tree / "scripts/check-mantine-css.py"
+        )
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        checker = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(checker)
+
+        library = """@layer mantine {
+  /* Upstream comments { must preserve parser offsets } across lines.
+     Otherwise the authored boundary cuts through a library selector. */
+  :root { --mantine-fixture-color: black; }
+}
+"""
+        authored = """ :root { --fixture-color: black; }
+[data-fixture-hook] { color: var(--fixture-color); }
+"""
+        canonicalizer = lambda texts: [checker.normalized_css(text) for text in texts]
+        self.assertEqual(
+            checker.check_ownership_texts(
+                [library + authored],
+                library,
+                [authored],
+                ["data-fixture-hook"],
+                canonicalizer=canonicalizer,
+            ),
+            [],
+        )
+        failures = checker.check_ownership_texts(
+            [library + authored + "[data-unowned] { display: block; }"],
+            library,
+            [authored],
+            ["data-fixture-hook"],
+            canonicalizer=canonicalizer,
+        )
+        self.assertTrue(
+            any("not exactly the canonical authored CSS" in failure for failure in failures),
+            failures,
+        )
+
+        package_css = tree / "web/node_modules/@mantine/core/styles.layer.css"
+        package_css.parent.mkdir(parents=True)
+        package_css.write_text(library, encoding="utf-8")
+        (package_css.parent / "package.json").write_text(
+            '{"name":"@mantine/core","version":"9.6.0"}', encoding="utf-8"
+        )
+        self.assertEqual(
+            checker.verify_mantine_source(
+                package_css, reference_bytes=library.encode("utf-8")
+            ),
+            [],
+        )
+        package_css.write_text(library.replace("black", "white"), encoding="utf-8")
+        failures = checker.verify_mantine_source(
+            package_css, reference_bytes=library.encode("utf-8")
+        )
+        self.assertTrue(any("changed from the published Mantine stylesheet" in failure
+                            for failure in failures), failures)
 
 
 if __name__ == "__main__":

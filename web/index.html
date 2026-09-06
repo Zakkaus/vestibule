@@ -45,6 +45,9 @@
           document.documentElement.dataset.themePreference = "system";
           document.documentElement.lang = localeFromBrowser();
         }
+        const explicitTheme = document.documentElement.dataset.theme;
+        document.documentElement.dataset.mantineColorScheme = explicitTheme ||
+          (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
       })();
     </script>
   </head>

@@ -7,6 +7,8 @@ import "./i18n";
 // icon manifest stays the only place those bytes live.
 import placeholderMark from "./icons/lucide/shield-check.svg?url";
 import { App } from "./app/App";
+import { ConsoleProvider } from "./app/ConsoleProvider";
+import "@mantine/core/styles.layer.css";
 import "./styles/tokens.css";
 import "./styles/components.css";
 import "./styles/shell.css";
@@ -20,6 +22,6 @@ document.head.append(icon);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <ConsoleProvider><App /></ConsoleProvider>
   </StrictMode>
 );

@@ -32,6 +32,7 @@
   },
   "shell": {
     "mobileNavigation": "Open navigation",
+    "closeNavigation": "Close navigation",
     "groupSwitcher": "Current group",
     "allGroups": "All manageable groups"
   },
@@ -1494,14 +1495,9 @@
     },
     "trend": {
       "title": "Seven-day trend",
-      "description": "The miniature chart shows direction only. Open statistics for exact values.",
+      "tableDescription": "Daily counts and pass rates for the selected seven days.",
       "openStats": "View statistics",
-      "empty": "The selected range contains no dates to plot.",
-      "chartTitle": "Seven-day challenge volume and pass rate",
-      "chartDescription": "Bars show daily challenge volume, and the line shows the daily pass rate.",
-      "legendLabel": "Trend chart legend",
-      "challenges": "Challenge volume",
-      "passRate": "Pass rate"
+      "tableLabel": "Daily verification outcomes"
     },
     "entries": {
       "title": "Common configuration",

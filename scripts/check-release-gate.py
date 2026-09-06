@@ -45,6 +45,8 @@ EXCLUDED = {
         "it reads the console screens, which the release does not publish",
     "scripts/check-css-coverage.py":
         "it reads the console stylesheets and their demonstration markup, which the release does not publish",
+    "scripts/check-mantine-css.py":
+        "it reads the console bundle and installed npm stylesheet, neither of which the Go release publishes",
     "scripts/check-type-ramp.py":
         "it reads the console stylesheets and reference pages, which the release does not publish",
     "scripts/check-console-html.py":

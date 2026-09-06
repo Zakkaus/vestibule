@@ -128,7 +128,7 @@ async function expectThemePreferenceAfterReload(
   }, preference);
   await expect(controls.theme).toHaveAttribute("data-value", preference);
   await expect(
-    page.locator("[data-header-controls] [data-utility-controls] [data-slot=\"select-trigger\"]").first()
+    page.locator("[data-library-header-controls] [data-control=\"theme\"]")
   ).toHaveAttribute("data-value", preference);
   expect(await page.evaluate(() => localStorage.getItem("verify-console-theme"))).toBe(preference);
 
@@ -158,7 +158,7 @@ async function expectThemePreferenceAfterReload(
 
 async function waitForPreferences(page: Page): Promise<void> {
   await expect(page.locator("[data-preferences-page]")).toBeVisible();
-  await expect(page.locator("[data-group-switcher] [data-slot=\"select-trigger\"]")).not.toHaveAttribute(
+  await expect(page.locator("[data-control=\"group\"]")).not.toHaveAttribute(
     "aria-busy",
     "true"
   );

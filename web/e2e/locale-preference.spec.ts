@@ -5,9 +5,9 @@ import { selectAppOption } from "./app-select";
 const localeStorageKey = "verify-console-locale";
 
 async function localeControl(page: import("@playwright/test").Page) {
-  const controls = page.locator("[data-utility-controls]").first();
+  const controls = page.locator("[data-library-utilities]").first();
   await expect(controls).toBeVisible();
-  return controls.locator('[data-slot="select-trigger"]').nth(1);
+  return controls.locator('[data-control="locale"]');
 }
 
 // The theme control has always offered "follow the system". The language control

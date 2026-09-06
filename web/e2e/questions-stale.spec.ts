@@ -115,7 +115,7 @@ test("questions discard a previous group's delayed settings response", async ({ 
 
   await page.goto(`/questions?group=${groupAID}`, { waitUntil: "domcontentloaded" });
   await settingsRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群" }), groupBID);
+  await selectAppOption(page.locator("[data-control='group']"), groupBID);
   await expect(page).toHaveURL(new RegExp(`/questions\\?group=${groupBID}$`));
   await expect(page.getByLabel("题面").first()).toHaveValue(groupBQuestion.q);
 
@@ -159,7 +159,7 @@ test("questions ignore a previous group's delayed settings save", async ({ page 
   await page.getByLabel("题面").first().fill("Saved for group A");
   await page.getByRole("button", { name: "保存更改" }).click();
   await patchRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群" }), groupBID);
+  await selectAppOption(page.locator("[data-control='group']"), groupBID);
   await expect(page).toHaveURL(new RegExp(`/questions\\?group=${groupBID}$`));
   await expect(page.getByLabel("题面").first()).toHaveValue(groupBQuestion.q);
 

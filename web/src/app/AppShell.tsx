@@ -1,3 +1,8 @@
+import { useState, type ReactNode } from "react";
+import {
+  Anchor, AppShell as MantineShell, Box, Button, Divider, Drawer,
+  Flex, Group, NavLink, Stack, Text
+} from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import {
   Link,
@@ -19,6 +24,7 @@ type ShellVariant = "entry" | "console";
 
 type RouteHandle = {
   shell?: ShellVariant;
+  presentation?: "library";
 };
 
 type NavigationCapability = "instance-status";
@@ -174,36 +180,86 @@ function navigationSections(items: readonly NavigationItem[]): readonly Navigati
 
 
 function ConsoleNavigation({
-  sections,
-  selectedGroupSearch
-}: Readonly<{ sections: readonly NavigationSection[]; selectedGroupSearch: string }>) {
+  sections, selectedGroupSearch, onNavigate
+}: Readonly<{
+  sections: readonly NavigationSection[];
+  selectedGroupSearch: string;
+  onNavigate?: () => void;
+}>) {
   const { t } = useTranslation();
   const location = useLocation();
-
   return (
-    <nav className="nav" aria-label={t("navigation.label")}>
+    <Stack component="nav" gap="md" aria-label={t("navigation.label")}>
       {sections.map(({ group, items }) => (
-        <div key={group.id} className="nav-group" data-navigation-group={group.id}>
-          <span className="nav-label">{t(group.labelKey)}</span>
-          {items.map((item) => {
-            const isActive = location.pathname === item.path;
-
-            return (
-              <Link
-                key={item.path}
-                className="nav-item"
-                to={{ pathname: item.path, search: selectedGroupSearch }}
-                aria-current={isActive ? "page" : undefined}
-                data-active={isActive ? "" : undefined}
-              >
-                <Icon name={item.icon} />
-                {t(item.labelKey)}
-              </Link>
-            );
-          })}
-        </div>
+        <Stack key={group.id} gap="xs" data-navigation-group={group.id}>
+          <Divider label={t(group.labelKey)} labelPosition="left" />
+          {items.map((item) => (
+            <NavLink key={item.path} component={Link}
+              to={{ pathname: item.path, search: selectedGroupSearch }}
+              active={location.pathname === item.path}
+              aria-current={location.pathname === item.path ? "page" : undefined}
+              variant="light" leftSection={<Icon name={item.icon} />}
+              label={t(item.labelKey)} onClick={onNavigate} />
+          ))}
+        </Stack>
       ))}
-    </nav>
+    </Stack>
+  );
+}
+
+function ConsoleFrame({
+  sections, selectedGroupSearch, title, children
+}: Readonly<{
+  sections: readonly NavigationSection[];
+  selectedGroupSearch: string;
+  title: string;
+  children: ReactNode;
+}>) {
+  const { t } = useTranslation();
+  const [navigationOpen, setNavigationOpen] = useState(false);
+  return (
+    <MantineShell
+      data-app-shell data-shell-variant="console" data-library-shell
+      header={{ height: { base: 212, xs: 156, sm: 112, md: 72 } }}
+      navbar={{ width: 248, breakpoint: "md", collapsed: { mobile: true } }}
+      padding="md" transitionDuration={0}
+      bg="var(--mantine-color-body)" c="var(--mantine-color-text)"
+      style={{ fontFamily: "var(--mantine-font-family)" }}
+    >
+      <MantineShell.Header data-library-header px="md">
+        <Flex h="100%" gap="sm" justify="center" direction={{ base: "column", md: "row" }} align={{ md: "center" }}>
+          <Group wrap="nowrap" justify="space-between">
+            <Button hiddenFrom="md" variant="default" onClick={() => setNavigationOpen(true)}
+              aria-expanded={navigationOpen} leftSection={<Icon name="layoutDashboard" />}>
+              {t("shell.mobileNavigation")}
+            </Button>
+            <Text fw={600} visibleFrom="md">{title}</Text>
+          </Group>
+          <Flex data-library-header-controls gap="sm" miw={0} flex={1}
+            direction={{ base: "column", sm: "row" }} justify="flex-end">
+            <Box miw={0} w={{ base: "100%", sm: 240 }}><GroupSwitcher /></Box>
+            <Box miw={0} w={{ base: "100%", sm: 360 }}><UtilityControls variant="chrome" /></Box>
+          </Flex>
+        </Flex>
+      </MantineShell.Header>
+      <MantineShell.Navbar data-library-sidebar p="md" visibleFrom="md">
+        <MantineShell.Section mb="lg">
+          <Anchor component={Link} to={{ pathname: "/home", search: selectedGroupSearch }} c="inherit" underline="never">
+            <Group gap="xs" wrap="nowrap"><Icon name="shieldCheck" /><Text fw={700}>{t("app.name")}</Text></Group>
+          </Anchor>
+        </MantineShell.Section>
+        <MantineShell.Section grow style={{ overflowY: "auto" }}>
+          <ConsoleNavigation sections={sections} selectedGroupSearch={selectedGroupSearch} />
+        </MantineShell.Section>
+      </MantineShell.Navbar>
+      <Drawer opened={navigationOpen} onClose={() => setNavigationOpen(false)}
+        title={t("navigation.label")} size="xs" transitionProps={{ duration: 0 }}
+        closeButtonProps={{ icon: <Icon name="x" />, "aria-label": t("shell.closeNavigation") }}>
+        <ConsoleNavigation sections={sections} selectedGroupSearch={selectedGroupSearch}
+          onNavigate={() => setNavigationOpen(false)} />
+      </Drawer>
+      <MantineShell.Main><Box miw={0}>{children}</Box></MantineShell.Main>
+    </MantineShell>
   );
 }
 
@@ -242,45 +298,14 @@ export function AppShell() {
   }
 
   return (
-    <div data-app-shell data-shell-variant={shellVariant} className="shell">
-      <aside className="shell-aside" data-admin>
-        <Link
-          className="brand"
-          to={{ pathname: "/groups", search: selectedGroupSearch }}
-        >
-          {/* Placeholder mark: the same borrowed icon as the favicon. */}
-          <Icon name="shieldCheck" />
-          <span className="name">{t("app.name")}</span>
-        </Link>
-        <div className="rule" />
-        <ConsoleNavigation
-          sections={visibleNavigationSections}
-          selectedGroupSearch={selectedGroupSearch}
-        />
-      </aside>
-      <div className="shell-main">
-        <header className="shell-header" data-console-header>
-          <details data-mobile-navigation>
-            <summary>{t("shell.mobileNavigation")}</summary>
-            <ConsoleNavigation
-              sections={visibleNavigationSections}
-              selectedGroupSearch={selectedGroupSearch}
-            />
-          </details>
-          <span data-header-title>
-            {currentNavigationItem ? t(currentNavigationItem.labelKey) : t("app.name")}
-          </span>
-          <div data-header-controls>
-            <GroupSwitcher />
-            <UtilityControls variant="chrome" />
-          </div>
-        </header>
-        <main className="shell-content">
-          <div className="shell-inner">
-            <Outlet />
-          </div>
-        </main>
-      </div>
-    </div>
+    <ConsoleFrame sections={visibleNavigationSections} selectedGroupSearch={selectedGroupSearch}
+      title={currentNavigationItem ? t(currentNavigationItem.labelKey) : t("app.name")}>
+      {routeHandle?.presentation === "library" ? <Box data-library-page><Outlet /></Box> : (
+        <Box data-legacy-content bg="var(--background)" c="var(--foreground)"
+          style={{ fontFamily: "var(--font-sans)", overflowX: "auto" }}>
+          <Outlet />
+        </Box>
+      )}
+    </ConsoleFrame>
   );
 }

@@ -266,7 +266,7 @@ test("verification discards a previous group's delayed settings response", async
 
   await page.goto(`/verification?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
   await settingsRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群" }), "all");
+  await selectAppOption(page.getByRole("combobox", { name: "当前群" }), "all");
   await expect(page).toHaveURL(/\/verification$/);
   await expect(page.locator("[data-verification-page]")).toHaveAttribute(
     "data-verification-state",
@@ -318,7 +318,7 @@ test("verification ignores a previous group's delayed settings save", async ({ p
   await selectAppOption(page.locator("#verification-mode"), "quiz");
   await page.getByRole("button", { name: "保存更改" }).click();
   await patchRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群" }), "all");
+  await selectAppOption(page.getByRole("combobox", { name: "当前群" }), "all");
   await expect(page).toHaveURL(/\/verification$/);
   await expect(page.locator("[data-verification-page]")).toHaveAttribute(
     "data-verification-state",

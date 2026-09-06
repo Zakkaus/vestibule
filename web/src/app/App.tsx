@@ -39,12 +39,12 @@ const router = createBrowserRouter([
       {
         path: "home",
         element: <HomeScreen />,
-        handle: consoleHandle
+        handle: { ...consoleHandle, presentation: "library" }
       },
       {
         path: "queue",
         element: <QueueScreen />,
-        handle: consoleHandle
+        handle: { ...consoleHandle, presentation: "library" }
       },
       {
         path: "audit",

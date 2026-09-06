@@ -313,11 +313,9 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
   });
 
   await test.step("review the selected managed group", async () => {
-    // Home already selects the first authorised group, so this step reads the
-    // switcher rather than operating it. The switcher is no longer a native
-    // select, so its value is an attribute, not a form value.
-    const groupSwitcher = page.getByRole("button", { name: "当前群" });
-    await expect(groupSwitcher).toHaveAttribute("data-value", selectedGroupId);
+    // Home already selects the first authorised group.
+    const groupSwitcher = page.locator("[data-control='group']");
+    await expect(groupSwitcher).toHaveValue(selectedGroupId);
     await page.getByRole("link", { name: "群与频道", exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/groups\\?group=${selectedGroupId}$`));
 
@@ -705,7 +703,6 @@ test("widest locale keeps group controls inside the desktop header", async ({ pa
   await page.route("**/api/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
-
     if (path === "/api/session" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
@@ -727,18 +724,15 @@ test("widest locale keeps group controls inside the desktop header", async ({ pa
       });
       return;
     }
-
     throw new Error(`Unexpected API request: ${request.method()} ${path}`);
   });
-
   await page.goto("/groups");
   await expect(page.locator("[data-groups-source='api']")).toBeVisible();
-  await selectAppOption(page.getByRole("button", { name: "语言" }), "en");
+  await selectAppOption(page.locator('[data-control="locale"]'), "en");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
-
   const bounds = await page.evaluate(() => {
-    const header = document.querySelector("[data-console-header]");
-    const controls = document.querySelector("[data-header-controls]");
+    const header = document.querySelector("[data-library-header]");
+    const controls = document.querySelector("[data-library-header-controls]");
     if (!(header instanceof HTMLElement) || !(controls instanceof HTMLElement)) {
       throw new Error("Group header geometry targets are missing");
     }
@@ -751,7 +745,6 @@ test("widest locale keeps group controls inside the desktop header", async ({ pa
       controlsBottom: controlsRect.bottom
     };
   });
-
   expect(bounds.controlsTop).toBeGreaterThanOrEqual(bounds.headerTop);
   expect(bounds.controlsBottom).toBeLessThanOrEqual(bounds.headerBottom);
 });

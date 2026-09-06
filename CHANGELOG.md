@@ -12,13 +12,17 @@ All notable changes to this project are documented here. The format is based on
   default tier.
 
 ### Changed
-- **The mobile navigation panel now connects to its trigger.** Its open state shares the trigger
-  edge and uses denser token-based spacing while retaining the lower panel radius.
-- The console group switcher now shows the durable title captured when a runtime group is
-  registered. Configured groups and legacy registrations without a title fall back to the
-  Telegram group ID without making a `GetChat` request for each console load.
-### Changed
-- Console content pages now use a shared 32/24/16/8/4 px spacing rhythm for page, card-stack, section, and field relationships. Card insets expand from 12 × 16 px to 16 × 24 px; controls and navigation are unchanged.
+- The console shell, home page and waiting queue now use Mantine 9.6.0. The mobile navigation
+  uses its Drawer, and sections retain visible borders. Other feature pages keep their
+  existing implementation.
+- The home page's seven-day trend now exposes each day's counts and pass rate in an
+  accessible, horizontally scrollable table.
+- The group switcher keeps stored runtime titles and lazily resolves missing titles from
+  Telegram. Successful lookups are cached for one hour and failures for 45 seconds, with
+  a three-second request timeout and concurrent lookups coalesced per group. The process-local
+  cache holds up to 4096 entries; unavailable titles still fall back to the group ID.
+- Unchanged console feature pages retain the shared 32/24/16/8/4 px spacing rhythm for page,
+  card-stack, section, and field relationships. Their card insets remain 16 × 24 px.
 
 ## [4.5.6] - 2026-08-29
 

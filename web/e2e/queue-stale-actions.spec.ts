@@ -80,10 +80,10 @@ function queueRow(page: Page, user: string) {
 }
 
 async function selectGroupB(page: Page): Promise<void> {
-  const groupSwitcher = page.getByRole("button", { name: "当前群" });
+  const groupSwitcher = page.locator("[data-control='group']");
   await selectAppOption(groupSwitcher, groupBID);
   await expect(page).toHaveURL(new RegExp(`/queue\\?group=${groupBID}$`));
-  await expect(groupSwitcher).toContainText(groupBID);
+  await expect(groupSwitcher).toHaveValue(groupBID);
 }
 
 test("queue discards group A's delayed read after the visible group switcher selects group B", async ({

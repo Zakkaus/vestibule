@@ -31,14 +31,15 @@ function sourceFiles(directory: string): string[] {
 }
 const sourceActionPattern =
   /<(button|Link)\b(?:(?!<\/?(?:button|Link)\b)[\s\S])*?data-slot="button"[\s\S]*?<\/\1>/g;
+const libraryActionPattern = /<Button\b[\s\S]*?<\/Button>/g;
 
 function sourceActionsWithoutIcons(): string[] {
   return sourceFiles(sourceRoot)
     .filter((path) => path.endsWith(".tsx"))
     .flatMap((path) => {
       const source = readFileSync(path, "utf8");
-      const actions = [...source.matchAll(sourceActionPattern)];
-      const slots = [...source.matchAll(/data-slot="button"/g)];
+      const actions = [...source.matchAll(sourceActionPattern), ...source.matchAll(libraryActionPattern)];
+      const slots = [...source.matchAll(/data-slot="button"|<Button\b/g)];
 
       if (actions.length !== slots.length) {
         return [
@@ -116,12 +117,12 @@ test("rendered console action buttons and navigation carry icons", async ({ page
     await page.goto(route.urlPath);
     await page.locator("[data-app-shell]").waitFor({ state: "visible" });
 
-    const missingButtons = await page.locator("[data-slot=\"button\"]").evaluateAll((buttons) =>
+    const missingButtons = await page.locator('[data-slot="button"], .mantine-Button-root').evaluateAll((buttons) =>
       buttons
         .filter((button) => !button.querySelector("[data-icon]"))
         .map((button) => button.textContent?.trim() ?? "")
     );
-    const missingNavigation = await page.locator(".nav-item").evaluateAll((items) =>
+    const missingNavigation = await page.locator("[data-navigation-group] a[href]").evaluateAll((items) =>
       items
         .filter((item) => !item.querySelector("[data-icon]"))
         .map((item) => item.textContent?.trim() ?? "")

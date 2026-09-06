@@ -334,7 +334,7 @@ test("bypass discards a previous group's delayed settings response", async ({ pa
 
   await page.goto(`/bypass?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
   await settingsRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await selectAppOption(page.getByRole("combobox", { name: "当前群" }), otherGroupID);
   await expect(page).toHaveURL(new RegExp(`/bypass\\?group=${otherGroupID}$`));
   await expect(page.locator("#bypass-channel-display")).toHaveValue("@group-b");
 
@@ -388,7 +388,7 @@ test("bypass ignores a previous group's delayed settings save", async ({ page })
   await page.locator("#bypass-channel-display").fill("@group-a");
   await page.getByRole("button", { name: "保存" }).click();
   await patchRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await selectAppOption(page.getByRole("combobox", { name: "当前群" }), otherGroupID);
   await expect(page).toHaveURL(new RegExp(`/bypass\\?group=${otherGroupID}$`));
   await expect(page.locator("#bypass-channel-display")).toHaveValue("@group-b");
 

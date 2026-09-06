@@ -232,10 +232,10 @@ test("audit discards group A's delayed read after the visible group switcher sel
   await page.goto(`/audit?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
   await aReadRequested;
 
-  const groupSwitcher = page.getByRole("button", { name: "当前群" });
+  const groupSwitcher = page.locator("[data-control='group']");
   await selectAppOption(groupSwitcher, otherGroupID);
   await expect(page).toHaveURL(new RegExp(`/audit\\?group=${otherGroupID}$`));
-  await expect(groupSwitcher).toContainText(otherGroupID);
+  await expect(groupSwitcher).toHaveValue(otherGroupID);
   await expect(page.locator("[data-audit-row]", { hasText: "@audit_group_b" })).toBeVisible();
 
   const staleReadResponse = page.waitForResponse(
@@ -298,10 +298,10 @@ test("audit discards group A's delayed undo after the visible group switcher sel
   await undoRequested;
   await expect(groupARow).toHaveAttribute("data-undo-state", "submitting");
 
-  const groupSwitcher = page.getByRole("button", { name: "当前群" });
+  const groupSwitcher = page.locator("[data-control='group']");
   await selectAppOption(groupSwitcher, otherGroupID);
   await expect(page).toHaveURL(new RegExp(`/audit\\?group=${otherGroupID}$`));
-  await expect(groupSwitcher).toContainText(otherGroupID);
+  await expect(groupSwitcher).toHaveValue(otherGroupID);
   await expect(page.locator("[data-audit-row]", { hasText: "@audit_group_b" })).toBeVisible();
 
   const staleUndoResponse = page.waitForResponse(

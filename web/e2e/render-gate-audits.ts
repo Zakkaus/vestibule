@@ -129,13 +129,9 @@ export async function renderCell(
   await page.goto(cell.route.urlPath);
   await page.locator("[data-app-shell]").waitFor({ state: "visible" });
 
-  const controls = page.locator("[data-utility-controls]").first();
-  const triggers = controls.locator("[data-slot=\"select-trigger\"]");
-  if ((await triggers.count()) !== 2) {
-    throw new Error(`${cell.route.sourcePath}: utility controls must expose theme and locale triggers`);
-  }
+  const controls = page.locator("[data-library-utilities]").first();
 
-  await selectAppOption(triggers.nth(0), cell.theme);
+  await selectAppOption(controls.locator('[data-control="theme"]'), cell.theme);
   await page.waitForFunction((theme) => {
     const root = document.documentElement;
     return (
@@ -144,7 +140,7 @@ export async function renderCell(
     );
   }, cell.theme);
 
-  await selectAppOption(triggers.nth(1), locale);
+  await selectAppOption(controls.locator('[data-control="locale"]'), locale);
   await page.waitForFunction(
     (selectedLocale) => document.documentElement.lang === selectedLocale,
     locale
@@ -231,7 +227,11 @@ export async function visiblePlaceholderText(page: Page): Promise<string[]> {
         return !element.children.length && visibility !== false;
       })
       .flatMap((element) => {
-        const text = element.textContent?.trim() ?? "";
+        const text = (
+          element instanceof HTMLInputElement && element.hasAttribute("data-control")
+            ? element.value
+            : element.textContent
+        )?.trim() ?? "";
         if (!text || !placeholder.test(text)) {
           return [];
         }
@@ -419,4 +419,49 @@ export async function focusedElement(page: Page): Promise<FocusObservation> {
       boxShadow: computed.boxShadow
     };
   });
+}
+
+export async function textContrastFailures(page: Page, rootSelector: string): Promise<readonly string[]> {
+  return page.evaluate((selector) => {
+    const root = document.querySelector(selector);
+    const context = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+    if (!root || !context) throw new Error("Text contrast audit requires content and a color decoder");
+    const rgba = (css: string): number[] => {
+      context.clearRect(0, 0, 1, 1);
+      context.fillStyle = css;
+      context.fillRect(0, 0, 1, 1);
+      return [...context.getImageData(0, 0, 1, 1).data];
+    };
+    const blend = (top: number[], bottom: number[]): number[] =>
+      top.slice(0, 3).map((value, index) => value * top[3]! / 255 + bottom[index]! * (1 - top[3]! / 255));
+    const backgrounds = new WeakMap<Element, number[]>();
+    const background = (element: Element | null): number[] => {
+      if (!element) return [255, 255, 255];
+      const cached = backgrounds.get(element);
+      if (cached) return cached;
+      const value = blend(rgba(getComputedStyle(element).backgroundColor), background(element.parentElement));
+      backgrounds.set(element, value);
+      return value;
+    };
+    const luminance = (rgb: number[]): number =>
+      rgb.map((value) => value / 255)
+        .map((value) => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4)
+        .reduce((total, value, index) => total + value * [0.2126, 0.7152, 0.0722][index]!, 0);
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const parents = new Set<Element>();
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (node.textContent?.trim() && node.parentElement?.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) {
+        parents.add(node.parentElement);
+      }
+    }
+    return [...parents].flatMap((element) => {
+      const surface = background(element);
+      const foreground = blend(rgba(getComputedStyle(element).color), surface);
+      const foregroundLuminance = luminance(foreground);
+      const backgroundLuminance = luminance(surface);
+      const ratio = (Math.max(foregroundLuminance, backgroundLuminance) + 0.05) /
+        (Math.min(foregroundLuminance, backgroundLuminance) + 0.05);
+      return ratio < 4.5 ? [`${element.textContent?.trim()}: ${ratio.toFixed(2)}:1`] : [];
+    });
+  }, rootSelector);
 }

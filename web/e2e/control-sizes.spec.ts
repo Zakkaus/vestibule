@@ -140,7 +140,9 @@ async function parallelControlGroups(page: Page): Promise<readonly ParallelContr
       '[data-slot="input"]',
       '[data-slot="select-trigger"]',
       '[data-slot="textarea"]',
-      '[data-slot="switch"]'
+      '[data-slot="switch"]',
+      '.mantine-Button-root',
+      'input[data-control]'
     ].join(", ");
     const rowCoordinate = (rect: DOMRect, alignment: string) => {
       switch (alignment) {
@@ -262,44 +264,4 @@ test("parallel controls keep a shared computed height across loaded console scre
       }
     });
   }
-});
-
-test("mobile navigation joins its compact panel to the trigger", async ({ page }) => {
-  await page.setViewportSize({ width: 320, height: 900 });
-  await mockControlScreens(page);
-  await page.goto(`/questions?group=${groupID}`);
-  await expect(page.locator("[data-questions-page]")).toHaveAttribute("data-questions-state", "loaded");
-
-  const navigation = page.locator("[data-mobile-navigation]");
-  await navigation.locator("summary").click();
-  const geometry = await navigation.evaluate((details) => {
-    const summary = details.querySelector("summary");
-    const panel = details.querySelector("nav");
-    if (!(summary instanceof HTMLElement) || !(panel instanceof HTMLElement)) {
-      throw new Error("mobile navigation geometry targets are missing");
-    }
-    const summaryRect = summary.getBoundingClientRect();
-    const panelRect = panel.getBoundingClientRect();
-    const panelStyle = getComputedStyle(panel);
-    return {
-      gap: panelRect.top - summaryRect.bottom,
-      paddingBlockStart: panelStyle.paddingBlockStart,
-      paddingInlineStart: panelStyle.paddingInlineStart,
-      rowGap: panelStyle.rowGap,
-      borderStartStartRadius: panelStyle.borderStartStartRadius,
-      borderStartEndRadius: panelStyle.borderStartEndRadius,
-      borderEndStartRadius: panelStyle.borderEndStartRadius
-    };
-  });
-
-  expect(geometry.gap).toBe(0);
-  expect(geometry.paddingBlockStart).toBe("8px");
-  expect(geometry.paddingInlineStart).toBe("8px");
-  // The panel carries sections now, so its own gap separates groups and the
-  // gap inside a group is smaller. navigation.spec.ts owns both numbers; this
-  // assertion only has to see the outer one.
-  expect(geometry.rowGap).toBe("12px");
-  expect(geometry.borderStartStartRadius).toBe("0px");
-  expect(geometry.borderStartEndRadius).toBe("0px");
-  expect(geometry.borderEndStartRadius).toBe("10px");
 });

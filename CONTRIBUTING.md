@@ -253,10 +253,18 @@ python3 ~/.claude/skills/chinese-skill/scripts/chinese_lint.py \
   docs/PRIVACY.zh-CN.md docs/PLAN-v5.md docs/ARCHITECTURE.md docs/README.md \
   web/design.html web/architecture.html
 cd web && npm ci && npm run build && cd ..
-for c in coverage-floor style-rules undefined-var shadowed theme-leak comment-boundaries percentage-min; do \
-  python3 "scripts/design-checks/$c.py" web/dist/assets/*.css; done
+# Mantine's complete 9.6.0 styles.layer.css is 277179 published bytes. The
+# ownership boundary accepts it only inside @layer mantine; the wrapper then
+# runs the existing compiled-CSS checks on authored output.
+python3 scripts/check-mantine-css.py \
+  --mantine-css web/node_modules/@mantine/core/styles.layer.css \
+  --bundle web/dist/assets/*.css \
+  --source-css web/src/styles/tokens.css web/src/styles/components.css \
+  web/src/styles/shell.css web/src/app/app.css \
+  --hook data-entry-page \
+  --hook data-record-table
 for c in coverage-floor comment-boundaries padding-ratio peer-consistency percentage-min shorthand-across-layers; do \
-  python3 "scripts/design-checks/$c.py" web/src/styles/tokens.css web/src/styles/components.css web/src/styles/shell.css web/src/app/app.css; done
+  python3 "scripts/design-checks/$c.py" web/src/styles/*.css web/src/app/*.css; done
 python3 scripts/check-type-ramp.py
 python3 scripts/check-css-coverage.py web/src/app/app.css web/src/app/app.css.fixture.html
 for c in coverage-floor style-rules undefined-var shadowed theme-leak comment-boundaries percentage-min; do \

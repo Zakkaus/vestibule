@@ -205,7 +205,7 @@ async function openSpacingRoute(page: Page, path: string): Promise<void> {
     path === "/" || path === "/version" ? path : `${path}?group=${selectedGroupID}`;
   await page.goto(url);
   await expect(page.locator("[data-app-shell]")).toBeVisible();
-  await page.locator("[data-page-heading]").waitFor({ state: "visible" });
+  await page.getByRole("heading", { level: 1 }).waitFor({ state: "visible" });
   await page.evaluate(async () => {
     await document.fonts.ready;
     await new Promise<void>((resolve) =>
@@ -221,6 +221,21 @@ test("content pages use the stepped page and card hierarchy", async ({ page }) =
 
   for (const route of routes) {
     await openSpacingRoute(page, route.urlPath);
+    const libraryPage = page.locator("[data-library-page]");
+    if (await libraryPage.count()) {
+      const sections = libraryPage.locator("[data-with-border]");
+      expect(await sections.count(), "library sections must have visible boundaries").toBeGreaterThan(0);
+      for (const section of await sections.all()) {
+        if (!await section.isVisible()) continue;
+        const border = await section.evaluate((element) => ({
+          width: Number.parseFloat(getComputedStyle(element).borderTopWidth),
+          style: getComputedStyle(element).borderTopStyle
+        }));
+        expect(border.width).toBeGreaterThan(0);
+        expect(border.style).not.toBe("none");
+      }
+      continue;
+    }
     const geometry = await page.evaluate(() => {
       const contentPage = [...document.querySelectorAll<HTMLElement>("section")].find((element) =>
         element.getAttributeNames().some((name) => name.startsWith("data-") && name.endsWith("-page"))
@@ -255,14 +270,6 @@ test("content pages use the stepped page and card hierarchy", async ({ page }) =
   }
 
   const stackCases = [
-    {
-      urlPath: "/home",
-      steps: [
-        ["[data-home-content]", "24px"],
-        ["[data-home-section]", "16px"],
-        ["[data-home-entries]", "16px"]
-      ]
-    },
     {
       urlPath: "/verification",
       steps: [

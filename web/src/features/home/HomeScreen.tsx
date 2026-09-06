@@ -1,32 +1,26 @@
 import type { ReactNode } from "react";
+import {
+  Button,
+  Card,
+  Group,
+  Paper,
+  SimpleGrid,
+  Stack,
+  Text,
+  Title
+} from "@mantine/core";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { Icon } from "../../icons";
-import { StatusBadge, type StatusTone } from "../../components/StatusBadge";
 import { useConsoleSession } from "../../app/session";
-import type { SettingSource } from "../verification/api";
+import { StatusBadge, type StatusTone } from "../../components/StatusBadge";
+import { Icon, type IconName } from "../../icons";
 import type { HomeData, HomeDataState } from "./useHomeData";
 import { useHomeData } from "./useHomeData";
+import { HomeEntries, SourceBadge } from "./HomeEntries";
 import { HomeTrend } from "./HomeTrend";
 
-const sourceMessageKeys: Readonly<Record<SettingSource, string>> = {
-  "factory default": "home.source.factoryDefault",
-  "user file": "home.source.userFile",
-  "chat override": "home.source.chatOverride"
-};
 
-const verifyModeMessageKeys = {
-  kernel: "home.values.verifyMode.kernel",
-  quiz: "home.values.verifyMode.quiz",
-  mixed: "home.values.verifyMode.mixed"
-} as const;
-
-const deliveryModeMessageKeys = {
-  group: "home.values.deliveryMode.group",
-  dm: "home.values.deliveryMode.dm",
-  both: "home.values.deliveryMode.both"
-} as const;
 
 type AttentionItem = Readonly<{
   id: string;
@@ -37,17 +31,10 @@ type AttentionItem = Readonly<{
 }>;
 
 
-function SourceBadge({ source }: Readonly<{ source: SettingSource }>) {
-  const { t } = useTranslation();
-  return (
-    <StatusBadge tone="neutral">
-      {t("home.source.value", { source: t(sourceMessageKeys[source]) })}
-    </StatusBadge>
-  );
-}
 
 function StateCard({
   id,
+  icon,
   titleKey,
   descriptionKey,
   role,
@@ -55,6 +42,7 @@ function StateCard({
   children
 }: Readonly<{
   id: string;
+  icon: IconName;
   titleKey: string;
   descriptionKey: string;
   role?: "alert";
@@ -63,73 +51,29 @@ function StateCard({
 }>) {
   const { t } = useTranslation();
   return (
-    <section
-      data-slot="card"
+    <Card
+      component="section"
+      withBorder
       data-home-state-card={id}
       role={role}
       aria-live={live}
       aria-labelledby={`home-${id}-title`}
+      p="xl"
     >
-      <h2 id={`home-${id}-title`}>{t(titleKey)}</h2>
-      <p>{t(descriptionKey)}</p>
-      {children}
-    </section>
+      <Stack gap="md" align="flex-start">
+        <Group gap="xs">
+          <Icon name={icon} />
+          <Title order={2} size="h3" id={`home-${id}-title`}>
+            {t(titleKey)}
+          </Title>
+        </Group>
+        <Text c="dimmed">{t(descriptionKey)}</Text>
+        {children}
+      </Stack>
+    </Card>
   );
 }
 
-function ConfigValue({
-  labelKey,
-  value,
-  source
-}: Readonly<{
-  labelKey: string;
-  value: string;
-  source: SettingSource;
-}>) {
-  const { t } = useTranslation();
-  return (
-    <div data-home-entry-value>
-      <dt>{t(labelKey)}</dt>
-      <dd>
-        <span>{value}</span>
-        <SourceBadge source={source} />
-      </dd>
-    </div>
-  );
-}
-
-function ConfigEntry({
-  id,
-  titleKey,
-  descriptionKey,
-  path,
-  groupSearch,
-  children
-}: Readonly<{
-  id: string;
-  titleKey: string;
-  descriptionKey: string;
-  path: string;
-  groupSearch: string;
-  children: ReactNode;
-}>) {
-  const { t } = useTranslation();
-  return (
-    <Link
-      to={{ pathname: path, search: groupSearch }}
-      data-slot="card"
-      data-clickable
-      data-home-entry={id}
-    >
-      <header data-home-entry-heading>
-        <h3>{t(titleKey)}</h3>
-        <span aria-hidden="true">→</span>
-      </header>
-      <p>{t(descriptionKey)}</p>
-      <dl data-home-entry-values>{children}</dl>
-    </Link>
-  );
-}
 
 function attentionItems(data: HomeData): readonly AttentionItem[] {
   const items: AttentionItem[] = [];
@@ -197,13 +141,33 @@ function attentionItems(data: HomeData): readonly AttentionItem[] {
   return items;
 }
 
+function SectionHeading({
+  id,
+  titleKey,
+  descriptionKey
+}: Readonly<{
+  id: string;
+  titleKey: string;
+  descriptionKey: string;
+}>) {
+  const { t } = useTranslation();
+  return (
+    <Stack component="header" gap="xs">
+      <Title order={2} size="h3" id={id}>
+        {t(titleKey)}
+      </Title>
+      <Text c="dimmed">{t(descriptionKey)}</Text>
+    </Stack>
+  );
+}
+
 function OverviewSection({
   data,
   groupSearch
 }: Readonly<{ data: HomeData; groupSearch: string }>) {
-  const { t, i18n } = useTranslation();
-  const number = new Intl.NumberFormat(i18n.language);
-  const percent = new Intl.NumberFormat(i18n.language, {
+  const { i18n, t } = useTranslation();
+  const number = new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language);
+  const percent = new Intl.NumberFormat(i18n.resolvedLanguage ?? i18n.language, {
     style: "percent",
     maximumFractionDigits: 1
   });
@@ -235,26 +199,36 @@ function OverviewSection({
   ] as const;
 
   return (
-    <section data-home-section="overview" aria-labelledby="home-overview-title">
-      <header data-home-section-heading>
-        <h2 id="home-overview-title">{t("home.overview.title")}</h2>
-        <p>{t("home.overview.description")}</p>
-      </header>
-      <div data-home-metrics>
-        {metrics.map((metric) => (
-          <Link
-            key={metric.id}
-            to={{ pathname: metric.path, search: groupSearch }}
-            data-slot="card"
-            data-clickable
-            data-home-metric={metric.id}
-          >
-            <strong>{metric.value}</strong>
-            <span>{t(metric.labelKey)}</span>
-          </Link>
-        ))}
-      </div>
-    </section>
+    <Card component="section" withBorder data-home-section="overview" p="lg">
+      <Stack gap="lg">
+        <SectionHeading
+          id="home-overview-title"
+          titleKey="home.overview.title"
+          descriptionKey="home.overview.description"
+        />
+        <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
+          {metrics.map((metric) => (
+            <Card
+              key={metric.id}
+              component={Link}
+              to={{ pathname: metric.path, search: groupSearch }}
+              withBorder
+              p="lg"
+              data-home-metric={metric.id}
+            >
+              <Stack gap="xs">
+                <Text size="xl" fw={700} lh={1.2}>
+                  {metric.value}
+                </Text>
+                <Text size="sm" c="dimmed">
+                  {t(metric.labelKey)}
+                </Text>
+              </Stack>
+            </Card>
+          ))}
+        </SimpleGrid>
+      </Stack>
+    </Card>
   );
 }
 
@@ -267,145 +241,57 @@ function AttentionSection({
   const isOperator = data.diagnostics.kind !== "hidden";
 
   return (
-    <section data-home-section="attention" aria-labelledby="home-attention-title">
-      <header data-home-section-heading>
-        <h2 id="home-attention-title">{t("home.attention.title")}</h2>
-        <p>{t("home.attention.description")}</p>
-      </header>
-      {items.length === 0 ? (
-        <div data-slot="card" data-home-attention-empty>
-          <StatusBadge tone="ok">{t("home.attention.empty.badge")}</StatusBadge>
-          <p>
-            {t(
-              isOperator
-                ? "home.attention.empty.operatorDescription"
-                : "home.attention.empty.managerDescription"
-            )}
-          </p>
-        </div>
-      ) : (
-        <div data-home-attention-list>
-          {items.map((item) => (
-            <Link
-              key={item.id}
-              to={{
-                pathname: item.id === "queue" ? "/queue" : "/diagnostics",
-                search: groupSearch
-              }}
-              data-slot="card"
-              data-clickable
-              data-home-attention={item.id}
-            >
-              <StatusBadge tone={item.tone}>{t(`home.attention.tones.${item.tone}`)}</StatusBadge>
-              <span data-home-attention-copy>
-                <strong>{t(item.titleKey)}</strong>
-                <span>{t(item.descriptionKey, { count: item.count })}</span>
-              </span>
-              <span aria-hidden="true">→</span>
-            </Link>
-          ))}
-        </div>
-      )}
-    </section>
+    <Card component="section" withBorder data-home-section="attention" p="lg">
+      <Stack gap="lg">
+        <SectionHeading
+          id="home-attention-title"
+          titleKey="home.attention.title"
+          descriptionKey="home.attention.description"
+        />
+        {items.length === 0 ? (
+          <Group gap="sm" align="flex-start" data-home-attention-empty>
+            <StatusBadge presentation="library" tone="ok">{t("home.attention.empty.badge")}</StatusBadge>
+            <Text>
+              {t(
+                isOperator
+                  ? "home.attention.empty.operatorDescription"
+                  : "home.attention.empty.managerDescription"
+              )}
+            </Text>
+          </Group>
+        ) : (
+          <Stack gap="sm" data-home-attention-list>
+            {items.map((item) => (
+              <Card
+                key={item.id}
+                component={Link}
+                to={{
+                  pathname: item.id === "queue" ? "/queue" : "/diagnostics",
+                  search: groupSearch
+                }}
+                withBorder
+                p="md"
+                data-home-attention={item.id}
+              >
+                <Stack gap="sm">
+                  <Group justify="space-between" align="center" wrap="nowrap">
+                    <StatusBadge presentation="library" tone={item.tone}>{t(`home.attention.tones.${item.tone}`)}</StatusBadge>
+                    <Icon name="arrowRight" />
+                  </Group>
+                  <Stack gap="xs">
+                    <Text fw={600}>{t(item.titleKey)}</Text>
+                    <Text c="dimmed">{t(item.descriptionKey, { count: item.count })}</Text>
+                  </Stack>
+                </Stack>
+              </Card>
+            ))}
+          </Stack>
+        )}
+      </Stack>
+    </Card>
   );
 }
 
-
-function EntriesSection({
-  data,
-  groupSearch
-}: Readonly<{ data: HomeData; groupSearch: string }>) {
-  const { t } = useTranslation();
-  const { settings } = data;
-
-  return (
-    <section data-home-section="entries" aria-labelledby="home-entries-title">
-      <header data-home-section-heading>
-        <h2 id="home-entries-title">{t("home.entries.title")}</h2>
-        <p>{t("home.entries.description")}</p>
-      </header>
-      <div data-home-entries>
-        <ConfigEntry
-          id="verification"
-          titleKey="home.entries.verification.title"
-          descriptionKey="home.entries.verification.description"
-          path="/verification"
-          groupSearch={groupSearch}
-        >
-          <ConfigValue
-            labelKey="home.entries.verification.mode"
-            value={t(verifyModeMessageKeys[settings.verifyMode.value])}
-            source={settings.verifyMode.source}
-          />
-          <ConfigValue
-            labelKey="home.entries.verification.delivery"
-            value={t(deliveryModeMessageKeys[settings.deliveryMode.value])}
-            source={settings.deliveryMode.source}
-          />
-          <ConfigValue
-            labelKey="home.entries.verification.timeout"
-            value={t("home.values.seconds", { count: settings.timeoutSeconds.value })}
-            source={settings.timeoutSeconds.source}
-          />
-        </ConfigEntry>
-        <ConfigEntry
-          id="questions"
-          titleKey="home.entries.questions.title"
-          descriptionKey="home.entries.questions.description"
-          path="/questions"
-          groupSearch={groupSearch}
-        >
-          <ConfigValue
-            labelKey="home.entries.questions.primary"
-            value={t("home.values.rules", { count: settings.questionCount.value })}
-            source={settings.questionCount.source}
-          />
-          <ConfigValue
-            labelKey="home.entries.questions.fallback"
-            value={t("home.values.rules", { count: settings.fallbackQuestionCount.value })}
-            source={settings.fallbackQuestionCount.source}
-          />
-        </ConfigEntry>
-        <ConfigEntry
-          id="bypass"
-          titleKey="home.entries.bypass.title"
-          descriptionKey="home.entries.bypass.description"
-          path="/bypass"
-          groupSearch={groupSearch}
-        >
-          <ConfigValue
-            labelKey="home.entries.bypass.trustedGroups"
-            value={t("home.values.groups", { count: settings.trustedGroupCount.value })}
-            source={settings.trustedGroupCount.source}
-          />
-          <ConfigValue
-            labelKey="home.entries.bypass.channels"
-            value={t("home.values.channels", { count: settings.channelWhitelistCount.value })}
-            source={settings.channelWhitelistCount.source}
-          />
-        </ConfigEntry>
-        <ConfigEntry
-          id="moderation"
-          titleKey="home.entries.moderation.title"
-          descriptionKey="home.entries.moderation.description"
-          path="/moderation"
-          groupSearch={groupSearch}
-        >
-          <ConfigValue
-            labelKey="home.entries.moderation.antispam"
-            value={t(settings.antispamEnabled.value ? "home.values.enabled" : "home.values.disabled")}
-            source={settings.antispamEnabled.source}
-          />
-          <ConfigValue
-            labelKey="home.entries.moderation.warnLimit"
-            value={t("home.values.warnings", { count: settings.warnLimit.value })}
-            source={settings.warnLimit.source}
-          />
-        </ConfigEntry>
-      </div>
-    </section>
-  );
-}
 
 function LoadedHome({ data, chatID }: Readonly<{ data: HomeData; chatID: string }>) {
   const { t } = useTranslation();
@@ -413,28 +299,28 @@ function LoadedHome({ data, chatID }: Readonly<{ data: HomeData; chatID: string 
   const isOperator = data.diagnostics.kind !== "hidden";
 
   return (
-    <div data-home-content>
-      <aside data-slot="card" data-home-context aria-labelledby="home-context-title">
-        <span data-home-context-copy>
-          <strong id="home-context-title">{t("home.context.title", { id: chatID })}</strong>
-          <span>{t("home.context.selectedScope")}</span>
-        </span>
-        <span data-home-context-badges>
-          <StatusBadge tone="neutral">
-            {t(isOperator ? "home.roles.operator" : "home.roles.manager")}
-          </StatusBadge>
-          <StatusBadge tone={data.settings.enabled.value ? "ok" : "neutral"}>
-            {t(data.settings.enabled.value ? "home.context.enabled" : "home.context.disabled")}
-          </StatusBadge>
-          <SourceBadge source={data.settings.enabled.source} />
-          <StatusBadge tone="neutral">{t("home.context.modeUnreported")}</StatusBadge>
-        </span>
-      </aside>
+    <Stack gap="xl" data-home-content>
+      <Paper component="aside" withBorder data-home-context p="lg" aria-labelledby="home-context-title">
+        <Group justify="space-between" align="center" wrap="wrap" gap="md">
+          <Stack gap="xs">
+            <Title order={2} size="h3" id="home-context-title">
+              {t("home.context.title", { id: chatID })}
+            </Title>
+            <Text c="dimmed">{t("home.context.selectedScope")}</Text>
+          </Stack>
+          <Group gap="xs" wrap="wrap">
+            <StatusBadge presentation="library" tone="neutral">{t(isOperator ? "home.roles.operator" : "home.roles.manager")}</StatusBadge>
+            <StatusBadge presentation="library" tone={data.settings.enabled.value ? "ok" : "neutral"}>{t(data.settings.enabled.value ? "home.context.enabled" : "home.context.disabled")}</StatusBadge>
+            <SourceBadge source={data.settings.enabled.source} />
+            <StatusBadge presentation="library" tone="neutral">{t("home.context.modeUnreported")}</StatusBadge>
+          </Group>
+        </Group>
+      </Paper>
       <OverviewSection data={data} groupSearch={groupSearch} />
       <AttentionSection data={data} groupSearch={groupSearch} />
       <HomeTrend data={data} groupSearch={groupSearch} />
-      <EntriesSection data={data} groupSearch={groupSearch} />
-    </div>
+      <HomeEntries data={data} groupSearch={groupSearch} />
+    </Stack>
   );
 }
 
@@ -455,6 +341,7 @@ function HomeStateContent({
     return (
       <StateCard
         id="loading"
+        icon="loaderCircle"
         titleKey="home.loading.title"
         descriptionKey="home.loading.description"
         live="polite"
@@ -465,13 +352,19 @@ function HomeStateContent({
     return (
       <StateCard
         id="group-required"
+        icon="usersRound"
         titleKey="home.groupRequired.title"
         descriptionKey="home.groupRequired.description"
       >
-        <Link to="/groups" data-slot="button" data-variant="primary" data-size="sm">
-          <Icon name="usersRound" />
+        <Button
+          component={Link}
+          to="/groups"
+          variant="filled"
+          size="sm"
+          leftSection={<Icon name="usersRound" />}
+        >
           {t("home.groupRequired.select")}
-        </Link>
+        </Button>
       </StateCard>
     );
   }
@@ -479,6 +372,7 @@ function HomeStateContent({
     return (
       <StateCard
         id="no-groups"
+        icon="usersRound"
         titleKey="home.noGroups.title"
         descriptionKey="home.noGroups.description"
       />
@@ -487,20 +381,20 @@ function HomeStateContent({
   return (
     <StateCard
       id="unavailable"
+      icon="circleAlert"
       titleKey="home.unavailable.title"
       descriptionKey="home.unavailable.description"
       role="alert"
     >
-      <button
+      <Button
         type="button"
-        data-slot="button"
-        data-variant="outline"
-        data-size="sm"
+        variant="default"
+        size="sm"
         onClick={reload}
+        leftSection={<Icon name="refreshCw" />}
       >
-        <Icon name="refreshCw" />
         {t("home.unavailable.retry")}
-      </button>
+      </Button>
     </StateCard>
   );
 }
@@ -513,17 +407,21 @@ export function HomeScreen() {
   const controller = useHomeData(session, chatID);
 
   return (
-    <section
+    <Stack
+      component="section"
+      gap="xl"
       data-home-page
       data-home-state={controller.state.kind}
       aria-busy={controller.state.kind === "loading" || undefined}
       aria-labelledby="home-title"
     >
-      <header data-page-heading>
-        <h1 id="home-title">{t("home.title")}</h1>
-        <p>{t("home.description")}</p>
-      </header>
+      <Stack component="header" gap="xs">
+        <Title order={1} id="home-title">
+          {t("home.title")}
+        </Title>
+        <Text c="dimmed">{t("home.description")}</Text>
+      </Stack>
       <HomeStateContent state={controller.state} chatID={chatID} reload={controller.reload} />
-    </section>
+    </Stack>
   );
 }

@@ -214,21 +214,34 @@ test("authenticated home summarizes only the selected group with three group req
   expect((to.valueOf() - from.valueOf()) / 86_400_000).toBe(7);
 
   await expect(page.locator("[data-home-metric]")).toHaveCount(4);
+  await expect(page.locator("[data-home-metric='challenges']")).toContainText("70");
+  await expect(page.locator("[data-home-metric='pass-rate']")).toContainText("58.6%");
+  await expect(page.locator("[data-home-metric='waiting']")).toContainText("1");
   await expect(page.locator("[data-home-attention='queue']")).toContainText("1 份申请等待处理");
-  await expect(page.locator("[data-home-trend-chart]")).toBeVisible();
-  await expect(page.locator("[data-home-entry-value] [data-slot='badge']")).toHaveCount(9);
-  await expect(page.locator("[data-home-entry-value] [data-slot='badge']").first()).toContainText("来源：");
+  await expect(page.locator("[data-home-trend-table]")).toBeVisible();
+  await expect(page.locator("[data-home-trend-table] tbody tr")).toHaveCount(7);
+  const firstTrendRow = page.locator("[data-home-trend-table] tbody tr").first();
+  await expect(firstTrendRow.locator("td").nth(0)).toContainText("8");
+  await expect(firstTrendRow.locator("td").nth(5)).toContainText("50%");
+  await expect(page.locator("[data-home-entry-value] [data-home-source]")).toHaveCount(9);
+  await expect(page.locator("[data-home-entry-value] [data-home-source]").first()).toContainText("来源：");
 
-  const homepageControls = page.locator(
-    "[data-home-page] a, [data-home-page] button, [data-home-page] input, [data-home-page] select, [data-home-page] textarea, [data-home-page] summary, [data-home-page] [role='button']"
+  await expect(page.locator("[data-home-metric='challenges']")).toHaveAttribute(
+    "href",
+    `/stats?group=${selectedGroupID}`
   );
-  expect(await homepageControls.count()).toBeGreaterThan(0);
-  const missingSlots = await homepageControls.evaluateAll((elements) =>
-    elements
-      .filter((element) => !element.hasAttribute("data-slot"))
-      .map((element) => element.outerHTML)
+  await expect(page.locator("[data-home-metric='waiting']")).toHaveAttribute(
+    "href",
+    `/queue?group=${selectedGroupID}`
   );
-  expect(missingSlots).toEqual([]);
+  await expect(page.locator("[data-home-trend-link]")).toHaveAttribute(
+    "href",
+    `/stats?group=${selectedGroupID}`
+  );
+  await expect(page.locator("[data-home-entry='verification']")).toHaveAttribute(
+    "href",
+    `/verification?group=${selectedGroupID}`
+  );
 });
 
 test("group administrators see an explicit all-clear state without an operator status request", async ({ page }) => {

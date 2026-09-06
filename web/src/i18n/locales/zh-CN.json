@@ -32,6 +32,7 @@
   },
   "shell": {
     "mobileNavigation": "打开导航",
+    "closeNavigation": "关闭导航",
     "groupSwitcher": "当前群",
     "allGroups": "全部可管理的群"
   },
@@ -1482,14 +1483,9 @@
     },
     "trend": {
       "title": "近七天趋势",
-      "description": "缩略图仅显示趋势。请在统计页面查看精确数值。",
+      "tableDescription": "所选七天内每天的验证数量和通过率。",
       "openStats": "查看统计",
-      "empty": "所选范围内没有可绘制的日期。",
-      "chartTitle": "近七天挑战量与通过率",
-      "chartDescription": "柱形表示每天的挑战量，折线表示每天的通过率。",
-      "legendLabel": "趋势图图例",
-      "challenges": "挑战量",
-      "passRate": "通过率"
+      "tableLabel": "每日验证结果"
     },
     "entries": {
       "title": "常用配置",

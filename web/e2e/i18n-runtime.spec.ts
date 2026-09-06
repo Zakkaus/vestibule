@@ -49,7 +49,7 @@ async function mockConsoleSession(page: Page): Promise<void> {
 
 async function waitForPreferences(page: Page): Promise<void> {
   await expect(page.locator("[data-preferences-page]")).toBeVisible();
-  await expect(page.locator("[data-group-switcher] [data-slot=\"select-trigger\"]")).not.toHaveAttribute(
+  await expect(page.locator("[data-control=\"group\"]")).not.toHaveAttribute(
     "aria-busy",
     "true"
   );

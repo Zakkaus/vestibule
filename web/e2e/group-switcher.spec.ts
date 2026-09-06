@@ -47,13 +47,13 @@ test("group switcher prefers a title and falls back to the group ID", async ({ p
   ]);
   await page.goto(`/groups?group=${namedGroupId}`);
 
-  const trigger = page.getByRole("button", { name: "当前群" });
-  await expect(trigger).toHaveText(title);
+  const trigger = page.getByRole("combobox", { name: "当前群" });
+  await expect(trigger).toHaveValue(title);
   await trigger.click();
   await expect(page.getByRole("option", { name: title, exact: true })).toBeVisible();
 
   await page.getByRole("option", { name: unnamedGroupId, exact: true }).click();
-  await expect(trigger).toHaveText(unnamedGroupId);
+  await expect(trigger).toHaveValue(unnamedGroupId);
   await expect(page).toHaveURL(new RegExp(`/groups\\?group=${unnamedGroupId}$`));
 });
 
@@ -62,11 +62,11 @@ test("group switcher renders angle brackets and emoji as text", async ({ page })
   await mockGroupSwitcher(page, [{ id: namedGroupId, title }]);
   await page.goto(`/groups?group=${namedGroupId}`);
 
-  const switcher = page.locator("[data-group-switcher]");
-  await expect(page.getByRole("button", { name: "当前群" })).toHaveText(title);
+  const switcher = page.locator("[data-library-group-switcher]");
+  await expect(page.getByRole("combobox", { name: "当前群" })).toHaveValue(title);
   await expect(switcher.locator("img")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "当前群" }).click();
+  await page.getByRole("combobox", { name: "当前群" }).click();
   await expect(page.getByRole("option", { name: title, exact: true })).toBeVisible();
   await expect(switcher.locator("img")).toHaveCount(0);
 });
