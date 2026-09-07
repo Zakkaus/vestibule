@@ -40,17 +40,25 @@ type Connector struct {
 	linkedMu    sync.Mutex
 	linkedCache map[int64]linkedChatEntry
 
+	titleMu       sync.Mutex
+	titleCache    map[int64]chatTitleEntry
+	titleInFlight map[int64]*chatTitleCall
+	titleNow      func() time.Time
+
 	cleanup *queue.DeleteQueue
 }
 
-// NewConnector wraps bot with transport helpers and a bounded positive admin cache.
+// NewConnector wraps bot with transport helpers and bounded query caches.
 func NewConnector(bot *telego.Bot) *Connector {
 	return &Connector{
-		bot:         bot,
-		adminCache:  make(map[adminKey]time.Time),
-		alertSeen:   make(map[alertKey]time.Time),
-		linkedCache: make(map[int64]linkedChatEntry),
-		cleanup:     queue.NewDeleteQueue(bot),
+		bot:           bot,
+		adminCache:    make(map[adminKey]time.Time),
+		alertSeen:     make(map[alertKey]time.Time),
+		linkedCache:   make(map[int64]linkedChatEntry),
+		titleCache:    make(map[int64]chatTitleEntry),
+		titleInFlight: make(map[int64]*chatTitleCall),
+		titleNow:      time.Now,
+		cleanup:       queue.NewDeleteQueue(bot),
 	}
 }
 

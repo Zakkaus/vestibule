@@ -36,11 +36,17 @@ type ConsoleService interface {
 	ConsoleStats(context.Context, verification.ConsoleStatsRequest) (verification.ConsoleStatsReport, error)
 }
 
+// ChatTitleResolver supplies current Telegram titles without exposing Telegram types to the API.
+type ChatTitleResolver interface {
+	ChatTitle(context.Context, int64) (string, error)
+}
+
 // Config injects policy services into the HTTP adapter. The adapter owns no database access.
 type Config struct {
 	Authenticator        *auth.Manager
 	Verification         ConsoleService
 	Settings             SettingsService
+	ChatTitleResolver    ChatTitleResolver
 	Rules                RulesService
 	ProcessSettings      ProcessSettingsService
 	Health               *status.Health
@@ -64,6 +70,7 @@ type Server struct {
 	authenticator        *auth.Manager
 	verification         ConsoleService
 	settings             SettingsService
+	chatTitleResolver    ChatTitleResolver
 	rules                RulesService
 	processSettings      ProcessSettingsService
 	health               *status.Health

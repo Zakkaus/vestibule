@@ -565,8 +565,8 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 #### 落地之后要补的另一件：运维进来之后写不了
 
 `GET /enter/{token}` 只写 HttpOnly 会话 Cookie 然后 `303` 回首页
-（`internal/console/api/server.go:246-263`），而 CSRF token 只在
-`POST /api/session` 的 JSON 响应里出现（`internal/console/api/server.go:223-243`）；结算又严格要求
+（`internal/console/api/server.go:253-269`），而 CSRF token 只在
+`POST /api/session` 的 JSON 响应里出现（`internal/console/api/server.go:233-250`）；结算又严格要求
 `X-CSRF-Token`（`internal/console/auth/manager.go:291-297`）。
 
 于是**运维走一次性链接进来，能读群和队列，但任何写入都做不了** ——
@@ -699,10 +699,10 @@ v3 是当前版本。折叠时四条都要覆盖，漏掉第 0 条就是把最�
 （`/livez` `/readyz` `GET/POST /api/session` `/enter/` `/api/chats` `/api/chats/`）。
 这一句是当时的状态，不是现在的：顶层分发已经包含
 `GET · POST /setup/{token}`、`GET /api/process/settings`、`GET /api/status`、
-`GET /api/status/release` 和 `POST /api/status/upgrade`（`internal/console/api/server.go:136-184`）；而
+`GET /api/status/release` 和 `POST /api/status/upgrade`（`internal/console/api/server.go:148-200`）；而
 `/api/chats/` 那条现在按群展开成
 `queue`、`audit`、`stats`、`settings`、`rules` 五组
-（`internal/console/api/server.go:291-301`）。下面这条次序就是照着这个缺口定的，
+（`internal/console/api/server.go:298-308`）。下面这条次序就是照着这个缺口定的，
 八屏所等的设置端点已经建成。
 而 13 屏里有 8 屏管的全是设置：验证方式、题库、免验证来源、管理与处罚、
 消息与文案、订阅推送、功能，以及偏好屏里属于群的那一半。
@@ -1078,7 +1078,7 @@ Bot API 规定，机器人必须持有 `can_invite_users` 管理员权限才会�
 读全部转给真网关，**每一次对外写入都换成一条落库的观察**，合成的消息号是负数，
 不可能指向真实的 Telegram 消息。
 开关是配置里的 `observe_only`（`internal/settings/config.go:255`），
-由 `internal/app/app.go:202` 把它接上 `ObserveOnly`。
+由 `internal/app/app.go:208` 把它接上 `ObserveOnly`。
 观察写不进去时它**不报成功**，否则「没发出去」和「发了但没记下」会长得一样。
 
 这个模式拦下的是全部对外写入，不只是 approve 与 decline。

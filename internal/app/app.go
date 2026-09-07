@@ -46,6 +46,7 @@ type services struct {
 	database             *database.Database
 	settings             *settings.Store
 	bot                  *telego.Bot
+	connector            *telegram.Connector
 	heartbeatBot         *outageAwareBot
 	lookups              *lookup.Service
 	modules              *runtimeModules
@@ -194,6 +195,7 @@ func claimedConsoleConfig(runtime *services) api.Config {
 		Authenticator:        runtime.consoleAuth,
 		Verification:         runtime.verification,
 		Settings:             runtime.settings,
+		ChatTitleResolver:    runtime.connector,
 		Rules:                database.NewRuleStore(runtime.database),
 		ProcessSettings:      runtime.cfg,
 		Health:               runtime.health,
@@ -370,6 +372,7 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 		telegramHandlers(verificationService, verificationGateway, administration, moderation, modules.commands, consoleHandler))
 	registration := newRegistration(ctx, bot, runtime.cfg, runtime.settings, identity, moderation, verificationService, updates)
 	runtime.bot = bot
+	runtime.connector = connector
 	runtime.heartbeatBot = heartbeatBot
 	runtime.lookups = lookups
 	runtime.modules = modules

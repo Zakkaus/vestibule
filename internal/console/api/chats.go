@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type chatResponse struct {
@@ -26,6 +27,12 @@ func (s *Server) chats(writer http.ResponseWriter, request *http.Request) {
 		title := ""
 		if s.settings != nil {
 			title, _ = s.settings.RegisteredGroupTitle(chatID)
+		}
+		if title == "" && s.chatTitleResolver != nil {
+			title, _ = s.chatTitleResolver.ChatTitle(request.Context(), chatID)
+			if strings.TrimSpace(title) == "" {
+				title = ""
+			}
 		}
 		chats = append(chats, chatResponse{
 			ID:    strconv.FormatInt(chatID, 10),
