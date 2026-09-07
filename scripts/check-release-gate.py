@@ -32,6 +32,8 @@ EXCLUDED = {
         "bundle is not among them, and nothing in the binary embeds it",
     "npm run e2e":
         "it drives a real browser against the console bundle the release does not publish",
+    "npm run check:css":
+        "it parses the console CSS bundle, which the release does not publish",
     "Zakk-LLM/Chinese-skill":
         "it reads the prose in the repository, which no published asset carries",
     # The console is not among the published assets: the release ships the Go binaries, the images
@@ -106,6 +108,8 @@ def main() -> int:
         if "/" in gate and gate.rsplit("/", 1)[0] in release_dirs:
             continue
         if gate in EXCLUDED:
+            continue
+        if gate.rsplit("/", 1)[0] in EXCLUDED:
             continue
         failures.append(
             f"CI runs {gate} and the release does not, and no reason is recorded for leaving it out"

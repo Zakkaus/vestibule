@@ -1,8 +1,9 @@
+import { Picker, PickerItem } from "@react-spectrum/s2/Picker";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
 import { useConsoleSession } from "../../app/session";
-import { AppSelect } from "../../components/AppSelect";
+import { useConsoleSize } from "../../components/ConsoleProvider";
 import {
   allGroupsSelection,
   groupFixtures,
@@ -14,6 +15,7 @@ export function GroupSwitcher() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const session = useConsoleSession();
+  const size = useConsoleSize("L");
   const fixtureFallback = isGroupFixtureFallback(session);
   const options =
     session.state === "ready"
@@ -56,16 +58,20 @@ export function GroupSwitcher() {
   }
 
   return (
-    <label data-group-switcher>
-      <span>{t("shell.groupSwitcher")}</span>
-      <AppSelect
-        aria-busy={isLoading || undefined}
+    <div data-group-switcher>
+      <Picker
         aria-label={t("shell.groupSwitcher")}
-        disabled={options.length === 0}
-        value={selectedGroupId}
-        options={selectionOptions}
-        onValueChange={changeSelectedGroup}
-      />
-    </label>
+        isDisabled={options.length === 0}
+        loadingState={isLoading ? "loading" : "idle"}
+        selectedKey={selectedGroupId}
+        onSelectionChange={(key) => { if (key !== null) changeSelectedGroup(String(key)); }}
+        items={selectionOptions}
+        size={size}
+        data-console-control
+        data-control-size={size}
+      >
+        {(option) => <PickerItem id={option.value}>{option.label}</PickerItem>}
+      </Picker>
+    </div>
   );
 }

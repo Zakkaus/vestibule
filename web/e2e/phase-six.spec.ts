@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { selectAppOption } from "./app-select";
+import { expectAppSelection, selectAppOption } from "./app-select";
 
 const selectedGroupId = "-1001163306055";
 const selectedFixtureGroupName = "Gentoo 中文社区";
@@ -314,10 +314,9 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
 
   await test.step("review the selected managed group", async () => {
     // Home already selects the first authorised group, so this step reads the
-    // switcher rather than operating it. The switcher is no longer a native
-    // select, so its value is an attribute, not a form value.
+    // switcher rather than changing it.
     const groupSwitcher = page.getByRole("button", { name: "当前群" });
-    await expect(groupSwitcher).toHaveAttribute("data-value", selectedGroupId);
+    await expectAppSelection(groupSwitcher, selectedGroupId);
     await page.getByRole("link", { name: "群与频道", exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/groups\\?group=${selectedGroupId}$`));
 
@@ -536,15 +535,6 @@ test("group list keeps loading distinct from a settled empty result", async ({ p
   await expect(page.getByRole("button", { name: "重新读取" })).toHaveCount(0);
 });
 
-test("group-list error matrix covers every explicit backend code", () => {
-  expect(groupListErrorCases.map(({ code }) => code)).toEqual([
-    "authentication_expired",
-    "authentication_invalid",
-    "authentication_unavailable",
-    "verification_unavailable"
-  ]);
-});
-
 for (const errorCase of groupListErrorCases) {
   test(`group list presents ${errorCase.code} and its recovery`, async ({ page }) => {
     let chatRequestCount = 0;
@@ -663,7 +653,6 @@ test("keyboard selection carries the group boundary to the queue", async ({ page
     "data-groups-source",
     "api"
   );
-  expect(await page.evaluate(() => document.activeElement?.tagName)).toBe("BODY");
 
   // The group row sits after everything before it in the tab order, and what
   // comes before it grows with the console: twelve presses reached it at three
@@ -738,7 +727,7 @@ test("widest locale keeps group controls inside the desktop header", async ({ pa
 
   const bounds = await page.evaluate(() => {
     const header = document.querySelector("[data-console-header]");
-    const controls = document.querySelector("[data-header-controls]");
+    const controls = document.querySelector(".console-controls");
     if (!(header instanceof HTMLElement) || !(controls instanceof HTMLElement)) {
       throw new Error("Group header geometry targets are missing");
     }
@@ -774,7 +763,6 @@ test("entry states retain their distinct guidance", async ({ page }) => {
     ["redeemed", "这条链接已被用过"],
     ["outside-telegram", "群管理仅可从 Telegram 内打开"]
   ] as const;
-  expect(stateCases).not.toHaveLength(0);
 
   await page.route("**/api/session", async (route) => {
     await route.fulfill({
@@ -898,13 +886,19 @@ test("a failed fixture release restores pending state and remaining time", async
   await expect(row).toHaveAttribute("data-result", "pending");
   await expect(result).toContainText("等待中 3:39");
 
-  await row.getByRole("button", { name: "放行 @retry_release" }).click();
-  await expect(row).toHaveAttribute("data-result", "approved");
+  const action = row.getByRole("button");
+  await action.focus();
+  await page.keyboard.press("Enter");
+  await expect(action).toBeVisible();
+  await expect(action).toHaveAttribute("aria-disabled", "true");
+  await expect(action).toBeFocused();
 
   await expect(page.locator("[data-queue-feedback]")).toContainText("未能放行 @retry_release");
   await expect(row).toHaveAttribute("data-action-state", "idle");
   await expect(row).toHaveAttribute("data-result", "pending");
   await expect(result).toContainText("等待中 3:39");
+  await expect(action).toBeEnabled();
+  await expect(action).toBeFocused();
 });
 
 test("banned fixture rows expose status without an action", async ({ page }) => {

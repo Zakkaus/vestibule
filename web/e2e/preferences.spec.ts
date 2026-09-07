@@ -1,8 +1,9 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { selectAppOption } from "./app-select";
+import { expectAppSelection, selectAppOption } from "./app-select";
 
 const selectedGroupId = "-1001163306055";
 const resetMarker = "preferences-test-reset";
+const appEntryURL = /\/src\/main\.tsx(?:\?.*)?$/;
 const expectedShellRequests = [
   "GET /api/session",
   "GET /api/chats",
@@ -79,7 +80,7 @@ async function pauseAppEntry(page: Page): Promise<{
     releaseEntry = resolve;
   });
 
-  await page.route("**/src/main.tsx", async (route) => {
+  await page.route(appEntryURL, async (route) => {
     markRequest();
     await entryReleased;
     await route.continue();
@@ -109,7 +110,7 @@ async function expectThemePreferenceAfterReload(
   const initialNavigation = page.goto("/preferences", { waitUntil: "commit" });
   await initialEntry.waitForRequest();
   expect(await bootstrapThemeState(page)).toEqual({ theme: null, preference: "system" });
-  await page.unroute("**/src/main.tsx");
+  await page.unroute(appEntryURL);
   initialEntry.resume();
   await initialNavigation;
 
@@ -127,9 +128,10 @@ async function expectThemePreferenceAfterReload(
     );
   }, preference);
   await expect(controls.theme).toHaveAttribute("data-value", preference);
-  await expect(
-    page.locator("[data-header-controls] [data-utility-controls] [data-slot=\"select-trigger\"]").first()
-  ).toHaveAttribute("data-value", preference);
+  await expectAppSelection(
+    page.locator(".console-controls [data-utility-controls]").getByRole("button").first(),
+    preference
+  );
   expect(await page.evaluate(() => localStorage.getItem("verify-console-theme"))).toBe(preference);
 
   const reloadedEntry = await pauseAppEntry(page);
@@ -139,7 +141,7 @@ async function expectThemePreferenceAfterReload(
     theme: preference,
     preference
   });
-  await page.unroute("**/src/main.tsx");
+  await page.unroute(appEntryURL);
   reloadedEntry.resume();
   await reloadedNavigation;
 
@@ -158,10 +160,7 @@ async function expectThemePreferenceAfterReload(
 
 async function waitForPreferences(page: Page): Promise<void> {
   await expect(page.locator("[data-preferences-page]")).toBeVisible();
-  await expect(page.locator("[data-group-switcher] [data-slot=\"select-trigger\"]")).not.toHaveAttribute(
-    "aria-busy",
-    "true"
-  );
+  await expect(page.locator("[data-group-switcher]").getByRole("button")).toBeEnabled();
 }
 
 async function preferenceControls(page: Page): Promise<PreferenceControls> {

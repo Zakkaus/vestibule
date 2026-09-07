@@ -8,6 +8,7 @@ also runs the unmodified and restored copy as a positive control.
 """
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import sys
@@ -376,6 +377,437 @@ func (s *Server) exportAudit(writer http.ResponseWriter, request *http.Request, 
             ),
         )
 
+
+    def frontend_fixture(self, tree: Path) -> tuple[Path, tuple[str, ...]]:
+        frontend = tree / "web" / "css-gate-fixture"
+        source = frontend / "src"
+        dist = frontend / "dist" / "assets"
+        source.mkdir(parents=True)
+        dist.mkdir(parents=True)
+        (source / "style.css").write_text(
+            ":root { --ink: oklch(0.2 0 0); }\n.known { color: var(--ink); }\n",
+            encoding="utf-8",
+        )
+        (source / "Probe.tsx").write_text(
+            'export function Probe() { return <div className="known" />; }\n',
+            encoding="utf-8",
+        )
+        (dist / "index.css").write_text(
+            ":root { --ink: oklch(0.2 0 0); }\n.known { color: var(--ink); }\n",
+            encoding="utf-8",
+        )
+        (frontend / "dist" / "css-provenance.json").write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "assets": [
+                        {
+                            "file": "assets/index.css",
+                            "origins": [{"path": "src/style.css", "kind": "project"}],
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        return frontend, (
+            "--frontend",
+            "web/css-gate-fixture",
+            "--source",
+            "web/css-gate-fixture/src",
+            "--dist",
+            "web/css-gate-fixture/dist",
+            "--provenance",
+            "web/css-gate-fixture/dist/css-provenance.json",
+        )
+
+    def test_frontend_project_css_cannot_be_relabelled_as_vendor(self) -> None:
+        tree = self.temporary_tree()
+        _, arguments = self.frontend_fixture(tree)
+        self.assert_gate_passes(tree, "scripts/check-css-coverage.py", *arguments)
+        manifest = tree / "web/css-gate-fixture/dist/css-provenance.json"
+        value = json.loads(manifest.read_text(encoding="utf-8"))
+        value["assets"][0]["origins"][0]["kind"] = "vendor"
+        manifest.write_text(json.dumps(value), encoding="utf-8")
+        self.assert_gate_rejects(
+            tree,
+            "scripts/check-css-coverage.py",
+            "project CSS was relabelled as dependency CSS",
+            ("marks a non-dependency path as vendor", "src/style.css"),
+            *arguments,
+        )
+
+    def test_frontend_unknown_project_class_is_rejected(self) -> None:
+        tree = self.temporary_tree()
+        _, arguments = self.frontend_fixture(tree)
+        path = tree / "web/css-gate-fixture/src/Probe.tsx"
+        original = path.read_text(encoding="utf-8")
+        self.assert_gate_passes(tree, "scripts/check-css-coverage.py", *arguments)
+        path.write_text(original.replace("known", "missing"), encoding="utf-8")
+        try:
+            self.assert_gate_rejects(
+                tree,
+                "scripts/check-css-coverage.py",
+                "an unknown project class renders without authored CSS",
+                (".missing is used in TSX but has no project CSS definition",),
+                *arguments,
+            )
+        finally:
+            path.write_text(original, encoding="utf-8")
+        self.assert_gate_passes(tree, "scripts/check-css-coverage.py", *arguments)
+
+    def test_frontend_class_literals_in_every_expression_branch_are_checked(self) -> None:
+        tree = self.temporary_tree()
+        _, arguments = self.frontend_fixture(tree)
+        path = tree / "web/css-gate-fixture/src/Probe.tsx"
+        original = path.read_text(encoding="utf-8")
+        self.assert_gate_passes(tree, "scripts/check-css-coverage.py", *arguments)
+        path.write_text(
+            original.replace(
+                'className="known"',
+                'className={active ? "known" : "missing"} '
+                'UNSAFE_className={active ? "known" : "missing"}',
+            ),
+            encoding="utf-8",
+        )
+        try:
+            self.assert_gate_rejects(
+                tree,
+                "scripts/check-css-coverage.py",
+                "a class literal in a conditional branch renders without authored CSS",
+                (".missing is used in TSX but has no project CSS definition",),
+                *arguments,
+            )
+        finally:
+            path.write_text(original, encoding="utf-8")
+        self.assert_gate_passes(tree, "scripts/check-css-coverage.py", *arguments)
+
+    def test_frontend_ambiguous_class_expression_is_not_silently_ignored(self) -> None:
+        tree = self.temporary_tree()
+        _, arguments = self.frontend_fixture(tree)
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-css-coverage.py",
+            "a dynamic class expression escaped static hook coverage",
+            ("className",),
+            lambda: self.replace_text(
+                tree,
+                "web/css-gate-fixture/src/Probe.tsx",
+                'className="known"',
+                'className={active ? "known" : runtimeClass}',
+            ),
+            *arguments,
+        )
+
+    def test_frontend_authored_css_must_be_listed_in_provenance(self) -> None:
+        tree = self.temporary_tree()
+        _, arguments = self.frontend_fixture(tree)
+
+        def mutate() -> Callable[[], None]:
+            path = tree / "web/css-gate-fixture/src/escape.css"
+            path.write_text(".escape { color: red; }\n", encoding="utf-8")
+            return path.unlink
+
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-css-coverage.py",
+            "an authored stylesheet escaped provenance accounting",
+            ("authored CSS files missing from provenance", "escape.css"),
+            mutate,
+            *arguments,
+        )
+
+    def test_frontend_fixture_html_cannot_demonstrate_live_css(self) -> None:
+        tree = self.temporary_tree()
+        _, arguments = self.frontend_fixture(tree)
+        style = tree / "web/css-gate-fixture/src/style.css"
+        original_style = style.read_text(encoding="utf-8")
+        fixture = tree / "web/css-gate-fixture/src/app.css.fixture.html"
+        original_fixture = fixture.read_text(encoding="utf-8") if fixture.exists() else None
+
+        def mutate() -> Callable[[], None]:
+            style.write_text(original_style + ".fixture-only { color: red; }\n", encoding="utf-8")
+            fixture.write_text('<div class="fixture-only"></div>\n', encoding="utf-8")
+
+            def restore() -> None:
+                style.write_text(original_style, encoding="utf-8")
+                if original_fixture is None:
+                    fixture.unlink()
+                else:
+                    fixture.write_text(original_fixture, encoding="utf-8")
+
+            return restore
+
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-css-coverage.py",
+            "a demonstration-only fixture hid dead authored CSS",
+            (".fixture-only is defined by project CSS but has no TSX use",),
+            mutate,
+            *arguments,
+        )
+
+    def test_frontend_project_runtime_property_cannot_use_vendor_exemption(self) -> None:
+        tree = self.temporary_tree()
+        _, arguments = self.frontend_fixture(tree)
+        source = tree / "web/css-gate-fixture/src/style.css"
+        emitted = tree / "web/css-gate-fixture/dist/assets/index.css"
+        original_source = source.read_text(encoding="utf-8")
+        original_emitted = emitted.read_text(encoding="utf-8")
+
+        def mutate() -> Callable[[], None]:
+            source.write_text(
+                original_source.replace("var(--ink)", "var(--disclosure-panel-height)"),
+                encoding="utf-8",
+            )
+            emitted.write_text(
+                original_emitted.replace("var(--ink)", "var(--disclosure-panel-height)"),
+                encoding="utf-8",
+            )
+
+            def restore() -> None:
+                source.write_text(original_source, encoding="utf-8")
+                emitted.write_text(original_emitted, encoding="utf-8")
+
+            return restore
+
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-css-coverage.py",
+            "project CSS used a dependency runtime variable without a project definition",
+            ("project source has no project definition", "--disclosure-panel-height"),
+            mutate,
+            *arguments,
+        )
+
+    def test_frontend_runtime_exemption_needs_exact_vendor_source(self) -> None:
+        tree = self.temporary_tree()
+        _, arguments = self.frontend_fixture(tree)
+        emitted = tree / "web/css-gate-fixture/dist/assets/index.css"
+        manifest = tree / "web/css-gate-fixture/dist/css-provenance.json"
+        original_emitted = emitted.read_text(encoding="utf-8")
+        original_manifest = manifest.read_text(encoding="utf-8")
+
+        def mutate() -> Callable[[], None]:
+            emitted.write_text(
+                original_emitted
+                + ".vendor-runtime { height: var(--disclosure-panel-height); }\n",
+                encoding="utf-8",
+            )
+            value = json.loads(original_manifest)
+            value["assets"][0]["origins"].append(
+                {
+                    "path": "node_modules/@react-spectrum/s2/dist/private/Other.css",
+                    "kind": "vendor",
+                }
+            )
+            manifest.write_text(json.dumps(value), encoding="utf-8")
+
+            def restore() -> None:
+                emitted.write_text(original_emitted, encoding="utf-8")
+                manifest.write_text(original_manifest, encoding="utf-8")
+
+            return restore
+
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-css-coverage.py",
+            "a broad dependency prefix hid a runtime property from its component stylesheet",
+            ("runtime ownership is not verified", "--disclosure-panel-height"),
+            mutate,
+            *arguments,
+        )
+
+    def test_frontend_runtime_exemption_needs_js_setter_evidence(self) -> None:
+        tree = self.temporary_tree()
+        _, arguments = self.frontend_fixture(tree)
+        emitted = tree / "web/css-gate-fixture/dist/assets/index.css"
+        manifest = tree / "web/css-gate-fixture/dist/css-provenance.json"
+        original_emitted = emitted.read_text(encoding="utf-8")
+        original_manifest = manifest.read_text(encoding="utf-8")
+        stylesheet = (
+            tree / "web/css-gate-fixture/node_modules/@react-spectrum/s2/dist/private/Disclosure.css"
+        )
+        setter = (
+            tree / "web/css-gate-fixture/node_modules/react-aria/dist/private/disclosure/useDisclosure.js"
+        )
+
+        def mutate() -> Callable[[], None]:
+            emitted.write_text(
+                original_emitted
+                + ".vendor-runtime { height: var(--disclosure-panel-height); }\n",
+                encoding="utf-8",
+            )
+            value = json.loads(original_manifest)
+            value["assets"][0]["origins"].append(
+                {
+                    "path": "node_modules/@react-spectrum/s2/dist/private/Disclosure.css",
+                    "kind": "vendor",
+                }
+            )
+            manifest.write_text(json.dumps(value), encoding="utf-8")
+            stylesheet.parent.mkdir(parents=True)
+            stylesheet.write_text(
+                ".panel { height: var(--disclosure-panel-height); }\n",
+                encoding="utf-8",
+            )
+            setter.parent.mkdir(parents=True)
+            setter.write_text("// This fixture intentionally has no runtime setter.\n", encoding="utf-8")
+
+            def restore() -> None:
+                emitted.write_text(original_emitted, encoding="utf-8")
+                manifest.write_text(original_manifest, encoding="utf-8")
+                shutil.rmtree(tree / "web/css-gate-fixture/node_modules")
+
+            return restore
+
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-css-coverage.py",
+            "a dependency stylesheet without a JS setter hid a runtime property",
+            ("runtime ownership is not verified", "--disclosure-panel-height"),
+            mutate,
+            *arguments,
+        )
+
+    def test_console_page_style_deletion_is_visible_to_coverage(self) -> None:
+        tree = self.temporary_tree()
+        _, arguments = self.frontend_fixture(tree)
+        style = tree / "web/css-gate-fixture/src/style.css"
+        probe = tree / "web/css-gate-fixture/src/Probe.tsx"
+        original_style = style.read_text(encoding="utf-8")
+        original_probe = probe.read_text(encoding="utf-8")
+        styled = original_style + '\n[data-console-page] { display: grid; }\n'
+        marked = original_probe.replace("/>", 'data-console-page />', 1)
+        style.write_text(styled, encoding="utf-8")
+        probe.write_text(marked, encoding="utf-8")
+        self.assert_gate_passes(tree, "scripts/check-css-coverage.py", *arguments)
+        style.write_text(original_style, encoding="utf-8")
+        try:
+            self.assert_gate_rejects(
+                tree,
+                "scripts/check-css-coverage.py",
+                "a styled console-page hook was deleted from CSS",
+                ("[data-console-page] is used in TSX but has no project CSS definition",),
+                *arguments,
+            )
+        finally:
+            style.write_text(original_style, encoding="utf-8")
+            probe.write_text(original_probe, encoding="utf-8")
+        self.assert_gate_passes(tree, "scripts/check-css-coverage.py", *arguments)
+
+    def test_app_css_literal_radius_remains_a_style_rule_failure(self) -> None:
+        tree = self.temporary_tree()
+        path = tree / "web/src/app/app.css"
+        original = path.read_text(encoding="utf-8")
+        script = "scripts/design-checks/style-rules.py"
+        self.assert_gate_passes(tree, script, "web/src/app/app.css")
+        path.write_text(original + "[data-app-shell] { border-radius: 3px; }\n", encoding="utf-8")
+        try:
+            self.assert_gate_rejects(
+                tree,
+                script,
+                "app CSS introduced a literal radius outside the shared scale",
+                ("literal border-radius", "3px"),
+                "web/src/app/app.css",
+            )
+        finally:
+            path.write_text(original, encoding="utf-8")
+        self.assert_gate_passes(tree, script, "web/src/app/app.css")
+
+    def test_app_css_missing_variable_remains_an_undefined_var_failure(self) -> None:
+        tree = self.temporary_tree()
+        path = tree / "web/src/app/app.css"
+        original = path.read_text(encoding="utf-8")
+        script = "scripts/design-checks/undefined-var.py"
+        project_css = tuple(
+            str(css) for css in sorted((tree / "web/src").rglob("*.css"))
+        )
+        self.assert_gate_passes(tree, script, *project_css)
+        path.write_text(original + "[data-app-shell] { color: var(--app-missing); }\n", encoding="utf-8")
+        try:
+            self.assert_gate_rejects(
+                tree,
+                script,
+                "app CSS introduced a reference to an undefined custom property",
+                ("reads --app-missing, which nothing defines",),
+                *project_css,
+            )
+        finally:
+            path.write_text(original, encoding="utf-8")
+        self.assert_gate_passes(tree, script, *project_css)
+
+    def test_frontend_emitted_css_must_resolve_custom_properties(self) -> None:
+        tree = self.temporary_tree()
+        _, arguments = self.frontend_fixture(tree)
+        path = tree / "web/css-gate-fixture/dist/assets/index.css"
+        original = path.read_text(encoding="utf-8")
+        self.assert_gate_passes(tree, "scripts/check-css-coverage.py", *arguments)
+        path.write_text(original.replace("--ink:", "--other:"), encoding="utf-8")
+        try:
+            self.assert_gate_rejects(
+                tree,
+                "scripts/check-css-coverage.py",
+                "an emitted project rule reads an undefined custom property",
+                ("unresolved custom properties", "--ink"),
+                *arguments,
+            )
+        finally:
+            path.write_text(original, encoding="utf-8")
+        self.assert_gate_passes(tree, "scripts/check-css-coverage.py", *arguments)
+
+    def test_frontend_authored_radius_rule_is_still_red(self) -> None:
+        tree = self.temporary_tree()
+        self.frontend_fixture(tree)
+        path = tree / "web/css-gate-fixture/src/style.css"
+        original = path.read_text(encoding="utf-8")
+        script = "scripts/design-checks/style-rules.py"
+        self.assert_gate_passes(tree, script, "web/css-gate-fixture/src/style.css")
+        path.write_text(original + ".known { border-radius: 3px; }\n", encoding="utf-8")
+        try:
+            self.assert_gate_rejects(
+                tree,
+                script,
+                "an authored literal radius bypasses the shared control scale",
+                ("literal border-radius", "3px"),
+                "web/css-gate-fixture/src/style.css",
+            )
+        finally:
+            path.write_text(original, encoding="utf-8")
+        self.assert_gate_passes(tree, script, "web/css-gate-fixture/src/style.css")
+
+    def test_frontend_authored_color_rule_is_still_red(self) -> None:
+        tree = self.temporary_tree()
+        self.frontend_fixture(tree)
+        path = tree / "web/css-gate-fixture/src/style.css"
+        original = path.read_text(encoding="utf-8")
+        script = "scripts/design-checks/style-rules.py"
+        self.assert_gate_passes(tree, script, "web/css-gate-fixture/src/style.css")
+        path.write_text(original + ".known { color: #123456; }\n", encoding="utf-8")
+        try:
+            self.assert_gate_rejects(
+                tree,
+                script,
+                "an authored hue bypasses the token palette",
+                ("hue outside the token layer", "#123456"),
+                "web/css-gate-fixture/src/style.css",
+            )
+        finally:
+            path.write_text(original, encoding="utf-8")
+        self.assert_gate_passes(tree, script, "web/css-gate-fixture/src/style.css")
+
+    def test_frontend_unlisted_css_asset_is_rejected(self) -> None:
+        tree = self.temporary_tree()
+        _, arguments = self.frontend_fixture(tree)
+        extra = tree / "web/css-gate-fixture/dist/assets/escape.css"
+        extra.write_text(".escape { color: red; }\n", encoding="utf-8")
+        self.assert_gate_rejects(
+            tree,
+            "scripts/check-css-coverage.py",
+            "an emitted CSS file escaped provenance accounting",
+            ("missing from provenance", "escape.css"),
+            *arguments,
+        )
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

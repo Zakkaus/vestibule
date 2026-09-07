@@ -12,6 +12,10 @@ All notable changes to this project are documented here. The format is based on
   default tier.
 
 ### Changed
+- The console shell, home, and waiting queue now use React Spectrum 2, with shared
+  radius, control-size, and spacing tiers in light and dark themes. The home chart
+  exposes daily values, and the sidebar scrolls all 15 destinations into view at
+  1280×720. Other content screens keep their existing components.
 - **The mobile navigation panel now connects to its trigger.** Its open state shares the trigger
   edge and uses denser token-based spacing while retaining the lower panel radius.
 - The console group switcher now shows the durable title captured when a runtime group is

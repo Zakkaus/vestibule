@@ -1,3 +1,4 @@
+import { Picker, PickerItem } from "@react-spectrum/s2/Picker";
 import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -15,7 +16,8 @@ import {
   themePreferences,
   type ThemePreference
 } from "../app/theme";
-import type { IconName } from "../icons";
+import { Icon, type IconName } from "../icons";
+import { useConsoleSize } from "./ConsoleProvider";
 import { AppSelect } from "./AppSelect";
 
 const localeLabelKeys: Record<LocalePreference, string> = {
@@ -53,6 +55,7 @@ type UtilityControlsProps = Readonly<{
 export function UtilityControls({ variant = "labelled" }: UtilityControlsProps) {
   const { t } = useTranslation();
   const [theme, setTheme] = useState<ThemePreference>(readThemePreference);
+  const size = useConsoleSize("L");
 
   useEffect(() => {
     const synchronizeTheme = () => {
@@ -97,13 +100,57 @@ export function UtilityControls({ variant = "labelled" }: UtilityControlsProps) 
 
   const chrome = variant === "chrome";
 
+  if (chrome) {
+    return (
+      <div data-utility-controls data-variant="chrome">
+        <div data-utility-control>
+          <Picker
+            aria-label={t("theme.label")}
+            selectedKey={theme}
+            onSelectionChange={(key) => { if (key !== null) changeTheme(String(key)); }}
+            items={themeOptions}
+            size={size}
+            align="end"
+            data-console-control
+            data-control-size={size}
+            renderValue={(items) => (
+              <span data-console-choice-value>
+                <Icon name={themeIcons[theme]} /><span>{items[0]?.label}</span>
+              </span>
+            )}
+          >
+            {(option) => <PickerItem id={option.value}>{option.label}</PickerItem>}
+          </Picker>
+        </div>
+        <div data-utility-control>
+          <Picker
+            aria-label={t("locale.label")}
+            selectedKey={locale}
+            onSelectionChange={(key) => { if (key !== null) changeLocale(String(key)); }}
+            items={localeOptions}
+            size={size}
+            align="end"
+            data-console-control
+            data-control-size={size}
+            renderValue={(items) => (
+              <span data-console-choice-value>
+                <Icon name="languages" /><span>{items[0]?.label}</span>
+              </span>
+            )}
+          >
+            {(option) => <PickerItem id={option.value}>{option.label}</PickerItem>}
+          </Picker>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div data-utility-controls data-variant={variant}>
       <div data-utility-control>
-        {chrome ? null : <span id={themeLabelId}>{t("theme.label")}</span>}
+        <span id={themeLabelId}>{t("theme.label")}</span>
         <AppSelect
-          aria-label={chrome ? t("theme.label") : undefined}
-          aria-labelledby={chrome ? undefined : themeLabelId}
+          aria-labelledby={themeLabelId}
           icon={themeIcons[theme]}
           value={theme}
           options={themeOptions}
@@ -111,10 +158,9 @@ export function UtilityControls({ variant = "labelled" }: UtilityControlsProps) 
         />
       </div>
       <div data-utility-control>
-        {chrome ? null : <span id={localeLabelId}>{t("locale.label")}</span>}
+        <span id={localeLabelId}>{t("locale.label")}</span>
         <AppSelect
-          aria-label={chrome ? t("locale.label") : undefined}
-          aria-labelledby={chrome ? undefined : localeLabelId}
+          aria-labelledby={localeLabelId}
           icon="languages"
           value={locale}
           options={localeOptions}

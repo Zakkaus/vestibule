@@ -180,11 +180,14 @@ safe default is indistinguishable from a forgotten declaration without it.
 
 CI runs these. The release workflow runs the Go, deployment, and host-replacement
 checks, the exhaustive console-route contract, and phase-acceptance coverage before
-publishing binaries and container images. It skips frontend and document checks that do
-not bear on a release, and the baseline ratchet, which compares a branch against its
+publishing binaries and container images. It skips frontend and document checks that
+do not bear on a release, and the baseline ratchet, which compares a branch against its
 base and has nothing to compare on a tag. Run them locally first.
-**Clear the build and type caches first**: a stale cache turns a red gate green
-locally.
+The frontend CSS gate reads Vite's `web/dist/css-provenance.json`: every emitted CSS asset
+must be listed, and only origins under `web/src` are project CSS. The final emitted bytes are
+also checked by the project's Lightning CSS parser; the Python hook check is intentionally
+not a complete CSS grammar parser. Dependency CSS is checked for nonempty output and
+resolvable custom properties without applying project colour and radius rules to it.
 
 ```sh
 gofmt -l .                       # must print nothing
@@ -253,10 +256,28 @@ python3 ~/.claude/skills/chinese-skill/scripts/chinese_lint.py \
   docs/PRIVACY.zh-CN.md docs/PLAN-v5.md docs/ARCHITECTURE.md docs/README.md \
   web/design.html web/architecture.html
 cd web && npm ci && npm run build && cd ..
-for c in coverage-floor style-rules undefined-var shadowed theme-leak comment-boundaries percentage-min; do \
-  python3 "scripts/design-checks/$c.py" web/dist/assets/*.css; done
+python3 scripts/check-css-coverage.py \
+  --frontend web --source web/src --dist web/dist \
+  --provenance web/dist/css-provenance.json
+mapfile -t EMITTED_CSS < <(
+  python3 scripts/check-css-coverage.py \
+    --frontend web --source web/src --dist web/dist \
+    --provenance web/dist/css-provenance.json \
+    --print-emitted-assets
+)
+(cd web && npm run check:css -- --self-test)
+(cd web && npm run check:css -- "${EMITTED_CSS[@]}")
+python3 scripts/design-checks/coverage-floor.py "${EMITTED_CSS[@]}"
+mapfile -t PROJECT_CSS < <(
+  python3 scripts/check-css-coverage.py \
+    --frontend web --source web/src --dist web/dist \
+    --provenance web/dist/css-provenance.json \
+    --print-project-sources
+)
 for c in coverage-floor comment-boundaries padding-ratio peer-consistency percentage-min shorthand-across-layers; do \
-  python3 "scripts/design-checks/$c.py" web/src/styles/tokens.css web/src/styles/components.css web/src/styles/shell.css web/src/app/app.css; done
+  python3 "scripts/design-checks/$c.py" "${PROJECT_CSS[@]}"; done
+for c in style-rules undefined-var shadowed theme-leak; do \
+  python3 "scripts/design-checks/$c.py" "${PROJECT_CSS[@]}"; done
 python3 scripts/check-type-ramp.py
 python3 scripts/check-css-coverage.py web/src/app/app.css web/src/app/app.css.fixture.html
 for c in coverage-floor style-rules undefined-var shadowed theme-leak comment-boundaries percentage-min; do \

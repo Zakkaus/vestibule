@@ -130,7 +130,7 @@ export async function renderCell(
   await page.locator("[data-app-shell]").waitFor({ state: "visible" });
 
   const controls = page.locator("[data-utility-controls]").first();
-  const triggers = controls.locator("[data-slot=\"select-trigger\"]");
+  const triggers = controls.locator('button[aria-haspopup="listbox"]');
   if ((await triggers.count()) !== 2) {
     throw new Error(`${cell.route.sourcePath}: utility controls must expose theme and locale triggers`);
   }

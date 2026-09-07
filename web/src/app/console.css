@@ -1,0 +1,331 @@
+/* Spectrum 2 1.7.1: spacing-500/400/300 and default accent Link colors.
+   Legacy tokens and vendored files remain unchanged for comparison routes. */
+:root {
+  --console-space-page: 2rem;
+  --console-space-section: 1.5rem;
+  --console-space-card: 1rem;
+  --console-space-small: 0.5rem;
+  --console-space-tiny: 0.25rem;
+  --console-radius-card: 0.75rem;
+  --console-radius-control: 0.5rem;
+  --console-bg: light-dark(#f8f8f8, #111111);
+  --console-surface: light-dark(#ffffff, #222222);
+  --console-raised: light-dark(#f0f0f0, #2c2c2c);
+  --console-border: light-dark(#dadada, #494949);
+  --console-ink: light-dark(#292929, #f2f2f2);
+  --console-muted: light-dark(#505050, #bdbdbd);
+  --console-accent: light-dark(#3b63fb, #5681ff);
+  --console-accent-soft: light-dark(#edf1ff, #202e54);
+  --console-shadow: 0 2px 8px -2px light-dark(rgb(0 0 0 / 12%), rgb(0 0 0 / 28%));
+  --console-sidebar-width: 15.5rem;
+  --console-header-height: 5rem;
+  --console-content-width: 78rem;
+  --console-nav-height: 2.5rem;
+  --console-duration: 150ms;
+}
+
+@media (max-width: 48rem) {
+  :root {
+    --console-space-page: 1rem;
+    --console-nav-height: 3rem;
+  }
+}
+
+[data-console-page] {
+  display: grid;
+  min-inline-size: 0;
+  gap: var(--console-space-section);
+}
+
+[data-console-card] {
+  min-inline-size: 0;
+  padding: var(--console-space-card);
+  border: var(--hairline) solid var(--console-border);
+  border-radius: var(--console-radius-card);
+  background: var(--console-surface);
+  color: var(--console-ink);
+  box-shadow: var(--console-shadow);
+}
+
+/* Spectrum command pills have no rounded-rectangle option. Keep all other
+   library geometry and states; fields put their focus target inside a root. */
+[data-console-control],
+[data-console-control] > button,
+[data-console-control] input,
+[data-console-control] [role="presentation"]:has(> input) {
+  border-radius: var(--console-radius-control);
+}
+
+[data-console-control] [data-icon] {
+  inline-size: 1.125em;
+  block-size: 1.125em;
+}
+
+.console-shell {
+  display: grid;
+  grid-template-columns: var(--console-sidebar-width) minmax(0, 1fr);
+  min-block-size: 100dvb;
+  background: var(--console-bg);
+  color: var(--console-ink);
+}
+
+.console-sidebar {
+  position: sticky;
+  inset-block-start: 0;
+  display: flex;
+  flex-direction: column;
+  block-size: 100dvb;
+  min-block-size: 0;
+  border-inline-end: var(--hairline) solid var(--console-border);
+  background: var(--console-surface);
+}
+
+.console-brand {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--console-space-small);
+  min-block-size: var(--console-header-height);
+  padding-inline: var(--console-space-section);
+  border-block-end: var(--hairline) solid var(--console-border);
+  color: var(--console-ink);
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.console-brand [data-icon] {
+  color: var(--console-accent);
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+}
+
+.console-navigation {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-block-size: 0;
+  gap: var(--console-space-card);
+  padding: var(--console-space-card);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.console-nav-group {
+  display: grid;
+  gap: var(--console-space-tiny);
+  flex: none;
+}
+
+.console-nav-group + .console-nav-group {
+  padding-block-start: var(--console-space-card);
+  border-block-start: var(--hairline) solid var(--console-border);
+}
+
+.console-nav-label {
+  padding-inline: var(--console-space-small);
+  padding-block-end: var(--console-space-tiny);
+  color: var(--console-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.console-nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--console-space-small);
+  min-block-size: var(--console-nav-height);
+  padding: var(--console-space-small);
+  border-radius: var(--console-radius-control);
+  color: var(--console-muted);
+  text-decoration: none;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.console-nav-link[aria-current="page"] {
+  color: var(--console-accent);
+  background: var(--console-accent-soft);
+  font-weight: 700;
+  box-shadow: inset var(--hairline) 0 0 var(--console-accent);
+}
+
+.console-nav-link:active {
+  background: var(--console-raised);
+  color: var(--console-ink);
+}
+
+.console-brand:focus-visible,
+.console-nav-link:focus-visible {
+  outline: 2px solid var(--console-accent);
+  outline-offset: 2px;
+}
+
+.console-main {
+  min-inline-size: 0;
+}
+
+.console-header {
+  position: sticky;
+  z-index: 30;
+  inset-block-start: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--console-space-card);
+  min-block-size: var(--console-header-height);
+  padding: var(--console-space-card) var(--console-space-page);
+  border-block-end: var(--hairline) solid var(--console-border);
+  background: var(--console-surface);
+}
+
+.console-header [data-header-title] {
+  font-size: 0.875rem;
+  color: var(--console-muted);
+  overflow-wrap: anywhere;
+}
+
+.console-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--console-space-small);
+  min-inline-size: 0;
+}
+
+.console-controls [data-group-switcher] {
+  inline-size: 15rem;
+  min-inline-size: 0;
+}
+
+[data-utility-controls][data-variant="chrome"] {
+  gap: var(--console-space-small);
+}
+
+[data-utility-controls][data-variant="chrome"] [data-utility-control] {
+  min-inline-size: 0;
+}
+
+[data-utility-controls][data-variant="chrome"] [data-console-control] {
+  inline-size: 10rem;
+  min-inline-size: 0;
+}
+
+[data-console-choice-value] {
+  display: flex;
+  min-inline-size: 0;
+  align-items: center;
+  gap: var(--console-space-small);
+}
+
+[data-console-choice-value] > span:last-child {
+  min-inline-size: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.console-content {
+  padding: var(--console-space-page);
+}
+
+/* Keep the old content scroller only for comparison routes. Migrated pages
+   contain horizontal scrolling inside their charts and tables instead. */
+.console-content:has(.console-inner > :not([data-console-page])) {
+  overflow: auto;
+}
+
+.console-inner {
+  inline-size: 100%;
+  max-inline-size: var(--console-content-width);
+  margin-inline: auto;
+}
+
+.console-mobile-navigation {
+  display: none;
+}
+
+.console-mobile-panel {
+  inline-size: min(22rem, calc(100vi - var(--console-space-page) * 2));
+  max-block-size: 70dvb;
+  overflow-y: auto;
+}
+
+@media (hover: hover) {
+  .console-nav-link:hover {
+    background: var(--console-raised);
+    color: var(--console-ink);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .console-nav-link {
+    transition: color var(--console-duration), background-color var(--console-duration);
+  }
+
+  .console-inner {
+    animation: console-arrive var(--console-duration) ease-out;
+  }
+
+  @keyframes console-arrive {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+
+/* S2 pressScale sets an inline transform even in reduced-motion mode.
+   The narrow override reaches that JS-driven effect, not just its duration. */
+@media (prefers-reduced-motion: reduce) {
+  [data-console-control],
+  [data-console-control] button {
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+@media (max-width: 64rem) {
+  .console-header {
+    align-items: start;
+  }
+
+  .console-controls {
+    flex: 1 1 100%;
+  }
+}
+
+@media (max-width: 48rem) {
+  .console-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .console-sidebar {
+    display: none;
+  }
+
+  .console-mobile-navigation {
+    display: block;
+  }
+
+  .console-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    inline-size: 100%;
+  }
+
+  .console-controls [data-group-switcher] {
+    grid-column: 1 / -1;
+    inline-size: 100%;
+  }
+
+  .console-controls [data-utility-controls] {
+    display: contents;
+  }
+
+  [data-utility-controls][data-variant="chrome"] [data-console-control] {
+    inline-size: 100%;
+  }
+}

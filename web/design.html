@@ -904,9 +904,9 @@ li::marker { color: var(--border); }
 
 <div class="shell hero stack-m">
   <span class="kicker">vestibule · 控制台</span>
-  <h1>不用品牌色的控制台</h1>
-  <p class="lede">默认界面不使用品牌色相。灰阶承担层次，状态色只出现在<a href="#s1">第 01 节</a>枚举的位置。
-    品牌标记与强调色选择器展示的是内容色样，不表示状态。</p>
+  <h1>群主使用的验证控制台</h1>
+  <p class="lede">外壳、首页和等待队列采用 React Spectrum 2，使用库的默认蓝色强调色和控件尺度，卡片与控件分别使用 12px、8px 圆角。
+    其他页面保留原样，供维护者比较；本页注明两套样式的适用范围。</p>
 </div>
 
 <main class="shell stack-l">
@@ -915,13 +915,12 @@ li::marker { color: var(--border); }
   <section id="s0" class="stack-m">
     <hr class="rule">
     <div class="sechead"><span class="num">00</span><h2>定位</h2></div>
-    <p>这是一台控制台。使用者是当班的管理员，进来做三件事：改配置、查清一次判定的来龙去脉、
-      处置正在等待的申请。所有取值服从一句话，这句话可以证伪：</p>
+    <p>使用者是希望群里没有广告的普通群主。控制台用于查看验证情况、处理等待中的申请和调整群设置，
+      不要求使用者具备 Linux 运维经验。配置和处置仍须留下可查询的记录：</p>
     <div class="card card-pad">
       <p style="color:var(--foreground);font-size:1rem;font-weight:500;max-inline-size:none;">改动的可追溯性优先于操作的便捷性。</p>
     </div>
-    <p>后面每一节都拿它对照。「点一下就生效、不留痕迹」的开关违反它，这不是风格问题。
-      配置影响的是九百人的群，改错一个开关的代价不是重画一屏。</p>
+    <p>每次处置都须反馈结果；失败时保留原因和可用操作，不让群主把尚未完成的请求误认为成功。</p>
 
     <div class="grid2">
       <div class="card card-pad stack">
@@ -931,18 +930,45 @@ li::marker { color: var(--border); }
       </div>
       <div class="card card-pad stack">
         <h3>不做双套界面</h3>
-        <p>受众只有运维者一类，不分简单版和专业版。拥有者和群管理员的差别是
-          服务端授权边界，界面只表达权限，不表达模式。</p>
+        <p>群主使用同一套界面。实例拥有者与群管理员的差别由服务端授权决定，
+          不另设简单版和专业版。</p>
       </div>
     </div>
+
+    <h3>React Spectrum 三屏改版的校准</h3>
+    <p><b>用途：</b>这是查看群验证情况并处理申请的应用，首页先呈现变化和待办，队列提供明确的行内处置。</p>
+    <p><b>视觉归属：</b>React Spectrum 2 负责新外壳、首页与等待队列的控件和强调色；项目在独立 token 层定义容器、图表与两档圆角，不修改依赖样式。</p>
+    <p><b>语言：</b>保留简体中文、繁体中文和英文；按浏览器当前字体测量消息目录后，英文的累计宽度和最长消息宽度都最大，窄屏回归采用英文。</p>
+    <p><b>主题：</b>浅色与深色同时实现，沿用首次绘制前的偏好解析；跟随系统时响应系统主题变化。</p>
+    <p><b>受众：</b>面向普通群主，实例运维入口仍按现有能力过滤，不把日常页面写成服务器监控台。</p>
+
+    <h3>三屏样式的所有权与尺度</h3>
+    <div class="tw"><table class="spec-table">
+      <thead><tr><th>角色</th><th>唯一来源</th><th>采用规则</th></tr></thead>
+      <tbody>
+        <tr><td>动作与选择</td><td><code>@react-spectrum/s2</code> 的 Button、LinkButton、Picker、TextField</td><td>屏内主动作 XL（48px），卡片与工具栏 L（40px），行内 M（32px）；同排输入和按钮等高。触摸设备统一升为 XL，按 Spectrum 的 1.25 倍触摸尺度呈现为 60px。</td></tr>
+        <tr><td>卡片与控件圆角</td><td>项目的具名 token</td><td>卡片 12px，控件 8px。Spectrum 主按钮默认为胶囊，输入框的外框随触摸尺度增大；两者只覆盖圆角，不重写库的交互状态。</td></tr>
+        <tr><td>间距</td><td>Spectrum spacing-500、400、300</td><td>页边 32px，区块之间 24px，卡片内 16px；窄屏页边降为 16px，区块间距不变。</td></tr>
+        <tr><td>主色</td><td>库的默认强调色</td><td>采用 Spectrum accent 的蓝色，主动作使用 accent 变体；不使用 premium、genai 或靛蓝、紫色的演示配色。</td></tr>
+        <tr><td>边界与层次</td><td>主题 token 与 Spectrum 控件</td><td>侧栏、顶栏、卡片以边线和底色分区，浅色使用柔和阴影，深色使用可见边线，不只靠留白。</td></tr>
+        <tr><td>图表</td><td>首页趋势 SVG 与统计 API</td><td>主视觉保留图表，按天绘制，提供从零开始的坐标轴、日期、数值标签和指针及键盘读数；数量与通过率分开标尺，不把两种单位叠在同一轴上。</td></tr>
+        <tr><td>图标</td><td>现有 Lucide 清单及 Spectrum 内部图标</td><td>应用图标继续使用原样 vendored 的 Lucide；Spectrum 内部的箭头、勾选和进度图形由锁定版本的依赖持有，不复制 Workflow 图标到项目。</td></tr>
+        <tr><td>交互反馈</td><td>Spectrum 状态及项目导航样式</td><td>保留 hover、按下、键盘焦点、等待和两个完成分支；项目 hover 仅在支持悬停时启用，页面过渡只在未要求减少动效时启用。</td></tr>
+      </tbody>
+    </table></div>
+    <p><code>web/src/styles/{tokens,components,shell}.css</code> 与 <code>web/src/icons/lucide/</code> 原样保留，
+      原 manifest 不改。它们仍负责未迁移页面；新增样式不回写 vendored 文件。没有安装 dataviz skill，图表编码按本节的明确规则验证。</p>
+    <p>未迁移页面保留原外壳的内容滚动边界；首页和等待队列只允许在图表或表格容器内横向滚动。</p>
+    <p>不重做其他页面，不改 API、权限和群名缓存，不引入第二套数据获取逻辑。
+      以下原样式示例继续作为未迁移页面的参考；与三屏规则冲突时，三屏采用本节规则。</p>
   </section>
 
   <!-- ═══ 01 色彩 ═══ -->
   <section id="s1" class="stack-m">
     <hr class="rule">
     <div class="sechead"><span class="num">01</span><h2>色彩</h2></div>
-    <p>基础界面的 token 除 <code>--destructive</code> 外均为纯灰阶。
-      状态、警示与图表另用四个语义色相；每个色相只进入下表列出的位置，不参与装饰。</p>
+    <p>以下灰阶 token 和色样属于未迁移页面。三屏改版使用第 00 节的 Spectrum 强调色与主题规则，
+      状态徽标仍沿用现有语义色，不把成功、等待和错误色用作装饰。</p>
 
     <div class="grid2">
       <div class="pane" data-theme="light">
@@ -1038,9 +1064,9 @@ li::marker { color: var(--border); }
   <section id="s3" class="stack-m">
     <hr class="rule">
     <div class="sechead"><span class="num">03</span><h2>形状与层次</h2></div>
-    <p>组件 CSS 的圆角由一个种子推导，不写字面量。<code>--radius: 0.625rem</code>，
-      其余四档由 <code>calc()</code> 乘系数得出。Lucide 图标与图表 SVG 的固定几何不属于组件圆角。
-      控制台停在这个尺度：再大像消费级应用，再小像终端。</p>
+    <p>未迁移页面的组件圆角仍由 <code>--radius: 0.625rem</code> 推导。
+      新外壳、首页与等待队列统一使用卡片 12px、控件 8px 两档；导航卡片按卡片计，不冒充定高按钮。
+      Lucide 图标和图表 SVG 的固定几何不属于组件圆角。</p>
     <div class="grid3">
       <div class="card card-pad stack" style="gap: var(--sp-2);">
         <div style="block-size:2.5rem;background:var(--muted);border-radius:var(--radius-sm);"></div>
@@ -1622,8 +1648,8 @@ li::marker { color: var(--border); }
         <tr><td>需要注意</td><td>分级小块</td>
             <td>只有真正需要处理的才用警示色。全部正常时这一层仍然显示，
               因为「都正常」本身也是信息</td></tr>
-        <tr><td>趋势</td><td>近 7 天缩略图</td>
-            <td>不带坐标轴数值，看走向即可。要精确数字点进统计屏</td></tr>
+        <tr><td>趋势</td><td>近 7 天图表</td>
+            <td>日期、坐标轴刻度和每天数值直接可读，悬停或键盘聚焦可读完整数据；统计屏用于进一步分析</td></tr>
         <tr><td>入口</td><td>常用配置卡片</td>
             <td>每张写出当前取值，不只是名字。<b>「题库」不如「题库 · 12 条，
               其中 1 条缺英文」有用</b></td></tr>
@@ -3101,15 +3127,14 @@ li::marker { color: var(--border); }
   <section id="s11" class="stack-m">
     <hr class="rule">
     <div class="sechead"><span class="num">14</span><h2>图表与数据</h2></div>
-    <p>统计屏的规矩只有一条：<b>图看趋势，表看数字，两个都给。</b>
-      图上读不出精确值，表上看不出走向，缺哪个都不行。
-      表在图下面，不折叠，因为需要精确值的人往往正在写事故记录。</p>
+    <p>未迁移的统计屏同时保留趋势图和明细表，表在图下方。
+      首页的近七天图直接显示日期、数量和通过率，悬停或键盘聚焦时提供完整读数，
+      不要求群主进入统计屏才能查出某一天的数值。</p>
 
-    <h3>图表不引入新颜色</h3>
-    <p>整套界面没有品牌色，图表也不引入一套彩虹色板。序列颜色取自灰阶的
-      <code>--chart-1</code> 到 <code>--chart-5</code>。只有一种情况使用色相：
-      <b>这条序列本身即为一种状态</b>，此时沿用<a href="#s1">第 01 节</a>的语义色，
-      避免读者在表格与图表之间重新建立对应关系。</p>
+    <h3>图表颜色有明确来源</h3>
+    <p>首页使用 Spectrum 默认蓝色，数量与通过率分成两幅图，各自使用标尺。
+      以下统计屏示例仍沿用 <code>--chart-1</code> 到 <code>--chart-5</code> 的灰阶；
+      直接表示状态的序列沿用<a href="#s1">第 01 节</a>的语义色，避免重新建立对应关系。</p>
     <div class="legend" aria-label="五档灰阶图表序列">
       <span><i style="background:var(--chart-1)"></i>序列 1</span>
       <span><i style="background:var(--chart-2)"></i>序列 2</span>
@@ -3238,8 +3263,8 @@ li::marker { color: var(--border); }
         否则整页会在加载完的一瞬间跳一下。</li>
       <li><strong>空和零是两件事。</strong>「这天没有人申请」和「这天没数据」
         长得不能一样，前者画一条零线，后者留白并写明。</li>
-      <li><strong>图要有替代说法。</strong>下面那张表就是替代说法，
-        所以图上的 <code>aria-label</code> 只说这是什么图，不复述数字。</li>
+      <li><strong>图要有可访问的读数。</strong>统计屏提供明细表；首页的每个数据点可用键盘聚焦，
+        其可访问名称包含日期、数量和通过率，不只提供视觉标记。</li>
     </ul>
   </section>
 
@@ -3247,16 +3272,15 @@ li::marker { color: var(--border); }
   <section id="s8" class="stack-m">
     <hr class="rule">
     <div class="sechead"><span class="num">15</span><h2>默认不做的，以及在哪打开</h2></div>
-    <p>下面这些是默认取值，不是禁令。默认带着观点，因为不带观点的默认等于没有默认；
-      但这个机器人别人也要部署，别人的社区有别人的样子。开关全在
-      <code>/preferences</code>，打开之后仍然受一条约束管着，写在最右边。</p>
+    <p>下表保留未迁移页面的原方案，不改变这次三屏改版的决定。
+      三屏的强调色、圆角、控件尺寸和图标归属以<a href="#s0">第 00 节</a>为准。</p>
 
     <div class="tw"><table class="spec-table">
       <thead><tr><th>项</th><th>默认</th><th>打开之后</th></tr></thead>
       <tbody>
         <tr>
           <td>强调色</td>
-          <td>无。纯灰阶</td>
+          <td>未迁移页面为灰阶；三屏使用 Spectrum 默认蓝色</td>
           <td>可以给一个品牌色相。只允许出现在主按钮、当前导航项、链接、焦点环四处，
             四个语义色相的地盘一处都不让。存之前跑对比度检查，两个主题都过 4.5:1 才让存</td>
         </tr>

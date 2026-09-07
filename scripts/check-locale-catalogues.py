@@ -110,7 +110,7 @@ def runtime_template_values(
     if (prefix, expression, suffix) == ("challenge.state.", "record.result.state", ""):
         values = declared_array_values(sources, Path("lib/challenge.ts"), "challengeStates")
     elif (prefix, expression, suffix) == ("home.attention.tones.", "item.tone", ""):
-        source = sources.get(Path("features/home/HomeScreen.tsx"))
+        source = sources.get(Path("features/home/HomeDashboard.tsx"))
         values = set(re.findall(r'\btone:\s*"([A-Za-z][A-Za-z0-9_-]*)"', source)) if source else None
     elif (prefix, expression, suffix) == ("stats.filters.errors.", "error", ""):
         values = declared_type_values(sources, Path("features/stats/StatsScreen.tsx"), "QueryError")

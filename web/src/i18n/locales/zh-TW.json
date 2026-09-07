@@ -213,6 +213,14 @@
       "title": "正在載入等待佇列",
       "description": "正在讀取等待中的申請…"
     },
+    "filter": {
+      "label": "篩選等待佇列",
+      "placeholder": "按使用者或群組篩選"
+    },
+    "empty": {
+      "title": "尚無人申請",
+      "description": "收到第一份申請後，等待中的人會出現在這裡。"
+    },
     "groupRequired": {
       "title": "先選擇一個群組",
       "description": "選擇已獲授權的群組後，才能檢視其等待佇列。",
@@ -252,13 +260,10 @@
       "targetProtected": "此申請人是群組管理員，不能在這裡放行。",
       "targetUnavailable": "暫時無法確認此申請人的群組成員狀態。請重試。"
     },
-    "empty": {
-      "title": "尚無人申請",
-      "description": "收到第一份申請後，等待中的人會出現在這裡。"
-    },
     "filteredEmpty": {
       "title": "找不到符合條件的記錄",
       "currentCondition": "目前條件：群組為 {{group}}，結果為 {{result}}。",
+      "queryCondition": "目前篩選：{{query}}。",
       "clear": "清除篩選"
     }
   },
@@ -1482,14 +1487,18 @@
     },
     "trend": {
       "title": "近七天趨勢",
-      "description": "縮圖僅顯示趨勢。請在統計畫面檢視精確數值。",
+      "description": "圖表直接顯示端點回傳的日期和每日數值；缺少的日期不會補造資料。",
+      "coverage": "端點回傳 {{shown}} / {{expected}} 天；缺少 {{missing}} 天，圖表未補造資料。",
       "openStats": "檢視統計",
       "empty": "所選範圍內沒有可繪製的日期。",
       "chartTitle": "近七天挑戰量與通過率",
-      "chartDescription": "長條表示每天的挑戰量，折線表示每天的通過率。",
+      "chartDescription": "上方圖表顯示每日挑戰數，下方圖表顯示每日通過率。每個日期的數值會直接標示，也可透過鍵盤聚焦讀取。",
       "legendLabel": "趨勢圖圖例",
       "challenges": "挑戰量",
-      "passRate": "通過率"
+      "passRate": "通過率",
+      "countPanel": "每日挑戰數",
+      "ratePanel": "每日通過率",
+      "daySummary": "{{date}}：{{count}} 次挑戰，通過率 {{passRate}}"
     },
     "entries": {
       "title": "常用設定",

@@ -265,3 +265,33 @@ test("queue sends one release for a forced second click and shows the confirmed 
   );
   expect(releaseRequests).toBe(1);
 });
+
+test("queue filter survives a copied URL and clears without losing the group", async ({ page }) => {
+  const other = { ...groupAQueueEntry, id: "other-record", user: "@other" };
+  await mockQueueTransport(
+    page,
+    async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({ items: [groupAQueueEntry, other] })
+      });
+    },
+    async () => { throw new Error("Filtering must not settle a record"); }
+  );
+  await page.goto(`/queue?group=${groupAID}`);
+  const field = page.locator("[data-queue-filter] input");
+  await field.fill("queue_group_a");
+  await expect(page.locator("[data-queue-row]")).toHaveCount(1);
+  await expect(queueRow(page, "@queue_group_a")).toBeVisible();
+  const copiedURL = page.url();
+  expect(new URL(copiedURL).searchParams.get("q")).toBe("queue_group_a");
+
+  await page.goto(copiedURL);
+  await expect(field).toHaveValue("queue_group_a");
+  await expect(page.locator("[data-queue-row]")).toHaveCount(1);
+  await field.fill("no matching applicant");
+  await expect(page.locator("[data-queue-empty]")).toBeVisible();
+  await page.locator("[data-queue-filter-clear]").click();
+  await expect(page.locator("[data-queue-row]")).toHaveCount(2);
+  await expect(page).toHaveURL(new RegExp(`/queue\\?group=${groupAID}$`));
+});

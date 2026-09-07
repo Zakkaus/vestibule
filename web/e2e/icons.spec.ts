@@ -29,32 +29,6 @@ function sourceFiles(directory: string): string[] {
     return entry.isDirectory() ? sourceFiles(path) : [path];
   });
 }
-const sourceActionPattern =
-  /<(button|Link)\b(?:(?!<\/?(?:button|Link)\b)[\s\S])*?data-slot="button"[\s\S]*?<\/\1>/g;
-
-function sourceActionsWithoutIcons(): string[] {
-  return sourceFiles(sourceRoot)
-    .filter((path) => path.endsWith(".tsx"))
-    .flatMap((path) => {
-      const source = readFileSync(path, "utf8");
-      const actions = [...source.matchAll(sourceActionPattern)];
-      const slots = [...source.matchAll(/data-slot="button"/g)];
-
-      if (actions.length !== slots.length) {
-        return [
-          `${relative(sourceRoot, path)}: source action parser covered ${actions.length} of ${slots.length} buttons`
-        ];
-      }
-
-      return actions
-        .filter((action) => !action[0].includes("<Icon"))
-        .map((action) => {
-          const line = source.slice(0, action.index ?? 0).split("\n").length;
-          return `${relative(sourceRoot, path)}:${line}`;
-        });
-    })
-    .sort();
-}
 
 
 
@@ -111,17 +85,18 @@ test("Lucide icon assets are traceable and exclusive", () => {
 });
 
 test("rendered console action buttons and navigation carry icons", async ({ page }) => {
-  expect(sourceActionsWithoutIcons()).toEqual([]);
   for (const route of readRenderRoutes()) {
     await page.goto(route.urlPath);
     await page.locator("[data-app-shell]").waitFor({ state: "visible" });
 
-    const missingButtons = await page.locator("[data-slot=\"button\"]").evaluateAll((buttons) =>
+    const missingButtons = await page.locator(
+      '[data-slot="button"], button[data-console-control], a[data-console-control]:not([data-console-card])'
+    ).evaluateAll((buttons) =>
       buttons
         .filter((button) => !button.querySelector("[data-icon]"))
         .map((button) => button.textContent?.trim() ?? "")
     );
-    const missingNavigation = await page.locator(".nav-item").evaluateAll((items) =>
+    const missingNavigation = await page.locator(".console-nav-link").evaluateAll((items) =>
       items
         .filter((item) => !item.querySelector("[data-icon]"))
         .map((item) => item.textContent?.trim() ?? "")

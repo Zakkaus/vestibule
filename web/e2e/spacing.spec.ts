@@ -230,17 +230,19 @@ test("content pages use the stepped page and card hierarchy", async ({ page }) =
         throw new Error("rendered route did not expose its page and heading");
       }
 
-      const cards = [...contentPage.querySelectorAll<HTMLElement>("[data-slot='card']")].filter(
-        (card) => card.getClientRects().length > 0 && getComputedStyle(card).display !== "none"
-      );
+      const spectrum = contentPage.hasAttribute("data-console-page");
+      const cards = [...contentPage.querySelectorAll<HTMLElement>(
+        spectrum ? "[data-console-card]" : "[data-slot='card']"
+      )].filter((card) => card.checkVisibility());
       const cardPaddingMismatches = cards
         .map((card) => {
           const style = getComputedStyle(card);
           return `${style.paddingTop} ${style.paddingRight} ${style.paddingBottom} ${style.paddingLeft}`;
         })
-        .filter((padding) => padding !== "16px 24px 16px 24px");
+        .filter((padding) => padding !== (spectrum ? "16px 16px 16px 16px" : "16px 24px 16px 24px"));
 
       return {
+        spectrum,
         pageGap: getComputedStyle(contentPage).gap,
         headingGap: getComputedStyle(heading).gap,
         cardCount: cards.length,
@@ -248,21 +250,13 @@ test("content pages use the stepped page and card hierarchy", async ({ page }) =
       };
     });
 
-    expect(geometry.pageGap, `${route.urlPath}: page heading to content`).toBe("32px");
-    expect(geometry.headingGap, `${route.urlPath}: page heading copy`).toBe("8px");
+    expect(geometry.pageGap, `${route.urlPath}: page heading to content`).toBe(geometry.spectrum ? "24px" : "32px");
+    expect(geometry.headingGap, `${route.urlPath}: page heading copy`).toBe(geometry.spectrum ? "16px" : "8px");
     expect(geometry.cardCount, `${route.urlPath}: rendered card coverage`).toBeGreaterThan(0);
     expect(geometry.cardPaddingMismatches, `${route.urlPath}: shared card edge inset`).toEqual([]);
   }
 
   const stackCases = [
-    {
-      urlPath: "/home",
-      steps: [
-        ["[data-home-content]", "24px"],
-        ["[data-home-section]", "16px"],
-        ["[data-home-entries]", "16px"]
-      ]
-    },
     {
       urlPath: "/verification",
       steps: [

@@ -1,3 +1,8 @@
+import { Button } from "@react-spectrum/s2/Button";
+import { DialogTrigger } from "@react-spectrum/s2/Dialog";
+import { Popover } from "@react-spectrum/s2/Popover";
+import { Text } from "@react-spectrum/s2/Text";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Link,
@@ -7,6 +12,7 @@ import {
 } from "react-router-dom";
 
 import { UtilityControls } from "../components/UtilityControls";
+import { ConsoleProvider, useConsoleSize } from "../components/ConsoleProvider";
 import { Icon, type IconName } from "../icons";
 import { GroupSwitcher } from "../features/groups";
 import {
@@ -175,26 +181,31 @@ function navigationSections(items: readonly NavigationItem[]): readonly Navigati
 
 function ConsoleNavigation({
   sections,
-  selectedGroupSearch
-}: Readonly<{ sections: readonly NavigationSection[]; selectedGroupSearch: string }>) {
+  selectedGroupSearch,
+  onNavigate
+}: Readonly<{
+  sections: readonly NavigationSection[];
+  selectedGroupSearch: string;
+  onNavigate?: () => void;
+}>) {
   const { t } = useTranslation();
   const location = useLocation();
 
   return (
-    <nav className="nav" aria-label={t("navigation.label")}>
+    <nav className="console-navigation" aria-label={t("navigation.label")}>
       {sections.map(({ group, items }) => (
-        <div key={group.id} className="nav-group" data-navigation-group={group.id}>
-          <span className="nav-label">{t(group.labelKey)}</span>
+        <div key={group.id} className="console-nav-group" data-navigation-group={group.id}>
+          <span className="console-nav-label">{t(group.labelKey)}</span>
           {items.map((item) => {
             const isActive = location.pathname === item.path;
 
             return (
               <Link
                 key={item.path}
-                className="nav-item"
+                className="console-nav-link"
                 to={{ pathname: item.path, search: selectedGroupSearch }}
                 aria-current={isActive ? "page" : undefined}
-                data-active={isActive ? "" : undefined}
+                onClick={onNavigate}
               >
                 <Icon name={item.icon} />
                 {t(item.labelKey)}
@@ -208,10 +219,13 @@ function ConsoleNavigation({
 }
 
 
-export function AppShell() {
+function ShellContent() {
   const { t } = useTranslation();
   const location = useLocation();
   const session = useConsoleSession();
+  const [navigationOpen, setNavigationOpen] = useState(false);
+  const size = useConsoleSize("L");
+  useEffect(() => { setNavigationOpen(false); }, [location.pathname]);
   const selectedGroupId = new URLSearchParams(location.search).get("group");
   const selectedGroupSearch = selectedGroupId
     ? `?${new URLSearchParams({ group: selectedGroupId }).toString()}`
@@ -242,45 +256,54 @@ export function AppShell() {
   }
 
   return (
-    <div data-app-shell data-shell-variant={shellVariant} className="shell">
-      <aside className="shell-aside" data-admin>
+    <div data-app-shell data-shell-variant={shellVariant} className="console-shell">
+      <aside className="console-sidebar">
         <Link
-          className="brand"
-          to={{ pathname: "/groups", search: selectedGroupSearch }}
+          className="console-brand"
+          to={{ pathname: "/home", search: selectedGroupSearch }}
         >
-          {/* Placeholder mark: the same borrowed icon as the favicon. */}
           <Icon name="shieldCheck" />
-          <span className="name">{t("app.name")}</span>
+          <span>{t("app.name")}</span>
         </Link>
-        <div className="rule" />
         <ConsoleNavigation
           sections={visibleNavigationSections}
           selectedGroupSearch={selectedGroupSearch}
         />
       </aside>
-      <div className="shell-main">
-        <header className="shell-header" data-console-header>
-          <details data-mobile-navigation>
-            <summary>{t("shell.mobileNavigation")}</summary>
-            <ConsoleNavigation
-              sections={visibleNavigationSections}
-              selectedGroupSearch={selectedGroupSearch}
-            />
-          </details>
+      <div className="console-main">
+        <header className="console-header" data-console-header>
+          <div className="console-mobile-navigation" data-mobile-navigation>
+            <DialogTrigger isOpen={navigationOpen} onOpenChange={setNavigationOpen}>
+              <Button size={size} variant="secondary" aria-haspopup="dialog" data-console-control data-control-size={size}>
+                <Icon name="layoutDashboard" /><Text>{t("shell.mobileNavigation")}</Text>
+              </Button>
+              <Popover aria-label={t("navigation.label")} UNSAFE_className="console-mobile-panel">
+                <ConsoleNavigation
+                  sections={visibleNavigationSections}
+                  selectedGroupSearch={selectedGroupSearch}
+                  onNavigate={() => setNavigationOpen(false)}
+                />
+              </Popover>
+            </DialogTrigger>
+          </div>
           <span data-header-title>
             {currentNavigationItem ? t(currentNavigationItem.labelKey) : t("app.name")}
           </span>
-          <div data-header-controls>
+          <div className="console-controls">
             <GroupSwitcher />
             <UtilityControls variant="chrome" />
           </div>
         </header>
-        <main className="shell-content">
-          <div className="shell-inner">
+        <main className="console-content">
+          <div key={location.pathname} className="console-inner">
             <Outlet />
           </div>
         </main>
       </div>
     </div>
   );
+}
+
+export function AppShell() {
+  return <ConsoleProvider><ShellContent /></ConsoleProvider>;
 }

@@ -218,17 +218,6 @@ test("authenticated home summarizes only the selected group with three group req
   await expect(page.locator("[data-home-trend-chart]")).toBeVisible();
   await expect(page.locator("[data-home-entry-value] [data-slot='badge']")).toHaveCount(9);
   await expect(page.locator("[data-home-entry-value] [data-slot='badge']").first()).toContainText("来源：");
-
-  const homepageControls = page.locator(
-    "[data-home-page] a, [data-home-page] button, [data-home-page] input, [data-home-page] select, [data-home-page] textarea, [data-home-page] summary, [data-home-page] [role='button']"
-  );
-  expect(await homepageControls.count()).toBeGreaterThan(0);
-  const missingSlots = await homepageControls.evaluateAll((elements) =>
-    elements
-      .filter((element) => !element.hasAttribute("data-slot"))
-      .map((element) => element.outerHTML)
-  );
-  expect(missingSlots).toEqual([]);
 });
 
 test("group administrators see an explicit all-clear state without an operator status request", async ({ page }) => {

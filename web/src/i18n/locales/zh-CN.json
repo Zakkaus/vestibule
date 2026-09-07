@@ -213,6 +213,14 @@
       "title": "正在载入等待队列",
       "description": "正在读取等待中的申请…"
     },
+    "filter": {
+      "label": "筛选等待队列",
+      "placeholder": "按用户或群筛选"
+    },
+    "empty": {
+      "title": "尚无人申请",
+      "description": "收到第一份申请后，等待中的人会出现在这里。"
+    },
     "groupRequired": {
       "title": "先选择一个群",
       "description": "选择已获授权的群后，才能查看它的等待队列。",
@@ -252,13 +260,10 @@
       "targetProtected": "此申请人是群管理员，不能在这里放行。",
       "targetUnavailable": "暂时无法确认此申请人的群成员状态。请重试。"
     },
-    "empty": {
-      "title": "尚无人申请",
-      "description": "收到第一份申请后，等待中的人会出现在这里。"
-    },
     "filteredEmpty": {
       "title": "没有找到符合条件的记录",
       "currentCondition": "当前条件：群为 {{group}}，结果为 {{result}}。",
+      "queryCondition": "当前筛选：{{query}}。",
       "clear": "清除筛选"
     }
   },
@@ -1482,14 +1487,18 @@
     },
     "trend": {
       "title": "近七天趋势",
-      "description": "缩略图仅显示趋势。请在统计页面查看精确数值。",
+      "description": "图表直接显示接口返回日期和每日数值；缺失日期不会补造样本。",
+      "coverage": "接口返回 {{shown}} / {{expected}} 天；缺失日期 {{missing}} 天，图表未补造样本。",
       "openStats": "查看统计",
       "empty": "所选范围内没有可绘制的日期。",
       "chartTitle": "近七天挑战量与通过率",
-      "chartDescription": "柱形表示每天的挑战量，折线表示每天的通过率。",
+      "chartDescription": "上方图表显示每日挑战数，下方图表显示每日通过率。每个日期的数值在图中直接标出，也可通过键盘聚焦读取。",
       "legendLabel": "趋势图图例",
       "challenges": "挑战量",
-      "passRate": "通过率"
+      "passRate": "通过率",
+      "countPanel": "每日挑战数",
+      "ratePanel": "每日通过率",
+      "daySummary": "{{date}}：{{count}} 次挑战，通过率 {{passRate}}"
     },
     "entries": {
       "title": "常用配置",

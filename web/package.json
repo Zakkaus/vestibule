@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "check:css": "node scripts/check-emitted-css.mjs",
     "build": "tsc --noEmit && vite build",
     "e2e": "playwright test",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@react-spectrum/s2": "1.7.1",
     "i18next": "26.4.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -20,6 +22,7 @@
     "@playwright/test": "1.62.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
+    "lightningcss": "1.33.0",
     "typescript": "7.0.2",
     "vite": "8.2.2"
   }

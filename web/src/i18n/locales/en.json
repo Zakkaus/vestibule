@@ -214,6 +214,14 @@
       "title": "Loading waiting queue",
       "description": "Retrieving waiting applications…"
     },
+    "filter": {
+      "label": "Filter waiting queue",
+      "placeholder": "Filter by user or group"
+    },
+    "empty": {
+      "title": "No one has applied yet",
+      "description": "Waiting applicants appear here after the first application arrives."
+    },
     "groupRequired": {
       "title": "Select a group first",
       "description": "Choose an authorized group before viewing its waiting queue.",
@@ -253,13 +261,10 @@
       "targetProtected": "This applicant is a group administrator and cannot be released here.",
       "targetUnavailable": "The applicant's group membership cannot be verified. Try again."
     },
-    "empty": {
-      "title": "No one has applied yet",
-      "description": "Waiting applicants appear here after the first application arrives."
-    },
     "filteredEmpty": {
       "title": "No records match the current filters",
       "currentCondition": "Current filters: group {{group}}, result {{result}}.",
+      "queryCondition": "Current filter: {{query}}.",
       "clear": "Clear filters"
     }
   },
@@ -1494,14 +1499,18 @@
     },
     "trend": {
       "title": "Seven-day trend",
-      "description": "The miniature chart shows direction only. Open statistics for exact values.",
+      "description": "The chart shows dates and daily values returned by the endpoint; missing dates are not filled with invented samples.",
+      "coverage": "The endpoint returned {{shown}} of {{expected}} days; {{missing}} missing days are not filled with invented samples.",
       "openStats": "View statistics",
       "empty": "The selected range contains no dates to plot.",
       "chartTitle": "Seven-day challenge volume and pass rate",
-      "chartDescription": "Bars show daily challenge volume, and the line shows the daily pass rate.",
+      "chartDescription": "The upper plot shows daily challenges and the lower plot shows daily pass rate. Exact values are printed for each date and available by keyboard focus.",
       "legendLabel": "Trend chart legend",
       "challenges": "Challenge volume",
-      "passRate": "Pass rate"
+      "passRate": "Pass rate",
+      "countPanel": "Daily challenges",
+      "ratePanel": "Daily pass rate",
+      "daySummary": "{{date}}: {{count}} challenges, {{passRate}} pass rate"
     },
     "entries": {
       "title": "Common configuration",

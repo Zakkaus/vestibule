@@ -1,13 +1,13 @@
 import { expect, test } from "@playwright/test";
 
-import { selectAppOption } from "./app-select";
+import { expectAppSelection, selectAppOption } from "./app-select";
 
 const localeStorageKey = "verify-console-locale";
 
 async function localeControl(page: import("@playwright/test").Page) {
   const controls = page.locator("[data-utility-controls]").first();
   await expect(controls).toBeVisible();
-  return controls.locator('[data-slot="select-trigger"]').nth(1);
+  return controls.locator('button[aria-haspopup="listbox"]').nth(1);
 }
 
 // The theme control has always offered "follow the system". The language control
@@ -28,7 +28,7 @@ test.describe("a chosen language can be handed back to the browser", () => {
     await selectAppOption(control, "system");
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-TW");
     expect(await page.evaluate((key) => localStorage.getItem(key), localeStorageKey)).toBeNull();
-    await expect(control).toHaveAttribute("data-value", "system");
+    await expectAppSelection(control, "system");
   });
 });
 

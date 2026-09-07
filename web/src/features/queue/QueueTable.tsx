@@ -1,5 +1,8 @@
+import { Button } from "@react-spectrum/s2/Button";
+import { Text } from "@react-spectrum/s2/Text";
 import { useTranslation } from "react-i18next";
 
+import { useConsoleSize } from "../../components/ConsoleProvider";
 import { Icon } from "../../icons";
 import { StatusBadge } from "../../components/StatusBadge";
 import type { QueueRecord } from "./api";
@@ -45,27 +48,29 @@ function QueueResult({ record, remainingTime }: QueueResultProps) {
 
 function QueueReleaseAction({ record, pending, onRelease }: QueueReleaseActionProps) {
   const { t } = useTranslation();
+  const size = useConsoleSize("M");
 
-  if (record.result.state !== "pending") {
+  if (!pending && record.result.state !== "pending") {
     return null;
   }
 
   return (
-    <button
-      type="button"
-      data-slot="button"
-      data-variant="primary"
-      data-size="sm"
+    <Button
+      variant="accent"
+      size={size}
+      isPending={pending}
+      aria-disabled={pending || undefined}
+      data-console-control
+      data-control-size={size}
       data-queue-action-id="release"
-      aria-disabled={pending ? true : undefined}
-      onClick={() => onRelease(record)}
+      onPress={() => onRelease(record)}
       aria-label={t(pending ? "queue.actions.releasingFor" : "queue.actions.releaseFor", {
         user: record.user
       })}
     >
       <Icon name="unlock" />
-      {t(pending ? "queue.actions.releasing" : "queue.actions.release")}
-    </button>
+      <Text>{t(pending ? "queue.actions.releasing" : "queue.actions.release")}</Text>
+    </Button>
   );
 }
 
@@ -110,7 +115,7 @@ export function QueueTable({ records, pendingActions, dateFormatter, onRelease }
                 data-result={record.result.id}
                 data-action-state={pending ? "pending" : "idle"}
               >
-                <td data-record-user data-queue-user>{record.user}</td>
+                <th scope="row" data-record-user data-queue-user>{record.user}</th>
                 <td data-record-group data-queue-group>{group}</td>
                 <td data-record-result data-queue-result>
                   <QueueResult record={record} remainingTime={remainingTime} />
@@ -129,7 +134,7 @@ export function QueueTable({ records, pendingActions, dateFormatter, onRelease }
         {rows.map(({ record, pending, remainingTime, group, occurredAt }) => (
           <li
             key={record.id}
-            data-slot="card"
+            data-console-card
             data-record-card-row={record.id}
             data-queue-card-row={record.id}
             data-result={record.result.id}
