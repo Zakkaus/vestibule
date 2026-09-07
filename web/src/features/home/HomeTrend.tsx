@@ -1,5 +1,6 @@
-import { Text } from "@react-spectrum/s2/Button";
 import { LinkButton } from "@react-spectrum/s2/LinkButton";
+import { Card, Content, Divider, Header, Heading, Text } from "@react-spectrum/s2";
+import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -67,16 +68,16 @@ function expectedDates(from: string, to: string): readonly string[] {
 function chartModel(data: HomeData): ChartModel {
   const trend = [...data.stats.trend].sort((left, right) => left.date.localeCompare(right.date));
   const expected = expectedDates(data.stats.range.from, data.stats.range.to);
-  const expectedPosition: Readonly<Record<string, number>> = Object.fromEntries(
-    expected.map((date, index) => [date, index])
-  );
+  const returned = new Set(trend.map((day) => day.date));
+  // One date domain prevents cached, out-of-window points from sharing an x slot.
+  const dates = [...new Set([...expected, ...returned])].sort();
+  const positions = new Map(dates.map((date, index) => [date, index]));
   const countMax = Math.max(1, ...trend.map((day) => day.challenges));
-  const plotDays = Math.max(expected.length, trend.length, 1);
-  const plotWidth = Math.max(chartGeometry.widthPerDay, plotDays * chartGeometry.widthPerDay);
-  const step = plotWidth / plotDays;
-  const points = trend.map((day, index) => {
-    const position = expectedPosition[day.date] ?? index;
-    const x = chartGeometry.left + step * position + step / 2;
+  const plotDays = Math.max(dates.length, 1);
+  const plotWidth = plotDays * chartGeometry.widthPerDay;
+  const points = trend.map((day) => {
+    const position = positions.get(day.date)!;
+    const x = chartGeometry.left + chartGeometry.widthPerDay * (position + 0.5);
     const countHeight = (day.challenges / countMax) * (chartGeometry.countBottom - chartGeometry.top);
     return {
       day,
@@ -87,7 +88,6 @@ function chartModel(data: HomeData): ChartModel {
       rateY: chartGeometry.rateBottom - day.pass_rate * (chartGeometry.rateBottom - chartGeometry.rateTop)
     };
   });
-  const returned = new Set(trend.map((day) => day.date));
   const missingDays = expected.filter((date) => !returned.has(date)).length;
   return {
     points,
@@ -142,6 +142,7 @@ function CountPoints({
         return (
           <g
             key={`${point.day.date}-count`}
+            className={style({ cursor: "pointer", outlineStyle: { default: "none", ":focus-visible": "solid" }, outlineColor: "focus-ring", outlineWidth: 2, outlineOffset: 4 })}
             data-home-chart-point
             data-home-chart-date={point.day.date}
             data-home-chart-series="count"
@@ -159,7 +160,7 @@ function CountPoints({
                 y={chartGeometry.countBottom - 20}
                 width="44"
                 height="20"
-                fill="var(--console-surface)"
+                fill="transparent"
                 opacity="0"
                 aria-hidden="true"
               />
@@ -170,6 +171,7 @@ function CountPoints({
               width="44"
               height={point.countHeight}
               rx="4"
+              className={style({ fill: "accent" })}
               data-home-chart-bar
             />
             <text
@@ -214,9 +216,12 @@ function CountPanel({
               y1={y}
               x2={chart.width - chartGeometry.right}
               y2={y}
+              className={style({ stroke: "gray-300" })}
+              strokeDasharray="3 5"
+              strokeWidth={1}
               data-home-chart-grid
             />
-            <text x={chartGeometry.left - 12} y={y + 4} textAnchor="end" data-home-chart-axis>
+            <text x={chartGeometry.left - 12} y={y + 4} textAnchor="end" data-home-chart-axis className={style({ color: "neutral-subdued" })}>
               {formatNumber.format(tick)}
             </text>
           </g>
@@ -261,15 +266,18 @@ function RatePanel({
               y1={y}
               x2={chart.width - chartGeometry.right}
               y2={y}
+              className={style({ stroke: "gray-300" })}
+              strokeDasharray="3 5"
+              strokeWidth={1}
               data-home-chart-grid
             />
-            <text x={chartGeometry.left - 12} y={y + 4} textAnchor="end" data-home-chart-axis>
+            <text x={chartGeometry.left - 12} y={y + 4} textAnchor="end" data-home-chart-axis className={style({ color: "neutral-subdued" })}>
               {formatRate.format(tick)}
             </text>
           </g>
         );
       })}
-      {chart.points.length > 1 ? <path d={passPath} data-home-chart-line /> : null}
+      {chart.points.length > 1 ? <path d={passPath} data-home-chart-line fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className={style({ color: "accent" })} /> : null}
       {chart.points.map((point) => {
         const date = formatDay(point.day.date, formatDate);
         const label = t("home.trend.daySummary", {
@@ -283,6 +291,7 @@ function RatePanel({
         return (
           <g
             key={`${point.day.date}-rate`}
+            className={style({ cursor: "pointer", outlineStyle: { default: "none", ":focus-visible": "solid" }, outlineColor: "focus-ring", outlineWidth: 2, outlineOffset: 4 })}
             data-home-chart-point
             data-home-chart-date={point.day.date}
             data-home-chart-series="rate"
@@ -294,11 +303,11 @@ function RatePanel({
             focusable="true"
           >
             <title data-home-chart-tooltip>{label}</title>
-            <circle cx={point.x} cy={point.rateY} r="5" data-home-chart-dot />
+            <circle cx={point.x} cy={point.rateY} r="5" data-home-chart-dot fill="none" stroke="currentColor" strokeWidth={3} className={style({ color: "accent" })} />
             <text x={point.x} y={rateLabelY} textAnchor="middle" data-home-chart-rate-label>
               {formatRate.format(point.day.pass_rate)}
             </text>
-            <text x={point.x} y={chartGeometry.dateLabelY} textAnchor="middle" data-home-chart-date-label>
+            <text x={point.x} y={chartGeometry.dateLabelY} textAnchor="middle" data-home-chart-date-label className={style({ color: "neutral-subdued", pointerEvents: "none" })}>
               {formatDay(point.day.date, formatDate)}
             </text>
           </g>
@@ -322,9 +331,10 @@ function TrendChart({ chart, locale }: Readonly<{ chart: ChartModel; locale: str
 
   return (
     <>
-      <div data-home-trend-scroll>
+      <Content data-home-trend-scroll styles={style({ width: "full", minWidth: 0, overflowX: "auto", paddingY: 8, overscrollBehaviorX: "contain" })}>
         <svg
           data-home-trend-chart
+          className={style({ display: "block", overflow: "visible", fill: "currentColor", color: "body", font: "ui-xs" })}
           width={chart.width}
           height={chartGeometry.height}
           viewBox={`0 0 ${chart.width} ${chartGeometry.height}`}
@@ -348,11 +358,11 @@ function TrendChart({ chart, locale }: Readonly<{ chart: ChartModel; locale: str
             t={t}
           />
         </svg>
-      </div>
-      <div data-home-trend-legend aria-label={t("home.trend.legendLabel")}>
-        <span data-series="challenges">{t("home.trend.challenges")}</span>
-        <span data-series="pass-rate">{t("home.trend.passRate")}</span>
-      </div>
+      </Content>
+      <Content data-home-trend-legend aria-label={t("home.trend.legendLabel")} styles={style({ display: "flex", flexWrap: "wrap", gap: 16, font: "body-sm", color: "neutral-subdued" })}>
+        <Text data-series="challenges">{t("home.trend.challenges")}</Text>
+        <Text data-series="pass-rate">{t("home.trend.passRate")}</Text>
+      </Content>
     </>
   );
 }
@@ -367,23 +377,22 @@ export function HomeTrend({
     () => (data.stats.trend.length > 0 ? chartModel(data) : null),
     [data]
   );
-  const shownDays = chart?.points.length ?? 0;
   const coverageText = chart
     ? t("home.trend.coverage", {
-        shown: shownDays,
+        shown: chart.expectedDays - chart.missingDays,
         expected: chart.expectedDays,
         missing: chart.missingDays
       })
     : null;
 
   return (
-    <section data-console-card data-home-section="trend" aria-labelledby="home-trend-title">
-      <header data-home-section-heading>
-        <span>
-          <h2 id="home-trend-title">{t("home.trend.title")}</h2>
-          <p>{t("home.trend.description")}</p>
-          {coverageText ? <p data-home-trend-coverage>{coverageText}</p> : null}
-        </span>
+    <Card data-console-card data-home-section="trend" aria-labelledby="home-trend-title" styles={style({ width: "full", minWidth: 0 })}>
+      <Header data-home-section-heading styles={style({ display: "flex", flexWrap: "wrap", alignItems: "end", justifyContent: "space-between", gap: 16 })}>
+        <Content styles={style({ display: "grid", gap: 8 })}>
+          <Heading level={2} id="home-trend-title" styles={style({ font: "heading", margin: 0 })}>{t("home.trend.title")}</Heading>
+          <Text styles={style({ font: "body", color: "neutral-subdued" })}>{t("home.trend.description")}</Text>
+          {coverageText ? <Text data-home-trend-coverage styles={style({ font: "body-sm", color: "neutral-subdued" })}>{coverageText}</Text> : null}
+        </Content>
         <LinkButton
           href={`/stats${groupSearch}`}
           variant="secondary"
@@ -395,8 +404,9 @@ export function HomeTrend({
           <Icon name="chartNoAxesCombined" />
           <Text>{t("home.trend.openStats")}</Text>
         </LinkButton>
-      </header>
-      {chart ? <TrendChart chart={chart} locale={i18n.language} /> : <p data-home-trend-empty>{t("home.trend.empty")}</p>}
-    </section>
+      </Header>
+      <Divider size="S" />
+      {chart ? <TrendChart chart={chart} locale={i18n.language} /> : <Text data-home-trend-empty>{t("home.trend.empty")}</Text>}
+    </Card>
   );
 }

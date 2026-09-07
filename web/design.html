@@ -905,7 +905,7 @@ li::marker { color: var(--border); }
 <div class="shell hero stack-m">
   <span class="kicker">vestibule · 控制台</span>
   <h1>群主使用的验证控制台</h1>
-  <p class="lede">外壳、首页和等待队列采用 React Spectrum 2，使用库的默认蓝色强调色和控件尺度，卡片与控件分别使用 12px、8px 圆角。
+  <p class="lede">外壳、首页和等待队列采用 React Spectrum 2，由库提供布局、卡片、表格、控件尺度和默认蓝色强调色，不再另设圆角或间距体系。
     其他页面保留原样，供维护者比较；本页注明两套样式的适用范围。</p>
 </div>
 
@@ -937,7 +937,7 @@ li::marker { color: var(--border); }
 
     <h3>React Spectrum 三屏改版的校准</h3>
     <p><b>用途：</b>这是查看群验证情况并处理申请的应用，首页先呈现变化和待办，队列提供明确的行内处置。</p>
-    <p><b>视觉归属：</b>React Spectrum 2 负责新外壳、首页与等待队列的控件和强调色；项目在独立 token 层定义容器、图表与两档圆角，不修改依赖样式。</p>
+    <p><b>视觉归属：</b>React Spectrum 2 提供布局原语、容器和交互控件；应用通过 <code>@react-spectrum/s2/style</code> 的构建时样式宏选择库的尺度、颜色与响应式布局，不修改依赖文件，也不重写组件内部样式。</p>
     <p><b>语言：</b>保留简体中文、繁体中文和英文；按浏览器当前字体测量消息目录后，英文的累计宽度和最长消息宽度都最大，窄屏回归采用英文。</p>
     <p><b>主题：</b>浅色与深色同时实现，沿用首次绘制前的偏好解析；跟随系统时响应系统主题变化。</p>
     <p><b>受众：</b>面向普通群主，实例运维入口仍按现有能力过滤，不把日常页面写成服务器监控台。</p>
@@ -947,18 +947,24 @@ li::marker { color: var(--border); }
       <thead><tr><th>角色</th><th>唯一来源</th><th>采用规则</th></tr></thead>
       <tbody>
         <tr><td>动作与选择</td><td><code>@react-spectrum/s2</code> 的 Button、LinkButton、Picker、TextField</td><td>屏内主动作 XL（48px），卡片与工具栏 L（40px），行内 M（32px）；同排输入和按钮等高。触摸设备统一升为 XL，按 Spectrum 的 1.25 倍触摸尺度呈现为 60px。</td></tr>
-        <tr><td>卡片与控件圆角</td><td>项目的具名 token</td><td>卡片 12px，控件 8px。Spectrum 主按钮默认为胶囊，输入框的外框随触摸尺度增大；两者只覆盖圆角，不重写库的交互状态。</td></tr>
-        <tr><td>间距</td><td>Spectrum spacing-500、400、300</td><td>页边 32px，区块之间 24px，卡片内 16px；窄屏页边降为 16px，区块间距不变。</td></tr>
+        <tr><td>容器与圆角</td><td>Content、Header、Heading、Card、IllustratedMessage</td><td>布局使用库的原语，卡片与控件保留各自默认圆角、内边距和状态样式，不把按钮改成统一的项目圆角。</td></tr>
+        <tr><td>间距</td><td>Spectrum 2 的 <code>style()</code> 样式宏</td><td>页边采用 32，区块间距采用 24，分区内容采用 16，相邻控件采用 8；窄屏页边采用 16。数值是库的尺度选项，不在 CSS 中复制一组像素变量；卡片内边距由库决定。</td></tr>
         <tr><td>主色</td><td>库的默认强调色</td><td>采用 Spectrum accent 的蓝色，主动作使用 accent 变体；不使用 premium、genai 或靛蓝、紫色的演示配色。</td></tr>
-        <tr><td>边界与层次</td><td>主题 token 与 Spectrum 控件</td><td>侧栏、顶栏、卡片以边线和底色分区，浅色使用柔和阴影，深色使用可见边线，不只靠留白。</td></tr>
-        <tr><td>图表</td><td>首页趋势 SVG 与统计 API</td><td>主视觉保留图表，按天绘制，提供从零开始的坐标轴、日期、数值标签和指针及键盘读数；数量与通过率分开标尺，不把两种单位叠在同一轴上。</td></tr>
+        <tr><td>边界与层次</td><td>Spectrum 的边线、背景与卡片变体</td><td>侧栏底色延伸到页面底部，不在视口下沿增加边线；顶栏和内容边界通过样式宏声明，避免全边框产生额外接缝。</td></tr>
+        <tr><td>导航</td><td>SideNav、SideNavItem、Popover</td><td>保留六组和全部授权入口，一次展开一组；路由改变时同步展开目标组。Tab 进入导航后，以方向键在组和入口之间移动。当前项同时使用库的粗体和内侧短线，以及 2 到 2.4 的图标描边变化，不使用大块蓝色填充。1280×720 下逐组展开后检查滚动边界，不允许只露出半个导航项。</td></tr>
+        <tr><td>等待队列</td><td>TableView、TableHeader、Column、TableBody、Row、Cell</td><td>库提供多行选择、排序提示和空态容器。Tab 进入表格后，以方向键移动焦点；窄屏保留同一表格并横向滚动。行内放行沿用原有权限与请求流程。切换群后清空选择，排序保持选中项；空队列和筛选无结果使用不同提示。</td></tr>
+        <tr><td>图表</td><td>首页趋势 SVG、Spectrum 样式宏与统计 API</td><td>数量与通过率分开标尺，保留零点、日期、数值和键盘读数。请求日期与返回日期合并为有序日期域，不混用日期位置和数组下标；即使响应包含范围外的 8 月 26 日，各横轴标签的实际矩形也不得相交。三种语言分别在 1280、390、320 宽度下验证。</td></tr>
         <tr><td>图标</td><td>现有 Lucide 清单及 Spectrum 内部图标</td><td>应用图标继续使用原样 vendored 的 Lucide；Spectrum 内部的箭头、勾选和进度图形由锁定版本的依赖持有，不复制 Workflow 图标到项目。</td></tr>
-        <tr><td>交互反馈</td><td>Spectrum 状态及项目导航样式</td><td>保留 hover、按下、键盘焦点、等待和两个完成分支；项目 hover 仅在支持悬停时启用，页面过渡只在未要求减少动效时启用。</td></tr>
+        <tr><td>交互反馈</td><td>Spectrum 的悬停、按下、焦点与等待状态</td><td>使用库的默认反馈；SVG 图表只为跨元素悬停保留后代选择器。请求减弱动态效果时，禁用库通过内联样式写入的按压缩放，不另加页面进场动画。</td></tr>
       </tbody>
     </table></div>
     <p><code>web/src/styles/{tokens,components,shell}.css</code> 与 <code>web/src/icons/lucide/</code> 原样保留，
-      原 manifest 不改。它们仍负责未迁移页面；新增样式不回写 vendored 文件。没有安装 dataviz skill，图表编码按本节的明确规则验证。</p>
+      原清单不改。旧样式进入独立的低优先级层，继续服务未迁移页面。CSS 来源清单分别记录项目样式、依赖样式和生成样式的 TSX 来源；生成的原子类不能靠文件名绕过来源检查。</p>
     <p>未迁移页面保留原外壳的内容滚动边界；首页和等待队列只允许在图表或表格容器内横向滚动。</p>
+    <p>S2 1.7.1 存在一项横向虚拟化限制：从整行直接跳到尚未渲染过的末列时，焦点无法到达目标。
+      窄屏可用右方向键逐列进入操作按钮，等当前单元格进入视口后再继续。
+      不覆写依赖源码，也不为此保留另一套表格或卡片。</p>
+    <p><code>console.css</code> 只保留库无法直接承担的例外，每条规则说明原因；不得在其中补写间距。布局和表格不再依赖手写的容器、表头或单元格选择器。</p>
     <p>不重做其他页面，不改 API、权限和群名缓存，不引入第二套数据获取逻辑。
       以下原样式示例继续作为未迁移页面的参考；与三屏规则冲突时，三屏采用本节规则。</p>
   </section>
@@ -1065,7 +1071,7 @@ li::marker { color: var(--border); }
     <hr class="rule">
     <div class="sechead"><span class="num">03</span><h2>形状与层次</h2></div>
     <p>未迁移页面的组件圆角仍由 <code>--radius: 0.625rem</code> 推导。
-      新外壳、首页与等待队列统一使用卡片 12px、控件 8px 两档；导航卡片按卡片计，不冒充定高按钮。
+      新外壳、首页与等待队列采用 Spectrum 组件的默认圆角；导航卡片使用 Card，不冒充定高按钮。
       Lucide 图标和图表 SVG 的固定几何不属于组件圆角。</p>
     <div class="grid3">
       <div class="card card-pad stack" style="gap: var(--sp-2);">
@@ -1414,10 +1420,10 @@ li::marker { color: var(--border); }
     </div>
 
     <h3>数据表</h3>
-    <p>等待队列和操作记录共用一张表。空队列与筛选无结果是两个状态，
-      文案不能共用：前者说「还没有人申请」，后者要把筛选条件写在屏幕上并给一个清除按钮。</p>
+    <p>等待队列使用 Spectrum TableView，操作记录暂时保留以下旧表格样式。空队列与筛选无结果是两个状态：
+      前者提示尚无申请，后者保留筛选条件并提供清除按钮。两种空态都位于库的表格容器内。</p>
     <div class="spec-wrap">
-      <div class="cap"><span>等待队列</span><span class="hint">桌面形态</span></div>
+      <div class="cap"><span>旧版队列表格示例</span><span class="hint">仅供未迁移表格参考</span></div>
       <div class="tw"><table>
         <thead><tr><th>用户</th><th>群</th><th>结果</th><th>时间</th><th></th></tr></thead>
         <tbody>
@@ -1623,11 +1629,10 @@ li::marker { color: var(--border); }
 
     <div class="grid2">
       <div class="card card-pad stack">
-        <h4>当前项的四重标记</h4>
-        <p style="font-size:0.875rem;">侧栏的「首页」同时改了四样：字重加粗、左侧一条 3px 短轨、
-          图标描边由 2 加到 2.4、底色换为 <code>--accent</code>。
-          <b>四样中没有一样是色相</b>，因为没有品牌色可用，
-          并且在屏幕切换为灰度显示后仍可分辨。</p>
+        <h4>当前项不依赖色相</h4>
+        <p style="font-size:0.875rem;">旧样式示例使用粗体、3px 短线、2.4 图标描边和中性底色。
+          Spectrum 侧栏保留库的粗体与内侧短线，再增加图标描边变化；不另加蓝色背景。
+          两种实现均须在灰度显示下可辨，并用实际字重、描边与短线的几何差异验证。</p>
       </div>
       <div class="card card-pad stack">
         <h4>待办计数贴在导航上</h4>
@@ -2808,15 +2813,15 @@ li::marker { color: var(--border); }
     <div class="tw"><table class="spec-table">
       <thead><tr><th>宽度</th><th>导航形态</th><th>理由</th></tr></thead>
       <tbody>
-        <tr><td>桌面</td><td>左侧固定侧栏</td><td>十五个目的地都在视线内，切屏零点击</td></tr>
-        <tr><td>手机</td><td>抽屉，从顶栏一个按钮拉出</td><td>队列是首屏，其余屏少用，一次点击可接受</td></tr>
+        <tr><td>桌面</td><td>左侧分组导航</td><td>六组始终可达，一次展开一组；保持完整行，不通过裁切底部项目压缩高度</td></tr>
+        <tr><td>手机</td><td>顶栏按钮打开 Popover</td><td>复用同一组 SideNav，按 Escape 关闭并恢复焦点，选中路由后关闭</td></tr>
       </tbody>
     </table></div>
     <p style="font-size:0.8125rem;">手机抽屉与桌面侧栏共用<a href="#s5">第 06 节的导航定义</a>，
       只更换容器，不再维护第二份列表。</p>
 
     <h3>当前项不能只靠颜色</h3>
-    <p>手机抽屉复用<a href="#s5">第 06 节</a>规定的四重标记，不另写一套当前态。
+    <p>手机面板复用<a href="#s0">第 00 节</a>规定的三种非色相标记，不另写一套当前态。
       即使关闭颜色或把屏幕调成灰度，当前项仍可分辨。</p>
 
     <h3>标签在所有宽度上都在</h3>
@@ -2852,15 +2857,12 @@ li::marker { color: var(--border); }
         列表末尾那一行滚到底之后要确认它和它的按钮都露得出来。</li>
     </ul>
 
-    <h3>同一份数据，两套布局</h3>
-    <p>队列在桌面为表格，在手机为卡片列表。两套布局共用一次取数：
-      加载中、空、筛选无结果这三个状态在分叉<b>之上</b>判定完成，不在两棵树中各判一次。
-      各判一次的结果是同一判断出现多份副本，其中总有几份先行偏离。</p>
-    <p>两棵树还需核对字段清单。卡片按屏幕可容纳的内容编写，
-      表格按该行的完整含义编写，不核对则会遗漏仅存在于表格的字段。</p>
+    <h3>等待队列只维护一张表</h3>
+    <p>桌面和手机共用 Spectrum TableView，不再复制一套卡片行。选择、排序、空态和行内操作只有一份实现。
+      窄屏在表格自身的滚动区域查看全部字段，不让页面整体横向滚动，也不删去操作列。</p>
 
     <div class="spec-wrap">
-      <div class="cap"><span>等待队列</span><span class="hint">手机卡片形态 · 字段与桌面表格一致</span></div>
+      <div class="cap"><span>旧版队列卡片示例</span><span class="hint">历史布局，不再用于当前等待队列</span></div>
       <div class="in">
         <div class="card card-pad stack">
           <div class="row">
@@ -3281,8 +3283,8 @@ li::marker { color: var(--border); }
         <tr>
           <td>强调色</td>
           <td>未迁移页面为灰阶；三屏使用 Spectrum 默认蓝色</td>
-          <td>可以给一个品牌色相。只允许出现在主按钮、当前导航项、链接、焦点环四处，
-            四个语义色相的地盘一处都不让。存之前跑对比度检查，两个主题都过 4.5:1 才让存</td>
+          <td>品牌色只用于主按钮、链接和焦点环，不覆盖状态语义色。当前导航项保持中性，并使用非色相标记。
+            保存前检查两个主题的文本对比度，均须达到 4.5:1</td>
         </tr>
         <tr>
           <td>站点标记</td>
@@ -3305,7 +3307,7 @@ li::marker { color: var(--border); }
         <tr>
           <td>首屏</td>
           <td>首页。四层及顺序见<a href="#s5">第 06 节</a></td>
-          <td>可换成其他屏。换后等待队列须位于导航第一组，不得移入二级</td>
+          <td>可换成其他屏。等待队列仍须位于导航第一组，不得移入独立的“更多”菜单</td>
         </tr>
         <tr>
           <td>动效</td>

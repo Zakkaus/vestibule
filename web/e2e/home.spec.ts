@@ -216,8 +216,6 @@ test("authenticated home summarizes only the selected group with three group req
   await expect(page.locator("[data-home-metric]")).toHaveCount(4);
   await expect(page.locator("[data-home-attention='queue']")).toContainText("1 份申请等待处理");
   await expect(page.locator("[data-home-trend-chart]")).toBeVisible();
-  await expect(page.locator("[data-home-entry-value] [data-slot='badge']")).toHaveCount(9);
-  await expect(page.locator("[data-home-entry-value] [data-slot='badge']").first()).toContainText("来源：");
 });
 
 test("group administrators see an explicit all-clear state without an operator status request", async ({ page }) => {

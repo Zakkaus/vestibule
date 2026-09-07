@@ -7,13 +7,9 @@ import "./i18n";
 // icon manifest stays the only place those bytes live.
 import placeholderMark from "./icons/lucide/shield-check.svg?url";
 import { App } from "./app/App";
-import "./styles/tokens.css";
-import "./styles/components.css";
-import "./styles/shell.css";
 import "./app/app.css";
 import "./app/console.css";
 import "./features/home/home.css";
-import "./features/queue/queue.css";
 
 const icon = document.createElement("link");
 icon.rel = "icon";

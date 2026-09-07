@@ -317,7 +317,8 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
     // switcher rather than changing it.
     const groupSwitcher = page.getByRole("button", { name: "当前群" });
     await expectAppSelection(groupSwitcher, selectedGroupId);
-    await page.getByRole("link", { name: "群与频道", exact: true }).click();
+    await page.locator('.console-sidebar [data-navigation-group="group"]').click();
+    await page.locator(".console-sidebar").getByRole("link", { name: "群与频道", exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/groups\\?group=${selectedGroupId}$`));
 
     const selectedRow = page.locator("[data-group-row][data-selected]");
@@ -326,7 +327,8 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
   });
 
   await test.step("open the waiting queue", async () => {
-    await page.getByRole("link", { name: "等待队列", exact: true }).click();
+    await page.locator('.console-sidebar [data-navigation-group="daily"]').click();
+    await page.locator(".console-sidebar").getByRole("link", { name: "等待队列", exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/queue\\?group=${selectedGroupId}$`));
     await expect(page.locator("[data-queue-page]")).toHaveAttribute(
       "data-queue-state",
@@ -887,7 +889,13 @@ test("a failed fixture release restores pending state and remaining time", async
   await expect(result).toContainText("等待中 3:39");
 
   const action = row.getByRole("button");
-  await action.focus();
+  await page.locator("[data-queue-filter] input").focus();
+  await page.keyboard.press("Tab");
+  await expect(page.locator("[data-queue-row]").first()).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(row).toBeFocused();
+  await page.keyboard.press("ArrowLeft");
+  await expect(action).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(action).toBeVisible();
   await expect(action).toHaveAttribute("aria-disabled", "true");
@@ -909,7 +917,7 @@ test("banned fixture rows expose status without an action", async ({ page }) => 
   await expect(row.getByRole("button")).toHaveCount(0);
 });
 
-test("narrow queue exposes a release card to keyboard users", async ({ page }) => {
+test("narrow queue exposes its release action through grid keyboard navigation", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 900 });
   await openLiveQueue(page, async (route) => {
     await route.fulfill({
@@ -918,19 +926,32 @@ test("narrow queue exposes a release card to keyboard users", async ({ page }) =
     });
   });
 
-  await expect(page.locator("[data-queue-table-scroll]")).toBeHidden();
+  await expect(page.getByRole("grid")).toBeVisible();
+  const row = rowFor(page, "@another");
+  const action = row.getByRole("button", { name: "放行 @another" });
+  await expect(row).toHaveAttribute("data-result", "pending");
 
-  const card = page.locator("[data-queue-card-row]", { hasText: "@another" });
-  const action = card.getByRole("button", { name: "放行 @another" });
-  await expect(card).toHaveAttribute("data-result", "pending");
-  await expect(action).toBeVisible();
-
-  await action.focus();
+  await page.locator("[data-queue-filter] input").focus();
+  await page.keyboard.press("Tab");
+  await expect(row).toBeFocused();
+  const columnCount = Number(await page.getByRole("grid").getAttribute("aria-colcount"));
+  for (let column = 1; column <= columnCount; column++) {
+    await page.keyboard.press("ArrowRight");
+    await expect.poll(() => page.evaluate(() =>
+      document.activeElement?.closest("[aria-colindex]")?.getAttribute("aria-colindex")
+    )).toBe(String(column));
+    await expect(row.locator(`[aria-colindex="${column}"]`)).toBeInViewport({ ratio: 1 });
+    // TableView consumes focus scrolling on a subsequent animation frame.
+    await page.evaluate(() => new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+    ));
+  }
   await expect(action).toBeFocused();
+  await expect(action).toBeInViewport({ ratio: 1 });
   await page.keyboard.press("Enter");
 
-  await expect(card).toHaveAttribute("data-result", "approved");
-  await expect(card.locator("[data-queue-action-id=\"release\"]")).toHaveCount(0);
+  await expect(row).toHaveAttribute("data-result", "approved");
+  await expect(row.locator("[data-queue-action-id=\"release\"]")).toHaveCount(0);
 });
 
 const settlementFailureCases = [

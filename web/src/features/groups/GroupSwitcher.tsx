@@ -1,6 +1,8 @@
 import { Picker, PickerItem } from "@react-spectrum/s2/Picker";
-import { useTranslation } from "react-i18next";
+import { Content } from "@react-spectrum/s2";
+import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import { useConsoleSession } from "../../app/session";
 import { useConsoleSize } from "../../components/ConsoleProvider";
@@ -10,6 +12,13 @@ import {
   isGroupFixtureFallback,
   resolveGroupSelection
 } from "./fixtures";
+const groupSwitcherLayout = style({
+  width: {
+    default: 240,
+    "@media (max-width: 48rem)": "full"
+  },
+  minWidth: 0
+});
 
 export function GroupSwitcher() {
   const { t } = useTranslation();
@@ -58,7 +67,7 @@ export function GroupSwitcher() {
   }
 
   return (
-    <div data-group-switcher>
+    <Content data-group-switcher styles={style({ minWidth: 0, gridColumn: { default: "auto", "@media (max-width: 48rem)": "1 / -1" } })}>
       <Picker
         aria-label={t("shell.groupSwitcher")}
         isDisabled={options.length === 0}
@@ -67,11 +76,12 @@ export function GroupSwitcher() {
         onSelectionChange={(key) => { if (key !== null) changeSelectedGroup(String(key)); }}
         items={selectionOptions}
         size={size}
+        styles={groupSwitcherLayout}
         data-console-control
         data-control-size={size}
       >
         {(option) => <PickerItem id={option.value}>{option.label}</PickerItem>}
       </Picker>
-    </div>
+    </Content>
   );
 }

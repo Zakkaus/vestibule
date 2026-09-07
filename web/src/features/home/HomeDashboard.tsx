@@ -1,9 +1,8 @@
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
-import type { ReactNode } from "react";
+import { Badge, Card, Content, Divider, Header, Heading, IllustratedMessage, Text } from "@react-spectrum/s2";
+import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 
-import { Icon } from "../../icons";
-import { StatusBadge, type StatusTone } from "../../components/StatusBadge";
+import type { StatusTone } from "../../components/StatusBadge";
 import { HomeEntries } from "./HomeEntries";
 import { HomeSourceBadge } from "./HomeSourceBadge";
 import type { HomeData } from "./useHomeData";
@@ -22,28 +21,6 @@ type AttentionItem = Readonly<{
 }>;
 
 
-function DashboardLink({
-  path,
-  groupSearch,
-  children,
-  ...attributes
-}: Readonly<{
-  path: string;
-  groupSearch: string;
-  children: ReactNode;
-  "data-home-metric"?: string;
-  "data-home-attention"?: string;
-}>) {
-  return (
-    <Link
-      to={{ pathname: path, search: groupSearch }}
-      data-console-card
-      {...attributes}
-    >
-      {children}
-    </Link>
-  );
-}
 
 
 
@@ -159,27 +136,23 @@ function OverviewSection({
   ] as const;
 
   return (
-    <section data-home-section="overview" aria-labelledby="home-overview-title">
-      <header data-home-section-heading>
-        <span>
-          <h2 id="home-overview-title">{t("home.overview.title")}</h2>
-          <p>{t("home.overview.description")}</p>
-        </span>
-      </header>
-      <div data-home-metrics>
+    <Content data-home-section="overview" aria-labelledby="home-overview-title" styles={style({ display: "grid", gap: 16, minWidth: 0 })}>
+      <Divider size="S" />
+      <Header data-home-section-heading styles={style({ display: "grid", gap: 8 })}>
+        <Heading level={2} id="home-overview-title" styles={style({ font: "heading", margin: 0 })}>{t("home.overview.title")}</Heading>
+        <Text styles={style({ font: "body", color: "neutral-subdued" })}>{t("home.overview.description")}</Text>
+      </Header>
+      <Content aria-labelledby="home-overview-title" data-home-metrics styles={style({ display: "grid", gridTemplateColumns: { default: ["minmax(0, 1fr)", "minmax(0, 1fr)"], lg: ["minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)"] }, gap: 16, minWidth: 0 })}>
         {metrics.map((metric) => (
-          <DashboardLink
-            key={metric.id}
-            path={metric.path}
-            groupSearch={groupSearch}
-            data-home-metric={metric.id}
-          >
-            <strong>{metric.value}</strong>
-            <span>{t(metric.labelKey)}</span>
-          </DashboardLink>
+          <Card key={metric.id} href={`${metric.path}${groupSearch}`} density="compact" data-console-card data-home-metric={metric.id} styles={style({ width: "full", minWidth: 0 })}>
+            <Content>
+              <Text slot="title" styles={style({ font: "heading-lg" })}>{metric.value}</Text>
+              <Text slot="description">{t(metric.labelKey)}</Text>
+            </Content>
+          </Card>
         ))}
-      </div>
-    </section>
+      </Content>
+    </Content>
   );
 }
 
@@ -192,44 +165,31 @@ function AttentionSection({
   const isOperator = data.diagnostics.kind !== "hidden";
 
   return (
-    <section data-home-section="attention" aria-labelledby="home-attention-title">
-      <header data-home-section-heading>
-        <span>
-          <h2 id="home-attention-title">{t("home.attention.title")}</h2>
-          <p>{t("home.attention.description")}</p>
-        </span>
-      </header>
+    <Content data-home-section="attention" aria-labelledby="home-attention-title" styles={style({ display: "grid", gap: 16, minWidth: 0 })}>
+      <Divider size="S" />
+      <Header data-home-section-heading styles={style({ display: "grid", gap: 8 })}>
+        <Heading level={2} id="home-attention-title" styles={style({ font: "heading", margin: 0 })}>{t("home.attention.title")}</Heading>
+        <Text styles={style({ font: "body", color: "neutral-subdued" })}>{t("home.attention.description")}</Text>
+      </Header>
       {items.length === 0 ? (
-        <div data-console-card data-home-attention-empty>
-          <StatusBadge tone="ok">{t("home.attention.empty.badge")}</StatusBadge>
-          <p>
-            {t(
-              isOperator
-                ? "home.attention.empty.operatorDescription"
-                : "home.attention.empty.managerDescription"
-            )}
-          </p>
-        </div>
+        <IllustratedMessage data-home-attention-empty size="S">
+          <Heading>{t("home.attention.empty.badge")}</Heading>
+          <Content>{t(isOperator ? "home.attention.empty.operatorDescription" : "home.attention.empty.managerDescription")}</Content>
+        </IllustratedMessage>
       ) : (
-        <div data-home-attention-list>
+        <Content aria-labelledby="home-attention-title" data-home-attention-list styles={style({ display: "grid", gap: 16, minWidth: 0 })}>
           {items.map((item) => (
-            <DashboardLink
-              key={item.id}
-              path={item.path}
-              groupSearch={groupSearch}
-              data-home-attention={item.id}
-            >
-              <StatusBadge tone={item.tone}>{t(`home.attention.tones.${item.tone}`)}</StatusBadge>
-              <span data-home-attention-copy>
-                <strong>{t(item.titleKey)}</strong>
-                <span>{t(item.descriptionKey, { count: item.count })}</span>
-              </span>
-              <Icon name="arrowRight" aria-hidden="true" />
-            </DashboardLink>
+            <Card key={item.id} href={`${item.path}${groupSearch}`} data-console-card data-home-attention={item.id} styles={style({ width: "full", minWidth: 0 })}>
+              <Badge variant={item.tone === "error" ? "negative" : "notice"} fillStyle="subtle">{t(`home.attention.tones.${item.tone}`)}</Badge>
+              <Content data-home-attention-copy>
+                <Text slot="title">{t(item.titleKey)}</Text>
+                <Text slot="description">{t(item.descriptionKey, { count: item.count })}</Text>
+              </Content>
+            </Card>
           ))}
-        </div>
+        </Content>
       )}
-    </section>
+    </Content>
   );
 }
 
@@ -241,27 +201,27 @@ export function HomeDashboard({ data, chatID }: Readonly<{ data: HomeData; chatI
   const settings = data.settings;
 
   return (
-    <div data-home-content>
-      <aside data-console-card data-home-context aria-labelledby="home-context-title">
-        <span data-home-context-copy>
-          <strong id="home-context-title">{t("home.context.title", { id: chatID })}</strong>
-          <span>{t("home.context.selectedScope")}</span>
-        </span>
-        <span data-home-context-badges>
-          <StatusBadge tone="neutral">
+    <Content data-home-content styles={style({ display: "grid", minWidth: 0, gap: 24 })}>
+      <Card data-console-card data-home-context aria-labelledby="home-context-title" styles={style({ width: "full", minWidth: 0 })}>
+        <Content data-home-context-copy>
+          <Text slot="title" id="home-context-title">{t("home.context.title", { id: chatID })}</Text>
+          <Text slot="description">{t("home.context.selectedScope")}</Text>
+        </Content>
+        <Content data-home-context-badges styles={style({ display: "flex", flexWrap: "wrap", gap: 8, minWidth: 0 })}>
+          <Badge variant="neutral" fillStyle="subtle">
             {t(isOperator ? "home.roles.operator" : "home.roles.manager")}
-          </StatusBadge>
-          <StatusBadge tone={settings.enabled.value ? "ok" : "neutral"}>
+          </Badge>
+          <Badge variant={settings.enabled.value ? "positive" : "neutral"} fillStyle="subtle">
             {t(settings.enabled.value ? "home.context.enabled" : "home.context.disabled")}
-          </StatusBadge>
+          </Badge>
           <HomeSourceBadge source={settings.enabled.source} />
-          <StatusBadge tone="neutral">{t("home.context.modeUnreported")}</StatusBadge>
-        </span>
-      </aside>
+          <Badge variant="neutral" fillStyle="subtle">{t("home.context.modeUnreported")}</Badge>
+        </Content>
+      </Card>
       <OverviewSection data={data} groupSearch={groupSearch} />
       <AttentionSection data={data} groupSearch={groupSearch} />
       <HomeTrend data={data} groupSearch={groupSearch} />
       <HomeEntries settings={settings} groupSearch={groupSearch} />
-    </div>
+    </Content>
   );
 }

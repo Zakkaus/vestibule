@@ -54,14 +54,19 @@ async function mockNavigationTransport(page: Page, role: Role): Promise<void> {
 }
 
 async function navigationSections(page: Page, root: string): Promise<readonly NavigationSection[]> {
-  return page.locator(`${root} [data-navigation-group]`).evaluateAll((elements) =>
-    elements.map((element) => ({
-      id: element.getAttribute("data-navigation-group"),
-      paths: [...element.querySelectorAll("a[href]")].map(
-        (link) => new URL((link as HTMLAnchorElement).href).pathname
-      )
-    }))
-  );
+  const groups = page.locator(`${root} [data-navigation-group]`);
+  const sections: NavigationSection[] = [];
+  for (let index = 0; index < await groups.count(); index++) {
+    const group = groups.nth(index);
+    const id = await group.getAttribute("data-navigation-group");
+    if (await group.getAttribute("aria-expanded") === "false") await group.click();
+    await expect(group).toHaveAttribute("aria-expanded", "true");
+    const paths = await page.locator(`${root} nav a[href]`).evaluateAll((links) =>
+      links.map((link) => new URL((link as HTMLAnchorElement).href).pathname)
+    );
+    sections.push({ id, paths });
+  }
+  return sections;
 }
 
 test("navigation groups follow the console responsibility map", async ({ page }) => {

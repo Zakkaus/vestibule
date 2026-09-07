@@ -31,6 +31,8 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+from spectrum_macros import is_style_expression, macro_definitions
+
 ROOT = Path(__file__).resolve().parent.parent
 VENDORED = ROOT / "scripts" / "design-checks" / "css-coverage.py"
 POLICY = ROOT / "scripts" / "css-coverage-policy.json"
@@ -200,7 +202,8 @@ def _class_values(text: str, path: Path) -> list[str]:
             values.append(value)
         elif text[index] == "{":
             expression, _ = _read_js_expression(text, index, path)
-            values.extend(_class_expression_values(expression, path))
+            if not is_style_expression(text, expression):
+                values.extend(_class_expression_values(expression, path))
         else:
             raise ValueError(f"{path}: className expression is not statically verifiable")
     return values
@@ -302,13 +305,16 @@ def _load_manifest(frontend: Path, dist: Path, manifest_path: Path) -> tuple[lis
                 f"asset {relative} origin",
             )
             kind = origin.get("kind")
-            if not isinstance(kind, str) or kind not in {"project", "vendor"}:
+            if not isinstance(kind, str) or kind not in {"project", "vendor", "spectrum-macro"}:
                 raise ValueError(f"CSS provenance asset {relative} has an invalid origin kind")
             if kind == "project":
                 if not origin_path.startswith("src/") or not origin_path.endswith(".css"):
                     raise ValueError(
                         f"CSS provenance marks non-project CSS as project: {origin_path}"
                     )
+            elif kind == "spectrum-macro":
+                if not origin_path.startswith("src/") or not origin_path.endswith((".ts", ".tsx")):
+                    raise ValueError(f"CSS provenance marks a non-source path as a Spectrum macro: {origin_path}")
             elif not origin_path.startswith("node_modules/"):
                 raise ValueError(
                     f"CSS provenance marks a non-dependency path as vendor: {origin_path}"
@@ -591,11 +597,12 @@ def frontend_main(argv: list[str]) -> int:
 
         _, _, runtime_sources = _read_policy()
         project_definitions, project_references = _project_custom_properties(project_sources)
+        definitions = set().union(*(item[1] for item in emitted_css.values()))
+        project_definitions.update(macro_definitions(frontend, _source_files(source), assets, definitions))
         unresolved: list[str] = [
             f"{name} (project source has no project definition)"
             for name in sorted(project_references - project_definitions)
         ]
-        definitions = set().union(*(item[1] for item in emitted_css.values()))
         for asset in assets:
             references = emitted_css[asset["file"]][2]
             for name in sorted(references - definitions):

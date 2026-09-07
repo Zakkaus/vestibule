@@ -8,12 +8,10 @@ import {
   renderWidths,
   themeSurface,
   type FocusObservation,
-  type FocusTarget,
   type RenderCell,
   type ThemePreference,
   type ThemeSurface,
   visiblePlaceholderText,
-  visibleTabStops,
   widestMeasuredLocale
 } from "./render-gate-audits";
 import {
@@ -139,7 +137,7 @@ function focusProblems(observation: FocusObservation): string[] {
   const target = observation.target;
 
   if (!target) {
-    return ["Tab left the document before every visible tab stop was visited"];
+    return ["Keyboard focus left the document before every queue action was visited"];
   }
   if (!observation.visible) {
     problems.push(`${target.tagName} ${target.name} is not visibly rendered`);
@@ -221,44 +219,46 @@ test("render gate rejects transparent, inherited, or light-leaking theme surface
   }
 });
 
-test("render gate tabs through every queue row action with a visible focus ring", async ({
+test("render gate reaches every queue row action through native grid navigation with a visible focus ring", async ({
   page
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/queue");
-  await page.locator("[data-queue-page]").waitFor({ state: "visible" });
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-  });
+  const grid = page.getByRole("grid");
+  await expect(grid).toBeVisible();
+  await page.evaluate(async () => { await document.fonts.ready; });
 
-  expect(await page.evaluate(() => document.activeElement?.tagName)).toBe("BODY");
+  await page.locator(".console-brand a").focus();
+  await page.keyboard.press("Tab");
+  await expect(page.locator('.console-sidebar nav a[aria-current="page"]')).toBeFocused();
+  await page.keyboard.press("Tab");
+  expect(await page.evaluate(() => document.activeElement?.closest('[role="treegrid"]') !== null)).toBe(false);
 
-  const expectedStops = await visibleTabStops(page);
-  const expectedQueueActions = expectedStops.filter(
-    (target) => target.queueActionId !== null && target.queueRowId !== null
+  const expectedActions = await grid.locator("[data-queue-action-id]").evaluateAll((actions) =>
+    actions.filter((action) => action.checkVisibility()).map((action) =>
+      `${action.closest("[data-queue-row]")!.getAttribute("data-queue-row")}:${action.getAttribute("data-queue-action-id")}`
+    ).sort()
   );
-  expect(expectedQueueActions, "queue must expose at least one row-end action").not.toEqual([]);
-
-  const visitedQueueActions: FocusTarget[] = [];
-  for (const expectedStop of expectedStops) {
-    await page.keyboard.press("Tab");
+  expect(expectedActions, "queue must expose at least one row-end action").not.toEqual([]);
+  const rows = grid.locator("[data-queue-row]");
+  const rowIds = await rows.evaluateAll((elements) =>
+    elements.map((element) => element.getAttribute("data-queue-row"))
+  );
+  await page.locator("[data-queue-filter] input").focus();
+  await page.keyboard.press("Tab");
+  await expect(rows.first()).toBeFocused();
+  await page.keyboard.press("ArrowLeft");
+  const visitedActions: string[] = [];
+  for (const rowId of rowIds) {
+    await expect.poll(async () => (await focusedElement(page)).target?.queueRowId).toBe(rowId);
     const observation = await focusedElement(page);
-
-    expect(observation.target?.index, `Tab focus order for ${expectedStop.name}`).toBe(
-      expectedStop.index
-    );
-    expect(focusProblems(observation), `focus ring for ${expectedStop.name}`).toEqual([]);
-
-    if (observation.target?.queueActionId && observation.target.queueRowId) {
-      visitedQueueActions.push(observation.target);
+    if (observation.target?.queueActionId) {
+      expect(focusProblems(observation), `focus ring for ${observation.target.name}`).toEqual([]);
+      await expect(page.locator(`[data-queue-row="${rowId}"] [data-queue-action-id="${observation.target.queueActionId}"]`)).toBeInViewport({ ratio: 1 });
+      visitedActions.push(`${rowId}:${observation.target.queueActionId}`);
     }
+    await page.keyboard.press("ArrowDown");
   }
-
-  expect(
-    visitedQueueActions.map((target) => `${target.queueRowId}:${target.queueActionId}`),
-    "Tab traversal must reach every row-end queue action"
-  ).toEqual(
-    expectedQueueActions.map((target) => `${target.queueRowId}:${target.queueActionId}`)
-  );
+  expect(visitedActions.sort(), "Arrow navigation must reach every row-end queue action").toEqual(expectedActions);
 });

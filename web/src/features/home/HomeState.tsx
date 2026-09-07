@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { Button, Text } from "@react-spectrum/s2/Button";
 import { LinkButton } from "@react-spectrum/s2/LinkButton";
+import { Content, Heading, IllustratedMessage, InlineAlert, ProgressCircle } from "@react-spectrum/s2";
+import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { useTranslation } from "react-i18next";
 
 import { Icon } from "../../icons";
@@ -30,18 +32,26 @@ function StateCard({
   children?: ReactNode;
 }>) {
   const { t } = useTranslation();
+  const content = (
+    <>
+      <Heading id={`home-${id}-title`}>{t(titleKey)}</Heading>
+      <Content>{t(descriptionKey)}</Content>
+      {children}
+    </>
+  );
+  if (role === "alert") {
+    return <InlineAlert variant="negative" data-home-state-card={id} aria-labelledby={`home-${id}-title`}>{content}</InlineAlert>;
+  }
   return (
-    <section
-      data-console-card
+    <IllustratedMessage
+      styles={style({ width: "full" })}
       data-home-state-card={id}
-      role={role}
       aria-live={live}
       aria-labelledby={`home-${id}-title`}
     >
-      <h2 id={`home-${id}-title`}>{t(titleKey)}</h2>
-      <p>{t(descriptionKey)}</p>
-      {children}
-    </section>
+      {id === "loading" ? <ProgressCircle isIndeterminate aria-label={t(titleKey)} /> : null}
+      {content}
+    </IllustratedMessage>
   );
 }
 

@@ -46,7 +46,6 @@ export type ThemeSurface = Readonly<{
 }>;
 
 export type FocusTarget = Readonly<{
-  index: number;
   tagName: string;
   name: string;
   queueActionId: string | null;
@@ -317,57 +316,13 @@ export async function themeSurface(page: Page): Promise<ThemeSurface> {
   });
 }
 
-export async function visibleTabStops(page: Page): Promise<FocusTarget[]> {
-  return page.evaluate(() => {
-    const candidates = [
-      ...document.querySelectorAll<HTMLElement>(
-        "a[href], button:not([disabled]), input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"
-      )
-    ].filter((element) => {
-      const visibility = element.checkVisibility?.({
-        checkOpacity: true,
-        checkVisibilityCSS: true
-      });
-      return visibility !== false && element.tabIndex >= 0;
-    });
-    const orderedCandidates = candidates
-      .filter((element) => element.tabIndex > 0)
-      .sort((left, right) => left.tabIndex - right.tabIndex)
-      .concat(candidates.filter((element) => element.tabIndex === 0));
-
-    return orderedCandidates.map((element, index) => ({
-      index,
-      tagName: element.tagName.toLowerCase(),
-      name:
-        element.getAttribute("aria-label") ??
-        element.textContent?.replace(/\s+/g, " ").trim() ??
-        "",
-      queueActionId: element.getAttribute("data-queue-action-id"),
-      queueRowId: element.closest("[data-queue-row]")?.getAttribute("data-queue-row") ?? null
-    }));
-  });
-}
 
 export async function focusedElement(page: Page): Promise<FocusObservation> {
   return page.evaluate(() => {
-    const candidates = [
-      ...document.querySelectorAll<HTMLElement>(
-        "a[href], button:not([disabled]), input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"
-      )
-    ].filter((element) => {
-      const visibility = element.checkVisibility?.({
-        checkOpacity: true,
-        checkVisibilityCSS: true
-      });
-      return visibility !== false && element.tabIndex >= 0;
-    });
-    const orderedCandidates = candidates
-      .filter((element) => element.tabIndex > 0)
-      .sort((left, right) => left.tabIndex - right.tabIndex)
-      .concat(candidates.filter((element) => element.tabIndex === 0));
     const activeElement = document.activeElement;
-    const targetIndex = orderedCandidates.indexOf(activeElement as HTMLElement);
-    const target = targetIndex < 0 ? null : orderedCandidates[targetIndex]!;
+    const target = activeElement instanceof HTMLElement && activeElement !== document.body
+      ? activeElement
+      : null;
 
     if (!target) {
       return {
@@ -401,7 +356,6 @@ export async function focusedElement(page: Page): Promise<FocusObservation> {
 
     return {
       target: {
-        index: targetIndex,
         tagName: target.tagName.toLowerCase(),
         name:
           target.getAttribute("aria-label") ??

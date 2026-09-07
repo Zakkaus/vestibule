@@ -1,3 +1,9 @@
+/* Legacy resets must not override Spectrum's component and token layers. */
+@import "../styles/tokens.css" layer(legacy);
+@import "../styles/components.css" layer(legacy);
+@import "../styles/shell.css" layer(legacy);
+
+@layer legacy {
 
 body {
   font-size: 0.9375rem;
@@ -2635,4 +2641,5 @@ body {
 [data-slot="option"][aria-selected="true"] {
   color: var(--foreground);
   font-weight: 600;
+}
 }

@@ -24,6 +24,7 @@
     "@types/react-dom": "19.2.5",
     "lightningcss": "1.33.0",
     "typescript": "7.0.2",
+    "unplugin-parcel-macros": "0.2.0",
     "vite": "8.2.2"
   }
 }

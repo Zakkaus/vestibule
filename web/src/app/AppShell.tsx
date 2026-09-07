@@ -1,15 +1,11 @@
 import { Button } from "@react-spectrum/s2/Button";
+import { Content, Header, Link, Popover, SideNav, SideNavItem, SideNavItemContent, SideNavItemLink, Text } from "@react-spectrum/s2";
+import { style, size } from "@react-spectrum/s2/style" with { type: "macro" };
 import { DialogTrigger } from "@react-spectrum/s2/Dialog";
-import { Popover } from "@react-spectrum/s2/Popover";
-import { Text } from "@react-spectrum/s2/Text";
 import { useEffect, useState } from "react";
+import type { Key } from "@react-spectrum/s2";
 import { useTranslation } from "react-i18next";
-import {
-  Link,
-  Outlet,
-  useLocation,
-  useMatches
-} from "react-router-dom";
+import { Outlet, useLocation, useMatches } from "react-router-dom";
 
 import { UtilityControls } from "../components/UtilityControls";
 import { ConsoleProvider, useConsoleSize } from "../components/ConsoleProvider";
@@ -54,6 +50,126 @@ type NavigationSection = Readonly<{
   group: NavigationGroup;
   items: readonly NavigationItem[];
 }>;
+const shellLayout = style({
+  display: "grid",
+  gridTemplateColumns: {
+    default: [240, "minmax(0, 1fr)"],
+    "@media (max-width: 48rem)": ["minmax(0, 1fr)"]
+  },
+  minHeight: "screen",
+  backgroundColor: "gray-100",
+  color: "neutral"
+});
+
+const sidebarLayout = style({
+  display: { default: "block", "@media (max-width: 48rem)": "none" },
+  height: "full",
+  minWidth: 0,
+  backgroundColor: "gray-100",
+  borderWidth: 0,
+  borderEndWidth: 1,
+  borderStyle: "solid",
+  borderColor: "gray-300"
+});
+
+const brandHeaderLayout = style({
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  minWidth: 0,
+  minHeight: size(64),
+  padding: 16,
+  borderWidth: 0,
+  borderBottomWidth: 1,
+  borderStyle: "solid",
+  borderColor: "gray-300"
+});
+
+const brandLinkLayout = style({
+  display: "flex",
+  alignItems: "center",
+  minWidth: 0,
+  gap: 8,
+  color: "neutral",
+  textDecoration: "none"
+});
+
+
+const navigationLayout = style({
+  position: "sticky",
+  top: 0,
+  maxHeight: "screen",
+  minHeight: 0,
+  minWidth: 0,
+  padding: 16,
+  overflowY: "auto",
+  overscrollBehaviorY: "contain"
+});
+
+const sideNavLayout = style({ height: "full" });
+
+const mainLayout = style({
+  display: "block",
+  minHeight: "screen",
+  minWidth: 0
+});
+
+const headerLayout = style({
+  position: "sticky",
+  top: 0,
+  zIndex: 1,
+  display: "grid",
+  gridTemplateColumns: {
+    default: ["minmax(0, 1fr)", "auto"],
+    "@media (max-width: 64rem)": ["minmax(0, 1fr)"]
+  },
+  alignItems: "center",
+  gap: 16,
+  minHeight: size(64),
+  paddingX: {
+    default: 32,
+    "@media (max-width: 48rem)": 16
+  },
+  paddingY: 16,
+  borderWidth: 0,
+  borderBottomWidth: 1,
+  borderStyle: "solid",
+  borderColor: "gray-300",
+  backgroundColor: "gray-100"
+});
+
+const headerTitleLayout = style({
+  minWidth: 0,
+  color: "neutral-subdued",
+  font: "ui-lg",
+  overflowWrap: "anywhere"
+});
+
+const controlsLayout = style({
+  display: { default: "flex", "@media (max-width: 48rem)": "grid" },
+  gridTemplateColumns: ["minmax(0, 1fr)", "minmax(0, 1fr)"],
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: 8,
+  minWidth: 0,
+  gridColumn: { default: "auto", "@media (max-width: 64rem)": "1" },
+  width: { default: "auto", "@media (max-width: 64rem)": "full" }
+});
+
+const contentLayout = style({
+  minWidth: 0,
+  padding: {
+    default: 32,
+    "@media (max-width: 48rem)": 16
+  }
+});
+
+const innerLayout = style({
+  width: "full",
+  maxWidth: size(1248),
+  marginX: "auto",
+  minWidth: 0
+});
 
 
 const capabilityChecks: Readonly<
@@ -178,54 +294,92 @@ function navigationSections(items: readonly NavigationItem[]): readonly Navigati
   return sections;
 }
 
-
 function ConsoleNavigation({
   sections,
-  selectedGroupSearch,
-  onNavigate
+  selectedGroupSearch
 }: Readonly<{
   sections: readonly NavigationSection[];
   selectedGroupSearch: string;
-  onNavigate?: () => void;
 }>) {
   const { t } = useTranslation();
   const location = useLocation();
+  const currentSection = sections.find(({ items }) =>
+    items.some((item) => item.path === location.pathname)
+  );
+  const currentGroup = currentSection?.group.id;
+  const selectedRoute = `${location.pathname}${selectedGroupSearch}`;
+  const [expansion, setExpansion] = useState(() => ({
+    route: selectedRoute,
+    group: currentGroup ?? null
+  }));
+  const routeChanged = expansion.route !== selectedRoute;
+  const expandedGroup = routeChanged ? currentGroup ?? null : expansion.group;
+  // SideNav synchronizes focus during render, so route and expansion must agree.
+  if (routeChanged) {
+    setExpansion({ route: selectedRoute, group: expandedGroup });
+  }
+
+
+  const expandedKeys = expandedGroup === null ? [] : [expandedGroup];
+
+  function updateExpandedGroups(keys: Set<Key>): void {
+    const validKeys = [...keys].filter((key): key is NavigationGroupID =>
+      typeof key === "string" && sections.some(({ group }) => group.id === key)
+    );
+    setExpansion({ route: selectedRoute, group: validKeys.at(-1) ?? null });
+  }
 
   return (
-    <nav className="console-navigation" aria-label={t("navigation.label")}>
-      {sections.map(({ group, items }) => (
-        <div key={group.id} className="console-nav-group" data-navigation-group={group.id}>
-          <span className="console-nav-label">{t(group.labelKey)}</span>
-          {items.map((item) => {
-            const isActive = location.pathname === item.path;
+    <Content UNSAFE_className="console-navigation" styles={navigationLayout}>
+      <nav aria-label={t("navigation.label")}>
+      <SideNav
+        aria-label={t("navigation.label")}
+        selectedRoute={selectedRoute}
+        expandedKeys={expandedKeys}
+        onExpandedChange={updateExpandedGroups}
+        styles={sideNavLayout}
+      >
+        {sections.map(({ group, items }) => (
+          <SideNavItem
+            key={group.id}
+            id={group.id}
+            textValue={t(group.labelKey)}
+            data-navigation-group={group.id}
+          >
+            <SideNavItemContent>{t(group.labelKey)}</SideNavItemContent>
+            {items.map((item) => {
+              const href = `${item.path}${selectedGroupSearch}`;
 
-            return (
-              <Link
-                key={item.path}
-                className="console-nav-link"
-                to={{ pathname: item.path, search: selectedGroupSearch }}
-                aria-current={isActive ? "page" : undefined}
-                onClick={onNavigate}
-              >
-                <Icon name={item.icon} />
-                {t(item.labelKey)}
-              </Link>
-            );
-          })}
-        </div>
-      ))}
-    </nav>
+              return (
+                <SideNavItem key={item.path} id={item.path} href={href} textValue={t(item.labelKey)}>
+                  <SideNavItemContent>
+                    <SideNavItemLink>
+                      <Content styles={style({ gridArea: "icon", display: "flex", alignItems: "center", marginEnd: "text-to-visual" })}>
+                        <Icon name={item.icon} />
+                      </Content>
+                      <Text>{t(item.labelKey)}</Text>
+                    </SideNavItemLink>
+                  </SideNavItemContent>
+                </SideNavItem>
+              );
+            })}
+          </SideNavItem>
+        ))}
+      </SideNav>
+      </nav>
+    </Content>
   );
 }
-
 
 function ShellContent() {
   const { t } = useTranslation();
   const location = useLocation();
   const session = useConsoleSession();
+  const controlSize = useConsoleSize("L");
   const [navigationOpen, setNavigationOpen] = useState(false);
-  const size = useConsoleSize("L");
-  useEffect(() => { setNavigationOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    setNavigationOpen(false);
+  }, [location.key]);
   const selectedGroupId = new URLSearchParams(location.search).get("group");
   const selectedGroupSearch = selectedGroupId
     ? `?${new URLSearchParams({ group: selectedGroupId }).toString()}`
@@ -244,63 +398,78 @@ function ShellContent() {
 
   if (shellVariant === "entry") {
     return (
-      <div data-app-shell data-shell-variant={shellVariant}>
-        <header data-entry-utilities>
+      <Content data-app-shell data-shell-variant={shellVariant}>
+        <Header data-entry-utilities>
           <UtilityControls variant="chrome" />
-        </header>
+        </Header>
         <main data-entry-main>
           <Outlet />
         </main>
-      </div>
+      </Content>
     );
   }
 
   return (
-    <div data-app-shell data-shell-variant={shellVariant} className="console-shell">
-      <aside className="console-sidebar">
-        <Link
-          className="console-brand"
-          to={{ pathname: "/home", search: selectedGroupSearch }}
-        >
-          <Icon name="shieldCheck" />
-          <span>{t("app.name")}</span>
-        </Link>
-        <ConsoleNavigation
-          sections={visibleNavigationSections}
-          selectedGroupSearch={selectedGroupSearch}
-        />
-      </aside>
-      <div className="console-main">
-        <header className="console-header" data-console-header>
-          <div className="console-mobile-navigation" data-mobile-navigation>
-            <DialogTrigger isOpen={navigationOpen} onOpenChange={setNavigationOpen}>
-              <Button size={size} variant="secondary" aria-haspopup="dialog" data-console-control data-control-size={size}>
-                <Icon name="layoutDashboard" /><Text>{t("shell.mobileNavigation")}</Text>
-              </Button>
-              <Popover aria-label={t("navigation.label")} UNSAFE_className="console-mobile-panel">
-                <ConsoleNavigation
-                  sections={visibleNavigationSections}
-                  selectedGroupSearch={selectedGroupSearch}
-                  onNavigate={() => setNavigationOpen(false)}
-                />
-              </Popover>
-            </DialogTrigger>
-          </div>
-          <span data-header-title>
-            {currentNavigationItem ? t(currentNavigationItem.labelKey) : t("app.name")}
-          </span>
-          <div className="console-controls">
-            <GroupSwitcher />
-            <UtilityControls variant="chrome" />
-          </div>
-        </header>
-        <main className="console-content">
-          <div key={location.pathname} className="console-inner">
-            <Outlet />
-          </div>
+    <Content
+      data-app-shell
+      data-shell-variant={shellVariant}
+      UNSAFE_className="console-shell"
+      styles={shellLayout}
+    >
+      <Content UNSAFE_className="console-sidebar" styles={sidebarLayout}>
+        <aside className={style({ height: "full" })}>
+          <Header UNSAFE_className="console-brand" styles={brandHeaderLayout}>
+            <Link href={`/home${selectedGroupSearch}`} variant="secondary" isStandalone isQuiet>
+              <Content styles={brandLinkLayout}>
+                <Icon name="shieldCheck" />
+                <Text>{t("app.name")}</Text>
+              </Content>
+            </Link>
+          </Header>
+          <ConsoleNavigation
+            sections={visibleNavigationSections}
+            selectedGroupSearch={selectedGroupSearch}
+          />
+        </aside>
+      </Content>
+      <Content UNSAFE_className="console-main" styles={mainLayout}>
+        <main>
+          <Header UNSAFE_className="console-header" styles={headerLayout} data-console-header>
+            <Content UNSAFE_className="console-mobile-navigation" data-mobile-navigation styles={style({ display: { default: "none", "@media (max-width: 48rem)": "block" } })}>
+              <DialogTrigger isOpen={navigationOpen} onOpenChange={setNavigationOpen}>
+                <Button size={controlSize} variant="secondary" aria-haspopup="dialog" data-console-control data-control-size={controlSize}>
+                  <Icon name="layoutDashboard" />
+                  <Text>{t("shell.mobileNavigation")}</Text>
+                </Button>
+                <Popover
+                  aria-label={t("navigation.label")}
+                  UNSAFE_className="console-mobile-panel"
+                  size="S"
+                  styles={style({ maxHeight: "[70dvh]" })}
+                >
+                  <ConsoleNavigation
+                    sections={visibleNavigationSections}
+                    selectedGroupSearch={selectedGroupSearch}
+                  />
+                </Popover>
+              </DialogTrigger>
+            </Content>
+            <Text UNSAFE_className="console-header-title" styles={headerTitleLayout} data-header-title>
+              {currentNavigationItem ? t(currentNavigationItem.labelKey) : t("app.name")}
+            </Text>
+            <Content UNSAFE_className="console-controls" styles={controlsLayout}>
+              <GroupSwitcher />
+              <UtilityControls variant="chrome" />
+            </Content>
+          </Header>
+          <Content UNSAFE_className="console-content" styles={contentLayout}>
+            <Content key={location.pathname} UNSAFE_className="console-inner" styles={innerLayout}>
+              <Outlet />
+            </Content>
+          </Content>
         </main>
-      </div>
-    </div>
+      </Content>
+    </Content>
   );
 }
 

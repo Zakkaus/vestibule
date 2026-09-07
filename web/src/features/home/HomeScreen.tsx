@@ -1,3 +1,5 @@
+import { Content, Header, Heading, Text } from "@react-spectrum/s2";
+import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 
@@ -14,22 +16,23 @@ export function HomeScreen() {
   const isBusy = controller.state.kind === "loading";
 
   return (
-    <section
+    <Content
+      styles={style({ display: "grid", minWidth: 0, gap: 24 })}
       data-console-page
       data-home-page
       data-home-state={controller.state.kind}
       aria-busy={isBusy || undefined}
       aria-labelledby="home-title"
     >
-      <header data-page-heading data-home-heading>
-        <h1 id="home-title">{t("home.title")}</h1>
-        <p>{t("home.description")}</p>
-      </header>
+      <Header data-page-heading data-home-heading styles={style({ display: "grid", gap: 16 })}>
+        <Heading level={1} id="home-title" styles={style({ font: "heading-lg", margin: 0 })}>{t("home.title")}</Heading>
+        <Text styles={style({ font: "body", color: "neutral-subdued" })}>{t("home.description")}</Text>
+      </Header>
       <HomeStateContent
         state={controller.state}
         chatID={chatID}
         reload={controller.reload}
       />
-    </section>
+    </Content>
   );
 }

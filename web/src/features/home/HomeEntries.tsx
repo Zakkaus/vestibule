@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
-
-import { Icon } from "../../icons";
+import { Card, Content, Divider, Footer, Header, Heading, LabeledValue, Text } from "@react-spectrum/s2";
+import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import type { SettingSource } from "../verification/api";
 import type { HomeSettings } from "./api";
 import { HomeSourceBadge } from "./HomeSourceBadge";
@@ -31,13 +30,16 @@ function ConfigValue({
 }>) {
   const { t } = useTranslation();
   return (
-    <div data-home-entry-value>
-      <dt>{t(labelKey)}</dt>
-      <dd>
-        <span>{value}</span>
-        <HomeSourceBadge source={source} />
-      </dd>
-    </div>
+    <LabeledValue
+      data-home-entry-value
+      label={t(labelKey)}
+      value={
+        <Content styles={style({ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8 })}>
+          <Text>{value}</Text>
+          <HomeSourceBadge source={source} />
+        </Content>
+      }
+    />
   );
 }
 
@@ -58,18 +60,14 @@ function ConfigEntry({
 }>) {
   const { t } = useTranslation();
   return (
-    <Link
-      to={{ pathname: path, search: groupSearch }}
-      data-console-card
-      data-home-entry={id}
-    >
-      <header data-home-entry-heading>
-        <h3>{t(titleKey)}</h3>
-        <Icon name="arrowRight" aria-hidden="true" />
-      </header>
-      <p>{t(descriptionKey)}</p>
-      <dl data-home-entry-values>{children}</dl>
-    </Link>
+    <Card href={`${path}${groupSearch}`} data-console-card data-home-entry={id} styles={style({ width: "full", minWidth: 0 })}>
+      <Content data-home-entry-heading>
+        <Text slot="title">{t(titleKey)}</Text>
+        <Text slot="description">{t(descriptionKey)}</Text>
+      </Content>
+      <Divider size="S" />
+      <Footer data-home-entry-values styles={style({ display: "grid", gap: 16, minWidth: 0 })}>{children}</Footer>
+    </Card>
   );
 }
 
@@ -179,19 +177,18 @@ function ModerationEntry({ settings, groupSearch }: EntryProps) {
 export function HomeEntries({ settings, groupSearch }: EntryProps) {
   const { t } = useTranslation();
   return (
-    <section data-home-section="entries" aria-labelledby="home-entries-title">
-      <header data-home-section-heading>
-        <span>
-          <h2 id="home-entries-title">{t("home.entries.title")}</h2>
-          <p>{t("home.entries.description")}</p>
-        </span>
-      </header>
-      <div data-home-entries>
+    <Content data-home-section="entries" aria-labelledby="home-entries-title" styles={style({ display: "grid", gap: 16, minWidth: 0 })}>
+      <Divider size="S" />
+      <Header data-home-section-heading styles={style({ display: "grid", gap: 8 })}>
+        <Heading level={2} id="home-entries-title" styles={style({ font: "heading", margin: 0 })}>{t("home.entries.title")}</Heading>
+        <Text styles={style({ font: "body", color: "neutral-subdued" })}>{t("home.entries.description")}</Text>
+      </Header>
+      <Content data-home-entries styles={style({ display: "grid", gridTemplateColumns: { default: ["minmax(0, 1fr)"], md: ["minmax(0, 1fr)", "minmax(0, 1fr)"] }, gap: 16 })}>
         <VerificationEntry settings={settings} groupSearch={groupSearch} />
         <QuestionsEntry settings={settings} groupSearch={groupSearch} />
         <BypassEntry settings={settings} groupSearch={groupSearch} />
         <ModerationEntry settings={settings} groupSearch={groupSearch} />
-      </div>
-    </section>
+      </Content>
+    </Content>
   );
 }

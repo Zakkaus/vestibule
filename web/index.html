@@ -9,6 +9,8 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>验证控制台</title>
+    <!-- Establish order before module imports inject Spectrum's atomic CSS. -->
+    <style>@layer legacy, _;</style>
     <script>
       (() => {
         const themeKey = "verify-console-theme";

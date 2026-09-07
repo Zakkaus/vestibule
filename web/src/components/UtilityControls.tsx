@@ -1,4 +1,6 @@
 import { Picker, PickerItem } from "@react-spectrum/s2/Picker";
+import { Content, Text } from "@react-spectrum/s2";
+import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { useEffect, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -42,6 +44,13 @@ const themeLabelKeys: Record<ThemePreference, string> = {
   light: "theme.light",
   dark: "theme.dark"
 };
+const chromePickerLayout = style({
+  width: {
+    default: 160,
+    "@media (max-width: 48rem)": "full"
+  },
+  minWidth: 0
+});
 
 type UtilityControlsProps = Readonly<{
   /** "chrome" drops the label above each control: in a corner of the screen the
@@ -102,8 +111,8 @@ export function UtilityControls({ variant = "labelled" }: UtilityControlsProps) 
 
   if (chrome) {
     return (
-      <div data-utility-controls data-variant="chrome">
-        <div data-utility-control>
+      <Content data-utility-controls data-variant="chrome" styles={style({ display: { default: "flex", "@media (max-width: 48rem)": "contents" }, alignItems: "center", gap: 8, minWidth: 0 })}>
+        <Content data-utility-control styles={style({ minWidth: 0 })}>
           <Picker
             aria-label={t("theme.label")}
             selectedKey={theme}
@@ -113,16 +122,17 @@ export function UtilityControls({ variant = "labelled" }: UtilityControlsProps) 
             align="end"
             data-console-control
             data-control-size={size}
+            styles={chromePickerLayout}
             renderValue={(items) => (
-              <span data-console-choice-value>
-                <Icon name={themeIcons[theme]} /><span>{items[0]?.label}</span>
-              </span>
+              <Content data-console-choice-value styles={style({ display: "flex", alignItems: "center", gap: 8, minWidth: 0 })}>
+                <Icon name={themeIcons[theme]} /><Text styles={style({ minWidth: 0, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" })}>{items[0]?.label}</Text>
+              </Content>
             )}
           >
             {(option) => <PickerItem id={option.value}>{option.label}</PickerItem>}
           </Picker>
-        </div>
-        <div data-utility-control>
+        </Content>
+        <Content data-utility-control styles={style({ minWidth: 0 })}>
           <Picker
             aria-label={t("locale.label")}
             selectedKey={locale}
@@ -132,16 +142,17 @@ export function UtilityControls({ variant = "labelled" }: UtilityControlsProps) 
             align="end"
             data-console-control
             data-control-size={size}
+            styles={chromePickerLayout}
             renderValue={(items) => (
-              <span data-console-choice-value>
-                <Icon name="languages" /><span>{items[0]?.label}</span>
-              </span>
+              <Content data-console-choice-value styles={style({ display: "flex", alignItems: "center", gap: 8, minWidth: 0 })}>
+                <Icon name="languages" /><Text styles={style({ minWidth: 0, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" })}>{items[0]?.label}</Text>
+              </Content>
             )}
           >
             {(option) => <PickerItem id={option.value}>{option.label}</PickerItem>}
           </Picker>
-        </div>
-      </div>
+        </Content>
+      </Content>
     );
   }
 

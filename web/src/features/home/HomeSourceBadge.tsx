@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { StatusBadge } from "../../components/StatusBadge";
+import { Badge } from "@react-spectrum/s2/Badge";
 import type { SettingSource } from "../verification/api";
 
 const sourceMessageKeys: Readonly<Record<SettingSource, string>> = {
@@ -12,8 +12,8 @@ const sourceMessageKeys: Readonly<Record<SettingSource, string>> = {
 export function HomeSourceBadge({ source }: Readonly<{ source: SettingSource }>) {
   const { t } = useTranslation();
   return (
-    <StatusBadge tone="neutral">
+    <Badge variant="neutral" fillStyle="subtle" data-home-source>
       {t("home.source.value", { source: t(sourceMessageKeys[source]) })}
-    </StatusBadge>
+    </Badge>
   );
 }

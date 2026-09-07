@@ -1,5 +1,8 @@
-import { relative } from "node:path";
+import { isAbsolute, relative } from "node:path";
 import { defineConfig, type Plugin } from "vite";
+import macros from "unplugin-parcel-macros";
+
+const cssSources = new Set<string>();
 
 function cssProvenance(): Plugin {
   let root = "";
@@ -7,6 +10,7 @@ function cssProvenance(): Plugin {
     name: "console-css-provenance",
     enforce: "post",
     configResolved(config) { root = config.root; },
+    buildStart() { cssSources.clear(); },
     generateBundle(_options, bundle) {
       const css = Object.values(bundle).filter(
         (output) => output.type === "asset" && output.fileName.endsWith(".css")
@@ -14,14 +18,21 @@ function cssProvenance(): Plugin {
       if (css.length !== 1) {
         this.error(`Expected one complete CSS bundle, received ${css.length}`);
       }
-      const origins = [...this.getModuleIds()]
+      const modules = [...this.getModuleIds()];
+      const macroModules = new Set(modules.filter((id) => /^macro-[a-f0-9]+\.css$/.test(id)));
+      const stylesheets = new Set([...modules, ...cssSources]
         .map((id) => id.split("?")[0]!)
-        .filter((id) => id.endsWith(".css"))
-        .map((id) => {
-          const path = relative(root, id).replaceAll("\\", "/");
-          return { path, kind: path.startsWith("node_modules/") ? "vendor" : "project" };
-        })
-        .sort((a, b) => a.path.localeCompare(b.path));
+        .filter((id) => isAbsolute(id) && id.endsWith(".css") && !macroModules.has(relative(root, id))));
+      const origins = [...stylesheets].map((id) => {
+        const path = relative(root, id).replaceAll("\\", "/");
+        return { path, kind: path.startsWith("node_modules/") ? "vendor" : "project" };
+      });
+      const macroSources = new Set([...macroModules]
+        .flatMap((id) => this.getModuleInfo(id)?.importers ?? []));
+      for (const id of macroSources) {
+        origins.push({ path: relative(root, id).replaceAll("\\", "/"), kind: "spectrum-macro" });
+      }
+      origins.sort((a, b) => a.path.localeCompare(b.path));
       if (!origins.some((origin) => origin.kind === "project")) {
         this.error("No authored stylesheet appeared in the build module graph");
       }
@@ -35,9 +46,25 @@ function cssProvenance(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [cssProvenance()],
+  plugins: [macros.vite(), cssProvenance()],
+  optimizeDeps: {
+    // The Node-only macro runs in the build plugin, not the browser dependency graph.
+    exclude: ["@react-spectrum/s2/style"]
+  },
+  css: {
+    postcss: {
+      plugins: [{
+        postcssPlugin: "console-css-source-origins",
+        Once(root) {
+          root.walk((node) => {
+            if (node.source?.input.file) cssSources.add(node.source.input.file);
+          });
+        }
+      }]
+    }
+  },
   build: {
     cssCodeSplit: false,
-    cssMinify: false
+    cssMinify: "lightningcss"
   }
 });

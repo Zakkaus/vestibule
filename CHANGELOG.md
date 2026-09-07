@@ -7,22 +7,30 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 ### Fixed
+- The home chart now gives out-of-window response dates distinct positions and counts
+  coverage within the requested range. Date labels no longer overlap.
+- The sidebar keeps complete navigation rows at 1280×720, marks the current route
+  with weight, an inset rail and icon stroke, and continues to the page bottom without a seam.
+- Cross-group content links now synchronize the SideNav route and expanded group
+  before focus is resolved, so keyboard entry reaches the selected destination.
+- Touch-sized queue actions now have enough TableView column space to remain fully visible.
 - **Question editor controls used mixed height tiers.** Option and fallback-answer rows combined
   `sm` buttons with default-height fields. Their row actions and item deletions now use the
   default tier.
 
 ### Changed
-- The console shell, home, and waiting queue now use React Spectrum 2, with shared
-  radius, control-size, and spacing tiers in light and dark themes. The home chart
-  exposes daily values, and the sidebar scrolls all 15 destinations into view at
-  1280×720. Other content screens keep their existing components.
-- **The mobile navigation panel now connects to its trigger.** Its open state shares the trigger
-  edge and uses denser token-based spacing while retaining the lower panel radius.
+- The console shell, home and waiting queue now use React Spectrum 2 layout primitives
+  and style macros instead of a parallel CSS spacing and radius system. The waiting queue
+  uses TableView for sorting, selection, keyboard navigation and empty states, while retaining
+  its existing row-action authorization and transport. Other content screens keep their components.
+- The mobile navigation uses Spectrum Popover with the same grouped SideNav as desktop;
+  dismissal restores trigger focus and selecting a route closes the panel.
 - The console group switcher now shows the durable title captured when a runtime group is
   registered. Configured groups and legacy registrations without a title fall back to the
   Telegram group ID without making a `GetChat` request for each console load.
-### Changed
-- Console content pages now use a shared 32/24/16/8/4 px spacing rhythm for page, card-stack, section, and field relationships. Card insets expand from 12 × 16 px to 16 × 24 px; controls and navigation are unchanged.
+- Legacy console content pages use a shared 32/24/16/8/4 px spacing rhythm for page,
+  card-stack, section and field relationships. Their card insets expand from 12 × 16 px
+  to 16 × 24 px.
 
 ## [4.5.6] - 2026-08-29
 

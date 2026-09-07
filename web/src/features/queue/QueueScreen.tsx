@@ -1,6 +1,10 @@
 import { Button } from "@react-spectrum/s2/Button";
-import { Text } from "@react-spectrum/s2/Text";
+import { ButtonGroup } from "@react-spectrum/s2/ButtonGroup";
+import { Card } from "@react-spectrum/s2/Card";
+import { Content, Header, Heading, Text } from "@react-spectrum/s2";
+import { InlineAlert } from "@react-spectrum/s2/InlineAlert";
 import { TextField } from "@react-spectrum/s2/TextField";
+import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
@@ -22,6 +26,40 @@ import {
   QueueUnavailableState
 } from "./QueueState";
 import { QueueTable, type PendingQueueActions } from "./QueueTable";
+const queuePageStyles = style({
+  display: "grid",
+  minWidth: 0,
+  gap: 24
+});
+
+const queueHeadingStyles = style({
+  font: "heading-lg",
+  margin: 0,
+  display: "flex",
+  alignItems: "center",
+  gap: 8
+});
+
+const queueResultsStyles = style({
+  display: "grid",
+  minWidth: 0,
+  gap: 24,
+  minHeight: 192
+});
+
+const queueToolbarStyles = style({
+  display: "flex",
+  alignItems: "end",
+  justifyContent: "space-between",
+  flexWrap: "wrap",
+  gap: 24
+});
+
+const queueTableContainerStyles = style({
+  width: "full",
+  minWidth: 0,
+  overflowX: "auto"
+});
 
 const FIXTURE_ACTION_DELAY_MS = 700;
 const FEEDBACK_DURATION_MS = 5_000;
@@ -80,28 +118,25 @@ function QueueFeedbackNotice({ feedback }: Readonly<{ feedback: QueueFeedback }>
   const group = feedback.record.groupLabelKey
     ? t(feedback.record.groupLabelKey)
     : feedback.record.groupKey;
+  const variant =
+    feedback.tone === "ok"
+      ? "positive"
+      : feedback.tone === "error"
+        ? "negative"
+        : feedback.tone === "pending"
+          ? "notice"
+          : feedback.tone === "info"
+            ? "informative"
+            : "neutral";
 
   return (
-    <div
+    <InlineAlert
       data-record-feedback
       data-queue-feedback
       data-tone={feedback.tone}
-      role={feedback.tone === "error" ? "alert" : "status"}
       aria-atomic="true"
+      variant={variant}
     >
-      <Icon
-        name={
-          feedback.tone === "ok"
-            ? "circleCheck"
-            : feedback.tone === "info"
-              ? "info"
-              : feedback.tone === "pending"
-                ? "loaderCircle"
-                : feedback.tone === "error"
-                  ? "circleAlert"
-                  : "circleMinus"
-        }
-      />
       <Text>
         {t(feedback.messageKey, {
           user: feedback.record.user,
@@ -109,7 +144,7 @@ function QueueFeedbackNotice({ feedback }: Readonly<{ feedback: QueueFeedback }>
           approved: t(challengeResults.approved.labelKey)
         })}
       </Text>
-    </div>
+    </InlineAlert>
   );
 }
 
@@ -377,16 +412,28 @@ export function QueueScreen() {
   }
 
   const normalizedQuery = filterQuery.trim().toLocaleLowerCase();
-  const visibleRecords =
-    normalizedQuery.length === 0
-      ? records
-      : records.filter((record) => {
-          const group = record.groupLabelKey ? t(record.groupLabelKey) : record.groupKey;
-          return [record.user, record.groupKey, group].some((value) =>
-            value.toLocaleLowerCase().includes(normalizedQuery)
-          );
-        });
-  const hasRecords = (queueState.kind === "fixture" || queueState.kind === "loaded") && records.length > 0;
+  const visibleRecords = useMemo(
+    () =>
+      normalizedQuery.length === 0
+        ? records
+        : records.filter((record) => {
+            const group = record.groupLabelKey ? t(record.groupLabelKey) : record.groupKey;
+            return [record.user, record.groupKey, group].some((value) =>
+              value.toLocaleLowerCase().includes(normalizedQuery)
+            );
+          }),
+    [normalizedQuery, records, t]
+  );
+  const isDataReady = queueState.kind === "fixture" || queueState.kind === "loaded";
+  const hasRecords = isDataReady && records.length > 0;
+  const tableEmptyState =
+    queueState.kind === "fixture" && records.length === 0 && queueState.fixture.filter ? (
+      <QueueFilteredEmptyState filter={queueState.fixture.filter} onClear={clearFixture} />
+    ) : hasRecords && visibleRecords.length === 0 ? (
+      <QueueFilteredEmptyState query={filterQuery} onClear={() => setFilterQuery("")} />
+    ) : (
+      <QueueEmptyState />
+    );
   const dataState =
     queueState.kind === "fixture"
       ? queueState.fixture.id
@@ -397,49 +444,53 @@ export function QueueScreen() {
         : queueState.kind;
 
   return (
-    <section
+    <Content
       data-record-page
       data-queue-page
       data-console-page
       data-queue-state={dataState}
       aria-busy={queueState.kind === "loading" ? true : undefined}
       aria-labelledby="queue-title"
+      styles={queuePageStyles}
     >
-      <header data-page-heading>
-        <h1 id="queue-title">
+      <Header data-page-heading>
+        <Heading id="queue-title" level={1} styles={queueHeadingStyles}>
           <Icon name="inbox" />
           <Text>{t("queue.title")}</Text>
-        </h1>
-      </header>
+        </Heading>
+      </Header>
 
-      <div data-queue-results>
+      <Content data-queue-results styles={queueResultsStyles}>
         {hasRecords ? (
-          <div data-queue-toolbar data-console-card>
-            <TextField
-              label={t("queue.filter.label")}
-              placeholder={t("queue.filter.placeholder")}
-              value={filterQuery}
-              onChange={setFilterQuery}
-              size={filterSize}
-              data-console-control
-              data-control-size={filterSize}
-              data-queue-filter
-            />
-            {filterQuery.length > 0 ? (
-              <Button
-                variant="secondary"
-                fillStyle="outline"
+          <Card data-queue-toolbar variant="secondary" density="compact" styles={style({ width: "full", minWidth: 0 })}>
+            <Content styles={queueToolbarStyles}>
+              <TextField
+                label={t("queue.filter.label")}
+                placeholder={t("queue.filter.placeholder")}
+                value={filterQuery}
+                onChange={setFilterQuery}
                 size={filterSize}
                 data-console-control
                 data-control-size={filterSize}
-                data-queue-filter-clear
-                onPress={() => setFilterQuery("")}
-              >
-                <Icon name="listX" />
-                <Text>{t("queue.filteredEmpty.clear")}</Text>
-              </Button>
-            ) : null}
-          </div>
+                data-queue-filter
+              />
+              {filterQuery.length > 0 ? (
+                <ButtonGroup>
+                  <Button
+                    variant="secondary"
+                    fillStyle="outline"
+                    size={filterSize}
+                    data-console-control
+                    data-control-size={filterSize}
+                    data-queue-filter-clear
+                    onPress={() => setFilterQuery("")}
+                  >
+                    <Text>{t("queue.filteredEmpty.clear")}</Text>
+                  </Button>
+                </ButtonGroup>
+              ) : null}
+            </Content>
+          </Card>
         ) : null}
 
         {queueState.kind === "loading" ? <QueueLoadingState /> : null}
@@ -451,27 +502,21 @@ export function QueueScreen() {
             onRetry={() => setReloadVersion((currentVersion) => currentVersion + 1)}
           />
         ) : null}
-        {hasRecords && visibleRecords.length > 0 ? (
-          <QueueTable
-            records={visibleRecords}
-            pendingActions={pendingActions}
-            dateFormatter={dateFormatter}
-            onRelease={releaseRecord}
-          />
+        {isDataReady ? (
+          <Content data-queue-table-container styles={queueTableContainerStyles}>
+            <QueueTable
+              key={chatID ?? "unselected"}
+              records={visibleRecords}
+              pendingActions={pendingActions}
+              dateFormatter={dateFormatter}
+              emptyState={tableEmptyState}
+              onRelease={releaseRecord}
+            />
+          </Content>
         ) : null}
-        {hasRecords && visibleRecords.length === 0 ? (
-          <QueueFilteredEmptyState query={filterQuery} onClear={() => setFilterQuery("")} />
-        ) : null}
-        {queueState.kind === "fixture" && records.length === 0 && queueState.fixture.filter ? (
-          <QueueFilteredEmptyState filter={queueState.fixture.filter} onClear={clearFixture} />
-        ) : null}
-        {(queueState.kind === "fixture" || queueState.kind === "loaded") && records.length === 0 &&
-        !(queueState.kind === "fixture" && queueState.fixture.filter) ? (
-          <QueueEmptyState />
-        ) : null}
-      </div>
+      </Content>
 
       {feedback ? <QueueFeedbackNotice feedback={feedback} /> : null}
-    </section>
+    </Content>
   );
 }
