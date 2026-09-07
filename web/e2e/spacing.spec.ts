@@ -214,44 +214,48 @@ async function openSpacingRoute(page: Page, path: string): Promise<void> {
   });
 }
 
-test("content pages use the stepped page and card hierarchy", async ({ page }) => {
-  await mockSpacingTransport(page);
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.emulateMedia({ colorScheme: "light" });
+test.describe("content pages use the stepped page and card hierarchy", () => {
+  test.beforeEach(async ({ page }) => {
+    await mockSpacingTransport(page);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.emulateMedia({ colorScheme: "light" });
+  });
 
   // Authenticated entry redirects to Spectrum home; its geometry is covered separately.
   for (const route of routes.filter((route) => !["/", "/home", "/queue"].includes(route.urlPath))) {
-    await openSpacingRoute(page, route.urlPath);
-    const geometry = await page.evaluate(() => {
-      const contentPage = [...document.querySelectorAll<HTMLElement>("section")].find((element) =>
-        element.getAttributeNames().some((name) => name.startsWith("data-") && name.endsWith("-page"))
-      );
-      const heading = contentPage?.querySelector<HTMLElement>("[data-page-heading]");
-      if (!contentPage || !heading) {
-        throw new Error("rendered route did not expose its page and heading");
-      }
+    test(`page and card geometry on ${route.urlPath}`, async ({ page }) => {
+      await openSpacingRoute(page, route.urlPath);
+      const geometry = await page.evaluate(() => {
+        const contentPage = [...document.querySelectorAll<HTMLElement>("section")].find((element) =>
+          element.getAttributeNames().some((name) => name.startsWith("data-") && name.endsWith("-page"))
+        );
+        const heading = contentPage?.querySelector<HTMLElement>("[data-page-heading]");
+        if (!contentPage || !heading) {
+          throw new Error("rendered route did not expose its page and heading");
+        }
 
-      const cards = [...contentPage.querySelectorAll<HTMLElement>("[data-slot='card']")]
-        .filter((card) => card.checkVisibility());
-      const cardPaddingMismatches = cards
-        .map((card) => {
-          const style = getComputedStyle(card);
-          return `${style.paddingTop} ${style.paddingRight} ${style.paddingBottom} ${style.paddingLeft}`;
-        })
-        .filter((padding) => padding !== "16px 24px 16px 24px");
+        const cards = [...contentPage.querySelectorAll<HTMLElement>("[data-slot='card']")]
+          .filter((card) => card.checkVisibility());
+        const cardPaddingMismatches = cards
+          .map((card) => {
+            const style = getComputedStyle(card);
+            return `${style.paddingTop} ${style.paddingRight} ${style.paddingBottom} ${style.paddingLeft}`;
+          })
+          .filter((padding) => padding !== "16px 24px 16px 24px");
 
-      return {
-        pageGap: getComputedStyle(contentPage).gap,
-        headingGap: getComputedStyle(heading).gap,
-        cardCount: cards.length,
-        cardPaddingMismatches
-      };
+        return {
+          pageGap: getComputedStyle(contentPage).gap,
+          headingGap: getComputedStyle(heading).gap,
+          cardCount: cards.length,
+          cardPaddingMismatches
+        };
+      });
+
+      expect(geometry.pageGap, `${route.urlPath}: page heading to content`).toBe("32px");
+      expect(geometry.headingGap, `${route.urlPath}: page heading copy`).toBe("8px");
+      expect(geometry.cardCount, `${route.urlPath}: rendered card coverage`).toBeGreaterThan(0);
+      expect(geometry.cardPaddingMismatches, `${route.urlPath}: shared card edge inset`).toEqual([]);
     });
-
-    expect(geometry.pageGap, `${route.urlPath}: page heading to content`).toBe("32px");
-    expect(geometry.headingGap, `${route.urlPath}: page heading copy`).toBe("8px");
-    expect(geometry.cardCount, `${route.urlPath}: rendered card coverage`).toBeGreaterThan(0);
-    expect(geometry.cardPaddingMismatches, `${route.urlPath}: shared card edge inset`).toEqual([]);
   }
 
   const stackCases = [
@@ -325,13 +329,15 @@ test("content pages use the stepped page and card hierarchy", async ({ page }) =
   ] as const;
 
   for (const scenario of stackCases) {
-    await openSpacingRoute(page, scenario.urlPath);
-    for (const [selector, expectedGap] of scenario.steps) {
-      await expect(page.locator(selector).first(), `${scenario.urlPath}: ${selector}`).toHaveCSS(
-        "gap",
-        expectedGap
-      );
-    }
+    test(`stack spacing on ${scenario.urlPath}`, async ({ page }) => {
+      await openSpacingRoute(page, scenario.urlPath);
+      for (const [selector, expectedGap] of scenario.steps) {
+        await expect(page.locator(selector).first(), `${scenario.urlPath}: ${selector}`).toHaveCSS(
+          "gap",
+          expectedGap
+        );
+      }
+    });
   }
 });
 

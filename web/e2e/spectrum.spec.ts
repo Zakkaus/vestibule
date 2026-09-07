@@ -121,8 +121,12 @@ test("operator navigation exposes all 15 destinations through accessible groups 
   const actualPaths = actualSections.flatMap((group) => group.paths);
   expect(actualPaths).toHaveLength(operatorPaths.length);
   expect(actualPaths).toEqual(operatorPaths);
+});
 
-  for (const path of operatorPaths) {
+for (const path of operatorPaths) {
+  test(`operator keyboard navigation reaches ${path} at 1280x720`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await mockSpectrumTransport(page, { role: "operator" });
     await openSpectrumRoute(page, "/home");
     await waitForHome(page);
     await focusNavigationDestination(page, path);
@@ -153,8 +157,8 @@ test("operator navigation exposes all 15 destinations through accessible groups 
     await expect(link).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(routeURL(path));
-  }
-});
+  });
+}
 
 test("manager navigation preserves the six groups while filtering only the instance-status destination", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
@@ -171,60 +175,58 @@ test("manager navigation preserves the six groups while filtering only the insta
 });
 
 test.describe("Spectrum shell geometry across changed routes", () => {
-  test("light and dark English layouts use the Spectrum spacing scale without document overflow", async ({ page }) => {
-    await page.addInitScript(() => {
-      localStorage.setItem("verify-console-locale", "en");
-    });
-    await mockSpectrumTransport(page, { role: "operator" });
-    for (const route of ["/home", "/queue"] as const) {
-      for (const theme of ["light", "dark"] as const) {
-        for (const width of [1280, 390, 320] as const) {
-          await test.step(`${route} ${theme} ${width}px`, async () => {
-            await page.setViewportSize({ width, height: 720 });
-            await openSpectrumRoute(page, route);
-            if (route === "/home") await waitForHome(page);
-            else await waitForQueue(page);
-            const themeTrigger = page
-              .locator('[data-utility-controls][data-variant="chrome"] [data-console-control]')
-              .first()
-              .locator("button")
-              .first();
-            await selectAppOption(themeTrigger, theme);
-            await waitForFonts(page);
-            const overflow = await horizontalGeometry(page);
-            expect(overflow.document.scrollWidth).toBeLessThanOrEqual(overflow.document.clientWidth);
-            expect(overflow.escapedElements).toEqual([]);
-            expect(overflow.scopedScrollersOutsideViewport).toEqual([]);
-            const geometry = await page.evaluate(() => {
-              const content = document.querySelector<HTMLElement>(".console-content");
-              const pageRoot = document.querySelector<HTMLElement>("[data-console-page]");
-              const consoleHeader = document.querySelector<HTMLElement>(".console-header");
-              return {
-                contentPadding: content ? getComputedStyle(content).paddingInlineStart : null,
-                contentPaddingBlock: content ? getComputedStyle(content).paddingBlockStart : null,
-                contentOverflowX: content ? getComputedStyle(content).overflowX : null,
-                pageGap: pageRoot ? getComputedStyle(pageRoot).rowGap : null,
-                headerGap: consoleHeader ? getComputedStyle(consoleHeader).gap : null,
-                pageWidth: pageRoot?.getBoundingClientRect().width
-              };
-            });
-            expect(geometry.contentPadding).toBe(width < 768 ? "16px" : "32px");
-            expect(geometry.contentPaddingBlock).toBe(width < 768 ? "16px" : "32px");
-            expect(geometry.contentOverflowX).toBe("visible");
-            expect(geometry.headerGap).toBe("16px");
-            await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
-            expect(geometry.pageGap).toBe("24px");
-            expect(geometry.pageWidth).toBeGreaterThan(0);
-            const controls = await controlGeometry(page);
-            expect(controls.length, `${route} must render measured controls`).toBeGreaterThan(0);
-            for (const control of controls) {
-              expect(control.innerHeight, JSON.stringify(control)).toBe(control.expectedHeight);
-            }
+  for (const route of ["/home", "/queue"] as const) {
+    for (const theme of ["light", "dark"] as const) {
+      for (const width of [1280, 390, 320] as const) {
+        test(`${route} ${theme} English layout uses the Spectrum scale at ${width}px`, async ({ page }) => {
+          await page.addInitScript(() => {
+            localStorage.setItem("verify-console-locale", "en");
           });
-        }
+          await mockSpectrumTransport(page, { role: "operator" });
+          await page.setViewportSize({ width, height: 720 });
+          await openSpectrumRoute(page, route);
+          if (route === "/home") await waitForHome(page);
+          else await waitForQueue(page);
+          const themeTrigger = page
+            .locator('[data-utility-controls][data-variant="chrome"] [data-console-control]')
+            .first()
+            .locator("button")
+            .first();
+          await selectAppOption(themeTrigger, theme);
+          await waitForFonts(page);
+          const overflow = await horizontalGeometry(page);
+          expect(overflow.document.scrollWidth).toBeLessThanOrEqual(overflow.document.clientWidth);
+          expect(overflow.escapedElements).toEqual([]);
+          expect(overflow.scopedScrollersOutsideViewport).toEqual([]);
+          const geometry = await page.evaluate(() => {
+            const content = document.querySelector<HTMLElement>(".console-content");
+            const pageRoot = document.querySelector<HTMLElement>("[data-console-page]");
+            const consoleHeader = document.querySelector<HTMLElement>(".console-header");
+            return {
+              contentPadding: content ? getComputedStyle(content).paddingInlineStart : null,
+              contentPaddingBlock: content ? getComputedStyle(content).paddingBlockStart : null,
+              contentOverflowX: content ? getComputedStyle(content).overflowX : null,
+              pageGap: pageRoot ? getComputedStyle(pageRoot).rowGap : null,
+              headerGap: consoleHeader ? getComputedStyle(consoleHeader).gap : null,
+              pageWidth: pageRoot?.getBoundingClientRect().width
+            };
+          });
+          expect(geometry.contentPadding).toBe(width < 768 ? "16px" : "32px");
+          expect(geometry.contentPaddingBlock).toBe(width < 768 ? "16px" : "32px");
+          expect(geometry.contentOverflowX).toBe("visible");
+          expect(geometry.headerGap).toBe("16px");
+          await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+          expect(geometry.pageGap).toBe("24px");
+          expect(geometry.pageWidth).toBeGreaterThan(0);
+          const controls = await controlGeometry(page);
+          expect(controls.length, `${route} must render measured controls`).toBeGreaterThan(0);
+          for (const control of controls) {
+            expect(control.innerHeight, JSON.stringify(control)).toBe(control.expectedHeight);
+          }
+        });
       }
     }
-  });
+  }
 
   test.describe("touch scale", () => {
     test.use({ isMobile: true, hasTouch: true, viewport: { width: 390, height: 844 } });
