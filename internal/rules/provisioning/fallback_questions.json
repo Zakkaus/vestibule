@@ -23,6 +23,21 @@
         "gnu.org",
         "www.gnu.org"
       ]
+    },
+    {
+      "id": "vim-save-and-quit",
+      "prompts": {
+        "zh": "在 vim 里，保存并退出用哪个命令？",
+        "zh-Hant": "在 vim 裡，儲存並離開用哪個命令？",
+        "en": "In vim, which command saves the file and quits?"
+      },
+      "answers": [
+        ":wq",
+        "wq",
+        ":wq!",
+        ":x",
+        "ZZ"
+      ]
     }
   ]
 }
