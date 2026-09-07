@@ -4,7 +4,7 @@ export const selectedGroupID = "-1001163306055";
 export const actorID = "741928306";
 
 export type SpectrumRole = "manager" | "operator";
-export type TrendMode = "full" | "zero" | "gap";
+export type TrendMode = "full" | "zero" | "gap" | "single";
 
 export const operatorNavigationGroups = [
   { id: "daily", paths: ["/home", "/queue", "/audit"] },
@@ -93,7 +93,9 @@ function outcome(challenges: number, passRate: number) {
 function statsPayload(url: URL, mode: TrendMode) {
   const trend = (mode === "zero"
     ? chartDays.map(({ date }) => ({ date, ...outcome(0, 0) }))
-    : chartDays.map(({ date, challenges, passRate }) => ({ date, ...outcome(challenges, passRate) })))
+    : mode === "single"
+      ? chartDays.slice(-1).map(({ date, challenges, passRate }) => ({ date, ...outcome(challenges, passRate) }))
+      : chartDays.map(({ date, challenges, passRate }) => ({ date, ...outcome(challenges, passRate) })))
     .filter((day) => mode !== "gap" || day.date !== "2026-08-28");
   const summary = mode === "zero"
     ? outcome(0, 0)

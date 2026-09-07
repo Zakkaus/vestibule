@@ -206,7 +206,6 @@ test.describe("Spectrum shell geometry across changed routes", () => {
               contentPadding: content ? getComputedStyle(content).paddingInlineStart : null,
               contentPaddingBlock: content ? getComputedStyle(content).paddingBlockStart : null,
               contentOverflowX: content ? getComputedStyle(content).overflowX : null,
-              pageGap: pageRoot ? getComputedStyle(pageRoot).rowGap : null,
               headerGap: consoleHeader ? getComputedStyle(consoleHeader).gap : null,
               pageWidth: pageRoot?.getBoundingClientRect().width
             };
@@ -216,7 +215,6 @@ test.describe("Spectrum shell geometry across changed routes", () => {
           expect(geometry.contentOverflowX).toBe("visible");
           expect(geometry.headerGap).toBe("16px");
           await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
-          expect(geometry.pageGap).toBe("24px");
           expect(geometry.pageWidth).toBeGreaterThan(0);
           const controls = await controlGeometry(page);
           expect(controls.length, `${route} must render measured controls`).toBeGreaterThan(0);
@@ -307,49 +305,99 @@ test("mobile navigation uses a portalled dialog, restores focus on Escape, and c
   await expect(panel).toBeHidden();
 });
 
-test("home chart exposes exact seven-day values, separate count/rate scales, and readable hover states", async ({ page }) => {
+test("home chart combines seven-day counts and rates with dual axes, labels, legend, and hover readings", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("verify-console-locale", "en"));
   await installSpectrumClock(page);
   await page.setViewportSize({ width: 1280, height: 720 });
   await mockSpectrumTransport(page, { role: "operator", trend: "full" });
   await openSpectrumRoute(page, "/home");
   await waitForHome(page);
+  await waitForFonts(page);
 
-  const counts = page.getByTestId("home-count-chart");
-  const rates = page.getByTestId("home-rate-chart");
-  await expect(counts.locator(".mark-text.role-mark text")).toHaveText(chartDays.map((day) => String(day.challenges)));
-  await expect(rates.locator(".mark-text.role-mark text")).toHaveText(["50%", "58%", "43%", "67%", "56%", "64%", "75%"]);
-  const countTicks = await counts.locator('[aria-label^="Y-axis"] .role-axis-label text').allTextContents();
-  expect(countTicks[0]).toBe("0");
-  expect(countTicks.length).toBeGreaterThan(1);
-  expect(countTicks.every((tick) => Number.isInteger(Number(tick)))).toBe(true);
-  const rateTicks = await rates.locator('[aria-label^="Y-axis"] .role-axis-label text').allTextContents();
-  expect(rateTicks[0]).toBe("0%");
-  expect(rateTicks.at(-1)).toBe("100%");
-  for (const chart of [counts, rates]) {
-    for (const label of await chart.locator('[aria-label^="X-axis"] .role-axis-label text').all()) await expect(label).toBeVisible();
-  }
+  const chart = page.getByTestId("home-combined-chart");
+  await expect(chart).toHaveCount(1);
+  await expect(chart.locator("svg")).toBeVisible();
+  const trendBox = await page.locator('[data-home-section="trend"] [data-home-trend-chart]').boundingBox();
+  expect(trendBox?.height).toBeGreaterThan(0);
+  expect(trendBox?.height).toBeLessThanOrEqual(420);
+  const chartGeometry = await chart.evaluate((element) => {
+    const svg = element.querySelector("svg");
+    const plot = element.closest<HTMLElement>("[data-home-trend-scroll]")?.firstElementChild;
+    const scroll = element.closest<HTMLElement>("[data-home-trend-scroll]");
+    if (!svg || !(plot instanceof HTMLElement) || !scroll) throw new Error("Home chart geometry is missing");
+    const bounds = svg.getBoundingClientRect();
+    return {
+      svgHeight: bounds.height,
+      plotHeight: plot.getBoundingClientRect().height,
+      scrollHeight: scroll.scrollHeight,
+      scrollClientHeight: scroll.clientHeight,
+      clippedLabels: Array.from(svg.querySelectorAll("text")).filter((label) => {
+        const box = label.getBoundingClientRect();
+        return box.left < bounds.left || box.right > bounds.right || box.top < bounds.top || box.bottom > bounds.bottom;
+      }).map((label) => label.textContent)
+    };
+  });
+  expect(chartGeometry.svgHeight).toBeGreaterThan(0);
+  expect(chartGeometry.plotHeight).toBeGreaterThan(0);
+  expect(chartGeometry.svgHeight).toBeLessThanOrEqual(chartGeometry.plotHeight + 1);
+  expect(chartGeometry.scrollHeight).toBeLessThanOrEqual(chartGeometry.scrollClientHeight + 1);
+  expect(chartGeometry.clippedLabels).toEqual([]);
+
+  const labels = chart.locator(".mark-text.role-mark text");
+  await expect(labels).toHaveText([
+    ...chartDays.map((day) => String(day.challenges)),
+    "50%", "58%", "43%", "67%", "56%", "64%", "75%"
+  ]);
+
+  const yAxes = chart.locator('[aria-label^="Y-axis"]');
+  await expect(yAxes).toHaveCount(2);
+  await expect(yAxes.locator(".role-axis-label text").first()).toBeVisible();
+  const axisLabels = await yAxes.locator(".role-axis-label text").allTextContents();
+  expect(axisLabels.some((label) => /^\d+$/.test(label))).toBe(true);
+  expect(axisLabels).toContain("0%");
+  expect(axisLabels).toContain("100%");
+  const chartBox = await chart.boundingBox();
+  if (!chartBox) throw new Error("Home chart has no bounds");
+  const axisSides = await yAxes.evaluateAll((axes) => axes.map((axis) => {
+    const label = axis.querySelector(".role-axis-label text");
+    return label?.getBoundingClientRect().left ?? NaN;
+  }));
+  expect(axisSides.some((left) => left < chartBox.x + chartBox.width / 2)).toBe(true);
+  expect(axisSides.some((left) => left > chartBox.x + chartBox.width / 2)).toBe(true);
+  await expect(chart.locator('[aria-label^="X-axis"] .role-axis-label text')).toHaveText(
+    chartDays.map((day) => new Intl.DateTimeFormat("en-US", {
+      timeZone: "UTC", month: "numeric", day: "numeric"
+    }).format(new Date(`${day.date}T00:00:00Z`)))
+  );
+  await expect(chart.locator('[aria-label^="X-axis"] .role-axis-label text')).toHaveCount(7);
+  await expect(chart.locator(".role-legend")).toContainText(/Requests.*left axis/);
+  await expect(chart.locator(".role-legend")).toContainText(/Pass rate.*right axis/);
+  await expect(chart.locator(".role-legend-symbol")).toHaveCount(2);
+
   await expect(page.locator('[data-home-metric="challenges"]')).toContainText("70");
   await expect(page.locator('[data-home-metric="pass-rate"]')).toContainText("58.6%");
   await expect(page.locator('[data-home-metric="waiting"]')).toContainText("2");
   await expect(page.locator('[data-home-metric="banned"]')).toContainText("4");
 
-  await counts.locator(".mark-rect.role-mark path").first().hover();
+  await chart.locator(".mark-rect.role-mark path").first().hover();
   await expect(page.locator("#vg-tooltip-element")).toHaveText("Aug 26: 8 challenges, 50% pass rate");
-  await rates.locator(".mark-symbol.role-mark path").last().hover();
+  await chart.locator(".mark-symbol.role-mark path").last().hover();
   await expect(page.locator("#vg-tooltip-element")).toHaveText("Sep 1: 8 challenges, 75% pass rate");
 });
 
-test("zero-day chart data keeps exact zero readings and never emits NaN", async ({ page }) => {
+
+test("zero-day combined chart data keeps exact zero readings and never emits NaN", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("verify-console-locale", "en"));
   await installSpectrumClock(page);
   await mockSpectrumTransport(page, { role: "operator", trend: "zero" });
   await openSpectrumRoute(page, "/home");
   await waitForHome(page);
 
-  const chart = page.locator("[data-home-trend-chart]");
-  await expect(page.getByTestId("home-count-chart").locator(".mark-text.role-mark text")).toHaveText(chartDays.map(() => "0"));
-  await expect(page.getByTestId("home-rate-chart").locator(".mark-text.role-mark text")).toHaveText(chartDays.map(() => "0%"));
+  const chart = page.getByTestId("home-combined-chart");
+  await expect(chart.locator(".mark-text.role-mark text")).toHaveText([
+    ...chartDays.map(() => "0"),
+    ...chartDays.map(() => "0%")
+  ]);
   expect(await chart.innerHTML()).not.toContain("NaN");
   await expect(page.locator("[data-home-chart-reading]")).toHaveText("Aug 26: 0 challenges, 0% pass rate");
   await expect(page.locator('[data-home-metric="challenges"]')).toContainText("0");

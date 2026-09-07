@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { chartDays, mockSpectrumTransport, openSpectrumRoute } from "./spectrum-fixtures";
 
 async function dateLabelOverlaps(page: Page) {
-  return page.locator('[data-testid="home-rate-chart"] [aria-label^="X-axis"] .role-axis-label text').evaluateAll((labels) => {
+  return page.locator('[data-testid="home-combined-chart"] [aria-label^="X-axis"] .role-axis-label text').evaluateAll((labels) => {
     const boxes = labels.map((label) => ({
       text: label.textContent,
       box: label.getBoundingClientRect().toJSON()
@@ -66,8 +66,8 @@ test("sidebar never cuts a navigation item at a scroll boundary", async ({ page 
   expect(await clippedNavigation(page)).toEqual([]);
 });
 
-test("sidebar surface continues beyond the viewport without a bottom seam", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 720 });
+test("sidebar surface follows document overflow in a short viewport without a bottom seam", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 480 });
   await mockSpectrumTransport(page, { role: "operator" });
   await openSpectrumRoute(page, "/home");
   await expect(page.locator('[data-home-page]')).toHaveAttribute("data-home-state", "loaded");
@@ -80,7 +80,7 @@ test("sidebar surface continues beyond the viewport without a bottom seam", asyn
   expect(geometry.bottom).toBeGreaterThan(geometry.viewport);
   expect(Math.abs(geometry.bottom - geometry.shellBottom)).toBeLessThanOrEqual(1);
   expect(geometry.border).toBe("0px");
-  await page.locator('[data-home-section="trend"]').scrollIntoViewIfNeeded();
+  await page.locator("[data-home-entries]").scrollIntoViewIfNeeded();
   expect(await page.evaluate(() => scrollY)).toBeGreaterThan(0);
   await expect(page.locator('.console-sidebar a[aria-current="page"]')).toBeInViewport({ ratio: 1 });
 });
@@ -146,27 +146,43 @@ test("content navigation opens the destination group and preserves its keyboard 
 });
 
 for (const locale of ["zh-CN", "zh-TW", "en"] as const) {
-  test(`all horizontal chart labels stay disjoint in ${locale}, including an out-of-window response`, async ({ page }) => {
+  test(`all horizontal combined-chart labels stay disjoint in ${locale}, including an out-of-window response`, async ({ page }) => {
     await page.addInitScript((value) => localStorage.setItem("verify-console-locale", value), locale);
-    // The response contains Aug 26–Sep 1. A range starting Aug 31 used to put
-    // Aug 26 and Aug 31 in the same zero-based slot.
+    // The response contains Aug 26–Sep 1 while the requested range starts Aug 31.
+    // Returned dates must remain distinct without synthetic blank domain slots.
     await page.clock.setFixedTime(new Date("2026-09-06T12:00:00Z"));
     await mockSpectrumTransport(page, { role: "operator" });
     for (const width of [1280, 390, 320]) {
       await page.setViewportSize({ width, height: 720 });
       await openSpectrumRoute(page, "/home");
       await expect(page.locator('[data-home-page]')).toHaveAttribute("data-home-state", "loaded");
-      await page.evaluate(async () => { await document.fonts.ready; });
+      await page.evaluate(async () => {
+        await document.fonts.ready;
+        await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      });
       const { boxes, overlaps } = await dateLabelOverlaps(page);
       expect(boxes.map(({ text }) => text)).toEqual(
-        Array.from({ length: 12 }, (_, index) => new Intl.DateTimeFormat(locale, {
-          timeZone: "UTC", month: "short", day: "numeric"
-        }).format(new Date(Date.UTC(2026, 7, 26 + index))))
+        chartDays.map(({ date }) => new Intl.DateTimeFormat(locale, {
+          timeZone: "UTC", month: "numeric", day: "numeric"
+        }).format(new Date(`${date}T00:00:00Z`)))
       );
       expect(boxes.every(({ box }) => box.width > 0 && box.height > 0)).toBe(true);
       expect(overlaps, `${locale} ${width}px`).toEqual([]);
       const coverage = await page.locator("[data-home-trend-coverage]").innerText();
       expect(coverage.match(/\d+/g)?.map(Number)).toEqual([2, 7, 5]);
+
+      const chartGeometry = await page.getByTestId("home-combined-chart").evaluate((element) => {
+        const svg = element.querySelector("svg");
+        const scroll = element.closest<HTMLElement>("[data-home-trend-scroll]");
+        if (!svg || !scroll) throw new Error("Home chart geometry is missing");
+        return {
+          svgHeight: svg.getBoundingClientRect().height,
+          scrollHeight: scroll.scrollHeight,
+          scrollClientHeight: scroll.clientHeight
+        };
+      });
+      expect(chartGeometry.svgHeight).toBeGreaterThan(0);
+      expect(chartGeometry.scrollHeight).toBeLessThanOrEqual(chartGeometry.scrollClientHeight + 1);
     }
   });
 }

@@ -1379,17 +1379,14 @@
   "home": {
     "navigation": "首頁",
     "title": "首頁",
-    "description": "檢視目前所選群組的概況、待處理事項、近七天趨勢和常用設定。",
     "roles": {
       "manager": "群組管理員",
       "operator": "維運人員"
     },
     "context": {
       "title": "群組 {{id}}",
-      "selectedScope": "此頁面只彙總目前所選群組。",
       "enabled": "驗證已啟用",
-      "disabled": "驗證已停用",
-      "modeUnreported": "群組模式尚未由端點上報"
+      "disabled": "驗證已停用"
     },
     "source": {
       "value": "來源：{{source}}",
@@ -1401,23 +1398,11 @@
       "enabled": "已啟用",
       "disabled": "已停用",
       "configured": "已設定",
-      "notConfigured": "未設定",
-      "permanent": "永久",
-      "failures_other": "{{count}} 次失敗",
       "questions_other": "{{count}} 道題",
-      "seconds_other": "{{count}} 秒",
-      "groups_other": "{{count}} 個群組",
-      "channels_other": "{{count}} 個頻道",
-      "warnings_other": "{{count}} 次警告",
       "verifyMode": {
         "kernel": "核心版本題",
         "quiz": "選擇題",
         "mixed": "混合"
-      },
-      "deliveryMode": {
-        "group": "僅群組內",
-        "dm": "私訊優先",
-        "both": "群組內和私訊"
       }
     },
     "loading": {
@@ -1440,7 +1425,6 @@
     },
     "overview": {
       "title": "概況",
-      "description": "統計值涵蓋近七天；等待數量為目前值。",
       "challenges": "近七天挑戰",
       "passRate": "近七天通過率",
       "waiting": "正在等待",
@@ -1448,11 +1432,9 @@
     },
     "attention": {
       "title": "需要注意",
-      "description": "只列出需要處理或進一步確認的事項。",
       "tones": {
         "pending": "待處理",
-        "error": "異常",
-        "info": "資訊"
+        "error": "異常"
       },
       "empty": {
         "badge": "目前正常",
@@ -1490,59 +1472,35 @@
     },
     "trend": {
       "title": "近七天趨勢",
-      "description": "圖表直接顯示端點回傳的日期和每日數值；缺少的日期不會補造資料。",
-      "coverage": "端點回傳 {{shown}} / {{expected}} 天；缺少 {{missing}} 天，圖表未補造資料。",
+      "coverage": "已回傳 {{shown}} / {{expected}} 天；缺少 {{missing}} 天。",
       "openStats": "檢視統計",
       "empty": "所選範圍內沒有可繪製的日期。",
-      "chartDescription": "上方顯示每日挑戰數，下方顯示每日通過率。數值直接標在圖中；游標停留時可讀取完整資料，也可用鍵盤在日期選擇器中逐日讀取。",
-      "challenges": "挑戰量",
-      "passRate": "通過率",
-      "countPanel": "每日挑戰數",
-      "ratePanel": "每日通過率",
+      "chartDescription": "雙軸圖：柱表示請求數（左軸），線表示通過率（右軸）。圖中標註每日數值；可停留游標檢視，或用日期選單逐日讀取。",
+      "countSeries": "請求數（左軸）",
+      "rateSeries": "通過率（右軸）",
+      "countAxis": "請求數（左軸）",
+      "rateAxis": "通過率（右軸）",
+      "legendLabel": "系列和座標軸",
       "readDate": "選擇日期讀取數值",
-      "missingDay": "{{date}}：未回傳資料",
       "daySummary": "{{date}}：{{count}} 次挑戰，通過率 {{passRate}}"
     },
     "entries": {
       "title": "常用設定",
-      "description": "每個入口都顯示目前值及其來源。",
       "verification": {
         "title": "驗證方式",
-        "description": "傳送管道、驗證模式、限制和成員策略",
-        "mode": "驗證策略",
-        "delivery": "傳送管道",
-        "maxFails": "自動封禁失敗上限",
-        "retry": "重試間隔",
-        "ban": "拒絕後的封禁時長",
-        "mute": "禁言時長",
-        "invited": "驗證受邀成員",
-        "nameSpoiler": "隱藏申請人姓名",
-        "timeout": "逾時"
+        "mode": "驗證策略"
       },
       "questions": {
         "title": "題庫",
-        "description": "題目數量、備用題模式和答題語言",
-        "primary": "選擇題",
-        "mode": "備用題來源",
-        "language": "答題語言",
-        "fallback": "備用題"
+        "primary": "選擇題"
       },
       "bypass": {
         "title": "免驗證來源",
-        "description": "信任群組、必須加入的頻道和頻道身分允許清單",
-        "trustedGroups": "信任群組",
-        "requiredChannel": "必須加入的頻道",
-        "channelDisplay": "頻道顯示名稱",
-        "channelInvite": "頻道邀請連結",
-        "failOpen": "頻道查詢失敗時放行",
-        "channels": "頻道允許清單"
+        "requiredChannel": "必須加入的頻道"
       },
       "moderation": {
         "title": "管理與處罰",
-        "description": "警告上限、反垃圾訊息開關和處罰記錄",
-        "antispam": "反垃圾訊息",
-        "adminLog": "處罰記錄群組",
-        "warnLimit": "警告上限"
+        "antispam": "反垃圾訊息"
       }
     }
   }

@@ -948,12 +948,12 @@ li::marker { color: var(--border); }
       <tbody>
         <tr><td>动作与选择</td><td><code>@react-spectrum/s2</code> 的 Button、LinkButton、Picker、TextField</td><td>屏内主动作 XL（48px），卡片与工具栏 L（40px），行内 M（32px）；同排输入和按钮等高。触摸设备统一升为 XL，按 Spectrum 的 1.25 倍触摸尺度呈现为 60px。</td></tr>
         <tr><td>容器与圆角</td><td>Content、Header、Heading、Card、IllustratedMessage</td><td>布局使用库的原语，卡片与控件保留各自默认圆角、内边距和状态样式，不把按钮改成统一的项目圆角。</td></tr>
-        <tr><td>间距</td><td>Spectrum 2 的 <code>style()</code> 样式宏</td><td>页边采用 32，区块间距采用 24，分区内容采用 16，相邻控件采用 8；窄屏页边采用 16。数值是库的尺度选项，不在 CSS 中复制一组像素变量；卡片内边距由库决定。</td></tr>
+        <tr><td>间距</td><td>Spectrum 2 的 <code>style()</code> 样式宏</td><td>页边采用 32，常规区块间距采用 24；首页区块采用 16，紧邻内容采用 8，窄屏页边采用 16。数值是库的尺度选项，不在 CSS 中复制一组像素变量；卡片内边距由库决定。</td></tr>
         <tr><td>主色</td><td>库的默认强调色</td><td>采用 Spectrum accent 的蓝色，主动作使用 accent 变体；不使用 premium、genai 或靛蓝、紫色的演示配色。</td></tr>
         <tr><td>边界与层次</td><td>Spectrum 的边线、背景与卡片变体</td><td>侧栏底色延伸到页面底部，不在视口下沿增加边线；顶栏和内容边界通过样式宏声明，避免全边框产生额外接缝。</td></tr>
         <tr><td>导航</td><td>SideNav、SideNavItem、Popover</td><td>保留六组和全部授权入口，一次展开一组；路由改变时同步展开目标组。Tab 进入导航后，以方向键在组和入口之间移动。当前项同时使用库的粗体和内侧短线，以及 2 到 2.4 的图标描边变化，不使用大块蓝色填充。1280×720 下逐组展开后检查滚动边界，不允许只露出半个导航项。</td></tr>
         <tr><td>等待队列</td><td>TableView、TableHeader、Column、TableBody、Row、Cell</td><td>库提供多行选择、排序提示和空态容器。Tab 进入表格后，以方向键移动焦点；窄屏保留同一表格并横向滚动。行内放行沿用原有权限与请求流程。切换群后清空选择，排序保持选中项；空队列和筛选无结果使用不同提示。</td></tr>
-        <tr><td>图表</td><td>Adobe 的 <code>@spectrum-charts/react-spectrum-charts-s2</code>、Vega-Lite 与统计 API</td><td>Vega-Lite 生成图形描述，Chart 按 Spectrum 2 主题渲染；应用不写 SVG 坐标。数量与通过率分开标尺，保留零点、日期、数值与图例色点。请求日期与返回日期合并为有序日期域；缺失日期不补零，折线不跨缺口连接。</td></tr>
+        <tr><td>图表</td><td>Adobe 的 <code>@spectrum-charts/react-spectrum-charts-s2</code>、Vega-Lite 与统计 API</td><td>一张双轴图叠加请求数柱和通过率线：左轴为计数，右轴固定为 0–100%。两轴刻度、每日数值和图例保留，图例注明系列对应的轴。只画接口返回的日期，覆盖说明列出缺失天数，不补零，也不保留无说明的空白日期列。</td></tr>
         <tr><td>图标</td><td>现有 Lucide 清单及 Spectrum 内部图标</td><td>应用图标继续使用原样 vendored 的 Lucide；Spectrum 内部的箭头、勾选和进度图形由锁定版本的依赖持有，不复制 Workflow 图标到项目。</td></tr>
         <tr><td>交互反馈</td><td>Spectrum 的悬停、按下、焦点与等待状态</td><td>图表悬停使用库的提示层；键盘通过 S2 Picker 选择日期，在读数区读取完整数值。图表不启用动画；请求减弱动态效果时，仍禁用控件通过内联样式写入的按压缩放。</td></tr>
       </tbody>
@@ -967,10 +967,12 @@ li::marker { color: var(--border); }
     <p>S2 不提供图表组件。Adobe 在独立的 <a href="https://github.com/adobe/react-spectrum-charts">React Spectrum Charts 仓库</a>提供 S2 实现；
       首页固定使用 <code>@spectrum-charts/react-spectrum-charts-s2@0.8.0</code>，该版本仍以 alpha 标签发布。
       它的 Line 组件未正确处理空值，最近点计算也会对空值生成非法路径，因此通过公开的 <code>UNSAFE_vegaSpec</code> 入口接收 Vega-Lite 编译结果。
-      数据缺口交给 <code>break-paths-show-domains</code> 处理；宽度只由 Chart 的容器测量决定，不再启动 Vega-Lite 的另一套宽度计算。
+      日期域只包含实际读数；宽度只由 Chart 的容器测量决定，不再启动 Vega-Lite 的另一套宽度计算。
+      高度由采用 Spectrum 尺度的块容器提供，Chart 使用 <code>height="100%"</code>，Vega 的 <code>autosize</code> 将坐标轴和图例计入容器高度。容器不用隐式网格行，避免百分比高度随图形反复增长；测试同时检查图形高度和容器内部的纵向溢出。
+      Chart 的 <code>padding</code> 显式采用主题的轴标签间距，避免默认零内边距裁切文字。每日两项数值放在柱体上方，文字对比度检查同时考虑页面背景和可能重叠的柱体。
       坐标、文字、描边、点和图例由库生成，视觉样式来自 <code>getSpectrum2VegaConfig</code> 与 <code>getS2ColorValue</code>；栅格线沿用默认实线。
       背景、文字颜色与绘图区边线在 Vega-Lite 编译前传入主题值，避免编译器的白底黑字默认值覆盖暗色主题。
-      图表外部的宽度与间距通过 S2 的 <code>size()</code> 比例函数声明，超出七天的日期域使用较宽的库尺度。
+      图表外部的宽度、高度与间距通过 S2 的 <code>size()</code> 比例函数声明；日期轴采用数字月日，完整日期保留在下拉和读数中。超出七天的日期域使用较宽的库尺度。
       <code>HomeTrend.tsx</code> 不得包含颜色字面量或未缩放的视觉尺寸。</p>
     <p>图表库没有键盘逐点读数接口，因此使用同一日期域驱动 Picker 和读数区；这不是依赖原生 SVG 焦点的另一套图表。
       三种语言都检查桌面与窄屏日期标签的实际矩形，不能相交。浅色、深色及系统主题切换均须保留数值、图例与图形的对应关系，渲染后的文字对比度不得低于 4.5:1。</p>
@@ -1654,20 +1656,21 @@ li::marker { color: var(--border); }
       </div>
     </div>
 
-    <h3>首页分四层</h3>
-    <p>顺序固定：先看情况有没有变化，再看哪些需要处理，然后看趋势，最后才是改配置。</p>
+    <h3>首页一屏呈现</h3>
+    <p>1280×900 下，<code>document.documentElement.scrollHeight &lt;= window.innerHeight</code>；1280×720 下，页面高度不超过视口的 1.15 倍。端到端测试检查这两个边界，不以隐藏溢出或缩小正文、控件字号达标。</p>
+    <p>桌面将概况与需要注意并排，趋势与常用配置并排；窄屏按概况、需要注意、趋势、配置顺序排列。删去重复说明，保留四个数字、实际警示和配置入口。</p>
     <div class="tw"><table class="spec-table">
       <thead><tr><th>层</th><th>内容</th><th>规定</th></tr></thead>
       <tbody>
         <tr><td>概况</td><td>四个关键数字</td>
             <td>每个都可点进对应的屏，不是只能看的数字。带涨跌时标出方向，
               没有可比基准就不显示涨跌</td></tr>
-        <tr><td>需要注意</td><td>分级小块</td>
-            <td>只有真正需要处理的才用警示色。全部正常时仍显示左对齐的正常徽章和说明，与本节标题共用左边界。</td></tr>
+        <tr><td>需要注意</td><td>分级链接</td>
+            <td>实际待办显示标题、数量和警示徽章，链接进入处理页。全部正常时仍显示左对齐的正常徽章和说明，与本节标题共用左边界。</td></tr>
         <tr><td>趋势</td><td>近 7 天图表</td>
-            <td>日期、坐标轴刻度和每天数值直接可读，悬停或用键盘选择日期可读完整数据；统计屏用于进一步分析</td></tr>
+            <td>请求数柱与通过率线叠在一张双轴图中，两种颜色均来自 Spectrum token。左右轴刻度、数值标签、对应轴的图例及按日读数下拉均保留；仅返回一天时只画一天，缺失天数另作说明。</td></tr>
         <tr><td>入口</td><td>四个独立的配置区块</td>
-            <td>每个入口占一整行，以 Spectrum 数据展示组件分别列出当前值。验证方式包含限制和邀请策略，题库包含数量、模式和语言，免验证来源包含频道与信任配置，管理与处罚包含阈值、开关和记录去向。来源放在次要文字中，不用逐行胶囊抢占数值的层级。</td></tr>
+            <td>四块纵向排列，每块至多三项，不改成四张并排小卡片。当前各保留一项：验证模式、主用题数、必需频道状态、反垃圾开关。其余值进入对应配置屏查看。来源紧随数值，以次要脚注显示，不独占与数值等高的一行。</td></tr>
       </tbody>
     </table></div>
     <h3>群模式要一直摆在明处</h3>
@@ -3275,8 +3278,8 @@ li::marker { color: var(--border); }
         否则整页会在加载完的一瞬间跳一下。</li>
       <li><strong>空和零是两件事。</strong>「这天没有人申请」和「这天没数据」
         长得不能一样，前者画一条零线，后者留白并写明。</li>
-      <li><strong>图要有可访问的读数。</strong>统计屏提供明细表；首页的每个数据点可用键盘聚焦，
-        其可访问名称包含日期、数量和通过率，不只提供视觉标记。</li>
+      <li><strong>图要有可访问的读数。</strong>统计屏提供明细表；首页通过键盘操作日期下拉，
+        在读数区读取日期、数量和通过率，不依赖 SVG 数据点焦点。</li>
     </ul>
   </section>
 

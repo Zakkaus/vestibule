@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Badge, Card, Content, Divider, Header, Heading, Text } from "@react-spectrum/s2";
+import { Badge, Content, Heading, Link, Text } from "@react-spectrum/s2";
 import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 
 import { useConsoleSession } from "../../app/session";
@@ -138,20 +138,16 @@ function OverviewSection({
   ] as const;
 
   return (
-    <Content data-home-section="overview" aria-labelledby="home-overview-title" styles={style({ display: "grid", gap: 16, minWidth: 0 })}>
-      <Divider size="S" />
-      <Header data-home-section-heading styles={style({ display: "grid", gap: 8 })}>
-        <Heading level={2} id="home-overview-title" styles={style({ font: "heading", margin: 0 })}>{t("home.overview.title")}</Heading>
-        <Text styles={style({ font: "body", color: "neutral-subdued" })}>{t("home.overview.description")}</Text>
-      </Header>
-      <Content aria-labelledby="home-overview-title" data-home-metrics styles={style({ display: "grid", gridTemplateColumns: { default: ["minmax(0, 1fr)", "minmax(0, 1fr)"], lg: ["minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)"] }, gap: 16, minWidth: 0 })}>
+    <Content data-home-section="overview" aria-labelledby="home-overview-title" styles={style({ display: "grid", gap: 8, minWidth: 0 })}>
+      <Heading level={2} id="home-overview-title" styles={style({ font: "heading", margin: 0 })}>{t("home.overview.title")}</Heading>
+      <Content aria-labelledby="home-overview-title" data-home-metrics styles={style({ display: "grid", gridTemplateColumns: { default: ["minmax(0, 1fr)", "minmax(0, 1fr)"], lg: ["minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)"] }, gap: 8, minWidth: 0 })}>
         {metrics.map((metric) => (
-          <Card key={metric.id} href={`${metric.path}${groupSearch}`} density="compact" data-console-card data-home-metric={metric.id} styles={style({ width: "full", minWidth: 0 })}>
-            <Content>
-              <Text slot="title" styles={style({ font: "heading-lg" })}>{metric.value}</Text>
-              <Text slot="description">{t(metric.labelKey)}</Text>
+          <Link key={metric.id} href={`${metric.path}${groupSearch}`} isStandalone isQuiet data-home-metric={metric.id}>
+            <Content styles={style({ display: "grid", gap: 4, minWidth: 0 })}>
+              <Text styles={style({ font: "heading-lg", color: "neutral" })}>{metric.value}</Text>
+              <Text styles={style({ font: "body-sm", color: "neutral-subdued" })}>{t(metric.labelKey)}</Text>
             </Content>
-          </Card>
+          </Link>
         ))}
       </Content>
     </Content>
@@ -167,27 +163,24 @@ function AttentionSection({
   const isOperator = data.diagnostics.kind !== "hidden";
 
   return (
-    <Content data-home-section="attention" aria-labelledby="home-attention-title" styles={style({ display: "grid", gap: 16, minWidth: 0 })}>
-      <Divider size="S" />
-      <Header data-home-section-heading styles={style({ display: "grid", gap: 8 })}>
-        <Heading level={2} id="home-attention-title" styles={style({ font: "heading", margin: 0 })}>{t("home.attention.title")}</Heading>
-        <Text styles={style({ font: "body", color: "neutral-subdued" })}>{t("home.attention.description")}</Text>
-      </Header>
+    <Content data-home-section="attention" aria-labelledby="home-attention-title" styles={style({ display: "grid", gap: 8, minWidth: 0 })}>
+      <Heading level={2} id="home-attention-title" styles={style({ font: "heading", margin: 0 })}>{t("home.attention.title")}</Heading>
       {items.length === 0 ? (
         <Content data-home-attention-empty styles={style({ display: "grid", justifyItems: "start", gap: 8, textAlign: "start" })}>
           <Badge variant="positive" fillStyle="subtle">{t("home.attention.empty.badge")}</Badge>
           <Text styles={style({ font: "body", color: "neutral-subdued" })}>{t(isOperator ? "home.attention.empty.operatorDescription" : "home.attention.empty.managerDescription")}</Text>
         </Content>
       ) : (
-        <Content aria-labelledby="home-attention-title" data-home-attention-list styles={style({ display: "grid", gap: 16, minWidth: 0 })}>
+        <Content aria-labelledby="home-attention-title" data-home-attention-list styles={style({ display: "grid", gap: 8, minWidth: 0 })}>
           {items.map((item) => (
-            <Card key={item.id} href={`${item.path}${groupSearch}`} data-console-card data-home-attention={item.id} styles={style({ width: "full", minWidth: 0 })}>
-              <Badge variant={item.tone === "error" ? "negative" : "notice"} fillStyle="subtle">{t(`home.attention.tones.${item.tone}`)}</Badge>
-              <Content data-home-attention-copy>
-                <Text slot="title">{t(item.titleKey)}</Text>
-                <Text slot="description">{t(item.descriptionKey, { count: item.count })}</Text>
+            <Link key={item.id} href={`${item.path}${groupSearch}`} isStandalone data-home-attention={item.id}
+              aria-label={`${t(item.titleKey)} ${t(item.descriptionKey, { count: item.count })}`}>
+              <Content styles={style({ display: "flex", alignItems: "center", gap: 8, font: "body", minWidth: 0 })}>
+                <Badge variant={item.tone === "error" ? "negative" : "notice"} fillStyle="subtle">{t(`home.attention.tones.${item.tone}`)}</Badge>
+                <Text data-home-attention-copy>{t(item.titleKey)}</Text>
+                {item.count !== undefined ? <Text>{item.count}</Text> : null}
               </Content>
-            </Card>
+            </Link>
           ))}
         </Content>
       )}
@@ -205,11 +198,10 @@ export function HomeDashboard({ data, chatID }: Readonly<{ data: HomeData; chatI
   const settings = data.settings;
 
   return (
-    <Content data-home-content styles={style({ display: "grid", minWidth: 0, gap: 24 })}>
-      <Card data-console-card data-home-context aria-labelledby="home-context-title" styles={style({ width: "full", minWidth: 0 })}>
+    <Content data-home-content styles={style({ display: "grid", minWidth: 0, gap: 8 })}>
+      <Content data-home-context aria-labelledby="home-context-title" styles={style({ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, minWidth: 0 })}>
         <Content data-home-context-copy>
           <Text slot="title" id="home-context-title">{t("home.context.title", { id: groupName(chatID, title) })}</Text>
-          <Text slot="description">{t("home.context.selectedScope")}</Text>
         </Content>
         <Content data-home-context-badges styles={style({ display: "flex", flexWrap: "wrap", gap: 8, minWidth: 0 })}>
           <Badge variant="neutral" fillStyle="subtle">
@@ -219,13 +211,16 @@ export function HomeDashboard({ data, chatID }: Readonly<{ data: HomeData; chatI
             {t(settings.enabled.value ? "home.context.enabled" : "home.context.disabled")}
           </Badge>
           <HomeSourceBadge source={settings.enabled.source} />
-          <Badge variant="neutral" fillStyle="subtle">{t("home.context.modeUnreported")}</Badge>
         </Content>
-      </Card>
-      <OverviewSection data={data} groupSearch={groupSearch} />
-      <AttentionSection data={data} groupSearch={groupSearch} />
-      <HomeTrend data={data} groupSearch={groupSearch} />
-      <HomeEntries settings={settings} groupSearch={groupSearch} />
+      </Content>
+      <Content styles={style({ display: "grid", gridTemplateColumns: { default: ["minmax(0, 1fr)"], lg: ["minmax(0, 1fr)", "minmax(0, 1fr)"] }, gap: 16, alignItems: "start", minWidth: 0 })}>
+        <OverviewSection data={data} groupSearch={groupSearch} />
+        <AttentionSection data={data} groupSearch={groupSearch} />
+      </Content>
+      <Content styles={style({ display: "grid", gridTemplateColumns: { default: ["minmax(0, 1fr)"], lg: ["minmax(0, 1fr)", "minmax(0, 1fr)"] }, gap: 16, alignItems: "start", minWidth: 0 })}>
+        <HomeTrend data={data} groupSearch={groupSearch} />
+        <HomeEntries settings={settings} groupSearch={groupSearch} />
+      </Content>
     </Content>
   );
 }

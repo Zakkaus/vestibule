@@ -1385,17 +1385,14 @@
   "home": {
     "navigation": "Home",
     "title": "Home",
-    "description": "Review the selected group's summary, attention items, seven-day trend, and common configuration.",
     "roles": {
       "manager": "Group administrator",
       "operator": "Operator"
     },
     "context": {
       "title": "Group {{id}}",
-      "selectedScope": "This page summarizes only the selected group.",
       "enabled": "Verification enabled",
-      "disabled": "Verification disabled",
-      "modeUnreported": "Group mode not reported by the endpoint"
+      "disabled": "Verification disabled"
     },
     "source": {
       "value": "Source: {{source}}",
@@ -1407,29 +1404,12 @@
       "enabled": "Enabled",
       "disabled": "Disabled",
       "configured": "Configured",
-      "notConfigured": "Not configured",
-      "permanent": "Permanent",
-      "failures_one": "{{count}} failure",
-      "failures_other": "{{count}} failures",
       "questions_one": "{{count}} question",
       "questions_other": "{{count}} questions",
-      "seconds_one": "{{count}} second",
-      "seconds_other": "{{count}} seconds",
-      "groups_one": "{{count}} group",
-      "groups_other": "{{count}} groups",
-      "channels_one": "{{count}} channel",
-      "channels_other": "{{count}} channels",
-      "warnings_one": "{{count}} warning",
-      "warnings_other": "{{count}} warnings",
       "verifyMode": {
         "kernel": "Kernel version question",
         "quiz": "Multiple-choice question",
         "mixed": "Mixed"
-      },
-      "deliveryMode": {
-        "group": "Group only",
-        "dm": "Direct message first",
-        "both": "Group and direct message"
       }
     },
     "loading": {
@@ -1452,7 +1432,6 @@
     },
     "overview": {
       "title": "Summary",
-      "description": "Statistics cover the past seven days; the waiting count is current.",
       "challenges": "Seven-day challenges",
       "passRate": "Seven-day pass rate",
       "waiting": "Waiting now",
@@ -1460,11 +1439,9 @@
     },
     "attention": {
       "title": "Needs attention",
-      "description": "Only items requiring action or further review appear here.",
       "tones": {
         "pending": "Pending",
-        "error": "Problem",
-        "info": "Information"
+        "error": "Problem"
       },
       "empty": {
         "badge": "All clear",
@@ -1503,59 +1480,35 @@
     },
     "trend": {
       "title": "Seven-day trend",
-      "description": "The chart shows dates and daily values returned by the endpoint; missing dates are not filled with invented samples.",
-      "coverage": "The endpoint returned {{shown}} of {{expected}} days; {{missing}} missing days are not filled with invented samples.",
+      "coverage": "{{shown}} of {{expected}} days returned; {{missing}} missing.",
       "openStats": "View statistics",
       "empty": "The selected range contains no dates to plot.",
-      "chartDescription": "Daily challenges appear above daily pass rates, with values labeled on both plots. Hover for full readings, or use the date picker to read each day by keyboard.",
-      "challenges": "Challenge volume",
-      "passRate": "Pass rate",
-      "countPanel": "Daily challenges",
-      "ratePanel": "Daily pass rate",
+      "chartDescription": "Bars show requests on the left axis; the line shows pass rate on the right. Read daily values from the labels, hover tooltip, or date picker.",
+      "countSeries": "Requests (left axis)",
+      "rateSeries": "Pass rate (right axis)",
+      "countAxis": "Requests (left axis)",
+      "rateAxis": "Pass rate (right axis)",
+      "legendLabel": "Series and axis",
       "readDate": "Choose a date to read values",
-      "missingDay": "{{date}}: no data returned",
       "daySummary": "{{date}}: {{count}} challenges, {{passRate}} pass rate"
     },
     "entries": {
       "title": "Common configuration",
-      "description": "Every entry point shows its current values and their sources.",
       "verification": {
         "title": "Verification method",
-        "description": "Delivery, challenge modes, limits, and member policy",
-        "mode": "Verification strategy",
-        "delivery": "Delivery channel",
-        "maxFails": "Automatic-ban failure limit",
-        "retry": "Retry interval",
-        "ban": "Ban duration after rejection",
-        "mute": "Mute duration",
-        "invited": "Verify invited members",
-        "nameSpoiler": "Hide applicant names",
-        "timeout": "Timeout"
+        "mode": "Verification strategy"
       },
       "questions": {
         "title": "Question bank",
-        "description": "Question counts, fallback mode, and challenge language",
-        "primary": "Multiple-choice",
-        "mode": "Fallback question source",
-        "language": "Challenge language",
-        "fallback": "Fallback"
+        "primary": "Multiple-choice"
       },
       "bypass": {
         "title": "Verification bypass sources",
-        "description": "Trusted groups, required channel, and sender-channel allowlist",
-        "trustedGroups": "Trusted groups",
-        "requiredChannel": "Required channel",
-        "channelDisplay": "Channel display name",
-        "channelInvite": "Channel invite URL",
-        "failOpen": "Allow entry when channel lookup fails",
-        "channels": "Channel allowlist"
+        "requiredChannel": "Required channel"
       },
       "moderation": {
         "title": "Moderation and penalties",
-        "description": "Warning threshold, anti-spam switch, and moderation log",
-        "antispam": "Anti-spam",
-        "adminLog": "Moderation log group",
-        "warnLimit": "Warning threshold"
+        "antispam": "Anti-spam"
       }
     }
   }

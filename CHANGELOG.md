@@ -21,12 +21,14 @@ All notable changes to this project are documented here. The format is based on
   default tier.
 
 ### Changed
-- The home trend uses Spectrum Charts and the official Spectrum 2 theme instead of
-  authored SVG geometry. Separate count and rate plots retain exact labels, hover
-  readings and a keyboard date reader; missing dates remain gaps.
-- Home configuration entries now occupy separate full-width sections and expose
-  verification limits, question sources, channel requirements and moderation settings.
-  Each value shows its source as subdued text rather than a badge.
+- The home page fits a 1280×900 viewport without vertical scrolling and stays within
+  1.15 viewport heights at 1280×720, without reducing text or control sizes.
+- The home trend overlays request bars and a pass-rate line on independent left/right
+  axes using Spectrum Charts and the official Spectrum 2 theme. Both scales, value
+  labels, the series legend, hover readings and a keyboard date reader remain visible.
+  Only returned dates are plotted; missing-day coverage is stated separately.
+- Home configuration entries remain four stacked sections, each showing one key
+  setting with an inline source footnote. Remaining values are on the configuration pages.
 - Group labels now consistently prefer the available title across the console,
   falling back to the internal ID only when a title is missing or blank.
 - The console shell, home and waiting queue now use React Spectrum 2 layout primitives

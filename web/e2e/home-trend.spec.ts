@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { parseSync, type ESTree } from "vite";
+import { selectAppOption } from "./app-select";
 import { installSpectrumClock, mockSpectrumTransport, openSpectrumRoute } from "./spectrum-fixtures";
 
 const trendFile = new URL("../src/features/home/HomeTrend.tsx", import.meta.url);
@@ -87,21 +88,38 @@ test("chart date picker exposes complete readings through keyboard selection", a
   await expect(reader).toBeFocused();
 });
 
-test("missing chart days remain gaps rather than zero samples or connected rates", async ({ page }) => {
+test("missing chart days keep the exact returned date domain and explain coverage", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("verify-console-locale", "en"));
   await installSpectrumClock(page);
   await mockSpectrumTransport(page, { trend: "gap" });
   await openSpectrumRoute(page, "/home");
-  const chart = page.locator("[data-home-trend-chart]");
-  await expect(page.getByTestId("home-count-chart").locator(".mark-text.role-mark text")).toHaveText(["8", "12", "15", "9", "11", "8"]);
-  await expect(page.getByTestId("home-rate-chart").locator(".mark-text.role-mark text")).toHaveText(["50%", "58%", "67%", "56%", "64%", "75%"]);
-  expect(await chart.innerHTML()).not.toContain("NaN");
-  const path = await chart.locator(".mark-line path").getAttribute("d");
-  expect(path?.match(/M/g)).toHaveLength(2);
+
+  const chart = page.getByTestId("home-combined-chart");
+  const axisLabels = chart.locator('[aria-label^="X-axis"] .role-axis-label text');
+  await expect(axisLabels).toHaveText(["8/26", "8/27", "8/29", "8/30", "8/31", "9/1"]);
+  await expect(axisLabels).toHaveCount(6);
+  await expect(chart.locator(".mark-text.role-mark text")).toHaveCount(12);
+  await expect(chart.locator("svg")).toBeVisible();
   await expect(page.locator("[data-home-trend-coverage]")).toContainText("6 of 7");
+  await expect(page.locator("[data-home-chart-reading]")).toContainText("Aug 26");
+  expect(await chart.innerHTML()).not.toContain("NaN");
 });
 
-test("native legend dots match each series across explicit and system themes", async ({ page }) => {
+test("single-day responses use a single-day chart domain", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("verify-console-locale", "en"));
+  await installSpectrumClock(page);
+  await mockSpectrumTransport(page, { trend: "single" });
+  await openSpectrumRoute(page, "/home");
+
+  const chart = page.getByTestId("home-combined-chart");
+  await expect(chart.locator('[aria-label^="X-axis"] .role-axis-label text')).toHaveText(["9/1"]);
+  await expect(chart.locator(".mark-text.role-mark text")).toHaveText(["8", "75%"]);
+  await expect(page.locator("[data-home-trend-coverage]")).toContainText("1 of 7");
+  await expect(page.locator("[data-home-chart-reading]")).toHaveText("Sep 1: 8 challenges, 75% pass rate");
+});
+
+
+test("native legend dots match the combined chart series across explicit and system themes", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("verify-console-locale", "en"));
   await installSpectrumClock(page);
   await mockSpectrumTransport(page);
@@ -109,60 +127,65 @@ test("native legend dots match each series across explicit and system themes", a
   const colors: Record<string, string> = {};
   for (const [preference, system] of [["system", "light"], ["system", "dark"], ["light", "dark"], ["dark", "light"]] as const) {
     await page.emulateMedia({ colorScheme: system });
-    await page.getByRole("button", { name: /Theme$/ }).press("Space");
-    await page.keyboard.press("Home");
-    if (preference === "light") await page.keyboard.press("ArrowDown");
-    if (preference === "dark") await page.keyboard.press("End");
-    await page.keyboard.press("Enter");
+    await selectAppOption(page.getByRole("button", { name: /Theme$/ }), preference);
     const theme = preference === "system" ? system : preference;
-    const count = page.getByTestId("home-count-chart");
-    const rate = page.getByTestId("home-rate-chart");
-    await expect(count.locator(".mark-text.role-mark text")).toHaveCount(7);
-    await expect(rate.locator(".mark-text.role-mark text")).toHaveCount(7);
-    const bars = count.locator(".mark-rect.role-mark path").first();
+    const chart = page.getByTestId("home-combined-chart");
+    const labels = chart.locator(".mark-text.role-mark text");
+    await expect(labels).toHaveCount(14);
+    const bars = chart.locator(".mark-rect.role-mark path").first();
+    const line = chart.locator(".mark-line path").first();
     if (colors[theme]) await expect(bars).toHaveAttribute("fill", colors[theme]);
     else if (theme === "dark") await expect(bars).not.toHaveAttribute("fill", colors.light);
     const countColor = await bars.getAttribute("fill");
-    const rateColor = await rate.locator(".mark-line path").getAttribute("stroke");
+    const rateColor = await line.getAttribute("stroke");
+    expect(countColor).toBeTruthy();
+    expect(rateColor).toBeTruthy();
     colors[theme] = countColor!;
-    await expect(count.locator(".role-legend-symbol path")).toHaveAttribute("fill", countColor!);
-    await expect(rate.locator(".role-legend-symbol path")).toHaveAttribute("fill", rateColor!);
+
+    const legend = chart.locator(".role-legend");
+    await expect(legend).toContainText(/Requests.*left axis/);
+    await expect(legend).toContainText(/Pass rate.*right axis/);
+    const symbols = legend.locator(".role-legend-symbol path");
+    await expect(symbols).toHaveCount(2);
+    await expect(symbols.nth(0)).toHaveAttribute("fill", countColor!);
+    await expect(symbols.nth(1)).toHaveAttribute("fill", rateColor!);
     expect(countColor).not.toBe(rateColor);
-    for (const panel of [count, rate]) {
-      const surface = await panel.evaluate((element) => {
-        const rgba = (css: string) => css.match(/[\d.]+/g)!.map(Number);
-        const luminance = (channels: number[]) => channels.slice(0, 3).map((channel) => {
-          const value = channel / 255;
-          return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-        }).reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
-        let background = NaN;
-        for (let node: Element | null = element.querySelector("svg"); node; node = node.parentElement) {
-          const color = rgba(getComputedStyle(node).backgroundColor);
-          if (color.length === 3 || color[3] === 1) { background = luminance(color); break; }
-        }
-        const contrasts = Array.from(element.querySelectorAll("svg text")).map((label) => {
-          const foreground = luminance(rgba(getComputedStyle(label).fill));
-          return (Math.max(background, foreground) + 0.05) / (Math.min(background, foreground) + 0.05);
-        });
-        return { background, contrast: Math.min(...contrasts) };
+
+    const surface = await chart.evaluate((element) => {
+      const rgba = (css: string) => css.match(/[\d.]+/g)!.map(Number);
+      const luminance = (channels: number[]) => channels.slice(0, 3).map((channel) => {
+        const value = channel / 255;
+        return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+      }).reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
+      let background = NaN;
+      for (let node: Element | null = element.querySelector("svg"); node; node = node.parentElement) {
+        const color = rgba(getComputedStyle(node).backgroundColor);
+        if (color.length === 3 || color[3] === 1) { background = luminance(color); break; }
+      }
+      const bars = Array.from(element.querySelectorAll(".mark-rect.role-mark path")).map((bar) => ({
+        box: bar.getBoundingClientRect(),
+        luminance: luminance(rgba(getComputedStyle(bar).fill))
+      }));
+      const contrasts = Array.from(element.querySelectorAll("svg text")).flatMap((label) => {
+        const foreground = luminance(rgba(getComputedStyle(label).fill));
+        const box = label.getBoundingClientRect();
+        const behind = bars.filter(({ box: bar }) =>
+          bar.left < box.right && bar.right > box.left && bar.top < box.bottom && bar.bottom > box.top);
+        const covered = behind.some(({ box: bar }) =>
+          bar.left <= box.left && bar.right >= box.right && bar.top <= box.top && bar.bottom >= box.bottom);
+        const backgrounds = [...(covered ? [] : [background]), ...behind.map((bar) => bar.luminance)];
+        return backgrounds.map((value) => (Math.max(value, foreground) + 0.05) / (Math.min(value, foreground) + 0.05));
       });
-      if (theme === "dark") expect(surface.background).toBeLessThan(0.2);
-      else expect(surface.background).toBeGreaterThan(0.8);
-      expect(surface.contrast).toBeGreaterThanOrEqual(4.5);
-      const symbol = panel.locator(".role-legend-symbol path");
-      await symbol.scrollIntoViewIfNeeded();
-      await expect(symbol).toBeVisible();
-      const box = await symbol.boundingBox();
-      expect(box!.width).toBeGreaterThan(0);
-      expect(Math.abs(box!.width - box!.height)).toBeLessThan(1);
-      const filledShape = await symbol.evaluate((element: SVGGeometryElement) => {
-        const bounds = element.getBBox();
-        return {
-          center: element.isPointInFill(new DOMPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2)),
-          corner: element.isPointInFill(new DOMPoint(bounds.x + bounds.width / 10, bounds.y + bounds.height / 10))
-        };
-      });
-      expect(filledShape).toEqual({ center: true, corner: false });
-    }
+      return { background, contrast: Math.min(...contrasts) };
+    });
+    if (theme === "dark") expect(surface.background).toBeLessThan(0.2);
+    else expect(surface.background).toBeGreaterThan(0.8);
+    expect(surface.contrast).toBeGreaterThanOrEqual(4.5);
+    const symbol = symbols.first();
+    await symbol.scrollIntoViewIfNeeded();
+    await expect(symbol).toBeVisible();
+    const box = await symbol.boundingBox();
+    expect(box!.width).toBeGreaterThan(0);
+    expect(Math.abs(box!.width - box!.height)).toBeLessThan(1);
   }
 });

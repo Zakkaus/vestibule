@@ -108,47 +108,48 @@ async function mockHome(page: Page): Promise<void> {
   });
 }
 
-test("home configuration entries show complete sourced settings as full-width navigable sections", async ({ page }) => {
+test("home configuration entries stay stacked, sourced, and limited to three values", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("verify-console-locale", "en"));
   await mockHome(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`/home?group=${selectedGroupID}`);
   await expect(page.locator("[data-home-page]")).toHaveAttribute("data-home-state", "loaded");
 
   const entries = page.locator("[data-home-entry]");
   await expect(entries).toHaveCount(4);
-
-  const verification = page.locator("[data-home-entry='verification']");
-  const questions = page.locator("[data-home-entry='questions']");
-  const bypass = page.locator("[data-home-entry='bypass']");
-  const moderation = page.locator("[data-home-entry='moderation']");
-  const values = [
-    [verification, {
-      "验证策略": "选择题", "投递渠道": "私聊优先", "超时": "420 秒",
-      "自动封禁失败上限": "4 次失败", "重试间隔": "已停用", "拒绝后的封禁时长": "永久",
-      "禁言时长": "7200 秒", "验证被邀请成员": "已停用", "隐藏申请人姓名": "已停用"
-    }],
-    [questions, {
-      "选择题": "3 道题", "备用题": "2 道题", "备用题来源": "自定义备用题", "答题语言": "繁体中文"
-    }],
-    [bypass, {
-      "信任群": "2 个群", "要求加入的频道": "已配置", "频道显示名": "@gentoo_required",
-      "频道邀请链接": "https://t.me/+gentoo-required", "频道查询失败时放行": "已停用", "频道白名单": "3 个频道"
-    }],
-    [moderation, { "反垃圾": "已停用", "警告上限": "6 次警告", "处罚记录群": "已配置" }]
+  const expected = [
+    ["verification", "Multiple-choice question"],
+    ["questions", "3 questions"],
+    ["bypass", "Configured"],
+    ["moderation", "Disabled"]
   ] as const;
-  for (const [entry, fields] of values) {
-    for (const [label, value] of Object.entries(fields)) {
-      const row = entry.locator("[data-home-entry-value]").filter({ has: page.getByText(label, { exact: true }) });
-      await expect(row.locator("[data-home-entry-value-text]")).toHaveText(value);
-      await expect(row.locator("[data-home-entry-source]")).toBeVisible();
-    }
+
+  for (const [id, value] of expected) {
+    const entry = page.locator(`[data-home-entry="${id}"]`);
+    const values = entry.locator("[data-home-entry-value]");
+    const valueText = values.locator("[data-home-entry-value-text]");
+    const sources = values.locator("[data-home-entry-source]");
+    const matchingValue = valueText.filter({ hasText: value });
+    const valueCount = await values.count();
+    expect(valueCount).toBeGreaterThanOrEqual(1);
+    expect(valueCount).toBeLessThanOrEqual(3);
+    expect(await valueText.count()).toBe(valueCount);
+    expect(await sources.count()).toBe(valueCount);
+    await expect(matchingValue).toHaveCount(1);
+    await expect(matchingValue).toHaveText(value);
+    const matchingSource = matchingValue.locator("xpath=..").locator("[data-home-entry-source]");
+    await expect(matchingSource).toBeVisible();
+    await expect(matchingSource).toHaveText("(Group override)");
+    await expect(matchingSource).toHaveAttribute("aria-label", "Source: Group override");
   }
+
   await expect(page.locator("body")).not.toContainText(/-100\d+/);
 
   const geometry = await entries.evaluateAll((elements) => ({
     available: elements[0].parentElement!.getBoundingClientRect().width,
     boxes: elements.map((element) => {
-      const { top, bottom, width } = element.getBoundingClientRect();
-      return { top, bottom, width };
+      const { top, bottom, width, height } = element.getBoundingClientRect();
+      return { top, bottom, width, height };
     })
   }));
   for (const [index, box] of geometry.boxes.entries()) {
@@ -156,21 +157,38 @@ test("home configuration entries show complete sourced settings as full-width na
     if (index > 0) expect(box.top).toBeGreaterThan(geometry.boxes[index - 1].bottom);
   }
 
-  const sources = await page.locator("[data-home-entry-source]").evaluateAll((elements) =>
-    elements.map((element) => {
-      const source = getComputedStyle(element);
-      const value = getComputedStyle(element.previousElementSibling!);
-      return { sourceColor: source.color, valueColor: value.color, border: source.borderStyle, background: source.backgroundColor };
+
+  const sources = await page.locator("[data-home-entry-value]").evaluateAll((values) =>
+    values.map((value) => {
+      const text = value.querySelector("[data-home-entry-value-text]")!;
+      const source = value.querySelector("[data-home-entry-source]")!;
+      const textStyle = getComputedStyle(text);
+      const sourceStyle = getComputedStyle(source);
+      const textBox = text.getBoundingClientRect();
+      const sourceBox = source.getBoundingClientRect();
+      return {
+        textSize: Number.parseFloat(textStyle.fontSize),
+        sourceSize: Number.parseFloat(sourceStyle.fontSize),
+        textTop: textBox.top,
+        textRight: textBox.right,
+        sourceTop: sourceBox.top,
+        sourceLeft: sourceBox.left,
+        visibleSource: source.textContent,
+        accessibleSource: source.getAttribute("aria-label")
+      };
     })
   );
   for (const source of sources) {
-    expect(source.sourceColor).not.toBe(source.valueColor);
-    expect(source.border).toBe("none");
-    expect(source.background).toBe("rgba(0, 0, 0, 0)");
+    expect(source.sourceSize).toBeLessThan(source.textSize);
+    expect(Math.abs(source.sourceTop - source.textTop)).toBeLessThanOrEqual(2);
+    expect(source.sourceLeft).toBeGreaterThanOrEqual(source.textRight - 1);
+    expect(source.visibleSource?.length).toBeLessThan(source.accessibleSource?.length ?? 0);
+    expect(source.visibleSource).toBe("(Group override)");
+    expect(source.accessibleSource).toBe("Source: Group override");
   }
 
-  await expect(verification).toHaveAttribute("href", `/verification?group=${selectedGroupID}`);
-  await expect(questions).toHaveAttribute("href", `/questions?group=${selectedGroupID}`);
-  await expect(bypass).toHaveAttribute("href", `/bypass?group=${selectedGroupID}`);
-  await expect(moderation).toHaveAttribute("href", `/moderation?group=${selectedGroupID}`);
+  await expect(page.locator("[data-home-entry='verification']")).toHaveAttribute("href", `/verification?group=${selectedGroupID}`);
+  await expect(page.locator("[data-home-entry='questions']")).toHaveAttribute("href", `/questions?group=${selectedGroupID}`);
+  await expect(page.locator("[data-home-entry='bypass']")).toHaveAttribute("href", `/bypass?group=${selectedGroupID}`);
+  await expect(page.locator("[data-home-entry='moderation']")).toHaveAttribute("href", `/moderation?group=${selectedGroupID}`);
 });

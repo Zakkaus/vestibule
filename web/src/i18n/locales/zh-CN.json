@@ -1379,17 +1379,14 @@
   "home": {
     "navigation": "首页",
     "title": "首页",
-    "description": "查看当前所选群的概况、待处理事项、近七天趋势和常用配置。",
     "roles": {
       "manager": "群管理员",
       "operator": "运维人员"
     },
     "context": {
       "title": "群 {{id}}",
-      "selectedScope": "本页只汇总当前所选群。",
       "enabled": "验证已启用",
-      "disabled": "验证已停用",
-      "modeUnreported": "群模式未由接口报告"
+      "disabled": "验证已停用"
     },
     "source": {
       "value": "来源：{{source}}",
@@ -1401,23 +1398,11 @@
       "enabled": "已启用",
       "disabled": "已停用",
       "configured": "已配置",
-      "notConfigured": "未配置",
-      "permanent": "永久",
-      "failures_other": "{{count}} 次失败",
       "questions_other": "{{count}} 道题",
-      "seconds_other": "{{count}} 秒",
-      "groups_other": "{{count}} 个群",
-      "channels_other": "{{count}} 个频道",
-      "warnings_other": "{{count}} 次警告",
       "verifyMode": {
         "kernel": "内核版本题",
         "quiz": "选择题",
         "mixed": "混合"
-      },
-      "deliveryMode": {
-        "group": "仅群内",
-        "dm": "私聊优先",
-        "both": "群内和私聊"
       }
     },
     "loading": {
@@ -1440,7 +1425,6 @@
     },
     "overview": {
       "title": "概况",
-      "description": "统计值覆盖近七天；等待数量为当前值。",
       "challenges": "近七天挑战",
       "passRate": "近七天通过率",
       "waiting": "正在等待",
@@ -1448,11 +1432,9 @@
     },
     "attention": {
       "title": "需要注意",
-      "description": "只列出需要处理或进一步确认的事项。",
       "tones": {
         "pending": "待处理",
-        "error": "异常",
-        "info": "信息"
+        "error": "异常"
       },
       "empty": {
         "badge": "当前正常",
@@ -1490,59 +1472,35 @@
     },
     "trend": {
       "title": "近七天趋势",
-      "description": "图表直接显示接口返回日期和每日数值；缺失日期不会补造样本。",
-      "coverage": "接口返回 {{shown}} / {{expected}} 天；缺失日期 {{missing}} 天，图表未补造样本。",
+      "coverage": "已返回 {{shown}} / {{expected}} 天；缺失 {{missing}} 天。",
       "openStats": "查看统计",
       "empty": "所选范围内没有可绘制的日期。",
-      "chartDescription": "上方显示每日挑战数，下方显示每日通过率。数值直接标在图中；悬停可读完整数据，也可用键盘在日期选择器中逐日读取。",
-      "challenges": "挑战量",
-      "passRate": "通过率",
-      "countPanel": "每日挑战数",
-      "ratePanel": "每日通过率",
+      "chartDescription": "双轴图：柱表示请求数（左轴），线表示通过率（右轴）。图中标注每日数值；可悬停查看，或用日期下拉逐日读取。",
+      "countSeries": "请求数（左轴）",
+      "rateSeries": "通过率（右轴）",
+      "countAxis": "请求数（左轴）",
+      "rateAxis": "通过率（右轴）",
+      "legendLabel": "系列和坐标轴",
       "readDate": "选择日期读取数值",
-      "missingDay": "{{date}}：未返回数据",
       "daySummary": "{{date}}：{{count}} 次挑战，通过率 {{passRate}}"
     },
     "entries": {
       "title": "常用配置",
-      "description": "每个入口显示当前值及其来源。",
       "verification": {
         "title": "验证方式",
-        "description": "投递渠道、验证模式、限制和成员策略",
-        "mode": "验证策略",
-        "delivery": "投递渠道",
-        "maxFails": "自动封禁失败上限",
-        "retry": "重试间隔",
-        "ban": "拒绝后的封禁时长",
-        "mute": "禁言时长",
-        "invited": "验证被邀请成员",
-        "nameSpoiler": "隐藏申请人姓名",
-        "timeout": "超时"
+        "mode": "验证策略"
       },
       "questions": {
         "title": "题库",
-        "description": "题目数量、备用题模式和答题语言",
-        "primary": "选择题",
-        "mode": "备用题来源",
-        "language": "答题语言",
-        "fallback": "备用题"
+        "primary": "选择题"
       },
       "bypass": {
         "title": "免验证来源",
-        "description": "信任群、要求加入的频道和频道身份白名单",
-        "trustedGroups": "信任群",
-        "requiredChannel": "要求加入的频道",
-        "channelDisplay": "频道显示名",
-        "channelInvite": "频道邀请链接",
-        "failOpen": "频道查询失败时放行",
-        "channels": "频道白名单"
+        "requiredChannel": "要求加入的频道"
       },
       "moderation": {
         "title": "管理与处罚",
-        "description": "警告上限、反垃圾开关和处罚记录",
-        "antispam": "反垃圾",
-        "adminLog": "处罚记录群",
-        "warnLimit": "警告上限"
+        "antispam": "反垃圾"
       }
     }
   }

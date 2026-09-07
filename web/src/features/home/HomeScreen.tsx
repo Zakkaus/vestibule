@@ -1,4 +1,4 @@
-import { Content, Header, Heading, Text } from "@react-spectrum/s2";
+import { Content, Header, Heading } from "@react-spectrum/s2";
 import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
@@ -17,7 +17,7 @@ export function HomeScreen() {
 
   return (
     <Content
-      styles={style({ display: "grid", minWidth: 0, gap: 24 })}
+      styles={style({ display: "grid", minWidth: 0, gap: 8 })}
       data-console-page
       data-home-page
       data-home-state={controller.state.kind}
@@ -26,7 +26,6 @@ export function HomeScreen() {
     >
       <Header data-page-heading data-home-heading styles={style({ display: "grid", gap: 16 })}>
         <Heading level={1} id="home-title" styles={style({ font: "heading-lg", margin: 0 })}>{t("home.title")}</Heading>
-        <Text styles={style({ font: "body", color: "neutral-subdued" })}>{t("home.description")}</Text>
       </Header>
       <HomeStateContent
         state={controller.state}
