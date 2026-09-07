@@ -84,8 +84,8 @@ test("Lucide icon assets are traceable and exclusive", () => {
   expect(rawSvgSources).toEqual([]);
 });
 
-test("rendered console action buttons and navigation carry icons", async ({ page }) => {
-  for (const route of readRenderRoutes()) {
+for (const route of readRenderRoutes()) {
+  test(`rendered console action buttons and navigation carry icons on ${route.urlPath}`, async ({ page }) => {
     await page.goto(route.urlPath);
     await page.locator("[data-app-shell]").waitFor({ state: "visible" });
 
@@ -96,7 +96,7 @@ test("rendered console action buttons and navigation carry icons", async ({ page
         .filter((button) => !button.querySelector("[data-icon]"))
         .map((button) => button.textContent?.trim() ?? "")
     );
-    const missingNavigation = await page.locator(".console-nav-link").evaluateAll((items) =>
+    const missingNavigation = await page.locator(".console-sidebar nav a[href]").evaluateAll((items) =>
       items
         .filter((item) => !item.querySelector("[data-icon]"))
         .map((item) => item.textContent?.trim() ?? "")
@@ -104,5 +104,5 @@ test("rendered console action buttons and navigation carry icons", async ({ page
 
     expect(missingButtons, `${route.sourcePath}: buttons without icons`).toEqual([]);
     expect(missingNavigation, `${route.sourcePath}: navigation without icons`).toEqual([]);
-  }
-});
+  });
+}
