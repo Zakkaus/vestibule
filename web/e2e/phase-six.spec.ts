@@ -2,6 +2,7 @@ import { expect, test, type Page, type Route } from "@playwright/test";
 import { expectAppSelection, selectAppOption } from "./app-select";
 
 const selectedGroupId = "-1001163306055";
+const selectedGroupTitle = "Maintainers Workspace";
 const selectedFixtureGroupName = "Gentoo 中文社区";
 
 const managerSessionPayload = {
@@ -53,6 +54,20 @@ const approvedQueueEntry = {
 };
 
 const homeSettingsPayload = {
+  revision: 7,
+  name_spoiler: { value: true, source: "factory default" },
+  verify_max_fails: { value: 3, source: "factory default" },
+  verify_retry_seconds: { value: 180, source: "factory default" },
+  ban_seconds: { value: 0, source: "factory default" },
+  mute_seconds: { value: 3600, source: "factory default" },
+  verify_invited: { value: true, source: "factory default" },
+  fallback_builtin: { value: true, source: "factory default" },
+  lang: { value: "zh", source: "factory default" },
+  required_channel_id: { value: 0, source: "factory default" },
+  required_channel_fail_open: { value: false, source: "factory default" },
+  channel_display: { value: "", source: "factory default" },
+  channel_invite_url: { value: "", source: "factory default" },
+  admin_log_chat_id: { value: 0, source: "factory default" },
   enabled: { value: true, source: "factory default" },
   delivery_mode: { value: "both", source: "factory default" },
   verify_mode: { value: "mixed", source: "factory default" },
@@ -137,7 +152,7 @@ async function mockQueueTransport(
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupId }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle }] })
       });
       return;
     }
@@ -245,7 +260,7 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupId }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle }] })
       });
       return;
     }
@@ -305,6 +320,8 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
     await page.goto("/");
     await expect(page).toHaveURL(new RegExp(`/home\\?group=${selectedGroupId}$`));
     await expect(page.locator("[data-home-page]")).toHaveAttribute("data-home-state", "loaded");
+    await expect(page.locator("[data-home-context]")).toContainText(selectedGroupTitle);
+    await expect(page.locator("[data-home-page]")).not.toContainText(/-100\d+/);
     expect(handshake(sessionRequests).slice(0, 3)).toEqual([
       "GET /api/session",
       "POST /api/session",
@@ -317,12 +334,17 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
     // switcher rather than changing it.
     const groupSwitcher = page.getByRole("button", { name: "当前群" });
     await expectAppSelection(groupSwitcher, selectedGroupId);
+    await expect(groupSwitcher).toContainText(selectedGroupTitle);
+    await expect(groupSwitcher).not.toContainText(/-100\d+/);
     await page.locator('.console-sidebar [data-navigation-group="group"]').click();
     await page.locator(".console-sidebar").getByRole("link", { name: "群与频道", exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/groups\\?group=${selectedGroupId}$`));
 
     const selectedRow = page.locator("[data-group-row][data-selected]");
-    await expect(selectedRow).toContainText(selectedGroupId);
+    await expect(selectedRow).toContainText(selectedGroupTitle);
+    await expect(page.locator("[data-groups-page]")).not.toContainText(/-100\d+/);
+    await expect(selectedRow.getByRole("link")).toHaveAccessibleName(new RegExp(selectedGroupTitle));
+    await expect(selectedRow.getByRole("link")).not.toHaveAccessibleName(/-100\d+/);
     await expect(selectedRow).not.toContainText("Gentoo 中文社区");
   });
 
@@ -340,6 +362,8 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
     const row = rowFor(page, "@another");
     await expect(row).toHaveAttribute("data-result", "pending");
     await expect(row.locator("[data-queue-result]")).toContainText("等待中 2:41");
+    await expect(row.locator("[data-queue-group]")).toHaveText(selectedGroupTitle);
+    await expect(page.locator("[data-queue-page]")).not.toContainText(/-100\d+/);
 
     await row.getByRole("button", { name: "放行 @another" }).click();
 
@@ -347,6 +371,9 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
     await expect(row).toHaveAttribute("data-result", "approved");
     await expect(row.locator("[data-queue-result]")).toHaveText("已通过");
     await expect(page.locator("[data-queue-feedback]")).toContainText("已放行 @another");
+    await expect(page.locator("[data-queue-feedback]")).toContainText(selectedGroupTitle);
+    await expect(page.locator("[data-queue-feedback]")).not.toContainText(/-100\d+/);
+    await expect(page.getByRole("alert").filter({ hasText: "@another" })).toContainText(selectedGroupTitle);
   });
 });
 
@@ -384,7 +411,7 @@ test("operator cookie session skips Mini App exchange", async ({ page, baseURL }
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupId }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle }] })
       });
       return;
     }
@@ -563,7 +590,7 @@ for (const errorCase of groupListErrorCases) {
               }
             : {
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ chats: [{ id: selectedGroupId }] })
+                body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle }] })
               }
         );
         return;
@@ -589,7 +616,8 @@ for (const errorCase of groupListErrorCases) {
     if (errorCase.retryable) {
       await page.getByRole("button", { name: "重新读取" }).click();
       await expect(groups).toHaveAttribute("data-groups-state", "populated");
-      await expect(page.locator("[data-group-row]")).toContainText(selectedGroupId);
+      await expect(page.locator("[data-group-row]")).toContainText(selectedGroupTitle);
+      await expect(groups).not.toContainText(/-100\d+/);
       expect(chatRequestCount).toBe(2);
     } else {
       await expect(page.getByRole("button", { name: "重新读取" })).toHaveCount(0);
@@ -625,7 +653,7 @@ test("keyboard selection carries the group boundary to the queue", async ({ page
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupId }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle }] })
       });
       return;
     }
@@ -707,7 +735,7 @@ test("widest locale keeps group controls inside the desktop header", async ({ pa
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupId }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle }] })
       });
       return;
     }

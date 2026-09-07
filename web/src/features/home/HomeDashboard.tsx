@@ -1,7 +1,9 @@
 import { useTranslation } from "react-i18next";
-import { Badge, Card, Content, Divider, Header, Heading, IllustratedMessage, Text } from "@react-spectrum/s2";
+import { Badge, Card, Content, Divider, Header, Heading, Text } from "@react-spectrum/s2";
 import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 
+import { useConsoleSession } from "../../app/session";
+import { groupName } from "../../lib/chatNames";
 import type { StatusTone } from "../../components/StatusBadge";
 import { HomeEntries } from "./HomeEntries";
 import { HomeSourceBadge } from "./HomeSourceBadge";
@@ -172,10 +174,10 @@ function AttentionSection({
         <Text styles={style({ font: "body", color: "neutral-subdued" })}>{t("home.attention.description")}</Text>
       </Header>
       {items.length === 0 ? (
-        <IllustratedMessage data-home-attention-empty size="S">
-          <Heading>{t("home.attention.empty.badge")}</Heading>
-          <Content>{t(isOperator ? "home.attention.empty.operatorDescription" : "home.attention.empty.managerDescription")}</Content>
-        </IllustratedMessage>
+        <Content data-home-attention-empty styles={style({ display: "grid", justifyItems: "start", gap: 8, textAlign: "start" })}>
+          <Badge variant="positive" fillStyle="subtle">{t("home.attention.empty.badge")}</Badge>
+          <Text styles={style({ font: "body", color: "neutral-subdued" })}>{t(isOperator ? "home.attention.empty.operatorDescription" : "home.attention.empty.managerDescription")}</Text>
+        </Content>
       ) : (
         <Content aria-labelledby="home-attention-title" data-home-attention-list styles={style({ display: "grid", gap: 16, minWidth: 0 })}>
           {items.map((item) => (
@@ -196,6 +198,8 @@ function AttentionSection({
 
 export function HomeDashboard({ data, chatID }: Readonly<{ data: HomeData; chatID: string }>) {
   const { t } = useTranslation();
+  const session = useConsoleSession();
+  const title = session.state === "ready" ? session.chats.find((chat) => chat.id === chatID)?.title : undefined;
   const groupSearch = `?${new URLSearchParams({ group: chatID }).toString()}`;
   const isOperator = data.diagnostics.kind !== "hidden";
   const settings = data.settings;
@@ -204,7 +208,7 @@ export function HomeDashboard({ data, chatID }: Readonly<{ data: HomeData; chatI
     <Content data-home-content styles={style({ display: "grid", minWidth: 0, gap: 24 })}>
       <Card data-console-card data-home-context aria-labelledby="home-context-title" styles={style({ width: "full", minWidth: 0 })}>
         <Content data-home-context-copy>
-          <Text slot="title" id="home-context-title">{t("home.context.title", { id: chatID })}</Text>
+          <Text slot="title" id="home-context-title">{t("home.context.title", { id: groupName(chatID, title) })}</Text>
           <Text slot="description">{t("home.context.selectedScope")}</Text>
         </Content>
         <Content data-home-context-badges styles={style({ display: "flex", flexWrap: "wrap", gap: 8, minWidth: 0 })}>

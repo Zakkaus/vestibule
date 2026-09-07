@@ -2,9 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { chartDays, mockSpectrumTransport, openSpectrumRoute } from "./spectrum-fixtures";
 
 async function dateLabelOverlaps(page: Page) {
-  return page.locator("[data-home-chart-date-label]").evaluateAll((labels) => {
+  return page.locator('[data-testid="home-rate-chart"] [aria-label^="X-axis"] .role-axis-label text').evaluateAll((labels) => {
     const boxes = labels.map((label) => ({
-      date: label.closest("[data-home-chart-date]")?.getAttribute("data-home-chart-date"),
       text: label.textContent,
       box: label.getBoundingClientRect().toJSON()
     }));
@@ -159,7 +158,11 @@ for (const locale of ["zh-CN", "zh-TW", "en"] as const) {
       await expect(page.locator('[data-home-page]')).toHaveAttribute("data-home-state", "loaded");
       await page.evaluate(async () => { await document.fonts.ready; });
       const { boxes, overlaps } = await dateLabelOverlaps(page);
-      expect(boxes.map(({ date }) => date)).toEqual(chartDays.map(({ date }) => date));
+      expect(boxes.map(({ text }) => text)).toEqual(
+        Array.from({ length: 12 }, (_, index) => new Intl.DateTimeFormat(locale, {
+          timeZone: "UTC", month: "short", day: "numeric"
+        }).format(new Date(Date.UTC(2026, 7, 26 + index))))
+      );
       expect(boxes.every(({ box }) => box.width > 0 && box.height > 0)).toBe(true);
       expect(overlaps, `${locale} ${width}px`).toEqual([]);
       const coverage = await page.locator("[data-home-trend-coverage]").innerText();

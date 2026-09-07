@@ -15,6 +15,7 @@ import type { StatusTone } from "../../components/StatusBadge";
 import type { ApiRequestError } from "../../lib/api";
 import { Icon } from "../../icons";
 import { challengeResults } from "../../lib/challenge";
+import { groupName } from "../../lib/chatNames";
 import { loadQueue, releaseQueueRecord, type QueueRecord } from "./api";
 import { queueFixtureFor, type QueueFixture } from "./fixtures";
 import {
@@ -115,9 +116,13 @@ function queueErrorMessageKey(error: ApiRequestError, fallback: string): string 
 
 function QueueFeedbackNotice({ feedback }: Readonly<{ feedback: QueueFeedback }>) {
   const { t } = useTranslation();
-  const group = feedback.record.groupLabelKey
-    ? t(feedback.record.groupLabelKey)
-    : feedback.record.groupKey;
+  const session = useConsoleSession();
+  const group = groupName(
+    feedback.record.groupKey,
+    feedback.record.groupLabelKey
+      ? t(feedback.record.groupLabelKey)
+      : session.state === "ready" ? session.chats.find((chat) => chat.id === feedback.record.groupKey)?.title : undefined
+  );
   const variant =
     feedback.tone === "ok"
       ? "positive"
@@ -417,12 +422,17 @@ export function QueueScreen() {
       normalizedQuery.length === 0
         ? records
         : records.filter((record) => {
-            const group = record.groupLabelKey ? t(record.groupLabelKey) : record.groupKey;
+            const group = groupName(
+              record.groupKey,
+              record.groupLabelKey
+                ? t(record.groupLabelKey)
+                : session.state === "ready" ? session.chats.find((chat) => chat.id === record.groupKey)?.title : undefined
+            );
             return [record.user, record.groupKey, group].some((value) =>
               value.toLocaleLowerCase().includes(normalizedQuery)
             );
           }),
-    [normalizedQuery, records, t]
+    [normalizedQuery, records, session, t]
   );
   const isDataReady = queueState.kind === "fixture" || queueState.kind === "loaded";
   const hasRecords = isDataReady && records.length > 0;

@@ -1,6 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { selectAppOption } from "./app-select";
 
 const selectedGroupID = "-1001163306055";
+const selectedGroupTitle = "Gentoo-zh Community";
 const otherGroupIDs = ["-1001163306066", "-1001163306077"] as const;
 const actorID = "741928306";
 
@@ -20,12 +22,26 @@ type HomeObservations = {
 
 function settingsPayload(): unknown {
   return {
+    revision: 7,
+    name_spoiler: { value: true, source: "factory default" },
+    verify_max_fails: { value: 3, source: "factory default" },
+    verify_retry_seconds: { value: 180, source: "factory default" },
+    ban_seconds: { value: 0, source: "factory default" },
+    mute_seconds: { value: 3600, source: "factory default" },
+    verify_invited: { value: true, source: "factory default" },
+    fallback_builtin: { value: true, source: "factory default" },
+    lang: { value: "zh", source: "factory default" },
+    required_channel_id: { value: 0, source: "factory default" },
+    required_channel_fail_open: { value: false, source: "factory default" },
+    channel_display: { value: "", source: "factory default" },
+    channel_invite_url: { value: "", source: "factory default" },
+    admin_log_chat_id: { value: 0, source: "factory default" },
     enabled: { value: true, source: "factory default" },
     delivery_mode: { value: "both", source: "user file" },
     verify_mode: { value: "mixed", source: "chat override" },
     timeout_seconds: { value: 300, source: "factory default" },
-    questions: { value: [{ id: "q1" }, { id: "q2" }], source: "chat override" },
-    fallback_questions: { value: [{ id: "f1" }], source: "user file" },
+    questions: { value: [{ q: "Which package manager belongs to Gentoo?", options: ["Portage", "apt"], answer: 0 }, { q: "Which distribution uses ebuilds?", options: ["Debian", "Gentoo"], answer: 1 }], source: "chat override" },
+    fallback_questions: { value: [{ q: "Name a Gentoo package manager", answers: ["Portage"] }], source: "user file" },
     trusted_member_group_ids: { value: [-1001], source: "factory default" },
     channel_whitelist: { value: [-1002, -1003], source: "chat override" },
     antispam_enabled: { value: true, source: "user file" },
@@ -134,11 +150,15 @@ async function mockHomeTransport(
     }
     if (pathname === "/api/chats" && request.method() === "GET") {
       await fulfillJSON(route, {
-        chats: [selectedGroupID, ...otherGroupIDs].map((id) => ({ id }))
+        chats: [
+          { id: selectedGroupID, title: selectedGroupTitle },
+          { id: otherGroupIDs[0], title: "Arch Linux Community" },
+          { id: otherGroupIDs[1], title: "Linux Study Group" }
+        ]
       });
       return;
     }
-    if (pathname.startsWith(`/api/chats/${selectedGroupID}/`) && request.method() === "GET") {
+    if ([selectedGroupID, ...otherGroupIDs].some((id) => pathname.startsWith(`/api/chats/${id}/`)) && request.method() === "GET") {
       observations.groupRequests.push(pathname);
       if (pathname.endsWith("/queue")) {
         await fulfillJSON(route, { items: options.queueItems ?? [] });
@@ -193,6 +213,10 @@ test("authenticated home summarizes only the selected group with three group req
   await page.goto("/");
   await expect(page).toHaveURL(new RegExp(`/home\\?group=${selectedGroupID}$`));
   await expect(page.locator("[data-home-page]")).toHaveAttribute("data-home-state", "loaded");
+  await expect(page.locator("[data-home-context]")).toContainText(selectedGroupTitle);
+  await expect(page.locator("[data-home-page]")).not.toContainText(/-100\d+/);
+  await expect(page.getByRole("button", { name: "当前群" })).toContainText(selectedGroupTitle);
+  await expect(page.locator("[data-group-switcher]")).not.toContainText(/-100\d+/);
 
   expect(observations.groupRequests.sort()).toEqual([
     `/api/chats/${selectedGroupID}/queue`,
@@ -216,6 +240,21 @@ test("authenticated home summarizes only the selected group with three group req
   await expect(page.locator("[data-home-metric]")).toHaveCount(4);
   await expect(page.locator("[data-home-attention='queue']")).toContainText("1 份申请等待处理");
   await expect(page.locator("[data-home-trend-chart]")).toBeVisible();
+});
+
+test("home switches its context to the selected chat title without showing transport IDs", async ({ page }) => {
+  await mockHomeTransport(page, { role: "manager" });
+  await page.goto(`/home?group=${selectedGroupID}`);
+  await expect(page.locator("[data-home-context]")).toContainText(selectedGroupTitle);
+
+  const switcher = page.getByRole("button", { name: "当前群" });
+  await selectAppOption(switcher, otherGroupIDs[0]);
+  await expect(page).toHaveURL(new RegExp(`/home\\?group=${otherGroupIDs[0]}$`));
+  await expect(page.locator("[data-home-context]")).toContainText("Arch Linux Community");
+  await expect(page.locator("[data-home-context]")).not.toContainText(selectedGroupTitle);
+  await expect(page.locator("[data-home-page]")).not.toContainText(/-100\d+/);
+  await expect(switcher).toContainText("Arch Linux Community");
+  await expect(switcher).not.toContainText(/-100\d+/);
 });
 
 test("group administrators see an explicit all-clear state without an operator status request", async ({ page }) => {

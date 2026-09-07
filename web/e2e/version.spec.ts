@@ -87,7 +87,7 @@ async function mockVersionTransport(page: Page, mocks: VersionMocks): Promise<Ve
       return;
     }
     if (path === "/api/chats" && request.method() === "GET") {
-      await fulfillJSON(route, { chats: [{ id: groupID }] });
+      await fulfillJSON(route, { chats: [{ id: groupID, title: "Gentoo-zh Community" }] });
       return;
     }
     if (path === "/api/status" && request.method() === "GET" && mocks.status) {

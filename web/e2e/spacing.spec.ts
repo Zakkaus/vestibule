@@ -139,7 +139,10 @@ async function mockSpacingTransport(page: Page): Promise<void> {
       return;
     }
     if (path === "/api/chats" && request.method() === "GET") {
-      await fulfillJSON(route, { chats: [{ id: selectedGroupID }] });
+      await fulfillJSON(route, { chats: [
+        { id: selectedGroupID, title: "Gentoo-zh Community" },
+        { id: "-1009000000203", title: "Gentoo Package Updates" }
+      ] });
       return;
     }
     if (path === `/api/chats/${selectedGroupID}/settings` && request.method() === "GET") {

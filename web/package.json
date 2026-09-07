@@ -12,11 +12,15 @@
   },
   "dependencies": {
     "@react-spectrum/s2": "1.7.1",
+    "@spectrum-charts/react-spectrum-charts-s2": "0.8.0",
+    "@spectrum-charts/themes": "1.52.0",
     "i18next": "26.4.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-i18next": "17.0.12",
-    "react-router-dom": "7.18.3"
+    "react-router-dom": "7.18.3",
+    "vega": "6.4.0",
+    "vega-lite": "6.4.2"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",

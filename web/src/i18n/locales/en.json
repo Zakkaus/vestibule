@@ -113,7 +113,6 @@
     "description": "Only groups this account may manage appear here. Select a group to continue to its waiting queue.",
     "managedCount_one": "{{count}} manageable group",
     "managedCount_other": "{{count}} manageable groups",
-    "groupOption": "Group {{id}}",
     "authorized": "Authorized",
     "liveGroupNote": "After you select this group, later operations stay within its boundary.",
     "loading": {
@@ -1407,10 +1406,15 @@
     "values": {
       "enabled": "Enabled",
       "disabled": "Disabled",
+      "configured": "Configured",
+      "notConfigured": "Not configured",
+      "permanent": "Permanent",
+      "failures_one": "{{count}} failure",
+      "failures_other": "{{count}} failures",
+      "questions_one": "{{count}} question",
+      "questions_other": "{{count}} questions",
       "seconds_one": "{{count}} second",
       "seconds_other": "{{count}} seconds",
-      "rules_one": "{{count}} rule",
-      "rules_other": "{{count}} rules",
       "groups_one": "{{count}} group",
       "groups_other": "{{count}} groups",
       "channels_one": "{{count}} channel",
@@ -1503,13 +1507,13 @@
       "coverage": "The endpoint returned {{shown}} of {{expected}} days; {{missing}} missing days are not filled with invented samples.",
       "openStats": "View statistics",
       "empty": "The selected range contains no dates to plot.",
-      "chartTitle": "Seven-day challenge volume and pass rate",
-      "chartDescription": "The upper plot shows daily challenges and the lower plot shows daily pass rate. Exact values are printed for each date and available by keyboard focus.",
-      "legendLabel": "Trend chart legend",
+      "chartDescription": "Daily challenges appear above daily pass rates, with values labeled on both plots. Hover for full readings, or use the date picker to read each day by keyboard.",
       "challenges": "Challenge volume",
       "passRate": "Pass rate",
       "countPanel": "Daily challenges",
       "ratePanel": "Daily pass rate",
+      "readDate": "Choose a date to read values",
+      "missingDay": "{{date}}: no data returned",
       "daySummary": "{{date}}: {{count}} challenges, {{passRate}} pass rate"
     },
     "entries": {
@@ -1517,27 +1521,40 @@
       "description": "Every entry point shows its current values and their sources.",
       "verification": {
         "title": "Verification method",
-        "description": "Challenge type, delivery channel, and timeout",
+        "description": "Delivery, challenge modes, limits, and member policy",
         "mode": "Verification strategy",
         "delivery": "Delivery channel",
+        "maxFails": "Automatic-ban failure limit",
+        "retry": "Retry interval",
+        "ban": "Ban duration after rejection",
+        "mute": "Mute duration",
+        "invited": "Verify invited members",
+        "nameSpoiler": "Hide applicant names",
         "timeout": "Timeout"
       },
       "questions": {
         "title": "Question bank",
-        "description": "Multiple-choice and custom fallback questions",
+        "description": "Question counts, fallback mode, and challenge language",
         "primary": "Multiple-choice",
+        "mode": "Fallback question source",
+        "language": "Challenge language",
         "fallback": "Fallback"
       },
       "bypass": {
         "title": "Verification bypass sources",
-        "description": "Trusted groups and the channel allowlist",
+        "description": "Trusted groups, required channel, and sender-channel allowlist",
         "trustedGroups": "Trusted groups",
+        "requiredChannel": "Required channel",
+        "channelDisplay": "Channel display name",
+        "channelInvite": "Channel invite URL",
+        "failOpen": "Allow entry when channel lookup fails",
         "channels": "Channel allowlist"
       },
       "moderation": {
         "title": "Moderation and penalties",
-        "description": "Anti-spam and warning threshold",
+        "description": "Warning threshold, anti-spam switch, and moderation log",
         "antispam": "Anti-spam",
+        "adminLog": "Moderation log group",
         "warnLimit": "Warning threshold"
       }
     }

@@ -103,7 +103,7 @@ async function mockControlScreens(page: Page): Promise<void> {
       return;
     }
     if (path === "/api/chats" && request.method() === "GET") {
-      await fulfillJSON(route, { chats: [{ id: groupID }] });
+      await fulfillJSON(route, { chats: [{ id: groupID, title: "Gentoo-zh Community" }] });
       return;
     }
     if (path === `/api/chats/${groupID}/settings` && request.method() === "GET") {

@@ -1,7 +1,9 @@
 import { useTranslation } from "react-i18next";
 
+import { useConsoleSession } from "../../app/session";
 import { StatusBadge } from "../../components/StatusBadge";
 import { Icon } from "../../icons";
+import { groupName } from "../../lib/chatNames";
 import type { AuditRecord } from "./api";
 
 export type PendingAuditActions = Readonly<Record<string, true>>;
@@ -56,10 +58,16 @@ function AuditAction({ record, pending, onUndo }: AuditActionProps) {
 
 export function AuditTable({ records, pendingActions, dateFormatter, onUndo }: AuditTableProps) {
   const { t } = useTranslation();
+  const session = useConsoleSession();
   const rows = records.map((record) => ({
     record,
     pending: pendingActions[record.id] === true,
-    group: record.groupLabelKey ? t(record.groupLabelKey) : record.groupKey,
+    group: groupName(
+      record.groupKey,
+      record.groupLabelKey
+        ? t(record.groupLabelKey)
+        : session.state === "ready" ? session.chats.find((chat) => chat.id === record.groupKey)?.title : undefined
+    ),
     result: t(`challenge.state.${record.result.state}`),
     reason: record.result.state === "declined" ? t(record.result.labelKey) : "—",
     actor: record.settledBy ?? t("audit.actor.automatic"),

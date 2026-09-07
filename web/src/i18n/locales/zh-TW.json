@@ -112,7 +112,6 @@
     "title": "群組與頻道",
     "description": "這裡只列出目前帳號有權管理的群組。選擇一個群組，繼續檢視它的等待佇列。",
     "managedCount_other": "{{count}} 個可管理的群組",
-    "groupOption": "群組 {{id}}",
     "authorized": "已授權",
     "liveGroupNote": "選擇這個群組後，後續操作都會限定在此群組內。",
     "loading": {
@@ -1401,8 +1400,12 @@
     "values": {
       "enabled": "已啟用",
       "disabled": "已停用",
+      "configured": "已設定",
+      "notConfigured": "未設定",
+      "permanent": "永久",
+      "failures_other": "{{count}} 次失敗",
+      "questions_other": "{{count}} 道題",
       "seconds_other": "{{count}} 秒",
-      "rules_other": "{{count}} 條",
       "groups_other": "{{count}} 個群組",
       "channels_other": "{{count}} 個頻道",
       "warnings_other": "{{count}} 次警告",
@@ -1491,13 +1494,13 @@
       "coverage": "端點回傳 {{shown}} / {{expected}} 天；缺少 {{missing}} 天，圖表未補造資料。",
       "openStats": "檢視統計",
       "empty": "所選範圍內沒有可繪製的日期。",
-      "chartTitle": "近七天挑戰量與通過率",
-      "chartDescription": "上方圖表顯示每日挑戰數，下方圖表顯示每日通過率。每個日期的數值會直接標示，也可透過鍵盤聚焦讀取。",
-      "legendLabel": "趨勢圖圖例",
+      "chartDescription": "上方顯示每日挑戰數，下方顯示每日通過率。數值直接標在圖中；游標停留時可讀取完整資料，也可用鍵盤在日期選擇器中逐日讀取。",
       "challenges": "挑戰量",
       "passRate": "通過率",
       "countPanel": "每日挑戰數",
       "ratePanel": "每日通過率",
+      "readDate": "選擇日期讀取數值",
+      "missingDay": "{{date}}：未回傳資料",
       "daySummary": "{{date}}：{{count}} 次挑戰，通過率 {{passRate}}"
     },
     "entries": {
@@ -1505,27 +1508,40 @@
       "description": "每個入口都顯示目前值及其來源。",
       "verification": {
         "title": "驗證方式",
-        "description": "挑戰類型、傳送管道和逾時",
+        "description": "傳送管道、驗證模式、限制和成員策略",
         "mode": "驗證策略",
         "delivery": "傳送管道",
+        "maxFails": "自動封禁失敗上限",
+        "retry": "重試間隔",
+        "ban": "拒絕後的封禁時長",
+        "mute": "禁言時長",
+        "invited": "驗證受邀成員",
+        "nameSpoiler": "隱藏申請人姓名",
         "timeout": "逾時"
       },
       "questions": {
         "title": "題庫",
-        "description": "選擇題與自訂備用題",
+        "description": "題目數量、備用題模式和答題語言",
         "primary": "選擇題",
+        "mode": "備用題來源",
+        "language": "答題語言",
         "fallback": "備用題"
       },
       "bypass": {
         "title": "免驗證來源",
-        "description": "信任群組與頻道允許清單",
+        "description": "信任群組、必須加入的頻道和頻道身分允許清單",
         "trustedGroups": "信任群組",
+        "requiredChannel": "必須加入的頻道",
+        "channelDisplay": "頻道顯示名稱",
+        "channelInvite": "頻道邀請連結",
+        "failOpen": "頻道查詢失敗時放行",
         "channels": "頻道允許清單"
       },
       "moderation": {
         "title": "管理與處罰",
-        "description": "反垃圾訊息與警告上限",
+        "description": "警告上限、反垃圾訊息開關和處罰記錄",
         "antispam": "反垃圾訊息",
+        "adminLog": "處罰記錄群組",
         "warnLimit": "警告上限"
       }
     }

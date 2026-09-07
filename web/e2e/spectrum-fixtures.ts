@@ -4,7 +4,7 @@ export const selectedGroupID = "-1001163306055";
 export const actorID = "741928306";
 
 export type SpectrumRole = "manager" | "operator";
-export type TrendMode = "full" | "zero";
+export type TrendMode = "full" | "zero" | "gap";
 
 export const operatorNavigationGroups = [
   { id: "daily", paths: ["/home", "/queue", "/audit"] },
@@ -52,12 +52,26 @@ const queueItems = [
 ] as const;
 
 const settingsPayload = {
+  revision: 7,
+  name_spoiler: { value: true, source: "factory default" },
+  verify_max_fails: { value: 3, source: "factory default" },
+  verify_retry_seconds: { value: 180, source: "factory default" },
+  ban_seconds: { value: 0, source: "factory default" },
+  mute_seconds: { value: 3600, source: "factory default" },
+  verify_invited: { value: true, source: "factory default" },
+  fallback_builtin: { value: true, source: "factory default" },
+  lang: { value: "zh", source: "factory default" },
+  required_channel_id: { value: 0, source: "factory default" },
+  required_channel_fail_open: { value: false, source: "factory default" },
+  channel_display: { value: "", source: "factory default" },
+  channel_invite_url: { value: "", source: "factory default" },
+  admin_log_chat_id: { value: 0, source: "factory default" },
   enabled: { value: true, source: "factory default" },
   delivery_mode: { value: "both", source: "user file" },
   verify_mode: { value: "mixed", source: "chat override" },
   timeout_seconds: { value: 300, source: "factory default" },
-  questions: { value: [{ id: "q1" }, { id: "q2" }], source: "chat override" },
-  fallback_questions: { value: [{ id: "f1" }], source: "user file" },
+  questions: { value: [{ q: "Which package manager belongs to Gentoo?", options: ["Portage", "apt"], answer: 0 }, { q: "Which distribution uses ebuilds?", options: ["Debian", "Gentoo"], answer: 1 }], source: "chat override" },
+  fallback_questions: { value: [{ q: "Name a Gentoo package manager", answers: ["Portage"] }], source: "user file" },
   trusted_member_group_ids: { value: [-1001], source: "factory default" },
   channel_whitelist: { value: [-1002, -1003], source: "chat override" },
   antispam_enabled: { value: true, source: "user file" },
@@ -77,9 +91,10 @@ function outcome(challenges: number, passRate: number) {
 }
 
 function statsPayload(url: URL, mode: TrendMode) {
-  const trend = mode === "zero"
+  const trend = (mode === "zero"
     ? chartDays.map(({ date }) => ({ date, ...outcome(0, 0) }))
-    : chartDays.map(({ date, challenges, passRate }) => ({ date, ...outcome(challenges, passRate) }));
+    : chartDays.map(({ date, challenges, passRate }) => ({ date, ...outcome(challenges, passRate) })))
+    .filter((day) => mode !== "gap" || day.date !== "2026-08-28");
   const summary = mode === "zero"
     ? outcome(0, 0)
     : { challenges: 70, approved: 41, declined: 15, banned: 4, expired: 10, pass_rate: 0.586 };
@@ -141,7 +156,7 @@ export async function mockSpectrumTransport(page: Page, options: MockOptions = {
       await fulfillJSON(route, {
         chats: [
           { id: selectedGroupID, title: "Gentoo-zh Community" },
-          { id: "-1001163306066", title: "Another group" }
+          { id: "-1001163306066", title: "Arch Linux Community" }
         ]
       });
       return;

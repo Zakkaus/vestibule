@@ -63,7 +63,7 @@ async function mockQuestionTransport(
       return;
     }
     if (path === "/api/chats" && request.method() === "GET") {
-      await fulfillJSON(route, { chats: [{ id: groupAID }, { id: groupBID }] });
+      await fulfillJSON(route, { chats: [{ id: groupAID, title: "Gentoo-zh Community" }, { id: groupBID, title: "Arch Linux Community" }] });
       return;
     }
     if (

@@ -89,6 +89,9 @@ test("group titles replace transport identifiers", async ({ page }) => {
   await page.locator("[data-group-switcher]").getByRole("button").click();
   await expect(page.getByRole("option", { name: selectedGroupTitle })).toBeVisible();
   await expect(page.getByRole("heading", { name: selectedGroupTitle })).toBeVisible();
+  await expect(page.locator("[data-groups-page]")).not.toContainText(/-100\d+/);
+  await expect(page.getByRole("listbox")).not.toContainText(/-100\d+/);
+  await expect(page.locator("[data-group-switcher]")).not.toContainText(/-100\d+/);
 });
 
 test("capability filtering leaves no empty navigation section", async ({ page }) => {

@@ -7,6 +7,8 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 ### Fixed
+- The healthy home attention state aligns with its section heading. Chart legends now
+  include colored dots that match their series in light, dark and system themes.
 - The home chart now gives out-of-window response dates distinct positions and counts
   coverage within the requested range. Date labels no longer overlap.
 - The sidebar keeps complete navigation rows at 1280×720, marks the current route
@@ -19,6 +21,14 @@ All notable changes to this project are documented here. The format is based on
   default tier.
 
 ### Changed
+- The home trend uses Spectrum Charts and the official Spectrum 2 theme instead of
+  authored SVG geometry. Separate count and rate plots retain exact labels, hover
+  readings and a keyboard date reader; missing dates remain gaps.
+- Home configuration entries now occupy separate full-width sections and expose
+  verification limits, question sources, channel requirements and moderation settings.
+  Each value shows its source as subdued text rather than a badge.
+- Group labels now consistently prefer the available title across the console,
+  falling back to the internal ID only when a title is missing or blank.
 - The console shell, home and waiting queue now use React Spectrum 2 layout primitives
   and style macros instead of a parallel CSS spacing and radius system. The waiting queue
   uses TableView for sorting, selection, keyboard navigation and empty states, while retaining

@@ -62,7 +62,7 @@ async function mockAuditTransport(
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupID }, { id: otherGroupID }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupID, title: "Gentoo-zh Community" }, { id: otherGroupID, title: "Arch Linux Community" }] })
       });
       return;
     }
@@ -235,8 +235,11 @@ test("audit discards group A's delayed read after the visible group switcher sel
   const groupSwitcher = page.getByRole("button", { name: "当前群" });
   await selectAppOption(groupSwitcher, otherGroupID);
   await expect(page).toHaveURL(new RegExp(`/audit\\?group=${otherGroupID}$`));
-  await expect(groupSwitcher).toContainText(otherGroupID);
+  await expect(groupSwitcher).toContainText("Arch Linux Community");
+  await expect(groupSwitcher).not.toContainText(/-100\d+/);
   await expect(page.locator("[data-audit-row]", { hasText: "@audit_group_b" })).toBeVisible();
+  await expect(page.locator("[data-audit-row]", { hasText: "@audit_group_b" })).toContainText("Arch Linux Community");
+  await expect(page.locator("[data-audit-page]")).not.toContainText(/-100\d+/);
 
   const staleReadResponse = page.waitForResponse(
     (response) =>
@@ -301,8 +304,11 @@ test("audit discards group A's delayed undo after the visible group switcher sel
   const groupSwitcher = page.getByRole("button", { name: "当前群" });
   await selectAppOption(groupSwitcher, otherGroupID);
   await expect(page).toHaveURL(new RegExp(`/audit\\?group=${otherGroupID}$`));
-  await expect(groupSwitcher).toContainText(otherGroupID);
+  await expect(groupSwitcher).toContainText("Arch Linux Community");
+  await expect(groupSwitcher).not.toContainText(/-100\d+/);
   await expect(page.locator("[data-audit-row]", { hasText: "@audit_group_b" })).toBeVisible();
+  await expect(page.locator("[data-audit-row]", { hasText: "@audit_group_b" })).toContainText("Arch Linux Community");
+  await expect(page.locator("[data-audit-page]")).not.toContainText(/-100\d+/);
 
   const staleUndoResponse = page.waitForResponse(
     (response) =>

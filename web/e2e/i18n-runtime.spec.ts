@@ -38,7 +38,7 @@ async function mockConsoleSession(page: Page): Promise<void> {
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupID }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupID, title: "Gentoo-zh Community" }] })
       });
       return;
     }

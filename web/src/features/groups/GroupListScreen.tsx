@@ -10,6 +10,7 @@ import {
 import { StatusBadge, type StatusTone } from "../../components/StatusBadge";
 import { Icon } from "../../icons";
 import type { ApiRequestError } from "../../lib/api";
+import { groupName } from "../../lib/chatNames";
 import {
   groupFixtures,
   type GroupFixture,
@@ -119,7 +120,7 @@ function LiveGroupList({
   const { t } = useTranslation();
 
   return chats.map((chat) => {
-    const groupName = chat.title ?? t("groups.groupOption", { id: chat.id });
+    const name = groupName(chat.id, chat.title);
 
     return (
       <article
@@ -130,13 +131,13 @@ function LiveGroupList({
       >
         <div data-group-primary>
           <div data-group-heading>
-            <h2>{groupName}</h2>
+            <h2>{name}</h2>
             <StatusBadge tone="neutral">{t("groups.authorized")}</StatusBadge>
           </div>
           <p data-live-group-note>{t("groups.liveGroupNote")}</p>
         </div>
         <div data-group-actions>
-          <OpenQueueLink groupId={chat.id} groupName={groupName} />
+          <OpenQueueLink groupId={chat.id} groupName={name} />
         </div>
       </article>
     );

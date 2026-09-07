@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 
 import { useConsoleSession } from "../../app/session";
 import { useConsoleSize } from "../../components/ConsoleProvider";
+import { groupName } from "../../lib/chatNames";
 import {
   allGroupsSelection,
   groupFixtures,
@@ -30,7 +31,7 @@ export function GroupSwitcher() {
     session.state === "ready"
       ? session.chats.map((chat) => ({
           id: chat.id,
-          label: chat.title && chat.title.trim() ? chat.title : chat.id
+          label: groupName(chat.id, chat.title)
         }))
       : fixtureFallback
         ? groupFixtures.map((group) => ({

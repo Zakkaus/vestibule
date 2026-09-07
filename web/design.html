@@ -953,9 +953,9 @@ li::marker { color: var(--border); }
         <tr><td>边界与层次</td><td>Spectrum 的边线、背景与卡片变体</td><td>侧栏底色延伸到页面底部，不在视口下沿增加边线；顶栏和内容边界通过样式宏声明，避免全边框产生额外接缝。</td></tr>
         <tr><td>导航</td><td>SideNav、SideNavItem、Popover</td><td>保留六组和全部授权入口，一次展开一组；路由改变时同步展开目标组。Tab 进入导航后，以方向键在组和入口之间移动。当前项同时使用库的粗体和内侧短线，以及 2 到 2.4 的图标描边变化，不使用大块蓝色填充。1280×720 下逐组展开后检查滚动边界，不允许只露出半个导航项。</td></tr>
         <tr><td>等待队列</td><td>TableView、TableHeader、Column、TableBody、Row、Cell</td><td>库提供多行选择、排序提示和空态容器。Tab 进入表格后，以方向键移动焦点；窄屏保留同一表格并横向滚动。行内放行沿用原有权限与请求流程。切换群后清空选择，排序保持选中项；空队列和筛选无结果使用不同提示。</td></tr>
-        <tr><td>图表</td><td>首页趋势 SVG、Spectrum 样式宏与统计 API</td><td>数量与通过率分开标尺，保留零点、日期、数值和键盘读数。请求日期与返回日期合并为有序日期域，不混用日期位置和数组下标；即使响应包含范围外的 8 月 26 日，各横轴标签的实际矩形也不得相交。三种语言分别在 1280、390、320 宽度下验证。</td></tr>
+        <tr><td>图表</td><td>Adobe 的 <code>@spectrum-charts/react-spectrum-charts-s2</code>、Vega-Lite 与统计 API</td><td>Vega-Lite 生成图形描述，Chart 按 Spectrum 2 主题渲染；应用不写 SVG 坐标。数量与通过率分开标尺，保留零点、日期、数值与图例色点。请求日期与返回日期合并为有序日期域；缺失日期不补零，折线不跨缺口连接。</td></tr>
         <tr><td>图标</td><td>现有 Lucide 清单及 Spectrum 内部图标</td><td>应用图标继续使用原样 vendored 的 Lucide；Spectrum 内部的箭头、勾选和进度图形由锁定版本的依赖持有，不复制 Workflow 图标到项目。</td></tr>
-        <tr><td>交互反馈</td><td>Spectrum 的悬停、按下、焦点与等待状态</td><td>使用库的默认反馈；SVG 图表只为跨元素悬停保留后代选择器。请求减弱动态效果时，禁用库通过内联样式写入的按压缩放，不另加页面进场动画。</td></tr>
+        <tr><td>交互反馈</td><td>Spectrum 的悬停、按下、焦点与等待状态</td><td>图表悬停使用库的提示层；键盘通过 S2 Picker 选择日期，在读数区读取完整数值。图表不启用动画；请求减弱动态效果时，仍禁用控件通过内联样式写入的按压缩放。</td></tr>
       </tbody>
     </table></div>
     <p><code>web/src/styles/{tokens,components,shell}.css</code> 与 <code>web/src/icons/lucide/</code> 原样保留，
@@ -964,6 +964,18 @@ li::marker { color: var(--border); }
     <p>S2 1.7.1 存在一项横向虚拟化限制：从整行直接跳到尚未渲染过的末列时，焦点无法到达目标。
       窄屏可用右方向键逐列进入操作按钮，等当前单元格进入视口后再继续。
       不覆写依赖源码，也不为此保留另一套表格或卡片。</p>
+    <p>S2 不提供图表组件。Adobe 在独立的 <a href="https://github.com/adobe/react-spectrum-charts">React Spectrum Charts 仓库</a>提供 S2 实现；
+      首页固定使用 <code>@spectrum-charts/react-spectrum-charts-s2@0.8.0</code>，该版本仍以 alpha 标签发布。
+      它的 Line 组件未正确处理空值，最近点计算也会对空值生成非法路径，因此通过公开的 <code>UNSAFE_vegaSpec</code> 入口接收 Vega-Lite 编译结果。
+      数据缺口交给 <code>break-paths-show-domains</code> 处理；宽度只由 Chart 的容器测量决定，不再启动 Vega-Lite 的另一套宽度计算。
+      坐标、文字、描边、点和图例由库生成，视觉样式来自 <code>getSpectrum2VegaConfig</code> 与 <code>getS2ColorValue</code>；栅格线沿用默认实线。
+      背景、文字颜色与绘图区边线在 Vega-Lite 编译前传入主题值，避免编译器的白底黑字默认值覆盖暗色主题。
+      图表外部的宽度与间距通过 S2 的 <code>size()</code> 比例函数声明，超出七天的日期域使用较宽的库尺度。
+      <code>HomeTrend.tsx</code> 不得包含颜色字面量或未缩放的视觉尺寸。</p>
+    <p>图表库没有键盘逐点读数接口，因此使用同一日期域驱动 Picker 和读数区；这不是依赖原生 SVG 焦点的另一套图表。
+      三种语言都检查桌面与窄屏日期标签的实际矩形，不能相交。浅色、深色及系统主题切换均须保留数值、图例与图形的对应关系，渲染后的文字对比度不得低于 4.5:1。</p>
+    <p>群名统一由 <code>web/src/lib/chatNames.ts</code> 的 <code>groupName</code> 处理：可用 title 优先，仅缺失或空白时退回 ID。
+      切换器、群标题、首页上下文、队列、操作记录与推送目的地沿用这一规则；请求参数和可编辑的内部 ID 字段不改。</p>
     <p><code>console.css</code> 只保留库无法直接承担的例外，每条规则说明原因；不得在其中补写间距。布局和表格不再依赖手写的容器、表头或单元格选择器。</p>
     <p>不重做其他页面，不改 API、权限和群名缓存，不引入第二套数据获取逻辑。
       以下原样式示例继续作为未迁移页面的参考；与三屏规则冲突时，三屏采用本节规则。</p>
@@ -1072,7 +1084,7 @@ li::marker { color: var(--border); }
     <div class="sechead"><span class="num">03</span><h2>形状与层次</h2></div>
     <p>未迁移页面的组件圆角仍由 <code>--radius: 0.625rem</code> 推导。
       新外壳、首页与等待队列采用 Spectrum 组件的默认圆角；导航卡片使用 Card，不冒充定高按钮。
-      Lucide 图标和图表 SVG 的固定几何不属于组件圆角。</p>
+      Lucide 图标保留 vendored 几何，首页图表的几何和圆角交给图表库。</p>
     <div class="grid3">
       <div class="card card-pad stack" style="gap: var(--sp-2);">
         <div style="block-size:2.5rem;background:var(--muted);border-radius:var(--radius-sm);"></div>
@@ -1651,13 +1663,11 @@ li::marker { color: var(--border); }
             <td>每个都可点进对应的屏，不是只能看的数字。带涨跌时标出方向，
               没有可比基准就不显示涨跌</td></tr>
         <tr><td>需要注意</td><td>分级小块</td>
-            <td>只有真正需要处理的才用警示色。全部正常时这一层仍然显示，
-              因为「都正常」本身也是信息</td></tr>
+            <td>只有真正需要处理的才用警示色。全部正常时仍显示左对齐的正常徽章和说明，与本节标题共用左边界。</td></tr>
         <tr><td>趋势</td><td>近 7 天图表</td>
-            <td>日期、坐标轴刻度和每天数值直接可读，悬停或键盘聚焦可读完整数据；统计屏用于进一步分析</td></tr>
-        <tr><td>入口</td><td>常用配置卡片</td>
-            <td>每张写出当前取值，不只是名字。<b>「题库」不如「题库 · 12 条，
-              其中 1 条缺英文」有用</b></td></tr>
+            <td>日期、坐标轴刻度和每天数值直接可读，悬停或用键盘选择日期可读完整数据；统计屏用于进一步分析</td></tr>
+        <tr><td>入口</td><td>四个独立的配置区块</td>
+            <td>每个入口占一整行，以 Spectrum 数据展示组件分别列出当前值。验证方式包含限制和邀请策略，题库包含数量、模式和语言，免验证来源包含频道与信任配置，管理与处罚包含阈值、开关和记录去向。来源放在次要文字中，不用逐行胶囊抢占数值的层级。</td></tr>
       </tbody>
     </table></div>
     <h3>群模式要一直摆在明处</h3>
@@ -3130,11 +3140,11 @@ li::marker { color: var(--border); }
     <hr class="rule">
     <div class="sechead"><span class="num">14</span><h2>图表与数据</h2></div>
     <p>未迁移的统计屏同时保留趋势图和明细表，表在图下方。
-      首页的近七天图直接显示日期、数量和通过率，悬停或键盘聚焦时提供完整读数，
+      首页的近七天图直接显示日期、数量和通过率，悬停或键盘选择日期时提供完整读数，
       不要求群主进入统计屏才能查出某一天的数值。</p>
 
     <h3>图表颜色有明确来源</h3>
-    <p>首页使用 Spectrum 默认蓝色，数量与通过率分成两幅图，各自使用标尺。
+    <p>首页数量序列使用 Spectrum 2 的 <code>blue-900</code>，通过率使用 <code>seafoam-900</code>；图例色点由同一库的颜色标尺生成。
       以下统计屏示例仍沿用 <code>--chart-1</code> 到 <code>--chart-5</code> 的灰阶；
       直接表示状态的序列沿用<a href="#s1">第 01 节</a>的语义色，避免重新建立对应关系。</p>
     <div class="legend" aria-label="五档灰阶图表序列">

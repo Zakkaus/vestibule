@@ -9,7 +9,6 @@ import placeholderMark from "./icons/lucide/shield-check.svg?url";
 import { App } from "./app/App";
 import "./app/app.css";
 import "./app/console.css";
-import "./features/home/home.css";
 
 const icon = document.createElement("link");
 icon.rel = "icon";

@@ -10,7 +10,9 @@ import UserGroup from "@react-spectrum/s2/illustrations/linear/UserGroup";
 import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { useTranslation } from "react-i18next";
 
+import { useConsoleSession } from "../../app/session";
 import { useConsoleSize } from "../../components/ConsoleProvider";
+import { groupName } from "../../lib/chatNames";
 import type { QueueFilter } from "./fixtures";
 
 const stateStyles = style({
@@ -112,8 +114,14 @@ type QueueFilteredEmptyStateProps = Readonly<{
 
 export function QueueFilteredEmptyState({ filter, query, onClear }: QueueFilteredEmptyStateProps) {
   const { t } = useTranslation();
+  const session = useConsoleSession();
   const size = useConsoleSize("L");
-  const group = filter ? (filter.groupLabelKey ? t(filter.groupLabelKey) : filter.groupKey) : "";
+  const group = filter ? groupName(
+    filter.groupKey,
+    filter.groupLabelKey
+      ? t(filter.groupLabelKey)
+      : session.state === "ready" ? session.chats.find((chat) => chat.id === filter.groupKey)?.title : undefined
+  ) : "";
 
   return (
     <IllustratedMessage data-record-empty data-queue-empty aria-labelledby="queue-filtered-empty-title" styles={stateStyles}>

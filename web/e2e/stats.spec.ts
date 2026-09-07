@@ -72,7 +72,7 @@ async function mockStatsTransport(page: Page, handleStats: StatsHandler): Promis
       return;
     }
     if (url.pathname === "/api/chats" && request.method() === "GET") {
-      await fulfillJSON(route, { chats: [{ id: selectedGroupID }] });
+      await fulfillJSON(route, { chats: [{ id: selectedGroupID, title: "Gentoo-zh Community" }] });
       return;
     }
     if (url.pathname === `/api/chats/${selectedGroupID}/stats` && request.method() === "GET") {

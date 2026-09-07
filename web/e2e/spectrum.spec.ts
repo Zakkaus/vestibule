@@ -307,7 +307,7 @@ test("mobile navigation uses a portalled dialog, restores focus on Escape, and c
   await expect(panel).toBeHidden();
 });
 
-test("home chart exposes exact seven-day values, separate count/rate scales, and readable hover and focus states", async ({ page }) => {
+test("home chart exposes exact seven-day values, separate count/rate scales, and readable hover states", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("verify-console-locale", "en"));
   await installSpectrumClock(page);
   await page.setViewportSize({ width: 1280, height: 720 });
@@ -315,68 +315,29 @@ test("home chart exposes exact seven-day values, separate count/rate scales, and
   await openSpectrumRoute(page, "/home");
   await waitForHome(page);
 
-  await expect(page.locator("[data-home-trend-chart]")).toBeVisible();
-  const points = await page.locator('[data-home-chart-point][data-home-chart-series="count"]').evaluateAll((elements) =>
-    elements.map((element) => ({
-      date: element.getAttribute("data-home-chart-date"),
-      value: Number(element.getAttribute("data-home-chart-value")),
-      label: element.querySelector("[data-home-chart-count-label]")?.textContent?.trim()
-    }))
-  );
-  expect(points).toEqual(
-    chartDays.map(({ date, challenges }) => ({ date, value: challenges, label: String(challenges) }))
-  );
-  const rates = await page.locator('[data-home-chart-point][data-home-chart-series="rate"]').evaluateAll((elements) =>
-    elements.map((element) => ({
-      date: element.getAttribute("data-home-chart-date"),
-      value: Number(element.getAttribute("data-home-chart-pass-rate")),
-      label: element.querySelector("[data-home-chart-rate-label]")?.textContent?.trim()
-    }))
-  );
-  expect(rates.map(({ date, value }) => ({ date, value }))).toEqual(
-    chartDays.map(({ date, passRate }) => ({ date, value: passRate }))
-  );
-  expect(rates.every(({ label }) => label?.includes("%"))).toBe(true);
-
-  const ticks = await page.locator("[data-home-chart-tick]").evaluateAll((elements) =>
-    elements.map((element) => ({
-      scale: element.getAttribute("data-home-chart-scale"),
-      value: Number(element.getAttribute("data-home-chart-tick"))
-    }))
-  );
-  expect(ticks.filter((tick) => tick.scale === "count").map((tick) => tick.value)).toEqual([0, 4, 8, 12, 15]);
-  expect(ticks.filter((tick) => tick.scale === "rate").map((tick) => tick.value)).toEqual([0, 0.25, 0.5, 0.75, 1]);
-  expect(new Set(ticks.map((tick) => tick.scale))).toEqual(new Set(["count", "rate"]));
-  for (const label of await page.locator(
-    "[data-home-chart-axis], [data-home-chart-count-label], [data-home-chart-rate-label], [data-home-chart-date-label]"
-  ).all()) {
-    await expect(label).toBeVisible();
+  const counts = page.getByTestId("home-count-chart");
+  const rates = page.getByTestId("home-rate-chart");
+  await expect(counts.locator(".mark-text.role-mark text")).toHaveText(chartDays.map((day) => String(day.challenges)));
+  await expect(rates.locator(".mark-text.role-mark text")).toHaveText(["50%", "58%", "43%", "67%", "56%", "64%", "75%"]);
+  const countTicks = await counts.locator('[aria-label^="Y-axis"] .role-axis-label text').allTextContents();
+  expect(countTicks[0]).toBe("0");
+  expect(countTicks.length).toBeGreaterThan(1);
+  expect(countTicks.every((tick) => Number.isInteger(Number(tick)))).toBe(true);
+  const rateTicks = await rates.locator('[aria-label^="Y-axis"] .role-axis-label text').allTextContents();
+  expect(rateTicks[0]).toBe("0%");
+  expect(rateTicks.at(-1)).toBe("100%");
+  for (const chart of [counts, rates]) {
+    for (const label of await chart.locator('[aria-label^="X-axis"] .role-axis-label text').all()) await expect(label).toBeVisible();
   }
-
   await expect(page.locator('[data-home-metric="challenges"]')).toContainText("70");
   await expect(page.locator('[data-home-metric="pass-rate"]')).toContainText("58.6%");
   await expect(page.locator('[data-home-metric="waiting"]')).toContainText("2");
   await expect(page.locator('[data-home-metric="banned"]')).toContainText("4");
 
-  const firstCountPoint = page.locator('[data-home-chart-point][data-home-chart-series="count"]').first();
-  const restOpacity = await firstCountPoint.locator("[data-home-chart-bar]").evaluate(
-    (element) => getComputedStyle(element).opacity
-  );
-  await firstCountPoint.locator("[data-home-chart-bar]").hover();
-  await expect.poll(() => firstCountPoint.locator("[data-home-chart-bar]").evaluate(
-    (element) => getComputedStyle(element).opacity
-  )).not.toBe(restOpacity);
-  await page.keyboard.press("Tab");
-  await firstCountPoint.focus();
-  await expect.poll(() => firstCountPoint.evaluate((element) => document.activeElement === element)).toBe(true);
-  await expect(firstCountPoint).toHaveAttribute("aria-label", /8/);
-  await expect(firstCountPoint).toHaveAttribute("aria-label", /50%/);
-  const focusStyle = await firstCountPoint.evaluate((element) => {
-    const style = getComputedStyle(element);
-    return { outlineWidth: style.outlineWidth, outlineStyle: style.outlineStyle };
-  });
-  expect(focusStyle.outlineStyle).not.toBe("none");
-  expect(Number.parseFloat(focusStyle.outlineWidth)).toBeGreaterThanOrEqual(2);
+  await counts.locator(".mark-rect.role-mark path").first().hover();
+  await expect(page.locator("#vg-tooltip-element")).toHaveText("Aug 26: 8 challenges, 50% pass rate");
+  await rates.locator(".mark-symbol.role-mark path").last().hover();
+  await expect(page.locator("#vg-tooltip-element")).toHaveText("Sep 1: 8 challenges, 75% pass rate");
 });
 
 test("zero-day chart data keeps exact zero readings and never emits NaN", async ({ page }) => {
@@ -387,21 +348,10 @@ test("zero-day chart data keeps exact zero readings and never emits NaN", async 
   await waitForHome(page);
 
   const chart = page.locator("[data-home-trend-chart]");
-  await expect(chart).toBeVisible();
-  const chartText = await chart.textContent();
-  expect(chartText).not.toContain("NaN");
-  const countValues = await chart.locator('[data-home-chart-point][data-home-chart-series="count"]').evaluateAll(
-    (elements) => elements.map((element) => Number(element.getAttribute("data-home-chart-value")))
-  );
-  const rateValues = await chart.locator('[data-home-chart-point][data-home-chart-series="rate"]').evaluateAll(
-    (elements) => elements.map((element) => Number(element.getAttribute("data-home-chart-pass-rate")))
-  );
-  expect(countValues).toEqual(chartDays.map(() => 0));
-  expect(rateValues).toEqual(chartDays.map(() => 0));
-  const zeroCountLabels = await chart.locator("[data-home-chart-count-label]").allTextContents();
-  const zeroRateLabels = await chart.locator("[data-home-chart-rate-label]").allTextContents();
-  expect(zeroCountLabels).toEqual(chartDays.map(() => "0"));
-  expect(zeroRateLabels).toEqual(chartDays.map(() => "0%"));
+  await expect(page.getByTestId("home-count-chart").locator(".mark-text.role-mark text")).toHaveText(chartDays.map(() => "0"));
+  await expect(page.getByTestId("home-rate-chart").locator(".mark-text.role-mark text")).toHaveText(chartDays.map(() => "0%"));
+  expect(await chart.innerHTML()).not.toContain("NaN");
+  await expect(page.locator("[data-home-chart-reading]")).toHaveText("Aug 26: 0 challenges, 0% pass rate");
   await expect(page.locator('[data-home-metric="challenges"]')).toContainText("0");
   await expect(page.locator('[data-home-metric="pass-rate"]')).toContainText("0%");
 });

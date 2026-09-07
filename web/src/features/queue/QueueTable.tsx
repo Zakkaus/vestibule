@@ -15,9 +15,11 @@ import type { SortDescriptor } from "@react-spectrum/s2";
 import { useMemo, useState, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useConsoleSession } from "../../app/session";
 import { useConsoleSize } from "../../components/ConsoleProvider";
 import type { StatusTone } from "../../components/StatusBadge";
 import { Icon } from "../../icons";
+import { groupName } from "../../lib/chatNames";
 import type { QueueRecord } from "./api";
 
 export type PendingQueueActions = Readonly<Record<string, true>>;
@@ -126,6 +128,7 @@ function compareRows(left: QueueRow, right: QueueRow, column: string, direction:
 
 export function QueueTable({ records, pendingActions, dateFormatter, emptyState, onRelease }: QueueTableProps) {
   const { t, i18n } = useTranslation();
+  const session = useConsoleSession();
   const collator = useMemo(() => new Intl.Collator(i18n.language, { sensitivity: "base" }), [i18n.language]);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: "occurredAt",
@@ -140,13 +143,18 @@ export function QueueTable({ records, pendingActions, dateFormatter, emptyState,
         record.result.state === "pending" && record.remainingSeconds !== undefined
           ? formatRemainingTime(record.remainingSeconds)
           : null,
-      group: record.groupLabelKey ? t(record.groupLabelKey) : record.groupKey,
+      group: groupName(
+        record.groupKey,
+        record.groupLabelKey
+          ? t(record.groupLabelKey)
+          : session.state === "ready" ? session.chats.find((chat) => chat.id === record.groupKey)?.title : undefined
+      ),
       occurredAt: record.occurredAt
         ? dateFormatter.format(new Date(record.occurredAt))
         : t("queue.timeUnavailable"),
       occurredAtValue: record.occurredAt ? Date.parse(record.occurredAt) : null
     })),
-    [dateFormatter, pendingActions, records, t]
+    [dateFormatter, pendingActions, records, session, t]
   );
 
   const sortedRows = useMemo(() => {

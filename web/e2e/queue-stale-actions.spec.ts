@@ -51,7 +51,7 @@ async function mockQueueTransport(
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: groupAID }, { id: groupBID }] })
+        body: JSON.stringify({ chats: [{ id: groupAID, title: "Gentoo-zh Community" }, { id: groupBID, title: "Arch Linux Community" }] })
       });
       return;
     }
@@ -83,7 +83,8 @@ async function selectGroupB(page: Page): Promise<void> {
   const groupSwitcher = page.getByRole("button", { name: "当前群" });
   await selectAppOption(groupSwitcher, groupBID);
   await expect(page).toHaveURL(new RegExp(`/queue\\?group=${groupBID}$`));
-  await expect(groupSwitcher).toContainText(groupBID);
+  await expect(groupSwitcher).toContainText("Arch Linux Community");
+  await expect(groupSwitcher).not.toContainText(/-100\d+/);
 }
 
 test("queue discards group A's delayed read after the visible group switcher selects group B", async ({
@@ -124,6 +125,8 @@ test("queue discards group A's delayed read after the visible group switcher sel
   await aReadRequested;
   await selectGroupB(page);
   await expect(queueRow(page, "@queue_group_b")).toBeVisible();
+  await expect(queueRow(page, "@queue_group_b").locator("[data-queue-group]")).toHaveText("Arch Linux Community");
+  await expect(page.locator("[data-queue-page]")).not.toContainText(/-100\d+/);
 
   const staleReadResponse = page.waitForResponse(
     (response) =>
@@ -178,6 +181,8 @@ test("queue discards group A's delayed release after the visible group switcher 
   await page.goto(`/queue?group=${groupAID}`);
   const groupARow = queueRow(page, "@queue_group_a");
   await expect(groupARow).toBeVisible();
+  await expect(groupARow.locator("[data-queue-group]")).toHaveText("Gentoo-zh Community");
+  await expect(page.locator("[data-queue-page]")).not.toContainText(/-100\d+/);
   await groupARow.getByRole("button", { name: "放行 @queue_group_a" }).click();
   await releaseRequested;
   await expect(groupARow).toHaveAttribute("data-action-state", "pending");
@@ -198,6 +203,8 @@ test("queue discards group A's delayed release after the visible group switcher 
   const groupBRow = queueRow(page, "@queue_group_b");
   await expect(groupARow).toHaveCount(0);
   await expect(groupBRow).toHaveAttribute("data-result", "pending");
+  await expect(groupBRow.locator("[data-queue-group]")).toHaveText("Arch Linux Community");
+  await expect(page.locator("[data-queue-page]")).not.toContainText(/-100\d+/);
   await expect(page.locator("[data-queue-feedback]")).toHaveCount(0);
 });
 
@@ -263,6 +270,9 @@ test("queue sends one release for a forced second click and shows the confirmed 
   await expect(page.locator("[data-queue-feedback]")).toContainText(
     "已放行 @queue_group_a"
   );
+  await expect(page.locator("[data-queue-feedback]")).toContainText("Gentoo-zh Community");
+  await expect(page.getByRole("alert").filter({ hasText: "@queue_group_a" })).toContainText("Gentoo-zh Community");
+  await expect(page.locator("[data-queue-page]")).not.toContainText(/-100\d+/);
   expect(releaseRequests).toBe(1);
 });
 
@@ -280,6 +290,10 @@ test("queue filter survives a copied URL and clears without losing the group", a
   );
   await page.goto(`/queue?group=${groupAID}`);
   const field = page.locator("[data-queue-filter] input");
+  await field.fill("Gentoo-zh Community");
+  await expect(page.locator("[data-queue-row]")).toHaveCount(2);
+  await expect(queueRow(page, "@queue_group_a").locator("[data-queue-group]")).toHaveText("Gentoo-zh Community");
+  await expect(page.locator("[data-queue-page]")).not.toContainText(/-100\d+/);
   await field.fill("queue_group_a");
   await expect(page.locator("[data-queue-row]")).toHaveCount(1);
   await expect(queueRow(page, "@queue_group_a")).toBeVisible();

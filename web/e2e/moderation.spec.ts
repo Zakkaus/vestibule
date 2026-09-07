@@ -55,7 +55,7 @@ async function mockModerationTransport(
       return;
     }
     if (path === "/api/chats" && request.method() === "GET") {
-      await fulfillJSON(route, { chats: [{ id: selectedGroupID }, { id: otherGroupID }] });
+      await fulfillJSON(route, { chats: [{ id: selectedGroupID, title: "Gentoo-zh Community" }, { id: otherGroupID, title: "Arch Linux Community" }] });
       return;
     }
     if (
