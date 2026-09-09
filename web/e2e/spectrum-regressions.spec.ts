@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { selectAppOption } from "./app-select";
 import { chartDays, mockSpectrumTransport, openSpectrumRoute } from "./spectrum-fixtures";
 
 async function dateLabelOverlaps(page: Page) {
@@ -85,49 +86,57 @@ test("sidebar surface follows document overflow in a short viewport without a bo
   await expect(page.locator('.console-sidebar a[aria-current="page"]')).toBeInViewport({ ratio: 1 });
 });
 
-test("active navigation combines weight, an inset rail, and icon stroke without a colored slab", async ({ page }) => {
+test("active navigation combines weight, an inset rail, icon stroke, and a pale accent surface", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await mockSpectrumTransport(page, { role: "operator" });
   await openSpectrumRoute(page, "/home");
-  const cues = await page.locator('.console-sidebar nav a[href]').evaluateAll((links) => {
-    const measure = (link: Element) => {
-      const row = link.closest('[role="row"]') ?? link;
-      const box = link.getBoundingClientRect();
-      const rail = [...row.querySelectorAll<HTMLElement>("div")].some((element) => {
-        const rect = element.getBoundingClientRect();
-        const css = getComputedStyle(element);
-        return rect.width >= 1 && rect.width <= 4 && rect.height >= 12 &&
-          rect.right <= box.left && rect.bottom > box.top && rect.top < box.bottom &&
-          css.backgroundColor !== "rgba(0, 0, 0, 0)";
-      });
-      const canvas = document.createElement("canvas");
-      canvas.width = canvas.height = 1;
-      const context = canvas.getContext("2d")!;
-      const saturatedSlab = [row, ...row.querySelectorAll<HTMLElement>("div, a")].some((element) => {
-        const rect = element.getBoundingClientRect();
-        if (rect.width < box.width / 2 || rect.height < box.height / 2) return false;
-        context.clearRect(0, 0, 1, 1);
-        context.fillStyle = getComputedStyle(element).backgroundColor;
-        context.fillRect(0, 0, 1, 1);
-        const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
-        return alpha > 0 && Math.max(red, green, blue) - Math.min(red, green, blue) > 12;
-      });
-      return {
-        weight: Number(getComputedStyle(link).fontWeight),
-        stroke: Number.parseFloat(getComputedStyle(link.querySelector("svg")!).strokeWidth),
-        rail,
-        saturatedSlab
+
+  for (const theme of ["light", "dark"] as const) {
+    const themeTrigger = page
+      .locator('[data-utility-controls][data-variant="chrome"] [data-console-control]')
+      .first()
+      .locator("button")
+      .first();
+    await selectAppOption(themeTrigger, theme);
+    await page.waitForFunction((expected) => document.documentElement.dataset.theme === expected, theme);
+    await page.evaluate(async () => {
+      await Promise.all(document.getAnimations().map((animation) => animation.finished.catch(() => {})));
+    });
+
+    const cues = await page.locator('.console-sidebar nav a[href]').evaluateAll((links) => {
+      const measure = (link: Element) => {
+        const row = link.closest('[role="row"]') ?? link;
+        const box = link.getBoundingClientRect();
+        const rail = [...row.querySelectorAll<HTMLElement>("div")].some((element) => {
+          const rect = element.getBoundingClientRect();
+          const css = getComputedStyle(element);
+          return rect.width >= 1 && rect.width <= 4 && rect.height >= 12 &&
+            rect.right <= box.left && rect.bottom > box.top && rect.top < box.bottom &&
+            css.backgroundColor !== "rgba(0, 0, 0, 0)";
+        });
+        const selectedSurface = link.parentElement!;
+        return {
+          weight: Number(getComputedStyle(link).fontWeight),
+          stroke: Number.parseFloat(getComputedStyle(link.querySelector("svg")!).strokeWidth),
+          rail,
+          selectedBackground: getComputedStyle(selectedSurface).backgroundColor
+        };
       };
-    };
-    const active = links.find((link) => link.getAttribute("aria-current") === "page")!;
-    const idle = links.find((link) => !link.hasAttribute("aria-current"))!;
-    return { active: measure(active), idle: measure(idle) };
-  });
-  expect(cues.active.weight).toBeGreaterThan(cues.idle.weight);
-  expect(cues.active.stroke).toBeGreaterThan(cues.idle.stroke);
-  expect(cues.active.rail).toBe(true);
-  expect(cues.idle.rail).toBe(false);
-  expect(cues.active.saturatedSlab).toBe(false);
+      const active = links.find((link) => link.getAttribute("aria-current") === "page")!;
+      const idle = links.find((link) => !link.hasAttribute("aria-current"))!;
+      return { active: measure(active), idle: measure(idle) };
+    });
+    expect(cues.active.weight).toBeGreaterThan(cues.idle.weight);
+    expect(cues.active.stroke).toBeGreaterThan(cues.idle.stroke);
+    expect(cues.active.rail).toBe(true);
+    expect(cues.idle.rail).toBe(false);
+    expect(cues.active.selectedBackground).not.toBe(cues.idle.selectedBackground);
+    const [red, green, blue, alpha = 1] = cues.active.selectedBackground.match(/[\d.]+/g)!.map(Number);
+    expect(blue).toBeGreaterThan(red);
+    expect(blue).toBeGreaterThan(green);
+    expect(alpha).toBeGreaterThan(0);
+    expect(alpha).toBeLessThanOrEqual(0.15);
+  }
 });
 
 test("content navigation opens the destination group and preserves its keyboard entry", async ({ page }) => {

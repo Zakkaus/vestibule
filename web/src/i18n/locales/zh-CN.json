@@ -1384,7 +1384,7 @@
       "operator": "运维人员"
     },
     "context": {
-      "title": "群 {{id}}",
+      "title": "群名称：{{id}}",
       "enabled": "验证已启用",
       "disabled": "验证已停用"
     },

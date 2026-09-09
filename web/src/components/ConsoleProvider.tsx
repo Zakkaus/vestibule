@@ -1,4 +1,5 @@
 import { Provider } from "@react-spectrum/s2/Provider";
+import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { useSyncExternalStore, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -9,6 +10,14 @@ function subscribeTheme(listener: () => void): () => void {
   window.addEventListener(THEME_PREFERENCE_CHANGE_EVENT, listener);
   return () => window.removeEventListener(THEME_PREFERENCE_CHANGE_EVENT, listener);
 }
+
+const legacySurfaceStyles = style({
+  "--background": { type: "backgroundColor", value: "layer-1" },
+  "--card": { type: "backgroundColor", value: "layer-2" },
+  "--popover": { type: "backgroundColor", value: "layer-2" },
+  "--surface-raised": { type: "backgroundColor", value: "layer-1" },
+  "--muted": { type: "backgroundColor", value: "layer-1" }
+});
 
 const touchQuery = "not ((hover: hover) and (pointer: fine))";
 
@@ -36,6 +45,8 @@ export function ConsoleProvider({ children }: Readonly<{ children: ReactNode }>)
     <Provider
       locale={i18n.resolvedLanguage}
       colorScheme={theme === "system" ? undefined : theme}
+      background="base"
+      styles={legacySurfaceStyles}
       router={{ navigate: (path, options) => { void navigate(path, options); } }}
     >
       {children}

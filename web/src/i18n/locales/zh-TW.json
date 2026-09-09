@@ -1384,7 +1384,7 @@
       "operator": "維運人員"
     },
     "context": {
-      "title": "群組 {{id}}",
+      "title": "群組名稱：{{id}}",
       "enabled": "驗證已啟用",
       "disabled": "驗證已停用"
     },

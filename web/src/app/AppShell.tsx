@@ -1,6 +1,6 @@
 import { Button } from "@react-spectrum/s2/Button";
 import { Content, Header, Link, Popover, SideNav, SideNavItem, SideNavItemContent, SideNavItemLink, Text } from "@react-spectrum/s2";
-import { style, size } from "@react-spectrum/s2/style" with { type: "macro" };
+import { size, style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { DialogTrigger } from "@react-spectrum/s2/Dialog";
 import { useEffect, useState } from "react";
 import type { Key } from "@react-spectrum/s2";
@@ -57,7 +57,6 @@ const shellLayout = style({
     "@media (max-width: 48rem)": ["minmax(0, 1fr)"]
   },
   minHeight: "screen",
-  backgroundColor: "gray-100",
   color: "neutral"
 });
 
@@ -65,7 +64,7 @@ const sidebarLayout = style({
   display: { default: "block", "@media (max-width: 48rem)": "none" },
   height: "full",
   minWidth: 0,
-  backgroundColor: "gray-100",
+  backgroundColor: "base",
   borderWidth: 0,
   borderEndWidth: 1,
   borderStyle: "solid",
@@ -103,7 +102,8 @@ const navigationLayout = style({
   minWidth: 0,
   padding: 16,
   overflowY: "auto",
-  overscrollBehaviorY: "contain"
+  overscrollBehaviorY: "contain",
+  "--console-nav-selected-background": { type: "backgroundColor", value: "accent-900/10" }
 });
 
 const sideNavLayout = style({ height: "full" });
@@ -111,7 +111,8 @@ const sideNavLayout = style({ height: "full" });
 const mainLayout = style({
   display: "block",
   minHeight: "screen",
-  minWidth: 0
+  minWidth: 0,
+  backgroundColor: "layer-1"
 });
 
 const headerLayout = style({
@@ -135,7 +136,7 @@ const headerLayout = style({
   borderBottomWidth: 1,
   borderStyle: "solid",
   borderColor: "gray-300",
-  backgroundColor: "gray-100"
+  backgroundColor: "base"
 });
 
 const headerTitleLayout = style({

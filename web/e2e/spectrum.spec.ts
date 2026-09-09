@@ -276,6 +276,75 @@ test.describe("Spectrum shell geometry across changed routes", () => {
 });
 
 
+test("Spectrum layer surfaces cover the console shell and legacy cards in every theme", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await mockSpectrumTransport(page, { role: "operator" });
+
+  for (const [preference, system] of [["light", "dark"], ["dark", "light"], ["system", "light"], ["system", "dark"]] as const) {
+    await page.emulateMedia({ colorScheme: system });
+    await openSpectrumRoute(page, "/home");
+    await waitForHome(page);
+    const themeTrigger = page
+      .locator('[data-utility-controls][data-variant="chrome"] [data-console-control]')
+      .first()
+      .locator("button")
+      .first();
+    await selectAppOption(themeTrigger, preference);
+    await page.waitForFunction((expected) => (
+      document.documentElement.dataset.themePreference === expected &&
+      (expected === "system" ? !document.documentElement.hasAttribute("data-theme") : document.documentElement.dataset.theme === expected)
+    ), preference);
+    await page.evaluate(async () => {
+      await Promise.all(document.getAnimations().map((animation) => animation.finished.catch(() => {})));
+    });
+
+    const nativeSurfaces = await page.evaluate(() => {
+      const shell = document.querySelector<HTMLElement>("[data-app-shell]");
+      const provider = shell?.parentElement;
+      const main = document.querySelector<HTMLElement>(".console-main");
+      const sidebar = document.querySelector<HTMLElement>(".console-sidebar");
+      const header = document.querySelector<HTMLElement>(".console-header");
+      const card = document.querySelector<HTMLElement>("[data-console-card]");
+      if (!provider || !main || !sidebar || !header || !card) {
+        throw new Error("console layer surfaces are missing");
+      }
+      return {
+        provider: getComputedStyle(provider).backgroundColor,
+        content: getComputedStyle(main).backgroundColor,
+        sidebar: getComputedStyle(sidebar).backgroundColor,
+        header: getComputedStyle(header).backgroundColor,
+        card: getComputedStyle(card).backgroundColor,
+        cardShadow: getComputedStyle(card).boxShadow
+      };
+    });
+    const dark = preference === "dark" || (preference === "system" && system === "dark");
+    const expected = dark
+      ? { provider: "rgb(17, 17, 17)", content: "rgb(27, 27, 27)", card: "rgb(34, 34, 34)" }
+      : { provider: "rgb(255, 255, 255)", content: "rgb(248, 248, 248)", card: "rgb(255, 255, 255)" };
+    expect(nativeSurfaces.provider).toBe(nativeSurfaces.sidebar);
+    expect(nativeSurfaces.provider).toBe(nativeSurfaces.header);
+    expect(nativeSurfaces.provider).toBe(expected.provider);
+    expect(nativeSurfaces.content).toBe(expected.content);
+    expect(nativeSurfaces.card).toBe(expected.card);
+    const contentBrightness = nativeSurfaces.content.match(/\d+/g)!.slice(0, 3).reduce((sum, channel) => sum + Number(channel), 0);
+    const cardBrightness = nativeSurfaces.card.match(/\d+/g)!.slice(0, 3).reduce((sum, channel) => sum + Number(channel), 0);
+    expect(cardBrightness).toBeGreaterThan(contentBrightness);
+    expect(nativeSurfaces.cardShadow).not.toBe("none");
+
+    await openSpectrumRoute(page, "/groups");
+    await expect(page.locator("[data-groups-page]")).toBeVisible();
+    await expect(page.locator("[data-group-row], [data-group-state]").first()).toBeVisible();
+    const legacySurface = await page.locator('[data-slot="card"]').first().evaluate((element) => ({
+      background: getComputedStyle(element).backgroundColor
+    }));
+    expect(legacySurface.background).toBe(nativeSurfaces.card);
+    await openSpectrumRoute(page, "/queue");
+    await expect(page.locator("[data-queue-toolbar]")).toBeVisible();
+    expect(await page.locator("[data-queue-toolbar]").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe(nativeSurfaces.card);
+  }
+});
+
+
 test("mobile navigation uses a portalled dialog, restores focus on Escape, and closes after selecting a link", async ({
   page
 }) => {

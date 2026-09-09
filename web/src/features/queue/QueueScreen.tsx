@@ -472,7 +472,7 @@ export function QueueScreen() {
 
       <Content data-queue-results styles={queueResultsStyles}>
         {hasRecords ? (
-          <Card data-queue-toolbar variant="secondary" density="compact" styles={style({ width: "full", minWidth: 0 })}>
+          <Card data-queue-toolbar density="compact" styles={style({ width: "full", minWidth: 0 })}>
             <Content styles={queueToolbarStyles}>
               <TextField
                 label={t("queue.filter.label")}

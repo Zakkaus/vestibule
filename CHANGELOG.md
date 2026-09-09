@@ -7,6 +7,11 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 ### Fixed
+- Group names use explicit colon-separated labels in Simplified Chinese, Traditional
+  Chinese and English instead of an unlabelled prefix.
+- Console backgrounds use Spectrum's base shell, layer-1 content and layer-2 cards
+  in both themes, including legacy content containers. Cards retain native elevation.
+  Sidebar selection uses a pale accent tint while retaining weight, an inset rail and icon stroke.
 - The healthy home attention state aligns with its section heading. Chart legends now
   include colored dots that match their series in light, dark and system themes.
 - The home chart now gives out-of-window response dates distinct positions and counts

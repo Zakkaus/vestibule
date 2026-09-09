@@ -1390,7 +1390,7 @@
       "operator": "Operator"
     },
     "context": {
-      "title": "Group {{id}}",
+      "title": "Group name: {{id}}",
       "enabled": "Verification enabled",
       "disabled": "Verification disabled"
     },
