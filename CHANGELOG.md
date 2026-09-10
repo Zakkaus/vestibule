@@ -7,6 +7,8 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 ### Fixed
+- Production entry pages ignore preview query parameters and retain the authenticated
+  account identity when instance metadata is stale.
 - Group names use explicit colon-separated labels in Simplified Chinese, Traditional
   Chinese and English instead of an unlabelled prefix.
 - Console chrome shares a gray Spectrum layer-1 surface without sidebar or header

@@ -126,7 +126,9 @@ function fixtureForBlockedSession(
   error: ApiRequestError,
   stateHint: string | null
 ): EntryFixture | undefined {
-  const hintedFixture = entryFixtures.find((fixture) => fixture.id === stateHint);
+  const hintedFixture = import.meta.env.DEV
+    ? entryFixtures.find((fixture) => fixture.id === stateHint)
+    : undefined;
   if (hintedFixture) {
     return hintedFixture;
   }
@@ -154,11 +156,12 @@ export function EntryScreen() {
   const session = useConsoleSession();
   const botUsername = useInstanceBot();
 
-  // An unclaimed instance has no bot, so none of the states below apply: there
-  // is nothing to open in Telegram and no session anyone could hold. The empty
-  // string is the answer having arrived and being empty, which is how the server
-  // reports an instance nobody has claimed.
-  if (botUsername === "" && searchParams.get("state") === null) {
+  // The instance response can predate a successful claim and session exchange.
+  if (
+    session.state === "blocked" &&
+    botUsername === "" &&
+    (!import.meta.env.DEV || searchParams.get("state") === null)
+  ) {
     return <EntryFixtureContent fixture={unclaimedEntryFixture} botUsername={botUsername} />;
   }
 
