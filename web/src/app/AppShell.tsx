@@ -141,10 +141,6 @@ const contentLayout = style({
     default: 32,
     "@media (max-width: 48rem)": 16
   },
-  paddingBottom: {
-    default: { default: 32, "@media (max-width: 48rem)": 16 },
-    isHome: 16
-  },
   overflow: "auto",
   overscrollBehavior: "contain",
   boxSizing: "border-box",
@@ -260,7 +256,7 @@ function ShellContent() {
           </Header>
           <Content
             UNSAFE_className="console-content"
-            styles={contentLayout({ isHome: location.pathname === "/home" })}
+            styles={contentLayout}
           >
             <Content key={location.pathname} UNSAFE_className="console-inner" styles={innerLayout}>
               <Outlet />

@@ -25,7 +25,7 @@ export function HomeScreen() {
       aria-labelledby="home-title"
     >
       <Header data-page-heading data-home-heading styles={style({ display: "grid", gap: 16 })}>
-        <Heading level={1} id="home-title" styles={style({ font: "heading-2xl", margin: 0 })}>{t("home.title")}</Heading>
+        <Heading level={1} id="home-title" styles={style({ margin: 0 })}>{t("home.title")}</Heading>
       </Header>
       <HomeStateContent
         state={controller.state}

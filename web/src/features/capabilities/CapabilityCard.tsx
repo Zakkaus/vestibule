@@ -32,8 +32,10 @@ export function SourceMeta({
 
   return (
     <span data-capability-meta>
+      {/* Every source is a badge. Dropping the slot for the factory default left one row
+          where the icon touched its text and sat 4px off the others' centre line. */}
       <span
-        data-slot={source === "factory default" ? undefined : "badge"}
+        data-slot="badge"
         data-status={source === "chat override" ? "info" : "neutral"}
         data-capability-source={source}
       >

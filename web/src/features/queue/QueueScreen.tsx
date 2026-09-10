@@ -34,7 +34,6 @@ const queuePageStyles = style({
 });
 
 const queueHeadingStyles = style({
-  font: "heading-lg",
   margin: 0,
   display: "flex",
   alignItems: "center",
