@@ -33,6 +33,8 @@ jobs:
           python3 scripts/check-baseline-ratchet.py "$base"
       - name: Static gates reject the regressions they are meant to stop
         run: python3 scripts/test-gate-self-coverage.py
+      - name: Dependency notices match the shipped sources
+        run: python3 scripts/check-third-party-licenses.py
 
 
       - name: go vet

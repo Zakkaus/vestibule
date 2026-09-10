@@ -9,7 +9,7 @@ selected=all
 
 if [ "$#" -gt 0 ]; then
 	[ "$#" -eq 2 ] && [ "$1" = --case ] || {
-		echo "usage: test-install.sh [--case hardening|lifecycle|container|container-credentials|bot-env|failure-cleanup|rollback-unit-state|rollback-preflight|checksums]" >&2
+		echo "usage: test-install.sh [--case hardening|lifecycle|legacy-notice|container|container-credentials|bot-env|failure-cleanup|rollback-unit-state|rollback-preflight|checksums]" >&2
 		exit 2
 	}
 	selected=$2
@@ -58,6 +58,11 @@ EOF
 	cp "${ROOT}/deploy/vestibule-replace.service" "${release}/vestibule-replace.service"
 	cp "${ROOT}/deploy/vestibule-replace.path" "${release}/vestibule-replace.path"
 	cp "${ROOT}/deploy/compose.yaml" "${release}/compose.yaml"
+	{
+		printf 'Fixture release %s third-party notices\n\n' "$tag"
+		cat "${ROOT}/THIRD-PARTY-LICENSES"
+	} > "${release}/THIRD-PARTY-LICENSES"
+
 	cat > "${release}/vestibule-schema-manifest" <<EOF
 target_schema_version=${target}
 minimum_rollback_schema_version=${minimum}
@@ -65,7 +70,7 @@ EOF
 	(
 		cd "$release"
 		sha256sum "vestibule-linux-${arch}" vestibule.service vestibule-schema-manifest \
-			vestibule-install vestibule-install-common vestibule-install-native vestibule-install-container \
+			THIRD-PARTY-LICENSES vestibule-install vestibule-install-common vestibule-install-native vestibule-install-container \
 			vestibule-replace vestibule-replace.service vestibule-replace.path compose.yaml > SHA256SUMS
 	)
 }
@@ -272,6 +277,8 @@ case_lifecycle() {
 	run_success "${sandbox}/install.out" v1.0.0
 	installed_binary=${test_root}/usr/local/bin/vestibule
 	installed_unit=${test_root}/etc/systemd/system/vestibule.service
+	installed_notice=${test_root}/usr/local/share/doc/vestibule/THIRD-PARTY-LICENSES
+	previous_notice=${installed_notice}.previous
 	result=${test_root}/etc/vestibule/install-result.env
 	claim=${test_root}/var/lib/vestibule/claim.json
 	bot_env=${test_root}/etc/vestibule/bot.env
@@ -279,6 +286,8 @@ case_lifecycle() {
 	replacement_service=${test_root}/etc/systemd/system/vestibule-replace.service
 	replacement_path=${test_root}/etc/systemd/system/vestibule-replace.path
 	replacement_state=${test_root}/var/lib/vestibule/replacement-unit.env
+	assert_same "${fixtures}/v1.0.0/THIRD-PARTY-LICENSES" "$installed_notice"
+	assert_mode "$installed_notice" 644
 	assert_same "${fixtures}/v1.0.0/vestibule-linux-${arch}" "$installed_binary"
 	assert_same "$unit_under_test" "$installed_unit"
 	assert_file "$bot_env"
@@ -311,10 +320,22 @@ case_lifecycle() {
 	printf 'SETUP_TOKEN=stale\n' > "${test_root}/etc/vestibule/setup.env"
 	printf 'database-state\n' > "${test_root}/var/lib/vestibule/database.keep"
 
+	fail_systemctl=restart
+	if run_installer v2.0.0 > "${sandbox}/failed-upgrade.out" 2>&1; then
+		fail "upgrade unexpectedly succeeded when systemctl restart failed"
+	fi
+	fail_systemctl=
+	assert_same "${fixtures}/v1.0.0/vestibule-linux-${arch}" "$installed_binary"
+	assert_same "${fixtures}/v1.0.0/THIRD-PARTY-LICENSES" "$installed_notice"
+	assert_absent "${installed_binary}.previous"
+	assert_absent "$previous_notice"
+
 	: > "$fetch_log"
 	run_success "${sandbox}/upgrade.out" v2.0.0
 	assert_absent "${test_root}/etc/vestibule/setup.env"
 	assert_same "${fixtures}/v2.0.0/vestibule-linux-${arch}" "$installed_binary"
+	assert_same "${fixtures}/v2.0.0/THIRD-PARTY-LICENSES" "$installed_notice"
+	assert_same "${fixtures}/v1.0.0/THIRD-PARTY-LICENSES" "$previous_notice"
 	assert_same "${fixtures}/v1.0.0/vestibule-linux-${arch}" "${installed_binary}.previous"
 	assert_line 'operation=upgrade' "$result"
 	manifest_line=$(grep -n '/vestibule-schema-manifest$' "$fetch_log" | cut -d: -f1)
@@ -329,10 +350,14 @@ case_lifecycle() {
 
 	run_success "${sandbox}/rollback.out" --rollback
 	assert_same "${fixtures}/v1.0.0/vestibule-linux-${arch}" "$installed_binary"
+	assert_same "${fixtures}/v1.0.0/THIRD-PARTY-LICENSES" "$installed_notice"
+	assert_same "${fixtures}/v2.0.0/THIRD-PARTY-LICENSES" "$previous_notice"
 	assert_same "${fixtures}/v2.0.0/vestibule-linux-${arch}" "${installed_binary}.previous"
 	assert_line 'operation=rollback' "$result"
 
 	run_success "${sandbox}/uninstall.out" --uninstall --keep-data
+	assert_absent "$installed_notice"
+	assert_absent "$previous_notice"
 	assert_absent "$installed_binary"
 	assert_absent "$installed_unit"
 	assert_absent "$replacement_runner"
@@ -344,6 +369,32 @@ case_lifecycle() {
 	assert_file "${test_root}/var/lib/vestibule/database.keep"
 	assert_line 'operation=uninstall' "$result"
 	pass "install, same-command upgrade, status, rollback, and uninstall"
+}
+
+case_legacy_notice_lifecycle() {
+	new_sandbox legacy-notice
+	run_success "${sandbox}/install.out" v1.0.0
+	installed_binary=${test_root}/usr/local/bin/vestibule
+	installed_notice=${test_root}/usr/local/share/doc/vestibule/THIRD-PARTY-LICENSES
+	previous_notice=${installed_notice}.previous
+	result=${test_root}/etc/vestibule/install-result.env
+	# Simulate an installation from before native notices were introduced.
+	rm -f "$installed_notice"
+	run_success "${sandbox}/upgrade.out" v2.0.0
+	assert_same "${fixtures}/v2.0.0/THIRD-PARTY-LICENSES" "$installed_notice"
+	assert_absent "$previous_notice"
+	run_success "${sandbox}/upgrade-status.out" --status
+	assert_line 'version=v2.0.0' "${sandbox}/upgrade-status.out"
+	assert_line 'rollback_available=yes' "${sandbox}/upgrade-status.out"
+	run_success "${sandbox}/rollback.out" --rollback
+	assert_same "${fixtures}/v1.0.0/vestibule-linux-${arch}" "$installed_binary"
+	assert_absent "$installed_notice"
+	assert_same "${fixtures}/v2.0.0/THIRD-PARTY-LICENSES" "$previous_notice"
+	assert_line 'operation=rollback' "$result"
+	run_success "${sandbox}/rollback-status.out" --status
+	assert_line 'version=v1.0.0' "${sandbox}/rollback-status.out"
+	assert_line 'rollback_available=yes' "${sandbox}/rollback-status.out"
+	pass "legacy notice-less upgrade and rollback preserve status and notice semantics"
 }
 
 case_container() {
@@ -372,6 +423,7 @@ EOF
 	assert_line 'installed=yes' "${sandbox}/managed-status.out"
 	assert_line 'deployment=container' "${sandbox}/managed-status.out"
 	database_uri_before=$(sed -n 's/^VESTIBULE_DATABASE_URI=//p' "$container_env")
+
 	: > "$fetch_log"
 	run_container_success "${sandbox}/upgrade.out" v2.0.0
 	assert_line 'VESTIBULE_APP_IMAGE=ghcr.io/zakkaus/vestibule:v2.0.0' "$container_env"
@@ -495,6 +547,7 @@ case_rollback_preflight() {
 case_checksums() {
 	new_sandbox checksums
 	run_success "${sandbox}/install.out" v1.0.0
+	installed_notice=${test_root}/usr/local/share/doc/vestibule/THIRD-PARTY-LICENSES
 	printf 'corrupt\n' >> "${fixtures}/v2.0.0/vestibule-linux-${arch}"
 	if run_installer v2.0.0 > "${sandbox}/bad-binary.out" 2>&1; then
 		fail "upgrade accepted a binary that did not match SHA256SUMS"
@@ -509,13 +562,24 @@ case_checksums() {
 	if grep -q "/vestibule-linux-${arch}$" "$fetch_log"; then
 		fail "manifest checksum failure happened after binary retrieval"
 	fi
-	pass "manifest and binary must match published SHA256SUMS"
+	make_release v2.0.0 2 1
+	printf 'corrupt\n' >> "${fixtures}/v2.0.0/THIRD-PARTY-LICENSES"
+	: > "$fetch_log"
+	if run_installer v2.0.0 > "${sandbox}/bad-notice.out" 2>&1; then
+		fail "upgrade accepted a notice that did not match SHA256SUMS"
+	fi
+	assert_same "${fixtures}/v1.0.0/THIRD-PARTY-LICENSES" "$installed_notice"
+	if grep -q "/vestibule-linux-${arch}$" "$fetch_log"; then
+		fail "notice checksum failure happened after binary retrieval"
+	fi
+	pass "manifest, notice, and binary must match published SHA256SUMS"
 }
 
 run_case() {
 	case $1 in
 		hardening) case_hardening ;;
 		lifecycle) case_lifecycle ;;
+		legacy-notice) case_legacy_notice_lifecycle ;;
 		container) case_container ;;
 		container-credentials) case_container_requires_bot_api_credentials ;;
 		bot-env) case_bot_env ;;
@@ -528,7 +592,7 @@ run_case() {
 }
 
 if [ "$selected" = all ]; then
-	for test_case in hardening lifecycle container container-credentials bot-env failure-cleanup rollback-unit-state rollback-preflight checksums; do
+	for test_case in hardening lifecycle legacy-notice container container-credentials bot-env failure-cleanup rollback-unit-state rollback-preflight checksums; do
 		run_case "$test_case"
 	done
 else

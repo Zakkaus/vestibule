@@ -1,3 +1,20 @@
+FROM alpine:3.22 AS runtime
+RUN apk add --no-cache ca-certificates libstdc++ openssl zlib \
+ && addgroup -S -g 65532 vestibule \
+ && adduser -S -D -H -u 65532 -G vestibule vestibule \
+ && install -d -o vestibule -g vestibule /var/lib/telegram-bot-api /usr/share/doc/vestibule \
+ && cp /lib/apk/db/installed /tmp/runtime-apk-installed
+
+FROM runtime AS runtime-notices
+RUN apk add --no-cache abuild python3 wget
+COPY THIRD-PARTY-LICENSES /tmp/THIRD-PARTY-LICENSES
+COPY scripts/bundle-alpine-runtime-sources.py /usr/local/bin/bundle-alpine-runtime-sources.py
+RUN python3 /usr/local/bin/bundle-alpine-runtime-sources.py \
+      --installed /tmp/runtime-apk-installed \
+      --output /out/alpine-runtime-sources \
+      --base-artifact /tmp/THIRD-PARTY-LICENSES \
+      --artifact /out/THIRD-PARTY-LICENSES
+
 FROM alpine:3.22 AS build
 
 ARG TELEGRAM_BOT_API_REF=e3e9dd8e5b3d7ab8537cd5a10dc31d5ffa8f82d1
@@ -8,12 +25,10 @@ RUN git clone --recursive https://github.com/tdlib/telegram-bot-api.git /src \
  && cmake -S /src -B /build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/telegram-bot-api \
  && cmake --build /build --target install --parallel
 
-FROM alpine:3.22
-RUN apk add --no-cache ca-certificates libstdc++ openssl zlib \
- && addgroup -S -g 65532 vestibule \
- && adduser -S -D -H -u 65532 -G vestibule vestibule \
- && install -d -o vestibule -g vestibule /var/lib/telegram-bot-api
+FROM runtime
 COPY --from=build /opt/telegram-bot-api/ /usr/local/
+COPY --from=runtime-notices /out/THIRD-PARTY-LICENSES /usr/share/doc/vestibule/THIRD-PARTY-LICENSES
+COPY --from=runtime-notices /out/alpine-runtime-sources /usr/share/doc/vestibule/alpine-runtime-sources
 USER vestibule:vestibule
 ENTRYPOINT ["/usr/local/bin/telegram-bot-api"]
 CMD ["--local", "--http-ip-address=0.0.0.0", "--http-port=8081", "--dir=/var/lib/telegram-bot-api"]

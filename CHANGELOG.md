@@ -70,6 +70,8 @@ All notable changes to this project are documented here. The format is based on
   refuses startup. Kernel questions remain an explicit mode.
 - The question editor shows inherited bank contents and their source. Restoring an override
   returns to the deployment bank without changing that file.
+- Release packages include full third-party notices. Container images also include the
+  source archives and aports recipes verified against their installed Alpine packages.
 - **The mobile navigation panel now connects to its trigger.** Its open state shares the trigger
   edge and uses denser token-based spacing while retaining the lower panel radius.
 - The console group switcher now shows the durable title captured when a runtime group is

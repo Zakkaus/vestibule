@@ -1110,6 +1110,29 @@ func (s *Server) exportAudit(writer http.ResponseWriter, request *http.Request, 
         finally:
             restore()
 
+    def test_altered_dependency_license_cannot_ship(self) -> None:
+        tree = self.temporary_tree()
+
+        def mutate() -> Callable[[], None]:
+            path = tree / "THIRD-PARTY-LICENSES"
+            original = path.read_text(encoding="utf-8")
+            marker = "----- BEGIN LICENSE -----"
+            self.assertIn(marker, original)
+            path.write_text(
+                original.replace(marker, marker + "\nRedistribution is prohibited.", 1),
+                encoding="utf-8",
+            )
+            return lambda: path.write_text(original, encoding="utf-8")
+
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-third-party-licenses.py",
+            "a shipped dependency notice was replaced with different terms",
+            ("differs from the generated inventory",),
+            mutate,
+        )
+
+
     def test_a_community_name_cannot_become_default_copy(self) -> None:
         tree = self.temporary_tree()
         self.assert_mutation_is_rejected(

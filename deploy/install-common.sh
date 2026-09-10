@@ -267,6 +267,7 @@ fetch_release_support() {
 		"${name}-replace" \
 		"${name}-replace.service" \
 		"${name}-replace.path" \
+		THIRD-PARTY-LICENSES \
 		compose.yaml; do
 		fetch_url "${base}/${asset}" "${work}/${asset}"
 		verify_asset "$asset"
