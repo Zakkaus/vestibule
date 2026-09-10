@@ -70,12 +70,17 @@ func cloneFeedConfigs(values []FeedConfig) []FeedConfig {
 	}
 	out := make([]FeedConfig, len(values))
 	for index := range values {
-		out[index] = values[index]
+		out[index] = cloneFeedGitHubRepos(values[index])
 		out[index].Bugs = clonePtr(values[index].Bugs)
 		out[index].News = clonePtr(values[index].News)
 		out[index].SilentBugs = clonePtr(values[index].SilentBugs)
 	}
 	return out
+}
+
+func cloneFeedGitHubRepos(value FeedConfig) FeedConfig {
+	value.GitHubRepos = append([]GitHubRepo(nil), value.GitHubRepos...)
+	return value
 }
 
 func cloneOverlayConfigs(values []OverlayCfg) []OverlayCfg {

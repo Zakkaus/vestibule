@@ -22,9 +22,10 @@ type defaultsDocument struct {
 		PrivateReply              string `yaml:"private_reply"`
 	} `yaml:"process"`
 	Resources struct {
-		NewsURL  string       `yaml:"news_url"`
-		Overlays []OverlayCfg `yaml:"overlays"`
-		Feeds    []FeedConfig `yaml:"feeds"`
+		NewsURL        string       `yaml:"news_url"`
+		GitHubAtomBase string       `yaml:"github_atom_base"`
+		Overlays       []OverlayCfg `yaml:"overlays"`
+		Feeds          []FeedConfig `yaml:"feeds"`
 	} `yaml:"resources"`
 	Factory groupDefaults `yaml:"factory"`
 }
@@ -85,6 +86,7 @@ func defaultConfig() Config {
 func withDefaultResources(config Config) Config {
 	config.Overlays = append([]OverlayCfg(nil), embeddedDefaults.Resources.Overlays...)
 	config.NewsURL = embeddedDefaults.Resources.NewsURL
+	config.GitHubAtomBase = embeddedDefaults.Resources.GitHubAtomBase
 	config.Feeds = append([]FeedConfig(nil), embeddedDefaults.Resources.Feeds...)
 	return config
 }

@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -16,6 +18,7 @@ type configValidationRule struct {
 }
 
 var configValidationRules = [...]configValidationRule{
+	{field: "github_atom_base", validate: normalizeGitHubAtomBase},
 	{field: "overlays", validate: validateConfigOverlays},
 	{field: "questions", validate: validateConfigQuestions},
 	{field: "fallback_questions", validate: validateConfigFallbackQuestions},
@@ -29,6 +32,8 @@ var configValidationRules = [...]configValidationRule{
 	{field: "owner_claim_lifetime_seconds", validate: validateOwnerClaimLifetime},
 	{field: "owner_claim_user_id", validate: validateOwnerClaimUser},
 }
+
+var githubRepoPattern = regexp.MustCompile(`^[A-Za-z0-9._-]{1,100}/[A-Za-z0-9._-]{1,100}$`)
 
 type groupConfigValidationRule struct {
 	field    string
@@ -362,6 +367,59 @@ func applyConfigDefaults(c *Config) {
 	c.MuteSeconds = clampMuteSecs(c.MuteSeconds)
 }
 
+func normalizeGitHubAtomBase(c *Config) error {
+	const defaultBase = "https://github.com"
+	if c.GitHubAtomBase == "" {
+		c.GitHubAtomBase = defaultBase
+		return nil
+	}
+	base := c.GitHubAtomBase
+	parsed, err := url.Parse(base)
+	if err != nil {
+		return fmt.Errorf("github_atom_base is invalid")
+	}
+	if !strings.EqualFold(parsed.Scheme, "http") && !strings.EqualFold(parsed.Scheme, "https") {
+		return fmt.Errorf("github_atom_base must use http or https")
+	}
+	if parsed.Hostname() == "" {
+		return fmt.Errorf("github_atom_base must include a host")
+	}
+	if parsed.User != nil {
+		return fmt.Errorf("github_atom_base must not include userinfo")
+	}
+	if parsed.RawQuery != "" || parsed.ForceQuery {
+		return fmt.Errorf("github_atom_base must not include a query")
+	}
+	if strings.Contains(base, "#") {
+		return fmt.Errorf("github_atom_base must not include a fragment")
+	}
+	c.GitHubAtomBase = strings.TrimRight(base, "/")
+	return nil
+}
+
+func validateGitHubRepos(feedIndex int, repos []GitHubRepo) error {
+	seen := make(map[GitHubRepo]struct{}, len(repos))
+	for repoIndex, repo := range repos {
+		if !githubRepoPattern.MatchString(repo.Repo) {
+			return fmt.Errorf(
+				"feed %d github_repos[%d]: repo %q must match owner/name with 1..100 safe characters per segment",
+				feedIndex, repoIndex, repo.Repo,
+			)
+		}
+		parts := strings.SplitN(repo.Repo, "/", 2)
+		if parts[0] == "." || parts[0] == ".." || parts[1] == "." || parts[1] == ".." {
+			return fmt.Errorf("feed %d github_repos[%d]: repo %q must not use . or .. as a segment",
+				feedIndex, repoIndex, repo.Repo)
+		}
+		if _, ok := seen[repo]; ok {
+			return fmt.Errorf("feed %d github_repos[%d]: duplicate repo %q on branch %q",
+				feedIndex, repoIndex, repo.Repo, repo.Branch)
+		}
+		seen[repo] = struct{}{}
+	}
+	return nil
+}
+
 func normalizeConfigFeeds(c *Config) error {
 	if c.Feed != nil {
 		c.Feeds = append(c.Feeds, *c.Feed)
@@ -387,6 +445,15 @@ func normalizeConfigFeeds(c *Config) error {
 		deduped = append(deduped, feed)
 	}
 	c.Feeds = deduped
+	return validateGitHubFeeds(c.Feeds)
+}
+
+func validateGitHubFeeds(feeds []FeedConfig) error {
+	for i := range feeds {
+		if err := validateGitHubRepos(i, feeds[i].GitHubRepos); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
