@@ -97,9 +97,10 @@ test("fixture group selection exposes one current item and preserves queue routi
     `/queue?group=${fixtureGroupId}`
   );
 
+  const secondGroupTitle = await rows.nth(1).getByRole("heading", { level: 2 }).innerText();
   const trigger = page.getByRole("button", { name: "当前群" });
   await trigger.click();
-  await page.getByRole("option", { name: "Arch Linux 中文社区", exact: true }).click();
+  await page.getByRole("option", { name: secondGroupTitle, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/groups\\?group=${secondFixtureGroupId}$`));
   await expect(page.locator("[data-group-row][aria-current]")).toHaveCount(1);
   await expect(rows.nth(1)).toHaveAttribute("aria-current", "true");
