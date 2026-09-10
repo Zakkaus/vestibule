@@ -63,6 +63,7 @@ function ConfigEntry({
   return (
     <Card
       href={`${path}${groupSearch}`}
+      size="S"
       data-console-card
       data-home-entry={id}
       styles={style({ width: "full", minWidth: 0 })}
@@ -163,7 +164,7 @@ export function HomeEntries({ settings, groupSearch }: EntryProps) {
     <Content
       data-home-section="entries"
       aria-labelledby="home-entries-title"
-      styles={style({ display: "grid", gap: 8, minWidth: 0 })}
+      styles={style({ display: "grid", gap: 12, minWidth: 0 })}
     >
       <Content data-home-section-heading>
         <Heading level={2} id="home-entries-title" styles={style({ font: "heading", margin: 0 })}>

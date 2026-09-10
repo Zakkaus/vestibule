@@ -69,6 +69,7 @@ const brandLinkLayout = style({
   alignItems: "center",
   minWidth: 0,
   gap: 8,
+  font: "title",
   color: "neutral",
   textDecoration: "none"
 });
@@ -84,6 +85,7 @@ const mainLayout = style({
 });
 
 const headerLayout = style({
+  justifyContent: "end",
   position: "sticky",
   top: 0,
   zIndex: 1,
@@ -131,10 +133,6 @@ const contentLayout = style({
   maxHeight: "none",
   minHeight: 0,
   minWidth: 0,
-  marginEnd: {
-    default: 12,
-    "@media (max-width: 48rem)": 8
-  },
   padding: {
     default: 32,
     "@media (max-width: 48rem)": 16
@@ -146,9 +144,9 @@ const contentLayout = style({
   overflow: "auto",
   overscrollBehavior: "contain",
   boxSizing: "border-box",
-  borderTopStartRadius: "xl",
-  borderTopEndRadius: "xl",
-  backgroundColor: "layer-2"
+  // One layer below the cards. On layer-2 the cards were the same white as the panel
+  // and their edges were a shadow nobody could see.
+  backgroundColor: "layer-1"
 });
 
 const innerLayout = style({
@@ -185,9 +183,6 @@ function ShellContent() {
   const visibleNavigationSections = navigationSections(visibleNavigationItems);
 
   const currentNavigationItem = visibleNavigationItems.find((item) => item.path === location.pathname);
-  const currentNavigationSection = visibleNavigationSections.find(({ items }) =>
-    items.some((item) => item.path === location.pathname)
-  );
   const matches = useMatches();
   const routeHandle = matches.at(-1)?.handle as RouteHandle | undefined;
   const shellVariant = routeHandle?.shell ?? "entry";
@@ -254,11 +249,6 @@ function ShellContent() {
                 </Popover>
               </DialogTrigger>
             </Content>
-            {/* Every screen already opens with its own heading. Repeating it here put the
-                same word twice on one line of sight, so name the section it belongs to. */}
-            <Text UNSAFE_className="console-header-title" styles={headerTitleLayout} data-header-title>
-              {currentNavigationSection ? t(currentNavigationSection.group.labelKey) : t("app.name")}
-            </Text>
             <Content UNSAFE_className="console-controls" styles={controlsLayout}>
               <GroupSwitcher />
               <UtilityControls variant="chrome" />

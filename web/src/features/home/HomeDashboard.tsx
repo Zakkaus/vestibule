@@ -1,11 +1,12 @@
 import { useTranslation } from "react-i18next";
-import { Badge, Card, Content, Heading, Link, Text } from "@react-spectrum/s2";
+import { Badge, Content, Heading, Link, Text } from "@react-spectrum/s2";
 import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 
 import { Icon, type IconName } from "../../icons";
 import { useConsoleSession } from "../../app/session";
 import { groupName } from "../../lib/chatNames";
 import { HomeEntries } from "./HomeEntries";
+import { sectionSurface } from "./surface";
 import { HomeSourceBadge } from "./HomeSourceBadge";
 import type { HomeData } from "./useHomeData";
 import { HomeTrend } from "./HomeTrend";
@@ -141,24 +142,21 @@ function OverviewSection({
   ] as const;
 
   return (
-    <Card data-console-card data-home-section="overview" aria-labelledby="home-overview-title" styles={style({ width: "full", minWidth: 0 })}>
-      <Content styles={style({ display: "grid", gap: 8, minWidth: 0 })}>
+    <Content data-home-section="overview" aria-labelledby="home-overview-title" styles={sectionSurface}>
       <Heading level={2} id="home-overview-title" styles={style({ font: "heading", margin: 0 })}>{t("home.overview.title")}</Heading>
       <Content aria-labelledby="home-overview-title" data-home-metrics styles={style({ display: "grid", gridTemplateColumns: { default: ["minmax(0, 1fr)", "minmax(0, 1fr)"], lg: ["minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)"] }, gap: 8, minWidth: 0 })}>
         {metrics.map((metric) => (
           <Link key={metric.id} href={`${metric.path}${groupSearch}`} isStandalone isQuiet data-home-metric={metric.id}>
-            <Content styles={style({ display: "flex", alignItems: "center", gap: 8, minWidth: 0 })}>
-              <Icon name={metric.icon} />
-              <Content styles={style({ display: "grid", gap: 4, minWidth: 0 })}>
-                <Text styles={style({ font: "heading-lg", color: "neutral" })}>{metric.value}</Text>
-                <Text styles={style({ font: "body-sm", color: "neutral-subdued" })}>{t(metric.labelKey)}</Text>
-              </Content>
+            <Content styles={style({ display: "grid", gap: 4, minWidth: 0 })}>
+              <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", color: "neutral-subdued" })}>
+                <Icon name={metric.icon} /> {t(metric.labelKey)}
+              </Text>
+              <Text styles={style({ font: "heading-xl", color: "neutral" })}>{metric.value}</Text>
             </Content>
           </Link>
         ))}
       </Content>
-      </Content>
-    </Card>
+    </Content>
   );
 }
 
@@ -171,8 +169,7 @@ function AttentionSection({
   const isOperator = data.diagnostics.kind !== "hidden";
 
   return (
-    <Card data-console-card data-home-section="attention" aria-labelledby="home-attention-title" styles={style({ width: "full", minWidth: 0 })}>
-      <Content styles={style({ display: "grid", gap: 8, minWidth: 0 })}>
+    <Content data-home-section="attention" aria-labelledby="home-attention-title" styles={sectionSurface}>
       <Heading level={2} id="home-attention-title" styles={style({ font: "heading", margin: 0 })}>{t("home.attention.title")}</Heading>
       {items.length === 0 ? (
         <Content data-home-attention-empty styles={style({ display: "grid", justifyItems: "start", gap: 8, textAlign: "start" })}>
@@ -182,7 +179,7 @@ function AttentionSection({
       ) : (
         <Content aria-labelledby="home-attention-title" data-home-attention-list styles={style({ display: "grid", gap: 8, minWidth: 0 })}>
           {items.map((item) => (
-            <Link key={item.id} href={`${item.path}${groupSearch}`} isStandalone data-home-attention={item.id}
+            <Link key={item.id} href={`${item.path}${groupSearch}`} isStandalone isQuiet data-home-attention={item.id}
               aria-label={`${t(item.titleKey)} ${t(item.descriptionKey, { count: item.count })}`}>
               <Content styles={style({ display: "flex", alignItems: "center", gap: 8, font: "body", minWidth: 0 })}>
                 <Badge variant={item.tone === "error" ? "negative" : "notice"} fillStyle="subtle"><Icon name={attentionIcons[item.tone]} /> {t(`home.attention.tones.${item.tone}`)}</Badge>
@@ -193,8 +190,7 @@ function AttentionSection({
           ))}
         </Content>
       )}
-      </Content>
-    </Card>
+    </Content>
   );
 }
 
@@ -227,7 +223,7 @@ export function HomeDashboard({ data, chatID }: Readonly<{ data: HomeData; chatI
           display: "grid",
           gridTemplateColumns: { default: ["minmax(0, 1fr)"], lg: ["minmax(0, 1fr)", "minmax(0, 1fr)"] },
           gap: 16,
-          alignItems: "start",
+          alignItems: "stretch",
           minWidth: 0
         })}
       >
