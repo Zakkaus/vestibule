@@ -151,15 +151,17 @@ const traditionalExclusiveCharacters = "內終機虛擬業統訊鏈區設備傳�
 
 var languageNeutralWords = map[string]struct{}{
 	"a": {}, "arch": {}, "arm64": {}, "b": {}, "bbs": {}, "bug": {},
-	"config": {}, "cvss": {}, "d": {}, "flag": {}, "global": {}, "href": {},
+	"code": {}, "config": {}, "cvss": {}, "d": {}, "flag": {}, "global": {}, "href": {},
 	"i": {}, "json": {}, "keyword": {}, "li": {}, "local": {}, "overlay": {},
 	"rawhide": {}, "s": {}, "stable": {}, "testing": {}, "use": {}, "v": {},
 	"windows": {},
 }
 
 var languageNeutralCatalogEntries = map[string]struct{}{
-	"feed.bug.field_separator":                        {},
-	"feed.bug.status_resolution_separator":            {},
+	"feed.bug.field_separator":             {},
+	"feed.bug.status_resolution_separator": {},
+	// This layout has only markup; the caller supplies the title and localized optional labels.
+	"feed.git_hub.commit":                             {},
 	"lookup_content.bbs.arch_bbs":                     {},
 	"lookup_content.bug.details.resolution_separator": {},
 	"lookup_content.bug.heading":                      {},

@@ -42,6 +42,10 @@ python3 -m http.server 8787 --bind 127.0.0.1 --directory web
 
 They render in the tokens they document, so a broken token breaks the page.
 
+## Feed subscriptions
+
+Process configuration can send Bugzilla, news, and GitHub commit posts to each delivery target. Set `github_repos` to choose repositories and branches; an omitted branch follows the repository's current default branch. See [`docs/GITHUB-FEEDS.md`](docs/GITHUB-FEEDS.md) for the configuration and delivery rules, and [`examples/feeds.json`](examples/feeds.json) for a complete example.
+
 ## What it has to become
 
 1. Anyone can add the bot to their own group and configure it themselves.

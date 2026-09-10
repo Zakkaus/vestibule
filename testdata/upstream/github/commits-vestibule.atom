@@ -1,0 +1,772 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xml:lang="en-US">
+  <id>tag:github.com,2008:/Zakkaus/vestibule/commits/main</id>
+  <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commits/main"/>
+  <link type="application/atom+xml" rel="self" href="https://github.com/Zakkaus/vestibule/commits/main.atom"/>
+  <title>Recent Commits to vestibule:main</title>
+  <updated>2026-09-07T03:57:16Z</updated>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/dcb02d0c24b4eec5eff12bcf3263b8953dec878a</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/dcb02d0c24b4eec5eff12bcf3263b8953dec878a"/>
+    <title>
+        Cache Telegram titles for configured console groups (#290)
+    </title>
+    <updated>2026-09-07T03:57:16Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;Cache Telegram titles for configured console groups (#290)
+
+Resolve missing group titles through the Telegram connector while preserving stored runtime titles. Bound successful and failed lookups, coalesce concurrent misses, and keep caller cancellation isolated from the shared request.
+
+Document cache expiry and ID fallback, and cover the API precedence and cache transitions under the race detector.
+
+Refs #286.&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/8628fc76480f3df59ba3ba78c6ae991d9b789328</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/8628fc76480f3df59ba3ba78c6ae991d9b789328"/>
+    <title>
+        Group the sidebar, and join the mobile panel to its trigger (#288)
+    </title>
+    <updated>2026-09-04T15:43:17Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;Group the sidebar, and join the mobile panel to its trigger (#288)
+
+* Group the sidebar, and join the mobile panel to its trigger
+
+Fourteen destinations sat under one label called workspace, which is not a
+category so much as the absence of one. They are grouped by what the design
+document says each screen is responsible for, each group under its own
+label, and a group whose every item is hidden by the reader&amp;#39;s role does not
+render an empty heading.
+
+The mobile panel was a loose list with no visual relationship to the button
+that opened it. It is compact now and reads as having come out of that
+button.
+
+* Drop the label-gap spec the grouped sidebar supersedes
+
+It measured the first label against the first four items, which now span two
+groups, so it was asserting that a between-group gap equals a within-group
+one. navigation.spec.ts measures the hierarchy the sidebar actually has.
+
+* Reconcile the two mobile-panel gap assertions
+
+Both specs measure the panel; one predates its sections and expected the
+single gap it used to have.
+
+* Take the merged group-title contract, keep the sidebar grouping
+
+Two agents built runtime group titles in parallel. Main&amp;#39;s version landed
+first and reads the title from the settings store, so this branch&amp;#39;s second
+implementation, its unused Service helper and the test that asserted it are
+gone. What this branch uniquely brings, the grouped sidebar, is unchanged.&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/4d1a545291e03526a142daf4164e5bcbb00aba63</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/4d1a545291e03526a142daf4164e5bcbb00aba63"/>
+    <title>
+        One step ladder for the console&#39;s spacing (#287)
+    </title>
+    <updated>2026-09-04T15:17:52Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;One step ladder for the console&amp;#39;s spacing (#287)
+
+Every screen wrote its own gaps, so a page&amp;#39;s sections, its cards, and the
+blocks inside a card were spaced by whatever each screen happened to pick.
+Same group takes the smaller step, different groups take the larger; the
+ladder is stated once and the screens read it.
+
+web/e2e/spacing.spec.ts measures the ladder on real screens rather than
+asserting the stylesheet says what it says.&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/ffe76d4349309294d699124c60f9b24107ca20f7</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/ffe76d4349309294d699124c60f9b24107ca20f7"/>
+    <title>
+        Name a group by its name, not by its number (#286)
+    </title>
+    <updated>2026-09-04T15:09:32Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;Name a group by its name, not by its number (#286)
+
+The group switcher read &amp;quot;群組 -1009000010006&amp;quot; because GET /api/chats carried
+only an id. A chat id is a routing detail; the person choosing between two
+groups knows them by their names.
+
+The response carries a title now, taken from what the instance already knows
+about the chats it manages, and the switcher falls back to the id when there
+is none rather than to a blank or a placeholder. A title is content somebody
+else wrote, so it is rendered as text and kept out of the log.&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/efd69acf8bfdeef95ad86ab0d397828eedce5bd0</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/efd69acf8bfdeef95ad86ab0d397828eedce5bd0"/>
+    <title>
+        Polish Chinese console copy (#278)
+    </title>
+    <updated>2026-09-04T14:49:07Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;Polish Chinese console copy (#278)
+
+Replace informal and ambiguous console wording with precise Simplified and Traditional Chinese UI copy.&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/cc8aa38b7cd6c337d9e7fd71a84a440b8703350b</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/cc8aa38b7cd6c337d9e7fd71a84a440b8703350b"/>
+    <title>
+        Normalize console control sizes (#285)
+    </title>
+    <updated>2026-09-04T14:42:27Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;Normalize console control sizes (#285)&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/f1387f6787495304afc33e27b2a69e1ccc214da3</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/f1387f6787495304afc33e27b2a69e1ccc214da3"/>
+    <title>
+        One rule for the sidebar&#39;s spacing, one ring for the console&#39;s edge (…
+    </title>
+    <updated>2026-09-04T14:36:51Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;One rule for the sidebar&amp;#39;s spacing, one ring for the console&amp;#39;s edge (#284)
+
+* Do not order everyone to forward a port
+
+The loopback notice told the reader to forward the port before opening the
+address. The person who just ran /console is usually sitting at the machine
+the console runs on, where the address opens as it is.
+
+* One rule for the sidebar&amp;#39;s spacing, one ring for the console&amp;#39;s edge
+
+The nav label carried a bottom margin on top of the group&amp;#39;s gap, so the
+label sat one and a half times further from the first item than the items
+sat from each other. The group owns that relationship; the margin is gone,
+upstream in the design system and in the vendored copy.
+
+The console&amp;#39;s content ring was 24px at the sides, the same as the padding
+inside a card, so a card&amp;#39;s border landed one card-padding from the window
+edge and the page read as pushed against it.
+
+* Give the nav column air above its first label, and stop badges stretching
+
+The first group&amp;#39;s label sat flush against the header band&amp;#39;s bottom edge,
+with air below it and none above. A badge inside a grid was being stretched
+to the column, so three words of status painted across a whole card and read
+as a progress bar; a badge is as wide as its own text. Both fixed upstream
+in the design system and re-copied.
+
+The four home entry cards were four grey rectangles carrying the same weight
+as the read-only panels above them. They take a drawn edge and a hard offset
+now, and their readouts sit on a raised surface of their own.&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/de8d8ac044ac434faf7305e7a6ad535db23ea9fb</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/de8d8ac044ac434faf7305e7a6ad535db23ea9fb"/>
+    <title>
+        Polish Chinese public documentation (#276)
+    </title>
+    <updated>2026-09-04T05:49:08Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;Polish Chinese public documentation (#276)
+
+* Polish Chinese public documentation
+
+Replace conversational phrasing with formal, consistent wording in the public README and privacy notice.
+
+* Do not backtick a column name in the privacy statement
+
+check-privacy-tables reads a backticked word there as a table name, and
+payload is a column of challenge.&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/45dcdda2a535fc0cc99bdf28f9f13d26a45772fd</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/45dcdda2a535fc0cc99bdf28f9f13d26a45772fd"/>
+    <title>
+        Name this instance&#39;s bot, and say so when there is none (#274)
+    </title>
+    <updated>2026-09-04T05:38:45Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;Name this instance&amp;#39;s bot, and say so when there is none (#274)
+
+* Name this instance&amp;#39;s bot, and say so when there is none
+
+The entry screen told every operator of every instance to open
+@gentoo_zh_verify_bot: the handle was a constant in the frontend bundle,
+so it named the previous generation&amp;#39;s deployment to everyone else&amp;#39;s. It now
+comes from GET /api/instance, which answers without a session because that
+is exactly the state this screen is reached in, and a bot&amp;#39;s handle is public
+the moment the bot exists.
+
+An unclaimed instance has no bot at all, so it can no longer be told to open
+one. Its entry screen says nobody has claimed it and points at the one-time
+link the install script printed, which is the only way in at that point.
+
+check-no-baked-identity rejects a deployment&amp;#39;s bot handle in shipped code,
+with fixtures and tests exempt because they demonstrate a rendering rather
+than tell a person where to go, and @BotFather allowed because it is the
+same account on every deployment. It is registered in the gate self-coverage
+harness and driven red there.
+
+* Read the handle from the instance, drop the check mark
+
+Follows the commit that added the endpoint, with the parts that came out of
+looking at the result.
+
+The menu in English ran off the right edge: these controls sit in the top
+corner, and a menu anchored to its trigger&amp;#39;s start edge grows toward the
+viewport edge. It is anchored to the end edge in chrome, so it grows back
+into the page. A max-inline-size cannot fix this, because min-inline-size
+wins over max in CSS and the minimum is what stops the options wrapping.
+
+The chosen option is marked by weight rather than by a glyph. Background
+alone was the treatment hover uses, so a pointer resting on a neighbour made
+two rows look chosen; a check icon fixed that and was one glyph too many.
+
+A failed read of the endpoint is no longer treated as an unclaimed instance.
+It would have put &amp;quot;nobody has claimed this&amp;quot; in front of somebody whose
+console is merely unreachable, and sent them looking for an install link
+consumed weeks ago. The read is also shared: the screen asks from two
+places, and mounting it made four identical requests for one answer that
+cannot change while the page is open.
+
+* Give the language back to the browser, and say /console exists
+
+The language control offered three languages and nothing else, so choosing
+one was a one-way door: there was no way back to the language the browser
+asks for, and a reader who tried the other two out of curiosity was left on
+whichever they stopped at. It now leads with &amp;quot;follow the browser&amp;quot;, the way
+the theme control has always led with &amp;quot;follow the system&amp;quot;, and choosing it
+clears the stored preference rather than storing a fourth value.
+
+The browser&amp;#39;s language is also read properly. Only its first entry was
+consulted, so a browser asking for ja, then zh-TW, then en landed on the
+default rather than on the second language it had ranked; and Hong Kong and
+Macau, which read traditional characters, were answered in simplified.
+
+/console was implemented, listed nowhere, and silent when it refused. It is
+the only way the person who just deployed an instance gets into the console,
+and the entry screen tells them to ask the bot for a link -- a command that
+appears in no menu and no help text, and that answers a caller it does not
+recognise with nothing at all, which is indistinguishable from a bot that is
+down. It is in the owner menu now, and a refusal says who may open the
+console and what to do about it. The owner-only test asserts that the
+refusal carries no token rather than that there is no reply.
+
+A consumed setup link redirects to the console instead of returning a bare
+JSON 404. Whoever is at that address on a claimed instance finished the
+guide, went to Telegram to bind their account, and came back to the tab it
+was open in.
+
+The page also declares that it supports both themes before any stylesheet
+parses, so the browser paints its own surfaces in the right mode instead of
+flashing white at a dark reader.
+
+* Generate the claim link instead of asking for one
+
+Whoever opens the setup link hands this process a bot token and becomes the
+instance&amp;#39;s owner, so that address is the whole instance. It was whatever the
+operator put in SETUP_TOKEN, and an instance with no SETUP_TOKEN had no way
+in at all -- which is exactly the pressure that produces a token somebody
+chose because they could remember it.
+
+With SETUP_TOKEN unset the process now makes one from 32 random bytes,
+records only its hash, and prints the full address to open. That is the only
+place it could come from: nothing is running yet, so there is no bot to send
+it and no console to sign into. An explicitly configured token is still
+honoured -- a deployment that wants to seed one has reason to -- but shorter
+than 24 characters the process refuses to start rather than listen with a
+guessable claim address.
+
+The test constants grew to match, which is the point: a setup token that
+reads like a word is the thing being rejected.
+
+* Run the identity gate on a tag as well
+
+A tag publishes binaries. A gate CI enforces and the release does not is a
+gate a tag walks past.
+
+* Answer a mistyped address with a page, and put the link in a button
+
+Three things a person hit while walking the deployment through.
+
+An address the console does not have answered with a JSON body. To a person
+who mistyped it, or opened a one-time link a second time, that is a blank
+page with a word on it -- and the address they opened twice is usually the
+link they were told to open, so this is the moment they most need to be told
+what to do instead. Browsers get a page now; anything that did not ask for
+HTML still gets the JSON, because a probe or a fetch is not helped by a page
+and every client that reads the error code would break. The page names the
+bot only where there is one, the same distinction the entry screen makes.
+
+The stylesheet the setup guide carried is now shared with it, so the file
+and its shell hooks are named for what they are rather than for the first
+page that used them.
+
+The console link went into the chat as text. A one-time credential pasted as
+message text is a credential sitting in the conversation: selectable,
+forwardable, and shown in every preview of it. It travels in a button, and
+only where a button can reach it -- a loopback console cannot be opened from
+a phone, so there the address is the text next to the reason it is.
+
+And CONSOLE_URL may be plain HTTP on the loopback interface. The link
+carries a credential in its path, so HTTPS is right on a network; loopback
+is not a network, and reaching it from elsewhere means a port forward whose
+transport is the tunnel&amp;#39;s. Refusing it meant the one deployment the design
+document describes for an operator with no domain could not activate at all.
+
+* Point the console refusal at a link that exists
+
+It told the caller to reopen the deployment link, which the claim consumed.
+The binding link is printed on every start; that is what to say.
+
+* Give the owner an hour to reach a phone
+
+The claim link is minted at a terminal and consumed in Telegram, which is a
+different device and often a different room. Ten minutes turned a moment&amp;#39;s
+delay into restarting the process to mint another, and there is nothing to
+weigh against that: the link is still one use and still expires.
+
+The refusal also named three causes and no next step. It now says where a
+fresh link comes from.
+
+* Move the owner-claim window test out of the config file
+
+scripts/lint.sh caps a file at 600 lines and config_test.go was at it.&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/28d763f0551791acf0147a0719ba0f3e67eea4bc</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/28d763f0551791acf0147a0719ba0f3e67eea4bc"/>
+    <title>
+        Polish Chinese architecture and design wording (#275)
+    </title>
+    <updated>2026-09-04T04:51:46Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;Polish Chinese architecture and design wording (#275)
+
+Clarify the loopback HTTP and generated claim-token constraints while removing typographic long dashes from the Chinese references.&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/393760e24600fac000081514a76703a968fa2a0e</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/393760e24600fac000081514a76703a968fa2a0e"/>
+    <title>
+        Give the entry screen and its controls room (#273)
+    </title>
+    <updated>2026-09-04T02:03:54Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;Give the entry screen and its controls room (#273)
+
+Three things on the first screen a person reaches without a session.
+
+The card took the shared card padding, which is sized for a tile among
+several. As the whole screen it left a two-line message sitting against its
+own border. It now takes a wider ring and a measure stated in rem, so this
+screen and the deployment guide, which the Go binary renders and cannot
+share a stylesheet with, come out the same width. Buttons inside it no
+longer span the card: they are the way out of a state, not the point of it.
+
+The theme menu was pinned to both edges of its trigger, so it was exactly
+as wide as whichever value happened to be selected, and a longer option
+wrapped onto a second line whenever a shorter one was current. Width now
+comes from the trigger and the minimum from the longest option, which is
+the pair that survives a containing block that shrinks to fit -- a
+percentage minimum resolves to zero there. The chosen row also carries a
+mark of its own; selection was drawn with the same background hover uses,
+so a pointer resting on a neighbour made two rows look chosen.
+
+Both controls carry a glyph, and the theme glyph follows the value rather
+than sitting fixed. The lookup is a Record over the same closed set that
+defines the preferences, so a fourth preference is a compile error instead
+of a control that quietly keeps the old glyph. Four icons come from the
+declared Lucide package, whose tarball hash still matches the one recorded
+in the vendoring note.&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/29ce454ffb0823e6dd0fe2257eb7c32e72d31f8c</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/29ce454ffb0823e6dd0fe2257eb7c32e72d31f8c"/>
+    <title>
+        Turn the claim form into a deployment guide (#272)
+    </title>
+    <updated>2026-09-04T00:15:03Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;Turn the claim form into a deployment guide (#272)
+
+* Turn the claim form into a deployment guide
+
+The setup page was the one screen a deployer meets before anything else
+exists, and it was an unstyled form: a heading, a paragraph, an input and a
+button, on the browser&amp;#39;s default white. The design document already
+specified this screen -- one centred column, no sidebar and no group
+switcher because there is no group to switch to yet, and four steps that
+each say what they are before they are done. This renders that.
+
+The stylesheet is a file rather than a string inside the template so the
+design checks that scan the application stylesheets can scan it too; CSS
+living in a Go literal is invisible to every gate the repository owns. CI
+runs seven of them over it plus a coverage check against a fixture the
+tests regenerate, so the fixture cannot drift from the template. The
+Content-Security-Policy admits that one stylesheet by hash rather than
+opening style-src to anything inline.
+
+Three failures were also collapsed into one sentence that blamed the token.
+A claim that fails now says which of the three happened: Telegram refused
+the token, Telegram never answered, or the token was accepted and the
+instance did not start. The last one was reported as a token problem while
+being, in the case that prompted this, a CONSOLE_URL the operator had to
+fix -- and it reached no log at all, so nothing on the machine recorded why
+the claim failed. It does now. The claimed page also shows the name
+Telegram returned, which is how a mispasted token is caught here instead of
+three steps later.
+
+* Retire the message the three causes replaced
+
+claim_failed was the one sentence that blamed the token for all three
+causes; nothing reads it now, and the catalogue gate is right that a
+translated string nobody can reach is worse than no string. Also moves a
+plan citation two lines: the import block above it grew.
+
+* Tell gosec the embedded stylesheet is not request input
+
+G203 fires on the template.CSS conversion. The value is the contents of
+setup.css, embedded at build time and reachable by no request; the
+conversion exists because a stylesheet is not HTML text.&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/70c7ff08d06396177fe83ff701adc02e79a2b0df</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/70c7ff08d06396177fe83ff701adc02e79a2b0df"/>
+    <title>
+        Owner binding is already unique; what phase eleven owes is the consol…
+    </title>
+    <updated>2026-09-03T18:03:20Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;Owner binding is already unique; what phase eleven owes is the console side (#271)
+
+Phase eleven lists &amp;quot;owner binding is unique — one group, one owner, not a set&amp;quot; as a thing to build.
+Half of it is already built and has been since the deployer-claim work: ClaimOwner accepts a claim
+only while there is no owner, a second person redeeming the same claim code is refused, and both
+directions are held by tests in internal/settings.
+
+What is genuinely missing is the console half. Nothing in internal/console/api returns the owner,
+so the groups-and-channels screen has nothing to display and no way to rebind. The paragraph now
+says that, and cites the function that already holds the invariant.
+
+This is the third claim in the plan found to describe as unbuilt something that is built, after
+observe-only mode and the console access reading. All three were found the same way — by opening
+the file the plan points at instead of reading the plan on its own — and all three would have sent
+whoever picks the phase up to write something twice.
+
+Splitting the item rather than deleting it matters here: &amp;quot;already done&amp;quot; would be wrong, and
+&amp;quot;not started&amp;quot; was wrong. The screen work is real and stays.
+
+The citation was driven red both ways: a line past the end of the file, and the named identifier
+pointed at a line that does not hold it.&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/c919feab7b938601b07958936a6aa61c768677ba</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/c919feab7b938601b07958936a6aa61c768677ba"/>
+    <title>
+        The note about the console access reading is out of date (#270)
+    </title>
+    <updated>2026-09-03T17:56:28Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;The note about the console access reading is out of date (#270)
+
+Phase ten&amp;#39;s rollback conditions carried a paragraph saying that the console_access reading &amp;quot;does
+not measure the thing the condition names&amp;quot;: that it came only from AuthorizeChat, that a wholly
+failed session redemption still read as healthy, and that this had to be fixed before the cutover.
+It was fixed, in the change that widened the reading.
+
+Left as it was, the paragraph sends whoever reads phase ten to fix something that is already
+fixed — the same shape as the observe-only paragraph corrected alongside it, and the second one
+found by checking the plan&amp;#39;s claims against the tree rather than reading the plan on its own.
+
+The paragraph now says what the reading covers and cites where: redemptionUnavailable accounts for
+the two failures that mean this instance refused a session it should have issued — a full session
+table, and no entropy for a credential pair — and a successful redemption records a recovery. It
+also states the deliberate exclusion, which is a decision worth keeping visible: an invalid,
+expired or already-redeemed link is this instance answering correctly, and counting those would
+fire a rollback on an operator clicking a stale link twice.
+
+The citation was driven red both ways: a line past the end of the file, and the named identifier
+pointed at a line that does not hold it.&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/846993aa1b190ac7a028e20697669bc92cb4ffd2</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/846993aa1b190ac7a028e20697669bc92cb4ffd2"/>
+    <title>
+        The plan says observe-only mode exists, because it does (#269)
+    </title>
+    <updated>2026-09-03T17:35:49Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;The plan says observe-only mode exists, because it does (#269)
+
+Phase ten opens with &amp;quot;observe-only is a running mode that has not been written yet, and this phase
+has to write it first&amp;quot;. It has been written. internal/verification/observe_only.go wraps the
+gateway, every external write becomes a durable observation, the synthetic message identifiers are
+negative so they cannot name a real Telegram message, the switch is the configuration&amp;#39;s
+observe_only, and internal/app wires it. Eleven tests hold it across three packages, including the
+one that matters most: an observation that cannot be stored is not reported as a success, so &amp;quot;never
+sent&amp;quot; and &amp;quot;sent but not recorded&amp;quot; cannot look alike.
+
+A plan that says a finished thing is missing is worse than a plan that is merely out of date. The
+next person to read phase ten — or the next agent dispatched from it — builds it a second time.
+This repository has hit that before, which is why the plan carries a rule about correcting a claim
+where the claim is rather than beside it.
+
+The paragraph now describes what is there and cites it: the entry point, the configuration key and
+the wiring. The line about the Bot API permission is unchanged and still true — it is the reason
+observe-only can only be a property of the code rather than of the permissions.
+
+The three citations were each driven red: a line past the end of the file, and each of the two
+named identifiers pointed at a line that does not hold it. Both of those needed the identifier to
+sit on the same line as its citation, which is worth knowing about check-citations-resolve: it
+associates within one line, so a citation separated from the symbol it names by a wrap is checked
+for existence only.&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/2cb6c421b7c9cbd85e69eebd68292afe28b384a2</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/2cb6c421b7c9cbd85e69eebd68292afe28b384a2"/>
+    <title>
+        The console access reading counts a refused redemption (#268)
+    </title>
+    <updated>2026-09-03T16:38:49Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;The console access reading counts a refused redemption (#268)
+
+docs/PLAN-v5.md says of this reading, in the phase ten rollback conditions: it does not measure the
+thing the condition names. The condition is &amp;quot;the console cannot exchange a link for a session, and
+does not recover within ten minutes&amp;quot;, and the reading counted only AuthorizeChat — verifying a
+session principal against a group. An instance that could not hand out any session at all still
+read as healthy, and the plan says so and says it must be fixed before the cutover.
+
+RedeemOperatorLink now records a console-access problem on the two failures that mean this instance
+refused a session it should have issued: the session table being full, and no entropy for a
+credential pair. A successful redemption records a recovery, the same as a successful access
+verification does.
+
+The other three refusals are deliberately left out, and the reason is in the code: a link that is
+invalid, expired or already redeemed is this instance answering correctly. Counting those would
+fire a rollback on an operator clicking a stale link twice, which is the opposite of what the
+condition is for. That is a judgement about which half of &amp;quot;cannot exchange a link&amp;quot; means the
+software is broken; the plan asks for redemption failure to count and does not split it, so this
+split is worth a maintainer&amp;#39;s eye even though the alternative is clearly worse.
+
+Driven red both ways. Removing the recording from the capacity refusal fails with &amp;quot;a refused
+redemption left the console access reading unchanged&amp;quot;; adding it to the invalid-link refusal fails
+the opposite test with &amp;quot;answered links moved the console access reading&amp;quot;. The second test is the
+control that keeps the first from being satisfied by recording everything.&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/c614e15441da8b14fd44a9344ebed6941647b57d</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/c614e15441da8b14fd44a9344ebed6941647b57d"/>
+    <title>
+        The statistics day buckets are contiguous and bounded (#267)
+    </title>
+    <updated>2026-09-03T16:31:57Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;The statistics day buckets are contiguous and bounded (#267)
+
+The console&amp;#39;s trend is drawn from a list of local-day buckets, and the existing tests all look at
+the report around them — the dates, the refusals, the projected outcomes — never at the bucket list
+itself. Three things about it had nothing asserting them: a range of zero local days produces no
+buckets at all, a maximum range produces exactly maxConsoleStatsDays of them, and every bucket is a
+positive interval that begins where the previous one ended.
+
+A gap or an overlap there puts a day&amp;#39;s settlements in the wrong column of the operator&amp;#39;s trend, or
+in no column at all, while every other assertion in the file still passes.
+
+This test was written by an interrupted agent run and was the one thing in that run&amp;#39;s three files
+that main did not already hold; the other sixteen tests it produced duplicate tests already merged,
+and are dropped rather than added a second time.
+
+Driven red twice, on the two lines that build the list: stepping the cursor by two days instead of
+one, and starting a bucket one second after the cursor. Both fail on the 366-day case, which is
+where a broken step first shows. Tests only; no production file is changed.&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/56f4b18f872a3116e69277d11f125ae58a442b66</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/56f4b18f872a3116e69277d11f125ae58a442b66"/>
+    <title>
+        Test lookup reply boundaries (#236)
+    </title>
+    <updated>2026-09-03T16:22:57Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;Test lookup reply boundaries (#236)
+
+Lookup coverage batch 7 adds behavioral tests for Bugzilla enum localization, bounded /use and /news lists, compact local USE descriptions, and cache-backed overlay availability. These checks prevent Chinese groups from receiving raw Bugzilla tokens, oversized Telegram replies being lost, description walls of text, and a cold cache being mistaken for an answered package miss.
+
+The localization test covers every known status, resolution, severity, and priority in every supported language and preserves an unknown upstream value. Disabling the Chinese fast path at internal/lookup/content.go:104 alone left the generic catalog path at internal/lookup/content.go:113 holding the property, so both paths were neutralized together. The test then reported raw RESOLVED, WONTFIX, normal, and Highest values before both lines were restored and the test passed again.
+
+The list tests failed with thirteen local flags when internal/lookup/packages.go:1067 was neutralized and with nine news entries when internal/lookup/content.go:312 was neutralized. The description test separately failed when the URL trim, sentence boundary, and rune cap at internal/lookup/packages.go:1035, :1038, and :1042 were neutralized. The availability test failed when internal/lookup/packages.go:421 no longer consulted the cached package map. Each guard was restored and its test passed again.
+
+A separate production defect remains: shortDesc at internal/lookup/packages.go:1043 keeps 64 description runes and then appends an ellipsis, so its output contains 65 runes despite the stated 64-rune limit. This test-only change preserves the existing 64-rune payload plus ellipsis behavior to cover the cap path and leaves production behavior unchanged.
+
+The ordinary frontend E2E invocation was blocked by stopped sibling Vite processes holding host-global ports 4173 and 4174, then timed out before tests began. The repository configuration was temporarily directed to isolated ports 29173 and 29174 and restored unchanged afterward; all 90 E2E tests passed. This exposes shared-host test isolation risk, not an application behavior change.&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/67e689ce0b136ddc0650eb25b0c930945fd82119</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/67e689ce0b136ddc0650eb25b0c930945fd82119"/>
+    <title>
+        Runtime localization contracts stay resolvable (#256)
+    </title>
+    <updated>2026-09-03T16:13:09Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;Runtime localization contracts stay resolvable (#256)
+
+Runtime-built translation keys and language fallback paths had no direct regression coverage. A broken selector could expose a raw key or put an applicant or operator in the wrong catalogue.
+
+Bug reference: no tracked issue exists for this coverage gap.&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/4a82de6c3ea034d63ff45c39c830d911954d0cf9</id>
+    <link type="text/html" rel="alternate" href="https://github.com/Zakkaus/vestibule/commit/4a82de6c3ea034d63ff45c39c830d911954d0cf9"/>
+    <title>
+        Static gates reject their recorded regressions (#247)
+    </title>
+    <updated>2026-09-03T16:06:14Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;Static gates reject their recorded regressions (#247)
+
+## What &amp;amp; why
+
+The static gates now execute a clean, harmful, restored proof rather than only checking today&amp;#39;s clean tree. `scripts/test-gate-self-coverage.py` copies the tree, runs the actual gate clean, applies one minimal source mutation, demands a non-zero exit and named harm, restores source, and reruns clean. CI and release run it, and CONTRIBUTING names it.
+
+The whole-table probe injects a raw Go-string unscoped warning delete; disabling raw-string parsing at `scripts/check-whole-table-writes.py:29` lets it escape, which can erase every group&amp;#39;s warning rows. The handler probe sends an authorized group administrator&amp;#39;s setting update to query-derived `other`; removing the `settings.Update` slot at `scripts/check-handlers-act-on-what-they-authorised.py:40` lets it escape, which lets an administrator change another group. The visible-copy probe inserts a multiline English screen sentence; blanking `JSX_TEXT` at `scripts/check-console-copy.py:31` lets it escape, which leaves a viewer without a translation. The accessibility probe uses single-quoted and template-literal `aria-label` values; blanking `LITERAL_ATTRIBUTE` at `scripts/check-console-copy.py:24` lets it escape, which causes a label to be read aloud or shown untranslated.
+
+The error-map probe adds `never_sent_code` to `EntryScreen`; disabling every `error.code` parser path at `scripts/check-error-maps-hold-real-codes.py:33` and `:99–106` lets it escape, so an administrator sees a dead explanation instead of a real API failure. The catalogue probe adds `Reason Text`; replacing qualified readers at `scripts/check-message-fields-are-read.py:113–115` with bare-name matching lets it escape, leaving three translations no person can read. The baseline probe adds a real `net` package-boundary finding then records it; restoring the former exclusion at `scripts/check-baseline-ratchet.py:37–39` lets it escape, hiding new debt. The route probe implements GET audit export; skipping `implemented_path_segments` at `scripts/check-console-routes.py:193` lets it escape, so an endpoint can serve audit data without route-table review. The docs probe changes README&amp;#39;s `INVENTORY.md` target to `NOPE.md`; blanking `MARKDOWN_LINK` at `scripts/check-docs.py:31–33` lets it escape and strand a reader. The citation probe points at `internal/store/nonexistent.go:19`; broadening `FOREIGN_PREFIXES` at `scripts/check-citations-resolve.py:44` lets it escape, sending a reader to a nonexistent source.
+
+The qualified catalogue reader found a real product defect: `internal/i18n/panel.go:171` declares `Language`, which has locale entries but no production reader. This tests-only change leaves product code untouched and keeps that field as a narrow explicit exemption rather than incorrectly counting the unrelated setup-page field. The local vendoring check also found that the design-language source had moved; `style-rules.py` was recopied and its recorded hash refreshed after the current source rule passed the repository&amp;#39;s CSS and reference pages.
+
+Each probe was driven red by neutralizing its corresponding guard and the failed assertion named the harms above; restoring each guard made the same test green. `python3 scripts/test-gate-self-coverage.py` completes ten tests, and the required CI, release, deployment, document, security, frontend, design, Chinese-prose, and Chromium checks passed. No issue or bug number was supplied for this request.
+
+## Checklist
+
+- [x] `gofmt -l .` is clean
+- [x] `go vet ./...` passes
+- [x] `go test -race ./...` passes
+- [x] New/changed behaviour has tests where practical
+- [x] User-facing strings are Simplified Chinese (per CONTRIBUTING)
+- [x] CHANGELOG updated if user-visible
+
+&amp;lt;!-- CI also runs staticcheck, govulncheck and gosec; they must pass. --&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+</feed>

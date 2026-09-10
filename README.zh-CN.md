@@ -37,6 +37,10 @@ Vestibule 是 Telegram 群组入群验证与管理机器人。一个实例可服
 python3 -m http.server 8787 --bind 127.0.0.1 --directory web
 ```
 
+## 订阅推送
+
+进程配置可以向每个订阅目标发送 Bugzilla、新闻和 GitHub 提交推送。设置 `github_repos` 可选择仓库与分支；省略分支时跟随仓库当前默认分支。配置与投递规则参见 [`docs/GITHUB-FEEDS.md`](docs/GITHUB-FEEDS.md)，完整示例参见 [`examples/feeds.json`](examples/feeds.json)。
+
 ## 目标
 
 1. 任何人均可将机器人添加到自己的群组，并由该群组的 Telegram 管理员自行配置。

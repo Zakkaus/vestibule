@@ -94,6 +94,7 @@ type feedState struct {
 	LastBugID     int                    `json:"last_bug_id"`
 	LastNewsURL   string                 `json:"last_news_url"`
 	Tracked       map[string]*trackedBug `json:"tracked,omitempty"` // bug id (as string for JSON) -> posted message
+	GitHub        *githubState           `json:"github,omitempty"`
 	writeDisabled bool                   `json:"-"`
 }
 
@@ -828,6 +829,7 @@ func pollAllWithSources(ctx context.Context, bot feedBot, feeds []*settings.Feed
 		st := states[f.ChatID]
 		cursor := st.LastBugID
 		postFeedItems(ctx, bot, f, l, st, bugsByCursor[cursor], news)
+		pollGitHub(ctx, bot, f, st)
 		if len(st.Tracked) > 0 {
 			refreshTracked(ctx, bot, f, l, st, byID, fetchOK)
 		}
