@@ -5,11 +5,19 @@ import (
 	"testing"
 )
 
+// The count is compared between locales rather than against a literal: what has
+// to hold is that adding a question adds it everywhere, and a literal turns that
+// into a number somebody edits alongside the file it was meant to guard.
 func TestFactoryFallbackQuestionsCoverEveryLocale(t *testing.T) {
+	want := len(FactoryFallbackQuestions(factoryFallbackLocales[0]))
+	if want == 0 {
+		t.Fatal("the factory fallback bank is empty, so no applicant without Linux can be asked anything")
+	}
 	for _, locale := range factoryFallbackLocales {
 		questions := FactoryFallbackQuestions(locale)
-		if len(questions) != 2 {
-			t.Fatalf("%s questions = %d, want 2", locale, len(questions))
+		if len(questions) != want {
+			t.Fatalf("%s questions = %d, want %d — a question exists in one locale and not another",
+				locale, len(questions), want)
 		}
 		for index, question := range questions {
 			if strings.TrimSpace(question.Prompt) == "" || len(question.Answers) == 0 {
