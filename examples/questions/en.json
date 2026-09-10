@@ -1,0 +1,28 @@
+{
+  "fallback_questions": [
+    {
+      "q": "What is the domain name of the official Linux kernel website?",
+      "answers": [
+        "kernel.org",
+        "www.kernel.org"
+      ]
+    },
+    {
+      "q": "What is the domain name of the official GNU Project website?",
+      "answers": [
+        "gnu.org",
+        "www.gnu.org"
+      ]
+    },
+    {
+      "q": "In vim, which command saves the file and quits?",
+      "answers": [
+        ":wq",
+        "wq",
+        ":wq!",
+        ":x",
+        "ZZ"
+      ]
+    }
+  ]
+}

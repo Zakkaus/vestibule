@@ -1,0 +1,28 @@
+{
+  "fallback_questions": [
+    {
+      "q": "Linux 内核官方网站的域名是什么？",
+      "answers": [
+        "kernel.org",
+        "www.kernel.org"
+      ]
+    },
+    {
+      "q": "GNU 项目官方网站的域名是什么？",
+      "answers": [
+        "gnu.org",
+        "www.gnu.org"
+      ]
+    },
+    {
+      "q": "在 vim 里，保存并退出用哪个命令？",
+      "answers": [
+        ":wq",
+        "wq",
+        ":wq!",
+        ":x",
+        "ZZ"
+      ]
+    }
+  ]
+}

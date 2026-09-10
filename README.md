@@ -111,6 +111,11 @@ With the supplied Compose deployment, put the bank in the host directory named b
 already mounted in the container; files beside the host `config.json` are not.
 The bank must be readable by container UID 65532.
 
+A Linux-flavoured bank ships as an example rather than as the default: see
+[`examples/questions/`](examples/questions/), one file per supported language,
+asking about kernel.org, gnu.org and how to save and quit vim. Point
+`factory_questions_file` at the one matching the language your groups read.
+
 The deployment bank applies to newly registered groups as well as existing groups without
 their own bank. The question page shows the effective bank and its source: factory,
 configuration file, or group override. Restoring a group removes its override and reveals
