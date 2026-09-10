@@ -30,6 +30,96 @@ class SpectrumGateCases:
         manifest.write_text(json.dumps(value), encoding="utf-8")
         return frontend, arguments
 
+    def spectrum_undefined_var_fixture(self, tree: Path) -> tuple[Path, tuple[str, ...]]:
+        frontend, _ = self.spectrum_fixture(tree)
+        (frontend / "spectrum-supplemental.css").write_text(
+            ".dependency-runtime { --supplemental-ink: black; "
+            "height: var(--disclosure-panel-height); }\n",
+            encoding="utf-8",
+        )
+        source = frontend / "src/style.css"
+        source.write_text(
+            source.read_text(encoding="utf-8")
+            + ".known { background: var(--supplemental-ink); }\n",
+            encoding="utf-8",
+        )
+        return frontend, (
+            "--definitions",
+            str(frontend / "dist/assets/index.css"),
+            "--definitions",
+            str(frontend / "spectrum-supplemental.css"),
+            str(frontend / "src/style.css"),
+        )
+
+    def test_spectrum_missing_source_reference_is_rejected(self) -> None:
+        tree = self.temporary_tree()
+        _, arguments = self.spectrum_undefined_var_fixture(tree)
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/design-checks/undefined-var.py",
+            "a source stylesheet referenced an undefined custom property",
+            ("reads --spectrum-source-missing, which nothing defines",),
+            lambda: self.replace_text(
+                tree,
+                "web/css-gate-fixture/src/style.css",
+                ".known { color: var(--metric-ink); }\n",
+                ".known { color: var(--metric-ink); }\n"
+                ".missing { color: var(--spectrum-source-missing); }\n",
+            ),
+            *arguments,
+        )
+
+    def test_spectrum_removed_emitted_definition_is_rejected(self) -> None:
+        tree = self.temporary_tree()
+        _, arguments = self.spectrum_undefined_var_fixture(tree)
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/design-checks/undefined-var.py",
+            "a macro definition disappeared from emitted CSS",
+            ("reads --metric-ink, which nothing defines",),
+            lambda: self.replace_text(
+                tree,
+                "web/css-gate-fixture/dist/assets/index.css",
+                ".generated { --metric-ink: var(--ink); }\n",
+                "",
+            ),
+            *arguments,
+        )
+
+    def test_spectrum_theme_only_emitted_definition_is_rejected(self) -> None:
+        tree = self.temporary_tree()
+        _, arguments = self.spectrum_undefined_var_fixture(tree)
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/design-checks/undefined-var.py",
+            "a source reference resolved only in the other theme",
+            ("--metric-ink", "declared only inside a theme block"),
+            lambda: self.replace_text(
+                tree,
+                "web/css-gate-fixture/dist/assets/index.css",
+                ".generated { --metric-ink: var(--ink); }\n",
+                "@media (prefers-color-scheme: dark) { "
+                ".generated { --metric-ink: var(--ink); } }\n",
+            ),
+            *arguments,
+        )
+
+    def test_spectrum_missing_supplemental_definition_file_is_usage_error(self) -> None:
+        tree = self.temporary_tree()
+        frontend, _ = self.spectrum_fixture(tree)
+        missing = frontend / "missing-supplemental.css"
+        result = self.invoke_gate(
+            tree,
+            "scripts/design-checks/undefined-var.py",
+            "--definitions",
+            str(missing),
+            str(frontend / "src/style.css"),
+        )
+        output = self.output(result)
+        self.assertEqual(result.returncode, 2, output)
+        self.assertIn("cannot read", output)
+        self.assertIn(str(missing), output)
+
     def test_spectrum_macro_css_requires_source_provenance(self) -> None:
         tree = self.temporary_tree()
         frontend, arguments = self.spectrum_fixture(tree)

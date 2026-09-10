@@ -276,8 +276,13 @@ mapfile -t PROJECT_CSS < <(
 )
 for c in coverage-floor comment-boundaries padding-ratio peer-consistency percentage-min shorthand-across-layers; do \
   python3 "scripts/design-checks/$c.py" "${PROJECT_CSS[@]}"; done
-for c in style-rules undefined-var shadowed theme-leak; do \
+for c in style-rules shadowed theme-leak; do \
   python3 "scripts/design-checks/$c.py" "${PROJECT_CSS[@]}"; done
+UNDEFINED_DEFINITIONS=()
+for css in "${EMITTED_CSS[@]}"; do \
+  UNDEFINED_DEFINITIONS+=(--definitions "$css"); done
+python3 scripts/design-checks/undefined-var.py \
+  "${UNDEFINED_DEFINITIONS[@]}" "${PROJECT_CSS[@]}"
 python3 scripts/check-type-ramp.py
 python3 scripts/check-css-coverage.py web/src/app/app.css web/src/app/app.css.fixture.html
 for c in coverage-floor style-rules undefined-var shadowed theme-leak comment-boundaries percentage-min; do \

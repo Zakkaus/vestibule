@@ -183,9 +183,15 @@ jobs:
           for c in coverage-floor comment-boundaries padding-ratio peer-consistency percentage-min shorthand-across-layers; do
             python3 "scripts/design-checks/$c.py" "${project_css[@]}"
           done
-          for c in style-rules undefined-var shadowed theme-leak; do
+          for c in style-rules shadowed theme-leak; do
             python3 "scripts/design-checks/$c.py" "${project_css[@]}"
           done
+          undefined_definitions=()
+          for css in "${emitted_css[@]}"; do
+            undefined_definitions+=(--definitions "$css")
+          done
+          python3 scripts/design-checks/undefined-var.py \
+            "${undefined_definitions[@]}" "${project_css[@]}"
           python3 scripts/check-type-ramp.py
           python3 scripts/check-css-coverage.py web/src/app/app.css web/src/app/app.css.fixture.html
           # The deployment guide is served by the Go binary and never enters the

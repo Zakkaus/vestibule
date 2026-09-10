@@ -717,27 +717,6 @@ func (s *Server) exportAudit(writer http.ResponseWriter, request *http.Request, 
             path.write_text(original, encoding="utf-8")
         self.assert_gate_passes(tree, script, "web/src/app/app.css")
 
-    def test_app_css_missing_variable_remains_an_undefined_var_failure(self) -> None:
-        tree = self.temporary_tree()
-        path = tree / "web/src/app/app.css"
-        original = path.read_text(encoding="utf-8")
-        script = "scripts/design-checks/undefined-var.py"
-        project_css = tuple(
-            str(css) for css in sorted((tree / "web/src").rglob("*.css"))
-        )
-        self.assert_gate_passes(tree, script, *project_css)
-        path.write_text(original + "[data-app-shell] { color: var(--app-missing); }\n", encoding="utf-8")
-        try:
-            self.assert_gate_rejects(
-                tree,
-                script,
-                "app CSS introduced a reference to an undefined custom property",
-                ("reads --app-missing, which nothing defines",),
-                *project_css,
-            )
-        finally:
-            path.write_text(original, encoding="utf-8")
-        self.assert_gate_passes(tree, script, *project_css)
 
     def test_frontend_emitted_css_must_resolve_custom_properties(self) -> None:
         tree = self.temporary_tree()
