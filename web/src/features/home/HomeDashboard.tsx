@@ -144,7 +144,7 @@ function OverviewSection({
   return (
     <Content data-home-section="overview" aria-labelledby="home-overview-title" styles={sectionSurface}>
       <Heading level={2} id="home-overview-title" styles={style({ font: "heading-lg", margin: 0 })}>{t("home.overview.title")}</Heading>
-      <Content aria-labelledby="home-overview-title" data-home-metrics styles={style({ display: "grid", gridTemplateColumns: { default: ["minmax(0, 1fr)", "minmax(0, 1fr)"], lg: ["minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)"] }, gap: 8, minWidth: 0 })}>
+      <Content aria-labelledby="home-overview-title" data-home-metrics styles={style({ display: "grid", gridTemplateColumns: ["minmax(0, 1fr)", "minmax(0, 1fr)"], gap: 8, minWidth: 0 })}>
         {metrics.map((metric) => (
           <Link key={metric.id} href={`${metric.path}${groupSearch}`} isStandalone isQuiet data-home-metric={metric.id}>
             {/* Same block as every other row on the page: its own ground, its own edge.
@@ -158,7 +158,7 @@ function OverviewSection({
               borderRadius: "lg",
               backgroundColor: "layer-2"
             })}>
-              <Text styles={style({ font: "heading-xl", fontWeight: "bold", color: "neutral" })}>{metric.value}</Text>
+              <Text styles={style({ font: "heading", fontWeight: "bold", color: "neutral" })}>{metric.value}</Text>
               <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", fontWeight: "medium", color: "neutral-subdued" })}>
                 <Icon name={metric.icon} /> {t(metric.labelKey)}
               </Text>
