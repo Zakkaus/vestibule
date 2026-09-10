@@ -44,7 +44,6 @@ FOREIGN_PREFIXES = {
     "internal/store/settings.go:": "the previous generation's settings migration",
     "~/code/refs/": "an absolute path into the reference checkout",
     "telego@": "a package in the Go module cache",
-    "state.go:": "a bare filename, quoted from a claim the plan goes on to reject",
     "server.go:": "a bare filename in a sentence that names the package around it",
 }
 
