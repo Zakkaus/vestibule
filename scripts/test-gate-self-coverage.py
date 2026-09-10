@@ -585,6 +585,30 @@ func (s *Server) exportAudit(writer http.ResponseWriter, request *http.Request, 
             ),
         )
 
+    def test_a_remote_asset_cannot_reach_the_console_bundle(self) -> None:
+        # The bundle is build output, so the copied tree has none. Write the shape the gate
+        # reads: a stylesheet whose assets are inline, then give it a font from a CDN.
+        tree = self.temporary_tree()
+        bundle = tree / "web" / "dist" / "assets" / "style.css"
+        bundle.parent.mkdir(parents=True, exist_ok=True)
+        bundle.write_text(
+            '.mark{background-image:url("data:image/svg+xml,<svg/>")}\n', encoding="utf-8"
+        )
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-no-external-assets.py",
+            "the console asks a third party for its typeface on every page load",
+            ("loads https://", "outside the instance"),
+            lambda: self.replace_text(
+                tree,
+                "web/dist/assets/style.css",
+                '.mark{',
+                "@font-face{font-family:remote;src:url(https://use.typekit.net/af/x)}\n.mark{",
+            ),
+            "web/dist/assets/style.css",
+        )
+
+
     def test_a_deployment_bot_handle_cannot_be_compiled_into_the_shipped_code(self) -> None:
         tree = self.temporary_tree()
         self.assert_mutation_is_rejected(

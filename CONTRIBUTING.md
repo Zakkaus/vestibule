@@ -286,6 +286,7 @@ for css in "${EMITTED_CSS[@]}"; do \
   UNDEFINED_DEFINITIONS+=(--definitions "$css"); done
 python3 scripts/design-checks/undefined-var.py \
   "${UNDEFINED_DEFINITIONS[@]}" "${PROJECT_CSS[@]}"
+python3 scripts/check-no-external-assets.py web/dist/assets/*.css  # the bundle fetches nothing from a third party
 python3 scripts/check-type-ramp.py
 python3 scripts/check-css-coverage.py web/src/app/app.css web/src/app/app.css.fixture.html
 for c in coverage-floor style-rules undefined-var shadowed theme-leak comment-boundaries percentage-min; do \

@@ -60,6 +60,22 @@ export default defineConfig({
             if (node.source?.input.file) cssSources.add(node.source.input.file);
           });
         }
+      }, {
+        // Spectrum's stylesheet declares its typefaces against Adobe's font CDN. A
+        // console that is installed on someone else's server must not call a third
+        // party on every page load, and an air-gapped install would wait out the
+        // request instead: the same wait that hangs document.fonts.ready in CI. The
+        // declarations already carry system fallbacks, so dropping the remote faces
+        // costs the shipped typeface, not the layout.
+        postcssPlugin: "console-css-drop-remote-fonts",
+        AtRule: {
+          "font-face": (rule) => {
+            const remote = rule.nodes?.some(
+              (node) => node.type === "decl" && node.prop === "src" && /url\(\s*['"]?https?:/i.test(node.value)
+            );
+            if (remote) rule.remove();
+          }
+        }
       }]
     }
   },

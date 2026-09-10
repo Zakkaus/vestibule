@@ -192,6 +192,7 @@ jobs:
           done
           python3 scripts/design-checks/undefined-var.py \
             "${undefined_definitions[@]}" "${project_css[@]}"
+          python3 scripts/check-no-external-assets.py "${emitted_css[@]}"
           python3 scripts/check-type-ramp.py
           python3 scripts/check-css-coverage.py web/src/app/app.css web/src/app/app.css.fixture.html
           # The deployment guide is served by the Go binary and never enters the
