@@ -947,10 +947,10 @@ li::marker { color: var(--border); }
       <thead><tr><th>角色</th><th>唯一来源</th><th>采用规则</th></tr></thead>
       <tbody>
         <tr><td>动作与选择</td><td><code>@react-spectrum/s2</code> 的 Button、LinkButton、Picker、TextField</td><td>屏内主动作 XL（48px），卡片与工具栏 L（40px），行内 M（32px）；同排输入和按钮等高。触摸设备统一升为 XL，按 Spectrum 的 1.25 倍触摸尺度呈现为 60px。</td></tr>
-        <tr><td>容器与圆角</td><td>Content、Header、Heading、Card、IllustratedMessage</td><td>布局使用库的原语，卡片与控件保留各自默认圆角、内边距和状态样式，不把按钮改成统一的项目圆角。</td></tr>
-        <tr><td>间距</td><td>Spectrum 2 的 <code>style()</code> 样式宏</td><td>页边采用 32，常规区块间距采用 24；首页区块采用 16，紧邻内容采用 8，窄屏页边采用 16。数值是库的尺度选项，不在 CSS 中复制一组像素变量；卡片内边距由库决定。</td></tr>
+        <tr><td>容器与圆角</td><td>Content、Header、Heading、Card、IllustratedMessage</td><td>内容面板四角采用 Spectrum 的 <code>lg</code> 圆角比例。卡片与控件保留各自默认圆角、内边距和状态样式，不把按钮改成统一的项目圆角。</td></tr>
+        <tr><td>间距</td><td>Spectrum 2 的 <code>style()</code> 样式宏</td><td>内容面板与顶栏、侧栏及窗口边缘之间采用 16 的外间距，窄屏采用 8，为表格的固定选择列和操作列保留空间；面板内边距采用 32，窄屏采用 16。常规区块间距采用 24；首页区块采用 16，紧邻内容采用 8。数值均来自库的 spacing 比例，不另写像素变量；卡片内边距由库决定。</td></tr>
         <tr><td>主色</td><td>库的默认强调色</td><td>采用 Spectrum accent 的蓝色，主动作使用 accent 变体；不使用 premium、genai 或靛蓝、紫色的演示配色。</td></tr>
-        <tr><td>背景分层</td><td>Provider 的 <code>background</code> 与 style 宏的 layer token</td><td><code>@react-spectrum/s2@1.7.1</code> 中，Provider、侧栏与顶栏使用 <code>base</code>；右侧内容使用 <code>layer-1</code>；原生 Card 的 primary 变体使用 <code>layer-2</code> 并保留库的阴影。此版本的 Card 没有 <code>elevated</code> prop，不能把不存在的属性当作分层接口。未迁移页面的 <code>--background</code> 绑定 <code>layer-1</code>，<code>--card</code>、<code>--popover</code>、<code>--surface-raised</code> 和容器 <code>--muted</code> 由同一组公开 style 宏绑定，跟随浅色、深色和系统主题；不复制库的颜色常量。</td></tr>
+        <tr><td>背景分层</td><td>Provider 的 <code>background</code> 与 style 宏的 layer token</td><td><code>@react-spectrum/s2@1.7.1</code> 中，Provider 保留 <code>base</code>，控制台外层使用 <code>layer-1</code>；顶栏和侧栏沿用外层背景，移除分隔边框。内缩内容面板使用 <code>layer-2</code>；原生 Card 的 primary 变体同样使用 <code>layer-2</code> 并保留库的阴影。未迁移页面的背景变量继续通过公开 style 宏绑定 layer token，跟随浅色、深色和系统主题，不复制颜色常量。</td></tr>
         <tr><td>导航</td><td>SideNav、SideNavItem、Popover</td><td>保留六组和全部授权入口，一次展开一组；路由改变时同步展开目标组。当前项同时使用库的粗体和内侧短线、2 到 2.4 的图标描边变化，以及 <code>accent-900/10</code> 提供的低透明度强调色背景；悬停、焦点和非颜色提示均保留。1280×720 下逐组展开后检查滚动边界，不允许只露出半个导航项。</td></tr>
         <tr><td>等待队列</td><td>TableView、TableHeader、Column、TableBody、Row、Cell</td><td>库提供多行选择、排序提示和空态容器。Tab 进入表格后，以方向键移动焦点；窄屏保留同一表格并横向滚动。行内放行沿用原有权限与请求流程。切换群后清空选择，排序保持选中项；空队列和筛选无结果使用不同提示。</td></tr>
         <tr><td>图表</td><td>Adobe 的 <code>@spectrum-charts/react-spectrum-charts-s2</code>、Vega-Lite 与统计 API</td><td>一张双轴图叠加请求数柱和通过率线：左轴为计数，右轴固定为 0–100%。两轴刻度、每日数值和图例保留，图例注明系列对应的轴。只画接口返回的日期，覆盖说明列出缺失天数，不补零，也不保留无说明的空白日期列。</td></tr>
@@ -958,10 +958,10 @@ li::marker { color: var(--border); }
         <tr><td>交互反馈</td><td>Spectrum 的悬停、按下、焦点与等待状态</td><td>图表悬停使用库的提示层；键盘通过 S2 Picker 选择日期，在读数区读取完整数值。图表不启用动画；请求减弱动态效果时，仍禁用控件通过内联样式写入的按压缩放。</td></tr>
       </tbody>
     </table></div>
-    <p>页面与容器背景禁止使用 <code>gray-*</code> 色阶，文字和边框不受此限制。浅色模式下，右侧内容的 <code>layer-1</code> 比 <code>base</code> 外壳略深；深色模式下，内容比外壳略亮，卡片的 <code>layer-2</code> 再亮一档。已对照 <a href="https://react-spectrum.adobe.com/">Spectrum 首页</a>与 <a href="https://react-spectrum.adobe.com/getting-started">入门文档</a>的深浅主题。本控制台按维护要求采用浅灰内容区承托卡片，不照搬入门文档的白色正文面板。分层值以本地锁定版本的 Provider 和 style 类型定义为准，不复制颜色常量。该版本的 <code>accent-subtle</code> 在深色下偏饱和，因此导航采用公开的 <code>accent-900/10</code> token，保持淡色选中提示。端到端检查覆盖背景声明、显式与系统主题，以及未迁移页面的容器。</p>
+    <p>页面与容器背景禁止使用 <code>gray-*</code> 色阶，文字和边框不受此限制。外壳采用 <a href="https://react-spectrum.adobe.com/getting-started">Spectrum 入门文档</a>的灰底与内缩正文面板版式：浅色模式为灰底、白色面板，深色模式下面板比外层亮一档。顶栏和侧栏直接放在外层灰底上，不再形成独立立柱。分层值以本地锁定版本的 Provider 和 style 类型定义为准。导航保留 <code>accent-900/10</code> 淡色选中提示。端到端检查覆盖四角圆角、面板内缩、侧栏背景与边框，以及显式和系统主题。</p>
     <p><code>web/src/styles/{tokens,components,shell}.css</code> 与 <code>web/src/icons/lucide/</code> 原样保留，
       原清单不改。旧样式进入独立的低优先级层，继续服务未迁移页面。CSS 来源清单分别记录项目样式、依赖样式和生成样式的 TSX 来源；生成的原子类不能靠文件名绕过来源检查。</p>
-    <p>未迁移页面保留原外壳的内容滚动边界；首页和等待队列只允许在图表或表格容器内横向滚动。</p>
+    <p>内容面板独立纵向滚动，顶栏和侧栏不随正文移动；首页在 1280×900 下无需纵向滚动。图表和表格保留各自的横向滚动边界。</p>
     <p>S2 1.7.1 存在一项横向虚拟化限制：从整行直接跳到尚未渲染过的末列时，焦点无法到达目标。
       窄屏可用右方向键逐列进入操作按钮，等当前单元格进入视口后再继续。
       不覆写依赖源码，也不为此保留另一套表格或卡片。</p>

@@ -9,15 +9,16 @@ All notable changes to this project are documented here. The format is based on
 ### Fixed
 - Group names use explicit colon-separated labels in Simplified Chinese, Traditional
   Chinese and English instead of an unlabelled prefix.
-- Console backgrounds use Spectrum's base shell, layer-1 content and layer-2 cards
-  in both themes, including legacy content containers. Cards retain native elevation.
-  Sidebar selection uses a pale accent tint while retaining weight, an inset rail and icon stroke.
+- Console chrome shares a gray Spectrum layer-1 surface without sidebar or header
+  dividers. The layer-2 content panel is inset, rounded and independently scrollable
+  in both themes. Cards retain native elevation, and sidebar selection retains its pale
+  accent tint, weight, inset rail and icon stroke.
 - The healthy home attention state aligns with its section heading. Chart legends now
   include colored dots that match their series in light, dark and system themes.
 - The home chart now gives out-of-window response dates distinct positions and counts
   coverage within the requested range. Date labels no longer overlap.
 - The sidebar keeps complete navigation rows at 1280×720, marks the current route
-  with weight, an inset rail and icon stroke, and continues to the page bottom without a seam.
+  with weight, an inset rail and icon stroke, and remains available while the content panel scrolls.
 - Cross-group content links now synchronize the SideNav route and expanded group
   before focus is resolved, so keyboard entry reaches the selected destination.
 - Touch-sized queue actions now have enough TableView column space to remain fully visible.

@@ -11,11 +11,6 @@ body:has([data-shell-variant="console"]) {
   stroke-width: 2.4;
 }
 
-/* Unmigrated routes still need their legacy document-sized overflow boundary;
-   Spectrum cannot infer that distinction from the router's Outlet content. */
-.console-content:has(.console-inner > :not([data-console-page])) {
-  overflow: auto;
-}
 
 /* S2 pressScale writes an inline transform even with reduced motion requested.
    The media query overrides that JS effect without restyling library controls. */

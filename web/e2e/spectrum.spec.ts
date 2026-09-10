@@ -205,14 +205,12 @@ test.describe("Spectrum shell geometry across changed routes", () => {
             return {
               contentPadding: content ? getComputedStyle(content).paddingInlineStart : null,
               contentPaddingBlock: content ? getComputedStyle(content).paddingBlockStart : null,
-              contentOverflowX: content ? getComputedStyle(content).overflowX : null,
               headerGap: consoleHeader ? getComputedStyle(consoleHeader).gap : null,
               pageWidth: pageRoot?.getBoundingClientRect().width
             };
           });
           expect(geometry.contentPadding).toBe(width < 768 ? "16px" : "32px");
           expect(geometry.contentPaddingBlock).toBe(width < 768 ? "16px" : "32px");
-          expect(geometry.contentOverflowX).toBe("visible");
           expect(geometry.headerGap).toBe("16px");
           await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
           expect(geometry.pageWidth).toBeGreaterThan(0);
@@ -300,36 +298,112 @@ test("Spectrum layer surfaces cover the console shell and legacy cards in every 
 
     const nativeSurfaces = await page.evaluate(() => {
       const shell = document.querySelector<HTMLElement>("[data-app-shell]");
-      const provider = shell?.parentElement;
       const main = document.querySelector<HTMLElement>(".console-main");
+      const panel = document.querySelector<HTMLElement>(".console-content");
       const sidebar = document.querySelector<HTMLElement>(".console-sidebar");
       const header = document.querySelector<HTMLElement>(".console-header");
+      const brand = document.querySelector<HTMLElement>(".console-brand");
       const card = document.querySelector<HTMLElement>("[data-console-card]");
-      if (!provider || !main || !sidebar || !header || !card) {
+      if (!shell || !main || !panel || !sidebar || !header || !brand || !card) {
         throw new Error("console layer surfaces are missing");
       }
+
+      const isTransparent = (color: string): boolean => {
+        if (color === "transparent") return true;
+        const alpha = color.match(/\/\s*([0-9.]+)\s*\)$/)?.[1] ?? color.match(/^rgba\([^,]+,[^,]+,[^,]+,\s*([0-9.]+)\s*\)$/)?.[1];
+        return alpha !== undefined && Number(alpha) === 0;
+      };
+      const effectiveBackground = (element: HTMLElement): string | null => {
+        let current: HTMLElement | null = element;
+        while (current) {
+          const color = getComputedStyle(current).backgroundColor;
+          if (!isTransparent(color)) return color;
+          current = current.parentElement;
+        }
+        return null;
+      };
+      const channels = (color: string): readonly number[] | null => {
+        const values = color.match(/[0-9.]+/g)?.slice(0, 3).map(Number) ?? [];
+        return values.length === 3 && values.every((value) => Number.isFinite(value)) ? values : null;
+      };
+      const luminance = (color: string | null): number | null => {
+        const values = color === null ? null : channels(color);
+        if (!values) return null;
+        return values.reduce((sum, value, index) => {
+          const channel = value / 255;
+          const linear = channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+          return sum + linear * [0.2126, 0.7152, 0.0722][index];
+        }, 0);
+      };
+      const mainBounds = main.getBoundingClientRect();
+      const panelBounds = panel.getBoundingClientRect();
+      const headerBounds = header.getBoundingClientRect();
+      const outerBackground = effectiveBackground(shell);
+      const panelBackground = effectiveBackground(panel);
+
       return {
-        provider: getComputedStyle(provider).backgroundColor,
-        content: getComputedStyle(main).backgroundColor,
-        sidebar: getComputedStyle(sidebar).backgroundColor,
-        header: getComputedStyle(header).backgroundColor,
+        outerBackground,
+        panelBackground,
+        outerLuminance: luminance(outerBackground),
+        panelLuminance: luminance(panelBackground),
         card: getComputedStyle(card).backgroundColor,
-        cardShadow: getComputedStyle(card).boxShadow
+        cardShadow: getComputedStyle(card).boxShadow,
+        radii: [
+          getComputedStyle(panel).borderTopLeftRadius,
+          getComputedStyle(panel).borderTopRightRadius,
+          getComputedStyle(panel).borderBottomRightRadius,
+          getComputedStyle(panel).borderBottomLeftRadius
+        ],
+        panelWidth: panelBounds.width,
+        panelHeight: panelBounds.height,
+        leftGap: panelBounds.left - mainBounds.left,
+        topGap: panelBounds.top - headerBounds.bottom,
+        rightGap: mainBounds.right - panelBounds.right,
+        sidebarBackground: effectiveBackground(sidebar),
+        headerBackground: effectiveBackground(header),
+        sidebarRightBorder: getComputedStyle(sidebar).borderInlineEndWidth,
+        sidebarPhysicalRightBorder: getComputedStyle(sidebar).borderRightWidth,
+        headerBottomBorder: getComputedStyle(header).borderBottomWidth,
+        brandBottomBorder: getComputedStyle(brand).borderBottomWidth
       };
     });
-    const dark = preference === "dark" || (preference === "system" && system === "dark");
-    const expected = dark
-      ? { provider: "rgb(17, 17, 17)", content: "rgb(27, 27, 27)", card: "rgb(34, 34, 34)" }
-      : { provider: "rgb(255, 255, 255)", content: "rgb(248, 248, 248)", card: "rgb(255, 255, 255)" };
-    expect(nativeSurfaces.provider).toBe(nativeSurfaces.sidebar);
-    expect(nativeSurfaces.provider).toBe(nativeSurfaces.header);
-    expect(nativeSurfaces.provider).toBe(expected.provider);
-    expect(nativeSurfaces.content).toBe(expected.content);
-    expect(nativeSurfaces.card).toBe(expected.card);
-    const contentBrightness = nativeSurfaces.content.match(/\d+/g)!.slice(0, 3).reduce((sum, channel) => sum + Number(channel), 0);
-    const cardBrightness = nativeSurfaces.card.match(/\d+/g)!.slice(0, 3).reduce((sum, channel) => sum + Number(channel), 0);
-    expect(cardBrightness).toBeGreaterThan(contentBrightness);
+    expect(nativeSurfaces.outerBackground).not.toBeNull();
+    expect(nativeSurfaces.panelBackground).not.toBeNull();
+    expect(nativeSurfaces.sidebarBackground).toBe(nativeSurfaces.outerBackground);
+    expect(nativeSurfaces.headerBackground).toBe(nativeSurfaces.outerBackground);
+    expect(nativeSurfaces.panelBackground).not.toBe(nativeSurfaces.outerBackground);
+    expect(nativeSurfaces.panelLuminance).toBeGreaterThan(nativeSurfaces.outerLuminance!);
+    for (const radius of nativeSurfaces.radii) {
+      expect(parseFloat(radius)).toBeGreaterThan(0);
+    }
+    expect(nativeSurfaces.panelWidth).toBeGreaterThan(0);
+    expect(nativeSurfaces.panelHeight).toBeGreaterThan(0);
+    expect(nativeSurfaces.leftGap).toBeGreaterThan(0);
+    expect(nativeSurfaces.topGap).toBeGreaterThan(0);
+    expect(nativeSurfaces.rightGap).toBeGreaterThan(0);
+    expect(nativeSurfaces.sidebarRightBorder).toBe("0px");
+    expect(nativeSurfaces.sidebarPhysicalRightBorder).toBe("0px");
+    expect(nativeSurfaces.headerBottomBorder).toBe("0px");
+    expect(nativeSurfaces.brandBottomBorder).toBe("0px");
     expect(nativeSurfaces.cardShadow).not.toBe("none");
+
+    const panelScroll = await page.evaluate(() => {
+      const panel = document.querySelector<HTMLElement>(".console-content");
+      if (!panel) throw new Error("console content panel is missing");
+      panel.scrollTop = panel.scrollHeight;
+      return {
+        overflowY: getComputedStyle(panel).overflowY,
+        scrollHeight: panel.scrollHeight,
+        clientHeight: panel.clientHeight,
+        scrollTop: panel.scrollTop,
+        documentHeight: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight),
+        viewportHeight: window.innerHeight
+      };
+    });
+    expect(["auto", "scroll"]).toContain(panelScroll.overflowY);
+    expect(panelScroll.scrollHeight).toBeGreaterThan(panelScroll.clientHeight);
+    expect(panelScroll.scrollTop).toBeGreaterThan(0);
+    expect(panelScroll.documentHeight).toBeLessThanOrEqual(panelScroll.viewportHeight + 1);
 
     await openSpectrumRoute(page, "/groups");
     await expect(page.locator("[data-groups-page]")).toBeVisible();

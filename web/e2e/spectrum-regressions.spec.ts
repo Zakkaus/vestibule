@@ -67,24 +67,6 @@ test("sidebar never cuts a navigation item at a scroll boundary", async ({ page 
   expect(await clippedNavigation(page)).toEqual([]);
 });
 
-test("sidebar surface follows document overflow in a short viewport without a bottom seam", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 480 });
-  await mockSpectrumTransport(page, { role: "operator" });
-  await openSpectrumRoute(page, "/home");
-  await expect(page.locator('[data-home-page]')).toHaveAttribute("data-home-state", "loaded");
-  const geometry = await page.locator('.console-sidebar').evaluate((sidebar) => {
-    const box = sidebar.getBoundingClientRect();
-    const shell = sidebar.closest('[data-app-shell]')!.getBoundingClientRect();
-    const css = getComputedStyle(sidebar);
-    return { bottom: box.bottom, shellBottom: shell.bottom, viewport: innerHeight, border: css.borderBottomWidth };
-  });
-  expect(geometry.bottom).toBeGreaterThan(geometry.viewport);
-  expect(Math.abs(geometry.bottom - geometry.shellBottom)).toBeLessThanOrEqual(1);
-  expect(geometry.border).toBe("0px");
-  await page.locator("[data-home-entries]").scrollIntoViewIfNeeded();
-  expect(await page.evaluate(() => scrollY)).toBeGreaterThan(0);
-  await expect(page.locator('.console-sidebar a[aria-current="page"]')).toBeInViewport({ ratio: 1 });
-});
 
 test("active navigation combines weight, an inset rail, icon stroke, and a pale accent surface", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });

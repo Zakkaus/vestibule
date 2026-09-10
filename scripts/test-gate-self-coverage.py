@@ -672,15 +672,15 @@ func (s *Server) exportAudit(writer http.ResponseWriter, request *http.Request, 
             *arguments,
         )
 
-    def test_console_page_style_deletion_is_visible_to_coverage(self) -> None:
+    def test_styled_page_hook_deletion_is_visible_to_coverage(self) -> None:
         tree = self.temporary_tree()
         _, arguments = self.frontend_fixture(tree)
         style = tree / "web/css-gate-fixture/src/style.css"
         probe = tree / "web/css-gate-fixture/src/Probe.tsx"
         original_style = style.read_text(encoding="utf-8")
         original_probe = probe.read_text(encoding="utf-8")
-        styled = original_style + '\n[data-console-page] { display: grid; }\n'
-        marked = original_probe.replace("/>", 'data-console-page />', 1)
+        styled = original_style + '\n[data-css-gate-page] { display: grid; }\n'
+        marked = original_probe.replace("/>", 'data-css-gate-page />', 1)
         style.write_text(styled, encoding="utf-8")
         probe.write_text(marked, encoding="utf-8")
         self.assert_gate_passes(tree, "scripts/check-css-coverage.py", *arguments)
@@ -689,8 +689,8 @@ func (s *Server) exportAudit(writer http.ResponseWriter, request *http.Request, 
             self.assert_gate_rejects(
                 tree,
                 "scripts/check-css-coverage.py",
-                "a styled console-page hook was deleted from CSS",
-                ("[data-console-page] is used in TSX but has no project CSS definition",),
+                "a styled page hook was deleted from CSS",
+                ("[data-css-gate-page] is used in TSX but has no project CSS definition",),
                 *arguments,
             )
         finally:

@@ -129,10 +129,13 @@ async function expectHomeWithinViewport(page: Page, maximumHeight: number): Prom
     await document.fonts.ready;
     await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   });
-  const geometry = await page.evaluate(() => ({
-    scrollHeight: document.documentElement.scrollHeight,
-    viewportHeight: window.innerHeight
-  }));
+  const geometry = await page.evaluate(() => {
+    const panel = document.querySelector<HTMLElement>(".console-content")!;
+    return {
+      scrollHeight: document.documentElement.scrollHeight + Math.max(0, panel.scrollHeight - panel.clientHeight),
+      viewportHeight: window.innerHeight
+    };
+  });
   expect(geometry.scrollHeight).toBeLessThanOrEqual(maximumHeight * geometry.viewportHeight);
 }
 

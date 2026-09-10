@@ -56,20 +56,27 @@ const shellLayout = style({
     default: [240, "minmax(0, 1fr)"],
     "@media (max-width: 48rem)": ["minmax(0, 1fr)"]
   },
-  minHeight: "screen",
-  color: "neutral"
+  height: "screen",
+  minHeight: 0,
+  minWidth: 0,
+  overflow: "hidden",
+  boxSizing: "border-box",
+  color: "neutral",
+  backgroundColor: "layer-1"
 });
 
 const sidebarLayout = style({
-  display: { default: "block", "@media (max-width: 48rem)": "none" },
+  display: { default: "flex", "@media (max-width: 48rem)": "none" },
+  flexDirection: "column",
   height: "full",
+  minHeight: 0,
   minWidth: 0,
-  backgroundColor: "base",
-  borderWidth: 0,
-  borderEndWidth: 1,
-  borderStyle: "solid",
-  borderColor: "gray-300"
+  overflow: "hidden",
+  boxSizing: "border-box",
+  backgroundColor: "inherit",
+  borderWidth: 0
 });
+
 
 const brandHeaderLayout = style({
   display: "flex",
@@ -78,10 +85,9 @@ const brandHeaderLayout = style({
   minWidth: 0,
   minHeight: size(64),
   padding: 16,
-  borderWidth: 0,
-  borderBottomWidth: 1,
-  borderStyle: "solid",
-  borderColor: "gray-300"
+  boxSizing: "border-box",
+  backgroundColor: "inherit",
+  borderWidth: 0
 });
 
 const brandLinkLayout = style({
@@ -93,27 +99,32 @@ const brandLinkLayout = style({
   textDecoration: "none"
 });
 
-
 const navigationLayout = style({
-  position: "sticky",
-  top: 0,
-  maxHeight: "screen",
+  display: "flex",
+  flexDirection: "column",
+  flexGrow: 1,
   minHeight: 0,
   minWidth: 0,
+  height: "full",
   padding: 16,
   overflowY: "auto",
   overscrollBehaviorY: "contain",
   "--console-nav-selected-background": { type: "backgroundColor", value: "accent-900/10" }
 });
 
-const sideNavLayout = style({ height: "full" });
+
+const sideNavLayout = style({ height: "full", minHeight: 0 });
 
 const mainLayout = style({
-  display: "block",
-  minHeight: "screen",
+  display: "grid",
+  height: "full",
+  minHeight: 0,
   minWidth: 0,
-  backgroundColor: "layer-1"
+  overflow: "hidden",
+  boxSizing: "border-box",
+  backgroundColor: "inherit"
 });
+
 
 const headerLayout = style({
   position: "sticky",
@@ -132,11 +143,9 @@ const headerLayout = style({
     "@media (max-width: 48rem)": 16
   },
   paddingY: 16,
+  boxSizing: "border-box",
   borderWidth: 0,
-  borderBottomWidth: 1,
-  borderStyle: "solid",
-  borderColor: "gray-300",
-  backgroundColor: "base"
+  backgroundColor: "inherit"
 });
 
 const headerTitleLayout = style({
@@ -158,11 +167,21 @@ const controlsLayout = style({
 });
 
 const contentLayout = style({
+  minHeight: 0,
   minWidth: 0,
+  margin: {
+    default: 16,
+    "@media (max-width: 48rem)": 8
+  },
   padding: {
     default: 32,
     "@media (max-width: 48rem)": 16
-  }
+  },
+  overflow: "auto",
+  overscrollBehavior: "contain",
+  boxSizing: "border-box",
+  borderRadius: "lg",
+  backgroundColor: "layer-2"
 });
 
 const innerLayout = style({
@@ -332,14 +351,14 @@ function ConsoleNavigation({
 
   return (
     <Content UNSAFE_className="console-navigation" styles={navigationLayout}>
-      <nav aria-label={t("navigation.label")}>
-      <SideNav
-        aria-label={t("navigation.label")}
-        selectedRoute={selectedRoute}
-        expandedKeys={expandedKeys}
-        onExpandedChange={updateExpandedGroups}
-        styles={sideNavLayout}
-      >
+      <nav className={style({ display: "flex", flexDirection: "column", flexGrow: 1, minHeight: 0 })} aria-label={t("navigation.label")}>
+        <SideNav
+          aria-label={t("navigation.label")}
+          selectedRoute={selectedRoute}
+          expandedKeys={expandedKeys}
+          onExpandedChange={updateExpandedGroups}
+          styles={sideNavLayout}
+        >
         {sections.map(({ group, items }) => (
           <SideNavItem
             key={group.id}
@@ -418,7 +437,7 @@ function ShellContent() {
       styles={shellLayout}
     >
       <Content UNSAFE_className="console-sidebar" styles={sidebarLayout}>
-        <aside className={style({ height: "full" })}>
+        <aside className={style({ display: "flex", flexDirection: "column", height: "full", minHeight: 0 })}>
           <Header UNSAFE_className="console-brand" styles={brandHeaderLayout}>
             <Link href={`/home${selectedGroupSearch}`} variant="secondary" isStandalone isQuiet>
               <Content styles={brandLinkLayout}>
@@ -434,7 +453,7 @@ function ShellContent() {
         </aside>
       </Content>
       <Content UNSAFE_className="console-main" styles={mainLayout}>
-        <main>
+        <main className={style({ display: "grid", gridTemplateRows: ["auto", "minmax(0, 1fr)"], minHeight: 0, minWidth: 0 })}>
           <Header UNSAFE_className="console-header" styles={headerLayout} data-console-header>
             <Content UNSAFE_className="console-mobile-navigation" data-mobile-navigation styles={style({ display: { default: "none", "@media (max-width: 48rem)": "block" } })}>
               <DialogTrigger isOpen={navigationOpen} onOpenChange={setNavigationOpen}>
