@@ -73,19 +73,16 @@ body {
   text-decoration: none;
 }
 
+/* The icon is the svg itself now, not a span wrapping one, so it takes the text box
+   it sits in rather than declaring its own display. */
 [data-icon] {
-  display: inline-flex;
   flex: none;
   inline-size: 1em;
   block-size: 1em;
-  line-height: 1;
+  vertical-align: -0.125em;
 }
 
-[data-icon] > svg {
-  display: block;
-  inline-size: 100%;
-  block-size: 100%;
-}
+
 
 [data-state-heading] {
   display: inline-flex;
