@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { Button, Text } from "@react-spectrum/s2/Button";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -428,16 +429,10 @@ export function FeedsScreen() {
           role="alert"
           iconName="circleAlert"
         >
-          <button
-            type="button"
-            data-slot="button"
-            data-variant="outline"
-            data-size="sm"
-            onClick={reloadFeeds}
-          >
+          <Button type="button" variant="primary" data-slot="button" onPress={reloadFeeds}>
             <Icon name="refreshCw" />
-            {t("feeds.unavailable.retry")}
-          </button>
+            <Text>{t("feeds.unavailable.retry")}</Text>
+          </Button>
         </StateCard>
       ) : null}
       {screenState.kind === "loaded" ? <LoadedFeedSettings settings={screenState.settings} /> : null}

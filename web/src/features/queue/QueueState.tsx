@@ -55,7 +55,7 @@ export function QueueGroupRequiredState() {
       <ButtonGroup>
         <LinkButton
           href="/groups"
-          variant="accent"
+          variant="primary"
           size={size}
           data-console-control
           data-control-size={size}
@@ -92,8 +92,7 @@ export function QueueUnavailableState({
       <Content><Text>{t(messageKey)}</Text></Content>
       <ButtonGroup>
         <Button
-          variant="secondary"
-          fillStyle="outline"
+          variant="primary"
           size={size}
           data-console-control
           data-control-size={size}

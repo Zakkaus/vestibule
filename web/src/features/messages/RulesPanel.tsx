@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { Button } from "@react-spectrum/s2/Button";
 
 import { Icon } from "../../icons";
 import type { MessageRule } from "./api";
@@ -123,14 +124,14 @@ function RuleCollectionView({
                     }}
                   />
                   <div data-slot="button-group" data-size="sm" aria-label={t("messages.rules.orderActions")}>
-                    <button
-                      type="button"
+                    <Button
+                      variant="secondary"
+                      size="S"
                       data-slot="button"
-                      data-variant="ghost"
                       data-size="sm"
                       aria-label={t("messages.rules.moveUp", { id: rule.id })}
-                      aria-disabled={pageBusy || !canMoveUp ? "true" : undefined}
-                      onClick={() => {
+                      isDisabled={pageBusy || !canMoveUp}
+                      onPress={() => {
                         if (!pageBusy && canMoveUp) {
                           onMove(rule, "up");
                         }
@@ -138,15 +139,15 @@ function RuleCollectionView({
                     >
                       <Icon name="chevronUp" />
                       {t("messages.rules.up")}
-                    </button>
-                    <button
-                      type="button"
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="S"
                       data-slot="button"
-                      data-variant="ghost"
                       data-size="sm"
                       aria-label={t("messages.rules.moveDown", { id: rule.id })}
-                      aria-disabled={pageBusy || !canMoveDown ? "true" : undefined}
-                      onClick={() => {
+                      isDisabled={pageBusy || !canMoveDown}
+                      onPress={() => {
                         if (!pageBusy && canMoveDown) {
                           onMove(rule, "down");
                         }
@@ -154,7 +155,7 @@ function RuleCollectionView({
                     >
                       <Icon name="chevronDown" />
                       {t("messages.rules.down")}
-                    </button>
+                    </Button>
                   </div>
                   {itemBusy ? (
                     <span data-slot="badge" data-status="pending">
@@ -213,16 +214,10 @@ export function RulesPanel({ items, busy, feedback, onReload, onToggle, onMove }
           <Icon name={feedback.tone === "ok" ? "circleCheck" : "circleAlert"} />
           {feedback.content}
           {feedback.reloadable ? (
-            <button
-              type="button"
-              data-slot="button"
-              data-variant="outline"
-              data-size="sm"
-              onClick={onReload}
-            >
+            <Button variant="secondary" size="S" data-slot="button" data-size="sm" onPress={onReload}>
               <Icon name="refreshCw" />
               {t("messages.actions.reload")}
-            </button>
+            </Button>
           ) : null}
         </div>
       ) : null}

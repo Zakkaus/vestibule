@@ -1,5 +1,6 @@
 import { type FormEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { Button } from "@react-spectrum/s2/Button";
 
 import { StatusBadge } from "../../components/StatusBadge";
 import { Icon } from "../../icons";
@@ -79,13 +80,13 @@ function SettingMeta({
         </StatusBadge>
       ) : null}
       {source === "chat override" ? (
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="S"
           data-slot="button"
-          data-variant="link"
           data-size="sm"
-          aria-disabled={saving ? "true" : undefined}
-          onClick={() => {
+          isDisabled={saving}
+          onPress={() => {
             if (!saving) {
               onSetRestoring(field, !restoring);
             }
@@ -93,7 +94,7 @@ function SettingMeta({
         >
           <Icon name={restoring ? "x" : "rotateCcw"} />
           {t(restoring ? "messages.actions.cancelRestore" : "messages.actions.restore")}
-        </button>
+        </Button>
       ) : null}
     </span>
   );
@@ -322,20 +323,16 @@ export function MessageSettingsForm({
             )}
           </p>
         </div>
-        <button
+        <Button
           type="submit"
+          variant="accent"
           data-slot="button"
-          data-variant="primary"
-          aria-disabled={saveBlocked ? "true" : undefined}
-          onClick={(event) => {
-            if (saveBlocked) {
-              event.preventDefault();
-            }
-          }}
+          isDisabled={saveBlocked}
+          isPending={saving}
         >
           <Icon name="save" />
           {t(saving ? "messages.actions.savingSettings" : "messages.actions.saveSettings")}
-        </button>
+        </Button>
       </footer>
     </form>
   );

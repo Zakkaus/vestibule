@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { Button } from "@react-spectrum/s2/Button";
 
 import { Icon, type IconName } from "../../icons";
 import type { ApiRequestError } from "../../lib/api";
@@ -104,13 +105,12 @@ function SettingMeta({
         </span>
       ) : null}
       {source === "chat override" ? (
-        <button
+        <Button
           type="button"
+          variant="secondary"
           data-slot="button"
-          data-variant="link"
-          data-size="sm"
           aria-disabled={saving ? "true" : undefined}
-          onClick={() => {
+          onPress={() => {
             if (!saving) {
               onSetRestoring(field, !restoring);
             }
@@ -118,7 +118,7 @@ function SettingMeta({
         >
           <Icon name={restoring ? "x" : "rotateCcw"} />
           {t(restoring ? "moderation.actions.cancelRestore" : "moderation.actions.restore")}
-        </button>
+        </Button>
       ) : null}
     </span>
   );
@@ -278,16 +278,10 @@ function ModerationFeedbackNotice({
       <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
       <span>{t(messageKey)}</span>
       {feedback.kind === "conflict" ? (
-        <button
-          type="button"
-          data-slot="button"
-          data-variant="outline"
-          data-size="sm"
-          onClick={onReload}
-        >
+        <Button type="button" variant="secondary" data-slot="button" onPress={onReload}>
           <Icon name="refreshCw" />
           {t("moderation.actions.reload")}
-        </button>
+        </Button>
       ) : null}
     </div>
   );
@@ -319,13 +313,12 @@ function ModerationSaveBar({
         {t("moderation.save.unsaved", { count: evaluation.count })}
       </span>
       <span data-save-actions>
-        <button
+        <Button
           type="button"
+          variant="secondary"
           data-slot="button"
-          data-variant="outline"
-          data-size="sm"
           aria-disabled={state.saving ? "true" : undefined}
-          onClick={() => {
+          onPress={() => {
             if (!state.saving) {
               onDiscard();
             }
@@ -333,14 +326,14 @@ function ModerationSaveBar({
         >
           <Icon name="trash2" />
           {t("moderation.actions.discard")}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="accent"
           data-slot="button"
-          data-variant="primary"
-          data-size="sm"
+          isPending={state.saving}
           aria-disabled={saveBlocked ? "true" : undefined}
-          onClick={() => {
+          onPress={() => {
             if (!saveBlocked) {
               onSave();
             }
@@ -348,7 +341,7 @@ function ModerationSaveBar({
         >
           <Icon name="save" />
           {t(state.saving ? "moderation.actions.saving" : "moderation.actions.save")}
-        </button>
+        </Button>
       </span>
     </aside>
   );
@@ -468,16 +461,10 @@ function ModerationStateContent({
       )}
       role="alert"
     >
-      <button
-        type="button"
-        data-slot="button"
-        data-variant="outline"
-        data-size="sm"
-        onClick={controller.reload}
-      >
+      <Button type="button" variant="primary" data-slot="button" onPress={controller.reload}>
         <Icon name="refreshCw" />
         {t("moderation.unavailable.retry")}
-      </button>
+      </Button>
     </ModerationStateCard>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
+import { Button } from "@react-spectrum/s2/Button";
 
 import {
   consoleApi,
@@ -294,16 +295,10 @@ export function CapabilitiesScreen() {
           iconName="circleAlert"
           role="alert"
         >
-          <button
-            type="button"
-            data-slot="button"
-            data-variant="outline"
-            data-size="sm"
-            onClick={reloadCapabilities}
-          >
+          <Button type="button" variant="primary" data-slot="button" onPress={reloadCapabilities}>
             <Icon name="refreshCw" />
             {t("capabilities.actions.retry")}
-          </button>
+          </Button>
         </StateCard>
       ) : null}
 
@@ -369,32 +364,26 @@ export function CapabilitiesScreen() {
             <aside data-slot="card" data-capabilities-savebar aria-label={t("capabilities.save.label")}>
               <span aria-live="polite">{t("capabilities.save.unsaved")}</span>
               <span data-capabilities-save-actions>
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   data-slot="button"
-                  data-variant="outline"
-                  data-size="sm"
                   aria-disabled={saving ? "true" : undefined}
-                  onClick={discardChanges}
+                  onPress={discardChanges}
                 >
                   <Icon name="trash2" />
                   {t("capabilities.actions.discard")}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
+                  variant="accent"
                   data-slot="button"
-                  data-variant="primary"
-                  data-size="sm"
+                  isPending={saving}
                   aria-disabled={saving ? "true" : undefined}
-                  onClick={(event) => {
-                    if (saving) {
-                      event.preventDefault();
-                    }
-                  }}
                 >
                   <Icon name="save" />
                   {t(saving ? "capabilities.actions.saving" : "capabilities.actions.save")}
-                </button>
+                </Button>
               </span>
             </aside>
           ) : null}
@@ -423,16 +412,10 @@ export function CapabilitiesScreen() {
           (feedback.kind === "error" &&
             (feedback.error.kind === "network" ||
               (feedback.error.kind === "api" && feedback.error.code === "invalid_settings"))) ? (
-            <button
-              type="button"
-              data-slot="button"
-              data-variant="outline"
-              data-size="sm"
-              onClick={reloadCapabilities}
-            >
+            <Button type="button" variant="secondary" data-slot="button" onPress={reloadCapabilities}>
               <Icon name="refreshCw" />
               {t("capabilities.actions.reload")}
-            </button>
+            </Button>
           ) : null}
         </div>
       ) : null}

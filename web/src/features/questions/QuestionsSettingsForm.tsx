@@ -1,4 +1,6 @@
 import { type FormEvent, type ReactNode } from "react";
+import { Button } from "@react-spectrum/s2/Button";
+import { Text } from "@react-spectrum/s2";
 import { useTranslation } from "react-i18next";
 
 import { AppSelect, type AppSelectOption } from "../../components/AppSelect";
@@ -84,16 +86,10 @@ function SourceMeta({ source, restoring, labelKey = "questions.source.value", on
         <StatusBadge tone="pending">{t("questions.source.restoring")}</StatusBadge>
       ) : null}
       {source === "chat override" && !restoring ? (
-        <button
-          type="button"
-          data-slot="button"
-          data-variant="link"
-          data-size="sm"
-          onClick={onRestore}
-        >
+        <Button type="button" variant="secondary" onPress={onRestore}>
           <Icon name="rotateCcw" />
-          {t("questions.actions.restore")}
-        </button>
+          <Text>{t("questions.actions.restore")}</Text>
+        </Button>
       ) : null}
     </div>
   );
@@ -177,13 +173,11 @@ function QuestionBankSection({
       </div>
       <div data-question-list-heading>
         <p>{t("questions.questionBank.count", { count: draft.questions.length })}</p>
-        <button
+        <Button
           type="button"
-          data-slot="button"
-          data-variant="outline"
-          data-size="sm"
+          variant="secondary"
           aria-disabled={saving ? "true" : undefined}
-          onClick={() => {
+          onPress={() => {
             if (!saving) {
               onDraftChange(
                 { ...draft, questions: [...draft.questions, newQuestionDraft()] },
@@ -193,8 +187,8 @@ function QuestionBankSection({
           }}
         >
           <Icon name="plus" />
-          {t("questions.actions.addQuestion")}
-        </button>
+          <Text>{t("questions.actions.addQuestion")}</Text>
+        </Button>
       </div>
       <QuestionBankEditor
         questions={draft.questions}
@@ -236,16 +230,10 @@ function FallbackSources({
         <StatusBadge tone="pending">{t("questions.source.restoring")}</StatusBadge>
       ) : null}
       {canRestore && !restoring ? (
-        <button
-          type="button"
-          data-slot="button"
-          data-variant="link"
-          data-size="sm"
-          onClick={onRestore}
-        >
+        <Button type="button" variant="secondary" onPress={onRestore}>
           <Icon name="rotateCcw" />
-          {t("questions.actions.restoreFallback")}
-        </button>
+          <Text>{t("questions.actions.restoreFallback")}</Text>
+        </Button>
       ) : null}
     </div>
   );
@@ -271,40 +259,36 @@ function FallbackMode({
       <legend>{t("questions.fallback.modeLabel")}</legend>
       <p id={descriptionID}>{t("questions.fallback.modeDescription")}</p>
       <div data-fallback-mode-options>
-        <button
+        <Button
           type="button"
-          data-slot="button"
-          data-variant="outline"
-          data-size="sm"
+          variant="secondary"
           aria-pressed={draft.fallbackBuiltin}
           aria-describedby={descriptionID}
           aria-disabled={saving ? "true" : undefined}
-          onClick={() => {
+          onPress={() => {
             if (!saving) {
               chooseMode(true);
             }
           }}
         >
           <Icon name="bookOpen" />
-          {t("questions.fallback.builtin")}
-        </button>
-        <button
+          <Text>{t("questions.fallback.builtin")}</Text>
+        </Button>
+        <Button
           type="button"
-          data-slot="button"
-          data-variant="outline"
-          data-size="sm"
+          variant="secondary"
           aria-pressed={!draft.fallbackBuiltin}
           aria-describedby={descriptionID}
           aria-disabled={saving ? "true" : undefined}
-          onClick={() => {
+          onPress={() => {
             if (!saving) {
               chooseMode(false);
             }
           }}
         >
           <Icon name="pencil" />
-          {t("questions.fallback.custom")}
-        </button>
+          <Text>{t("questions.fallback.custom")}</Text>
+        </Button>
       </div>
     </fieldset>
   );
@@ -422,13 +406,11 @@ function FallbackSection(props: Omit<QuestionsSettingsFormProps, "hasChanges" | 
           ) : null}
           <div data-question-list-heading>
             <p>{t("questions.fallback.count", { count: draft.fallbackQuestions.length })}</p>
-            <button
+            <Button
               type="button"
-              data-slot="button"
-              data-variant="outline"
-              data-size="sm"
+              variant="secondary"
               aria-disabled={saving ? "true" : undefined}
-              onClick={() => {
+              onPress={() => {
                 if (!saving) {
                   onDraftChange(
                     {
@@ -441,8 +423,8 @@ function FallbackSection(props: Omit<QuestionsSettingsFormProps, "hasChanges" | 
               }}
             >
               <Icon name="plus" />
-              {t("questions.actions.addFallback")}
-            </button>
+              <Text>{t("questions.actions.addFallback")}</Text>
+            </Button>
           </div>
           <FallbackQuestionEditor
             questions={draft.fallbackQuestions}
@@ -468,16 +450,16 @@ export function QuestionsSettingsForm(props: QuestionsSettingsFormProps) {
       <FallbackSection {...props} />
       <footer data-slot="card" data-questions-savebar>
         <p>{t(props.hasChanges ? "questions.save.dirty" : "questions.save.clean")}</p>
-        <button
+        <Button
           type="submit"
-          data-slot="button"
-          data-variant="primary"
+          variant="accent"
           aria-disabled={props.saving ? "true" : undefined}
-          disabled={!props.hasChanges}
+          isPending={props.saving}
+          isDisabled={!props.hasChanges}
         >
           <Icon name="save" />
-          {t(props.saving ? "questions.actions.saving" : "questions.actions.save")}
-        </button>
+          <Text>{t(props.saving ? "questions.actions.saving" : "questions.actions.save")}</Text>
+        </Button>
       </footer>
     </form>
   );

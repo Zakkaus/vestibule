@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Button, Text } from "@react-spectrum/s2/Button";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
@@ -137,16 +138,10 @@ function BypassStateContent({ controller }: Readonly<{ controller: BypassControl
       iconName="circleAlert"
       role="alert"
     >
-      <button
-        type="button"
-        data-slot="button"
-        data-variant="outline"
-        data-size="sm"
-        onClick={controller.reload}
-      >
+      <Button type="button" variant="primary" data-slot="button" onPress={controller.reload}>
         <Icon name="refreshCw" />
-        {t("bypass.unavailable.retry")}
-      </button>
+        <Text>{t("bypass.unavailable.retry")}</Text>
+      </Button>
     </BypassStateCard>
   );
 }

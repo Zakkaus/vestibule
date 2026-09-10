@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { Button } from "@react-spectrum/s2/Button";
 
 import {
   consoleApi,
@@ -343,16 +344,10 @@ export function DiagnosticsScreen() {
           iconName="circleAlert"
           role="alert"
         >
-          <button
-            type="button"
-            data-slot="button"
-            data-variant="outline"
-            data-size="sm"
-            onClick={reload}
-          >
+          <Button variant="primary" size="S" data-slot="button" data-size="sm" onPress={reload}>
             <Icon name="refreshCw" />
             {t("diagnostics.unavailable.retry")}
-          </button>
+          </Button>
         </StateCard>
       ) : null}
       {screenState.kind === "loaded" ? (

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Button } from "@react-spectrum/s2/Button";
+import { Text } from "@react-spectrum/s2";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -94,16 +96,10 @@ function AuditFeedbackNotice({
       />
       {t(feedback.messageKey, { user: feedback.record.user })}
       {reloadable ? (
-        <button
-          type="button"
-          data-slot="button"
-          data-variant="outline"
-          data-size="sm"
-          onClick={onReload}
-        >
+        <Button type="button" variant="secondary" onPress={onReload}>
           <Icon name="refreshCw" />
-          {t("audit.actions.reload")}
-        </button>
+          <Text>{t("audit.actions.reload")}</Text>
+        </Button>
       ) : null}
     </div>
   );
@@ -465,16 +461,10 @@ export function AuditScreen() {
           iconName="circleAlert"
           role="alert"
         >
-          <button
-            type="button"
-            data-slot="button"
-            data-variant="outline"
-            data-size="sm"
-            onClick={reloadAudit}
-          >
+          <Button type="button" variant="primary" onPress={reloadAudit}>
             <Icon name="refreshCw" />
-            {t("audit.unavailable.retry")}
-          </button>
+            <Text>{t("audit.unavailable.retry")}</Text>
+          </Button>
         </AuditStateCard>
       ) : null}
       {(auditState.kind === "fixture" || auditState.kind === "loaded") && records.length > 0 ? (

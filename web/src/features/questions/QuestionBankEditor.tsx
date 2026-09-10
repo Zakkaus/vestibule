@@ -1,3 +1,4 @@
+import { Button, Text } from "@react-spectrum/s2/Button";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../../icons";
 
@@ -93,22 +94,22 @@ function QuestionOptionRow({
 
   return (
     <div data-question-option-row>
-      <button
+      <Button
         type="button"
+        variant="secondary"
         data-slot="button"
-        data-variant="outline"
         aria-pressed={question.answer === optionIndex}
         aria-label={t("questions.questionBank.correctAnswerFor", { number: optionIndex + 1 })}
         aria-disabled={readOnly ? "true" : undefined}
-        onClick={() => {
+        onPress={() => {
           if (!readOnly) {
             onChange({ ...question, answer: optionIndex });
           }
         }}
       >
         <Icon name="circleCheck" />
-        {t("questions.actions.selectCorrectAnswer")}
-      </button>
+        <Text>{t("questions.actions.selectCorrectAnswer")}</Text>
+      </Button>
       <div data-question-option-field>
         <label htmlFor={optionID}>
           {t("questions.questionBank.option", { number: optionIndex + 1 })}
@@ -125,21 +126,21 @@ function QuestionOptionRow({
           }}
         />
       </div>
-      <button
+      <Button
         type="button"
+        variant="secondary"
         data-slot="button"
-        data-variant="link"
         aria-disabled={readOnly ? "true" : undefined}
         aria-label={t("questions.actions.removeOptionFor", { number: optionIndex + 1 })}
-        onClick={() => {
+        onPress={() => {
           if (!readOnly) {
             onChange(removeOption(question, optionIndex));
           }
         }}
       >
         <Icon name="trash2" />
-        {t("questions.actions.removeOption")}
-      </button>
+        <Text>{t("questions.actions.removeOption")}</Text>
+      </Button>
     </div>
 
   );
@@ -184,21 +185,20 @@ function QuestionOptionsEditor({ question, errors, readOnly, onChange }: Questio
           {t(errors.answer)}
         </p>
       ) : null}
-      <button
+      <Button
         type="button"
+        variant="secondary"
         data-slot="button"
-        data-variant="outline"
-        data-size="sm"
         aria-disabled={readOnly ? "true" : undefined}
-        onClick={() => {
+        onPress={() => {
           if (!readOnly) {
             onChange({ ...question, options: [...question.options, ""] });
           }
         }}
       >
         <Icon name="plus" />
-        {t("questions.actions.addOption")}
-      </button>
+        <Text>{t("questions.actions.addOption")}</Text>
+      </Button>
     </fieldset>
   );
 }
@@ -223,20 +223,20 @@ function QuestionItem({
         <h3 id={`question-${question.id}-title`}>
           {t("questions.questionBank.itemTitle", { number })}
         </h3>
-        <button
+        <Button
           type="button"
+          variant="negative"
           data-slot="button"
-          data-variant="destructive"
           aria-disabled={readOnly ? "true" : undefined}
-          onClick={() => {
+          onPress={() => {
             if (!readOnly) {
               onDelete();
             }
           }}
         >
           <Icon name="trash2" />
-          {t("questions.actions.deleteQuestion")}
-        </button>
+          <Text>{t("questions.actions.deleteQuestion")}</Text>
+        </Button>
       </header>
       <QuestionPrompt
         question={question}

@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { Button, Text } from "@react-spectrum/s2/Button";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -261,15 +262,15 @@ function StatsFilters({
             errorID={errorID}
             onChange={(value) => onDraftChange("timezone", value)}
           />
-          <button
+          <Button
             type="submit"
+            variant="accent"
             data-slot="button"
-            data-variant="primary"
             aria-disabled={loading ? "true" : undefined}
           >
             <Icon name="slidersHorizontal" />
-            {t("stats.filters.apply")}
-          </button>
+            <Text>{t("stats.filters.apply")}</Text>
+          </Button>
         </div>
         <p id="stats-timezone-help" data-stats-timezone-note>
           {t("stats.filters.timezoneDescription", { timezone: browserZone })}
@@ -343,10 +344,10 @@ function StatsStateContent({
       descriptionKey={statsErrorMessageKey(state.error, "stats.errors.loadUnavailable")}
       role="alert"
     >
-      <button type="button" data-slot="button" data-variant="outline" data-size="sm" onClick={onReload}>
+      <Button type="button" variant="primary" data-slot="button" onPress={onReload}>
         <Icon name="refreshCw" />
-        {t("stats.unavailable.retry")}
-      </button>
+        <Text>{t("stats.unavailable.retry")}</Text>
+      </Button>
     </StatsStateCard>
   );
 }
