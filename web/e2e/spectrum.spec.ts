@@ -335,7 +335,7 @@ test("Spectrum layer surfaces cover the console shell and legacy cards in every 
           return sum + linear * [0.2126, 0.7152, 0.0722][index];
         }, 0);
       };
-      const mainBounds = main.getBoundingClientRect();
+      const sidebarBounds = sidebar.getBoundingClientRect();
       const panelBounds = panel.getBoundingClientRect();
       const headerBounds = header.getBoundingClientRect();
       const outerBackground = effectiveBackground(shell);
@@ -356,9 +356,10 @@ test("Spectrum layer surfaces cover the console shell and legacy cards in every 
         ],
         panelWidth: panelBounds.width,
         panelHeight: panelBounds.height,
-        leftGap: panelBounds.left - mainBounds.left,
+        leftGap: panelBounds.left - sidebarBounds.right,
+        sidebarLeftGap: sidebarBounds.left,
         topGap: panelBounds.top - headerBounds.bottom,
-        rightGap: mainBounds.right - panelBounds.right,
+        rightGap: window.innerWidth - panelBounds.right,
         sidebarBackground: effectiveBackground(sidebar),
         headerBackground: effectiveBackground(header),
         sidebarRightBorder: getComputedStyle(sidebar).borderInlineEndWidth,
@@ -373,13 +374,17 @@ test("Spectrum layer surfaces cover the console shell and legacy cards in every 
     expect(nativeSurfaces.headerBackground).toBe(nativeSurfaces.outerBackground);
     expect(nativeSurfaces.panelBackground).not.toBe(nativeSurfaces.outerBackground);
     expect(nativeSurfaces.panelLuminance).toBeGreaterThan(nativeSurfaces.outerLuminance!);
-    for (const radius of nativeSurfaces.radii) {
+    for (const radius of nativeSurfaces.radii.slice(0, 2)) {
       expect(parseFloat(radius)).toBeGreaterThan(0);
+    }
+    for (const radius of nativeSurfaces.radii.slice(2)) {
+      expect(parseFloat(radius)).toBe(0);
     }
     expect(nativeSurfaces.panelWidth).toBeGreaterThan(0);
     expect(nativeSurfaces.panelHeight).toBeGreaterThan(0);
-    expect(nativeSurfaces.leftGap).toBeGreaterThan(0);
-    expect(nativeSurfaces.topGap).toBeGreaterThan(0);
+    expect(nativeSurfaces.leftGap).toBe(0);
+    expect(nativeSurfaces.sidebarLeftGap).toBeGreaterThan(0);
+    expect(nativeSurfaces.topGap).toBe(0);
     expect(nativeSurfaces.rightGap).toBeGreaterThan(0);
     expect(nativeSurfaces.sidebarRightBorder).toBe("0px");
     expect(nativeSurfaces.sidebarPhysicalRightBorder).toBe("0px");
@@ -387,6 +392,7 @@ test("Spectrum layer surfaces cover the console shell and legacy cards in every 
     expect(nativeSurfaces.brandBottomBorder).toBe("0px");
     expect(nativeSurfaces.cardShadow).not.toBe("none");
 
+    await page.setViewportSize({ width: 1280, height: 600 });
     const panelScroll = await page.evaluate(() => {
       const panel = document.querySelector<HTMLElement>(".console-content");
       if (!panel) throw new Error("console content panel is missing");
@@ -404,6 +410,7 @@ test("Spectrum layer surfaces cover the console shell and legacy cards in every 
     expect(panelScroll.scrollHeight).toBeGreaterThan(panelScroll.clientHeight);
     expect(panelScroll.scrollTop).toBeGreaterThan(0);
     expect(panelScroll.documentHeight).toBeLessThanOrEqual(panelScroll.viewportHeight + 1);
+    await page.setViewportSize({ width: 1280, height: 720 });
 
     await openSpectrumRoute(page, "/groups");
     await expect(page.locator("[data-groups-page]")).toBeVisible();

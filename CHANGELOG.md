@@ -10,8 +10,9 @@ All notable changes to this project are documented here. The format is based on
 - Group names use explicit colon-separated labels in Simplified Chinese, Traditional
   Chinese and English instead of an unlabelled prefix.
 - Console chrome shares a gray Spectrum layer-1 surface without sidebar or header
-  dividers. The layer-2 content panel is inset, rounded and independently scrollable
-  in both themes. Cards retain native elevation, and sidebar selection retains its pale
+  dividers. The layer-2 content panel meets the header and sidebar, keeps a small
+  right gutter and rounds only its top corners. It scrolls independently in both
+  themes. Cards retain native elevation, and sidebar selection retains its pale
   accent tint, weight, inset rail and icon stroke.
 - The healthy home attention state aligns with its section heading. Chart legends now
   include colored dots that match their series in light, dark and system themes.

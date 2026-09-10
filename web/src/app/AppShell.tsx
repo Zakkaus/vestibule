@@ -53,7 +53,7 @@ type NavigationSection = Readonly<{
 const shellLayout = style({
   display: "grid",
   gridTemplateColumns: {
-    default: [240, "minmax(0, 1fr)"],
+    default: [size(224), "minmax(0, 1fr)"],
     "@media (max-width: 48rem)": ["minmax(0, 1fr)"]
   },
   height: "screen",
@@ -61,6 +61,7 @@ const shellLayout = style({
   minWidth: 0,
   overflow: "hidden",
   boxSizing: "border-box",
+  paddingStart: { default: 12, "@media (max-width: 48rem)": 0 },
   color: "neutral",
   backgroundColor: "layer-1"
 });
@@ -169,8 +170,8 @@ const controlsLayout = style({
 const contentLayout = style({
   minHeight: 0,
   minWidth: 0,
-  margin: {
-    default: 16,
+  marginEnd: {
+    default: 12,
     "@media (max-width: 48rem)": 8
   },
   padding: {
@@ -180,7 +181,8 @@ const contentLayout = style({
   overflow: "auto",
   overscrollBehavior: "contain",
   boxSizing: "border-box",
-  borderRadius: "lg",
+  borderTopStartRadius: "xl",
+  borderTopEndRadius: "xl",
   backgroundColor: "layer-2"
 });
 
