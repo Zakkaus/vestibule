@@ -185,6 +185,9 @@ function ShellContent() {
   const visibleNavigationSections = navigationSections(visibleNavigationItems);
 
   const currentNavigationItem = visibleNavigationItems.find((item) => item.path === location.pathname);
+  const currentNavigationSection = visibleNavigationSections.find(({ items }) =>
+    items.some((item) => item.path === location.pathname)
+  );
   const matches = useMatches();
   const routeHandle = matches.at(-1)?.handle as RouteHandle | undefined;
   const shellVariant = routeHandle?.shell ?? "entry";
@@ -251,8 +254,10 @@ function ShellContent() {
                 </Popover>
               </DialogTrigger>
             </Content>
+            {/* Every screen already opens with its own heading. Repeating it here put the
+                same word twice on one line of sight, so name the section it belongs to. */}
             <Text UNSAFE_className="console-header-title" styles={headerTitleLayout} data-header-title>
-              {currentNavigationItem ? t(currentNavigationItem.labelKey) : t("app.name")}
+              {currentNavigationSection ? t(currentNavigationSection.group.labelKey) : t("app.name")}
             </Text>
             <Content UNSAFE_className="console-controls" styles={controlsLayout}>
               <GroupSwitcher />

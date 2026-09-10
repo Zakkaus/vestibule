@@ -44,9 +44,11 @@ const themeLabelKeys: Record<ThemePreference, string> = {
   light: "theme.light",
   dark: "theme.dark"
 };
+// Wide enough for the longest value in each supported language: at 160 the
+// browser-default language read as "跟随浏…".
 const chromePickerLayout = style({
   width: {
-    default: 160,
+    default: 176,
     "@media (max-width: 48rem)": "full"
   },
   minWidth: 0
