@@ -7,6 +7,12 @@ const otherGroupIDs = ["-1001163306066", "-1001163306077"] as const;
 const actorID = "741928306";
 
 type Role = "manager" | "operator";
+const metricIcons = {
+  challenges: "chartColumn",
+  "pass-rate": "circleCheck",
+  waiting: "inbox",
+  banned: "shieldOff"
+} as const;
 
 type HomeMockOptions = Readonly<{
   role: Role;
@@ -266,6 +272,9 @@ for (const role of ["manager", "operator"] as const) {
       await expect(page.locator("[data-home-page]")).not.toContainText(/-100\d+/);
       await expect(page.locator("[data-group-switcher]")).not.toContainText(/-100\d+/);
       await expect(page.locator("[data-home-metric]")).toHaveCount(4);
+      for (const [metric, icon] of Object.entries(metricIcons)) {
+        await expect(page.locator(`[data-home-metric="${metric}"] [data-icon-name]`)).toHaveAttribute("data-icon-name", icon);
+      }
 
       expect(observations.groupRequests.sort()).toEqual([
         `/api/chats/${selectedGroupID}/queue`,
@@ -287,8 +296,10 @@ for (const role of ["manager", "operator"] as const) {
 
       if (role === "manager") {
         await expect(page.locator("[data-home-attention='queue']")).toBeVisible();
+        await expect(page.locator("[data-home-attention='queue'] [data-icon-name]")).toHaveAttribute("data-icon-name", "inbox");
       } else {
         await expect(page.locator("[data-home-attention='persistence-unwritable']")).toBeVisible();
+        await expect(page.locator("[data-home-attention='persistence-unwritable'] [data-icon-name]")).toHaveAttribute("data-icon-name", "circleAlert");
         await expect(page.locator("[data-home-metric='challenges']")).toContainText("70");
       }
     });
@@ -316,6 +327,7 @@ test("group administrators see an explicit all-clear state without an operator s
   await page.goto(`/home?group=${selectedGroupID}`);
   await expect(page.locator("[data-home-page]")).toHaveAttribute("data-home-state", "loaded");
   await expect(page.locator("[data-home-attention-empty]")).toBeVisible();
+  await expect(page.locator("[data-home-attention-empty] [data-icon-name]")).toHaveAttribute("data-icon-name", "circleCheck");
   await expect(page.locator("[data-home-attention^='diagnostics']")).toHaveCount(0);
   expect(observations.statusRequests).toBe(0);
 });

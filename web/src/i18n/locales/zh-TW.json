@@ -1472,15 +1472,12 @@
     },
     "trend": {
       "title": "近七天趨勢",
-      "coverage": "已回傳 {{shown}} / {{expected}} 天；缺少 {{missing}} 天。",
+      "coverage": "有 {{missing}} 天沒有記錄，趨勢圖僅顯示已有日期。",
       "openStats": "檢視統計",
-      "empty": "所選範圍內沒有可繪製的日期。",
+      "empty": "所選日期範圍內沒有可用記錄。",
       "chartDescription": "雙軸圖：柱表示請求數（左軸），線表示通過率（右軸）。圖中標註每日數值；可停留游標檢視，或用日期選單逐日讀取。",
       "countSeries": "請求數（左軸）",
       "rateSeries": "通過率（右軸）",
-      "countAxis": "請求數（左軸）",
-      "rateAxis": "通過率（右軸）",
-      "legendLabel": "系列和座標軸",
       "readDate": "選擇日期讀取數值",
       "daySummary": "{{date}}：{{count}} 次挑戰，通過率 {{passRate}}"
     },

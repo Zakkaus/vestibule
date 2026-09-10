@@ -24,21 +24,19 @@ async function dateLabelOverlaps(page: Page) {
 }
 
 async function clippedNavigation(page: Page) {
-  return page.locator('.console-sidebar a[href]').evaluateAll((links) => {
+  return page.locator(".console-sidebar .console-navigation").evaluate(async (scrollport) => {
+    await Promise.all(scrollport.getAnimations({ subtree: true }).map((animation) =>
+      animation.finished.catch(() => {})
+    ));
+    const bounds = scrollport.getBoundingClientRect();
+    const top = bounds.top + scrollport.clientTop;
+    const bottom = top + scrollport.clientHeight;
     const clipped = [];
-    for (const link of links) {
+    for (const link of scrollport.querySelectorAll('[data-navigation-items][aria-hidden="false"] a[href]')) {
       const box = link.getBoundingClientRect();
-      if (!box.width || !box.height) continue;
-      for (let parent = link.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
-        const overflow = getComputedStyle(parent).overflowY;
-        if (!["auto", "scroll", "hidden", "clip"].includes(overflow)) continue;
-        const bounds = parent.getBoundingClientRect();
-        const top = bounds.top + parent.clientTop;
-        const bottom = top + parent.clientHeight;
-        const visible = Math.min(box.bottom, bottom) - Math.max(box.top, top);
-        if (visible > 0.5 && visible < box.height - 0.5) {
-          clipped.push({ label: link.textContent, item: box.toJSON(), boundary: { top, bottom } });
-        }
+      const visible = Math.min(box.bottom, bottom) - Math.max(box.top, top);
+      if (visible > 0.5 && visible < box.height - 0.5) {
+        clipped.push({ label: link.textContent, item: box.toJSON(), boundary: { top, bottom } });
       }
     }
     return clipped;
@@ -53,22 +51,20 @@ test("sidebar never cuts a navigation item at a scroll boundary", async ({ page 
   await expect(page.locator('.console-sidebar a[aria-current="page"]')).toBeVisible();
   expect(await clippedNavigation(page)).toEqual([]);
 
-  const groups = page.locator('.console-sidebar [aria-expanded]');
+  const groups = page.locator('.console-sidebar [data-navigation-group]');
   for (let index = 0; index < await groups.count(); index++) {
     const group = groups.nth(index);
     if (await group.getAttribute("aria-expanded") === "false") await group.click();
     expect(await clippedNavigation(page)).toEqual([]);
   }
-  await page.evaluate(() => {
-    for (const element of document.querySelectorAll<HTMLElement>('.console-sidebar *')) {
-      if (["auto", "scroll"].includes(getComputedStyle(element).overflowY)) element.scrollTop = element.scrollHeight;
-    }
+  await page.locator(".console-sidebar .console-navigation").evaluate((scrollport) => {
+    scrollport.scrollTop = scrollport.scrollHeight;
   });
   expect(await clippedNavigation(page)).toEqual([]);
 });
 
 
-test("active navigation combines weight, an inset rail, icon stroke, and a pale accent surface", async ({ page }) => {
+test("active navigation uses the docs-like weight and transparent square surface", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await mockSpectrumTransport(page, { role: "operator" });
   await openSpectrumRoute(page, "/home");
@@ -85,52 +81,55 @@ test("active navigation combines weight, an inset rail, icon stroke, and a pale 
       await Promise.all(document.getAnimations().map((animation) => animation.finished.catch(() => {})));
     });
 
-    const cues = await page.locator('.console-sidebar nav a[href]').evaluateAll((links) => {
+    const cues = await page.locator('.console-sidebar nav a[href]:visible').evaluateAll((links) => {
       const measure = (link: Element) => {
-        const row = link.closest('[role="row"]') ?? link;
+        const svg = link.querySelector("svg");
         const box = link.getBoundingClientRect();
-        const rail = [...row.querySelectorAll<HTMLElement>("div")].some((element) => {
+        const row = link.closest("[data-navigation-section], [role='row']") ?? link.parentElement;
+        const surface = link.closest("[role='gridcell']")?.querySelector(":scope > div") ?? link.parentElement;
+        const rail = [...(row?.querySelectorAll<HTMLElement>("div") ?? [])].some((element) => {
           const rect = element.getBoundingClientRect();
           const css = getComputedStyle(element);
           return rect.width >= 1 && rect.width <= 4 && rect.height >= 12 &&
             rect.right <= box.left && rect.bottom > box.top && rect.top < box.bottom &&
             css.backgroundColor !== "rgba(0, 0, 0, 0)";
         });
-        const selectedSurface = link.parentElement!;
         return {
           weight: Number(getComputedStyle(link).fontWeight),
-          stroke: Number.parseFloat(getComputedStyle(link.querySelector("svg")!).strokeWidth),
-          rail,
-          selectedBackground: getComputedStyle(selectedSurface).backgroundColor
+          color: getComputedStyle(link).color,
+          stroke: svg ? getComputedStyle(svg).strokeWidth : null,
+          borderRadius: getComputedStyle(link).borderRadius,
+          background: surface ? getComputedStyle(surface).backgroundColor : null,
+          rail
         };
       };
       const active = links.find((link) => link.getAttribute("aria-current") === "page")!;
       const idle = links.find((link) => !link.hasAttribute("aria-current"))!;
       return { active: measure(active), idle: measure(idle) };
     });
-    expect(cues.active.weight).toBeGreaterThan(cues.idle.weight);
-    expect(cues.active.stroke).toBeGreaterThan(cues.idle.stroke);
-    expect(cues.active.rail).toBe(true);
+    expect(cues.active.weight).toBe(700);
+    expect(cues.idle.weight).toBe(400);
+    expect(cues.active.color).not.toBe(cues.idle.color);
+    expect(cues.active.stroke).toBe(cues.idle.stroke);
+    expect(cues.active.rail).toBe(false);
     expect(cues.idle.rail).toBe(false);
-    expect(cues.active.selectedBackground).not.toBe(cues.idle.selectedBackground);
-    const [red, green, blue, alpha = 1] = cues.active.selectedBackground.match(/[\d.]+/g)!.map(Number);
-    expect(blue).toBeGreaterThan(red);
-    expect(blue).toBeGreaterThan(green);
-    expect(alpha).toBeGreaterThan(0);
-    expect(alpha).toBeLessThanOrEqual(0.15);
+    expect(cues.active.borderRadius).toBe("0px");
+    expect(cues.active.background).toBe("rgba(0, 0, 0, 0)");
   }
 });
 
-test("content navigation opens the destination group and preserves its keyboard entry", async ({ page }) => {
+test("content navigation opens the destination group and preserves native keyboard entry", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await mockSpectrumTransport(page, { role: "operator" });
   await openSpectrumRoute(page, "/home");
   await page.locator('[data-home-metric="challenges"]').click();
   await expect(page).toHaveURL(/\/stats\?/);
-  await expect(page.locator('.console-sidebar [data-navigation-group="observe"]')).toHaveAttribute("aria-expanded", "true");
+  const group = page.locator('.console-sidebar [data-navigation-group="observe"]');
+  await expect(group).toHaveAttribute("aria-expanded", "true");
+  await group.focus();
+  await expect(group).toBeFocused();
   const destination = page.locator('.console-sidebar nav a[href^="/stats"]');
   await expect(destination).toBeVisible();
-  await page.locator(".console-brand a").focus();
   await page.keyboard.press("Tab");
   await expect(destination).toBeFocused();
   await expect(destination).toHaveAttribute("aria-current", "page");
@@ -160,7 +159,7 @@ for (const locale of ["zh-CN", "zh-TW", "en"] as const) {
       expect(boxes.every(({ box }) => box.width > 0 && box.height > 0)).toBe(true);
       expect(overlaps, `${locale} ${width}px`).toEqual([]);
       const coverage = await page.locator("[data-home-trend-coverage]").innerText();
-      expect(coverage.match(/\d+/g)?.map(Number)).toEqual([2, 7, 5]);
+      expect(coverage.match(/\d+/g)?.map(Number)).toEqual([5]);
 
       const chartGeometry = await page.getByTestId("home-combined-chart").evaluate((element) => {
         const svg = element.querySelector("svg");

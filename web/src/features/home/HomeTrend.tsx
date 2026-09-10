@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 
 import { useConsoleSize } from "../../components/ConsoleProvider";
+import { Icon } from "../../icons";
 import type { HomeData } from "./useHomeData";
 
 type TrendPoint = {
@@ -25,7 +26,6 @@ type TrendPoint = {
 type TrendModel = {
   points: TrendPoint[];
   missingDays: number;
-  expectedDays: number;
   countSeries: string;
   rateSeries: string;
 };
@@ -67,7 +67,6 @@ function chartModel(data: HomeData, locale: string, t: TFunction): TrendModel {
   return {
     points,
     missingDays: expected.filter((date) => !returned.has(date)).length,
-    expectedDays: expected.length,
     countSeries,
     rateSeries
   };
@@ -75,10 +74,7 @@ function chartModel(data: HomeData, locale: string, t: TFunction): TrendModel {
 
 function plotSpec(
   model: TrendModel,
-  scheme: "light" | "dark",
-  countAxisTitle: string,
-  rateAxisTitle: string,
-  legendTitle: string
+  scheme: "light" | "dark"
 ): Spec {
   const theme = getSpectrum2VegaConfig(scheme);
   const labels = Object.fromEntries(model.points.map(({ date, axisLabel }) => [date, axisLabel]));
@@ -113,7 +109,7 @@ function plotSpec(
             scale: { zero: true },
             axis: {
               orient: "left",
-              title: countAxisTitle,
+              title: null,
               grid: true,
               ticks: true,
               format: ",.0f",
@@ -124,7 +120,7 @@ function plotSpec(
             field: "series",
             type: "nominal",
             scale: seriesScale,
-            legend: { title: legendTitle, orient: "bottom", symbolType: "circle" }
+            legend: null
           },
           tooltip: { field: "summary", type: "nominal", title: "" }
         }
@@ -159,9 +155,9 @@ function plotSpec(
             field: "rate",
             type: "quantitative",
             scale: { domain: [0, 1] },
-            axis: { orient: "right", title: rateAxisTitle, grid: false, ticks: true, format: ".0%" }
+            axis: { orient: "right", title: null, grid: false, ticks: true, format: ".0%" }
           },
-          color: { field: "series", type: "nominal", scale: seriesScale },
+          color: { field: "series", type: "nominal", scale: seriesScale, legend: null },
           tooltip: { field: "summary", type: "nominal", title: "" }
         }
       },
@@ -189,17 +185,7 @@ function plotSpec(
   // Spectrum Chart supplies measured width; do not run Vega-Lite's separate container observer.
   spec.signals = spec.signals?.filter((signal) => signal.name !== "width");
   spec.width = 0;
-  spec.config = {
-    ...spec.config,
-    ...theme,
-    legend: {
-      ...theme.legend,
-      layout: {
-        ...theme.legend?.layout,
-        bottom: { ...theme.legend?.layout?.bottom, anchor: "start", center: false }
-      }
-    }
-  };
+  spec.config = { ...spec.config, ...theme };
   return spec;
 }
 
@@ -211,13 +197,7 @@ function TrendChart({ model, locale }: Readonly<{ model: TrendModel; locale: str
   const scheme = preference === "light" || preference === "dark" ? preference : systemScheme;
   const [selectedDate, setSelectedDate] = useState<string>();
   const selected = model.points.find((point) => point.date === selectedDate) ?? model.points[0];
-  const spec = useMemo(() => plotSpec(
-    model,
-    scheme,
-    t("home.trend.countAxis"),
-    t("home.trend.rateAxis"),
-    t("home.trend.legendLabel")
-  ), [model, scheme, t]);
+  const spec = useMemo(() => plotSpec(model, scheme), [model, scheme]);
   const shared: ChartProps = {
     data: model.points,
     colorScheme: scheme,
@@ -228,16 +208,31 @@ function TrendChart({ model, locale }: Readonly<{ model: TrendModel; locale: str
 
   return (
     <Content data-home-trend-chart styles={style({ display: "grid", gap: `[${size(12)}]`, minWidth: 0 })}>
-      <Content data-home-trend-scroll styles={style({ width: "full", minWidth: 0, overflowX: "auto", overscrollBehaviorX: "contain" })}>
-        <Content styles={style({
-          minWidth: { default: `[${size(400)}]`, lg: `[${size(360)}]`, isExtendedRange: `[${size(640)}]` },
-          height: `[${size(200)}]`,
-          display: "block"
-        })({ isExtendedRange: model.points.length > 7 })}>
-          <Chart {...shared} dataTestId="home-combined-chart" height="100%" padding={spec.padding as number} UNSAFE_vegaSpec={spec} />
+      <Content data-home-trend-plot styles={style({ width: "full", minWidth: 0 })}>
+        <Content data-home-trend-scroll styles={style({ width: "full", minWidth: 0, overflowX: "auto", overscrollBehaviorX: "contain" })}>
+          <Content styles={style({
+            minWidth: { default: `[${size(400)}]`, lg: `[${size(360)}]`, isExtendedRange: `[${size(640)}]` },
+            height: `[${size(200)}]`,
+            display: "block"
+          })({ isExtendedRange: model.points.length > 7 })}>
+            <Chart {...shared} dataTestId="home-combined-chart" height="100%" padding={spec.padding as number} UNSAFE_vegaSpec={spec} />
+          </Content>
         </Content>
       </Content>
-      <Content styles={style({ display: "flex", flexWrap: "wrap", alignItems: "end", gap: `[${size(12)}]` })}>
+      <Content
+        data-home-trend-legend
+        styles={style({ display: "flex", flexWrap: "wrap", alignItems: "center", gap: `[${size(12)}]`, minWidth: 0 })}
+      >
+        <Content data-home-trend-series="count" styles={style({ display: "flex", alignItems: "center", gap: `[${size(4)}]`, minWidth: 0 })}>
+          <Content styles={style({ color: "blue-900" })}><Icon name="chartColumn" /></Content>
+          <Text>{t("home.trend.countSeries")}</Text>
+        </Content>
+        <Content data-home-trend-series="rate" styles={style({ display: "flex", alignItems: "center", gap: `[${size(4)}]`, minWidth: 0 })}>
+          <Content styles={style({ color: "seafoam-900" })}><Icon name="chartLine" /></Content>
+          <Text>{t("home.trend.rateSeries")}</Text>
+        </Content>
+      </Content>
+      <Content data-home-trend-controls styles={style({ display: "flex", flexWrap: "wrap", alignItems: "center", gap: `[${size(12)}]`, minWidth: 0 })}>
         <Picker
           aria-label={t("home.trend.readDate")}
           size={controlSize}
@@ -272,11 +267,7 @@ export function HomeTrend({
 }: Readonly<{ data: HomeData; groupSearch: string }>) {
   const { t, i18n } = useTranslation();
   const model = useMemo(() => chartModel(data, i18n.language, t), [data, i18n.language, t]);
-  const coverageText = t("home.trend.coverage", {
-    shown: model.expectedDays - model.missingDays,
-    expected: model.expectedDays,
-    missing: model.missingDays
-  });
+  const coverageText = t("home.trend.coverage", { missing: model.missingDays });
 
   return (
     <Content data-home-section="trend" aria-labelledby="home-trend-title" styles={style({ display: "grid", gap: `[${size(8)}]`, width: "full", minWidth: 0 })}>
@@ -289,7 +280,12 @@ export function HomeTrend({
           {t("home.trend.openStats")}
         </Link>
       </Header>
-      {model.points.length > 0 ? <TrendChart model={model} locale={i18n.language} /> : <Text data-home-trend-empty>{t("home.trend.empty")}</Text>}
+      {model.points.length > 0 ? <TrendChart model={model} locale={i18n.language} /> : (
+        <Content data-home-trend-empty styles={style({ display: "flex", alignItems: "center", gap: `[${size(8)}]`, minWidth: 0 })}>
+          <Icon name="chartNoAxesCombined" />
+          <Text>{t("home.trend.empty")}</Text>
+        </Content>
+      )}
     </Content>
   );
 }

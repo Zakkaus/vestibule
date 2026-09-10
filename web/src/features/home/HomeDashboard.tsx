@@ -2,30 +2,29 @@ import { useTranslation } from "react-i18next";
 import { Badge, Content, Heading, Link, Text } from "@react-spectrum/s2";
 import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 
+import { Icon, type IconName } from "../../icons";
 import { useConsoleSession } from "../../app/session";
 import { groupName } from "../../lib/chatNames";
-import type { StatusTone } from "../../components/StatusBadge";
 import { HomeEntries } from "./HomeEntries";
 import { HomeSourceBadge } from "./HomeSourceBadge";
 import type { HomeData } from "./useHomeData";
 import { HomeTrend } from "./HomeTrend";
 
-
-
+type AttentionTone = "pending" | "error";
 
 type AttentionItem = Readonly<{
   id: string;
   path: string;
   titleKey: string;
   descriptionKey: string;
-  tone: StatusTone;
+  tone: AttentionTone;
   count?: number;
 }>;
 
-
-
-
-
+const attentionIcons: Readonly<Record<AttentionTone, IconName>> = {
+  pending: "inbox",
+  error: "circleAlert"
+};
 
 function attentionItems(data: HomeData): readonly AttentionItem[] {
   const items: AttentionItem[] = [];
@@ -113,24 +112,28 @@ function OverviewSection({
   const metrics = [
     {
       id: "challenges",
+      icon: "chartColumn",
       labelKey: "home.overview.challenges",
       value: number.format(data.stats.summary.challenges),
       path: "/stats"
     },
     {
       id: "pass-rate",
+      icon: "circleCheck",
       labelKey: "home.overview.passRate",
       value: percent.format(data.stats.summary.pass_rate),
       path: "/stats"
     },
     {
       id: "waiting",
+      icon: "inbox",
       labelKey: "home.overview.waiting",
       value: number.format(data.queue.length),
       path: "/queue"
     },
     {
       id: "banned",
+      icon: "shieldOff",
       labelKey: "home.overview.banned",
       value: number.format(data.stats.summary.banned),
       path: "/stats"
@@ -143,9 +146,12 @@ function OverviewSection({
       <Content aria-labelledby="home-overview-title" data-home-metrics styles={style({ display: "grid", gridTemplateColumns: { default: ["minmax(0, 1fr)", "minmax(0, 1fr)"], lg: ["minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)"] }, gap: 8, minWidth: 0 })}>
         {metrics.map((metric) => (
           <Link key={metric.id} href={`${metric.path}${groupSearch}`} isStandalone isQuiet data-home-metric={metric.id}>
-            <Content styles={style({ display: "grid", gap: 4, minWidth: 0 })}>
-              <Text styles={style({ font: "heading-lg", color: "neutral" })}>{metric.value}</Text>
-              <Text styles={style({ font: "body-sm", color: "neutral-subdued" })}>{t(metric.labelKey)}</Text>
+            <Content styles={style({ display: "flex", alignItems: "center", gap: 8, minWidth: 0 })}>
+              <Icon name={metric.icon} />
+              <Content styles={style({ display: "grid", gap: 4, minWidth: 0 })}>
+                <Text styles={style({ font: "heading-lg", color: "neutral" })}>{metric.value}</Text>
+                <Text styles={style({ font: "body-sm", color: "neutral-subdued" })}>{t(metric.labelKey)}</Text>
+              </Content>
             </Content>
           </Link>
         ))}
@@ -167,7 +173,7 @@ function AttentionSection({
       <Heading level={2} id="home-attention-title" styles={style({ font: "heading", margin: 0 })}>{t("home.attention.title")}</Heading>
       {items.length === 0 ? (
         <Content data-home-attention-empty styles={style({ display: "grid", justifyItems: "start", gap: 8, textAlign: "start" })}>
-          <Badge variant="positive" fillStyle="subtle">{t("home.attention.empty.badge")}</Badge>
+          <Badge variant="positive" fillStyle="subtle"><Icon name="circleCheck" /> {t("home.attention.empty.badge")}</Badge>
           <Text styles={style({ font: "body", color: "neutral-subdued" })}>{t(isOperator ? "home.attention.empty.operatorDescription" : "home.attention.empty.managerDescription")}</Text>
         </Content>
       ) : (
@@ -176,7 +182,7 @@ function AttentionSection({
             <Link key={item.id} href={`${item.path}${groupSearch}`} isStandalone data-home-attention={item.id}
               aria-label={`${t(item.titleKey)} ${t(item.descriptionKey, { count: item.count })}`}>
               <Content styles={style({ display: "flex", alignItems: "center", gap: 8, font: "body", minWidth: 0 })}>
-                <Badge variant={item.tone === "error" ? "negative" : "notice"} fillStyle="subtle">{t(`home.attention.tones.${item.tone}`)}</Badge>
+                <Badge variant={item.tone === "error" ? "negative" : "notice"} fillStyle="subtle"><Icon name={attentionIcons[item.tone]} /> {t(`home.attention.tones.${item.tone}`)}</Badge>
                 <Text data-home-attention-copy>{t(item.titleKey)}</Text>
                 {item.count !== undefined ? <Text>{item.count}</Text> : null}
               </Content>
@@ -187,7 +193,6 @@ function AttentionSection({
     </Content>
   );
 }
-
 
 export function HomeDashboard({ data, chatID }: Readonly<{ data: HomeData; chatID: string }>) {
   const { t } = useTranslation();
@@ -213,11 +218,17 @@ export function HomeDashboard({ data, chatID }: Readonly<{ data: HomeData; chatI
           <HomeSourceBadge source={settings.enabled.source} />
         </Content>
       </Content>
-      <Content styles={style({ display: "grid", gridTemplateColumns: { default: ["minmax(0, 1fr)"], lg: ["minmax(0, 1fr)", "minmax(0, 1fr)"] }, gap: 16, alignItems: "start", minWidth: 0 })}>
+      <Content
+        styles={style({
+          display: "grid",
+          gridTemplateColumns: { default: ["minmax(0, 1fr)"], lg: ["minmax(0, 1fr)", "minmax(0, 1fr)"] },
+          gap: 16,
+          alignItems: "start",
+          minWidth: 0
+        })}
+      >
         <OverviewSection data={data} groupSearch={groupSearch} />
         <AttentionSection data={data} groupSearch={groupSearch} />
-      </Content>
-      <Content styles={style({ display: "grid", gridTemplateColumns: { default: ["minmax(0, 1fr)"], lg: ["minmax(0, 1fr)", "minmax(0, 1fr)"] }, gap: 16, alignItems: "start", minWidth: 0 })}>
         <HomeTrend data={data} groupSearch={groupSearch} />
         <HomeEntries settings={settings} groupSearch={groupSearch} />
       </Content>

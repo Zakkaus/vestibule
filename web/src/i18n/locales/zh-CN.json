@@ -1472,15 +1472,12 @@
     },
     "trend": {
       "title": "近七天趋势",
-      "coverage": "已返回 {{shown}} / {{expected}} 天；缺失 {{missing}} 天。",
+      "coverage": "有 {{missing}} 天没有记录，趋势图仅显示已有日期。",
       "openStats": "查看统计",
-      "empty": "所选范围内没有可绘制的日期。",
+      "empty": "所选日期范围内没有可用记录。",
       "chartDescription": "双轴图：柱表示请求数（左轴），线表示通过率（右轴）。图中标注每日数值；可悬停查看，或用日期下拉逐日读取。",
       "countSeries": "请求数（左轴）",
       "rateSeries": "通过率（右轴）",
-      "countAxis": "请求数（左轴）",
-      "rateAxis": "通过率（右轴）",
-      "legendLabel": "系列和坐标轴",
       "readDate": "选择日期读取数值",
       "daySummary": "{{date}}：{{count}} 次挑战，通过率 {{passRate}}"
     },

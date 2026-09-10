@@ -61,7 +61,10 @@ async function navigationSections(page: Page, root: string): Promise<readonly Na
     const id = await group.getAttribute("data-navigation-group");
     if (await group.getAttribute("aria-expanded") === "false") await group.click();
     await expect(group).toHaveAttribute("aria-expanded", "true");
-    const paths = await page.locator(`${root} nav a[href]`).evaluateAll((links) =>
+    await expect(page.locator(`${root} [data-navigation-group][aria-expanded="true"]`)).toHaveCount(1);
+    const panel = page.locator(`${root} [data-navigation-items="${id}"]`);
+    await expect(panel).toHaveAttribute("aria-hidden", "false");
+    const paths = await panel.locator("a[href]").evaluateAll((links) =>
       links.map((link) => new URL((link as HTMLAnchorElement).href).pathname)
     );
     sections.push({ id, paths });

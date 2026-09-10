@@ -505,12 +505,12 @@ td.num  { font-variant-numeric: tabular-nums; color: var(--muted-foreground); }
 
 /* ── sidebar ──────────────────────────────────────────────────── */
 .side {
-  inline-size: 15rem; flex: none;
-  border: 1px solid var(--border); border-radius: var(--radius-lg);
-  background: var(--card); padding: var(--sp-3) var(--sp-2);
-  display: flex; flex-direction: column; gap: var(--sp-4);
+  inline-size: 14rem; flex: none;
+  border: 0; border-radius: 0;
+  background: transparent; padding: var(--sp-3) var(--sp-2);
+  display: flex; flex-direction: column; gap: var(--sp-8);
 }
-.side .grp { display: flex; flex-direction: column; gap: var(--sp-1); }
+.side .grp { display: flex; flex-direction: column; gap: calc(var(--sp-3) / 2); }
 .side .glabel {
   font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.08em;
   text-transform: uppercase; color: var(--muted-foreground);
@@ -518,20 +518,13 @@ td.num  { font-variant-numeric: tabular-nums; color: var(--muted-foreground); }
 }
 .side a {
   display: flex; align-items: center; gap: var(--sp-2);
-  padding: var(--sp-2) var(--sp-3); border-radius: var(--radius-md);
-  font-size: 0.875rem; color: var(--muted-foreground); text-decoration: none;
-  position: relative; min-block-size: 2.25rem;
+  padding: 0 var(--sp-3); border-radius: 0;
+  font-size: 0.875rem; font-weight: 400; color: var(--muted-foreground); text-decoration: none;
+  position: relative; line-height: 2rem;
 }
 .side a:hover { background: var(--accent); color: var(--foreground); }
-/* Active state changes three things, none of them hue: weight, a rail,
-   and a filled icon. There is no brand colour to lean on. */
-.side a[aria-current="page"] { color: var(--foreground); font-weight: 600; background: var(--accent); }
-.side a[aria-current="page"]::before {
-  content: ""; position: absolute; inset-inline-start: 0; inset-block-start: 50%;
-  translate: 0 -50%; inline-size: 3px; block-size: 1rem;
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: var(--foreground);
-}
-.side a[aria-current="page"] .i { stroke-width: 2.4; }
+/* Weight identifies the current route without a selected surface or rail. */
+.side a[aria-current="page"] { color: var(--foreground); font-weight: 700; }
 .side .count { margin-inline-start: auto; font-size: 0.75rem; font-variant-numeric: tabular-nums; }
 
 .shellview { display: flex; gap: var(--sp-4); align-items: flex-start; }
@@ -618,17 +611,6 @@ td.num  { font-variant-numeric: tabular-nums; color: var(--muted-foreground); }
 .metric .v { font-size: 1.625rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; font-variant-numeric: tabular-nums; }
 .metric .l { font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-foreground); padding-block-start: var(--sp-1); }
 
-/* ── attention tiles ──────────────────────────────────────────── */
-.att { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--sp-2); }
-.att > div {
-  border: 1px solid var(--border); border-radius: var(--radius-md);
-  padding: var(--sp-3) var(--sp-3); display: flex; flex-direction: column; gap: var(--sp-1);
-}
-.att .k { font-size: 0.8125rem; color: var(--muted-foreground); display: flex; align-items: center; gap: var(--sp-2); }
-.att .k .i { inline-size: 0.9375rem; block-size: 0.9375rem; }
-.att .n { font-size: 1rem; font-weight: 600; color: var(--foreground); font-variant-numeric: tabular-nums; }
-.att [data-level="warn"] { border-color: var(--warn-surface-bd); background: var(--warn-surface-bg); }
-.att [data-level="warn"] .k, .att [data-level="warn"] .n { color: var(--warn-surface-fg); }
 
 /* ── entry cards ──────────────────────────────────────────────── */
 .entries { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--sp-2); }
@@ -951,17 +933,17 @@ li::marker { color: var(--border); }
         <tr><td>间距</td><td>Spectrum 2 的 <code>style()</code> 样式宏</td><td>内容面板顶部紧贴顶栏底部，左侧衔接导航右边缘，底部不留外间距。面板右侧和桌面侧栏左侧采用 spacing-200（12）间距，窄屏面板右侧采用 8；面板内边距采用 32，窄屏采用 16。常规区块间距采用 24；首页区块采用 16，紧邻内容采用 8。数值均来自库的 spacing 比例，不另写像素变量；卡片内边距由库决定。</td></tr>
         <tr><td>主色</td><td>库的默认强调色</td><td>采用 Spectrum accent 的蓝色，主动作使用 accent 变体；不使用 premium、genai 或靛蓝、紫色的演示配色。</td></tr>
         <tr><td>背景分层</td><td>Provider 的 <code>background</code> 与 style 宏的 layer token</td><td><code>@react-spectrum/s2@1.7.1</code> 中，Provider 保留 <code>base</code>，控制台外层使用 <code>layer-1</code>；顶栏和侧栏沿用外层背景，移除分隔边框。内容面板使用 <code>layer-2</code>；原生 Card 的 primary 变体同样使用 <code>layer-2</code> 并保留库的阴影。未迁移页面的背景变量继续通过公开 style 宏绑定 layer token，跟随浅色、深色和系统主题，不复制颜色常量。</td></tr>
-        <tr><td>导航</td><td>SideNav、SideNavItem、Popover</td><td>保留六组和全部授权入口，一次展开一组；路由改变时同步展开目标组。当前项同时使用库的粗体和内侧短线、2 到 2.4 的图标描边变化，以及 <code>accent-900/10</code> 提供的低透明度强调色背景；悬停、焦点和非颜色提示均保留。1280×720 下逐组展开后检查滚动边界，不允许只露出半个导航项。</td></tr>
+        <tr><td>导航</td><td>Spectrum Accordion、Disclosure、Popover 与 React Aria Button、Link</td><td>保留六组和全部授权入口，一次展开一组；路由改变时同步展开目标组。React Aria 原语沿用库的展开、链接和键盘行为，外观使用 S2 的公开样式宏。当前项只用粗体和文字颜色区分，底色透明、圆角为零，不显示左轨，也不改变图标描边。字重从 400 变为 700，作为非颜色差异单独验证。字号、行高、项间距、分组间距和宽度取库中最接近 docs 实测值的尺度；保留悬停和键盘焦点提示。1280×720 下逐组展开后检查滚动边界，不允许只露出半个导航项。</td></tr>
         <tr><td>等待队列</td><td>TableView、TableHeader、Column、TableBody、Row、Cell</td><td>库提供多行选择、排序提示和空态容器。Tab 进入表格后，以方向键移动焦点；窄屏保留同一表格并横向滚动。行内放行沿用原有权限与请求流程。切换群后清空选择，排序保持选中项；空队列和筛选无结果使用不同提示。</td></tr>
-        <tr><td>图表</td><td>Adobe 的 <code>@spectrum-charts/react-spectrum-charts-s2</code>、Vega-Lite 与统计 API</td><td>一张双轴图叠加请求数柱和通过率线：左轴为计数，右轴固定为 0–100%。两轴刻度、每日数值和图例保留，图例注明系列对应的轴。只画接口返回的日期，覆盖说明列出缺失天数，不补零，也不保留无说明的空白日期列。</td></tr>
-        <tr><td>图标</td><td>现有 Lucide 清单及 Spectrum 内部图标</td><td>应用图标继续使用原样 vendored 的 Lucide；Spectrum 内部的箭头、勾选和进度图形由锁定版本的依赖持有，不复制 Workflow 图标到项目。</td></tr>
+        <tr><td>图表</td><td>Adobe 的 <code>@spectrum-charts/react-spectrum-charts-s2</code>、Vega-Lite 与统计 API</td><td>请求数柱与通过率线叠在一张双轴图中：左轴计数，右轴固定为 0–100%。保留刻度和每日数值，去掉竖排轴标题，由横排图例说明系列及对应轴。只画接口返回的日期；仅在缺数据时提示缺少的天数，不补零。</td></tr>
+        <tr><td>图标</td><td>Lucide Static 1.39.0 清单及 Spectrum 内部图标</td><td>侧栏保留图标。概况依次使用 chartColumn、circleCheck、inbox、shieldOff；待办、异常、正常分别使用 inbox、circleAlert、circleCheck。验证、题库、频道、反垃圾入口分别使用 shieldCheck、bookOpen、usersRound、shieldAlert。图例使用 chartColumn 与 chartLine，趋势空状态使用 chartNoAxesCombined，无群状态使用 usersRound。旁边已有文字时，图标不重复朗读。新增图标从清单声明的同版包原样复制，更新 SHA-256 与来源路径；Spectrum 内部图标仍由锁定版本的依赖持有。</td></tr>
         <tr><td>交互反馈</td><td>Spectrum 的悬停、按下、焦点与等待状态</td><td>图表悬停使用库的提示层；键盘通过 S2 Picker 选择日期，在读数区读取完整数值。图表不启用动画；请求减弱动态效果时，仍禁用控件通过内联样式写入的按压缩放。</td></tr>
       </tbody>
     </table></div>
-    <p>页面与容器背景禁止使用 <code>gray-*</code> 色阶，文字和边框不受此限制。外壳采用 <a href="https://react-spectrum.adobe.com/getting-started">Spectrum 入门文档</a>的灰底与正文面板版式：浅色模式为灰底、白色面板，深色模式下面板比外层亮一档。顶栏和侧栏直接放在外层灰底上，不形成独立立柱。分层值以本地锁定版本的 Provider 和 style 类型定义为准。导航保留 <code>accent-900/10</code> 淡色选中提示。端到端检查覆盖上方圆角、下方直角、面板与顶栏和侧栏衔接、右侧间距、侧栏背景与边框，以及显式和系统主题。</p>
-    <p><code>web/src/styles/{tokens,components,shell}.css</code> 与 <code>web/src/icons/lucide/</code> 原样保留，
-      原清单不改。旧样式进入独立的低优先级层，继续服务未迁移页面。CSS 来源清单分别记录项目样式、依赖样式和生成样式的 TSX 来源；生成的原子类不能靠文件名绕过来源检查。</p>
-    <p>内容面板独立纵向滚动，顶栏和侧栏不随正文移动；首页在 1280×900 下无需纵向滚动。图表和表格保留各自的横向滚动边界。</p>
+    <p>页面与容器背景禁止使用 <code>gray-*</code> 色阶，文字和边框不受此限制。外壳采用 <a href="https://react-spectrum.adobe.com/getting-started">Spectrum 入门文档</a>的灰底与正文面板版式：浅色模式为灰底、白色面板，深色模式下面板比外层亮一档。顶栏和侧栏直接放在外层灰底上，不形成独立立柱。分层值以本地锁定版本的 Provider 和 style 类型定义为准。导航不使用选中底色。端到端检查覆盖上方圆角、下方直角、面板与顶栏和侧栏衔接、右侧间距、侧栏背景与边框，以及显式和系统主题。</p>
+    <p><code>web/src/styles/{tokens,components,shell}.css</code> 原样保留，旧样式进入独立的低优先级层，继续服务未迁移页面。
+      <code>web/src/icons/lucide/</code> 中已有图标不改写，新增图标沿用同一来源和清单格式。CSS 来源清单分别记录项目样式、依赖样式和生成样式的 TSX 来源；生成的原子类不能靠文件名绕过来源检查。</p>
+    <p>内容面板独立纵向滚动，顶栏和侧栏不随正文移动；首页面板按内容高度收拢，不强行填满视口。最后一块内容到底部的距离不得超过首页一个区块间距。首页在 1280×900 下无需纵向滚动，图表和表格保留各自的横向滚动边界。</p>
     <p>S2 1.7.1 存在一项横向虚拟化限制：从整行直接跳到尚未渲染过的末列时，焦点无法到达目标。
       窄屏可用右方向键逐列进入操作按钮，等当前单元格进入视口后再继续。
       不覆写依赖源码，也不为此保留另一套表格或卡片。</p>
@@ -969,9 +951,9 @@ li::marker { color: var(--border); }
       首页固定使用 <code>@spectrum-charts/react-spectrum-charts-s2@0.8.0</code>，该版本仍以 alpha 标签发布。
       它的 Line 组件未正确处理空值，最近点计算也会对空值生成非法路径，因此通过公开的 <code>UNSAFE_vegaSpec</code> 入口接收 Vega-Lite 编译结果。
       日期域只包含实际读数；宽度只由 Chart 的容器测量决定，不再启动 Vega-Lite 的另一套宽度计算。
-      高度由采用 Spectrum 尺度的块容器提供，Chart 使用 <code>height="100%"</code>，Vega 的 <code>autosize</code> 将坐标轴和图例计入容器高度。容器不用隐式网格行，避免百分比高度随图形反复增长；测试同时检查图形高度和容器内部的纵向溢出。
+      高度由采用 Spectrum 尺度的块容器提供，Chart 使用 <code>height="100%"</code>，Vega 的 <code>autosize</code> 将坐标轴计入绘图高度。图例与日期读数由 Spectrum 布局组件安排在绘图区下方，同属图表区域；测试检查图形高度及全部图表内容的边界，避免纵向溢出。
       Chart 的 <code>padding</code> 显式采用主题的轴标签间距，避免默认零内边距裁切文字。每日两项数值放在柱体上方，文字对比度检查同时考虑页面背景和可能重叠的柱体。
-      坐标、文字、描边、点和图例由库生成，视觉样式来自 <code>getSpectrum2VegaConfig</code> 与 <code>getS2ColorValue</code>；栅格线沿用默认实线。
+      坐标、文字、描边与点由库生成，视觉样式来自 <code>getSpectrum2VegaConfig</code> 与 <code>getS2ColorValue</code>；栅格线沿用默认实线。横排图例使用与系列对应的 Lucide 柱图、折线图图标，颜色与图中系列一致。
       背景、文字颜色与绘图区边线在 Vega-Lite 编译前传入主题值，避免编译器的白底黑字默认值覆盖暗色主题。
       图表外部的宽度、高度与间距通过 S2 的 <code>size()</code> 比例函数声明；日期轴采用数字月日，完整日期保留在下拉和读数中。超出七天的日期域使用较宽的库尺度。
       <code>HomeTrend.tsx</code> 不得包含颜色字面量或未缩放的视觉尺寸。</p>
@@ -1550,62 +1532,53 @@ li::marker { color: var(--border); }
               </button>
             </div>
 
-            <div class="metrics">
+            <div class="grid2" style="align-items:start;">
+            <div class="stack" style="gap:var(--sp-2);">
+              <span class="subhd">概况</span>
+            <div class="metrics" style="grid-template-columns:repeat(2,minmax(0,1fr));">
               <a class="metric" href="#">
                 <div class="top">
-                  <span class="tile"><svg class="i"><use href="#i-inbox"/></svg></span>
-                  <span class="badge plain"><svg class="i" style="inline-size:.8rem;block-size:.8rem"><use href="#i-trend"/></svg>+11%</span>
+                  <span class="tile"><svg class="i" aria-hidden="true"><use href="src/icons/lucide/chart-column.svg"/></svg></span>
                 </div>
                 <div><div class="v">71</div><div class="l">今日挑战</div></div>
               </a>
               <a class="metric" href="#">
                 <div class="top">
-                  <span class="tile"><svg class="i"><use href="#i-check"/></svg></span>
-                  <span class="badge plain"><svg class="i" style="inline-size:.8rem;block-size:.8rem"><use href="#i-trenddown"/></svg>-0.3</span>
+                  <span class="tile"><svg class="i" aria-hidden="true"><use href="src/icons/lucide/circle-check.svg"/></svg></span>
                 </div>
                 <div><div class="v">2.8%</div><div class="l">通过率</div></div>
               </a>
               <a class="metric" href="#">
                 <div class="top">
-                  <span class="tile"><svg class="i"><use href="#i-clock"/></svg></span>
+                  <span class="tile"><svg class="i" aria-hidden="true"><use href="src/icons/lucide/inbox.svg"/></svg></span>
                   <span class="badge pending">待处理</span>
                 </div>
                 <div><div class="v">7</div><div class="l">正在等待</div></div>
               </a>
               <a class="metric" href="#">
                 <div class="top">
-                  <span class="tile"><svg class="i"><use href="#i-shield"/></svg></span>
+                  <span class="tile"><svg class="i" aria-hidden="true"><use href="src/icons/lucide/shield-off.svg"/></svg></span>
                 </div>
-                <div><div class="v">31</div><div class="l">重复到达拦截</div></div>
+                <div><div class="v">31</div><div class="l">已封禁</div></div>
               </a>
+            </div>
             </div>
 
             <div class="stack" style="gap: var(--sp-2);">
               <span class="subhd"><svg class="i"><use href="#i-warn"/></svg>需要注意</span>
-              <div class="att">
-                <div data-level="warn">
-                  <span class="k"><svg class="i"><use href="#i-trenddown"/></svg>通过率</span>
-                  <span class="n">连续 3 天低于 5%</span>
-                </div>
-                <div>
-                  <span class="k"><svg class="i"><use href="#i-activity"/></svg>Bot API 延迟</span>
-                  <span class="n">1.3 ms</span>
-                </div>
-                <div>
-                  <span class="k"><svg class="i"><use href="#i-shield"/></svg>机器人权限</span>
-                  <span class="n">齐全</span>
-                </div>
-                <div>
-                  <span class="k"><svg class="i"><use href="#i-clock"/></svg>上次失败</span>
-                  <span class="n">无</span>
-                </div>
-              </div>
+              <a class="row" href="#"><svg class="i" aria-hidden="true"><use href="src/icons/lucide/inbox.svg"/></svg><span class="badge pending">待处理</span>等待队列 · 7 人</a>
             </div>
 
             <div class="stack" style="gap: var(--sp-2);">
               <span class="subhd"><svg class="i"><use href="#i-chart"/></svg>近 7 天</span>
-              <svg class="chart" viewBox="0 0 620 130" role="img" aria-label="近 7 天挑战量与通过率，数值见统计屏">
+              <svg class="chart" viewBox="0 0 620 130" role="img" aria-label="近七天请求数与通过率示意图">
                 <line class="grid" x1="8" y1="104" x2="612" y2="104"/>
+                <text class="lbl" x="8" y="28">80</text>
+                <text class="lbl" x="8" y="68">40</text>
+                <text class="lbl" x="8" y="108">0</text>
+                <text class="lbl" x="612" y="12" text-anchor="end">100%</text>
+                <text class="lbl" x="612" y="58" text-anchor="end">50%</text>
+                <text class="lbl" x="612" y="108" text-anchor="end">0%</text>
                 <rect x="30"  y="44" width="30" height="60" rx="2" fill="var(--fill-neutral)"/>
                 <rect x="114" y="52" width="30" height="52" rx="2" fill="var(--fill-neutral)"/>
                 <rect x="198" y="32" width="30" height="72" rx="2" fill="var(--fill-neutral)"/>
@@ -1616,25 +1589,48 @@ li::marker { color: var(--border); }
                 <path d="M 45 72 L 129 78 L 213 70 L 297 76 L 381 78 L 465 84 L 549 86"
                       fill="none" stroke="var(--fill-ok)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                 <circle cx="549" cy="86" r="4.5" fill="var(--card)" stroke="var(--fill-ok)" stroke-width="2.5"/>
+                <text class="lbl" x="45" y="40" text-anchor="middle">60</text>
+                <text class="lbl" x="129" y="48" text-anchor="middle">52</text>
+                <text class="lbl" x="213" y="28" text-anchor="middle">72</text>
+                <text class="lbl" x="297" y="57" text-anchor="middle">43</text>
+                <text class="lbl" x="381" y="44" text-anchor="middle">56</text>
+                <text class="lbl" x="465" y="50" text-anchor="middle">50</text>
+                <text class="lbl" x="549" y="42" text-anchor="middle">58</text>
+                <text class="lbl" x="45" y="68" text-anchor="middle">32%</text>
+                <text class="lbl" x="129" y="74" text-anchor="middle">26%</text>
+                <text class="lbl" x="213" y="66" text-anchor="middle">34%</text>
+                <text class="lbl" x="297" y="72" text-anchor="middle">28%</text>
+                <text class="lbl" x="381" y="74" text-anchor="middle">26%</text>
+                <text class="lbl" x="465" y="80" text-anchor="middle">20%</text>
+                <text class="lbl" x="549" y="82" text-anchor="middle">18%</text>
                 <text class="lbl" x="45"  y="124" text-anchor="middle">08-25</text>
                 <text class="lbl" x="213" y="124" text-anchor="middle">08-27</text>
                 <text class="lbl" x="381" y="124" text-anchor="middle">08-29</text>
                 <text class="lbl" x="549" y="124" text-anchor="middle">08-31</text>
               </svg>
+              <div class="row" style="gap:var(--sp-3);">
+                <span><svg class="i" aria-hidden="true" style="color:var(--fill-neutral);"><use href="src/icons/lucide/chart-column.svg"/></svg>请求数（左轴）</span>
+                <span><svg class="i" aria-hidden="true" style="color:var(--fill-ok);"><use href="src/icons/lucide/chart-line.svg"/></svg>通过率（右轴）</span>
+              </div>
+              <div class="row" style="gap:var(--sp-3);">
+                <label>日期 <select class="field"><option>8月31日</option></select></label>
+                <span>58 次请求，通过率 18%</span>
+              </div>
             </div>
 
             <div class="stack" style="gap: var(--sp-2);">
               <span class="subhd"><svg class="i"><use href="#i-settings"/></svg>常用配置</span>
-              <div class="entries">
-                <a href="#"><svg class="i"><use href="#i-shield"/></svg>
-                  <span class="nm">验证方式</span><span class="ds">内核版本号 · 超时 300 秒</span></a>
-                <a href="#"><svg class="i"><use href="#i-help"/></svg>
-                  <span class="nm">题库</span><span class="ds">12 条，其中 1 条缺英文</span></a>
-                <a href="#"><svg class="i"><use href="#i-msg"/></svg>
-                  <span class="nm">消息与文案</span><span class="ds">自动回复 8 条 · 改过 1 条文案</span></a>
-                <a href="#"><svg class="i"><use href="#i-usercheck"/></svg>
-                  <span class="nm">免验证来源</span><span class="ds">信任 1 个群 · 必关 1 个频道</span></a>
+              <div class="entries" style="grid-template-columns:minmax(0,1fr);">
+                <a href="#"><svg class="i" aria-hidden="true"><use href="src/icons/lucide/shield-check.svg"/></svg>
+                  <span class="nm">验证方式</span><span class="ds">混合验证</span></a>
+                <a href="#"><svg class="i" aria-hidden="true"><use href="src/icons/lucide/book-open.svg"/></svg>
+                  <span class="nm">题库</span><span class="ds">主用题目 12 道</span></a>
+                <a href="#"><svg class="i" aria-hidden="true"><use href="src/icons/lucide/users-round.svg"/></svg>
+                  <span class="nm">必需频道</span><span class="ds">已设置</span></a>
+                <a href="#"><svg class="i" aria-hidden="true"><use href="src/icons/lucide/shield-alert.svg"/></svg>
+                  <span class="nm">反垃圾</span><span class="ds">已开启</span></a>
               </div>
+            </div>
             </div>
 
           </div>
@@ -1645,9 +1641,8 @@ li::marker { color: var(--border); }
     <div class="grid2">
       <div class="card card-pad stack">
         <h4>当前项不依赖色相</h4>
-        <p style="font-size:0.875rem;">旧样式示例使用粗体、3px 短线、2.4 图标描边和中性底色。
-          Spectrum 侧栏保留库的粗体与内侧短线，再增加图标描边变化；不另加蓝色背景。
-          两种实现均须在灰度显示下可辨，并用实际字重、描边与短线的几何差异验证。</p>
+        <p style="font-size:0.875rem;">当前项的字重为 700，其他项为 400；文字颜色同时变化。
+          不保留底色块、圆角、左轨或图标描边变化。检查直接比较字重，确保灰度显示下仍有非颜色差异。</p>
       </div>
       <div class="card card-pad stack">
         <h4>待办计数贴在导航上</h4>
@@ -1659,7 +1654,7 @@ li::marker { color: var(--border); }
 
     <h3>首页一屏呈现</h3>
     <p>1280×900 下，<code>document.documentElement.scrollHeight &lt;= window.innerHeight</code>；1280×720 下，页面高度不超过视口的 1.15 倍。端到端测试检查这两个边界，不以隐藏溢出或缩小正文、控件字号达标。</p>
-    <p>桌面将概况与需要注意并排，趋势与常用配置并排；窄屏按概况、需要注意、趋势、配置顺序排列。删去重复说明，保留四个数字、实际警示和配置入口。</p>
+    <p>桌面使用等宽两栏，概况与需要注意顶边对齐，趋势与常用配置顶边对齐；窄屏按概况、需要注意、趋势、配置排列。区块间距采用 Spectrum 的 16 档。图形、横排图例和日期读数属于同一个图表区域，日期选择与读数在桌面共用一行，窄屏允许换行。首页面板不拉伸到视口底部，最后一块内容到底部的距离不超过一个区块间距。</p>
     <div class="tw"><table class="spec-table">
       <thead><tr><th>层</th><th>内容</th><th>规定</th></tr></thead>
       <tbody>
@@ -1669,7 +1664,7 @@ li::marker { color: var(--border); }
         <tr><td>需要注意</td><td>分级链接</td>
             <td>实际待办显示标题、数量和警示徽章，链接进入处理页。全部正常时仍显示左对齐的正常徽章和说明，与本节标题共用左边界。</td></tr>
         <tr><td>趋势</td><td>近 7 天图表</td>
-            <td>请求数柱与通过率线叠在一张双轴图中，两种颜色均来自 Spectrum token。左右轴刻度、数值标签、对应轴的图例及按日读数下拉均保留；仅返回一天时只画一天，缺失天数另作说明。</td></tr>
+            <td>请求数柱与通过率线叠在一张双轴图中，两种颜色均来自 Spectrum token。保留左右轴刻度、每日数值和按日读数下拉，去掉竖排轴标题，由图例注明对应轴。完整七天不显示缺失提示；缺少日期时用普通群主能理解的文字说明，仅画实际返回的日期。</td></tr>
         <tr><td>入口</td><td>四个独立的配置区块</td>
             <td>四块纵向排列，每块至多三项，不改成四张并排小卡片。当前各保留一项：验证模式、主用题数、必需频道状态、反垃圾开关。其余值进入对应配置屏查看。来源紧随数值，以次要脚注显示，不独占与数值等高的一行。</td></tr>
       </tbody>
@@ -2828,7 +2823,7 @@ li::marker { color: var(--border); }
       <thead><tr><th>宽度</th><th>导航形态</th><th>理由</th></tr></thead>
       <tbody>
         <tr><td>桌面</td><td>左侧分组导航</td><td>六组始终可达，一次展开一组；保持完整行，不通过裁切底部项目压缩高度</td></tr>
-        <tr><td>手机</td><td>顶栏按钮打开 Popover</td><td>复用同一组 SideNav，按 Escape 关闭并恢复焦点，选中路由后关闭</td></tr>
+        <tr><td>手机</td><td>顶栏按钮打开 Popover</td><td>复用桌面的分组导航，按 Escape 关闭并恢复焦点，选中路由后关闭</td></tr>
       </tbody>
     </table></div>
     <p style="font-size:0.8125rem;">手机抽屉与桌面侧栏共用<a href="#s5">第 06 节的导航定义</a>，

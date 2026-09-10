@@ -5,12 +5,6 @@ body:has([data-shell-variant="console"]) {
   overflow-x: clip;
 }
 
-/* SideNav owns the selected weight and inset rail. Vendored Lucide SVGs cannot
-   consume its icon context, so this adds the third, non-color selection cue. */
-.console-navigation a[aria-current="page"] [data-icon] > svg {
-  stroke-width: 2.4;
-}
-
 
 /* S2 pressScale writes an inline transform even with reduced motion requested.
    The media query overrides that JS effect without restyling library controls. */

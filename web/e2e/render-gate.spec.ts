@@ -229,9 +229,12 @@ test("render gate reaches every queue row action through native grid navigation 
   await expect(grid).toBeVisible();
   await page.evaluate(async () => { await document.fonts.ready; });
 
-  await page.locator(".console-brand a").focus();
-  await page.keyboard.press("Tab");
-  await expect(page.locator('.console-sidebar nav a[aria-current="page"]')).toBeFocused();
+  const selectedNavigation = page.locator('.console-sidebar nav a[aria-current="page"]');
+  const dailyTrigger = page.locator('.console-sidebar [data-navigation-group="daily"]');
+  await expect(dailyTrigger).toHaveCount(1);
+  await dailyTrigger.focus();
+  await expect(dailyTrigger).toBeFocused();
+  await selectedNavigation.focus();
   await page.keyboard.press("Tab");
   expect(await page.evaluate(() => document.activeElement?.closest('[role="treegrid"]') !== null)).toBe(false);
 

@@ -1,21 +1,21 @@
 import { Button } from "@react-spectrum/s2/Button";
-import { Content, Header, Link, Popover, SideNav, SideNavItem, SideNavItemContent, SideNavItemLink, Text } from "@react-spectrum/s2";
+import { Content, Header, Link, Popover, Text } from "@react-spectrum/s2";
 import { size, style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { DialogTrigger } from "@react-spectrum/s2/Dialog";
 import { useEffect, useState } from "react";
-import type { Key } from "@react-spectrum/s2";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useMatches } from "react-router-dom";
 
 import { UtilityControls } from "../components/UtilityControls";
 import { ConsoleProvider, useConsoleSize } from "../components/ConsoleProvider";
-import { Icon, type IconName } from "../icons";
 import { GroupSwitcher } from "../features/groups";
+import { Icon } from "../icons";
 import {
   canViewInstanceStatus,
   useConsoleSession,
   type ConsoleSessionState
 } from "./session";
+import { ConsoleNavigation, navigationItems, navigationSections, type NavigationCapability } from "./ConsoleNavigation";
 
 type ShellVariant = "entry" | "console";
 
@@ -23,33 +23,6 @@ type RouteHandle = {
   shell?: ShellVariant;
 };
 
-type NavigationCapability = "instance-status";
-
-type NavigationGroupID =
-  | "daily"
-  | "verification"
-  | "group"
-  | "content"
-  | "observe"
-  | "console";
-
-type NavigationGroup = Readonly<{
-  id: NavigationGroupID;
-  labelKey: string;
-}>;
-
-type NavigationItem = Readonly<{
-  path: string;
-  labelKey: string;
-  icon: IconName;
-  group: NavigationGroupID;
-  capability?: NavigationCapability;
-}>;
-
-type NavigationSection = Readonly<{
-  group: NavigationGroup;
-  items: readonly NavigationItem[];
-}>;
 const shellLayout = style({
   display: "grid",
   gridTemplateColumns: {
@@ -100,22 +73,6 @@ const brandLinkLayout = style({
   textDecoration: "none"
 });
 
-const navigationLayout = style({
-  display: "flex",
-  flexDirection: "column",
-  flexGrow: 1,
-  minHeight: 0,
-  minWidth: 0,
-  height: "full",
-  padding: 16,
-  overflowY: "auto",
-  overscrollBehaviorY: "contain",
-  "--console-nav-selected-background": { type: "backgroundColor", value: "accent-900/10" }
-});
-
-
-const sideNavLayout = style({ height: "full", minHeight: 0 });
-
 const mainLayout = style({
   display: "grid",
   height: "full",
@@ -125,7 +82,6 @@ const mainLayout = style({
   boxSizing: "border-box",
   backgroundColor: "inherit"
 });
-
 
 const headerLayout = style({
   position: "sticky",
@@ -168,6 +124,8 @@ const controlsLayout = style({
 });
 
 const contentLayout = style({
+  alignSelf: { default: "stretch", isHome: "start" },
+  maxHeight: { default: "none", isHome: "full" },
   minHeight: 0,
   minWidth: 0,
   marginEnd: {
@@ -177,6 +135,10 @@ const contentLayout = style({
   padding: {
     default: 32,
     "@media (max-width: 48rem)": 16
+  },
+  paddingBottom: {
+    default: { default: 32, "@media (max-width: 48rem)": 16 },
+    isHome: 16
   },
   overflow: "auto",
   overscrollBehavior: "contain",
@@ -200,198 +162,6 @@ const capabilityChecks: Readonly<
   "instance-status": canViewInstanceStatus
 };
 
-const navigationGroups: readonly NavigationGroup[] = [
-  { id: "daily", labelKey: "navigation.sections.daily" },
-  { id: "verification", labelKey: "navigation.sections.verification" },
-  { id: "group", labelKey: "navigation.sections.group" },
-  { id: "content", labelKey: "navigation.sections.content" },
-  { id: "observe", labelKey: "navigation.sections.observe" },
-  { id: "console", labelKey: "navigation.sections.console" }
-];
-
-const navigationItems: readonly NavigationItem[] = [
-  {
-    path: "/home",
-    labelKey: "home.navigation",
-    icon: "layoutDashboard",
-    group: "daily"
-  },
-  {
-    path: "/queue",
-    labelKey: "navigation.queue",
-    icon: "inbox",
-    group: "daily"
-  },
-  {
-    path: "/audit",
-    labelKey: "audit.navigation",
-    icon: "clipboardList",
-    group: "daily"
-  },
-  {
-    path: "/verification",
-    labelKey: "verification.navigation",
-    icon: "shieldCheck",
-    group: "verification"
-  },
-  {
-    path: "/questions",
-    labelKey: "questions.navigation",
-    icon: "circleHelp",
-    group: "verification"
-  },
-  {
-    path: "/bypass",
-    labelKey: "bypass.navigation",
-    icon: "shieldOff",
-    group: "verification"
-  },
-  {
-    path: "/groups",
-    labelKey: "navigation.groups",
-    icon: "usersRound",
-    group: "group"
-  },
-  {
-    path: "/moderation",
-    labelKey: "moderation.navigation",
-    icon: "shieldAlert",
-    group: "group"
-  },
-  {
-    path: "/messages",
-    labelKey: "messages.navigation",
-    icon: "messagesSquare",
-    group: "group"
-  },
-  {
-    path: "/feeds",
-    labelKey: "feeds.navigation",
-    icon: "rss",
-    group: "content"
-  },
-  {
-    path: "/stats",
-    labelKey: "stats.navigation",
-    icon: "chartNoAxesCombined",
-    group: "observe"
-  },
-  {
-    path: "/diagnostics",
-    labelKey: "diagnostics.navigation",
-    icon: "activity",
-    group: "observe"
-  },
-  {
-    path: "/version",
-    labelKey: "version.navigation",
-    icon: "refreshCw",
-    group: "console",
-    capability: "instance-status"
-  },
-  {
-    path: "/capabilities",
-    labelKey: "capabilities.navigation",
-    icon: "slidersHorizontal",
-    group: "console"
-  },
-  {
-    path: "/preferences",
-    labelKey: "navigation.preferences",
-    icon: "settings",
-    group: "console"
-  }
-];
-
-function navigationSections(items: readonly NavigationItem[]): readonly NavigationSection[] {
-  const sections: NavigationSection[] = [];
-
-  for (const group of navigationGroups) {
-    const groupItems = items.filter((item) => item.group === group.id);
-    if (groupItems.length > 0) {
-      sections.push({ group, items: groupItems });
-    }
-  }
-
-  return sections;
-}
-
-function ConsoleNavigation({
-  sections,
-  selectedGroupSearch
-}: Readonly<{
-  sections: readonly NavigationSection[];
-  selectedGroupSearch: string;
-}>) {
-  const { t } = useTranslation();
-  const location = useLocation();
-  const currentSection = sections.find(({ items }) =>
-    items.some((item) => item.path === location.pathname)
-  );
-  const currentGroup = currentSection?.group.id;
-  const selectedRoute = `${location.pathname}${selectedGroupSearch}`;
-  const [expansion, setExpansion] = useState(() => ({
-    route: selectedRoute,
-    group: currentGroup ?? null
-  }));
-  const routeChanged = expansion.route !== selectedRoute;
-  const expandedGroup = routeChanged ? currentGroup ?? null : expansion.group;
-  // SideNav synchronizes focus during render, so route and expansion must agree.
-  if (routeChanged) {
-    setExpansion({ route: selectedRoute, group: expandedGroup });
-  }
-
-
-  const expandedKeys = expandedGroup === null ? [] : [expandedGroup];
-
-  function updateExpandedGroups(keys: Set<Key>): void {
-    const validKeys = [...keys].filter((key): key is NavigationGroupID =>
-      typeof key === "string" && sections.some(({ group }) => group.id === key)
-    );
-    setExpansion({ route: selectedRoute, group: validKeys.at(-1) ?? null });
-  }
-
-  return (
-    <Content UNSAFE_className="console-navigation" styles={navigationLayout}>
-      <nav className={style({ display: "flex", flexDirection: "column", flexGrow: 1, minHeight: 0 })} aria-label={t("navigation.label")}>
-        <SideNav
-          aria-label={t("navigation.label")}
-          selectedRoute={selectedRoute}
-          expandedKeys={expandedKeys}
-          onExpandedChange={updateExpandedGroups}
-          styles={sideNavLayout}
-        >
-        {sections.map(({ group, items }) => (
-          <SideNavItem
-            key={group.id}
-            id={group.id}
-            textValue={t(group.labelKey)}
-            data-navigation-group={group.id}
-          >
-            <SideNavItemContent>{t(group.labelKey)}</SideNavItemContent>
-            {items.map((item) => {
-              const href = `${item.path}${selectedGroupSearch}`;
-
-              return (
-                <SideNavItem key={item.path} id={item.path} href={href} textValue={t(item.labelKey)}>
-                  <SideNavItemContent>
-                    <SideNavItemLink>
-                      <Content styles={style({ gridArea: "icon", display: "flex", alignItems: "center", marginEnd: "text-to-visual" })}>
-                        <Icon name={item.icon} />
-                      </Content>
-                      <Text>{t(item.labelKey)}</Text>
-                    </SideNavItemLink>
-                  </SideNavItemContent>
-                </SideNavItem>
-              );
-            })}
-          </SideNavItem>
-        ))}
-      </SideNav>
-      </nav>
-    </Content>
-  );
-}
 
 function ShellContent() {
   const { t } = useTranslation();
@@ -451,6 +221,7 @@ function ShellContent() {
           <ConsoleNavigation
             sections={visibleNavigationSections}
             selectedGroupSearch={selectedGroupSearch}
+            idPrefix="desktop"
           />
         </aside>
       </Content>
@@ -472,6 +243,7 @@ function ShellContent() {
                   <ConsoleNavigation
                     sections={visibleNavigationSections}
                     selectedGroupSearch={selectedGroupSearch}
+                    idPrefix="mobile"
                   />
                 </Popover>
               </DialogTrigger>
@@ -484,7 +256,10 @@ function ShellContent() {
               <UtilityControls variant="chrome" />
             </Content>
           </Header>
-          <Content UNSAFE_className="console-content" styles={contentLayout}>
+          <Content
+            UNSAFE_className="console-content"
+            styles={contentLayout({ isHome: location.pathname === "/home" })}
+          >
             <Content key={location.pathname} UNSAFE_className="console-inner" styles={innerLayout}>
               <Outlet />
             </Content>

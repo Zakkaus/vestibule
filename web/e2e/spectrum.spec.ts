@@ -16,9 +16,6 @@ import {
 const operatorPaths = operatorNavigationGroups.flatMap((group) => [...group.paths]);
 const managerPaths = managerNavigationGroups.flatMap((group) => [...group.paths]);
 
-function routeURL(path: string): RegExp {
-  return new RegExp(`${path.replaceAll("/", "\\/")}\\?group=${selectedGroupID}$`);
-}
 
 async function waitForHome(page: Page): Promise<void> {
   await expect(page.locator("[data-home-page]")).toHaveAttribute("data-home-state", "loaded");
@@ -40,7 +37,10 @@ async function navigationSections(page: Page, root: string) {
   for (let index = 0; index < await groups.count(); index++) {
     const id = (await groups.nth(index).getAttribute("data-navigation-group"))!;
     await expandNavigationGroup(page, root, id);
-    const paths = await page.locator(`${root} nav a[href]`).evaluateAll((links) =>
+    await expect(page.locator(`${root} [data-navigation-group][aria-expanded="true"]`)).toHaveCount(1);
+    const panel = page.locator(`${root} [data-navigation-items="${id}"]`);
+    await expect(panel).toHaveAttribute("aria-hidden", "false");
+    const paths = await panel.locator("a[href]").evaluateAll((links) =>
       links.map((link) => new URL((link as HTMLAnchorElement).href).pathname)
     );
     sections.push({ id, paths });
@@ -48,32 +48,6 @@ async function navigationSections(page: Page, root: string) {
   return sections;
 }
 
-async function focusNavigationDestination(page: Page, path: string): Promise<void> {
-  await page.locator(".console-brand a").focus();
-  await page.keyboard.press("Tab");
-  await expect(page.locator('.console-sidebar nav a[href^="/home"]')).toBeFocused();
-  await page.keyboard.press("ArrowLeft");
-  for (const section of operatorNavigationGroups) {
-    const group = page.locator(`.console-sidebar [data-navigation-group="${section.id}"]`);
-    await expect.poll(() => group.evaluate((element) => element.contains(document.activeElement)), {
-      message: `Keyboard navigation reaches the ${section.id} group`
-    }).toBe(true);
-    if (section.paths.some((destination) => destination === path)) {
-      if (await group.getAttribute("aria-expanded") === "false") await page.keyboard.press("ArrowRight");
-      await expect(group).toHaveAttribute("aria-expanded", "true");
-      for (const destination of section.paths) {
-        await page.keyboard.press("ArrowDown");
-        await expect(page.locator(`.console-sidebar nav a[href^="${destination}"]`)).toBeFocused();
-        if (destination === path) return;
-      }
-    } else {
-      if (await group.getAttribute("aria-expanded") === "true") await page.keyboard.press("ArrowLeft");
-      await expect(group).toHaveAttribute("aria-expanded", "false");
-      await page.keyboard.press("ArrowDown");
-    }
-  }
-  throw new Error(`Keyboard navigation did not reach ${path}`);
-}
 
 async function controlGeometry(page: Page) {
   return page.evaluate(() => {
@@ -123,42 +97,27 @@ test("operator navigation exposes all 15 destinations through accessible groups 
   expect(actualPaths).toEqual(operatorPaths);
 });
 
-for (const path of operatorPaths) {
-  test(`operator keyboard navigation reaches ${path} at 1280x720`, async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 720 });
-    await mockSpectrumTransport(page, { role: "operator" });
-    await openSpectrumRoute(page, "/home");
-    await waitForHome(page);
-    await focusNavigationDestination(page, path);
-    const link = page.locator(`.console-sidebar nav a[href^="${path}"]`);
-    await expect(link, `${path} must have one declared destination`).toHaveCount(1);
-    await link.scrollIntoViewIfNeeded();
-    const viewport = await link.evaluate((element) => {
-      const rect = element.getBoundingClientRect();
-      const target = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
-      return {
-        left: rect.left,
-        top: rect.top,
-        right: rect.right,
-        bottom: rect.bottom,
-        width: rect.width,
-        height: rect.height,
-        hit: target === element || target instanceof Element && element.contains(target)
-      };
-    });
-    expect(viewport.width, `${path} must have a hit area`).toBeGreaterThan(0);
-    expect(viewport.height, `${path} must have a hit area`).toBeGreaterThan(0);
-    expect(viewport.left, `${path} must be inside the viewport`).toBeGreaterThanOrEqual(0);
-    expect(viewport.top, `${path} must be inside the viewport`).toBeGreaterThanOrEqual(0);
-    expect(viewport.right, `${path} must be inside the viewport`).toBeLessThanOrEqual(1280);
-    expect(viewport.bottom, `${path} must be inside the viewport`).toBeLessThanOrEqual(720);
-    expect(viewport.hit, `${path} must be hit-testable after scrolling`).toBe(true);
+test("operator navigation uses native accordion keyboard activation", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await mockSpectrumTransport(page, { role: "operator" });
+  await openSpectrumRoute(page, "/home");
+  await waitForHome(page);
 
-    await expect(link).toBeFocused();
-    await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(routeURL(path));
-  });
-}
+  const nav = page.locator(".console-sidebar nav");
+  const group = nav.locator('[data-navigation-group="verification"]');
+  await group.focus();
+  await page.keyboard.press("Space");
+  await expect(group).toHaveAttribute("aria-expanded", "true");
+
+  const link = nav.locator('a[href^="/verification"]');
+  await expect(link).toBeVisible();
+  await page.keyboard.press("Tab");
+  await expect(link).toBeFocused();
+  await expect(link).toHaveCSS("outline-style", "solid");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(new RegExp(`/verification\\?group=${selectedGroupID}$`));
+});
+
 
 test("manager navigation preserves the six groups while filtering only the instance-status destination", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
@@ -451,7 +410,9 @@ test("mobile navigation uses a portalled dialog, restores focus on Escape, and c
   const destination = panel.locator('a[href^="/preferences"]');
   await expect(destination).toBeVisible();
   await destination.click();
-  await expect(page).toHaveURL(routeURL("/preferences"));
+  await expect(page).toHaveURL((url) =>
+    url.pathname === "/preferences" && url.searchParams.get("group") === selectedGroupID
+  );
   await expect(panel).toBeHidden();
 });
 
@@ -520,9 +481,10 @@ test("home chart combines seven-day counts and rates with dual axes, labels, leg
     }).format(new Date(`${day.date}T00:00:00Z`)))
   );
   await expect(chart.locator('[aria-label^="X-axis"] .role-axis-label text')).toHaveCount(7);
-  await expect(chart.locator(".role-legend")).toContainText(/Requests.*left axis/);
-  await expect(chart.locator(".role-legend")).toContainText(/Pass rate.*right axis/);
-  await expect(chart.locator(".role-legend-symbol")).toHaveCount(2);
+  const legend = page.locator("[data-home-trend-legend]");
+  await expect(legend).toContainText(/Requests.*left axis/);
+  await expect(legend).toContainText(/Pass rate.*right axis/);
+  await expect(legend.locator("[data-icon-name]")).toHaveCount(2);
 
   await expect(page.locator('[data-home-metric="challenges"]')).toContainText("70");
   await expect(page.locator('[data-home-metric="pass-rate"]')).toContainText("58.6%");

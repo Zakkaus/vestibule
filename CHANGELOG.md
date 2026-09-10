@@ -12,22 +12,27 @@ All notable changes to this project are documented here. The format is based on
 - Console chrome shares a gray Spectrum layer-1 surface without sidebar or header
   dividers. The layer-2 content panel meets the header and sidebar, keeps a small
   right gutter and rounds only its top corners. It scrolls independently in both
-  themes. Cards retain native elevation, and sidebar selection retains its pale
-  accent tint, weight, inset rail and icon stroke.
-- The healthy home attention state aligns with its section heading. Chart legends now
-  include colored dots that match their series in light, dark and system themes.
+  themes. Cards retain native elevation. Sidebar selection uses bold text and text
+  color without a filled surface, rounded corners, an inset rail or heavier icon strokes.
+- The healthy home attention state aligns with its section heading. Chart legends
+  use Lucide series icons with matching colors in light, dark and system themes.
 - The home chart now gives out-of-window response dates distinct positions and counts
   coverage within the requested range. Date labels no longer overlap.
-- The sidebar keeps complete navigation rows at 1280×720, marks the current route
-  with weight, an inset rail and icon stroke, and remains available while the content panel scrolls.
-- Cross-group content links now synchronize the SideNav route and expanded group
-  before focus is resolved, so keyboard entry reaches the selected destination.
+- The sidebar keeps complete navigation rows at 1280×720 and remains available while
+  the content panel scrolls. Cross-group links expand the destination group before
+  keyboard focus enters navigation.
 - Touch-sized queue actions now have enough TableView column space to remain fully visible.
 - **Question editor controls used mixed height tiers.** Option and fallback-answer rows combined
   `sm` buttons with default-height fields. Their row actions and item deletions now use the
   default tier.
 
 ### Changed
+- The home dashboard uses equal, aligned columns and a content-sized panel without
+  excess space below the last section. Chart legends and date readings stay within
+  the chart region; axis titles no longer render vertically.
+- Home metrics, attention states, configuration entries, chart series and empty
+  states use matching Lucide icons. Missing-day notices use plain language and
+  remain hidden when the requested dates are complete.
 - The home page fits a 1280×900 viewport without vertical scrolling and stays within
   1.15 viewport heights at 1280×720, without reducing text or control sizes.
 - The home trend overlays request bars and a pass-rate line on independent left/right
@@ -42,7 +47,7 @@ All notable changes to this project are documented here. The format is based on
   and style macros instead of a parallel CSS spacing and radius system. The waiting queue
   uses TableView for sorting, selection, keyboard navigation and empty states, while retaining
   its existing row-action authorization and transport. Other content screens keep their components.
-- The mobile navigation uses Spectrum Popover with the same grouped SideNav as desktop;
+- The mobile navigation uses Spectrum Popover with the same grouped navigation as desktop;
   dismissal restores trigger focus and selecting a route closes the panel.
 - The console group switcher now shows the durable title captured when a runtime group is
   registered. Configured groups and legacy registrations without a title fall back to the

@@ -5,7 +5,7 @@ import { Content, Heading, IllustratedMessage, InlineAlert, ProgressCircle } fro
 import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { useTranslation } from "react-i18next";
 
-import { Icon } from "../../icons";
+import { Icon, type IconName } from "../../icons";
 import { useConsoleSize } from "../../components/ConsoleProvider";
 import type { HomeDataState } from "./useHomeData";
 import { HomeDashboard } from "./HomeDashboard";
@@ -20,6 +20,7 @@ function StateCard({
   id,
   titleKey,
   descriptionKey,
+  iconName,
   role,
   live,
   children
@@ -27,6 +28,7 @@ function StateCard({
   id: string;
   titleKey: string;
   descriptionKey: string;
+  iconName?: IconName;
   role?: "alert";
   live?: "polite";
   children?: ReactNode;
@@ -49,7 +51,7 @@ function StateCard({
       aria-live={live}
       aria-labelledby={`home-${id}-title`}
     >
-      {id === "loading" ? <ProgressCircle isIndeterminate aria-label={t(titleKey)} /> : null}
+      {iconName ? <Icon name={iconName} /> : id === "loading" ? <ProgressCircle isIndeterminate aria-label={t(titleKey)} /> : null}
       {content}
     </IllustratedMessage>
   );
@@ -124,6 +126,7 @@ export function HomeStateContent({ state, chatID, reload }: HomeStateContentProp
       <StateCard
         id="no-groups"
         titleKey="home.noGroups.title"
+        iconName="usersRound"
         descriptionKey="home.noGroups.description"
       />
     );

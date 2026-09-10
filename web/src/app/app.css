@@ -2643,7 +2643,3 @@ body {
   font-weight: 600;
 }
 }
-
-.console-navigation [role="gridcell"] > div:has(> a[aria-current="page"]) {
-  background-color: var(--console-nav-selected-background);
-}

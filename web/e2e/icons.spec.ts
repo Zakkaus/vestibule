@@ -30,8 +30,6 @@ function sourceFiles(directory: string): string[] {
   });
 }
 
-
-
 test("Lucide icon assets are traceable and exclusive", () => {
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as IconManifest;
   const vendoredFiles = readdirSync(iconRoot)
@@ -46,6 +44,23 @@ test("Lucide icon assets are traceable and exclusive", () => {
 
   expect(manifest.collection).toBe("Lucide Static");
   expect(manifest.package).toBe("lucide-static");
+  expect(manifest.version).toBe("1.39.0");
+  for (const icon of [
+    {
+      name: "chart-column",
+      file: "chart-column.svg",
+      source: "package/icons/chart-column.svg",
+      sha256: "9726f8d10c6e18fe874be45dc816d1981f626b47586376778ccd91c62be47400"
+    },
+    {
+      name: "chart-line",
+      file: "chart-line.svg",
+      source: "package/icons/chart-line.svg",
+      sha256: "3b83d3bc804083413091262ea77af17a4a0ce2d9dddfe87b0ddfa9a8a4155983"
+    }
+  ]) {
+    expect(manifest.icons).toContainEqual(expect.objectContaining(icon));
+  }
   expect(vendoredFiles).toEqual(manifestFiles);
   expect(registryFiles).toEqual(manifestFiles);
 
