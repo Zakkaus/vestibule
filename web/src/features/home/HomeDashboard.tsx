@@ -144,7 +144,7 @@ function OverviewSection({
   return (
     <Content data-home-section="overview" aria-labelledby="home-overview-title" styles={sectionSurface}>
       <Heading level={2} id="home-overview-title" styles={style({ font: "heading-lg", margin: 0 })}>{t("home.overview.title")}</Heading>
-      <Content aria-labelledby="home-overview-title" data-home-metrics styles={style({ display: "grid", gridTemplateColumns: ["minmax(0, 1fr)", "minmax(0, 1fr)"], gap: 8, minWidth: 0 })}>
+      <Content aria-labelledby="home-overview-title" data-home-metrics styles={style({ display: "grid", gridTemplateColumns: { default: ["minmax(0, 1fr)", "minmax(0, 1fr)"], lg: ["minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)"] }, gap: 8, minWidth: 0 })}>
         {metrics.map((metric) => (
           <Link key={metric.id} href={`${metric.path}${groupSearch}`} isStandalone isQuiet data-home-metric={metric.id}>
             {/* Same block as every other row on the page: its own ground, its own edge.
@@ -154,7 +154,7 @@ function OverviewSection({
               display: "grid",
               gap: 4,
               minWidth: 0,
-              padding: 16,
+              padding: 12,
               borderRadius: "lg",
               backgroundColor: "layer-2"
             })}>
@@ -192,7 +192,7 @@ function AttentionSection({
             <Link key={item.id} href={`${item.path}${groupSearch}`} isStandalone isQuiet data-home-attention={item.id}
               aria-label={`${t(item.titleKey)} ${t(item.descriptionKey, { count: item.count })}`}>
               <Content styles={style({ display: "flex", alignItems: "center", gap: 12, font: "body", minWidth: 0, padding: 12, borderRadius: "lg", backgroundColor: "layer-2" })}>
-                <Badge variant={item.tone === "error" ? "negative" : "notice"} fillStyle="subtle"><Icon name={attentionIcons[item.tone]} /> {t(`home.attention.tones.${item.tone}`)}</Badge>
+                <Badge data-home-attention-tone={item.tone} variant={item.tone === "error" ? "negative" : "notice"} fillStyle="subtle"><Icon name={attentionIcons[item.tone]} /> {t(`home.attention.tones.${item.tone}`)}</Badge>
                 <Text data-home-attention-copy styles={style({ flexGrow: 1 })}>{t(item.titleKey)}</Text>
                 {item.count !== undefined ? <Text>{item.count}</Text> : null}
                 <Content styles={style({ display: "flex", color: "neutral-subdued" })}><Icon name="arrowRight" /></Content>

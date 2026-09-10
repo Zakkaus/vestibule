@@ -139,6 +139,7 @@ const contentLayout = style({
   },
   padding: {
     default: 32,
+    "@media (max-height: 800px)": 20,
     "@media (max-width: 48rem)": 16
   },
   overflow: "auto",

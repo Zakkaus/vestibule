@@ -105,7 +105,7 @@ function TrendChart({ model, locale }: Readonly<{ model: TrendModel; locale: str
         <Content data-home-trend-scroll styles={style({ width: "full", minWidth: 0, overflowX: "auto", overscrollBehaviorX: "contain" })}>
           <Content styles={style({
             minWidth: { default: `[${size(400)}]`, lg: `[${size(360)}]`, isExtendedRange: `[${size(640)}]` },
-            height: `[${size(260)}]`,
+            height: { default: `[${size(220)}]`, "@media (max-height: 800px)": `[${size(170)}]` },
             display: "block"
           })({ isExtendedRange: model.points.length > 7 })}>
             {/* The library rotates an axis title, which turns a Chinese label on its side,
@@ -187,7 +187,7 @@ export function HomeTrend({
           {model.missingDays > 0 ? <Text data-home-trend-coverage styles={style({ font: "body-sm", color: "neutral-subdued" })}>{coverageText}</Text> : null}
         </Content>
         <Link href={`/stats${groupSearch}`} isStandalone isQuiet>
-          <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", fontWeight: "medium", color: "neutral-subdued" })}>
+          <Text styles={style({ display: "flex", alignItems: "center", gap: `[${size(4)}]`, font: "ui-sm", fontWeight: "medium", color: "neutral-subdued" })}>
             {t("home.trend.openStats")} <Icon name="arrowRight" />
           </Text>
         </Link>

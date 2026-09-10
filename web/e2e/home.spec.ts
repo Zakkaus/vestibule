@@ -296,10 +296,10 @@ for (const role of ["manager", "operator"] as const) {
 
       if (role === "manager") {
         await expect(page.locator("[data-home-attention='queue']")).toBeVisible();
-        await expect(page.locator("[data-home-attention='queue'] [data-icon-name]")).toHaveAttribute("data-icon-name", "inbox");
+        await expect(page.locator("[data-home-attention='queue'] [data-home-attention-tone] [data-icon-name]")).toHaveAttribute("data-icon-name", "inbox");
       } else {
         await expect(page.locator("[data-home-attention='persistence-unwritable']")).toBeVisible();
-        await expect(page.locator("[data-home-attention='persistence-unwritable'] [data-icon-name]")).toHaveAttribute("data-icon-name", "circleAlert");
+        await expect(page.locator("[data-home-attention='persistence-unwritable'] [data-home-attention-tone] [data-icon-name]")).toHaveAttribute("data-icon-name", "circleAlert");
         await expect(page.locator("[data-home-metric='challenges']")).toContainText("70");
       }
     });

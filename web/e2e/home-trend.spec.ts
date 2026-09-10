@@ -325,12 +325,19 @@ test("combined chart keeps distinct themed colors, surface contrast, and semanti
         const color = rgba(getComputedStyle(node).backgroundColor);
         if (color.length === 3 || color[3] === 1) { background = luminance(color); break; }
       }
-      const bars = Array.from(element.querySelectorAll(".mark-rect.role-mark path")).map((bar) => ({
+      // The library draws a transparent hover area and a white backing rect alongside the
+      // bars; both are .mark-rect.role-mark, and counting them made every label look like
+      // it sat on black. Only the bars themselves are behind a label.
+      const bars = Array.from(element.querySelectorAll(".mark-rect.role-mark.requests path")).map((bar) => ({
         box: bar.getBoundingClientRect(),
         luminance: luminance(rgba(getComputedStyle(bar).fill))
       }));
       const contrasts = Array.from(element.querySelectorAll("svg text")).flatMap((label) => {
-        const foreground = luminance(rgba(getComputedStyle(label).fill));
+        const fill = rgba(getComputedStyle(label).fill);
+        // Each bar label is drawn twice: an invisible halo behind the visible glyphs.
+        // A fully transparent fill puts no ink on the screen and has no contrast to check.
+        if (fill.length === 4 && fill[3] === 0) return [];
+        const foreground = luminance(fill);
         const box = label.getBoundingClientRect();
         const behind = bars.filter(({ box: bar }) =>
           bar.left < box.right && bar.right > box.left && bar.top < box.bottom && bar.bottom > box.top);

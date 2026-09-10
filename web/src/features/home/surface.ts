@@ -7,11 +7,12 @@ import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 export const sectionSurface = style({
   display: "grid",
   alignContent: "start",
-  gap: 16,
+  // A short window has to hold the whole page; the ladder steps down rather than scrolling.
+  gap: { default: 12, "@media (max-height: 800px)": 8 },
   width: "full",
   minWidth: 0,
   boxSizing: "border-box",
-  padding: 24,
+  padding: { default: 20, "@media (max-height: 800px)": 16 },
   borderRadius: "lg",
   backgroundColor: "layer-1"
 });

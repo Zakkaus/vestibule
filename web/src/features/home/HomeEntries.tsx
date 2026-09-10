@@ -31,7 +31,7 @@ function ConfigValue({
 }>) {
   const { t } = useTranslation();
   return (
-    <Text data-home-entry-value styles={style({ font: "body-lg" })}>
+    <Text data-home-entry-value styles={style({ font: "body" })}>
       <Text>{t(labelKey)}</Text>{" "}
       <Text data-home-entry-value-text>{value}</Text>{" "}
       <Text
@@ -72,11 +72,11 @@ function ConfigEntry({
         columnGap: 12,
         rowGap: 4,
         minWidth: 0,
-        padding: 16,
+        padding: 12,
         borderRadius: "lg",
         backgroundColor: "layer-2"
       })}>
-        <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui", fontWeight: "medium", color: "neutral-subdued" })}>
+        <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", fontWeight: "medium", color: "neutral-subdued" })}>
           <Icon name={iconName} /> {t(titleKey)}
         </Text>
         {/* The arrow is an affordance, not an action: it takes the label's colour so the
