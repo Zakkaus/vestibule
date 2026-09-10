@@ -143,7 +143,7 @@ function OverviewSection({
 
   return (
     <Content data-home-section="overview" aria-labelledby="home-overview-title" styles={sectionSurface}>
-      <Heading level={2} id="home-overview-title" styles={style({ font: "heading", margin: 0 })}>{t("home.overview.title")}</Heading>
+      <Heading level={2} id="home-overview-title" styles={style({ font: "heading-lg", margin: 0 })}>{t("home.overview.title")}</Heading>
       <Content aria-labelledby="home-overview-title" data-home-metrics styles={style({ display: "grid", gridTemplateColumns: { default: ["minmax(0, 1fr)", "minmax(0, 1fr)"], lg: ["minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)"] }, gap: 8, minWidth: 0 })}>
         {metrics.map((metric) => (
           <Link key={metric.id} href={`${metric.path}${groupSearch}`} isStandalone isQuiet data-home-metric={metric.id}>
@@ -154,11 +154,8 @@ function OverviewSection({
               display: "grid",
               gap: 4,
               minWidth: 0,
-              padding: 12,
+              padding: 16,
               borderRadius: "lg",
-              borderWidth: 1,
-              borderStyle: "solid",
-              borderColor: "gray-200",
               backgroundColor: "layer-2"
             })}>
               <Text styles={style({ font: "heading-xl", fontWeight: "bold", color: "neutral" })}>{metric.value}</Text>
@@ -183,7 +180,7 @@ function AttentionSection({
 
   return (
     <Content data-home-section="attention" aria-labelledby="home-attention-title" styles={sectionSurface}>
-      <Heading level={2} id="home-attention-title" styles={style({ font: "heading", margin: 0 })}>{t("home.attention.title")}</Heading>
+      <Heading level={2} id="home-attention-title" styles={style({ font: "heading-lg", margin: 0 })}>{t("home.attention.title")}</Heading>
       {items.length === 0 ? (
         <Content data-home-attention-empty styles={style({ display: "grid", justifyItems: "start", gap: 8, textAlign: "start" })}>
           <Badge variant="positive" fillStyle="subtle"><Icon name="circleCheck" /> {t("home.attention.empty.badge")}</Badge>
@@ -194,7 +191,7 @@ function AttentionSection({
           {items.map((item) => (
             <Link key={item.id} href={`${item.path}${groupSearch}`} isStandalone isQuiet data-home-attention={item.id}
               aria-label={`${t(item.titleKey)} ${t(item.descriptionKey, { count: item.count })}`}>
-              <Content styles={style({ display: "flex", alignItems: "center", gap: 12, font: "body", minWidth: 0, padding: 12, borderRadius: "lg", borderWidth: 1, borderStyle: "solid", borderColor: "gray-200", backgroundColor: "layer-2" })}>
+              <Content styles={style({ display: "flex", alignItems: "center", gap: 12, font: "body", minWidth: 0, padding: 12, borderRadius: "lg", backgroundColor: "layer-2" })}>
                 <Badge variant={item.tone === "error" ? "negative" : "notice"} fillStyle="subtle"><Icon name={attentionIcons[item.tone]} /> {t(`home.attention.tones.${item.tone}`)}</Badge>
                 <Text data-home-attention-copy styles={style({ flexGrow: 1 })}>{t(item.titleKey)}</Text>
                 {item.count !== undefined ? <Text>{item.count}</Text> : null}

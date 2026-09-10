@@ -7,14 +7,11 @@ import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 export const sectionSurface = style({
   display: "grid",
   alignContent: "start",
-  gap: 12,
+  gap: 16,
   width: "full",
   minWidth: 0,
   boxSizing: "border-box",
   padding: 24,
   borderRadius: "lg",
-  borderWidth: 1,
-  borderStyle: "solid",
-  borderColor: "gray-200",
   backgroundColor: "layer-1"
 });

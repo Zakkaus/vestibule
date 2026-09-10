@@ -182,7 +182,7 @@ export function HomeTrend({
     <Content data-home-section="trend" aria-labelledby="home-trend-title" styles={sectionSurface}>
       <Header data-home-section-heading styles={style({ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: `[${size(16)}]` })}>
         <Content styles={style({ display: "grid", gap: `[${size(4)}]` })}>
-          <Heading level={2} id="home-trend-title" styles={style({ font: "heading", margin: 0 })}>{t("home.trend.title")}</Heading>
+          <Heading level={2} id="home-trend-title" styles={style({ font: "heading-lg", margin: 0 })}>{t("home.trend.title")}</Heading>
           {model.missingDays > 0 ? <Text data-home-trend-coverage styles={style({ font: "body-sm", color: "neutral-subdued" })}>{coverageText}</Text> : null}
         </Content>
         <Link href={`/stats${groupSearch}`} isStandalone isQuiet>

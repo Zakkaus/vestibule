@@ -31,7 +31,7 @@ function ConfigValue({
 }>) {
   const { t } = useTranslation();
   return (
-    <Text data-home-entry-value styles={style({ font: "body" })}>
+    <Text data-home-entry-value styles={style({ font: "body-lg" })}>
       <Text>{t(labelKey)}</Text>{" "}
       <Text data-home-entry-value-text>{value}</Text>{" "}
       <Text
@@ -72,14 +72,11 @@ function ConfigEntry({
         columnGap: 12,
         rowGap: 4,
         minWidth: 0,
-        padding: 12,
+        padding: 16,
         borderRadius: "lg",
-        borderWidth: 1,
-        borderStyle: "solid",
-        borderColor: "gray-200",
         backgroundColor: "layer-2"
       })}>
-        <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", fontWeight: "medium", color: "neutral-subdued" })}>
+        <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui", fontWeight: "medium", color: "neutral-subdued" })}>
           <Icon name={iconName} /> {t(titleKey)}
         </Text>
         {/* The arrow is an affordance, not an action: it takes the label's colour so the
@@ -184,7 +181,7 @@ export function HomeEntries({ settings, groupSearch }: EntryProps) {
       styles={sectionSurface}
     >
       <Content data-home-section-heading>
-        <Heading level={2} id="home-entries-title" styles={style({ font: "heading", margin: 0 })}>
+        <Heading level={2} id="home-entries-title" styles={style({ font: "heading-lg", margin: 0 })}>
           {t("home.entries.title")}
         </Heading>
       </Content>
