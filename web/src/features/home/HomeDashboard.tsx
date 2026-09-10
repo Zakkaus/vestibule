@@ -183,7 +183,7 @@ function AttentionSection({
       <Heading level={2} id="home-attention-title" styles={style({ font: "heading-lg", margin: 0 })}>{t("home.attention.title")}</Heading>
       {items.length === 0 ? (
         <Content data-home-attention-empty styles={style({ display: "grid", justifyItems: "start", gap: 8, textAlign: "start" })}>
-          <Badge variant="positive" fillStyle="subtle"><Icon name="circleCheck" /> {t("home.attention.empty.badge")}</Badge>
+          <Badge variant="positive" fillStyle="subtle"><Icon name="circleCheck" /><Text>{t("home.attention.empty.badge")}</Text></Badge>
           <Text styles={style({ font: "body", color: "neutral-subdued" })}>{t(isOperator ? "home.attention.empty.operatorDescription" : "home.attention.empty.managerDescription")}</Text>
         </Content>
       ) : (
@@ -192,7 +192,7 @@ function AttentionSection({
             <Link key={item.id} href={`${item.path}${groupSearch}`} isStandalone isQuiet data-home-attention={item.id}
               aria-label={`${t(item.titleKey)} ${t(item.descriptionKey, { count: item.count })}`}>
               <Content styles={style({ display: "flex", alignItems: "center", gap: 12, font: "body", minWidth: 0, padding: 12, borderRadius: "lg", backgroundColor: "layer-1" })}>
-                <Badge data-home-attention-tone={item.tone} variant={item.tone === "error" ? "negative" : "notice"} fillStyle="subtle"><Icon name={attentionIcons[item.tone]} /> {t(`home.attention.tones.${item.tone}`)}</Badge>
+                <Badge data-home-attention-tone={item.tone} variant={item.tone === "error" ? "negative" : "notice"} fillStyle="subtle"><Icon name={attentionIcons[item.tone]} /><Text>{t(`home.attention.tones.${item.tone}`)}</Text></Badge>
                 <Text data-home-attention-copy styles={style({ flexGrow: 1 })}>{t(item.titleKey)}</Text>
                 {item.count !== undefined ? <Text>{item.count}</Text> : null}
                 <Content styles={style({ display: "flex", color: "neutral-subdued" })}><Icon name="arrowRight" /></Content>
