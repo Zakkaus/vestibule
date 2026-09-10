@@ -1035,5 +1035,96 @@ func (s *Server) exportAudit(writer http.ResponseWriter, request *http.Request, 
             *arguments,
         )
 
+    def test_a_deployed_supergroup_id_cannot_be_compiled_into_defaults(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-no-baked-identity.py",
+            "the factory defaults name one deployment's Telegram supergroup",
+            ("supergroup -1001163306055", "defaults.yaml", "has to come from the instance"),
+            lambda: self.replace_text(
+                tree,
+                "internal/settings/defaults.yaml",
+                "  # Destination for audit and failure notices; 0 falls back to the acting chat.\n"
+                "  admin_log_chat_id: 0",
+                "  # Destination for audit and failure notices; 0 falls back to the acting chat.\n"
+                "  admin_log_chat_id: -1001163306055",
+            ),
+        )
+
+    def test_a_deployment_domain_cannot_be_compiled_into_defaults(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-no-baked-identity.py",
+            "the factory resources name one deployment's public domain",
+            ("deployment domain gentoozh.org", "defaults.yaml", "has to come from the instance"),
+            lambda: self.replace_text(
+                tree,
+                "internal/settings/defaults.yaml",
+                '  news_url: ""',
+                '  news_url: "https://gentoozh.org/news.xml"',
+            ),
+        )
+
+    def test_deployment_domain_matching_covers_nested_and_uppercase(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-no-baked-identity.py",
+            "a deployment subdomain must not evade the identity gate by changing case",
+            ("deployment domain Matrix.GENTOOZH.ORG", "has to come from the instance"),
+            lambda: self.replace_text(
+                tree,
+                "internal/settings/defaults.yaml",
+                '  news_url: ""',
+                '  news_url: "https://Matrix.GENTOOZH.ORG/news.xml"',
+            ),
+        )
+
+    def test_synthetic_ids_and_upstream_module_domains_remain_allowed(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_gate_passes(tree, "scripts/check-no-baked-identity.py")
+
+        restore = self.replace_text(
+            tree,
+            "internal/settings/defaults.yaml",
+            "  # Destination for audit and failure notices; 0 falls back to the acting chat.\n"
+            "  admin_log_chat_id: 0",
+            "  # Destination for audit and failure notices; 0 falls back to the acting chat.\n"
+            "  admin_log_chat_id: -1009000000123",
+        )
+        try:
+            self.assert_gate_passes(tree, "scripts/check-no-baked-identity.py")
+        finally:
+            restore()
+
+        restore = self.replace_text(
+            tree,
+            "internal/settings/defaults.yaml",
+            '  news_url: ""',
+            '  news_url: "https://www.gentoo.org/news"',
+        )
+        try:
+            self.assert_gate_passes(tree, "scripts/check-no-baked-identity.py")
+        finally:
+            restore()
+
+    def test_a_community_name_cannot_become_default_copy(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-no-baked-identity.py",
+            "default copy names one deployment's community",
+            ("known deployment community Gentoo Chinese Community", "defaults.yaml"),
+            lambda: self.replace_text(
+                tree,
+                "internal/settings/defaults.yaml",
+                '  private_reply: ""',
+                '  private_reply: "Gentoo Chinese Community"',
+            ),
+        )
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

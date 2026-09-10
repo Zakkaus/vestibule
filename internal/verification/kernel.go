@@ -42,7 +42,7 @@ func (v *Service) SetVerifyMode(groupID int64, mode string) error {
 func (v *Service) EffectiveMode(groupID int64) string {
 	group, ok := v.groupSettings(groupID)
 	if !ok {
-		return settings.ModeKernel
+		return ""
 	}
 	return group.VerifyMode().Value
 }
@@ -55,7 +55,7 @@ func (v *Service) questions(groupID int64) []settings.Question {
 	return group.Questions().Value
 }
 
-// Mixed mode uses a cryptographic coin flip; an empty quiz pool falls back to kernel.
+// Mixed mode uses a cryptographic coin flip; explicitly empty chat banks keep the legacy kernel fallback.
 func (v *Service) pickMode(gid int64) string {
 	mode := v.EffectiveMode(gid)
 	if mode == (settings.ModeMixed) {
@@ -64,7 +64,7 @@ func (v *Service) pickMode(gid int64) string {
 			mode = (settings.ModeKernel)
 		}
 	}
-	if mode == (settings.ModeQuiz) && len(v.questions(gid)) == 0 {
+	if mode == settings.ModeQuiz && len(v.questions(gid)) == 0 {
 		return settings.ModeKernel
 	}
 	return mode
@@ -76,23 +76,27 @@ func (v *Service) newChallenge(gid int64, ul i18n.Lang) (mode, text string, opts
 	if mode == (settings.ModeKernel) {
 		return mode, tgfmt.KernelQuestion(v.messages, ul), nil, -1
 	}
-	text, opts, correctIdx = shuffledQuestion(randomQuestion(v.questions(gid)))
+	questions := v.questions(gid)
+	if len(questions) == 0 {
+		return mode, "", nil, -1
+	}
+	text, opts, correctIdx = shuffledQuestion(randomQuestion(questions))
 	return mode, text, opts, correctIdx
 }
 
-// Per-chat questions override the answer-hidden factory rules.
-func (v *Service) fallbackQuestion(groupID int64, l i18n.Lang) (string, []string) {
-	var questions []settings.ShortQuestion
-	if group, ok := v.groupSettings(groupID); ok && !group.FallbackBuiltin().Value {
-		questions = group.FallbackQuestions().Value
+// fallbackQuestion returns the bank already resolved by settings. The factory value is the
+// deployment baseline, while a non-built-in value is the configured chat bank.
+func (v *Service) fallbackQuestion(groupID int64, _ i18n.Lang) (string, []string) {
+	group, ok := v.groupSettings(groupID)
+	if !ok {
+		return "", nil
 	}
-	if len(questions) != 0 {
-		question := questions[cryptoIntn(len(questions))]
-		return question.Q, question.Answers
+	questions := group.FallbackQuestions().Value
+	if len(questions) == 0 {
+		return "", nil
 	}
-	factory := rules.FactoryFallbackQuestions(l.String())
-	question := factory[cryptoIntn(len(factory))]
-	return question.Prompt, question.Answers
+	question := questions[cryptoIntn(len(questions))]
+	return question.Q, question.Answers
 }
 
 // answersAnotherFallback reports that this reply is the right answer to a fallback question the

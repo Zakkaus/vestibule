@@ -136,20 +136,9 @@ func TestLoadConfigValidation(t *testing.T) {
 		t.Errorf("expected error for required channel with no reachable link")
 	}
 	if _, err := LoadConfig(writeConfig(t, map[string]any{
-		"verify_mode": ModeQuiz,
-	})); err == nil {
-		t.Errorf("expected error for a quiz-mode runtime-group baseline with no questions")
-	}
-	if _, err := LoadConfig(writeConfig(t, map[string]any{
 		"required_channel_id": -400,
 	})); err == nil {
 		t.Errorf("expected error for a runtime-group channel baseline with no reachable link")
-	}
-	if _, err := LoadConfig(writeConfig(t, map[string]any{
-		"group_ids":   []int{-100},
-		"verify_mode": ModeQuiz, // quiz mode but no questions at all
-	})); err == nil {
-		t.Errorf("expected error for a quiz-mode group with no questions")
 	}
 	if _, err := LoadConfig(writeConfig(t, map[string]any{
 		"group_ids":   []int{-100},

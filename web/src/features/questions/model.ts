@@ -236,7 +236,11 @@ export function sparseQuestionChanges(
   if (restored.has("fallback_questions")) {
     changes.fallback_questions = null;
   } else if (!draft.fallbackBuiltin) {
-    if (!fallbackQuestionsEqual(settings.fallback_questions.value, values.fallbackQuestions)) {
+    // The inherited view can mask a different file-managed custom bank.
+    if (
+      settings.fallback_builtin.value ||
+      !fallbackQuestionsEqual(settings.fallback_questions.value, values.fallbackQuestions)
+    ) {
       changes.fallback_questions = values.fallbackQuestions;
     }
   } else if (

@@ -1,11 +1,15 @@
 package settings
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/url"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"sort"
@@ -89,6 +93,9 @@ func LoadConfig(path string) (*Config, error) {
 	if err := json.Unmarshal(data, &c); err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)
 	}
+	if err := loadFactoryQuestions(path, &c); err != nil {
+		return nil, err
+	}
 	warnUnknownConfigKeys(data)
 	if err := mergeConfigGroups(&c); err != nil {
 		return nil, err
@@ -113,6 +120,75 @@ func readConfig(path string) ([]byte, error) {
 		return nil, fmt.Errorf("read config: %w", err)
 	}
 	return []byte("{}"), nil
+}
+
+type factoryQuestionsDocument struct {
+	Questions         json.RawMessage `json:"questions"`
+	FallbackQuestions json.RawMessage `json:"fallback_questions"`
+}
+
+func decodeFactoryQuestionsJSON(data []byte, target any) error {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(target); err != nil {
+		return err
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		if err == nil {
+			return errors.New("trailing data")
+		}
+		return fmt.Errorf("trailing data: %w", err)
+	}
+	return nil
+}
+
+func loadFactoryQuestions(configPath string, cfg *Config) error {
+	name := strings.TrimSpace(cfg.FactoryQuestionsFile)
+	if name == "" {
+		return nil
+	}
+	path := name
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(filepath.Dir(configPath), path)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("read factory questions file %q: %w", path, err)
+	}
+	var document factoryQuestionsDocument
+	if err := decodeFactoryQuestionsJSON(data, &document); err != nil {
+		return fmt.Errorf("parse factory questions file %q: %w", path, err)
+	}
+	if document.Questions == nil && document.FallbackQuestions == nil {
+		return fmt.Errorf("factory questions file %q must define questions or fallback_questions", path)
+	}
+	bank := &factoryQuestionBank{}
+	if document.Questions != nil {
+		if err := decodeFactoryQuestionsJSON(document.Questions, &bank.questions); err != nil {
+			return fmt.Errorf("factory questions file %q: %w", path, err)
+		}
+		if err := validateQuestions(bank.questions); err != nil {
+			return fmt.Errorf("factory questions file %q: %w", path, err)
+		}
+		if len(bank.questions) == 0 {
+			return fmt.Errorf("factory questions file %q: questions cannot be empty", path)
+		}
+		bank.questionsPresent = true
+	}
+	if document.FallbackQuestions != nil {
+		if err := decodeFactoryQuestionsJSON(document.FallbackQuestions, &bank.fallbackQuestions); err != nil {
+			return fmt.Errorf("factory questions file %q: %w", path, err)
+		}
+		if err := validateConfigFallbackQuestions(&Config{FallbackQuestions: bank.fallbackQuestions}); err != nil {
+			return fmt.Errorf("factory questions file %q: %w", path, err)
+		}
+		if len(bank.fallbackQuestions) == 0 {
+			return fmt.Errorf("factory questions file %q: fallback_questions cannot be empty", path)
+		}
+		bank.fallbackPresent = true
+	}
+	cfg.factoryQuestions = bank
+	return nil
 }
 
 func mergeConfigGroups(c *Config) error {
@@ -297,7 +373,7 @@ func validateDefaultRuntimeGroup(c *Config) error {
 	if len(c.Groups) != 0 {
 		return nil
 	}
-	if c.VerifyMode != "" && c.VerifyMode != ModeKernel && len(c.Questions) == 0 {
+	if c.VerifyMode != "" && c.VerifyMode != ModeKernel && len(c.QuestionsFor(0)) == 0 {
 		return fmt.Errorf("default runtime group: no questions (add global questions or set verify_mode to %q)", ModeKernel)
 	}
 	if c.RequiredChannelID != 0 && c.ChannelInviteURL == "" && !strings.HasPrefix(c.ChannelDisplay, "@") {

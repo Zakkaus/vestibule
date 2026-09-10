@@ -98,7 +98,7 @@ jobs:
         run: python3 scripts/check-locale-catalogues.py
       - name: Nothing the previous generation answered has disappeared
         run: python3 scripts/check-inherited-commands.py
-      - name: No deployment's bot handle is compiled into the shipped code
+      - name: No known deployment identity is compiled into shipped code
         run: python3 scripts/check-no-baked-identity.py
       - name: Every declared message field is read outside the catalogue
         run: python3 scripts/check-message-fields-are-read.py

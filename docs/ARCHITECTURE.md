@@ -1039,7 +1039,7 @@ internal/database/settings.go   chat.settings 的 Repository
 migrations/01-settings.sql      settings_revision
 ```
 
-- **没有全局默认记录，也没有控制群。**新群从内嵌 factory 取得默认值； 用户文件中的旧式顶层值只展开到文件列出的群，不会传播给后来注册的群。
+- **没有全局默认记录，也没有控制群。**新群从 factory 取得默认值； `factory_questions_file` 指定的部署题库属于这一层，后来注册的群也继承。 用户文件中的其他旧式顶层值只展开到文件列出的群，不会传播给后来注册的群。
 - **进程级凭据不进入每群设置。**`BOT_TOKEN`、 `VT_DATABASE_TYPE`、`VT_DATABASE_URI` 与 `TELEGRAM_API_URL` 在进程装配边界读取。未认领时，仅将认领口令的哈希保存到 `STATE_DIRECTORY/claim.json`；认领后，Bot token 以 `0600` 权限保存到同一文件，并删除该哈希。
 - **控制台地址在回环上可以是 HTTP。**一次性链接把凭据写在路径里， 因此在网络上必须是 HTTPS；回环不是网络，请求不离开这台机器， 从别处到达它意味着一次端口转发，那条链路的传输由隧道负责。 一律要求 HTTPS 的结果是：设计文档为「没有域名」写的那种部署 （只监听本机、用端口转发打开）根本无法启动。
 - **认领口令由进程生成，不由人选。**没有配置 `SETUP_TOKEN` 时，进程用 32 字节随机数生成一个，把完整地址打印到日志， 哈希写进 `claim.json`。开这条地址的人给进程一个 bot token 并成为它的属主， 因此人选的口令就是可以被猜到的口令：显式配置的 `SETUP_TOKEN` 短于 24 个字符时进程拒绝启动，而不是带着一条可猜的认领地址开始监听。
@@ -1055,7 +1055,7 @@ migrations/01-settings.sql      settings_revision
 | 来源 | 含义 | 恢复方式 |
 |---|---|---|
 | factory default | `defaults.yaml` 的出厂值 | 无须恢复 |
-| user file | 启动文件为该群管理的值 | 修改文件并重启 |
+| user file | 启动文件管理的部署题库或每群值 | 修改文件并重启 |
 | chat override | `chat.settings` 的运行时覆盖 | 删除该稀疏字段 |
 
 `Store.Update(chatID, expectedRevision, overrides)` 接收完整稀疏记录。 Store 先解析整份有效设置并执行值域校验，再以 compare-and-swap 写数据库。 revision 冲突、校验失败或数据库写入失败都不发布新快照。
@@ -1063,6 +1063,8 @@ migrations/01-settings.sql      settings_revision
 ### 声明式资源：可由文件管理的部分
 
 题库、自动回复、订阅源既可以在控制台里改，也可以放进 `provisioning/` 由文件管理，启动时应用。 这让自托管者能把这些内容纳入版本控制，也让一套配置可以复制到另一台。
+
+当前部署题库由 `internal/settings` 在启动时读取 `factory_questions_file`，相对路径以配置文件所在目录为准。 文件复用 `questions` 与 `fallback_questions` 设置结构和校验； 指定的文件无效时拒绝启动，未指定时回落内置示例。 此入口不依赖下述通用导入功能，也不改变每群稀疏覆盖与还原协议。 出厂验证使用 `quiz`；`kernel` 保留为可选模式。
 
 - **与控制台导入是同一份实现、同一套校验。**不为文件另写一条路径。
 - 由文件管理的资源在控制台里**只读并标出来源**，避免有人在界面上改完， 下次重启被文件覆盖却不知道原因。

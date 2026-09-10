@@ -3,6 +3,7 @@ package verification
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
@@ -138,7 +139,7 @@ func TestPerGroupRuntimeSettingsIsolation(t *testing.T) {
 	overrides := group.Overrides()
 	enabled := false
 	spoiler := false
-	mode := settings.ModeQuiz
+	mode := settings.ModeKernel
 	banSeconds := 3600
 	lookupEnabled := false
 	timeoutSeconds := 600
@@ -184,7 +185,7 @@ func TestPerGroupRuntimeSettingsIsolation(t *testing.T) {
 
 	if v.IsEnabled(groupA) || !v.IsEnabled(groupB) ||
 		v.NameSpoilerOn(groupA) || !v.NameSpoilerOn(groupB) ||
-		v.EffectiveMode(groupA) != settings.ModeQuiz || v.EffectiveMode(groupB) != settings.ModeKernel {
+		v.EffectiveMode(groupA) != mode || v.EffectiveMode(groupB) != group.VerifyMode().Value {
 		t.Fatal("enabled, spoiler, or mode leaked between groups")
 	}
 	if v.timeout(groupA) != 10*time.Minute || v.timeout(groupB) != 4*time.Minute ||
@@ -216,7 +217,7 @@ func TestPerGroupRuntimeSettingsIsolation(t *testing.T) {
 		v.channelInviteURL(groupA) != invite {
 		t.Fatal("channel or trusted-chat settings leaked between groups")
 	}
-	if len(v.questions(groupA)) != 1 || len(v.questions(groupB)) != 0 {
+	if !reflect.DeepEqual(v.questions(groupA), questions) || !reflect.DeepEqual(v.questions(groupB), group.Questions().Value) {
 		t.Fatal("question pools leaked between groups")
 	}
 	if question, answers := v.fallbackQuestion(groupA, i18n.LangZH); question != fallback[0].Q || len(answers) != 1 {

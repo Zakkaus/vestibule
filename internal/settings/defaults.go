@@ -125,6 +125,19 @@ func factoryBaseline() GroupBaseline {
 	}
 }
 
+func applyFactoryQuestions(factory GroupBaseline, bank *factoryQuestionBank) GroupBaseline {
+	if bank == nil {
+		return factory
+	}
+	if bank.questionsPresent {
+		factory.Questions = userFileValue(cloneQuestions(bank.questions))
+	}
+	if bank.fallbackPresent {
+		factory.FallbackQuestions = userFileValue(cloneShortQuestions(bank.fallbackQuestions))
+	}
+	return factory
+}
+
 func factoryValue[T any](value T) BaselineValue[T] {
 	return BaselineValue[T]{Value: value, Source: SourceFactory}
 }
@@ -162,8 +175,9 @@ func (p configPresence) has(key string) bool {
 	return ok && value != nil
 }
 
-// LoadBaseline expands legacy top-level file values into configured chats. The factory remains
-// immutable, so a subsequently registered chat cannot inherit another chat's file-managed values.
+// LoadBaseline builds the immutable factory baseline and expands legacy top-level file values
+// only into configured chats. A deployment question file replaces the factory bank for every
+// configured and subsequently registered chat.
 func LoadBaseline(configPath string, cfg *Config) (SettingsBaseline, error) {
 	presence, err := readConfigPresence(configPath)
 	if err != nil {
@@ -173,7 +187,7 @@ func LoadBaseline(configPath string, cfg *Config) (SettingsBaseline, error) {
 }
 
 func settingsBaselineFromConfig(cfg *Config, presence configPresence) SettingsBaseline {
-	factory := factoryBaseline()
+	factory := applyFactoryQuestions(factoryBaseline(), cfg.factoryQuestions)
 	configuredTemplate := applyTopLevelUserValues(factory, cfg, presence)
 	baseline := SettingsBaseline{Factory: factory}
 	baseline.Groups = make([]GroupBaseline, 0, max(len(cfg.Groups), len(cfg.GroupIDs)))

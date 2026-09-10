@@ -141,6 +141,12 @@ func TestRuntimeRegistrationActivatesServicesWithoutRebuiltConfig(t *testing.T) 
 		t.Fatal("test rebuilt or mutated the startup config")
 	}
 	runtimeSettings, _ := fixture.settings.Settings(groupID)
+	if mode := runtimeSettings.VerifyMode(); mode.Value != settings.ModeQuiz || mode.Source != settings.SourceFactory {
+		t.Fatalf("new registration mode = %+v, want factory quiz", mode)
+	}
+	if questions := runtimeSettings.Questions(); len(questions.Value) == 0 || questions.Source != settings.SourceFactory {
+		t.Fatalf("new registration quiz bank = %+v, want inherited factory questions", questions)
+	}
 	runtimeOverrides := runtimeSettings.Overrides()
 	runtimeLanguage := "zh-Hant"
 	runtimeOverrides.Lang = &runtimeLanguage
@@ -156,6 +162,9 @@ func TestRuntimeRegistrationActivatesServicesWithoutRebuiltConfig(t *testing.T) 
 		From:       telego.User{ID: userID, FirstName: "Applicant", LanguageCode: "en"},
 		UserChatID: userID,
 	}})
+	if !runtimeHasQuizButtons(t, fixture.caller, userID) {
+		t.Fatal("first applicant in a newly registered group did not receive quiz answer buttons")
+	}
 	joinHandled := runtimeMethodCallsForChat(t, fixture.caller, "sendMessage", userID) > beforePrivate &&
 		runtimeMethodCallsForChat(t, fixture.caller, "sendMessage", groupID) > beforeJoin
 
@@ -194,6 +203,43 @@ func runtimeMethodCallsForChat(t *testing.T, caller *dispatchCaller, method stri
 		}
 	}
 	return count
+}
+
+func runtimeHasQuizButtons(t *testing.T, caller *dispatchCaller, chatID int64) bool {
+	t.Helper()
+	for _, call := range caller.snapshotCalls() {
+		if call.method != "sendMessage" {
+			continue
+		}
+		var params struct {
+			ChatID      int64  `json:"chat_id"`
+			Text        string `json:"text"`
+			ReplyMarkup struct {
+				InlineKeyboard [][]struct {
+					Text         string `json:"text"`
+					CallbackData string `json:"callback_data"`
+				} `json:"inline_keyboard"`
+			} `json:"reply_markup"`
+		}
+		if err := json.Unmarshal(call.body, &params); err != nil || params.ChatID != chatID {
+			continue
+		}
+		buttons := 0
+		hasFour, hasFive := false, false
+		for _, row := range params.ReplyMarkup.InlineKeyboard {
+			for _, button := range row {
+				if strings.HasPrefix(button.CallbackData, verification.AnswerCallbackPrefix) {
+					buttons++
+					hasFour = hasFour || button.Text == "4"
+					hasFive = hasFive || button.Text == "5"
+				}
+			}
+		}
+		if buttons == 2 && hasFour && hasFive && strings.Contains(params.Text, "2 + 2 = ?") {
+			return true
+		}
+	}
+	return false
 }
 
 func waitForRuntimeCommandScope(t *testing.T, caller *dispatchCaller, groupID int64) bool {

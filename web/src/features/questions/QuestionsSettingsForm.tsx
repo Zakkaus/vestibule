@@ -11,7 +11,8 @@ import {
   type QuestionLanguage,
   type QuestionSettingField,
   type QuestionSettings,
-  type SettingSource
+  type SettingSource,
+  type ShortQuestion
 } from "./api";
 import {
   newQuestionDraft,
@@ -308,10 +309,102 @@ function FallbackMode({
     </fieldset>
   );
 }
+function FallbackQuestionPreview({
+  questions
+}: Readonly<{ questions: readonly ShortQuestion[] }>) {
+  const { t } = useTranslation();
+  if (questions.length === 0) {
+    return (
+      <p data-question-empty>
+        <span data-state-heading>
+          <Icon name="inbox" />
+          {t("questions.fallback.inheritedEmpty")}
+        </span>
+      </p>
+    );
+  }
+
+  return (
+    <div data-question-list data-fallback-preview-list>
+      {questions.map((question, index) => {
+        const itemID = `fallback-preview-${index + 1}`;
+        const answersID = `${itemID}-answers`;
+        return (
+          <section
+            key={`${index}-${question.q}`}
+            data-slot="card"
+            data-question-item
+            data-fallback-preview-item
+            aria-labelledby={`${itemID}-title`}
+          >
+            <header data-question-item-heading>
+              <h3 id={`${itemID}-title`}>
+                {t("questions.fallback.itemTitle", { number: index + 1 })}
+              </h3>
+            </header>
+            <p data-fallback-preview-prompt>{question.q}</p>
+            <div data-fallback-answers aria-labelledby={answersID}>
+              <p id={answersID}>{t("questions.fallback.answers")}</p>
+              <ul>
+                {question.answers.map((answer, answerIndex) => (
+                  <li key={`${answerIndex}-${answer}`}>{answer}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function InheritedFallbackBank({
+  settings,
+  pending
+}: Readonly<{ settings: QuestionSettings; pending: boolean }>) {
+  const { t } = useTranslation();
+  if (!settings.fallback_builtin.value || settings.fallback_questions.source === "chat override") {
+    return <p data-fallback-preview-pending>{t("questions.fallback.inheritedPending")}</p>;
+  }
+  return (
+    <div data-fallback-preview>
+      <p data-fallback-builtin-note>
+        {t(
+          settings.fallback_questions.source === "factory default"
+            ? "questions.fallback.builtinExampleDescription"
+            : "questions.fallback.builtinDescription"
+        )}
+      </p>
+      {pending ? (
+        <p data-fallback-preview-pending>{t("questions.fallback.inheritedPending")}</p>
+      ) : null}
+      <div data-question-list-heading>
+        <p>
+          {t("questions.fallback.inheritedCount", {
+            count: settings.fallback_questions.value.length
+          })}
+        </p>
+      </div>
+      <FallbackQuestionPreview questions={settings.fallback_questions.value} />
+    </div>
+  );
+}
 
 function FallbackSection(props: Omit<QuestionsSettingsFormProps, "hasChanges" | "onSubmit">) {
   const { t } = useTranslation();
-  const { settings, draft, validation, restored, saving, onDraftChange, onRestoreFallback } = props;
+  const {
+    settings,
+    draft,
+    validation,
+    restored,
+    saving,
+    onDraftChange,
+    onRestoreFallback
+  } = props;
+  const inheritancePending =
+    settings.fallback_builtin.value !== draft.fallbackBuiltin ||
+    restored.has("fallback_builtin") ||
+    restored.has("fallback_questions");
   return (
     <QuestionSection
       id="questions-fallback"
@@ -321,9 +414,12 @@ function FallbackSection(props: Omit<QuestionsSettingsFormProps, "hasChanges" | 
       <FallbackSources settings={settings} restored={restored} onRestore={onRestoreFallback} />
       <FallbackMode draft={draft} saving={saving} onDraftChange={onDraftChange} />
       {draft.fallbackBuiltin ? (
-        <p data-fallback-builtin-note>{t("questions.fallback.builtinDescription")}</p>
+        <InheritedFallbackBank settings={settings} pending={inheritancePending} />
       ) : (
         <>
+          {restored.has("fallback_builtin") || restored.has("fallback_questions") ? (
+            <p data-fallback-preview-pending>{t("questions.fallback.inheritedPending")}</p>
+          ) : null}
           <div data-question-list-heading>
             <p>{t("questions.fallback.count", { count: draft.fallbackQuestions.length })}</p>
             <button

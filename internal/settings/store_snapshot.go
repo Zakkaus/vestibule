@@ -42,7 +42,7 @@ func (s *Store) buildSnapshot(state settingsFile) (*settingsSnapshot, error) {
 	order := make([]int64, 0, len(s.baseline.Groups)+len(state.RegisteredGroups))
 	for _, baseline := range s.baseline.Groups {
 		record := state.Groups[baseline.ID]
-		group := buildEffectiveGroup(baseline, record, false)
+		group := buildEffectiveGroup(baseline, record, false, s.baseline.Factory)
 		if err := validateEffectiveGroup(group); err != nil {
 			return nil, fmt.Errorf("group %d: %w", baseline.ID, err)
 		}
@@ -53,26 +53,31 @@ func (s *Store) buildSnapshot(state settingsFile) (*settingsSnapshot, error) {
 		baseline := cloneGroupBaseline(s.baseline.Factory)
 		baseline.ID = registered.ID
 		record := state.Groups[registered.ID]
-		group := buildEffectiveGroup(baseline, record, true)
+		group := buildEffectiveGroup(baseline, record, true, s.baseline.Factory)
 		if err := validateEffectiveGroup(group); err != nil {
-			return nil, fmt.Errorf("group %d: %w", registered.ID, err)
+			return nil, fmt.Errorf("group %d: %w", baseline.ID, err)
 		}
-		groups[registered.ID] = group
-		order = append(order, registered.ID)
+		groups[baseline.ID] = group
+		order = append(order, baseline.ID)
 	}
 	return &settingsSnapshot{groups: groups, groupIDs: order, registration: registration}, nil
 }
 
-func buildEffectiveGroup(baseline GroupBaseline, record groupRecord, registered bool) *effectiveGroup {
+func buildEffectiveGroup(
+	baseline GroupBaseline,
+	record groupRecord,
+	registered bool,
+	factory GroupBaseline,
+) *effectiveGroup {
 	builtin := resolve(record.FallbackBuiltin, baseline.FallbackBuiltin)
-	fallback := resolveSlice(record.FallbackQuestions, baseline.FallbackQuestions, cloneShortQuestions)
+	var fallback Setting[[]ShortQuestion]
 	if builtin.Value {
-		fallback.Value = []ShortQuestion{}
-		if record.FallbackBuiltin != nil {
-			fallback.Source = SourceChatOverride
-		} else if baseline.FallbackBuiltin.Value {
-			fallback.Source = baseline.FallbackBuiltin.Source
+		fallback = Setting[[]ShortQuestion]{
+			Value:  cloneShortQuestions(factory.FallbackQuestions.Value),
+			Source: factory.FallbackQuestions.Source,
 		}
+	} else {
+		fallback = resolveSlice(record.FallbackQuestions, baseline.FallbackQuestions, cloneShortQuestions)
 	}
 	return &effectiveGroup{
 		id:               baseline.ID,
@@ -143,7 +148,7 @@ func validateBaseline(baseline SettingsBaseline) error {
 	if err := validateBaselineSources(baseline.Factory); err != nil {
 		return fmt.Errorf("default group: %w", err)
 	}
-	if err := validateEffectiveGroup(buildEffectiveGroup(baseline.Factory, groupRecord{}, false)); err != nil {
+	if err := validateEffectiveGroup(buildEffectiveGroup(baseline.Factory, groupRecord{}, false, baseline.Factory)); err != nil {
 		return fmt.Errorf("default group: %w", err)
 	}
 	seen := make(map[int64]bool, len(baseline.Groups))
@@ -158,7 +163,7 @@ func validateBaseline(baseline SettingsBaseline) error {
 		if err := validateBaselineSources(group); err != nil {
 			return fmt.Errorf("group %d: %w", group.ID, err)
 		}
-		if err := validateEffectiveGroup(buildEffectiveGroup(group, groupRecord{}, false)); err != nil {
+		if err := validateEffectiveGroup(buildEffectiveGroup(group, groupRecord{}, false, baseline.Factory)); err != nil {
 			return fmt.Errorf("group %d: %w", group.ID, err)
 		}
 	}

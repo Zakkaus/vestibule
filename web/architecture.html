@@ -2121,8 +2121,9 @@ migrations/01-settings.sql      settings_revision</div>
       </div>
     </div>
     <ul>
-      <li><strong>没有全局默认记录，也没有控制群。</strong>新群从内嵌 factory 取得默认值；
-        用户文件中的旧式顶层值只展开到文件列出的群，不会传播给后来注册的群。</li>
+      <li><strong>没有全局默认记录，也没有控制群。</strong>新群从 factory 取得默认值；
+        <code>factory_questions_file</code> 指定的部署题库属于这一层，后来注册的群也继承。
+        用户文件中的其他旧式顶层值只展开到文件列出的群，不会传播给后来注册的群。</li>
       <li><strong>进程级凭据不进入每群设置。</strong><code>BOT_TOKEN</code>、
         <code>VT_DATABASE_TYPE</code>、<code>VT_DATABASE_URI</code> 与
         <code>TELEGRAM_API_URL</code> 在进程装配边界读取。未认领时，仅将认领口令的哈希保存到
@@ -2153,7 +2154,7 @@ migrations/01-settings.sql      settings_revision</div>
       <thead><tr><th>来源</th><th>含义</th><th>恢复方式</th></tr></thead>
       <tbody>
         <tr><td class="mono">factory default</td><td><code>defaults.yaml</code> 的出厂值</td><td>无须恢复</td></tr>
-        <tr><td class="mono">user file</td><td>启动文件为该群管理的值</td><td>修改文件并重启</td></tr>
+        <tr><td class="mono">user file</td><td>启动文件管理的部署题库或每群值</td><td>修改文件并重启</td></tr>
         <tr><td class="mono">chat override</td><td><code>chat.settings</code> 的运行时覆盖</td><td>删除该稀疏字段</td></tr>
       </tbody>
     </table></div>
@@ -2165,6 +2166,12 @@ migrations/01-settings.sql      settings_revision</div>
     <p>题库、自动回复、订阅源既可以在控制台里改，也可以放进
       <code>provisioning/</code> 由文件管理，启动时应用。
       这让自托管者能把这些内容纳入版本控制，也让一套配置可以复制到另一台。</p>
+    <p>当前部署题库由 <code>internal/settings</code> 在启动时读取
+      <code>factory_questions_file</code>，相对路径以配置文件所在目录为准。
+      文件复用 <code>questions</code> 与 <code>fallback_questions</code> 设置结构和校验；
+      指定的文件无效时拒绝启动，未指定时回落内置示例。
+      此入口不依赖下述通用导入功能，也不改变每群稀疏覆盖与还原协议。
+      出厂验证使用 <code>quiz</code>；<code>kernel</code> 保留为可选模式。</p>
     <ul>
       <li><b>与控制台导入是同一份实现、同一套校验。</b>不为文件另写一条路径。</li>
       <li>由文件管理的资源在控制台里<b>只读并标出来源</b>，避免有人在界面上改完，

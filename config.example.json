@@ -1,12 +1,14 @@
 {
   "observe_only": false,
+  "verify_mode": "quiz",
+  "factory_questions_file": "",
   "group_ids": [
-    -1001234567890
+    -1009000000001
   ],
   "github_atom_base": "",
   "feeds": [
     {
-      "chat_id": -1001234567890,
+      "chat_id": -1009000000001,
       "lang": "en",
       "interval_seconds": 300,
       "bugs": false,

@@ -33,6 +33,22 @@
 3. 状态在数据库，并发与重启之下不丢、不重复结算。
 4. 一条命令部署，升级失败自动回退。
 
+### 部署题库与中性默认
+
+出厂验证使用 `quiz`，题目是无需操作系统知识的内置示例，不是有效抵挡自动化的保证。
+`kernel` 与 `mixed` 保留为可选模式；已有每群空数组与 `null` 覆盖语义不变。
+
+部署者在 `config.json` 中用 `factory_questions_file` 指向一份题库数据，
+相对路径以配置文件所在目录为准。文件复用 `questions` 与 `fallback_questions`
+的现有结构和校验，进程启动时读取。未设置路径才使用内置示例；
+指定的文件不存在或无效时拒绝启动。部署题库属于新群也会继承的基线，
+不是只展开到配置文件列出的群的旧式顶层覆盖。
+
+题库屏显示实际生效的题目及来源：出厂默认、配置文件、此群覆盖。
+还原沿用现有稀疏覆盖协议，删除此群字段后重新继承基线。
+验收覆盖无外部文件、自定义部署题库、新群首题、覆盖与还原，并逐项驱红。
+本次不增加插件、脚本语言、题库市场、多套切换、导入导出入口或分类体系。
+
 ### 功能范围
 
 这一轮要做的功能，按屏列出。每一项的界面规定见 `web/design.html`，
@@ -792,7 +808,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 | `internal/i18n/catalog.go` 的 `CommandPrefix` 读取 | 删除运行时替换；三语目录直接保存无前缀命令 |
 | `internal/i18n/catalog.go` 的 `KernelExampleSuffix` 读取 | 删除运行时替换；三语目录直接保存通用示例 |
 | `internal/i18n/bot.go` 的 `IsGentoo` 读取 | 删除版本分支，只保留中性的 `Identity` 文案 |
-| verification 文案的 `IsGentoo` 读取 | 删除版本分支；fallback 题迁入 `internal/rules/provisioning/fallback_questions.json` |
+| verification 文案的 `IsGentoo` 读取 | 删除版本分支；fallback 题不再按构建标签选择，部署题库由 `internal/settings` 加载 |
 | `cmd/bot/main.go` 的 `Name` 读取 | 保留单一 `edition.Name`，继续拼接默认配置路径 |
 
 `gentoo` 构建标签现在只用于兼容性回归，不再选择源码或产品行为。
@@ -807,7 +823,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 | 现路径 | 处置 | 目标位置 |
 |---|---|---|
 | `internal/bot/{commands,dm}.go` | 复查 | `internal/telegram/updates.go`、`internal/telegram/tgfmt`、`internal/settings` |
-| `internal/i18n/{bot,catalog,verification}.go` | 复查 | `internal/i18n`、`internal/settings`、出厂 rules/provisioning |
+| `internal/i18n/{bot,catalog,verification}.go` | 复查 | `internal/i18n`、`internal/settings` |
 | `cmd/vestibule/registration.go` | 复查 | `internal/telegram/updates.go`、`internal/database`、`internal/settings` |
 | `internal/store/{baseline,settings}.go` | 复查 | `internal/settings`、`internal/database` |
 | `internal/config/config.go` | 复查 | `internal/settings` |
@@ -820,7 +836,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 - 每群只继承出厂默认或本群 override，配置、队列、授权和规则互不串群；删除社区配置后产品仍可运行。
 - 每次敏感写入仍现查管理员；不保留全局 owner、enrollment、未知群延迟离开或 build edition 的特权路径。
 - 命令菜单保留语言 scope 与运行时群更新；私聊命令不被自动回复吞掉；版本元数据保留，社区身份、命令前缀和 edition fallback 题被移除。
-- typed catalogue、占位符和三语一致性保持；内置 fallback 题改为出厂 rules/provisioning，而非按 build tag 选择。
+- typed catalogue、占位符和三语一致性保持；fallback 使用部署题库或内置示例，不按 build tag 选择。
 
 **配置模型已于阶段四完成切换。** 因此，这 12 个来源在阶段八仅需复查，
 确认移除全局默认后，不再有代码假设某个特定群存在。
