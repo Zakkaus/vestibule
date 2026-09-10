@@ -108,9 +108,13 @@ export function useVersionController(): VersionController {
   }, []);
 
   const beginUpgrade = useCallback((version: string) => {
-    setUpgradeState((current) => current.kind === "idle" || current.kind === "request-unavailable"
-      ? { kind: "confirming", version }
-      : current);
+    setUpgradeState((current) =>
+      current.kind === "idle" ||
+      current.kind === "request-unavailable" ||
+      current.kind === "failed"
+        ? { kind: "confirming", version }
+        : current
+    );
   }, []);
 
   const cancelUpgrade = useCallback(() => {

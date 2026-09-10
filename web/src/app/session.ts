@@ -233,6 +233,18 @@ export function retryConsoleSession(): Promise<void> {
   return consoleSessionStore.retrySession(telegramInitData());
 }
 
+export function retryConsoleAccess(state: ConsoleSessionState): boolean {
+  if (state.state === "blocked") {
+    void retryConsoleSession();
+    return true;
+  }
+  if (state.state === "groups-unavailable") {
+    void retryConsoleGroups();
+    return true;
+  }
+  return false;
+}
+
 export function useConsoleSession(): ConsoleSessionState {
   const snapshot = useSyncExternalStore(
     consoleSessionStore.subscribe,

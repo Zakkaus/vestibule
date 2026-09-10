@@ -12,12 +12,14 @@ type RuleBusy =
 type RuleFeedback = Readonly<{
   tone: "ok" | "error";
   content: ReactNode;
+  reloadable: boolean;
 }>;
 
 type RulesPanelProps = Readonly<{
   items: readonly MessageRule[];
   busy: RuleBusy;
   feedback: RuleFeedback | null;
+  onReload: () => void;
   onToggle: (rule: MessageRule) => void;
   onMove: (rule: MessageRule, direction: "up" | "down") => void;
 }>;
@@ -169,7 +171,7 @@ function RuleCollectionView({
   );
 }
 
-export function RulesPanel({ items, busy, feedback, onToggle, onMove }: RulesPanelProps) {
+export function RulesPanel({ items, busy, feedback, onReload, onToggle, onMove }: RulesPanelProps) {
   const { t } = useTranslation();
   const collections = groupedCollections(items);
 
@@ -203,9 +205,25 @@ export function RulesPanel({ items, busy, feedback, onToggle, onMove }: RulesPan
         </div>
       )}
       {feedback ? (
-        <div data-messages-rules-feedback data-tone={feedback.tone} role={feedback.tone === "error" ? "alert" : "status"}>
+        <div
+          data-messages-rules-feedback
+          data-tone={feedback.tone}
+          role={feedback.tone === "error" ? "alert" : "status"}
+        >
           <Icon name={feedback.tone === "ok" ? "circleCheck" : "circleAlert"} />
           {feedback.content}
+          {feedback.reloadable ? (
+            <button
+              type="button"
+              data-slot="button"
+              data-variant="outline"
+              data-size="sm"
+              onClick={onReload}
+            >
+              <Icon name="refreshCw" />
+              {t("messages.actions.reload")}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </section>

@@ -222,7 +222,7 @@ function ManualUpgradeNotice({ version }: Readonly<{ version: string }>) {
       <p>{t("version.manual.imageLabel")}</p>
       <code data-version-manual-image>{`VESTIBULE_APP_IMAGE=ghcr.io/zakkaus/vestibule:${version}`}</code>
       <p>{t("version.manual.commandsLabel")}</p>
-      <pre data-version-manual-command><code>{"docker compose pull app\ndocker compose up -d --no-deps app"}</code></pre>
+      <pre data-version-manual-command><code>{"docker compose --env-file container.env pull app\ndocker compose --env-file container.env up -d --no-deps app"}</code></pre>
     </aside>
   );
 }
@@ -260,7 +260,12 @@ function UpgradeFeedback({ controller }: Readonly<{ controller: VersionControlle
       <div data-version-upgrade-outcome={upgradeState.kind} role={upgradeState.kind === "failed" ? "alert" : "status"}>
         <ReplacementResultNotice result={upgradeState.result} />
         {upgradeState.kind === "failed" ? (
-          <button type="button" data-slot="button" data-variant="outline" onClick={controller.cancelUpgrade}>
+          <button
+            type="button"
+            data-slot="button"
+            data-variant="outline"
+            onClick={() => controller.beginUpgrade(upgradeState.result.requestedVersion)}
+          >
             <Icon name="rotateCcw" />
             {t("version.upgrade.tryAgain")}
           </button>

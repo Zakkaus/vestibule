@@ -396,3 +396,23 @@ test("bypass ignores a previous group's delayed settings save", async ({ page })
   await patchResponseSettled;
   await expect(page.locator("#bypass-channel-display")).toHaveValue("@group-b");
 });
+
+test("an interrupted bypass save provides the settings reload it names", async ({ page }) => {
+  let settingsReads = 0;
+  await openLiveBypass(
+    page,
+    async (route) => {
+      settingsReads += 1;
+      await fulfillJSON(route, settingsResponse());
+    },
+    async (route) => route.abort("failed")
+  );
+
+  await page.locator("#bypass-trusted-member-group-ids").fill("-1007000000002");
+  await page.getByRole("button", { name: "保存" }).click();
+  const feedback = page.locator("[data-bypass-feedback]");
+  await expect(feedback).toContainText("连接已中断");
+  await feedback.getByRole("button", { name: "重新读取" }).click();
+  await expect.poll(() => settingsReads).toBe(2);
+  await expect(feedback).toHaveCount(0);
+});
