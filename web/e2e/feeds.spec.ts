@@ -73,7 +73,12 @@ const configuredProcessSettings = {
         news: true,
         bug_product: "Gentoo Linux",
         bug_component: "Portage",
-        silent_bugs: true
+        silent_bugs: true,
+        github_repos: [
+          { repo: "gentoo-zh/overlay", branch: "main" },
+          { repo: "gentoo-zh/overlay", branch: "release" },
+          { repo: "gentoo-zh/overlay" }
+        ]
       },
       {
         chat_id: -1009000000204,
@@ -83,7 +88,8 @@ const configuredProcessSettings = {
         news: null,
         bug_product: "",
         bug_component: "",
-        silent_bugs: null
+        silent_bugs: null,
+        github_repos: [{ repo: "Zakkaus/vestibule", branch: "v5/next" }]
       }
     ],
     source: "user file"
@@ -111,6 +117,7 @@ test("feed delivery renders process values, array records, and API provenance wi
   await expect(screen.locator("[data-feeds-readonly]")).toContainText("此页面不提供写入功能");
   await expect(screen.locator("input, textarea, select, button")).toHaveCount(0);
   await expect(screen.getByText("保存", { exact: true })).toHaveCount(0);
+  await expect(screen).not.toContainText("github_atom_base");
   expect(processMethods).toEqual(["GET"]);
 
   const feedSection = screen.locator('[data-feeds-section="feeds"]');
@@ -121,6 +128,16 @@ test("feed delivery renders process values, array records, and API provenance wi
   await expect(feeds.nth(0)).toContainText("Gentoo Package Updates");
   await expect(feeds.nth(1)).toContainText("Linux News");
   await expect(screen).not.toContainText(/-100\d+/);
+  const githubRepos = feeds.nth(0).locator("[data-github-repo]");
+  await expect(githubRepos).toHaveCount(3);
+  await expect(githubRepos.nth(0)).toContainText("gentoo-zh/overlay");
+  await expect(githubRepos.nth(0)).toContainText("main");
+  await expect(githubRepos.nth(1)).toContainText("release");
+  await expect(githubRepos.nth(2)).toContainText("跟随默认分支");
+  const secondGitHubRepos = feeds.nth(1).locator("[data-github-repo]");
+  await expect(secondGitHubRepos).toHaveCount(1);
+  await expect(secondGitHubRepos).toContainText("Zakkaus/vestibule");
+  await expect(secondGitHubRepos).toContainText("v5/next");
   await expect(feeds.nth(0)).toContainText("600 秒");
   await expect(feeds.nth(0)).toContainText("Gentoo Linux");
   await expect(feeds.nth(0)).toContainText("Portage");
@@ -178,5 +195,58 @@ test("feed delivery keeps empty process arrays visible with their sources", asyn
   await expect(screen.locator("[data-feed-item]")).toHaveCount(0);
   await expect(screen.locator("[data-overlay-item]")).toHaveCount(0);
   await expect(screen.locator('[data-process-setting-source="factory default"]')).toHaveCount(3);
+  expect(processMethods).toEqual(["GET"]);
+});
+
+test("feed delivery accepts missing, null, and empty GitHub repository lists", async ({ page }) => {
+  const processMethods = await openLoadedFeeds(page, {
+    feeds: {
+      value: [
+        {
+          chat_id: -1009000000301,
+          lang: "en",
+          interval_seconds: 600,
+          bugs: false,
+          news: false,
+          bug_product: "",
+          bug_component: "",
+          silent_bugs: false
+        },
+        {
+          chat_id: -1009000000302,
+          lang: "en",
+          interval_seconds: 600,
+          bugs: false,
+          news: false,
+          bug_product: "",
+          bug_component: "",
+          silent_bugs: false,
+          github_repos: null
+        },
+        {
+          chat_id: -1009000000303,
+          lang: "en",
+          interval_seconds: 600,
+          bugs: false,
+          news: false,
+          bug_product: "",
+          bug_component: "",
+          silent_bugs: false,
+          github_repos: []
+        }
+      ],
+      source: "user file"
+    },
+    news_url: { value: "", source: "factory default" },
+    overlays: { value: [], source: "factory default" },
+    stats_timezone: { value: "", source: "factory default" }
+  });
+  const screen = page.locator("[data-feeds-page]");
+  const feeds = screen.locator("[data-feed-item]");
+
+  await expect(feeds).toHaveCount(3);
+  for (const feed of await feeds.all()) {
+    await expect(feed.locator("[data-github-repo]")).toHaveCount(0);
+  }
   expect(processMethods).toEqual(["GET"]);
 });

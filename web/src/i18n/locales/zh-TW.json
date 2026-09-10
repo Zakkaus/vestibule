@@ -376,7 +376,7 @@
     },
     "feed": {
       "title": "訂閱目標",
-      "description": "每一項對應一個接收 Bugzilla 或新聞推送的群組或頻道。",
+      "description": "每一項對應一個接收 Bugzilla、新聞或 GitHub 提交推送的群組或頻道。",
       "itemTitle": "目標 {{number}}",
       "destination": "接收群組或頻道",
       "language": "推送語言",
@@ -386,10 +386,12 @@
       "bugProduct": "Bugzilla 產品",
       "bugComponent": "Bugzilla 元件",
       "silentBugs": "Bugzilla 一律靜默",
+      "githubRepository": "GitHub 儲存庫",
+      "followingDefault": "跟隨預設分支",
       "allProducts": "所有產品",
       "allComponents": "所有元件",
       "emptyTitle": "未設定訂閱目標",
-      "emptyDescription": "目前處理程序不會向任何群組或頻道傳送 Bugzilla 或新聞推送。"
+      "emptyDescription": "目前處理程序不會向任何群組或頻道傳送 Bugzilla、新聞或 GitHub 提交推送。"
     },
     "newsURL": {
       "title": "新聞來源網址",

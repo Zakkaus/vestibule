@@ -376,7 +376,7 @@
     },
     "feed": {
       "title": "订阅目标",
-      "description": "每项对应一个接收 Bugzilla 或新闻推送的群或频道。",
+      "description": "每项对应一个接收 Bugzilla、新闻或 GitHub 提交推送的群或频道。",
       "itemTitle": "目标 {{number}}",
       "destination": "接收群或频道",
       "language": "推送语言",
@@ -386,10 +386,12 @@
       "bugProduct": "Bugzilla 产品",
       "bugComponent": "Bugzilla 组件",
       "silentBugs": "Bugzilla 始终静默",
+      "githubRepository": "GitHub 仓库",
+      "followingDefault": "跟随默认分支",
       "allProducts": "全部产品",
       "allComponents": "全部组件",
       "emptyTitle": "未配置订阅目标",
-      "emptyDescription": "当前进程不会向任何群或频道发送 Bugzilla 或新闻推送。"
+      "emptyDescription": "当前进程不会向任何群或频道发送 Bugzilla、新闻或 GitHub 提交推送。"
     },
     "newsURL": {
       "title": "新闻源地址",
