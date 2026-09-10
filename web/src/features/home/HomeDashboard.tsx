@@ -156,7 +156,7 @@ function OverviewSection({
               minWidth: 0,
               padding: 12,
               borderRadius: "lg",
-              backgroundColor: "layer-2"
+              backgroundColor: "layer-1"
             })}>
               <Text styles={style({ font: "heading", fontWeight: "bold", color: "neutral" })}>{metric.value}</Text>
               <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", fontWeight: "medium", color: "neutral-subdued" })}>
@@ -191,7 +191,7 @@ function AttentionSection({
           {items.map((item) => (
             <Link key={item.id} href={`${item.path}${groupSearch}`} isStandalone isQuiet data-home-attention={item.id}
               aria-label={`${t(item.titleKey)} ${t(item.descriptionKey, { count: item.count })}`}>
-              <Content styles={style({ display: "flex", alignItems: "center", gap: 12, font: "body", minWidth: 0, padding: 12, borderRadius: "lg", backgroundColor: "layer-2" })}>
+              <Content styles={style({ display: "flex", alignItems: "center", gap: 12, font: "body", minWidth: 0, padding: 12, borderRadius: "lg", backgroundColor: "layer-1" })}>
                 <Badge data-home-attention-tone={item.tone} variant={item.tone === "error" ? "negative" : "notice"} fillStyle="subtle"><Icon name={attentionIcons[item.tone]} /> {t(`home.attention.tones.${item.tone}`)}</Badge>
                 <Text data-home-attention-copy styles={style({ flexGrow: 1 })}>{t(item.titleKey)}</Text>
                 {item.count !== undefined ? <Text>{item.count}</Text> : null}
@@ -233,8 +233,8 @@ export function HomeDashboard({ data, chatID }: Readonly<{ data: HomeData; chatI
         styles={style({
           display: "grid",
           gridTemplateColumns: { default: ["minmax(0, 1fr)"], lg: ["minmax(0, 1fr)", "minmax(0, 1fr)"] },
-          gap: 16,
-          alignItems: "stretch",
+          gap: { default: 32, "@media (max-height: 800px)": 20 },
+          alignItems: "start",
           minWidth: 0
         })}
       >

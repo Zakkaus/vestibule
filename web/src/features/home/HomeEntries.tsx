@@ -74,7 +74,7 @@ function ConfigEntry({
         minWidth: 0,
         padding: 12,
         borderRadius: "lg",
-        backgroundColor: "layer-2"
+        backgroundColor: "layer-1"
       })}>
         <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", fontWeight: "medium", color: "neutral-subdued" })}>
           <Icon name={iconName} /> {t(titleKey)}
