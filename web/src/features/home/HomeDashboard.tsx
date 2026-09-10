@@ -147,7 +147,20 @@ function OverviewSection({
       <Content aria-labelledby="home-overview-title" data-home-metrics styles={style({ display: "grid", gridTemplateColumns: { default: ["minmax(0, 1fr)", "minmax(0, 1fr)"], lg: ["minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)"] }, gap: 8, minWidth: 0 })}>
         {metrics.map((metric) => (
           <Link key={metric.id} href={`${metric.path}${groupSearch}`} isStandalone isQuiet data-home-metric={metric.id}>
-            <Content styles={style({ display: "grid", gap: 4, minWidth: 0 })}>
+            {/* Same block as every other row on the page: its own ground, its own edge.
+                Without it the numbers were the one thing on the page with no boundary,
+                and the space under the heading read differently here than everywhere else. */}
+            <Content styles={style({
+              display: "grid",
+              gap: 4,
+              minWidth: 0,
+              padding: 12,
+              borderRadius: "lg",
+              borderWidth: 1,
+              borderStyle: "solid",
+              borderColor: "gray-200",
+              backgroundColor: "layer-2"
+            })}>
               <Text styles={style({ font: "heading-xl", fontWeight: "bold", color: "neutral" })}>{metric.value}</Text>
               <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", fontWeight: "medium", color: "neutral-subdued" })}>
                 <Icon name={metric.icon} /> {t(metric.labelKey)}
