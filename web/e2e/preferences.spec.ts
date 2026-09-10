@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { expectAppSelection, selectAppOption } from "./app-select";
 
-const selectedGroupId = "-1001163306055";
+const selectedGroupId = "-1009000010001";
 const resetMarker = "preferences-test-reset";
 const appEntryURL = /\/src\/main\.tsx(?:\?.*)?$/;
 const expectedShellRequests = [

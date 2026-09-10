@@ -2,7 +2,7 @@ import { expect, test, type Page, type Route } from "@playwright/test";
 
 import { readRenderRoutes } from "./render-gate-routes";
 
-const selectedGroupID = "-1001163306055";
+const selectedGroupID = "-1009000010001";
 const actorID = "741928306";
 
 const routes = readRenderRoutes();

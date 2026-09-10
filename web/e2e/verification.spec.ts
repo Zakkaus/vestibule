@@ -1,7 +1,7 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { selectAppOption } from "./app-select";
 
-const selectedGroupID = "-1001163306055";
+const selectedGroupID = "-1009000010001";
 const actorID = "741928306";
 
 type SettingSource = "factory default" | "user file" | "chat override";

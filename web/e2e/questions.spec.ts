@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page, type Route } from "@playwright/test";
 
-const selectedGroupID = "-1001163306055";
+const selectedGroupID = "-1009000010001";
 const actorID = "741928306";
 
 type SettingSource = "factory default" | "user file" | "chat override";

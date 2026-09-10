@@ -1,6 +1,6 @@
 import type { Page, Route } from "@playwright/test";
 
-export const selectedGroupID = "-1001163306055";
+export const selectedGroupID = "-1009000010001";
 export const actorID = "741928306";
 
 export type SpectrumRole = "manager" | "operator";
@@ -158,7 +158,7 @@ export async function mockSpectrumTransport(page: Page, options: MockOptions = {
       await fulfillJSON(route, {
         chats: [
           { id: selectedGroupID, title: "Gentoo-zh Community" },
-          { id: "-1001163306066", title: "Arch Linux Community" }
+          { id: "-1009000010002", title: "Arch Linux Community" }
         ]
       });
       return;

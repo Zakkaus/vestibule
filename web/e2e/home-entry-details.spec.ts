@@ -1,6 +1,6 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 
-const selectedGroupID = "-1001163306055";
+const selectedGroupID = "-1009000010001";
 const actorID = "741928306";
 
 function sourced<T>(value: T, source = "factory default") {
@@ -82,7 +82,7 @@ async function mockHome(page: Page): Promise<void> {
       await fulfillJSON(route, {
         chats: [
           { id: selectedGroupID, title: "Gentoo Chinese Community" },
-          { id: "-1001163306066", title: "Arch Linux Chinese Community" }
+          { id: "-1009000010002", title: "Arch Linux Chinese Community" }
         ]
       });
       return;

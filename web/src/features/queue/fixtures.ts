@@ -26,7 +26,7 @@ const defaultQueueFixture: QueueFixture = {
     {
       id: "challenge-42",
       user: "@someone",
-      groupKey: "-1001163306055",
+      groupKey: "-1009000010001",
       groupLabelKey: "groups.names.gentooZh",
       result: challengeResults.approved,
       occurredAt: "2026-08-31T14:02:00+08:00",
@@ -35,7 +35,7 @@ const defaultQueueFixture: QueueFixture = {
     {
       id: "challenge-43",
       user: "@another",
-      groupKey: "-1001163306055",
+      groupKey: "-1009000010001",
       groupLabelKey: "groups.names.gentooZh",
       result: challengeResults.pending,
       occurredAt: "2026-08-31T14:09:00+08:00",
@@ -45,7 +45,7 @@ const defaultQueueFixture: QueueFixture = {
     {
       id: "challenge-50",
       user: "@retry_release",
-      groupKey: "-1001163306055",
+      groupKey: "-1009000010001",
       groupLabelKey: "groups.names.gentooZh",
       result: challengeResults.pending,
       occurredAt: "2026-08-31T14:08:00+08:00",
@@ -56,7 +56,7 @@ const defaultQueueFixture: QueueFixture = {
     {
       id: "challenge-44",
       user: "@spam_ad_01",
-      groupKey: "-1001834029912",
+      groupKey: "-1009000010004",
       groupLabelKey: "groups.names.archZh",
       result: challengeResults.banned,
       occurredAt: "2026-08-31T13:47:00+08:00",
@@ -65,7 +65,7 @@ const defaultQueueFixture: QueueFixture = {
     {
       id: "challenge-45",
       user: "@lurker",
-      groupKey: "-1001965172048",
+      groupKey: "-1009000010005",
       groupLabelKey: "groups.names.oldOt",
       result: challengeResults.expired,
       occurredAt: "2026-08-30T21:15:00+08:00",
@@ -74,7 +74,7 @@ const defaultQueueFixture: QueueFixture = {
     {
       id: "challenge-46",
       user: "@wrong_answer",
-      groupKey: "-1001834029912",
+      groupKey: "-1009000010004",
       groupLabelKey: "groups.names.archZh",
       result: challengeResults.declinedWrongAnswer,
       occurredAt: "2026-08-30T20:41:00+08:00",
@@ -83,7 +83,7 @@ const defaultQueueFixture: QueueFixture = {
     {
       id: "challenge-47",
       user: "@policy_veto",
-      groupKey: "-1001163306055",
+      groupKey: "-1009000010001",
       groupLabelKey: "groups.names.gentooZh",
       result: challengeResults.declinedRejected,
       occurredAt: "2026-08-30T19:36:00+08:00",
@@ -92,7 +92,7 @@ const defaultQueueFixture: QueueFixture = {
     {
       id: "challenge-48",
       user: "@external_check",
-      groupKey: "-1001965172048",
+      groupKey: "-1009000010005",
       groupLabelKey: "groups.names.oldOt",
       result: challengeResults.declinedExternalUnmet,
       occurredAt: "2026-08-30T18:22:00+08:00",
@@ -101,7 +101,7 @@ const defaultQueueFixture: QueueFixture = {
     {
       id: "challenge-49",
       user: "@reapplied_user",
-      groupKey: "-1001163306055",
+      groupKey: "-1009000010001",
       groupLabelKey: "groups.names.gentooZh",
       result: challengeResults.superseded,
       occurredAt: "2026-08-30T17:08:00+08:00",
@@ -120,7 +120,7 @@ export const queueFixtures: readonly QueueFixture[] = [
     id: "filtered-empty",
     records: [],
     filter: {
-      groupKey: "-1001965172048",
+      groupKey: "-1009000010005",
       groupLabelKey: "groups.names.oldOt",
       result: challengeResults.banned
     }

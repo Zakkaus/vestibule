@@ -1,7 +1,7 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { expectAppSelection, selectAppOption } from "./app-select";
 
-const selectedGroupId = "-1001163306055";
+const selectedGroupId = "-1009000010001";
 const selectedGroupTitle = "Maintainers Workspace";
 
 const managerSessionPayload = {
@@ -37,7 +37,7 @@ const groupListErrorCases = [
   }
 ] as const;
 const pendingQueueEntry = {
-  id: "-1001163306055:528106774:queue-nonce",
+  id: "-1009000010001:528106774:queue-nonce",
   user: "@another",
   group_key: selectedGroupId,
   result: { state: "pending", reason: null },

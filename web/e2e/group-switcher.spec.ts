@@ -1,7 +1,7 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 
-const namedGroupId = "-1004237282609";
-const unnamedGroupId = "-1001834029912";
+const namedGroupId = "-1009000010006";
+const unnamedGroupId = "-1009000010004";
 const blankGroupId = "-1006725039401";
 
 async function fulfillJSON(route: Route, body: unknown): Promise<void> {
@@ -83,8 +83,8 @@ test("a chat with a missing title falls back to its group ID", async ({ page }) 
 });
 
 test("fixture group selection exposes one current item and preserves queue routing", async ({ page }) => {
-  const fixtureGroupId = "-1001163306055";
-  const secondFixtureGroupId = "-1001834029912";
+  const fixtureGroupId = "-1009000010001";
+  const secondFixtureGroupId = "-1009000010004";
   await page.goto(`/groups?group=${fixtureGroupId}`);
 
   const rows = page.locator("[data-group-row]");
