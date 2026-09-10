@@ -2,5 +2,27 @@
   "observe_only": false,
   "group_ids": [
     -1001234567890
+  ],
+  "github_atom_base": "",
+  "feeds": [
+    {
+      "chat_id": -1001234567890,
+      "lang": "en",
+      "interval_seconds": 300,
+      "bugs": false,
+      "news": false,
+      "bug_product": "",
+      "bug_component": "",
+      "silent_bugs": false,
+      "github_repos": [
+        {
+          "repo": "gentoo-zh/overlay"
+        },
+        {
+          "repo": "Zakkaus/vestibule",
+          "branch": "v5/next"
+        }
+      ]
+    }
   ]
 }

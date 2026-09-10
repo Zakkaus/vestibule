@@ -12,6 +12,11 @@
     "reporter": "Reporter",
     "creation_date": "Created"
   },
+  "git_hub": {
+    "commit": "<a href=\"%[1]s\"><b>%[2]s</b></a> · <code>%[3]s</code>\n%[4]s%[5]s%[6]s",
+    "branch": "\n<b>Branch</b>: %[1]s",
+    "author": "\n<b>Author</b>: %[1]s"
+  },
   "config": {
   }
 }

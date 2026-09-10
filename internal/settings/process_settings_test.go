@@ -28,6 +28,24 @@ func TestProcessSettingsViewDetachesCollections(t *testing.T) {
 	}
 }
 
+func TestProcessSettingsDeepCopiesGitHubRepos(t *testing.T) {
+	config := &Config{
+		Feeds: []FeedConfig{{
+			GitHubRepos: []GitHubRepo{{Repo: "owner/repo", Branch: "main"}},
+		}},
+	}
+
+	view := config.ProcessSettings().Feeds()
+	view.Value[0].GitHubRepos[0].Repo = "changed/repo"
+	view.Value[0].GitHubRepos[0].Branch = "changed"
+
+	again := config.ProcessSettings().Feeds().Value
+	if len(again) != 1 || len(again[0].GitHubRepos) != 1 ||
+		again[0].GitHubRepos[0].Repo != "owner/repo" || again[0].GitHubRepos[0].Branch != "main" {
+		t.Fatalf("process settings changed nested GitHub repository data: %+v", again)
+	}
+}
+
 func TestProcessSettingsKeepsLegacyFeedFileManaged(t *testing.T) {
 	const chatID int64 = -1009000002251
 	config, err := LoadConfig(writeConfig(t, map[string]any{

@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xml:lang="en-US">
+  <id>tag:github.com,2008:/gentoo-zh/overlay/commits/master</id>
+  <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commits/master"/>
+  <link type="application/atom+xml" rel="self" href="https://github.com/gentoo-zh/overlay/commits/master.atom"/>
+  <title>Recent Commits to overlay:master</title>
+  <updated>2026-09-09T15:24:19Z</updated>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/29d39c0221e4a8c13fc614337514ba514156d893</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/29d39c0221e4a8c13fc614337514ba514156d893"/>
+    <title>
+        net-im/wechat: add 4.1.13.9-r2, drop 4.1.13.9-r1
+    </title>
+    <updated>2026-09-09T15:24:19Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/9402092?s=30&amp;v=4"/>
+    <author>
+      <name>locez</name>
+      <uri>https://github.com/locez</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;net-im/wechat: add 4.1.13.9-r2, drop 4.1.13.9-r1
+
+因为需要通过 Wayland 的 text-input-v3 协议接收输入法事件，所以在普通和
+Bubblewrap 启动器的 Wayland 分支中设置 `QT_IM_MODULE=text-input-unstable-v3`。
+
+Signed-off-by: Locez &amp;lt;locez@locez.com&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/e262344b18c8739510c8419d6fedd5abdfe7b793</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/e262344b18c8739510c8419d6fedd5abdfe7b793"/>
+    <title>
+        net-proxy/yacd-meta: add 0.4.0, drop 0.3.8
+    </title>
+    <updated>2026-09-09T14:56:21Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;net-proxy/yacd-meta: add 0.4.0, drop 0.3.8
+
+因为上游这版改用 bun，gentoo-zh/gentoo-deps 的 generator 用 npm 会因 overrides
+冲突报 EOVERRIDE、用 pnpm 会因 packageManager 字段报 ERR_PNPM_OTHER_PM_EXPECTED，
+两条路都产不出 node_modules，所以改由 gentoo-zh-drafts/yacd-meta 自动镜像产出。
+
+Signed-off-by: Zakk &amp;lt;zakk@gentoozh.org&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/7efa21af61387394c1b92930ac28d96ffe5a00b7</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/7efa21af61387394c1b92930ac28d96ffe5a00b7"/>
+    <title>
+        sys-apps/pnpm: restrict tests
+    </title>
+    <updated>2026-09-09T14:12:41Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;sys-apps/pnpm: restrict tests
+
+因为 cargo_src_test 跑的是整个 workspace，其中三个 dialoguer 提示测试在非交互
+stdin 上会永远阻塞，另有十二个 audit/list/view 渲染测试比对终端排版输出，在构建
+沙盒里必然失败。
+
+Signed-off-by: Zakk &amp;lt;zakk@gentoozh.org&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/9c7d237957ad16d1ce23689194c61243768d4a3b</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/9c7d237957ad16d1ce23689194c61243768d4a3b"/>
+    <title>
+        app-text/lektra: suggest the optional runtime libraries
+    </title>
+    <updated>2026-09-09T14:10:30Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;app-text/lektra: suggest the optional runtime libraries
+
+因为 src/Model.cpp 用 QLibrary 在运行时加载 librsvg、cairo、djvulibre 和
+libexif，所以用 optfeature 提示。
+
+Signed-off-by: Zakk &amp;lt;zakk@gentoozh.org&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/6849e4e669b9d8d9d478d3ddbe74a727c790af79</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/6849e4e669b9d8d9d478d3ddbe74a727c790af79"/>
+    <title>
+        app-text/lektra: add 0.7.7, drop 0.7.6
+    </title>
+    <updated>2026-09-09T14:10:30Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;app-text/lektra: add 0.7.7, drop 0.7.6
+
+因为上游这版的 release tag 去掉了 v 前缀，所以 SRC_URI 改用 ${PV}；mupdf
+submodule 指向 1.28.2，MUPDF_PV 跟着更新。
+
+Signed-off-by: Zakk &amp;lt;zakk@gentoozh.org&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/605c80904f371f9d80aec7c6e2df281f838db6a2</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/605c80904f371f9d80aec7c6e2df281f838db6a2"/>
+    <title>
+        x11-terms/termius: add 10.0.0, drop 9.43.1
+    </title>
+    <updated>2026-09-09T13:20:18Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;x11-terms/termius: add 10.0.0, drop 9.43.1
+
+因为这版把内置的 Electron 从 22 换成 43.5.1（Chromium 108 → 150），原来那段
+Wayland 警告的前提不再成立，所以删掉。
+
+因为图标不再提供 1024x1024、改为提供 24x24，所以尺寸列表跟着调整；否则 doicon
+会报 not a valid file 让 CI 的 elog 门禁变红。
+
+Signed-off-by: Zakk &amp;lt;zakk@gentoozh.org&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/cb722d30b88da8971b905a63549d72ceeb011da6</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/cb722d30b88da8971b905a63549d72ceeb011da6"/>
+    <title>
+        app-misc/claude-desktop: add 1.49585.0, drop 1.46388.2
+    </title>
+    <updated>2026-09-09T13:20:08Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;app-misc/claude-desktop: add 1.49585.0, drop 1.46388.2
+
+Signed-off-by: Zakk &amp;lt;zakk@gentoozh.org&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/8bce81994e4924d86dbbe2a7470bacd7e0bad21a</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/8bce81994e4924d86dbbe2a7470bacd7e0bad21a"/>
+    <title>
+        app-crypt/archlinux-keyring: add 20260909, drop 20260902
+    </title>
+    <updated>2026-09-09T13:19:16Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;app-crypt/archlinux-keyring: add 20260909, drop 20260902
+
+Signed-off-by: Zakk &amp;lt;zakk@gentoozh.org&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/775ece89d6a2688babf9226e1cde586b4f493863</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/775ece89d6a2688babf9226e1cde586b4f493863"/>
+    <title>
+        app-misc/chatgpt-desktop: add 26.903.61454, drop 26.901.51231
+    </title>
+    <updated>2026-09-09T13:16:46Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;app-misc/chatgpt-desktop: add 26.903.61454, drop 26.901.51231
+
+Signed-off-by: Zakk &amp;lt;zakk@gentoozh.org&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/2f58c5eae08a97ee706c012c2c969af3400d777d</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/2f58c5eae08a97ee706c012c2c969af3400d777d"/>
+    <title>
+        dev-python/fusesoc: add 2.4.7, drop 2.4.6
+    </title>
+    <updated>2026-09-09T13:09:50Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/221879664?s=30&amp;v=4"/>
+    <author>
+      <name>Zakkaus</name>
+      <uri>https://github.com/Zakkaus</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;dev-python/fusesoc: add 2.4.7, drop 2.4.6
+
+因为上游 2.4.7 的 pyproject.toml 新增了 pydantic 依赖并抬高 pyparsing 下限，所以
+RDEPEND 同步跟上。
+
+Signed-off-by: Zakk &amp;lt;zakk@gentoozh.org&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/74bf672fce515e9dba3937cb34e5efa2657de84e</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/74bf672fce515e9dba3937cb34e5efa2657de84e"/>
+    <title>
+        dev-util/vimls-go-bin: add 0.1.2, drop 0.1.1
+    </title>
+    <updated>2026-09-09T13:06:33Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/204329950?s=30&amp;v=4"/>
+    <author>
+      <name>gentoo-zh-bot</name>
+      <uri>https://github.com/gentoo-zh-bot</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;dev-util/vimls-go-bin: add 0.1.2, drop 0.1.1
+
+Signed-off-by: gentoo-zh-bot &amp;lt;bot@gentoozh.org&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/275fd542de14e64c9fea588de30f6fc2afa0c5bc</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/275fd542de14e64c9fea588de30f6fc2afa0c5bc"/>
+    <title>
+        dev-util/reasonix-desktop-bin: add 1.38.3, drop 1.38.1
+    </title>
+    <updated>2026-09-09T13:06:18Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/204329950?s=30&amp;v=4"/>
+    <author>
+      <name>gentoo-zh-bot</name>
+      <uri>https://github.com/gentoo-zh-bot</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;dev-util/reasonix-desktop-bin: add 1.38.3, drop 1.38.1
+
+Signed-off-by: gentoo-zh-bot &amp;lt;bot@gentoozh.org&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/84099d45436ca455bdd45df36a481c1e835baee3</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/84099d45436ca455bdd45df36a481c1e835baee3"/>
+    <title>
+        dev-util/kimi-code-bin: add 0.42.0, drop 0.41.0
+    </title>
+    <updated>2026-09-09T13:06:10Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/204329950?s=30&amp;v=4"/>
+    <author>
+      <name>gentoo-zh-bot</name>
+      <uri>https://github.com/gentoo-zh-bot</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;dev-util/kimi-code-bin: add 0.42.0, drop 0.41.0
+
+Signed-off-by: gentoo-zh-bot &amp;lt;bot@gentoozh.org&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/e35c13fb77044147cfd2578407f2925cbecda967</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/e35c13fb77044147cfd2578407f2925cbecda967"/>
+    <title>
+        dev-util/opencode-bin: add 1.18.30, drop 1.18.29
+    </title>
+    <updated>2026-09-09T13:03:49Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/204329950?s=30&amp;v=4"/>
+    <author>
+      <name>gentoo-zh-bot</name>
+      <uri>https://github.com/gentoo-zh-bot</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;dev-util/opencode-bin: add 1.18.30, drop 1.18.29
+
+Signed-off-by: gentoo-zh-bot &amp;lt;bot@gentoozh.org&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/7052a3ed8a630bee3c7360c9058aa9d5d5296166</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/7052a3ed8a630bee3c7360c9058aa9d5d5296166"/>
+    <title>
+        app-editors/cursor: add 3.19.19, drop 3.19.13
+    </title>
+    <updated>2026-09-09T13:03:40Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/204329950?s=30&amp;v=4"/>
+    <author>
+      <name>gentoo-zh-bot</name>
+      <uri>https://github.com/gentoo-zh-bot</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;app-editors/cursor: add 3.19.19, drop 3.19.13
+
+Signed-off-by: gentoo-zh-bot &amp;lt;bot@gentoozh.org&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/0f96c8f2975f5b6dbe4e6cfd091380bcc2f2e331</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/0f96c8f2975f5b6dbe4e6cfd091380bcc2f2e331"/>
+    <title>
+        dev-vcs/worktrunk-bin: add 0.77.0, drop 0.76.0
+    </title>
+    <updated>2026-09-09T13:03:32Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/204329950?s=30&amp;v=4"/>
+    <author>
+      <name>gentoo-zh-bot</name>
+      <uri>https://github.com/gentoo-zh-bot</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;dev-vcs/worktrunk-bin: add 0.77.0, drop 0.76.0
+
+Signed-off-by: gentoo-zh-bot &amp;lt;bot@gentoozh.org&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/04364ee262f41ddb31d850f4e212c2feda3d19e5</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/04364ee262f41ddb31d850f4e212c2feda3d19e5"/>
+    <title>
+        dev-util/antigravity-cli: add 1.1.28, drop 1.1.27
+    </title>
+    <updated>2026-09-09T13:03:22Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/204329950?s=30&amp;v=4"/>
+    <author>
+      <name>gentoo-zh-bot</name>
+      <uri>https://github.com/gentoo-zh-bot</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;dev-util/antigravity-cli: add 1.1.28, drop 1.1.27
+
+Signed-off-by: gentoo-zh-bot &amp;lt;bot@gentoozh.org&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/ee8380eab98461052d6e90b114acf6a4139c40d1</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/ee8380eab98461052d6e90b114acf6a4139c40d1"/>
+    <title>
+        dev-util/oh-my-pi-bin: add 18.1.15, drop 18.1.14
+    </title>
+    <updated>2026-09-09T13:03:13Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/204329950?s=30&amp;v=4"/>
+    <author>
+      <name>gentoo-zh-bot</name>
+      <uri>https://github.com/gentoo-zh-bot</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;dev-util/oh-my-pi-bin: add 18.1.15, drop 18.1.14
+
+Signed-off-by: gentoo-zh-bot &amp;lt;bot@gentoozh.org&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/194ecdb09ada2ccd80ddf948e124c3274e0f12ea</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/194ecdb09ada2ccd80ddf948e124c3274e0f12ea"/>
+    <title>
+        app-misc/qwen-code: add 0.23.2, drop 0.23.0
+    </title>
+    <updated>2026-09-09T13:03:05Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/204329950?s=30&amp;v=4"/>
+    <author>
+      <name>gentoo-zh-bot</name>
+      <uri>https://github.com/gentoo-zh-bot</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;app-misc/qwen-code: add 0.23.2, drop 0.23.0
+
+Signed-off-by: gentoo-zh-bot &amp;lt;bot@gentoozh.org&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+  <entry>
+    <id>tag:github.com,2008:Grit::Commit/3b7491157e28a9f73a2ce847ce98311df1c62115</id>
+    <link type="text/html" rel="alternate" href="https://github.com/gentoo-zh/overlay/commit/3b7491157e28a9f73a2ce847ce98311df1c62115"/>
+    <title>
+        dev-util/kiro-cli: add 2.21.2, drop 2.21.1
+    </title>
+    <updated>2026-09-09T13:02:56Z</updated>
+    <media:thumbnail height="30" width="30" url="https://avatars.githubusercontent.com/u/204329950?s=30&amp;v=4"/>
+    <author>
+      <name>gentoo-zh-bot</name>
+      <uri>https://github.com/gentoo-zh-bot</uri>
+    </author>
+    <content type="html">
+      &lt;pre style=&#39;white-space:pre-wrap;width:81ex&#39;&gt;dev-util/kiro-cli: add 2.21.2, drop 2.21.1
+
+Signed-off-by: gentoo-zh-bot &amp;lt;bot@gentoozh.org&amp;gt;&lt;/pre&gt;
+    </content>
+  </entry>
+</feed>

@@ -22,9 +22,10 @@ type defaultsDocument struct {
 		PrivateReply              string `yaml:"private_reply"`
 	} `yaml:"process"`
 	Resources struct {
-		NewsURL  string       `yaml:"news_url"`
-		Overlays []OverlayCfg `yaml:"overlays"`
-		Feeds    []FeedConfig `yaml:"feeds"`
+		NewsURL        string       `yaml:"news_url"`
+		GitHubAtomBase string       `yaml:"github_atom_base"`
+		Overlays       []OverlayCfg `yaml:"overlays"`
+		Feeds          []FeedConfig `yaml:"feeds"`
 	} `yaml:"resources"`
 	Factory groupDefaults `yaml:"factory"`
 }
@@ -71,7 +72,7 @@ func mustParseDefaults() defaultsDocument {
 }
 
 func defaultConfig() Config {
-	return Config{
+	return withDefaultResources(Config{
 		OwnerClaimLifetimeSeconds: embeddedDefaults.Process.OwnerClaimLifetimeSeconds,
 		OwnerClaimUserID:          embeddedDefaults.Process.OwnerClaimUserID,
 		NotifyTTLSeconds:          embeddedDefaults.Process.NotifyTTLSeconds,
@@ -79,10 +80,15 @@ func defaultConfig() Config {
 		StatsTimezone:             embeddedDefaults.Process.StatsTimezone,
 		UserAgent:                 embeddedDefaults.Process.UserAgent,
 		PrivateReply:              embeddedDefaults.Process.PrivateReply,
-		Overlays:                  append([]OverlayCfg(nil), embeddedDefaults.Resources.Overlays...),
-		NewsURL:                   embeddedDefaults.Resources.NewsURL,
-		Feeds:                     append([]FeedConfig(nil), embeddedDefaults.Resources.Feeds...),
-	}
+	})
+}
+
+func withDefaultResources(config Config) Config {
+	config.Overlays = append([]OverlayCfg(nil), embeddedDefaults.Resources.Overlays...)
+	config.NewsURL = embeddedDefaults.Resources.NewsURL
+	config.GitHubAtomBase = embeddedDefaults.Resources.GitHubAtomBase
+	config.Feeds = append([]FeedConfig(nil), embeddedDefaults.Resources.Feeds...)
+	return config
 }
 
 func factoryBaseline() GroupBaseline {

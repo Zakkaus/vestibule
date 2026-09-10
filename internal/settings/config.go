@@ -208,7 +208,15 @@ type GroupConfig struct {
 	RequiredChannelFailOpen *bool            `json:"required_channel_fail_open"`
 }
 
-// FeedConfig configures one optional Bugzilla and news destination.
+// GitHubRepo identifies one repository and optional branch for commit subscriptions.
+type GitHubRepo struct {
+	// Repo is the repository in owner/name form.
+	Repo string `json:"repo"`
+	// Branch selects a branch; empty follows the repository's default branch.
+	Branch string `json:"branch,omitempty"`
+}
+
+// FeedConfig configures one optional Bugzilla, news, and GitHub destination.
 type FeedConfig struct {
 	// ChatID is the channel or group receiving feed posts.
 	ChatID int64 `json:"chat_id"`
@@ -226,6 +234,8 @@ type FeedConfig struct {
 	BugComponent string `json:"bug_component"`
 	// SilentBugs makes every bug post silent when true.
 	SilentBugs *bool `json:"silent_bugs"`
+	// GitHubRepos lists repositories whose commit Atom feeds this destination follows.
+	GitHubRepos []GitHubRepo `json:"github_repos,omitempty"`
 }
 
 // BugsOn reports whether this feed posts Bugzilla bugs.
@@ -319,6 +329,8 @@ type Config struct {
 	Overlays []OverlayCfg `json:"overlays"`
 	// NewsURL is the Gentoo news-items index used by /news.
 	NewsURL string `json:"news_url"`
+	// GitHubAtomBase is the normalized base URL used for GitHub Atom requests and commit links.
+	GitHubAtomBase string `json:"github_atom_base,omitempty"`
 	// StatsTimezone is the IANA time zone for the daily /stats boundary.
 	StatsTimezone string `json:"stats_timezone"`
 	// RichMessages enables rich Bot API messages with an HTML fallback.
@@ -335,7 +347,7 @@ type Config struct {
 	AntispamEnabled *bool `json:"antispam_enabled"`
 	// ChannelWhitelist lists sender chats allowed to post in guarded groups.
 	ChannelWhitelist []int64 `json:"channel_whitelist"`
-	// Feeds lists Bugzilla and news destinations.
+	// Feeds lists Bugzilla, news, and GitHub destinations.
 	Feeds []FeedConfig `json:"feeds"`
 	// Feed accepts the legacy singular feed form and is merged into Feeds.
 	Feed *FeedConfig `json:"feed"`

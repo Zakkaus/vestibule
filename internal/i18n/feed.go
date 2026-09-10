@@ -4,8 +4,20 @@ package i18n
 type FeedCatalog struct {
 	// Bug contains Bugzilla feed field labels and separators.
 	Bug FeedBugCatalog
+	// GitHub contains GitHub commit message templates.
+	GitHub FeedGitHubCatalog
 	// Config contains user-facing configuration policy refusals.
 	Config FeedConfigCatalog
+}
+
+// FeedGitHubCatalog contains localized GitHub commit message templates.
+type FeedGitHubCatalog struct {
+	// Commit is the complete commit message template.
+	Commit Format
+	// Branch labels an explicitly configured branch.
+	Branch Format
+	// Author labels a commit author when present.
+	Author Format
 }
 
 // FeedBugCatalog contains Bugzilla feed field labels and separators.

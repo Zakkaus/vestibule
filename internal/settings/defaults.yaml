@@ -17,12 +17,15 @@ process:
   # Reply to non-command direct messages; empty uses the translated built-in reply.
   private_reply: ""
 
+# Resource URLs and subscriptions are loaded at startup.
 resources:
   # Gentoo news index URL; empty disables the news lookup source.
   news_url: ""
+  # GitHub Atom base URL; empty uses https://github.com.
+  github_atom_base: ""
   # GitHub overlays searched by package commands. See examples.overlay below.
   overlays: []
-  # Bug/news destinations. See examples.feed below.
+  # Bug/news/GitHub destinations. See examples.feed below.
   feeds: []
 
 factory:

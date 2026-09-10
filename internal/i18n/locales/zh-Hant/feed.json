@@ -12,6 +12,11 @@
     "reporter": "回報者",
     "creation_date": "建立日期"
   },
+  "git_hub": {
+    "commit": "<a href=\"%[1]s\"><b>%[2]s</b></a> · <code>%[3]s</code>\n%[4]s%[5]s%[6]s",
+    "branch": "\n<b>分支</b>：%[1]s",
+    "author": "\n<b>作者</b>：%[1]s"
+  },
   "config": {
   }
 }

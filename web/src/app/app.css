@@ -1771,6 +1771,9 @@ body {
   margin: 0;
 }
 
+/* A watched repository is one more value row; the attribute also carries the
+   repository name so a test can name the row it means. */
+[data-github-repo],
 [data-feed-value],
 [data-overlay-value] {
   display: grid;

@@ -15,6 +15,11 @@ export type ProcessSetting<T> = Readonly<{
   source: ProcessSettingSource;
 }>;
 
+export type GitHubRepo = Readonly<{
+  repo: string;
+  branch: string;
+}>;
+
 export type FeedConfig = Readonly<{
   chatID: number;
   lang: FeedLanguage;
@@ -24,6 +29,7 @@ export type FeedConfig = Readonly<{
   bugProduct: string;
   bugComponent: string;
   silentBugs: boolean | null;
+  githubRepos: readonly GitHubRepo[];
 }>;
 
 export type OverlayConfig = Readonly<{
@@ -88,6 +94,18 @@ function settingFromPayload<T>(
 }
 
 
+function githubRepoFromPayload(payload: unknown): GitHubRepo | undefined {
+  const repo = objectFromPayload(payload);
+  if (!repo) {
+    return undefined;
+  }
+
+  const name = stringFromPayload(repo.repo);
+  const branch =
+    repo.branch === undefined || repo.branch === null ? "" : stringFromPayload(repo.branch);
+  return name === undefined || branch === undefined ? undefined : { repo: name, branch };
+}
+
 function feedFromPayload(payload: unknown): FeedConfig | undefined {
   const feed = objectFromPayload(payload);
   if (!feed) {
@@ -111,6 +129,10 @@ function feedFromPayload(payload: unknown): FeedConfig | undefined {
   const bugProduct = stringFromPayload(feed.bug_product);
   const bugComponent = stringFromPayload(feed.bug_component);
   const silentBugs = nullableBooleanFromPayload(feed.silent_bugs);
+  const githubRepos =
+    feed.github_repos === undefined || feed.github_repos === null
+      ? []
+      : arrayFromPayload(feed.github_repos, githubRepoFromPayload);
   if (
     chatID === undefined ||
     lang === undefined ||
@@ -119,7 +141,8 @@ function feedFromPayload(payload: unknown): FeedConfig | undefined {
     news === undefined ||
     bugProduct === undefined ||
     bugComponent === undefined ||
-    silentBugs === undefined
+    silentBugs === undefined ||
+    githubRepos === undefined
   ) {
     return undefined;
   }
@@ -132,7 +155,8 @@ function feedFromPayload(payload: unknown): FeedConfig | undefined {
     news,
     bugProduct,
     bugComponent,
-    silentBugs
+    silentBugs,
+    githubRepos
   };
 }
 

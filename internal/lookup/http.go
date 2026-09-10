@@ -78,7 +78,7 @@ func New(store *settings.Store, telegram *telegram.Connector, cfg *settings.Conf
 		cfg = &settings.Config{}
 	}
 	configurePkg(cfg)
-	configureNews(cfg)
+	configureFeedSources(cfg)
 	githubToken = githubAPIToken
 	return &Service{
 		settings:  store,
