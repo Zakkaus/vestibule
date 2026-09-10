@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Badge, Content, Heading, Link, Text } from "@react-spectrum/s2";
+import { Badge, Card, Content, Heading, Link, Text } from "@react-spectrum/s2";
 import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 
 import { Icon, type IconName } from "../../icons";
@@ -141,7 +141,8 @@ function OverviewSection({
   ] as const;
 
   return (
-    <Content data-home-section="overview" aria-labelledby="home-overview-title" styles={style({ display: "grid", gap: 8, minWidth: 0 })}>
+    <Card data-console-card data-home-section="overview" aria-labelledby="home-overview-title" styles={style({ width: "full", minWidth: 0 })}>
+      <Content styles={style({ display: "grid", gap: 8, minWidth: 0 })}>
       <Heading level={2} id="home-overview-title" styles={style({ font: "heading", margin: 0 })}>{t("home.overview.title")}</Heading>
       <Content aria-labelledby="home-overview-title" data-home-metrics styles={style({ display: "grid", gridTemplateColumns: { default: ["minmax(0, 1fr)", "minmax(0, 1fr)"], lg: ["minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)"] }, gap: 8, minWidth: 0 })}>
         {metrics.map((metric) => (
@@ -156,7 +157,8 @@ function OverviewSection({
           </Link>
         ))}
       </Content>
-    </Content>
+      </Content>
+    </Card>
   );
 }
 
@@ -169,7 +171,8 @@ function AttentionSection({
   const isOperator = data.diagnostics.kind !== "hidden";
 
   return (
-    <Content data-home-section="attention" aria-labelledby="home-attention-title" styles={style({ display: "grid", gap: 8, minWidth: 0 })}>
+    <Card data-console-card data-home-section="attention" aria-labelledby="home-attention-title" styles={style({ width: "full", minWidth: 0 })}>
+      <Content styles={style({ display: "grid", gap: 8, minWidth: 0 })}>
       <Heading level={2} id="home-attention-title" styles={style({ font: "heading", margin: 0 })}>{t("home.attention.title")}</Heading>
       {items.length === 0 ? (
         <Content data-home-attention-empty styles={style({ display: "grid", justifyItems: "start", gap: 8, textAlign: "start" })}>
@@ -190,7 +193,8 @@ function AttentionSection({
           ))}
         </Content>
       )}
-    </Content>
+      </Content>
+    </Card>
   );
 }
 
