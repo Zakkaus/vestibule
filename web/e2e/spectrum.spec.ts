@@ -233,11 +233,13 @@ test.describe("Spectrum shell geometry across changed routes", () => {
 });
 
 
-test("Spectrum layer surfaces cover the console shell and legacy cards in every theme", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 720 });
-  await mockSpectrumTransport(page, { role: "operator" });
-
-  for (const [preference, system] of [["light", "dark"], ["dark", "light"], ["system", "light"], ["system", "dark"]] as const) {
+// One test per theme pair rather than one test walking all four. Each pair loads three
+// routes and measures every surface on them; doing all four in one test outgrew both the
+// per-test budget and the runner, which closed the browser session mid-measurement.
+for (const [preference, system] of [["light", "dark"], ["dark", "light"], ["system", "light"], ["system", "dark"]] as const) {
+  test(`Spectrum layer surfaces cover the console shell and legacy cards with ${preference} on a ${system} system`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await mockSpectrumTransport(page, { role: "operator" });
     await page.emulateMedia({ colorScheme: system });
     await openSpectrumRoute(page, "/home");
     await waitForHome(page);
@@ -381,8 +383,8 @@ test("Spectrum layer surfaces cover the console shell and legacy cards in every 
     await openSpectrumRoute(page, "/queue");
     await expect(page.locator("[data-queue-toolbar]")).toBeVisible();
     expect(await page.locator("[data-queue-toolbar]").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe(nativeSurfaces.card);
-  }
-});
+  });
+}
 
 
 test("mobile navigation uses a portalled dialog, restores focus on Escape, and closes after selecting a link", async ({
