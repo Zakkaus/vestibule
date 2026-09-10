@@ -71,7 +71,7 @@ func mustParseDefaults() defaultsDocument {
 }
 
 func defaultConfig() Config {
-	return Config{
+	return withDefaultResources(Config{
 		OwnerClaimLifetimeSeconds: embeddedDefaults.Process.OwnerClaimLifetimeSeconds,
 		OwnerClaimUserID:          embeddedDefaults.Process.OwnerClaimUserID,
 		NotifyTTLSeconds:          embeddedDefaults.Process.NotifyTTLSeconds,
@@ -79,10 +79,14 @@ func defaultConfig() Config {
 		StatsTimezone:             embeddedDefaults.Process.StatsTimezone,
 		UserAgent:                 embeddedDefaults.Process.UserAgent,
 		PrivateReply:              embeddedDefaults.Process.PrivateReply,
-		Overlays:                  append([]OverlayCfg(nil), embeddedDefaults.Resources.Overlays...),
-		NewsURL:                   embeddedDefaults.Resources.NewsURL,
-		Feeds:                     append([]FeedConfig(nil), embeddedDefaults.Resources.Feeds...),
-	}
+	})
+}
+
+func withDefaultResources(config Config) Config {
+	config.Overlays = append([]OverlayCfg(nil), embeddedDefaults.Resources.Overlays...)
+	config.NewsURL = embeddedDefaults.Resources.NewsURL
+	config.Feeds = append([]FeedConfig(nil), embeddedDefaults.Resources.Feeds...)
+	return config
 }
 
 func factoryBaseline() GroupBaseline {
