@@ -133,6 +133,10 @@ const contentLayout = style({
   maxHeight: "none",
   minHeight: 0,
   minWidth: 0,
+  marginEnd: {
+    default: 12,
+    "@media (max-width: 48rem)": 8
+  },
   padding: {
     default: 32,
     "@media (max-width: 48rem)": 16
@@ -144,9 +148,9 @@ const contentLayout = style({
   overflow: "auto",
   overscrollBehavior: "contain",
   boxSizing: "border-box",
-  // One layer below the cards. On layer-2 the cards were the same white as the panel
-  // and their edges were a shadow nobody could see.
-  backgroundColor: "layer-1"
+  borderTopStartRadius: "xl",
+  borderTopEndRadius: "xl",
+  backgroundColor: "layer-2"
 });
 
 const innerLayout = style({

@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Card, Content, Heading, Text } from "@react-spectrum/s2";
+import { Content, Heading, Link, Text } from "@react-spectrum/s2";
 import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 
+import { sectionSurface } from "./surface";
 import { Icon, type IconName } from "../../icons";
 import type { SettingSource } from "../verification/api";
 import type { HomeSettings } from "./api";
@@ -61,18 +62,14 @@ function ConfigEntry({
 }>) {
   const { t } = useTranslation();
   return (
-    <Card
-      href={`${path}${groupSearch}`}
-      size="S"
-      data-console-card
-      data-home-entry={id}
-      styles={style({ width: "full", minWidth: 0 })}
-    >
-      <Content data-home-entry-values styles={style({ minWidth: 0 })}>
-        <Text slot="title"><Icon name={iconName} /> {t(titleKey)}</Text>
+    <Link href={`${path}${groupSearch}`} isStandalone isQuiet data-home-entry={id}>
+      <Content data-home-entry-values styles={style({ display: "grid", gap: 4, minWidth: 0 })}>
+        <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", color: "neutral-subdued" })}>
+          <Icon name={iconName} /> {t(titleKey)}
+        </Text>
         {children}
       </Content>
-    </Card>
+    </Link>
   );
 }
 
@@ -164,7 +161,7 @@ export function HomeEntries({ settings, groupSearch }: EntryProps) {
     <Content
       data-home-section="entries"
       aria-labelledby="home-entries-title"
-      styles={style({ display: "grid", gap: 12, minWidth: 0 })}
+      styles={sectionSurface}
     >
       <Content data-home-section-heading>
         <Heading level={2} id="home-entries-title" styles={style({ font: "heading", margin: 0 })}>

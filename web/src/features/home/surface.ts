@@ -13,6 +13,5 @@ export const sectionSurface = style({
   boxSizing: "border-box",
   padding: 24,
   borderRadius: "lg",
-  backgroundColor: "elevated",
-  boxShadow: "emphasized"
+  backgroundColor: "layer-1"
 });
