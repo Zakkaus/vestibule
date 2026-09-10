@@ -1,10 +1,13 @@
 package telegram
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -74,8 +77,8 @@ type commandRequest struct {
 }
 
 type commandRecordingCaller struct {
-	requests   []commandRequest
-	failOnCall int
+	requests    []commandRequest
+	failOnCalls map[int]bool
 }
 
 func (c *commandRecordingCaller) Call(_ context.Context, url string, data *ta.RequestData) (*ta.Response, error) {
@@ -87,7 +90,8 @@ func (c *commandRecordingCaller) Call(_ context.Context, url string, data *ta.Re
 		return nil, err
 	}
 	c.requests = append(c.requests, request)
-	if c.failOnCall == len(c.requests) {
+	callNumber := len(c.requests)
+	if c.failOnCalls[callNumber] {
 		return nil, fmt.Errorf("simulated command registration failure")
 	}
 	return apiResponse(true)
@@ -405,17 +409,42 @@ func TestSetupCommandsUsesCurrentGroupLanguageOverride(t *testing.T) {
 	}
 }
 
-func TestSetupCommandsContinuesAfterOneScopeRegistrationFails(t *testing.T) {
+func TestSetupCommandsReportsRegistrationOutcomes(t *testing.T) {
 	cfg := &settings.Config{WarnLimit: 3}
-	store, err := settings.NewStore(t.TempDir()+"/settings.json", botTestSettingsBaseline(t, cfg), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	caller := &commandRecordingCaller{failOnCall: 2}
-	service := &Updates{cfg: cfg, settings: store, handlers: HandlerSet{Commands: testCommandModules(t)}}
-	service.SetupCommands(context.Background(), testBot(t, caller))
-	if got, want := len(caller.requests), 6; got != want {
-		t.Fatalf("a failed command scope stopped later menu registration: got %d requests, want %d", got, want)
+	oldLogWriter := log.Writer()
+	var logs bytes.Buffer
+	t.Cleanup(func() { log.SetOutput(oldLogWriter) })
+	log.SetOutput(&logs)
+
+	for _, failures := range []int{0, 1, 6} {
+		t.Run(fmt.Sprintf("%d failures", failures), func(t *testing.T) {
+			store, err := settings.NewStore(t.TempDir()+"/settings.json", botTestSettingsBaseline(t, cfg), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			failOnCalls := make(map[int]bool, failures)
+			for call := 1; call <= failures; call++ {
+				failOnCalls[call] = true
+			}
+			caller := &commandRecordingCaller{failOnCalls: failOnCalls}
+			service := &Updates{cfg: cfg, settings: store, handlers: HandlerSet{Commands: testCommandModules(t)}}
+			logs.Reset()
+			service.SetupCommands(context.Background(), testBot(t, caller))
+
+			if got, want := len(caller.requests), 6; got != want {
+				t.Fatalf("failed command registration stopped later menu registration: got %d requests, want %d", got, want)
+			}
+			summary := logs.String()
+			fields := strings.Fields(summary)
+			for _, count := range []string{
+				fmt.Sprintf("confirmed=%d", 6-failures),
+				fmt.Sprintf("unconfirmed=%d", failures),
+			} {
+				if !slices.Contains(fields, count) {
+					t.Errorf("registration summary does not report %s: %q", count, summary)
+				}
+			}
+		})
 	}
 }
 

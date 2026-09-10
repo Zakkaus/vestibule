@@ -11,6 +11,7 @@ All notable changes to this project are documented here. The format is based on
   account identity when instance metadata is stale.
 - JSON state writes report parent-directory sync failures without discarding the
   already committed file or logging its contents.
+- Telegram command-menu summaries distinguish confirmed and unconfirmed registrations.
 - Group names use explicit colon-separated labels in Simplified Chinese, Traditional
   Chinese and English instead of an unlabelled prefix.
 - Console chrome shares a gray Spectrum layer-1 surface without sidebar or header
