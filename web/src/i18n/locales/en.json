@@ -113,7 +113,6 @@
     "description": "Only groups this account may manage appear here. Select a group to continue to its waiting queue.",
     "managedCount_one": "{{count}} manageable group",
     "managedCount_other": "{{count}} manageable groups",
-    "groupOption": "Group {{id}}",
     "authorized": "Authorized",
     "liveGroupNote": "After you select this group, later operations stay within its boundary.",
     "loading": {
@@ -214,6 +213,14 @@
       "title": "Loading waiting queue",
       "description": "Retrieving waiting applications…"
     },
+    "filter": {
+      "label": "Filter waiting queue",
+      "placeholder": "Filter by user or group"
+    },
+    "empty": {
+      "title": "No one has applied yet",
+      "description": "Waiting applicants appear here after the first application arrives."
+    },
     "groupRequired": {
       "title": "Select a group first",
       "description": "Choose an authorized group before viewing its waiting queue.",
@@ -253,13 +260,10 @@
       "targetProtected": "This applicant is a group administrator and cannot be released here.",
       "targetUnavailable": "The applicant's group membership cannot be verified. Try again."
     },
-    "empty": {
-      "title": "No one has applied yet",
-      "description": "Waiting applicants appear here after the first application arrives."
-    },
     "filteredEmpty": {
       "title": "No records match the current filters",
       "currentCondition": "Current filters: group {{group}}, result {{result}}.",
+      "queryCondition": "Current filter: {{query}}.",
       "clear": "Clear filters"
     }
   },
@@ -1381,17 +1385,14 @@
   "home": {
     "navigation": "Home",
     "title": "Home",
-    "description": "Review the selected group's summary, attention items, seven-day trend, and common configuration.",
     "roles": {
       "manager": "Group administrator",
       "operator": "Operator"
     },
     "context": {
-      "title": "Group {{id}}",
-      "selectedScope": "This page summarizes only the selected group.",
+      "title": "Group name: {{id}}",
       "enabled": "Verification enabled",
-      "disabled": "Verification disabled",
-      "modeUnreported": "Group mode not reported by the endpoint"
+      "disabled": "Verification disabled"
     },
     "source": {
       "value": "Source: {{source}}",
@@ -1402,25 +1403,13 @@
     "values": {
       "enabled": "Enabled",
       "disabled": "Disabled",
-      "seconds_one": "{{count}} second",
-      "seconds_other": "{{count}} seconds",
-      "rules_one": "{{count}} rule",
-      "rules_other": "{{count}} rules",
-      "groups_one": "{{count}} group",
-      "groups_other": "{{count}} groups",
-      "channels_one": "{{count}} channel",
-      "channels_other": "{{count}} channels",
-      "warnings_one": "{{count}} warning",
-      "warnings_other": "{{count}} warnings",
+      "configured": "Configured",
+      "questions_one": "{{count}} question",
+      "questions_other": "{{count}} questions",
       "verifyMode": {
         "kernel": "Kernel version question",
         "quiz": "Multiple-choice question",
         "mixed": "Mixed"
-      },
-      "deliveryMode": {
-        "group": "Group only",
-        "dm": "Direct message first",
-        "both": "Group and direct message"
       }
     },
     "loading": {
@@ -1443,7 +1432,6 @@
     },
     "overview": {
       "title": "Summary",
-      "description": "Statistics cover the past seven days; the waiting count is current.",
       "challenges": "Seven-day challenges",
       "passRate": "Seven-day pass rate",
       "waiting": "Waiting now",
@@ -1451,11 +1439,9 @@
     },
     "attention": {
       "title": "Needs attention",
-      "description": "Only items requiring action or further review appear here.",
       "tones": {
         "pending": "Pending",
-        "error": "Problem",
-        "info": "Information"
+        "error": "Problem"
       },
       "empty": {
         "badge": "All clear",
@@ -1494,42 +1480,32 @@
     },
     "trend": {
       "title": "Seven-day trend",
-      "description": "The miniature chart shows direction only. Open statistics for exact values.",
+      "coverage": "Days without readings: {{missing}}. Only dates with readings are shown.",
       "openStats": "View statistics",
-      "empty": "The selected range contains no dates to plot.",
-      "chartTitle": "Seven-day challenge volume and pass rate",
-      "chartDescription": "Bars show daily challenge volume, and the line shows the daily pass rate.",
-      "legendLabel": "Trend chart legend",
-      "challenges": "Challenge volume",
-      "passRate": "Pass rate"
+      "empty": "No readings are available for the selected date range.",
+      "chartDescription": "Bars show requests on the left axis; the line shows pass rate on the right. Read daily values from the labels, hover tooltip, or date picker.",
+      "countSeries": "Requests (left axis)",
+      "rateSeries": "Pass rate (right axis)",
+      "readDate": "Choose a date to read values",
+      "daySummary": "{{date}}: {{count}} challenges, {{passRate}} pass rate"
     },
     "entries": {
       "title": "Common configuration",
-      "description": "Every entry point shows its current values and their sources.",
       "verification": {
         "title": "Verification method",
-        "description": "Challenge type, delivery channel, and timeout",
-        "mode": "Verification strategy",
-        "delivery": "Delivery channel",
-        "timeout": "Timeout"
+        "mode": "Verification strategy"
       },
       "questions": {
         "title": "Question bank",
-        "description": "Multiple-choice and custom fallback questions",
-        "primary": "Multiple-choice",
-        "fallback": "Fallback"
+        "primary": "Multiple-choice"
       },
       "bypass": {
         "title": "Verification bypass sources",
-        "description": "Trusted groups and the channel allowlist",
-        "trustedGroups": "Trusted groups",
-        "channels": "Channel allowlist"
+        "requiredChannel": "Required channel"
       },
       "moderation": {
         "title": "Moderation and penalties",
-        "description": "Anti-spam and warning threshold",
-        "antispam": "Anti-spam",
-        "warnLimit": "Warning threshold"
+        "antispam": "Anti-spam"
       }
     }
   }

@@ -40,6 +40,8 @@ KEY_TEMPLATE = re.compile(r"`([A-Za-z][A-Za-z0-9_.]*)\$\{([^}]*)\}([A-Za-z0-9_.]
 QUOTED_VALUE = re.compile(r"""["']([A-Za-z][A-Za-z0-9_-]*)["']""")
 HAN = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
 CHINESE_CATALOGUES = {"zh-CN", "zh-TW"}
+SUPPORTED_CATALOGUES = ("en", "zh-CN", "zh-TW")
+
 NON_TRANSLATION_DOTTED_LITERALS = {"github.com"}
 LANGUAGE_NEUTRAL_CHINESE_VALUES = {
     "locale.en": "English",
@@ -110,7 +112,7 @@ def runtime_template_values(
     if (prefix, expression, suffix) == ("challenge.state.", "record.result.state", ""):
         values = declared_array_values(sources, Path("lib/challenge.ts"), "challengeStates")
     elif (prefix, expression, suffix) == ("home.attention.tones.", "item.tone", ""):
-        source = sources.get(Path("features/home/HomeScreen.tsx"))
+        source = sources.get(Path("features/home/HomeDashboard.tsx"))
         values = set(re.findall(r'\btone:\s*"([A-Za-z][A-Za-z0-9_-]*)"', source)) if source else None
     elif (prefix, expression, suffix) == ("stats.filters.errors.", "error", ""):
         values = declared_type_values(sources, Path("features/stats/StatsScreen.tsx"), "QueryError")
@@ -178,6 +180,9 @@ def main() -> int:
     for path in sorted(locales_dir.glob("*.json")):
         catalogues[path.stem] = flatten(json.loads(path.read_text(encoding="utf-8")))
         check_values_are_nonempty_and_localized(path.stem, catalogues[path.stem])
+    missing = [name for name in SUPPORTED_CATALOGUES if name not in catalogues]
+    for name in missing:
+        failures.append("%s.json is a supported catalogue but is missing" % name)
     if len(catalogues) < 2:
         print("FAIL check-locale-catalogues: found %d catalogue(s) in %s; there is "
               "nothing to compare" % (len(catalogues), locales_dir))

@@ -1,0 +1,16 @@
+/* Vendored overflow-x:hidden turns body into a non-scrolling sticky ancestor.
+   Spectrum styles cannot target body; clip preserves the viewport boundary
+   without trapping the shell's sticky navigation and header. */
+body:has([data-shell-variant="console"]) {
+  overflow-x: clip;
+}
+
+
+/* S2 pressScale writes an inline transform even with reduced motion requested.
+   The media query overrides that JS effect without restyling library controls. */
+@media (prefers-reduced-motion: reduce) {
+  [data-console-control],
+  [data-console-control] button {
+    transform: none !important;
+  }
+}

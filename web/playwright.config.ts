@@ -27,12 +27,12 @@ export default defineConfig({
   projects: [
     {
       name: "journeys-dev",
-      testIgnore: /render-gate\.spec\.ts/,
+      testIgnore: /render-gate\.spec\.ts|entry-production\.spec\.ts/,
       use: { baseURL: devBaseURL }
     },
     {
       name: "render-gate-preview",
-      testMatch: /render-gate\.spec\.ts/,
+      testMatch: /render-gate\.spec\.ts|entry-production\.spec\.ts/,
       use: { baseURL: previewBaseURL }
     }
   ],

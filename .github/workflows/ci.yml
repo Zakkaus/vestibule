@@ -158,16 +158,41 @@ jobs:
         uses: Zakk-LLM/Chinese-skill@242ec69c089f5dae91cfc7eb3b4dc924d5c1aab0 # v1.4.0
         with:
           path: web/architecture.html
-      - name: Console frontend builds and its stylesheet holds the rules
+      - name: Console frontend builds and its provenance-aware stylesheet holds the rules
         run: |
           cd web && npm ci --silent && npm run build
           cd ..
-          for c in coverage-floor style-rules undefined-var shadowed theme-leak comment-boundaries percentage-min; do
-            python3 "scripts/design-checks/$c.py" web/dist/assets/*.css
-          done
+          python3 scripts/check-css-coverage.py \
+            --frontend web --source web/src --dist web/dist \
+            --provenance web/dist/css-provenance.json
+          mapfile -t emitted_css < <(
+            python3 scripts/check-css-coverage.py \
+              --frontend web --source web/src --dist web/dist \
+              --provenance web/dist/css-provenance.json \
+              --print-emitted-assets
+          )
+          (cd web && npm run check:css -- --self-test)
+          (cd web && npm run check:css -- "${emitted_css[@]}")
+          python3 scripts/design-checks/coverage-floor.py "${emitted_css[@]}"
+          mapfile -t project_css < <(
+            python3 scripts/check-css-coverage.py \
+              --frontend web --source web/src --dist web/dist \
+              --provenance web/dist/css-provenance.json \
+              --print-project-sources
+          )
           for c in coverage-floor comment-boundaries padding-ratio peer-consistency percentage-min shorthand-across-layers; do
-            python3 "scripts/design-checks/$c.py" web/src/styles/tokens.css web/src/styles/components.css web/src/styles/shell.css web/src/app/app.css
+            python3 "scripts/design-checks/$c.py" "${project_css[@]}"
           done
+          for c in style-rules shadowed theme-leak; do
+            python3 "scripts/design-checks/$c.py" "${project_css[@]}"
+          done
+          undefined_definitions=()
+          for css in "${emitted_css[@]}"; do
+            undefined_definitions+=(--definitions "$css")
+          done
+          python3 scripts/design-checks/undefined-var.py \
+            "${undefined_definitions[@]}" "${project_css[@]}"
+          python3 scripts/check-no-external-assets.py "${emitted_css[@]}"
           python3 scripts/check-type-ramp.py
           python3 scripts/check-css-coverage.py web/src/app/app.css web/src/app/app.css.fixture.html
           # The deployment guide is served by the Go binary and never enters the

@@ -38,7 +38,7 @@ async function mockConsoleSession(page: Page): Promise<void> {
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupID }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupID, title: "Gentoo-zh Community" }] })
       });
       return;
     }
@@ -49,10 +49,7 @@ async function mockConsoleSession(page: Page): Promise<void> {
 
 async function waitForPreferences(page: Page): Promise<void> {
   await expect(page.locator("[data-preferences-page]")).toBeVisible();
-  await expect(page.locator("[data-group-switcher] [data-slot=\"select-trigger\"]")).not.toHaveAttribute(
-    "aria-busy",
-    "true"
-  );
+  await expect(page.locator("[data-group-switcher]").getByRole("button")).toBeEnabled();
 }
 
 async function preferenceControls(page: Page): Promise<PreferenceControls> {

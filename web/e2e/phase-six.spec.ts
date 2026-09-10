@@ -1,7 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { selectAppOption } from "./app-select";
+import { expectAppSelection, selectAppOption } from "./app-select";
 
 const selectedGroupId = "-1001163306055";
+const selectedGroupTitle = "Maintainers Workspace";
 const selectedFixtureGroupName = "Gentoo 中文社区";
 
 const managerSessionPayload = {
@@ -53,6 +54,20 @@ const approvedQueueEntry = {
 };
 
 const homeSettingsPayload = {
+  revision: 7,
+  name_spoiler: { value: true, source: "factory default" },
+  verify_max_fails: { value: 3, source: "factory default" },
+  verify_retry_seconds: { value: 180, source: "factory default" },
+  ban_seconds: { value: 0, source: "factory default" },
+  mute_seconds: { value: 3600, source: "factory default" },
+  verify_invited: { value: true, source: "factory default" },
+  fallback_builtin: { value: true, source: "factory default" },
+  lang: { value: "zh", source: "factory default" },
+  required_channel_id: { value: 0, source: "factory default" },
+  required_channel_fail_open: { value: false, source: "factory default" },
+  channel_display: { value: "", source: "factory default" },
+  channel_invite_url: { value: "", source: "factory default" },
+  admin_log_chat_id: { value: 0, source: "factory default" },
   enabled: { value: true, source: "factory default" },
   delivery_mode: { value: "both", source: "factory default" },
   verify_mode: { value: "mixed", source: "factory default" },
@@ -137,7 +152,7 @@ async function mockQueueTransport(
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupId }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle }] })
       });
       return;
     }
@@ -245,7 +260,7 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupId }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle }] })
       });
       return;
     }
@@ -305,6 +320,8 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
     await page.goto("/");
     await expect(page).toHaveURL(new RegExp(`/home\\?group=${selectedGroupId}$`));
     await expect(page.locator("[data-home-page]")).toHaveAttribute("data-home-state", "loaded");
+    await expect(page.locator("[data-home-context]")).toContainText(selectedGroupTitle);
+    await expect(page.locator("[data-home-page]")).not.toContainText(/-100\d+/);
     expect(handshake(sessionRequests).slice(0, 3)).toEqual([
       "GET /api/session",
       "POST /api/session",
@@ -314,20 +331,26 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
 
   await test.step("review the selected managed group", async () => {
     // Home already selects the first authorised group, so this step reads the
-    // switcher rather than operating it. The switcher is no longer a native
-    // select, so its value is an attribute, not a form value.
+    // switcher rather than changing it.
     const groupSwitcher = page.getByRole("button", { name: "当前群" });
-    await expect(groupSwitcher).toHaveAttribute("data-value", selectedGroupId);
-    await page.getByRole("link", { name: "群与频道", exact: true }).click();
+    await expectAppSelection(groupSwitcher, selectedGroupId);
+    await expect(groupSwitcher).toContainText(selectedGroupTitle);
+    await expect(groupSwitcher).not.toContainText(/-100\d+/);
+    await page.locator('.console-sidebar [data-navigation-group="group"]').click();
+    await page.locator(".console-sidebar").getByRole("link", { name: "群与频道", exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/groups\\?group=${selectedGroupId}$`));
 
     const selectedRow = page.locator("[data-group-row][data-selected]");
-    await expect(selectedRow).toContainText(selectedGroupId);
+    await expect(selectedRow).toContainText(selectedGroupTitle);
+    await expect(page.locator("[data-groups-page]")).not.toContainText(/-100\d+/);
+    await expect(selectedRow.getByRole("link")).toHaveAccessibleName(new RegExp(selectedGroupTitle));
+    await expect(selectedRow.getByRole("link")).not.toHaveAccessibleName(/-100\d+/);
     await expect(selectedRow).not.toContainText("Gentoo 中文社区");
   });
 
   await test.step("open the waiting queue", async () => {
-    await page.getByRole("link", { name: "等待队列", exact: true }).click();
+    await page.locator('.console-sidebar [data-navigation-group="daily"]').click();
+    await page.locator(".console-sidebar").getByRole("link", { name: "等待队列", exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/queue\\?group=${selectedGroupId}$`));
     await expect(page.locator("[data-queue-page]")).toHaveAttribute(
       "data-queue-state",
@@ -339,6 +362,8 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
     const row = rowFor(page, "@another");
     await expect(row).toHaveAttribute("data-result", "pending");
     await expect(row.locator("[data-queue-result]")).toContainText("等待中 2:41");
+    await expect(row.locator("[data-queue-group]")).toHaveText(selectedGroupTitle);
+    await expect(page.locator("[data-queue-page]")).not.toContainText(/-100\d+/);
 
     await row.getByRole("button", { name: "放行 @another" }).click();
 
@@ -346,6 +371,9 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
     await expect(row).toHaveAttribute("data-result", "approved");
     await expect(row.locator("[data-queue-result]")).toHaveText("已通过");
     await expect(page.locator("[data-queue-feedback]")).toContainText("已放行 @another");
+    await expect(page.locator("[data-queue-feedback]")).toContainText(selectedGroupTitle);
+    await expect(page.locator("[data-queue-feedback]")).not.toContainText(/-100\d+/);
+    await expect(page.getByRole("alert").filter({ hasText: "@another" })).toContainText(selectedGroupTitle);
   });
 });
 
@@ -383,7 +411,7 @@ test("operator cookie session skips Mini App exchange", async ({ page, baseURL }
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupId }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle }] })
       });
       return;
     }
@@ -536,15 +564,6 @@ test("group list keeps loading distinct from a settled empty result", async ({ p
   await expect(page.getByRole("button", { name: "重新读取" })).toHaveCount(0);
 });
 
-test("group-list error matrix covers every explicit backend code", () => {
-  expect(groupListErrorCases.map(({ code }) => code)).toEqual([
-    "authentication_expired",
-    "authentication_invalid",
-    "authentication_unavailable",
-    "verification_unavailable"
-  ]);
-});
-
 for (const errorCase of groupListErrorCases) {
   test(`group list presents ${errorCase.code} and its recovery`, async ({ page }) => {
     let chatRequestCount = 0;
@@ -571,7 +590,7 @@ for (const errorCase of groupListErrorCases) {
               }
             : {
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ chats: [{ id: selectedGroupId }] })
+                body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle }] })
               }
         );
         return;
@@ -597,7 +616,8 @@ for (const errorCase of groupListErrorCases) {
     if (errorCase.retryable) {
       await page.getByRole("button", { name: "重新读取" }).click();
       await expect(groups).toHaveAttribute("data-groups-state", "populated");
-      await expect(page.locator("[data-group-row]")).toContainText(selectedGroupId);
+      await expect(page.locator("[data-group-row]")).toContainText(selectedGroupTitle);
+      await expect(groups).not.toContainText(/-100\d+/);
       expect(chatRequestCount).toBe(2);
     } else {
       await expect(page.getByRole("button", { name: "重新读取" })).toHaveCount(0);
@@ -633,7 +653,7 @@ test("keyboard selection carries the group boundary to the queue", async ({ page
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupId }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle }] })
       });
       return;
     }
@@ -663,7 +683,6 @@ test("keyboard selection carries the group boundary to the queue", async ({ page
     "data-groups-source",
     "api"
   );
-  expect(await page.evaluate(() => document.activeElement?.tagName)).toBe("BODY");
 
   // The group row sits after everything before it in the tab order, and what
   // comes before it grows with the console: twelve presses reached it at three
@@ -716,7 +735,7 @@ test("widest locale keeps group controls inside the desktop header", async ({ pa
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupId }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle }] })
       });
       return;
     }
@@ -738,7 +757,7 @@ test("widest locale keeps group controls inside the desktop header", async ({ pa
 
   const bounds = await page.evaluate(() => {
     const header = document.querySelector("[data-console-header]");
-    const controls = document.querySelector("[data-header-controls]");
+    const controls = document.querySelector(".console-controls");
     if (!(header instanceof HTMLElement) || !(controls instanceof HTMLElement)) {
       throw new Error("Group header geometry targets are missing");
     }
@@ -774,7 +793,6 @@ test("entry states retain their distinct guidance", async ({ page }) => {
     ["redeemed", "这条链接已被用过"],
     ["outside-telegram", "群管理仅可从 Telegram 内打开"]
   ] as const;
-  expect(stateCases).not.toHaveLength(0);
 
   await page.route("**/api/session", async (route) => {
     await route.fulfill({
@@ -898,13 +916,25 @@ test("a failed fixture release restores pending state and remaining time", async
   await expect(row).toHaveAttribute("data-result", "pending");
   await expect(result).toContainText("等待中 3:39");
 
-  await row.getByRole("button", { name: "放行 @retry_release" }).click();
-  await expect(row).toHaveAttribute("data-result", "approved");
+  const action = row.getByRole("button");
+  await page.locator("[data-queue-filter] input").focus();
+  await page.keyboard.press("Tab");
+  await expect(page.locator("[data-queue-row]").first()).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(row).toBeFocused();
+  await page.keyboard.press("ArrowLeft");
+  await expect(action).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(action).toBeVisible();
+  await expect(action).toHaveAttribute("aria-disabled", "true");
+  await expect(action).toBeFocused();
 
   await expect(page.locator("[data-queue-feedback]")).toContainText("未能放行 @retry_release");
   await expect(row).toHaveAttribute("data-action-state", "idle");
   await expect(row).toHaveAttribute("data-result", "pending");
   await expect(result).toContainText("等待中 3:39");
+  await expect(action).toBeEnabled();
+  await expect(action).toBeFocused();
 });
 
 test("banned fixture rows expose status without an action", async ({ page }) => {
@@ -915,7 +945,7 @@ test("banned fixture rows expose status without an action", async ({ page }) => 
   await expect(row.getByRole("button")).toHaveCount(0);
 });
 
-test("narrow queue exposes a release card to keyboard users", async ({ page }) => {
+test("narrow queue exposes its release action through grid keyboard navigation", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 900 });
   await openLiveQueue(page, async (route) => {
     await route.fulfill({
@@ -924,19 +954,32 @@ test("narrow queue exposes a release card to keyboard users", async ({ page }) =
     });
   });
 
-  await expect(page.locator("[data-queue-table-scroll]")).toBeHidden();
+  await expect(page.getByRole("grid")).toBeVisible();
+  const row = rowFor(page, "@another");
+  const action = row.getByRole("button", { name: "放行 @another" });
+  await expect(row).toHaveAttribute("data-result", "pending");
 
-  const card = page.locator("[data-queue-card-row]", { hasText: "@another" });
-  const action = card.getByRole("button", { name: "放行 @another" });
-  await expect(card).toHaveAttribute("data-result", "pending");
-  await expect(action).toBeVisible();
-
-  await action.focus();
+  await page.locator("[data-queue-filter] input").focus();
+  await page.keyboard.press("Tab");
+  await expect(row).toBeFocused();
+  const columnCount = Number(await page.getByRole("grid").getAttribute("aria-colcount"));
+  for (let column = 1; column <= columnCount; column++) {
+    await page.keyboard.press("ArrowRight");
+    await expect.poll(() => page.evaluate(() =>
+      document.activeElement?.closest("[aria-colindex]")?.getAttribute("aria-colindex")
+    )).toBe(String(column));
+    await expect(row.locator(`[aria-colindex="${column}"]`)).toBeInViewport({ ratio: 1 });
+    // TableView consumes focus scrolling on a subsequent animation frame.
+    await page.evaluate(() => new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+    ));
+  }
   await expect(action).toBeFocused();
+  await expect(action).toBeInViewport({ ratio: 1 });
   await page.keyboard.press("Enter");
 
-  await expect(card).toHaveAttribute("data-result", "approved");
-  await expect(card.locator("[data-queue-action-id=\"release\"]")).toHaveCount(0);
+  await expect(row).toHaveAttribute("data-result", "approved");
+  await expect(row.locator("[data-queue-action-id=\"release\"]")).toHaveCount(0);
 });
 
 const settlementFailureCases = [

@@ -1,15 +1,66 @@
+import { Button } from "@react-spectrum/s2/Button";
+import { ButtonGroup } from "@react-spectrum/s2/ButtonGroup";
+import { Card } from "@react-spectrum/s2/Card";
+import { Content, Header, Heading, Text } from "@react-spectrum/s2";
+import { InlineAlert } from "@react-spectrum/s2/InlineAlert";
+import { TextField } from "@react-spectrum/s2/TextField";
+import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 import { consoleApi, useConsoleSession } from "../../app/session";
+import { useConsoleSize } from "../../components/ConsoleProvider";
 import type { StatusTone } from "../../components/StatusBadge";
 import type { ApiRequestError } from "../../lib/api";
 import { Icon } from "../../icons";
 import { challengeResults } from "../../lib/challenge";
+import { groupName } from "../../lib/chatNames";
 import { loadQueue, releaseQueueRecord, type QueueRecord } from "./api";
-import { queueFixtureFor, type QueueFilter, type QueueFixture } from "./fixtures";
+import { queueFixtureFor, type QueueFixture } from "./fixtures";
+import {
+  QueueEmptyState,
+  QueueFilteredEmptyState,
+  QueueGroupRequiredState,
+  QueueLoadingState,
+  QueueNoGroupsState,
+  QueueUnavailableState
+} from "./QueueState";
 import { QueueTable, type PendingQueueActions } from "./QueueTable";
+const queuePageStyles = style({
+  display: "grid",
+  minWidth: 0,
+  gap: 24
+});
+
+const queueHeadingStyles = style({
+  font: "heading-lg",
+  margin: 0,
+  display: "flex",
+  alignItems: "center",
+  gap: 8
+});
+
+const queueResultsStyles = style({
+  display: "grid",
+  minWidth: 0,
+  gap: 24,
+  minHeight: 192
+});
+
+const queueToolbarStyles = style({
+  display: "flex",
+  alignItems: "end",
+  justifyContent: "space-between",
+  flexWrap: "wrap",
+  gap: 24
+});
+
+const queueTableContainerStyles = style({
+  width: "full",
+  minWidth: 0,
+  overflowX: "auto"
+});
 
 const FIXTURE_ACTION_DELAY_MS = 700;
 const FEEDBACK_DURATION_MS = 5_000;
@@ -65,149 +116,40 @@ function queueErrorMessageKey(error: ApiRequestError, fallback: string): string 
 
 function QueueFeedbackNotice({ feedback }: Readonly<{ feedback: QueueFeedback }>) {
   const { t } = useTranslation();
-  const group = feedback.record.groupLabelKey
-    ? t(feedback.record.groupLabelKey)
-    : feedback.record.groupKey;
+  const session = useConsoleSession();
+  const group = groupName(
+    feedback.record.groupKey,
+    feedback.record.groupLabelKey
+      ? t(feedback.record.groupLabelKey)
+      : session.state === "ready" ? session.chats.find((chat) => chat.id === feedback.record.groupKey)?.title : undefined
+  );
+  const variant =
+    feedback.tone === "ok"
+      ? "positive"
+      : feedback.tone === "error"
+        ? "negative"
+        : feedback.tone === "pending"
+          ? "notice"
+          : feedback.tone === "info"
+            ? "informative"
+            : "neutral";
 
   return (
-    <div
+    <InlineAlert
       data-record-feedback
       data-queue-feedback
       data-tone={feedback.tone}
-      role={feedback.tone === "error" ? "alert" : "status"}
       aria-atomic="true"
+      variant={variant}
     >
-      <Icon
-        name={
-          feedback.tone === "ok"
-            ? "circleCheck"
-            : feedback.tone === "info"
-              ? "info"
-              : feedback.tone === "pending"
-                ? "loaderCircle"
-                : feedback.tone === "error"
-                  ? "circleAlert"
-                  : "circleMinus"
-        }
-      />
-      {t(feedback.messageKey, {
-        user: feedback.record.user,
-        group,
-        approved: t(challengeResults.approved.labelKey)
-      })}
-    </div>
-  );
-}
-
-function QueueEmptyState() {
-  const { t } = useTranslation();
-
-  return (
-    <section data-slot="card" data-record-empty data-queue-empty aria-labelledby="queue-empty-title">
-      <h2 id="queue-empty-title" data-state-heading>
-        <Icon name="inbox" />
-        {t("queue.empty.title")}
-      </h2>
-      <p>{t("queue.empty.description")}</p>
-    </section>
-  );
-}
-
-function QueueLoadingState() {
-  const { t } = useTranslation();
-
-  return (
-    <section data-slot="card" data-record-empty data-queue-empty aria-live="polite" aria-labelledby="queue-loading-title">
-      <h2 id="queue-loading-title" data-state-heading>
-        <Icon name="loaderCircle" />
-        {t("queue.loading.title")}
-      </h2>
-      <p>{t("queue.loading.description")}</p>
-    </section>
-  );
-}
-
-function QueueGroupRequiredState() {
-  const { t } = useTranslation();
-
-  return (
-    <section data-slot="card" data-record-empty data-queue-empty aria-labelledby="queue-group-required-title">
-      <h2 id="queue-group-required-title" data-state-heading>
-        <Icon name="usersRound" />
-        {t("queue.groupRequired.title")}
-      </h2>
-      <p>{t("queue.groupRequired.description")}</p>
-      <Link to="/groups" data-slot="button" data-variant="primary" data-size="sm">
-        <Icon name="usersRound" />
-        {t("queue.groupRequired.select")}
-      </Link>
-    </section>
-  );
-}
-
-function QueueNoGroupsState() {
-  const { t } = useTranslation();
-
-  return (
-    <section data-slot="card" data-record-empty data-queue-empty aria-labelledby="queue-no-groups-title">
-      <h2 id="queue-no-groups-title" data-state-heading>
-        <Icon name="usersRound" />
-        {t("queue.noGroups.title")}
-      </h2>
-      <p>{t("queue.noGroups.description")}</p>
-    </section>
-  );
-}
-
-function QueueUnavailableState({
-  error,
-  onRetry
-}: Readonly<{ error: ApiRequestError; onRetry: () => void }>) {
-  const { t } = useTranslation();
-
-  return (
-    <section data-slot="card" data-record-empty data-queue-empty data-queue-unavailable role="alert" aria-labelledby="queue-unavailable-title">
-      <h2 id="queue-unavailable-title" data-state-heading>
-        <Icon name="circleAlert" />
-        {t("queue.unavailable.title")}
-      </h2>
-      <p>{t(queueErrorMessageKey(error, "queue.errors.loadUnavailable"))}</p>
-      <button type="button" data-slot="button" data-variant="outline" data-size="sm" onClick={onRetry}>
-        <Icon name="refreshCw" />
-        {t("queue.unavailable.retry")}
-      </button>
-    </section>
-  );
-}
-
-type QueueFilteredEmptyStateProps = Readonly<{
-  filter: QueueFilter;
-  onClear: () => void;
-}>;
-
-function QueueFilteredEmptyState({ filter, onClear }: QueueFilteredEmptyStateProps) {
-  const { t } = useTranslation();
-  const group = filter.groupLabelKey ? t(filter.groupLabelKey) : filter.groupKey;
-
-  return (
-    <section data-slot="card" data-record-empty data-queue-empty aria-labelledby="queue-filtered-empty-title">
-      <h2 id="queue-filtered-empty-title" data-state-heading>
-        <Icon name="inbox" />
-        {t("queue.filteredEmpty.title")}
-      </h2>
-      <p>
-        {t("queue.filteredEmpty.currentCondition", {
+      <Text>
+        {t(feedback.messageKey, {
+          user: feedback.record.user,
           group,
-          result: t(filter.result.labelKey)
+          approved: t(challengeResults.approved.labelKey)
         })}
-      </p>
-      <div>
-        <button type="button" data-slot="button" data-variant="ghost" data-size="sm" onClick={onClear}>
-          <Icon name="listX" />
-          {t("queue.filteredEmpty.clear")}
-        </button>
-      </div>
-    </section>
+      </Text>
+    </InlineAlert>
   );
 }
 
@@ -221,9 +163,11 @@ export function QueueScreen() {
     selectedGroupId !== null && /^-?\d+$/.test(selectedGroupId) ? selectedGroupId : undefined;
   const [queueState, setQueueState] = useState<QueueScreenState>({ kind: "loading" });
   const [records, setRecords] = useState<readonly QueueRecord[]>([]);
+  const filterQuery = searchParams.get("q") ?? "";
   const [pendingActions, setPendingActions] = useState<PendingQueueActions>({});
   const [feedback, setFeedback] = useState<QueueFeedback | null>(null);
   const [reloadVersion, setReloadVersion] = useState(0);
+  const filterSize = useConsoleSize("L");
   const inFlightRecordIdsRef = useRef(new Set<string>());
   const activeScopeRef = useRef("");
   const feedbackSequenceRef = useRef(0);
@@ -313,6 +257,7 @@ export function QueueScreen() {
     fixtureTimerIdsRef.current.clear();
     inFlightRecordIdsRef.current.clear();
     setPendingActions({});
+
     setFeedback(null);
 
     return () => {
@@ -325,6 +270,14 @@ export function QueueScreen() {
       inFlightRecordIdsRef.current.clear();
     };
   }, [chatID, session.state]);
+  function setFilterQuery(query: string): void {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (query) next.set("q", query);
+      else next.delete("q");
+      return next;
+    }, { replace: true });
+  }
 
   function showFeedback(
     messageKey: string,
@@ -463,6 +416,34 @@ export function QueueScreen() {
     });
   }
 
+  const normalizedQuery = filterQuery.trim().toLocaleLowerCase();
+  const visibleRecords = useMemo(
+    () =>
+      normalizedQuery.length === 0
+        ? records
+        : records.filter((record) => {
+            const group = groupName(
+              record.groupKey,
+              record.groupLabelKey
+                ? t(record.groupLabelKey)
+                : session.state === "ready" ? session.chats.find((chat) => chat.id === record.groupKey)?.title : undefined
+            );
+            return [record.user, record.groupKey, group].some((value) =>
+              value.toLocaleLowerCase().includes(normalizedQuery)
+            );
+          }),
+    [normalizedQuery, records, session, t]
+  );
+  const isDataReady = queueState.kind === "fixture" || queueState.kind === "loaded";
+  const hasRecords = isDataReady && records.length > 0;
+  const tableEmptyState =
+    queueState.kind === "fixture" && records.length === 0 && queueState.fixture.filter ? (
+      <QueueFilteredEmptyState filter={queueState.fixture.filter} onClear={clearFixture} />
+    ) : hasRecords && visibleRecords.length === 0 ? (
+      <QueueFilteredEmptyState query={filterQuery} onClear={() => setFilterQuery("")} />
+    ) : (
+      <QueueEmptyState />
+    );
   const dataState =
     queueState.kind === "fixture"
       ? queueState.fixture.id
@@ -473,46 +454,79 @@ export function QueueScreen() {
         : queueState.kind;
 
   return (
-    <section
+    <Content
       data-record-page
       data-queue-page
+      data-console-page
       data-queue-state={dataState}
       aria-busy={queueState.kind === "loading" ? true : undefined}
       aria-labelledby="queue-title"
+      styles={queuePageStyles}
     >
-      <header data-page-heading>
-        <h1 id="queue-title">
+      <Header data-page-heading>
+        <Heading id="queue-title" level={1} styles={queueHeadingStyles}>
           <Icon name="inbox" />
-          {t("queue.title")}
-        </h1>
-      </header>
+          <Text>{t("queue.title")}</Text>
+        </Heading>
+      </Header>
 
-      {queueState.kind === "loading" ? <QueueLoadingState /> : null}
-      {queueState.kind === "group-required" ? <QueueGroupRequiredState /> : null}
-      {queueState.kind === "no-groups" ? <QueueNoGroupsState /> : null}
-      {queueState.kind === "unavailable" ? (
-        <QueueUnavailableState
-          error={queueState.error}
-          onRetry={() => setReloadVersion((currentVersion) => currentVersion + 1)}
-        />
-      ) : null}
-      {(queueState.kind === "fixture" || queueState.kind === "loaded") && records.length > 0 ? (
-        <QueueTable
-          records={records}
-          pendingActions={pendingActions}
-          dateFormatter={dateFormatter}
-          onRelease={releaseRecord}
-        />
-      ) : null}
-      {queueState.kind === "fixture" && records.length === 0 && queueState.fixture.filter ? (
-        <QueueFilteredEmptyState filter={queueState.fixture.filter} onClear={clearFixture} />
-      ) : null}
-      {(queueState.kind === "fixture" || queueState.kind === "loaded") && records.length === 0 &&
-      !(queueState.kind === "fixture" && queueState.fixture.filter) ? (
-        <QueueEmptyState />
-      ) : null}
+      <Content data-queue-results styles={queueResultsStyles}>
+        {hasRecords ? (
+          <Card data-queue-toolbar density="compact" styles={style({ width: "full", minWidth: 0 })}>
+            <Content styles={queueToolbarStyles}>
+              <TextField
+                label={t("queue.filter.label")}
+                placeholder={t("queue.filter.placeholder")}
+                value={filterQuery}
+                onChange={setFilterQuery}
+                size={filterSize}
+                data-console-control
+                data-control-size={filterSize}
+                data-queue-filter
+              />
+              {filterQuery.length > 0 ? (
+                <ButtonGroup>
+                  <Button
+                    variant="secondary"
+                    fillStyle="outline"
+                    size={filterSize}
+                    data-console-control
+                    data-control-size={filterSize}
+                    data-queue-filter-clear
+                    onPress={() => setFilterQuery("")}
+                  >
+                    <Text>{t("queue.filteredEmpty.clear")}</Text>
+                  </Button>
+                </ButtonGroup>
+              ) : null}
+            </Content>
+          </Card>
+        ) : null}
+
+        {queueState.kind === "loading" ? <QueueLoadingState /> : null}
+        {queueState.kind === "group-required" ? <QueueGroupRequiredState /> : null}
+        {queueState.kind === "no-groups" ? <QueueNoGroupsState /> : null}
+        {queueState.kind === "unavailable" ? (
+          <QueueUnavailableState
+            messageKey={queueErrorMessageKey(queueState.error, "queue.errors.loadUnavailable")}
+            onRetry={() => setReloadVersion((currentVersion) => currentVersion + 1)}
+          />
+        ) : null}
+        {isDataReady ? (
+          <Content data-queue-table-container styles={queueTableContainerStyles}>
+            <QueueTable
+              key={chatID ?? "unselected"}
+              records={visibleRecords}
+              pendingActions={pendingActions}
+              dateFormatter={dateFormatter}
+              emptyState={tableEmptyState}
+              onRelease={releaseRecord}
+            />
+          </Content>
+        ) : null}
+      </Content>
 
       {feedback ? <QueueFeedbackNotice feedback={feedback} /> : null}
-    </section>
+    </Content>
   );
 }

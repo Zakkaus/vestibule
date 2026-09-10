@@ -33,7 +33,11 @@ async function mockFeedsTransport(
       return;
     }
     if (path === "/api/chats" && request.method() === "GET") {
-      await fulfillJSON(route, { chats: [{ id: selectedGroupID }] });
+      await fulfillJSON(route, { chats: [
+        { id: selectedGroupID, title: "Gentoo-zh Community" },
+        { id: "-1009000000203", title: "Gentoo Package Updates" },
+        { id: "-1009000000204", title: "Linux News" }
+      ] });
       return;
     }
     if (path === "/api/process/settings") {
@@ -114,7 +118,9 @@ test("feed delivery renders process values, array records, and API provenance wi
   await expect(feedSection).toContainText("来源：由文件管理");
   const feeds = feedSection.locator("[data-feed-item]");
   await expect(feeds).toHaveCount(2);
-  await expect(feeds.nth(0)).toContainText("-1009000000203");
+  await expect(feeds.nth(0)).toContainText("Gentoo Package Updates");
+  await expect(feeds.nth(1)).toContainText("Linux News");
+  await expect(screen).not.toContainText(/-100\d+/);
   await expect(feeds.nth(0)).toContainText("600 秒");
   await expect(feeds.nth(0)).toContainText("Gentoo Linux");
   await expect(feeds.nth(0)).toContainText("Portage");

@@ -1,25 +1,37 @@
-import { useTranslation } from "react-i18next";
+import { Picker, PickerItem } from "@react-spectrum/s2/Picker";
+import { Content } from "@react-spectrum/s2";
+import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import { useConsoleSession } from "../../app/session";
-import { AppSelect } from "../../components/AppSelect";
+import { useConsoleSize } from "../../components/ConsoleProvider";
+import { groupName } from "../../lib/chatNames";
 import {
   allGroupsSelection,
   groupFixtures,
   isGroupFixtureFallback,
   resolveGroupSelection
 } from "./fixtures";
+const groupSwitcherLayout = style({
+  width: {
+    default: 240,
+    "@media (max-width: 48rem)": "full"
+  },
+  minWidth: 0
+});
 
 export function GroupSwitcher() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const session = useConsoleSession();
+  const size = useConsoleSize("L");
   const fixtureFallback = isGroupFixtureFallback(session);
   const options =
     session.state === "ready"
       ? session.chats.map((chat) => ({
           id: chat.id,
-          label: chat.title && chat.title.trim() ? chat.title : chat.id
+          label: groupName(chat.id, chat.title)
         }))
       : fixtureFallback
         ? groupFixtures.map((group) => ({
@@ -56,16 +68,21 @@ export function GroupSwitcher() {
   }
 
   return (
-    <label data-group-switcher>
-      <span>{t("shell.groupSwitcher")}</span>
-      <AppSelect
-        aria-busy={isLoading || undefined}
+    <Content data-group-switcher styles={style({ minWidth: 0, gridColumn: { default: "auto", "@media (max-width: 48rem)": "1 / -1" } })}>
+      <Picker
         aria-label={t("shell.groupSwitcher")}
-        disabled={options.length === 0}
-        value={selectedGroupId}
-        options={selectionOptions}
-        onValueChange={changeSelectedGroup}
-      />
-    </label>
+        isDisabled={options.length === 0}
+        loadingState={isLoading ? "loading" : "idle"}
+        selectedKey={selectedGroupId}
+        onSelectionChange={(key) => { if (key !== null) changeSelectedGroup(String(key)); }}
+        items={selectionOptions}
+        size={size}
+        styles={groupSwitcherLayout}
+        data-console-control
+        data-control-size={size}
+      >
+        {(option) => <PickerItem id={option.value}>{option.label}</PickerItem>}
+      </Picker>
+    </Content>
   );
 }

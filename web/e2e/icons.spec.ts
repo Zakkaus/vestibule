@@ -29,34 +29,6 @@ function sourceFiles(directory: string): string[] {
     return entry.isDirectory() ? sourceFiles(path) : [path];
   });
 }
-const sourceActionPattern =
-  /<(button|Link)\b(?:(?!<\/?(?:button|Link)\b)[\s\S])*?data-slot="button"[\s\S]*?<\/\1>/g;
-
-function sourceActionsWithoutIcons(): string[] {
-  return sourceFiles(sourceRoot)
-    .filter((path) => path.endsWith(".tsx"))
-    .flatMap((path) => {
-      const source = readFileSync(path, "utf8");
-      const actions = [...source.matchAll(sourceActionPattern)];
-      const slots = [...source.matchAll(/data-slot="button"/g)];
-
-      if (actions.length !== slots.length) {
-        return [
-          `${relative(sourceRoot, path)}: source action parser covered ${actions.length} of ${slots.length} buttons`
-        ];
-      }
-
-      return actions
-        .filter((action) => !action[0].includes("<Icon"))
-        .map((action) => {
-          const line = source.slice(0, action.index ?? 0).split("\n").length;
-          return `${relative(sourceRoot, path)}:${line}`;
-        });
-    })
-    .sort();
-}
-
-
 
 test("Lucide icon assets are traceable and exclusive", () => {
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as IconManifest;
@@ -72,6 +44,23 @@ test("Lucide icon assets are traceable and exclusive", () => {
 
   expect(manifest.collection).toBe("Lucide Static");
   expect(manifest.package).toBe("lucide-static");
+  expect(manifest.version).toBe("1.39.0");
+  for (const icon of [
+    {
+      name: "chart-column",
+      file: "chart-column.svg",
+      source: "package/icons/chart-column.svg",
+      sha256: "9726f8d10c6e18fe874be45dc816d1981f626b47586376778ccd91c62be47400"
+    },
+    {
+      name: "chart-line",
+      file: "chart-line.svg",
+      source: "package/icons/chart-line.svg",
+      sha256: "3b83d3bc804083413091262ea77af17a4a0ce2d9dddfe87b0ddfa9a8a4155983"
+    }
+  ]) {
+    expect(manifest.icons).toContainEqual(expect.objectContaining(icon));
+  }
   expect(vendoredFiles).toEqual(manifestFiles);
   expect(registryFiles).toEqual(manifestFiles);
 
@@ -110,18 +99,19 @@ test("Lucide icon assets are traceable and exclusive", () => {
   expect(rawSvgSources).toEqual([]);
 });
 
-test("rendered console action buttons and navigation carry icons", async ({ page }) => {
-  expect(sourceActionsWithoutIcons()).toEqual([]);
-  for (const route of readRenderRoutes()) {
+for (const route of readRenderRoutes()) {
+  test(`rendered console action buttons and navigation carry icons on ${route.urlPath}`, async ({ page }) => {
     await page.goto(route.urlPath);
     await page.locator("[data-app-shell]").waitFor({ state: "visible" });
 
-    const missingButtons = await page.locator("[data-slot=\"button\"]").evaluateAll((buttons) =>
+    const missingButtons = await page.locator(
+      '[data-slot="button"], button[data-console-control], a[data-console-control]:not([data-console-card])'
+    ).evaluateAll((buttons) =>
       buttons
         .filter((button) => !button.querySelector("[data-icon]"))
         .map((button) => button.textContent?.trim() ?? "")
     );
-    const missingNavigation = await page.locator(".nav-item").evaluateAll((items) =>
+    const missingNavigation = await page.locator(".console-sidebar nav a[href]").evaluateAll((items) =>
       items
         .filter((item) => !item.querySelector("[data-icon]"))
         .map((item) => item.textContent?.trim() ?? "")
@@ -129,5 +119,5 @@ test("rendered console action buttons and navigation carry icons", async ({ page
 
     expect(missingButtons, `${route.sourcePath}: buttons without icons`).toEqual([]);
     expect(missingNavigation, `${route.sourcePath}: navigation without icons`).toEqual([]);
-  }
-});
+  });
+}

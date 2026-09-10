@@ -78,14 +78,17 @@ func (s *Updates) SetupCommands(ctx context.Context, bot *telego.Bot) {
 				scope: &telego.BotCommandScopeChatAdministrators{Type: "chat_administrators", ChatID: tu.ID(groupID)}},
 		)
 	}
+	confirmedMenus := 0
 	for _, menu := range menus {
 		if err := bot.SetMyCommands(ctx, &telego.SetMyCommandsParams{
 			Commands: menu.commands, Scope: menu.scope, LanguageCode: menu.languageCode,
 		}); err != nil {
 			log.Printf("setMyCommands(%s): %v", menu.name, err)
+			continue
 		}
+		confirmedMenus++
 	}
-	log.Printf("registered bot command menus (%d scopes)", len(menus))
+	log.Printf("bot command menus: confirmed=%d unconfirmed=%d", confirmedMenus, len(menus)-confirmedMenus)
 }
 
 func (s *Updates) groupLanguage(groupID int64) i18n.Lang {

@@ -15,12 +15,15 @@ does not overflow. Only opening it showed anything was wrong.
 The style-rules checker cannot see this: the file is entirely compliant. It
 references the scale exactly as it should. What is missing is the scale.
 
-Pass every stylesheet that ships together in one invocation. Definitions pool
-across files for the same reason they do in css-coverage: run file by file and
-every cross-file reference looks like a violation.
+Pass every source stylesheet that ships together in one invocation. A repeated
+`--definitions FILE` option adds definitions from compiled CSS without checking
+references in those files. Positional CSS/HTML paths retain both definitions and
+references; a separate provenance-aware check validates references emitted by the
+build.
 
-Usage: undefined-var.py <file.css|file.html> ...
+Usage: undefined-var.py [--definitions FILE]... <file.css|file.html> ...
 """
+import argparse
 import re
 import sys
 from pathlib import Path
@@ -77,17 +80,30 @@ def main(argv: list[str]) -> int:
     if not argv:
         print(__doc__, file=sys.stderr)
         return 2
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--definitions",
+        action="append",
+        default=[],
+        metavar="FILE",
+        help="compiled CSS file supplying definitions (repeatable)",
+    )
+    parser.add_argument("sources", metavar="FILE", nargs="+")
+    args = parser.parse_args(argv)
+
+    inputs = [(Path(path), False) for path in args.definitions]
+    inputs.extend((Path(path), True) for path in args.sources)
     # A path that cannot be read is not a finding about the library. Without this
     # the open below raises, Python exits 1, and that is the same code a real
     # violation uses — so one mistyped argument reads as a failing check. The test
     # is the read itself rather than is_file(): the two agree on a missing path and
     # part company on one whose mode or encoding stops the open that follows.
     unreadable = []
-    for a in argv:
+    for path, _ in inputs:
         try:
-            Path(a).read_text(encoding="utf-8")
+            path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError) as e:
-            unreadable.append("%s (%s)" % (a, getattr(e, "strerror", None) or e.__class__.__name__))
+            unreadable.append("%s (%s)" % (path, getattr(e, "strerror", None) or e.__class__.__name__))
     if unreadable:
         print("undefined-var: cannot read " + ", ".join(unreadable), file=sys.stderr)
         return 2
@@ -96,19 +112,19 @@ def main(argv: list[str]) -> int:
     theme_only: set[str] = set()
     unconditional: set[str] = set()
     uses: list[tuple[str, str, int, bool]] = []
-    for arg in argv:
-        path = Path(arg)
+    for path, include_uses in inputs:
         css = stylesheet(path)
         defined |= set(DEF.findall(css))
         spans = theme_spans(css)
         for m in DEF.finditer(css):
             bucket = theme_only if any(a <= m.start() < b for a, b in spans) else unconditional
             bucket.add(m.group(1))
-        for m in USE.finditer(css):
-            if m.group(2):                     # has a fallback
-                continue
-            in_theme = any(a <= m.start() < b for a, b in spans)
-            uses.append((m.group(1), path.name, css.count("\n", 0, m.start()) + 1, in_theme))
+        if include_uses:
+            for m in USE.finditer(css):
+                if m.group(2):                     # has a fallback
+                    continue
+                in_theme = any(a <= m.start() < b for a, b in spans)
+                uses.append((m.group(1), path.name, css.count("\n", 0, m.start()) + 1, in_theme))
 
     for name, where, line, in_theme in uses:
         if name not in defined and name not in EXTENSION_POINTS:

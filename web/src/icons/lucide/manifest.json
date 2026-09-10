@@ -24,6 +24,18 @@
       "sha256": "a1da576a179d9d95ca81890d62b049da6061b64c7671e1593a42246a4f47bee6"
     },
     {
+      "name": "chart-column",
+      "file": "chart-column.svg",
+      "source": "package/icons/chart-column.svg",
+      "sha256": "9726f8d10c6e18fe874be45dc816d1981f626b47586376778ccd91c62be47400"
+    },
+    {
+      "name": "chart-line",
+      "file": "chart-line.svg",
+      "source": "package/icons/chart-line.svg",
+      "sha256": "3b83d3bc804083413091262ea77af17a4a0ce2d9dddfe87b0ddfa9a8a4155983"
+    },
+    {
       "name": "chart-no-axes-combined",
       "file": "chart-no-axes-combined.svg",
       "source": "package/icons/chart-no-axes-combined.svg",

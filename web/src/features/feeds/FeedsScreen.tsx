@@ -6,6 +6,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { Icon } from "../../icons";
 import type { IconName } from "../../icons";
 import type { ApiRequestError } from "../../lib/api";
+import { groupName } from "../../lib/chatNames";
 import {
   loadFeedSettings,
   type FeedConfig,
@@ -137,13 +138,16 @@ function SectionHeading({
 
 function FeedItem({ feed, number }: Readonly<{ feed: FeedConfig; number: number }>) {
   const { t } = useTranslation();
+  const session = useConsoleSession();
+  const id = String(feed.chatID);
+  const title = session.state === "ready" ? session.chats.find((chat) => chat.id === id)?.title : undefined;
   return (
     <article className="surface-raised" data-feed-item aria-labelledby={`feed-item-${number}-title`}>
       <h3 id={`feed-item-${number}-title`}>{t("feeds.feed.itemTitle", { number })}</h3>
       <dl data-feed-values>
         <div data-feed-value>
           <dt>{t("feeds.feed.destination")}</dt>
-          <dd><code>{feed.chatID}</code></dd>
+          <dd><code>{groupName(id, title)}</code></dd>
         </div>
         <div data-feed-value>
           <dt>{t("feeds.feed.language")}</dt>

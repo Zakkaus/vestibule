@@ -1,3 +1,9 @@
+/* Legacy resets must not override Spectrum's component and token layers. */
+@import "../styles/tokens.css" layer(legacy);
+@import "../styles/components.css" layer(legacy);
+@import "../styles/shell.css" layer(legacy);
+
+@layer legacy {
 
 body {
   font-size: 0.9375rem;
@@ -22,13 +28,11 @@ body {
 [data-stats-page],
 [data-messages-page],
 [data-diagnostics-page],
-[data-home-page],
 [data-version-page] {
   display: grid;
   gap: var(--sp-6);
 }
 
-[data-home-content],
 [data-moderation-form],
 [data-verification-form],
 [data-bypass-form],
@@ -60,7 +64,6 @@ body {
 [data-messages-rules-section],
 [data-diagnostics-readonly],
 [data-diagnostics-section],
-[data-home-section],
 [data-version-section] {
   display: grid;
   gap: var(--sp-4);
@@ -114,40 +117,6 @@ body {
   min-block-size: 100dvb;
 }
 
-[data-app-shell][data-shell-variant="console"] .shell {
-  min-block-size: 100dvb;
-}
-
-[data-app-shell][data-shell-variant="console"] .shell-main {
-  gap: var(--sp-3);
-}
-
-[data-app-shell][data-shell-variant="console"] .shell-aside {
-  border-inline-end: 0;
-}
-[data-app-shell][data-shell-variant="console"] .shell-aside[data-admin] .brand {
-  block-size: calc(var(--control-h) + var(--sp-5) + var(--hairline));
-  border-block-end: var(--hairline) solid var(--border);
-}
-
-[data-app-shell][data-shell-variant="console"] .shell-aside[data-admin] .rule {
-  display: none;
-}
-
-
-[data-app-shell][data-shell-variant="console"] .nav {
-  border-inline-end: var(--hairline) solid var(--border);
-}
-
-[data-app-shell][data-shell-variant="console"] .shell-header {
-  block-size: auto;
-  min-block-size: calc(var(--control-h) + var(--sp-5));
-  padding: var(--sp-3) var(--sp-5);
-}
-
-[data-app-shell][data-shell-variant="console"] .shell-content {
-  padding: var(--sp-3) var(--sp-5);
-}
 
 
 [data-app-shell][data-shell-variant="entry"] {
@@ -373,62 +342,6 @@ body {
   color: var(--muted-foreground);
 }
 
-[data-console-header] {
-  display: flex;
-  min-inline-size: 0;
-  align-items: center;
-  gap: var(--sp-3);
-}
-
-[data-header-title] {
-  min-inline-size: 0;
-  font-size: 0.8125rem;
-  color: var(--muted-foreground);
-}
-
-/* The console header is a fixed bar of --header-h, and a visible label stacked
-   above each control does not fit in it — the label was being clipped at the top
-   edge. Hidden at every width rather than only on the desktop, because each
-   control's value already names it: "All manageable groups", "Follow system",
-   "English". The select keeps its aria-label, so the name is still announced. */
-[data-console-header] [data-group-switcher] > span {
-  position: absolute;
-  inline-size: 1px;
-  block-size: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-[data-header-controls] {
-  display: flex;
-  min-inline-size: 0;
-  flex-wrap: wrap;
-  align-items: end;
-  justify-content: end;
-  gap: var(--sp-2);
-  margin-inline-start: auto;
-}
-
-[data-group-switcher] {
-  display: grid;
-  gap: var(--sp-1);
-  min-inline-size: calc(var(--field-w) - var(--sp-5));
-  max-inline-size: 100%;
-  font-size: 0.75rem;
-  color: var(--muted-foreground);
-}
-
-[data-group-switcher] [data-slot="select"] {
-  min-inline-size: 0;
-  max-inline-size: 100%;
-  font-size: 0.8125rem;
-}
-
-
-[data-mobile-navigation] {
-  display: none;
-}
 
 
 [data-preference-local] {
@@ -962,96 +875,6 @@ body {
   }
 
 
-  [data-app-shell][data-shell-variant="console"] .shell-aside {
-    display: none;
-  }
-
-  [data-app-shell][data-shell-variant="console"] .shell-header {
-    min-block-size: calc(var(--control-h) + var(--sp-4));
-    align-items: start;
-    flex-wrap: wrap;
-    padding: var(--sp-2) var(--sp-4);
-  }
-
-
-  [data-console-header] {
-    inline-size: 100%;
-    flex-wrap: wrap;
-  }
-
-  [data-mobile-navigation] {
-    display: block;
-    position: relative;
-  }
-
-  [data-mobile-navigation] summary {
-    min-block-size: var(--control-h);
-    display: inline-flex;
-    align-items: center;
-    padding-inline: var(--sp-3);
-    border: var(--hairline) solid var(--border);
-    border-radius: var(--radius-md);
-    background: var(--secondary);
-    color: var(--secondary-foreground);
-    font-size: 0.8125rem;
-  }
-
-  [data-mobile-navigation][open] summary {
-    /* Above the panel it opened, so the two borders meet as one line rather
-       than stacking into a double rule where they join. */
-    position: relative;
-    z-index: 2;
-    border-end-start-radius: 0;
-    border-end-end-radius: 0;
-  }
-
-  [data-mobile-navigation][open] nav {
-    position: absolute;
-    z-index: 1;
-    inset-block-start: 100%;
-    inset-inline-start: 0;
-    inline-size: min(18rem, calc(100vi - var(--sp-6)));
-    max-block-size: 70dvb;
-    overflow: auto;
-    gap: var(--sp-3);
-    padding-block: var(--sp-2);
-    padding-inline: var(--sp-2);
-    border: var(--hairline) solid var(--border);
-    border-block-start: 0;
-    border-start-start-radius: 0;
-    border-start-end-radius: 0;
-    border-end-start-radius: var(--radius-lg);
-    border-end-end-radius: var(--radius-lg);
-    background: var(--popover);
-    box-shadow: var(--elev-2);
-  }
-
-  [data-mobile-navigation][open] .nav-group {
-    gap: var(--sp-1);
-  }
-
-  [data-header-controls] {
-    inline-size: 100%;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  [data-header-controls] [data-group-switcher] {
-    grid-column: 1 / -1;
-  }
-
-  [data-header-controls] [data-utility-controls] {
-    display: contents;
-  }
-
-  [data-header-controls] [data-utility-control] [data-slot="select"],
-  [data-header-controls] [data-group-switcher] [data-slot="select"] {
-    inline-size: 100%;
-  }
-
-  [data-app-shell][data-shell-variant="console"] .shell-content {
-    padding: var(--sp-2) var(--sp-4);
-  }
 
 
   [data-record-table-scroll] {
@@ -2589,258 +2412,6 @@ body {
 }
 
 
-[data-home-state-card] {
-  display: grid;
-  justify-items: start;
-  inline-size: min(100%, 42rem);
-  min-block-size: var(--sp-9);
-  gap: var(--sp-3);
-}
-
-[data-home-state-card] h2,
-[data-home-state-card] p,
-[data-home-section-heading] h2,
-[data-home-section-heading] p,
-[data-home-context-copy] span,
-[data-home-attention-empty] p,
-[data-home-entry] h3,
-[data-home-entry] p,
-[data-home-trend-empty] {
-  margin: 0;
-}
-
-[data-home-state-card] h2,
-[data-home-section-heading] h2 {
-  font-size: 1.0625rem;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-[data-home-state-card] p,
-[data-home-section-heading] p,
-[data-home-context-copy] span,
-[data-home-entry] p,
-[data-home-trend-empty] {
-  color: var(--muted-foreground);
-}
-
-[data-home-context] {
-  display: flex;
-  min-inline-size: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-3);
-}
-
-[data-home-context-copy],
-[data-home-section-copy],
-[data-home-attention-copy] {
-  display: grid;
-  min-inline-size: 0;
-  gap: var(--sp-1);
-}
-
-[data-home-context-copy] strong {
-  overflow-wrap: anywhere;
-}
-
-[data-home-context-badges] {
-  display: flex;
-  min-inline-size: 0;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-}
-
-[data-home-section-heading] {
-  display: flex;
-  min-inline-size: 0;
-  flex-wrap: wrap;
-  align-items: start;
-  justify-content: space-between;
-  gap: var(--sp-3);
-}
-
-[data-home-metrics],
-[data-home-entries] {
-  display: grid;
-  /* The entry cards carry a hard offset, so their minimum column is wider than
-     the metrics beside them: at 13rem a card's own shadow reached its
-     neighbour. The gaps themselves come from the ladder below. */
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
-}
-
-[data-home-metrics] {
-  gap: var(--sp-3);
-}
-
-[data-home-entries] {
-  gap: var(--sp-4);
-}
-
-[data-home-metric] {
-  display: grid;
-  min-inline-size: 0;
-  gap: var(--sp-1);
-  text-decoration: none;
-}
-
-[data-home-metric] strong {
-  font-size: 1.625rem;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-
-[data-home-metric] span {
-  color: var(--muted-foreground);
-  font-size: 0.8125rem;
-}
-
-[data-home-attention-empty] {
-  display: flex;
-  min-inline-size: 0;
-  align-items: center;
-  gap: var(--sp-3);
-}
-
-[data-home-attention-list] {
-  display: grid;
-  gap: var(--sp-3);
-}
-
-[data-home-attention] {
-  display: grid;
-  min-inline-size: 0;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--sp-3);
-  text-decoration: none;
-}
-
-[data-home-attention-copy] span {
-  color: var(--muted-foreground);
-}
-
-[data-home-trend-chart] {
-  display: block;
-  inline-size: 100%;
-  block-size: auto;
-  font-family: var(--font-sans);
-}
-
-[data-home-chart-bar] {
-  rx: var(--radius-sm);
-}
-
-[data-home-trend-legend] {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-3);
-  color: var(--muted-foreground);
-  font-size: 0.8125rem;
-}
-
-[data-home-trend-legend] span {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
-}
-
-[data-home-trend-legend] span::before {
-  content: "";
-  inline-size: var(--sp-2);
-  block-size: var(--sp-2);
-  border-radius: var(--radius-full);
-  background: var(--fill-info);
-}
-
-[data-home-trend-legend] [data-series="pass-rate"]::before {
-  background: var(--fill-ok);
-}
-
-[data-home-entry] {
-  display: grid;
-  min-inline-size: 0;
-  align-content: start;
-  gap: var(--sp-3);
-  text-decoration: none;
-}
-
-[data-home-entry-heading] {
-  display: flex;
-  min-inline-size: 0;
-  align-items: start;
-  justify-content: space-between;
-  gap: var(--sp-3);
-}
-
-[data-home-entry] h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-[data-home-entry-values] {
-  display: grid;
-  gap: var(--sp-2);
-  margin: 0;
-}
-
-[data-home-entry-value] {
-  display: grid;
-  min-inline-size: 0;
-  grid-template-columns: minmax(6rem, 1fr) minmax(0, 2fr);
-  align-items: start;
-  gap: var(--sp-3);
-}
-
-[data-home-entry-value] dt {
-  color: var(--muted-foreground);
-  font-size: 0.8125rem;
-}
-
-[data-home-entry-value] dd {
-  display: flex;
-  min-inline-size: 0;
-  flex-wrap: wrap;
-  justify-content: end;
-  gap: var(--sp-2);
-  margin: 0;
-  overflow-wrap: anywhere;
-  text-align: end;
-}
-
-@media (max-width: 48rem) {
-  [data-home-context],
-  [data-home-attention-empty] {
-    align-items: start;
-    flex-direction: column;
-  }
-
-  [data-home-attention] {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  [data-home-attention] > [data-slot="badge"] {
-    grid-column: 1 / -1;
-    justify-self: start;
-  }
-
-  [data-home-entry-value] {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--sp-1);
-  }
-
-  [data-home-entry-value] dd {
-    justify-content: start;
-    text-align: start;
-  }
-
-  [data-home-state-card] [data-slot="button"] {
-    inline-size: 100%;
-  }
-}
 
 
 [data-version-content] {
@@ -3070,4 +2641,5 @@ body {
 [data-slot="option"][aria-selected="true"] {
   color: var(--foreground);
   font-weight: 600;
+}
 }

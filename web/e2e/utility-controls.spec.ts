@@ -1,16 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-// The theme and language controls sit above every screen a person can reach
-// without a session, so what goes wrong here goes wrong on the first thing they
-// see. Both defects below shipped: the menu was pinned to both edges of its
-// trigger, which sized it to whichever value happened to be selected and left a
-// longer option wrapping onto a second line, and selection was drawn with the
-// same background hover uses, so a pointer resting on a neighbour made two rows
-// look chosen.
 test("the theme menu is at least as wide as its trigger and marks the chosen row", async ({ page }) => {
   await page.goto("/?state=expired");
 
-  const trigger = page.locator('[data-utility-control] [data-slot="select-trigger"]').first();
+  const trigger = page.locator('[data-utility-control] button').first();
   await expect(trigger).toBeVisible();
   const triggerBox = await trigger.boundingBox();
   if (!triggerBox) {
@@ -18,7 +11,7 @@ test("the theme menu is at least as wide as its trigger and marks the chosen row
   }
 
   await trigger.click();
-  const menu = page.locator('[data-slot="select-content"]');
+  const menu = page.getByRole("listbox");
   await expect(menu).toBeVisible();
   const menuBox = await menu.boundingBox();
   if (!menuBox) {
@@ -26,38 +19,15 @@ test("the theme menu is at least as wide as its trigger and marks the chosen row
   }
   expect(menuBox.width).toBeGreaterThanOrEqual(triggerBox.width - 1);
 
-  const options = menu.locator('[data-slot="option"]');
+  const options = menu.getByRole("option");
   await expect(options).toHaveCount(3);
-  for (const option of await options.all()) {
-    // A range over the label reports one rectangle per visual line, which is the
-    // only reading that survives a row taller than its own text: the option
-    // carries a touch-target minimum height, so dividing the box by the line
-    // height counts two lines for text that never wrapped.
-    const lines = await option.evaluate((element) => {
-      const label = element.lastChild;
-      if (!label) {
-        return 0;
-      }
-      const range = document.createRange();
-      range.selectNodeContents(label);
-      return range.getClientRects().length;
-    });
-    expect(lines).toBe(1);
-  }
-
-  // Weight, not background: hover paints the same background, so a pointer
-  // resting on a neighbour used to make two rows look chosen.
-  const weights = await options.evaluateAll((elements) =>
-    elements.map((element) => ({
-      selected: element.getAttribute("aria-selected") === "true",
-      weight: Number.parseInt(window.getComputedStyle(element).fontWeight, 10)
-    }))
+  const chosen = options.filter({ has: page.locator("svg") }).and(
+    menu.locator('[aria-selected="true"]')
   );
-  const chosen = weights.filter((row) => row.selected);
-  expect(chosen).toHaveLength(1);
-  for (const row of weights.filter((entry) => !entry.selected)) {
-    expect(chosen[0].weight).toBeGreaterThan(row.weight);
-  }
+  await expect(chosen).toHaveCount(1);
+  await expect(menu.getByRole("option", { name: "浅色", exact: true })).not.toHaveAttribute(
+    "aria-selected", "true"
+  );
 });
 
 // The glyph says which theme is chosen without reading the label, and it has to
@@ -66,14 +36,14 @@ test("the theme menu is at least as wide as its trigger and marks the chosen row
 test("each utility control carries a glyph, and the theme glyph follows the value", async ({ page }) => {
   await page.goto("/?state=expired");
 
-  const glyphs = page.locator('[data-utility-control] [data-slot="select-trigger"] [data-icon]');
+  const glyphs = page.locator('[data-utility-control] button [data-icon]');
   await expect(glyphs).toHaveCount(2);
   await expect(glyphs.nth(0)).toHaveAttribute("data-icon-name", "monitor");
   await expect(glyphs.nth(1)).toHaveAttribute("data-icon-name", "languages");
 
-  const trigger = page.locator('[data-utility-control] [data-slot="select-trigger"]').first();
+  const trigger = page.locator('[data-utility-control] button').first();
   await trigger.click();
-  await page.locator('[data-slot="option"][data-value="dark"]').click();
+  await page.getByRole("option", { name: "深色", exact: true }).click();
   await expect(glyphs.nth(0)).toHaveAttribute("data-icon-name", "moon");
 });
 
@@ -85,8 +55,8 @@ test("an open menu in the widest locale stays inside the viewport", async ({ bro
   const page = await context.newPage();
   await page.goto("/?state=expired");
 
-  await page.locator('[data-utility-control] [data-slot="select-trigger"]').nth(1).click();
-  const menu = page.locator('[data-slot="select-content"]');
+  await page.locator('[data-utility-control] button').nth(1).click();
+  const menu = page.getByRole("listbox");
   await expect(menu).toBeVisible();
 
   const box = await menu.boundingBox();

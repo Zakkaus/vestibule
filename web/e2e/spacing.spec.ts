@@ -139,7 +139,10 @@ async function mockSpacingTransport(page: Page): Promise<void> {
       return;
     }
     if (path === "/api/chats" && request.method() === "GET") {
-      await fulfillJSON(route, { chats: [{ id: selectedGroupID }] });
+      await fulfillJSON(route, { chats: [
+        { id: selectedGroupID, title: "Gentoo-zh Community" },
+        { id: "-1009000000203", title: "Gentoo Package Updates" }
+      ] });
       return;
     }
     if (path === `/api/chats/${selectedGroupID}/settings` && request.method() === "GET") {
@@ -214,55 +217,51 @@ async function openSpacingRoute(page: Page, path: string): Promise<void> {
   });
 }
 
-test("content pages use the stepped page and card hierarchy", async ({ page }) => {
-  await mockSpacingTransport(page);
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.emulateMedia({ colorScheme: "light" });
+test.describe("content pages use the stepped page and card hierarchy", () => {
+  test.beforeEach(async ({ page }) => {
+    await mockSpacingTransport(page);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.emulateMedia({ colorScheme: "light" });
+  });
 
-  for (const route of routes) {
-    await openSpacingRoute(page, route.urlPath);
-    const geometry = await page.evaluate(() => {
-      const contentPage = [...document.querySelectorAll<HTMLElement>("section")].find((element) =>
-        element.getAttributeNames().some((name) => name.startsWith("data-") && name.endsWith("-page"))
-      );
-      const heading = contentPage?.querySelector<HTMLElement>("[data-page-heading]");
-      if (!contentPage || !heading) {
-        throw new Error("rendered route did not expose its page and heading");
-      }
+  // Authenticated entry redirects to Spectrum home; its geometry is covered separately.
+  for (const route of routes.filter((route) => !["/", "/home", "/queue"].includes(route.urlPath))) {
+    test(`page and card geometry on ${route.urlPath}`, async ({ page }) => {
+      await openSpacingRoute(page, route.urlPath);
+      const geometry = await page.evaluate(() => {
+        const contentPage = [...document.querySelectorAll<HTMLElement>("section")].find((element) =>
+          element.getAttributeNames().some((name) => name.startsWith("data-") && name.endsWith("-page"))
+        );
+        const heading = contentPage?.querySelector<HTMLElement>("[data-page-heading]");
+        if (!contentPage || !heading) {
+          throw new Error("rendered route did not expose its page and heading");
+        }
 
-      const cards = [...contentPage.querySelectorAll<HTMLElement>("[data-slot='card']")].filter(
-        (card) => card.getClientRects().length > 0 && getComputedStyle(card).display !== "none"
-      );
-      const cardPaddingMismatches = cards
-        .map((card) => {
-          const style = getComputedStyle(card);
-          return `${style.paddingTop} ${style.paddingRight} ${style.paddingBottom} ${style.paddingLeft}`;
-        })
-        .filter((padding) => padding !== "16px 24px 16px 24px");
+        const cards = [...contentPage.querySelectorAll<HTMLElement>("[data-slot='card']")]
+          .filter((card) => card.checkVisibility());
+        const cardPaddingMismatches = cards
+          .map((card) => {
+            const style = getComputedStyle(card);
+            return `${style.paddingTop} ${style.paddingRight} ${style.paddingBottom} ${style.paddingLeft}`;
+          })
+          .filter((padding) => padding !== "16px 24px 16px 24px");
 
-      return {
-        pageGap: getComputedStyle(contentPage).gap,
-        headingGap: getComputedStyle(heading).gap,
-        cardCount: cards.length,
-        cardPaddingMismatches
-      };
+        return {
+          pageGap: getComputedStyle(contentPage).gap,
+          headingGap: getComputedStyle(heading).gap,
+          cardCount: cards.length,
+          cardPaddingMismatches
+        };
+      });
+
+      expect(geometry.pageGap, `${route.urlPath}: page heading to content`).toBe("32px");
+      expect(geometry.headingGap, `${route.urlPath}: page heading copy`).toBe("8px");
+      expect(geometry.cardCount, `${route.urlPath}: rendered card coverage`).toBeGreaterThan(0);
+      expect(geometry.cardPaddingMismatches, `${route.urlPath}: shared card edge inset`).toEqual([]);
     });
-
-    expect(geometry.pageGap, `${route.urlPath}: page heading to content`).toBe("32px");
-    expect(geometry.headingGap, `${route.urlPath}: page heading copy`).toBe("8px");
-    expect(geometry.cardCount, `${route.urlPath}: rendered card coverage`).toBeGreaterThan(0);
-    expect(geometry.cardPaddingMismatches, `${route.urlPath}: shared card edge inset`).toEqual([]);
   }
 
   const stackCases = [
-    {
-      urlPath: "/home",
-      steps: [
-        ["[data-home-content]", "24px"],
-        ["[data-home-section]", "16px"],
-        ["[data-home-entries]", "16px"]
-      ]
-    },
     {
       urlPath: "/verification",
       steps: [
@@ -333,20 +332,24 @@ test("content pages use the stepped page and card hierarchy", async ({ page }) =
   ] as const;
 
   for (const scenario of stackCases) {
-    await openSpacingRoute(page, scenario.urlPath);
-    for (const [selector, expectedGap] of scenario.steps) {
-      await expect(page.locator(selector).first(), `${scenario.urlPath}: ${selector}`).toHaveCSS(
-        "gap",
-        expectedGap
-      );
-    }
+    test(`stack spacing on ${scenario.urlPath}`, async ({ page }) => {
+      await openSpacingRoute(page, scenario.urlPath);
+      for (const [selector, expectedGap] of scenario.steps) {
+        await expect(page.locator(selector).first(), `${scenario.urlPath}: ${selector}`).toHaveCSS(
+          "gap",
+          expectedGap
+        );
+      }
+    });
   }
 });
 
-test("forms use the label, control, and error steps at desktop and mobile", async ({ page }) => {
-  await mockSpacingTransport(page);
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.emulateMedia({ colorScheme: "light" });
+test.describe("forms use the label, control, and error steps at desktop and mobile", () => {
+  test.beforeEach(async ({ page }) => {
+    await mockSpacingTransport(page);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.emulateMedia({ colorScheme: "light" });
+  });
 
   const copyCases = [
     { urlPath: "/moderation", selector: "[data-setting-copy]" },
@@ -356,47 +359,52 @@ test("forms use the label, control, and error steps at desktop and mobile", asyn
     { urlPath: "/messages", selector: "[data-setting-copy]" }
   ] as const;
   for (const scenario of copyCases) {
-    await openSpacingRoute(page, scenario.urlPath);
-    await expect(page.locator(scenario.selector).first(), `${scenario.urlPath}: field copy`).toHaveCSS(
-      "gap",
-      "4px"
-    );
+    test(`desktop field copy spacing on ${scenario.urlPath}`, async ({ page }) => {
+      await openSpacingRoute(page, scenario.urlPath);
+      await expect(page.locator(scenario.selector).first(), `${scenario.urlPath}: field copy`).toHaveCSS(
+        "gap",
+        "4px"
+      );
+    });
   }
 
-  await openSpacingRoute(page, "/questions");
-  await expect(page.locator("[data-question-field]").first()).toHaveCSS("gap", "8px");
-  await expect(page.locator("[data-question-option-field]").first()).toHaveCSS("gap", "8px");
-  await page.getByLabel("题面").first().fill("");
-  await page.getByRole("button", { name: "保存更改" }).click();
-  await expect(
-    page.locator("[data-question-field] [data-slot='field-error']").first()
-  ).toBeVisible();
-  const errorGeometry = await page.evaluate(() => {
-    const field = document.querySelector<HTMLElement>("[data-question-field]");
-    const label = field?.querySelector<HTMLElement>("label");
-    const control = field?.querySelector<HTMLElement>("[data-slot='textarea']");
-    const error = field?.querySelector<HTMLElement>("[data-slot='field-error']");
-    if (!field || !label || !control || !error) {
-      throw new Error("questions validation fixture did not render label, control, and error");
-    }
+  test("question validation and error spacing on /questions", async ({ page }) => {
+    await openSpacingRoute(page, "/questions");
+    await expect(page.locator("[data-question-field]").first()).toHaveCSS("gap", "8px");
+    await expect(page.locator("[data-question-option-field]").first()).toHaveCSS("gap", "8px");
+    await page.getByLabel("题面").first().fill("");
+    await page.getByRole("button", { name: "保存更改" }).click();
+    await expect(
+      page.locator("[data-question-field] [data-slot='field-error']").first()
+    ).toBeVisible();
+    const errorGeometry = await page.evaluate(() => {
+      const field = document.querySelector<HTMLElement>("[data-question-field]");
+      const label = field?.querySelector<HTMLElement>("label");
+      const control = field?.querySelector<HTMLElement>("[data-slot='textarea']");
+      const error = field?.querySelector<HTMLElement>("[data-slot='field-error']");
+      if (!field || !label || !control || !error) {
+        throw new Error("questions validation fixture did not render label, control, and error");
+      }
 
-    const labelBounds = label.getBoundingClientRect();
-    const controlBounds = control.getBoundingClientRect();
-    const errorBounds = error.getBoundingClientRect();
-    return {
-      gap: getComputedStyle(field).gap,
-      labelToControl: controlBounds.top - labelBounds.bottom,
-      controlToError: errorBounds.top - controlBounds.bottom
-    };
+      const labelBounds = label.getBoundingClientRect();
+      const controlBounds = control.getBoundingClientRect();
+      const errorBounds = error.getBoundingClientRect();
+      return {
+        gap: getComputedStyle(field).gap,
+        labelToControl: controlBounds.top - labelBounds.bottom,
+        controlToError: errorBounds.top - controlBounds.bottom
+      };
+    });
+    expect(errorGeometry.gap).toBe("8px");
+    expect(errorGeometry.labelToControl).toBeCloseTo(8, 1);
+    expect(errorGeometry.controlToError).toBeCloseTo(8, 1);
   });
-  expect(errorGeometry.gap).toBe("8px");
-  expect(errorGeometry.labelToControl).toBeCloseTo(8, 1);
-  expect(errorGeometry.controlToError).toBeCloseTo(8, 1);
 
-  await openSpacingRoute(page, "/stats");
-  await expect(page.locator("[data-stats-field]").first()).toHaveCSS("gap", "8px");
+  test("statistics field gap on /stats", async ({ page }) => {
+    await openSpacingRoute(page, "/stats");
+    await expect(page.locator("[data-stats-field]").first()).toHaveCSS("gap", "8px");
+  });
 
-  await page.setViewportSize({ width: 320, height: 900 });
   const mobileCases = [
     { urlPath: "/moderation", selector: "[data-moderation-settings-card] [data-slot='setting']" },
     { urlPath: "/verification", selector: "[data-verification-setting]" },
@@ -405,12 +413,15 @@ test("forms use the label, control, and error steps at desktop and mobile", asyn
     { urlPath: "/messages", selector: "[data-messages-settings-section] [data-slot='setting']" }
   ] as const;
   for (const scenario of mobileCases) {
-    await openSpacingRoute(page, scenario.urlPath);
-    const setting = page.locator(scenario.selector).first();
-    await expect(setting, `${scenario.urlPath}: stacked field layout`).toHaveCSS(
-      "flex-direction",
-      "column"
-    );
-    await expect(setting, `${scenario.urlPath}: copy to control`).toHaveCSS("gap", "8px");
+    test(`mobile setting layout on ${scenario.urlPath}`, async ({ page }) => {
+      await page.setViewportSize({ width: 320, height: 900 });
+      await openSpacingRoute(page, scenario.urlPath);
+      const setting = page.locator(scenario.selector).first();
+      await expect(setting, `${scenario.urlPath}: stacked field layout`).toHaveCSS(
+        "flex-direction",
+        "column"
+      );
+      await expect(setting, `${scenario.urlPath}: copy to control`).toHaveCSS("gap", "8px");
+    });
   }
 });

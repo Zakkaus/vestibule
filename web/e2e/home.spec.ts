@@ -1,10 +1,18 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { selectAppOption } from "./app-select";
 
 const selectedGroupID = "-1001163306055";
+const selectedGroupTitle = "Gentoo-zh Community";
 const otherGroupIDs = ["-1001163306066", "-1001163306077"] as const;
 const actorID = "741928306";
 
 type Role = "manager" | "operator";
+const metricIcons = {
+  challenges: "chartColumn",
+  "pass-rate": "circleCheck",
+  waiting: "inbox",
+  banned: "shieldOff"
+} as const;
 
 type HomeMockOptions = Readonly<{
   role: Role;
@@ -20,12 +28,26 @@ type HomeObservations = {
 
 function settingsPayload(): unknown {
   return {
+    revision: 7,
+    name_spoiler: { value: true, source: "factory default" },
+    verify_max_fails: { value: 3, source: "factory default" },
+    verify_retry_seconds: { value: 180, source: "factory default" },
+    ban_seconds: { value: 0, source: "factory default" },
+    mute_seconds: { value: 3600, source: "factory default" },
+    verify_invited: { value: true, source: "factory default" },
+    fallback_builtin: { value: true, source: "factory default" },
+    lang: { value: "zh", source: "factory default" },
+    required_channel_id: { value: 0, source: "factory default" },
+    required_channel_fail_open: { value: false, source: "factory default" },
+    channel_display: { value: "", source: "factory default" },
+    channel_invite_url: { value: "", source: "factory default" },
+    admin_log_chat_id: { value: 0, source: "factory default" },
     enabled: { value: true, source: "factory default" },
     delivery_mode: { value: "both", source: "user file" },
     verify_mode: { value: "mixed", source: "chat override" },
     timeout_seconds: { value: 300, source: "factory default" },
-    questions: { value: [{ id: "q1" }, { id: "q2" }], source: "chat override" },
-    fallback_questions: { value: [{ id: "f1" }], source: "user file" },
+    questions: { value: [{ q: "Which package manager belongs to Gentoo?", options: ["Portage", "apt"], answer: 0 }, { q: "Which distribution uses ebuilds?", options: ["Debian", "Gentoo"], answer: 1 }], source: "chat override" },
+    fallback_questions: { value: [{ q: "Name a Gentoo package manager", answers: ["Portage"] }], source: "user file" },
     trusted_member_group_ids: { value: [-1001], source: "factory default" },
     channel_whitelist: { value: [-1002, -1003], source: "chat override" },
     antispam_enabled: { value: true, source: "user file" },
@@ -108,6 +130,45 @@ async function fulfillJSON(route: Route, body: unknown, status = 200): Promise<v
     body: JSON.stringify(body)
   });
 }
+async function expectHomeWithinViewport(page: Page, maximumHeight: number): Promise<void> {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  });
+  const geometry = await page.evaluate(() => {
+    const panel = document.querySelector<HTMLElement>(".console-content")!;
+    return {
+      scrollHeight: document.documentElement.scrollHeight + Math.max(0, panel.scrollHeight - panel.clientHeight),
+      viewportHeight: window.innerHeight
+    };
+  });
+  expect(geometry.scrollHeight).toBeLessThanOrEqual(maximumHeight * geometry.viewportHeight);
+}
+
+async function expectRenderedHomeChart(page: Page): Promise<void> {
+  const chart = page.getByTestId("home-combined-chart");
+  await expect(chart).toBeVisible();
+  await expect(chart.locator("svg")).toBeVisible();
+  const geometry = await chart.evaluate((element) => {
+    const svg = element.querySelector("svg");
+    const plot = element.closest<HTMLElement>("[data-home-trend-scroll]")?.firstElementChild;
+    const scroll = element.closest<HTMLElement>("[data-home-trend-scroll]");
+    if (!svg || !(plot instanceof HTMLElement) || !scroll) {
+      throw new Error("Home chart geometry is missing");
+    }
+    return {
+      svgHeight: svg.getBoundingClientRect().height,
+      plotHeight: plot.getBoundingClientRect().height,
+      scrollHeight: scroll.scrollHeight,
+      scrollClientHeight: scroll.clientHeight
+    };
+  });
+  expect(geometry.svgHeight).toBeGreaterThan(0);
+  expect(geometry.plotHeight).toBeGreaterThan(0);
+  expect(geometry.svgHeight).toBeLessThanOrEqual(geometry.plotHeight + 1);
+  expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.scrollClientHeight + 1);
+}
+
 
 async function mockHomeTransport(
   page: Page,
@@ -134,11 +195,15 @@ async function mockHomeTransport(
     }
     if (pathname === "/api/chats" && request.method() === "GET") {
       await fulfillJSON(route, {
-        chats: [selectedGroupID, ...otherGroupIDs].map((id) => ({ id }))
+        chats: [
+          { id: selectedGroupID, title: selectedGroupTitle },
+          { id: otherGroupIDs[0], title: "Arch Linux Community" },
+          { id: otherGroupIDs[1], title: "Linux Study Group" }
+        ]
       });
       return;
     }
-    if (pathname.startsWith(`/api/chats/${selectedGroupID}/`) && request.method() === "GET") {
+    if ([selectedGroupID, ...otherGroupIDs].some((id) => pathname.startsWith(`/api/chats/${id}/`)) && request.method() === "GET") {
       observations.groupRequests.push(pathname);
       if (pathname.endsWith("/queue")) {
         await fulfillJSON(route, { items: options.queueItems ?? [] });
@@ -184,51 +249,76 @@ const pendingQueueItem = {
   remaining_seconds: 180
 };
 
-test("authenticated home summarizes only the selected group with three group requests", async ({ page }) => {
-  const observations = await mockHomeTransport(page, {
-    role: "manager",
-    queueItems: [pendingQueueItem]
-  });
+for (const role of ["manager", "operator"] as const) {
+  for (const height of [900, 720] as const) {
+    test(`${role} home fits the required viewport bound at 1280x${height}`, async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height });
+      const observations = await mockHomeTransport(page, {
+        role,
+        queueItems: [pendingQueueItem],
+        diagnostics: role === "operator" ? {
+          ...healthyDiagnostics({ writable: false }),
+          health: { live: true, ready: false, config_ready: false, telegram_ready: false }
+        } : undefined
+      });
 
-  await page.goto("/");
-  await expect(page).toHaveURL(new RegExp(`/home\\?group=${selectedGroupID}$`));
-  await expect(page.locator("[data-home-page]")).toHaveAttribute("data-home-state", "loaded");
+      await page.goto(`/home?group=${selectedGroupID}`);
+      await expect(page).toHaveURL(new RegExp(`/home\\?group=${selectedGroupID}$`));
+      await expect(page.locator("[data-home-page]")).toHaveAttribute("data-home-state", "loaded");
+      await expectRenderedHomeChart(page);
+      await expectHomeWithinViewport(page, height === 900 ? 1 : 1.15);
 
-  expect(observations.groupRequests.sort()).toEqual([
-    `/api/chats/${selectedGroupID}/queue`,
-    `/api/chats/${selectedGroupID}/settings`,
-    `/api/chats/${selectedGroupID}/stats`
-  ]);
-  expect(observations.statusRequests).toBe(0);
-  expect(observations.groupRequests.some((path) => otherGroupIDs.some((id) => path.includes(id)))).toBe(false);
+      await expect(page.locator("[data-home-context]")).toBeVisible();
+      await expect(page.locator("[data-home-page]")).not.toContainText(/-100\d+/);
+      await expect(page.locator("[data-group-switcher]")).not.toContainText(/-100\d+/);
+      await expect(page.locator("[data-home-metric]")).toHaveCount(4);
+      for (const [metric, icon] of Object.entries(metricIcons)) {
+        await expect(page.locator(`[data-home-metric="${metric}"] [data-icon-name]`)).toHaveAttribute("data-icon-name", icon);
+      }
 
-  expect(observations.statsQueries).toHaveLength(1);
-  const query = observations.statsQueries[0];
-  expect([...query.keys()].sort()).toEqual(["from", "timezone", "to"]);
-  for (const name of ["from", "to", "timezone"]) {
-    expect(query.getAll(name), `${name} must appear exactly once`).toHaveLength(1);
-    expect(query.get(name), `${name} must not be empty`).not.toBe("");
+      expect(observations.groupRequests.sort()).toEqual([
+        `/api/chats/${selectedGroupID}/queue`,
+        `/api/chats/${selectedGroupID}/settings`,
+        `/api/chats/${selectedGroupID}/stats`
+      ]);
+      expect(observations.statusRequests).toBe(role === "operator" ? 1 : 0);
+      expect(observations.groupRequests.some((path) => otherGroupIDs.some((id) => path.includes(id)))).toBe(false);
+      expect(observations.statsQueries).toHaveLength(1);
+      const query = observations.statsQueries[0];
+      expect([...query.keys()].sort()).toEqual(["from", "timezone", "to"]);
+      for (const name of ["from", "to", "timezone"]) {
+        expect(query.getAll(name), `${name} must appear exactly once`).toHaveLength(1);
+        expect(query.get(name), `${name} must not be empty`).not.toBe("");
+      }
+      const from = new Date(`${query.get("from")}T00:00:00Z`);
+      const to = new Date(`${query.get("to")}T00:00:00Z`);
+      expect((to.valueOf() - from.valueOf()) / 86_400_000).toBe(7);
+
+      if (role === "manager") {
+        await expect(page.locator("[data-home-attention='queue']")).toBeVisible();
+        await expect(page.locator("[data-home-attention='queue'] [data-icon-name]")).toHaveAttribute("data-icon-name", "inbox");
+      } else {
+        await expect(page.locator("[data-home-attention='persistence-unwritable']")).toBeVisible();
+        await expect(page.locator("[data-home-attention='persistence-unwritable'] [data-icon-name]")).toHaveAttribute("data-icon-name", "circleAlert");
+        await expect(page.locator("[data-home-metric='challenges']")).toContainText("70");
+      }
+    });
   }
-  const from = new Date(`${query.get("from")}T00:00:00Z`);
-  const to = new Date(`${query.get("to")}T00:00:00Z`);
-  expect((to.valueOf() - from.valueOf()) / 86_400_000).toBe(7);
+}
 
-  await expect(page.locator("[data-home-metric]")).toHaveCount(4);
-  await expect(page.locator("[data-home-attention='queue']")).toContainText("1 份申请等待处理");
-  await expect(page.locator("[data-home-trend-chart]")).toBeVisible();
-  await expect(page.locator("[data-home-entry-value] [data-slot='badge']")).toHaveCount(9);
-  await expect(page.locator("[data-home-entry-value] [data-slot='badge']").first()).toContainText("来源：");
+test("home switches its context to the selected chat title without showing transport IDs", async ({ page }) => {
+  await mockHomeTransport(page, { role: "manager" });
+  await page.goto(`/home?group=${selectedGroupID}`);
+  await expect(page.locator("[data-home-context]")).toContainText(selectedGroupTitle);
 
-  const homepageControls = page.locator(
-    "[data-home-page] a, [data-home-page] button, [data-home-page] input, [data-home-page] select, [data-home-page] textarea, [data-home-page] summary, [data-home-page] [role='button']"
-  );
-  expect(await homepageControls.count()).toBeGreaterThan(0);
-  const missingSlots = await homepageControls.evaluateAll((elements) =>
-    elements
-      .filter((element) => !element.hasAttribute("data-slot"))
-      .map((element) => element.outerHTML)
-  );
-  expect(missingSlots).toEqual([]);
+  const switcher = page.getByRole("button", { name: "当前群" });
+  await selectAppOption(switcher, otherGroupIDs[0]);
+  await expect(page).toHaveURL(new RegExp(`/home\\?group=${otherGroupIDs[0]}$`));
+  await expect(page.locator("[data-home-context]")).toContainText("Arch Linux Community");
+  await expect(page.locator("[data-home-context]")).not.toContainText(selectedGroupTitle);
+  await expect(page.locator("[data-home-page]")).not.toContainText(/-100\d+/);
+  await expect(switcher).toContainText("Arch Linux Community");
+  await expect(switcher).not.toContainText(/-100\d+/);
 });
 
 test("group administrators see an explicit all-clear state without an operator status request", async ({ page }) => {
@@ -236,25 +326,9 @@ test("group administrators see an explicit all-clear state without an operator s
 
   await page.goto(`/home?group=${selectedGroupID}`);
   await expect(page.locator("[data-home-page]")).toHaveAttribute("data-home-state", "loaded");
-  await expect(page.locator("[data-home-attention-empty]")).toContainText(
-    "等待队列为空，当前群没有需要处理的事项"
-  );
+  await expect(page.locator("[data-home-attention-empty]")).toBeVisible();
+  await expect(page.locator("[data-home-attention-empty] [data-icon-name]")).toHaveAttribute("data-icon-name", "circleCheck");
   await expect(page.locator("[data-home-attention^='diagnostics']")).toHaveCount(0);
   expect(observations.statusRequests).toBe(0);
 });
 
-test("operators receive instance persistence attention without losing group data", async ({ page }) => {
-  const observations = await mockHomeTransport(page, {
-    role: "operator",
-    diagnostics: healthyDiagnostics({ writable: false })
-  });
-
-  await page.goto(`/home?group=${selectedGroupID}`);
-  await expect(page.locator("[data-home-page]")).toHaveAttribute("data-home-state", "loaded");
-  await expect(page.locator("[data-home-context]")).toContainText("运维");
-  await expect(page.locator("[data-home-attention='persistence-unwritable']")).toContainText(
-    "设置持久化不可写"
-  );
-  await expect(page.locator("[data-home-metric='challenges']")).toContainText("70");
-  expect(observations.statusRequests).toBe(1);
-});

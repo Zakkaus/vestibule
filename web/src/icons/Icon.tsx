@@ -1,6 +1,8 @@
 import activity from "./lucide/activity.svg?raw";
 import arrowRight from "./lucide/arrow-right.svg?raw";
 import bookOpen from "./lucide/book-open.svg?raw";
+import chartColumn from "./lucide/chart-column.svg?raw";
+import chartLine from "./lucide/chart-line.svg?raw";
 import chartNoAxesCombined from "./lucide/chart-no-axes-combined.svg?raw";
 import chevronDown from "./lucide/chevron-down.svg?raw";
 import chevronRight from "./lucide/chevron-right.svg?raw";
@@ -43,6 +45,8 @@ const sources = {
   activity,
   arrowRight,
   bookOpen,
+  chartColumn,
+  chartLine,
   chartNoAxesCombined,
   chevronDown,
   chevronRight,

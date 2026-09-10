@@ -7,18 +7,68 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 ### Fixed
+- Production entry pages ignore preview query parameters and retain the authenticated
+  account identity when instance metadata is stale.
+- JSON state writes report parent-directory sync failures without discarding the
+  already committed file or logging its contents.
+- Telegram command-menu summaries distinguish confirmed and unconfirmed registrations.
+- The group list exposes its current item to assistive technology when selecting,
+  switching, or clearing the current group.
+- Locale validation requires all three supported console catalogues.
+- The documented gate contract checks executed Go commands in both directions,
+  including race detection, build tags, and pinned analysis-tool versions.
+- Frontend CSS variable checks retain theme-scope validation while accepting
+  definitions from provenance-checked Spectrum output.
+- Navigation documentation consistently describes the selected item's pale accent
+  background and non-colour indicators.
+- Group names use explicit colon-separated labels in Simplified Chinese, Traditional
+  Chinese and English instead of an unlabelled prefix.
+- Console chrome shares a gray Spectrum layer-1 surface without sidebar or header
+  dividers. The layer-2 content panel meets the header and sidebar, keeps a small
+  right gutter and rounds only its top corners. It scrolls independently in both
+  themes. Cards retain native elevation. Sidebar selection uses bold text and text
+  color without a filled surface, rounded corners, an inset rail or heavier icon strokes.
+- The healthy home attention state aligns with its section heading. Chart legends
+  use Lucide series icons with matching colors in light, dark and system themes.
+- The home chart now gives out-of-window response dates distinct positions and counts
+  coverage within the requested range. Date labels no longer overlap.
+- The sidebar keeps complete navigation rows at 1280×720 and remains available while
+  the content panel scrolls. Cross-group links expand the destination group before
+  keyboard focus enters navigation.
+- Touch-sized queue actions now have enough TableView column space to remain fully visible.
 - **Question editor controls used mixed height tiers.** Option and fallback-answer rows combined
   `sm` buttons with default-height fields. Their row actions and item deletions now use the
   default tier.
 
 ### Changed
-- **The mobile navigation panel now connects to its trigger.** Its open state shares the trigger
-  edge and uses denser token-based spacing while retaining the lower panel radius.
+- The home dashboard uses equal, aligned columns and a content-sized panel without
+  excess space below the last section. Chart legends and date readings stay within
+  the chart region; axis titles no longer render vertically.
+- Home metrics, attention states, configuration entries, chart series and empty
+  states use matching Lucide icons. Missing-day notices use plain language and
+  remain hidden when the requested dates are complete.
+- The home page fits a 1280×900 viewport without vertical scrolling and stays within
+  1.15 viewport heights at 1280×720, without reducing text or control sizes.
+- The home trend overlays request bars and a pass-rate line on independent left/right
+  axes using Spectrum Charts and the official Spectrum 2 theme. Both scales, value
+  labels, the series legend, hover readings and a keyboard date reader remain visible.
+  Only returned dates are plotted; missing-day coverage is stated separately.
+- Home configuration entries remain four stacked sections, each showing one key
+  setting with an inline source footnote. Remaining values are on the configuration pages.
+- Group labels now consistently prefer the available title across the console,
+  falling back to the internal ID only when a title is missing or blank.
+- The console shell, home and waiting queue now use React Spectrum 2 layout primitives
+  and style macros instead of a parallel CSS spacing and radius system. The waiting queue
+  uses TableView for sorting, selection, keyboard navigation and empty states, while retaining
+  its existing row-action authorization and transport. Other content screens keep their components.
+- The mobile navigation uses Spectrum Popover with the same grouped navigation as desktop;
+  dismissal restores trigger focus and selecting a route closes the panel.
 - The console group switcher now shows the durable title captured when a runtime group is
   registered. Configured groups and legacy registrations without a title fall back to the
   Telegram group ID without making a `GetChat` request for each console load.
-### Changed
-- Console content pages now use a shared 32/24/16/8/4 px spacing rhythm for page, card-stack, section, and field relationships. Card insets expand from 12 × 16 px to 16 × 24 px; controls and navigation are unchanged.
+- Legacy console content pages use a shared 32/24/16/8/4 px spacing rhythm for page,
+  card-stack, section and field relationships. Their card insets expand from 12 × 16 px
+  to 16 × 24 px.
 
 ## [4.5.6] - 2026-08-29
 

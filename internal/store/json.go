@@ -111,7 +111,11 @@ func writeBytesLocked(path string, data []byte) error {
 		log.Printf("state: rename %s: %v", path, err)
 		return err
 	}
-	return syncParent(filepath.Dir(path))
+	if err := syncParent(filepath.Dir(path)); err != nil {
+		log.Printf("state: sync parent %s: %v", path, err)
+		return err
+	}
+	return nil
 }
 
 func syncParentDirectory(path string) error {

@@ -75,7 +75,7 @@
     {
       "file": "scripts/design-checks/undefined-var.py",
       "source": "checks/undefined-var.py",
-      "sha256": "ca3db23de6098cd6445cd3f4ab6d0e9bdb2c20185c9bf5e2d0b0d892c07c5b76"
+      "sha256": "2f7e81e69f3cd230035579c360e740956bd66eebcdf7cabbe7e52302316ec760"
     },
     {
       "file": "scripts/design-checks/_page_css.py",
