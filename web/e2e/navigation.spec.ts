@@ -53,23 +53,26 @@ async function mockNavigationTransport(page: Page, role: Role): Promise<void> {
   });
 }
 
+// Sections are flat: read what is on screen. Nothing is expanded, because nothing is
+// collapsed. The section a destination belongs to is the header above it.
 async function navigationSections(page: Page, root: string): Promise<readonly NavigationSection[]> {
-  const groups = page.locator(`${root} [data-navigation-group]`);
-  const sections: NavigationSection[] = [];
-  for (let index = 0; index < await groups.count(); index++) {
-    const group = groups.nth(index);
-    const id = await group.getAttribute("data-navigation-group");
-    if (await group.getAttribute("aria-expanded") === "false") await group.click();
-    await expect(group).toHaveAttribute("aria-expanded", "true");
-    await expect(page.locator(`${root} [data-navigation-group][aria-expanded="true"]`)).toHaveCount(1);
-    const panel = page.locator(`${root} [data-navigation-items="${id}"]`);
-    await expect(panel).toHaveAttribute("aria-hidden", "false");
-    const paths = await panel.locator("a[href]").evaluateAll((links) =>
-      links.map((link) => new URL((link as HTMLAnchorElement).href).pathname)
-    );
-    sections.push({ id, paths });
-  }
-  return sections;
+  await expect(page.locator(`${root} [data-navigation-item]`).first()).toBeVisible();
+  return page.locator(root).evaluate((sidebar) => {
+    const sections: { id: string; paths: string[] }[] = [];
+    for (const node of sidebar.querySelectorAll("[data-navigation-group], [data-navigation-item]")) {
+      const group = node.getAttribute("data-navigation-group");
+      if (group !== null) {
+        sections.push({ id: group, paths: [] });
+        continue;
+      }
+      const link = node.closest("a[href]") ?? node.querySelector("a[href]") ?? node;
+      const href = link.getAttribute("href");
+      if (href !== null && sections.length > 0) {
+        sections[sections.length - 1]!.paths.push(new URL(href, location.href).pathname);
+      }
+    }
+    return sections;
+  });
 }
 
 test("navigation groups follow the console responsibility map", async ({ page }) => {
@@ -135,4 +138,39 @@ test.describe("mobile navigation", () => {
     await expect(panel).toBeHidden();
     await expect(trigger).toBeFocused();
   });
+});
+
+test("every destination is visible without opening a section", async ({ page }) => {
+  await mockNavigationTransport(page, "operator");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/home");
+  await expect(page.locator("[data-home-page], [data-console-page]").first()).toBeVisible();
+
+  const sidebar = page.locator(".console-sidebar");
+  const items = sidebar.locator("[data-navigation-item]");
+  const headers = sidebar.locator("[data-navigation-group]");
+  // No clicking: the console has fifteen destinations in six groups, and behind an
+  // accordion the sidebar showed one group at a time.
+  await expect(items).toHaveCount(operatorSections.reduce((total, section) => total + section.paths.length, 0));
+  await expect(headers).toHaveCount(operatorSections.length);
+  for (const item of await items.all()) await expect(item).toBeVisible();
+  for (const header of await headers.all()) await expect(header).toBeVisible();
+
+  // The current destination is marked by the library's own indicator, not by a rule here.
+  // The row and its link both carry the attribute, so name the one that is a destination.
+  const current = sidebar.locator("[data-navigation-item][data-current]");
+  await expect(current).toHaveCount(1);
+  await expect(current).toHaveAttribute("data-navigation-item", "/home");
+});
+
+test("the content panel reaches the bottom of the window on the home page", async ({ page }) => {
+  await mockNavigationTransport(page, "operator");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/home");
+  await expect(page.locator("[data-home-page], [data-console-page]").first()).toBeVisible();
+
+  const gap = await page.locator(".console-content").evaluate(
+    (element) => window.innerHeight - element.getBoundingClientRect().bottom
+  );
+  expect(gap).toBeLessThanOrEqual(1);
 });
