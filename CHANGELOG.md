@@ -7,6 +7,8 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 ### Fixed
+- Owner private help lists active owner commands. The owner menu and help omit
+  `/console` when its link handler is disabled.
 - Production entry pages ignore preview query parameters and retain the authenticated
   account identity when instance metadata is stale.
 - JSON state writes report parent-directory sync failures without discarding the

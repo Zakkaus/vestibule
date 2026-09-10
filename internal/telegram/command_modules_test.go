@@ -45,6 +45,7 @@ func testCommandModules(t *testing.T) CommandModules {
 	t.Helper()
 	member := i18n.Messages.Bot.Menu.Member
 	admin := i18n.Messages.Bot.Menu.Admin
+	owner := i18n.Messages.Bot.Menu.Owner
 	modules, err := NewCommandModules(CommandModule{
 		Name:           "test",
 		PrivateQueries: true,
@@ -81,8 +82,9 @@ func testCommandModules(t *testing.T) CommandModules {
 			{Name: "vmode", Description: admin.VerificationMode.For, Audience: CommandAdministrator, RouteName: "panel.vmode", Handler: testCommandHandler},
 			{Name: "autodel", Description: admin.AutoDelete.For, Audience: CommandAdministrator, RouteName: "panel.autodel", Handler: testCommandHandler},
 			{Name: "bantime", Description: admin.BanTime.For, Audience: CommandAdministrator, RouteName: "panel.bantime", Handler: testCommandHandler},
-			{Name: "enroll", Description: i18n.Messages.Bot.Menu.Owner.Enroll.For, Audience: CommandOwner, External: true},
-			{Name: "unregister", Description: i18n.Messages.Bot.Menu.Owner.Unregister.For, Audience: CommandOwner, External: true},
+			{Name: "console", Description: owner.Console.For, Audience: CommandOwner, External: true},
+			{Name: "enroll", Description: owner.Enroll.For, Audience: CommandOwner, External: true},
+			{Name: "unregister", Description: owner.Unregister.For, Audience: CommandOwner, External: true},
 		},
 	})
 	if err != nil {

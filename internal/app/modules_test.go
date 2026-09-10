@@ -19,7 +19,7 @@ var optionalModuleCommands = map[string][]string{
 
 func TestDisabledModulesDisappearFromCommandSurface(t *testing.T) {
 	cfg := &settings.Config{DisabledModules: settings.OptionalModuleNames()}
-	modules, err := newRuntimeModules(cfg, nil, t.TempDir(), nil, nil, nil)
+	modules, err := newRuntimeModules(cfg, nil, t.TempDir(), nil, nil, nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func TestDisabledModulesDisappearFromCommandSurface(t *testing.T) {
 
 func TestDisabledModulesDoNotReachTelegramMenus(t *testing.T) {
 	cfg := &settings.Config{DisabledModules: settings.OptionalModuleNames()}
-	modules, err := newRuntimeModules(cfg, nil, t.TempDir(), nil, nil, nil)
+	modules, err := newRuntimeModules(cfg, nil, t.TempDir(), nil, nil, nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +87,7 @@ func TestRuntimeModuleSelectionMatchesConfiguration(t *testing.T) {
 		t.Run(disabled, func(t *testing.T) {
 			modules, err := newRuntimeModules(&settings.Config{
 				DisabledModules: []string{disabled},
-			}, nil, t.TempDir(), nil, nil, nil)
+			}, nil, t.TempDir(), nil, nil, nil, false)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -98,6 +98,32 @@ func TestRuntimeModuleSelectionMatchesConfiguration(t *testing.T) {
 						t.Errorf("command /%s active = %t, want %t", name, active[name], module != disabled)
 					}
 				}
+			}
+		})
+	}
+}
+func TestRuntimeOwnerConsoleSurfaceMatchesAvailability(t *testing.T) {
+	for _, tc := range []struct {
+		name             string
+		consoleAvailable bool
+		wantConsole      bool
+	}{
+		{name: "console configured", consoleAvailable: true, wantConsole: true},
+		{name: "console disabled", consoleAvailable: false, wantConsole: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			modules, err := newRuntimeModules(
+				&settings.Config{DisabledModules: settings.OptionalModuleNames()},
+				nil, t.TempDir(), nil, nil, nil, tc.consoleAvailable,
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := commandNames(modules.commands.OwnerMenu(i18n.LangEN))["console"]; got != tc.wantConsole {
+				t.Errorf("owner menu includes /console = %t, want %t", got, tc.wantConsole)
+			}
+			if got := strings.Contains(modules.commands.OwnerHelp(i18n.LangEN), "/console"); got != tc.wantConsole {
+				t.Errorf("owner help includes /console = %t, want %t", got, tc.wantConsole)
 			}
 		})
 	}

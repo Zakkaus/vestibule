@@ -73,6 +73,24 @@ func TestAdminHelpMatchesAdminMenu(t *testing.T) {
 	}
 }
 
+func TestOwnerHelpMatchesOwnerMenu(t *testing.T) {
+	modules := testCommandModules(t)
+	for _, l := range helpLocales {
+		help := modules.OwnerHelp(l)
+		known := modules.commandNames(CommandOwner)
+		for command := range known {
+			if !regexp.MustCompile(`/` + command + `\b`).MatchString(help) {
+				t.Errorf("%s: /%s is in the owner menu but not in the owner help", helpLocaleName[l], command)
+			}
+		}
+		for _, m := range helpCommandRe.FindAllStringSubmatch(help, -1) {
+			if !known[m[1]] {
+				t.Errorf("%s: owner help lists /%s, which the bot does not register", helpLocaleName[l], m[1])
+			}
+		}
+	}
+}
+
 // The auto-reply used to repeat the command list, which is how it went stale. It must now
 // point at /help and name no lookup command of its own.
 func TestAutoReplyNamesNoLookupCommand(t *testing.T) {

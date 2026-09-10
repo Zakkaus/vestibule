@@ -193,6 +193,11 @@ func (m CommandModules) AdministratorHelp(l i18n.Lang, warnLimit int) string {
 	)
 }
 
+// OwnerHelp returns the private bot-owner help body.
+func (m CommandModules) OwnerHelp(l i18n.Lang) string {
+	return filterCommandHelp(i18n.Messages.Panel.Help.Owner.For(l), m.commandNames(CommandOwner))
+}
+
 func (m CommandModules) commandNames(audiences ...CommandAudience) map[string]bool {
 	names := make(map[string]bool, len(m.commands))
 	for _, audience := range audiences {

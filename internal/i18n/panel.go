@@ -63,6 +63,7 @@ type PanelHelpCatalog struct {
 	Member            Text
 	GroupState        Format
 	Admin             Format
+	Owner             Text
 	DirectMessageNote Format
 }
 

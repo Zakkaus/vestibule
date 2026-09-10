@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Zakkaus/vestibule/internal/console/auth"
+	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 )
@@ -25,22 +26,25 @@ func (r *recordingIssuer) IssueOperatorLink(telegramID int64) (string, time.Time
 }
 
 // The console link is the whole of an operator session: whoever receives one controls the
-// instance. Its only gate is the issuer's owner check -- the handler has none of its own.
-// A stranger is now answered rather than ignored, so what has to hold is that the answer
-// carries no token, not that there is no answer.
+// instance. Its only gate is the issuer's owner check, so a refusal must explain the access
+// restriction without issuing a link.
 func TestConsoleLinkGoesOnlyToTheOwner(t *testing.T) {
 	const owner, stranger = int64(7), int64(8)
 	for _, tc := range []struct {
-		name      string
-		from      int64
-		chatType  string
-		wantSends int
-		wantToken bool
+		name        string
+		from        int64
+		chatType    string
+		language    string
+		wantSends   int
+		wantLink    bool
+		wantRefusal string
 	}{
-		{"the owner in a private chat", owner, telego.ChatTypePrivate, 1, true},
-		{"a stranger in a private chat", stranger, telego.ChatTypePrivate, 1, false},
-		{"the owner asking in a group", owner, telego.ChatTypeSupergroup, 0, false},
-		{"a stranger asking in a group", stranger, telego.ChatTypeSupergroup, 0, false},
+		{"the owner in a private chat", owner, telego.ChatTypePrivate, "en", 1, true, ""},
+		{"an English-speaking stranger in a private chat", stranger, telego.ChatTypePrivate, "en", 1, false, i18n.Messages.Bot.Menu.Owner.ConsoleDenied.For(i18n.LangEN)},
+		{"a Simplified Chinese-speaking stranger in a private chat", stranger, telego.ChatTypePrivate, "zh-CN", 1, false, i18n.Messages.Bot.Menu.Owner.ConsoleDenied.For(i18n.LangZH)},
+		{"a Traditional Chinese-speaking stranger in a private chat", stranger, telego.ChatTypePrivate, "zh-TW", 1, false, i18n.Messages.Bot.Menu.Owner.ConsoleDenied.For(i18n.LangZHHant)},
+		{"the owner asking in a group", owner, telego.ChatTypeSupergroup, "en", 0, false, ""},
+		{"a stranger asking in a group", stranger, telego.ChatTypeSupergroup, "en", 0, false, ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			caller := &scriptedCaller{responses: map[string][]scriptedResult{}}
@@ -55,7 +59,7 @@ func TestConsoleLinkGoesOnlyToTheOwner(t *testing.T) {
 				t.Fatal(err)
 			}
 			update := telego.Update{Message: &telego.Message{
-				From: &telego.User{ID: tc.from},
+				From: &telego.User{ID: tc.from, LanguageCode: tc.language},
 				Chat: telego.Chat{ID: tc.from, Type: tc.chatType},
 				Text: "/console",
 			}}
@@ -69,10 +73,11 @@ func TestConsoleLinkGoesOnlyToTheOwner(t *testing.T) {
 					"owner hands them the instance", len(sends), tc.wantSends)
 			}
 			for _, call := range sends {
-				carries := strings.Contains(string(call.body), "issued-token")
-				if carries != tc.wantToken {
-					t.Errorf("the message sent carries a token = %t, want %t: %s",
-						carries, tc.wantToken, call.body)
+				if got := strings.Contains(string(call.body), "issued-token"); got != tc.wantLink {
+					t.Errorf("message carries console token = %t, want %t: %s", got, tc.wantLink, call.body)
+				}
+				if tc.wantRefusal != "" && !strings.Contains(string(call.body), tc.wantRefusal) {
+					t.Errorf("message lacks console refusal %q: %s", tc.wantRefusal, call.body)
 				}
 			}
 		})
