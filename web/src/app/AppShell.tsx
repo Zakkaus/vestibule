@@ -124,8 +124,11 @@ const controlsLayout = style({
 });
 
 const contentLayout = style({
-  alignSelf: { default: "stretch", isHome: "start" },
-  maxHeight: { default: "none", isHome: "full" },
+  // The panel reaches the bottom of the window on every route. Letting the home page
+  // shrink to its content left a fifth of the window showing the shell behind it,
+  // and overflow already keeps a long page from pushing the window taller.
+  alignSelf: "stretch",
+  maxHeight: "none",
   minHeight: 0,
   minWidth: 0,
   marginEnd: {
