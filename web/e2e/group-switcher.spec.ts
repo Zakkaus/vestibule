@@ -53,6 +53,13 @@ test("a chat with a missing title falls back to its group ID", async ({ page }) 
   await expect(trigger).toHaveText(title);
   await expect(trigger).not.toContainText(/-100\d+/);
   await expect(page.locator("[data-group-row][data-selected]")).not.toContainText(/-100\d+/);
+  await expect(page.locator("[data-group-row][aria-current]")).toHaveCount(1);
+  await expect(page.locator("[data-group-row]").first()).toHaveAttribute("aria-current", "true");
+  await expect(page.locator("[data-group-row]").nth(1)).not.toHaveAttribute("aria-current", "true");
+  await expect(page.locator("[data-group-row]").first().getByRole("link")).toHaveAttribute(
+    "href",
+    `/queue?group=${namedGroupId}`
+  );
   await trigger.click();
   await expect(page.getByRole("option", { name: title, exact: true })).toBeVisible();
 
@@ -60,10 +67,49 @@ test("a chat with a missing title falls back to its group ID", async ({ page }) 
   await expect(trigger).toHaveText(unnamedGroupId);
   await expect(page).toHaveURL(new RegExp(`/groups\\?group=${unnamedGroupId}$`));
   await expect(page.locator("[data-group-row][data-selected]").getByRole("heading")).toHaveText(unnamedGroupId);
+  await expect(page.locator("[data-group-row][aria-current]")).toHaveCount(1);
+  await expect(page.locator("[data-group-row]").nth(1)).toHaveAttribute("aria-current", "true");
   await trigger.click();
   await page.getByRole("option", { name: blankGroupId, exact: true }).click();
   await expect(trigger).toHaveText(blankGroupId);
   await expect(page.locator("[data-group-row][data-selected]").getByRole("heading")).toHaveText(blankGroupId);
+  await expect(page.locator("[data-group-row][aria-current]")).toHaveCount(1);
+  await expect(page.locator("[data-group-row]").nth(2)).toHaveAttribute("aria-current", "true");
+  await trigger.click();
+  await page.getByRole("option", { name: "全部可管理的群", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/groups$`));
+  await expect(page.locator("[data-group-row][aria-current]")).toHaveCount(0);
+  await expect(page.locator("[data-group-row][data-selected]")).toHaveCount(0);
+});
+
+test("fixture group selection exposes one current item and preserves queue routing", async ({ page }) => {
+  const fixtureGroupId = "-1001163306055";
+  const secondFixtureGroupId = "-1001834029912";
+  await page.goto(`/groups?group=${fixtureGroupId}`);
+
+  const rows = page.locator("[data-group-row]");
+  await expect(rows).toHaveCount(3);
+  await expect(page.locator("[data-group-row][aria-current]")).toHaveCount(1);
+  await expect(rows.first()).toHaveAttribute("aria-current", "true");
+  await expect(rows.nth(1)).not.toHaveAttribute("aria-current", "true");
+  await expect(rows.first().getByRole("link")).toHaveAttribute(
+    "href",
+    `/queue?group=${fixtureGroupId}`
+  );
+
+  const trigger = page.getByRole("button", { name: "当前群" });
+  await trigger.click();
+  await page.getByRole("option", { name: "Arch Linux 中文社区", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/groups\\?group=${secondFixtureGroupId}$`));
+  await expect(page.locator("[data-group-row][aria-current]")).toHaveCount(1);
+  await expect(rows.nth(1)).toHaveAttribute("aria-current", "true");
+  await expect(rows.first()).not.toHaveAttribute("aria-current", "true");
+
+  await trigger.click();
+  await page.getByRole("option", { name: "全部可管理的群", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/groups$`));
+  await expect(page.locator("[data-group-row][aria-current]")).toHaveCount(0);
+  await expect(page.locator("[data-group-row][data-selected]")).toHaveCount(0);
 });
 
 test("titled group pages and switcher selections never expose transport IDs", async ({ page }) => {

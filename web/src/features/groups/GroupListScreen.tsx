@@ -128,6 +128,7 @@ function LiveGroupList({
         data-slot="card"
         data-group-row
         data-selected={selectedGroupId === chat.id ? "" : undefined}
+        aria-current={selectedGroupId === chat.id ? "true" : undefined}
       >
         <div data-group-primary>
           <div data-group-heading>
@@ -286,6 +287,7 @@ function FixtureGroupList({ selectedGroupId }: Readonly<{ selectedGroupId: strin
         data-slot="card"
         data-group-row
         data-selected={selectedGroupId === group.id ? "" : undefined}
+        aria-current={selectedGroupId === group.id ? "true" : undefined}
         data-verifiable={missingPrerequisiteCount === 0 ? "true" : "false"}
       >
         <FixtureGroupPrimary
