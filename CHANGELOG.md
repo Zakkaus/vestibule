@@ -14,6 +14,7 @@ All notable changes to this project are documented here. The format is based on
 - Telegram command-menu summaries distinguish confirmed and unconfirmed registrations.
 - The group list exposes its current item to assistive technology when selecting,
   switching, or clearing the current group.
+- Locale validation requires all three supported console catalogues.
 - Group names use explicit colon-separated labels in Simplified Chinese, Traditional
   Chinese and English instead of an unlabelled prefix.
 - Console chrome shares a gray Spectrum layer-1 surface without sidebar or header

@@ -156,6 +156,25 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
             mutate,
         )
 
+    def test_each_supported_locale_catalogue_is_required(self) -> None:
+        tree = self.temporary_tree()
+        locales = tree / "web/src/i18n/locales"
+        for name in ("en", "zh-CN", "zh-TW"):
+            path = locales / (name + ".json")
+            original = path.read_text(encoding="utf-8")
+
+            def mutate(path=path, original=original) -> Callable[[], None]:
+                path.unlink()
+                return lambda: path.write_text(original, encoding="utf-8")
+
+            self.assert_mutation_is_rejected(
+                tree,
+                "scripts/check-locale-catalogues.py",
+                "a supported console catalogue disappeared",
+                ("%s.json is a supported catalogue but is missing" % name,),
+                mutate,
+            )
+
     def test_every_visible_component_word_comes_from_a_locale_table(self) -> None:
         tree = self.temporary_tree()
         old = """        <p data-entry-copy aria-live=\"polite\">
