@@ -442,7 +442,7 @@ test("invalid capability feedback provides the reload action it names", async ({
   await page.getByRole("switch", { name: "自动入群验证" }).click();
   await page.getByRole("button", { name: "保存更改" }).click();
   const feedback = page.locator('[data-capabilities-feedback="error"]');
-  await expect(feedback).toContainText("功能设置无效。重新载入后再试。");
+  await expect(feedback).toContainText("功能设置无效。请重新载入后重试。");
   await feedback.getByRole("button", { name: "重新载入" }).click();
   await expect.poll(() => settingsReads).toBe(2);
   await expect(feedback).toHaveCount(0);
