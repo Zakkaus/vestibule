@@ -1,6 +1,7 @@
 import { isAbsolute, relative } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import macros from "unplugin-parcel-macros";
+import { removeRemoteFonts } from "./build/remove-remote-fonts.ts";
 
 const cssSources = new Set<string>();
 
@@ -45,11 +46,16 @@ function cssProvenance(): Plugin {
   };
 }
 
+const remoteFonts = removeRemoteFonts();
+
 export default defineConfig({
-  plugins: [macros.vite(), cssProvenance()],
+  plugins: [macros.vite(), remoteFonts, cssProvenance()],
   optimizeDeps: {
     // The Node-only macro runs in the build plugin, not the browser dependency graph.
-    exclude: ["@react-spectrum/s2/style"]
+    exclude: ["@react-spectrum/s2/style"],
+    rolldownOptions: {
+      plugins: [remoteFonts]
+    }
   },
   css: {
     postcss: {

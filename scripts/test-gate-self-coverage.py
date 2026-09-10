@@ -607,6 +607,30 @@ func (s *Server) exportAudit(writer http.ResponseWriter, request *http.Request, 
             ),
             "web/dist/assets/style.css",
         )
+    def test_a_remote_css_asset_cannot_hide_in_a_javascript_bundle(self) -> None:
+        tree = self.temporary_tree()
+        bundle = tree / "web" / "dist" / "assets" / "index.js"
+        bundle.parent.mkdir(parents=True, exist_ok=True)
+        bundle.write_text(
+            'const docs = "https://example.invalid/docs";\n'
+            'const namespace = "https://example.invalid/ns";\n'
+            'const css = "@font-face{font-family:local;src:url(data:font/woff2;base64,AA==)}";\n',
+            encoding="utf-8",
+        )
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-no-external-assets.py",
+            "the runtime-injected stylesheet asks a third party for its typeface",
+            ("loads https://", "outside the instance"),
+            lambda: self.replace_text(
+                tree,
+                "web/dist/assets/index.js",
+                "url(data:",
+                "url(https://use.typekit.net/af/x",
+            ),
+            "web/dist/assets/index.js",
+        )
+
 
 
     def test_a_deployment_bot_handle_cannot_be_compiled_into_the_shipped_code(self) -> None:

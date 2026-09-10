@@ -32,7 +32,7 @@ export default defineConfig({
     },
     {
       name: "render-gate-preview",
-      testMatch: /render-gate\.spec\.ts|entry-production\.spec\.ts/,
+      testMatch: /render-gate\.spec\.ts|entry-production\.spec\.ts|offline-assets\.spec\.ts/,
       use: { baseURL: previewBaseURL }
     }
   ],
