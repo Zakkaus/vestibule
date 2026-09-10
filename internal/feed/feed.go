@@ -792,14 +792,7 @@ func pollAllWithSources(ctx context.Context, bot feedBot, feeds []*settings.Feed
 		}
 	}
 
-	trackedSet := map[int]bool{}
-	for _, f := range due {
-		for k := range states[f.ChatID].Tracked {
-			if id, err := strconv.Atoi(k); err == nil {
-				trackedSet[id] = true
-			}
-		}
-	}
+	trackedSet := collectTrackedBugIDs(due, states)
 
 	bugsByCursor := make(map[int][]recentBug, len(bugCursorSet))
 	bugCursors := make([]int, 0, len(bugCursorSet))
@@ -828,21 +821,7 @@ func pollAllWithSources(ctx context.Context, bot feedBot, feeds []*settings.Feed
 		}
 	}
 
-	var byID map[int]recentBug
-	fetchOK := false
-	if len(trackedSet) > 0 {
-		ids := make([]int, 0, len(trackedSet))
-		for id := range trackedSet {
-			ids = append(ids, id)
-		}
-		sort.Ints(ids)
-		byID = map[int]recentBug{}
-		fetched, ok := sources.tracked(ctx, ids)
-		for _, b := range fetched {
-			byID[b.ID] = b
-		}
-		fetchOK = ok
-	}
+	byID, fetchOK := fetchTrackedBugs(ctx, trackedSet, sources.tracked)
 
 	for _, f := range due {
 		l := feedLanguage(f.Lang)

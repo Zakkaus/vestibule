@@ -8,7 +8,6 @@ cyclomatic-complexity	cmd/vestibule/registration_test.go	94	(*registrationCaller
 cyclomatic-complexity	cmd/vestibule/registration_test.go	1440	TestEnrollmentTransportFailuresRetainDurableState	37
 cyclomatic-complexity	cmd/vestibule/registration_test.go	1032	TestOwnerCanUnregisterRuntimeGroupAndDropOverrides	27
 cyclomatic-complexity	internal/bot/bot_test.go	240	TestSetupCommandsLanguageScopes	20
-cyclomatic-complexity	internal/feed/feed.go	775	pollAllWithSources	20
 cyclomatic-complexity	internal/feed/feed.go	674	postFeedItems	21
 cyclomatic-complexity	internal/feed/feed.go	525	refreshTracked	25
 cyclomatic-complexity	internal/feed/feed_test.go	732	TestRefreshTrackedConfirmPing	18
@@ -92,7 +91,6 @@ function-lines	cmd/vestibule/registration_test.go	1032	TestOwnerCanUnregisterRun
 function-lines	cmd/vestibule/registration_test.go	320	TestRegistrationGlobalDispatch	85
 function-lines	cmd/vestibule/runtime_registration_integration_test.go	44	TestRuntimeRegistrationActivatesServicesWithoutRebuiltConfig	88
 function-lines	internal/bot/bot_test.go	817	TestGlobalDispatchRunsOnlyTheIntendedHandler	130
-function-lines	internal/feed/feed.go	775	pollAllWithSources	84
 function-lines	internal/feed/feed.go	525	refreshTracked	100
 function-lines	internal/feed/feed_test.go	443	TestRefreshTrackedEditBranches	88
 function-lines	internal/lookup/distros.go	340	(*Service).OnPkgs	111
