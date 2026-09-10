@@ -122,7 +122,7 @@ function TrendChart({ model, locale }: Readonly<{ model: TrendModel; locale: str
                 <ChartInspect targets={["item"]}>{(datum) => <Text>{String(datum.summary)}</Text>}</ChartInspect>
               </Line>
               <Axis position="bottom" baseline labels={model.points.map((point) => ({ value: point.date, label: point.axisLabel }))} />
-              <Axis position="left" name="yCount" grid ticks numberFormat=",.0f" tickMinStep={1} />
+              <Axis position="left" name="yCount" grid ticks numberFormat=",.0f" tickMinStep={5} />
               <Axis position="right" ticks labelFormat="percentage" range={[0, 1]} />
             </Chart>
           </Content>
@@ -185,8 +185,10 @@ export function HomeTrend({
           <Heading level={2} id="home-trend-title" styles={style({ font: "heading", margin: 0 })}>{t("home.trend.title")}</Heading>
           {model.missingDays > 0 ? <Text data-home-trend-coverage styles={style({ font: "body-sm", color: "neutral-subdued" })}>{coverageText}</Text> : null}
         </Content>
-        <Link href={`/stats${groupSearch}`} isStandalone>
-          {t("home.trend.openStats")}
+        <Link href={`/stats${groupSearch}`} isStandalone isQuiet>
+          <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", fontWeight: "medium" })}>
+            {t("home.trend.openStats")} <Icon name="arrowRight" />
+          </Text>
         </Link>
       </Header>
       {model.points.length > 0 ? <TrendChart model={model} locale={i18n.language} /> : (

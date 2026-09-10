@@ -72,10 +72,13 @@ function ConfigEntry({
         minWidth: 0,
         padding: 12,
         borderRadius: "lg",
+        borderWidth: 1,
+        borderStyle: "solid",
+        borderColor: "gray-200",
         backgroundColor: "layer-2"
       })}>
         <Content data-home-entry-values styles={style({ display: "grid", gap: 4, minWidth: 0, flexGrow: 1 })}>
-          <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", color: "neutral-subdued" })}>
+          <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", fontWeight: "medium", color: "neutral-subdued" })}>
             <Icon name={iconName} /> {t(titleKey)}
           </Text>
           {children}

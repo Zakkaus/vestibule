@@ -148,10 +148,10 @@ function OverviewSection({
         {metrics.map((metric) => (
           <Link key={metric.id} href={`${metric.path}${groupSearch}`} isStandalone isQuiet data-home-metric={metric.id}>
             <Content styles={style({ display: "grid", gap: 4, minWidth: 0 })}>
-              <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", color: "neutral-subdued" })}>
+              <Text styles={style({ font: "heading-xl", fontWeight: "bold", color: "neutral" })}>{metric.value}</Text>
+              <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", fontWeight: "medium", color: "neutral-subdued" })}>
                 <Icon name={metric.icon} /> {t(metric.labelKey)}
               </Text>
-              <Text styles={style({ font: "heading-xl", color: "neutral" })}>{metric.value}</Text>
             </Content>
           </Link>
         ))}
@@ -181,7 +181,7 @@ function AttentionSection({
           {items.map((item) => (
             <Link key={item.id} href={`${item.path}${groupSearch}`} isStandalone isQuiet data-home-attention={item.id}
               aria-label={`${t(item.titleKey)} ${t(item.descriptionKey, { count: item.count })}`}>
-              <Content styles={style({ display: "flex", alignItems: "center", gap: 12, font: "body", minWidth: 0, padding: 12, borderRadius: "lg", backgroundColor: "layer-2" })}>
+              <Content styles={style({ display: "flex", alignItems: "center", gap: 12, font: "body", minWidth: 0, padding: 12, borderRadius: "lg", borderWidth: 1, borderStyle: "solid", borderColor: "gray-200", backgroundColor: "layer-2" })}>
                 <Badge variant={item.tone === "error" ? "negative" : "notice"} fillStyle="subtle"><Icon name={attentionIcons[item.tone]} /> {t(`home.attention.tones.${item.tone}`)}</Badge>
                 <Text data-home-attention-copy styles={style({ flexGrow: 1 })}>{t(item.titleKey)}</Text>
                 {item.count !== undefined ? <Text>{item.count}</Text> : null}
