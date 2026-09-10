@@ -175,6 +175,208 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
                 mutate,
             )
 
+    def test_gate_list_requires_each_go_invocation_in_both_directions(self) -> None:
+        tree = self.temporary_tree()
+        ci_cases = (
+            ('        unformatted="$(gofmt -l .)"\n', "gofmt"),
+            ("        run: go vet ./...\n", "go vet"),
+            ("        run: go build ./...\n", "go build"),
+            ("        run: go build -tags gentoo ./...\n", "go build -tags gentoo"),
+            (
+                "        run: go build -tags gentoo ./...\n",
+                "go build -tags gentoo",
+                "        run: go build -tags gentoo,integration ./...\n",
+            ),
+            (
+                "        run: go build -tags gentoo ./...\n",
+                "go build -tags gentoo",
+                '        run: go build -tags="gentoo,integration" ./...\n',
+            ),
+            (
+                "        run: go build -tags gentoo ./...\n",
+                "go build -tags gentoo",
+                '        run: go build -tags "gentoo,integration" ./...\n',
+            ),
+            ("        run: go test -race ./...\n", "go test -race"),
+            (
+                "        run: go test -race -tags gentoo ./...\n",
+                "go test -race -tags gentoo",
+            ),
+            (
+                "        run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...\n",
+                "go run honnef.co/go/tools/cmd/staticcheck@v0.8.1",
+            ),
+            (
+                "        run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...\n",
+                "go run golang.org/x/vuln/cmd/govulncheck@v1.7.0",
+            ),
+            (
+                "        run: go run github.com/securego/gosec/v2/cmd/gosec@v2.28.0 "
+                "-exclude=G304,G703,G706 ./...\n",
+                "go run github.com/securego/gosec/v2/cmd/gosec@v2.28.0",
+            ),
+        )
+        for case in ci_cases:
+            old, key, *replacement = case
+            new = replacement[0] if replacement else ""
+            self.assert_mutation_is_rejected(
+                tree,
+                "scripts/check-gate-list.py",
+                "a documented Go gate disappeared from CI",
+                (key,),
+                lambda old=old, new=new: self.replace_text(
+                    tree, ".github/workflows/ci.yml", old, new
+                ),
+            )
+
+        document_cases = (
+            ("gofmt -l .                       # must print nothing\n", "gofmt"),
+            ("go vet ./...\n", "go vet"),
+            (
+                "go build ./... && go build -tags gentoo ./...\n",
+                "go build",
+                "go build -tags gentoo ./...\n",
+            ),
+            (
+                "go build ./... && go build -tags gentoo ./...\n",
+                "go build -tags gentoo",
+                "go build ./...\n",
+            ),
+            (
+                "go build ./... && go build -tags gentoo ./...\n",
+                "go build -tags gentoo,integration",
+                "go build ./... && go build -tags gentoo,integration ./...\n",
+            ),
+            (
+                "go build ./... && go build -tags gentoo ./...\n",
+                "go build -tags gentoo,integration",
+                'go build ./... && go build -tags="gentoo,integration" ./...\n',
+            ),
+            (
+                "go build ./... && go build -tags gentoo ./...\n",
+                "go build -tags gentoo,integration",
+                'go build ./... && go build -tags "gentoo,integration" ./...\n',
+            ),
+            (
+                "go test -race ./... && go test -race -tags gentoo ./...\n",
+                "go test -race",
+                "go test -race -tags gentoo ./...\n",
+            ),
+            (
+                "go test -race ./... && go test -race -tags gentoo ./...\n",
+                "go test -race -tags gentoo",
+                "go test -race ./...\n",
+            ),
+            (
+                "go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...\n",
+                "go run honnef.co/go/tools/cmd/staticcheck@v0.8.1",
+            ),
+            (
+                "go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...\n",
+                "go run golang.org/x/vuln/cmd/govulncheck@v1.7.0",
+            ),
+            (
+                "go run github.com/securego/gosec/v2/cmd/gosec@v2.28.0 "
+                "-exclude=G304,G703,G706 ./...\n",
+                "go run github.com/securego/gosec/v2/cmd/gosec@v2.28.0",
+            ),
+        )
+        for case in document_cases:
+            old, key, *replacement = case
+            new = replacement[0] if replacement else ""
+            self.assert_mutation_is_rejected(
+                tree,
+                "scripts/check-gate-list.py",
+                "a CI Go gate disappeared from the contributor contract",
+                (key,),
+                lambda old=old, new=new: self.replace_text(
+                    tree, "CONTRIBUTING.md", old, new
+                ),
+            )
+
+    def test_gate_list_rejects_lost_go_test_race(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-gate-list.py",
+            "the default Go test lost its race detector",
+            ("go test -race",),
+            lambda: self.replace_text(
+                tree,
+                ".github/workflows/ci.yml",
+                "        run: go test -race ./...\n",
+                "        run: go test ./...\n",
+            ),
+        )
+
+    def test_gate_list_rejects_changed_go_tool_version(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-gate-list.py",
+            "a pinned Go analysis tool version changed",
+            ("go run honnef.co/go/tools/cmd/staticcheck@v0.8.1",),
+            lambda: self.replace_text(
+                tree,
+                ".github/workflows/ci.yml",
+                "honnef.co/go/tools/cmd/staticcheck@v0.8.1",
+                "honnef.co/go/tools/cmd/staticcheck@v0.8.2",
+            ),
+        )
+
+    def test_gate_list_ignores_ci_step_names_comments_echo_and_literals(self) -> None:
+        tree = self.temporary_tree()
+        for replacement in (
+            "        # go vet ./...\n",
+            '        run: echo "go vet ./..."\n',
+            '        run: echo "skipped; go vet ./..."\n',
+            '        run: echo ";" go vet ./...\n',
+            "        run: true # skipped; go vet ./...\n",
+            "        run: echo '$(go vet ./...)'\n",
+            "        run: echo \\$(go vet ./...)\n",
+            '        run: label="skipped; go vet ./..."\n',
+        ):
+            self.assert_mutation_is_rejected(
+                tree,
+                "scripts/check-gate-list.py",
+                "a CI step name, comment, or echo pretended to run go vet",
+                ("go vet",),
+                lambda replacement=replacement: self.replace_text(
+                    tree,
+                    ".github/workflows/ci.yml",
+                    "        run: go vet ./...\n",
+                    replacement,
+                ),
+            )
+
+    def test_documented_globs_do_not_excuse_missing_ci_checks(self) -> None:
+        tree = self.temporary_tree()
+        workflow = ".github/workflows/ci.yml"
+        original = (tree / workflow).read_text(encoding="utf-8")
+        removed = "".join(
+            line[:len(line) - len(line.lstrip())] + "true\n"
+            if "scripts/design-checks/" in line else line
+            for line in original.splitlines(keepends=True)
+        )
+        for decoy in (
+            "",
+            "# scripts/design-checks/$c.py",
+            'echo "scripts/design-checks/$c.py"',
+            'label="scripts/design-checks/$c.py"',
+        ):
+            candidate = removed.replace(
+                "        unformatted=",
+                ("        " + decoy + "\n" if decoy else "") + "        unformatted=",
+                1,
+            )
+            self.assert_mutation_is_rejected(
+                tree,
+                "scripts/check-gate-list.py",
+                "documented or reported globs excused checks no longer executed by CI",
+                ("scripts/design-checks/coverage-floor.py",),
+                lambda candidate=candidate: self.replace_text(tree, workflow, original, candidate),
+            )
+
     def test_every_visible_component_word_comes_from_a_locale_table(self) -> None:
         tree = self.temporary_tree()
         old = """        <p data-entry-copy aria-live=\"polite\">

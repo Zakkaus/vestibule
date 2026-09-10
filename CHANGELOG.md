@@ -15,6 +15,8 @@ All notable changes to this project are documented here. The format is based on
 - The group list exposes its current item to assistive technology when selecting,
   switching, or clearing the current group.
 - Locale validation requires all three supported console catalogues.
+- The documented gate contract checks executed Go commands in both directions,
+  including race detection, build tags, and pinned analysis-tool versions.
 - Navigation documentation consistently describes the selected item's pale accent
   background and non-colour indicators.
 - Group names use explicit colon-separated labels in Simplified Chinese, Traditional
