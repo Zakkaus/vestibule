@@ -184,10 +184,11 @@ publishing binaries and container images. It skips frontend and document checks 
 do not bear on a release, and the baseline ratchet, which compares a branch against its
 base and has nothing to compare on a tag. Run them locally first.
 The frontend CSS gate reads Vite's `web/dist/css-provenance.json`: every emitted CSS asset
-must be listed, and only origins under `web/src` are project CSS. The final emitted bytes are
-also checked by the project's Lightning CSS parser; the Python hook check is intentionally
+must be listed, and only origins under `web/src` are project CSS. The final emitted bytes
+are also checked by the project's Lightning CSS parser; the Python hook check is intentionally
 not a complete CSS grammar parser. Dependency CSS is checked for nonempty output and
-resolvable custom properties without applying project colour and radius rules to it.
+resolvable custom properties without applying project colour and radius rules to it. The
+external-asset gate scans emitted CSS and JavaScript bundles, including CSS embedded in JS.
 Frontend custom properties are checked against project sources, Spectrum macro provenance,
 and emitted CSS together. The variable checker also reads emitted definitions while checking
 project references and theme scope. Standalone pages use their own CSS without Vite output.
@@ -198,6 +199,7 @@ scripts/lint.sh                  # package boundaries, file and function length,
 python3 scripts/check-test-chat-ids.py internal cmd testdata  # test topology stays synthetic
 python3 scripts/check-baseline-ratchet.py origin/main   # a held violation may not grow
 python3 scripts/test-gate-self-coverage.py  # every static gate rejects its recorded regression
+python3 scripts/check-third-party-licenses.py  # notices match the pinned shipped sources (requires network)
 go vet ./...
 go build ./... && go build -tags gentoo ./...
 go test -race ./... && go test -race -tags gentoo ./...
@@ -229,7 +231,7 @@ python3 scripts/check-acceptance-exemptions.py  # every EXEMPT reason can still 
 python3 scripts/check-vendored.py    # copies match scripts/vendored-manifest.json
 python3 scripts/check-locale-catalogues.py  # three catalogues agree, and the code's keys exist
 python3 scripts/check-inherited-commands.py  # every command the previous generation answered still exists
-python3 scripts/check-no-baked-identity.py  # no deployment's bot handle in shipped code
+python3 scripts/check-no-baked-identity.py  # no real group ID or known deployment handle/domain in shipped code
 python3 scripts/check-message-fields-are-read.py  # a declared message field has a reader
 python3 scripts/check-one-clock.py           # internal/verification reads time through its injected clock
 python3 scripts/check-one-transport.py       # no screen reaches the API without the CSRF-bearing transport
@@ -286,7 +288,8 @@ for css in "${EMITTED_CSS[@]}"; do \
   UNDEFINED_DEFINITIONS+=(--definitions "$css"); done
 python3 scripts/design-checks/undefined-var.py \
   "${UNDEFINED_DEFINITIONS[@]}" "${PROJECT_CSS[@]}"
-python3 scripts/check-no-external-assets.py web/dist/assets/*.css  # the bundle fetches nothing from a third party
+python3 scripts/check-no-external-assets.py \
+  "${EMITTED_CSS[@]}" web/dist/assets/*.js  # CSS and JavaScript bundles fetch nothing from a third party
 python3 scripts/check-type-ramp.py
 python3 scripts/check-css-coverage.py web/src/app/app.css web/src/app/app.css.fixture.html
 for c in coverage-floor style-rules undefined-var shadowed theme-leak comment-boundaries percentage-min; do \

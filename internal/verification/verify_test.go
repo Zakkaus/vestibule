@@ -21,6 +21,9 @@ func newTestService(cfg *settings.Config) *Service {
 	if len(effective.Groups) == 0 && len(effective.GroupIDs) == 0 {
 		effective.GroupIDs = []int64{-100}
 	}
+	if effective.VerifyMode == "" {
+		effective.VerifyMode = settings.ModeKernel
+	}
 	baseline, err := settings.LoadBaseline("", &effective)
 	if err != nil {
 		panic(fmt.Sprintf("test settings baseline: %v", err))

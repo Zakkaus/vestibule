@@ -189,9 +189,9 @@
       "idOnly": "ID {{id}}"
     },
     "names": {
-      "gentooZh": "Gentoo 中文社区",
-      "archZh": "Arch Linux 中文社区",
-      "oldOt": "老 OT"
+      "gentooZh": "示例群 A",
+      "archZh": "示例群 B",
+      "oldOt": "示例群 C"
     }
   },
   "queue": {
@@ -737,7 +737,7 @@
     "source": {
       "value": "来源：{{source}}",
       "fallbackMode": "备用题模式来源：{{source}}",
-      "fallbackBank": "自定义备用题来源：{{source}}",
+      "fallbackBank": "备用题库来源：{{source}}",
       "factoryDefault": "出厂默认",
       "userFile": "配置文件",
       "chatOverride": "此群覆盖",
@@ -751,7 +751,7 @@
       "title": "答题语言",
       "description": "选择机器人向申请人显示题目和验证消息时使用的语言。",
       "label": "群内答题语言",
-      "settingDescription": "可选简体中文、繁体中文或英语；内置备用题也使用此语言。",
+      "settingDescription": "可选简体中文、繁体中文或英语；备用填空题使用其配置中的题面和答案。",
       "zh": "简体中文",
       "zhHant": "繁体中文",
       "en": "英语"
@@ -771,12 +771,16 @@
     },
     "fallback": {
       "title": "备用填空题",
-      "description": "管理无法回答 Linux 题目的申请人所用的备用题。",
+      "description": "内核验证为可选模式；无法回答内核题时使用这些备用题。",
       "modeLabel": "备用题来源",
-      "modeDescription": "使用内置本地化题目，或维护当前群自己的题面和可接受答案。",
-      "builtin": "内置本地化题目",
+      "modeDescription": "使用继承的部署默认题库（可能来自配置文件），或维护当前群自己的题面和可接受答案。",
+      "builtin": "继承的部署默认题库",
       "custom": "自定义备用题",
-      "builtinDescription": "机器人会按上面的答题语言使用随程序提供的备用题目。",
+      "builtinDescription": "机器人会使用实际继承的部署备用题库。此处仅供查看；题库可能来自配置文件。",
+      "builtinExampleDescription": "当前使用程序内置的中性示例题库。此处仅供查看；部署者可通过配置文件提供实际备用题库。",
+      "inheritedCount_other": "共 {{count}} 道继承的备用题",
+      "inheritedPending": "保存此更改后将显示继承的题库。",
+      "inheritedEmpty": "继承题库不包含题目。",
       "count_other": "共 {{count}} 道自定义备用题",
       "itemTitle": "备用题 {{number}}",
       "prompt": "题面",

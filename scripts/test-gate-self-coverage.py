@@ -607,6 +607,30 @@ func (s *Server) exportAudit(writer http.ResponseWriter, request *http.Request, 
             ),
             "web/dist/assets/style.css",
         )
+    def test_a_remote_css_asset_cannot_hide_in_a_javascript_bundle(self) -> None:
+        tree = self.temporary_tree()
+        bundle = tree / "web" / "dist" / "assets" / "index.js"
+        bundle.parent.mkdir(parents=True, exist_ok=True)
+        bundle.write_text(
+            'const docs = "https://example.invalid/docs";\n'
+            'const namespace = "https://example.invalid/ns";\n'
+            'const css = "@font-face{font-family:local;src:url(data:font/woff2;base64,AA==)}";\n',
+            encoding="utf-8",
+        )
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-no-external-assets.py",
+            "the runtime-injected stylesheet asks a third party for its typeface",
+            ("loads https://", "outside the instance"),
+            lambda: self.replace_text(
+                tree,
+                "web/dist/assets/index.js",
+                "url(data:",
+                "url(https://use.typekit.net/af/x",
+            ),
+            "web/dist/assets/index.js",
+        )
+
 
 
     def test_a_deployment_bot_handle_cannot_be_compiled_into_the_shipped_code(self) -> None:
@@ -1034,6 +1058,120 @@ func (s *Server) exportAudit(writer http.ResponseWriter, request *http.Request, 
             ("missing from provenance", "escape.css"),
             *arguments,
         )
+
+    def test_a_deployed_supergroup_id_cannot_be_compiled_into_defaults(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-no-baked-identity.py",
+            "the factory defaults name one deployment's Telegram supergroup",
+            ("supergroup -1001163306055", "defaults.yaml", "has to come from the instance"),
+            lambda: self.replace_text(
+                tree,
+                "internal/settings/defaults.yaml",
+                "  # Destination for audit and failure notices; 0 falls back to the acting chat.\n"
+                "  admin_log_chat_id: 0",
+                "  # Destination for audit and failure notices; 0 falls back to the acting chat.\n"
+                "  admin_log_chat_id: -1001163306055",
+            ),
+        )
+
+    def test_a_deployment_domain_cannot_be_compiled_into_defaults(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-no-baked-identity.py",
+            "the factory resources name one deployment's public domain",
+            ("deployment domain gentoozh.org", "defaults.yaml", "has to come from the instance"),
+            lambda: self.replace_text(
+                tree,
+                "internal/settings/defaults.yaml",
+                '  news_url: ""',
+                '  news_url: "https://gentoozh.org/news.xml"',
+            ),
+        )
+
+    def test_deployment_domain_matching_covers_nested_and_uppercase(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-no-baked-identity.py",
+            "a deployment subdomain must not evade the identity gate by changing case",
+            ("deployment domain Matrix.GENTOOZH.ORG", "has to come from the instance"),
+            lambda: self.replace_text(
+                tree,
+                "internal/settings/defaults.yaml",
+                '  news_url: ""',
+                '  news_url: "https://Matrix.GENTOOZH.ORG/news.xml"',
+            ),
+        )
+
+    def test_synthetic_ids_and_upstream_module_domains_remain_allowed(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_gate_passes(tree, "scripts/check-no-baked-identity.py")
+
+        restore = self.replace_text(
+            tree,
+            "internal/settings/defaults.yaml",
+            "  # Destination for audit and failure notices; 0 falls back to the acting chat.\n"
+            "  admin_log_chat_id: 0",
+            "  # Destination for audit and failure notices; 0 falls back to the acting chat.\n"
+            "  admin_log_chat_id: -1009000000123",
+        )
+        try:
+            self.assert_gate_passes(tree, "scripts/check-no-baked-identity.py")
+        finally:
+            restore()
+
+        restore = self.replace_text(
+            tree,
+            "internal/settings/defaults.yaml",
+            '  news_url: ""',
+            '  news_url: "https://www.gentoo.org/news"',
+        )
+        try:
+            self.assert_gate_passes(tree, "scripts/check-no-baked-identity.py")
+        finally:
+            restore()
+
+    def test_altered_dependency_license_cannot_ship(self) -> None:
+        tree = self.temporary_tree()
+
+        def mutate() -> Callable[[], None]:
+            path = tree / "THIRD-PARTY-LICENSES"
+            original = path.read_text(encoding="utf-8")
+            marker = "----- BEGIN LICENSE -----"
+            self.assertIn(marker, original)
+            path.write_text(
+                original.replace(marker, marker + "\nRedistribution is prohibited.", 1),
+                encoding="utf-8",
+            )
+            return lambda: path.write_text(original, encoding="utf-8")
+
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-third-party-licenses.py",
+            "a shipped dependency notice was replaced with different terms",
+            ("differs from the generated inventory",),
+            mutate,
+        )
+
+
+    def test_a_community_name_cannot_become_default_copy(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-no-baked-identity.py",
+            "default copy names one deployment's community",
+            ("known deployment community Gentoo Chinese Community", "defaults.yaml"),
+            lambda: self.replace_text(
+                tree,
+                "internal/settings/defaults.yaml",
+                '  private_reply: ""',
+                '  private_reply: "Gentoo Chinese Community"',
+            ),
+        )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -1,9 +1,9 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { selectAppOption } from "./app-select";
 
-const selectedGroupID = "-1001163306055";
+const selectedGroupID = "-1009000010001";
 const selectedGroupTitle = "Gentoo-zh Community";
-const otherGroupIDs = ["-1001163306066", "-1001163306077"] as const;
+const otherGroupIDs = ["-1009000010002", "-1009000010003"] as const;
 const actorID = "741928306";
 
 type Role = "manager" | "operator";

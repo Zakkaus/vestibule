@@ -199,7 +199,18 @@ test.describe("Spectrum shell geometry across changed routes", () => {
         const inset = getComputedStyle(cell);
         return { button: element.getBoundingClientRect().width, cell: cell.getBoundingClientRect().width, insets: [inset.paddingLeft, inset.paddingRight] };
       });
-      await expect(action, JSON.stringify(actionGeometry)).toBeInViewport({ ratio: 1 });
+      // What has to hold is that scrolling the grid to its end brings the action fully
+      // into the scroller, not that a fraction of a pixel lands inside the viewport:
+      // scrollLeft = scrollWidth settles on a fractional offset, and a viewport ratio of
+      // exactly 1 turns that rounding into a failure. Measure the edge that matters.
+      const clipping = await action.evaluate((element) => {
+        const scroller = element.closest('[role="grid"]')!;
+        const button = element.getBoundingClientRect();
+        const bounds = scroller.getBoundingClientRect();
+        return { overflowEnd: button.right - bounds.right, overflowStart: bounds.left - button.left };
+      });
+      expect(clipping.overflowEnd, JSON.stringify({ ...actionGeometry, ...clipping })).toBeLessThanOrEqual(1);
+      expect(clipping.overflowStart, JSON.stringify({ ...actionGeometry, ...clipping })).toBeLessThanOrEqual(1);
       const controls = await controlGeometry(page);
       expect(controls.length).toBeGreaterThan(0);
       expect(controls.every((control) => control.size === "XL")).toBe(true);

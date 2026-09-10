@@ -72,7 +72,7 @@ export const modeDefinitions: Record<
 
 export const groupFixtures: readonly GroupFixture[] = [
   {
-    id: "-1001163306055",
+    id: "-1009000010001",
     nameKey: "groups.names.gentooZh",
     mode: "approval",
     prerequisites: {
@@ -114,7 +114,7 @@ export const groupFixtures: readonly GroupFixture[] = [
     ]
   },
   {
-    id: "-1001834029912",
+    id: "-1009000010004",
     nameKey: "groups.names.archZh",
     mode: "join-restrict",
     prerequisites: {
@@ -160,7 +160,7 @@ export const groupFixtures: readonly GroupFixture[] = [
     ]
   },
   {
-    id: "-1001965172048",
+    id: "-1009000010005",
     nameKey: "groups.names.oldOt",
     mode: "approval",
     prerequisites: {

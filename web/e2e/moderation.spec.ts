@@ -1,7 +1,7 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { selectAppOption } from "./app-select";
 
-const selectedGroupID = "-1001163306055";
+const selectedGroupID = "-1009000010001";
 const otherGroupID = "-1009000000001";
 const actorID = "741928306";
 

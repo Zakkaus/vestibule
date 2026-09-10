@@ -256,6 +256,8 @@ func newSettingsPanelTestWithCaller(t *testing.T, path string, caller ta.Caller)
 	cfg := &settings.Config{
 		Groups:           []settings.GroupConfig{{ID: panelTestGroupA}, {ID: panelTestGroupB}},
 		GroupIDs:         []int64{panelTestGroupA, panelTestGroupB},
+		VerifyMode:       settings.ModeKernel,
+		Questions:        []settings.Question{},
 		TimeoutSeconds:   240,
 		NotifyTTLSeconds: -1,
 	}

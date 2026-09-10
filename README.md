@@ -11,9 +11,9 @@ literally where an applicant is: outside the group, holding.
 ## Status
 
 **Being rewritten.** The tree started as `gentoo-zh-verify-bot` v4.5.6 carried over and
-renamed. Behaviour is unchanged so far: the rewrite is repackaging first, and every phase
-so far has moved code without altering what it decides. `docs/PLAN-v5.md` has the twelve
-phases, what each one accepts, and what it deliberately does not do.
+renamed. New deployments use a neutral multiple-choice example, not a Linux kernel
+question. `docs/PLAN-v5.md` records the rewrite phases, their acceptance criteria,
+and their exclusions.
 
 The verification core is `internal/verification`, it imports no Telegram, and it reaches
 the outside through three ports derived from its own call sites: `Gateway`, `LiveProbe`
@@ -78,6 +78,66 @@ Hard limits, checked in CI: 600 lines per file, 80 lines per function, cyclomati
 15, one concern per commit. New code goes in a package the architecture document already
 declares.
 
+## Deployment question bank
+
+New groups use `quiz` verification with a built-in example that requires no operating-system
+knowledge. The example is not a strong anti-automation check. Administrators can explicitly
+select `kernel` or `mixed` in the verification settings.
+
+For a native deployment, put a JSON file beside `config.json` and set
+`"factory_questions_file": "questions.json"` in `config.json`; no rebuild is needed:
+
+```json
+{
+  "questions": [
+    {"q": "Select the word book.", "options": ["book", "chair"], "answer": 0}
+  ],
+  "fallback_questions": [
+    {"q": "Type the word book.", "answers": ["book"]}
+  ]
+}
+```
+
+These are the existing question settings fields, not a separate import format. Include
+at least one bank; each supplied bank must be a non-empty array. `answer` is a zero-based
+option index. Relative paths resolve from the configuration file's directory;
+absolute paths are also accepted. The process reads the bank at startup. If the setting is
+absent, it uses the built-in examples; an explicitly configured missing or invalid file
+prevents startup.
+
+With the supplied Compose deployment, put the bank in the host directory named by
+`VESTIBULE_STATE_DIRECTORY` and set
+`"factory_questions_file": "/var/lib/vestibule/questions.json"`. That directory is
+already mounted in the container; files beside the host `config.json` are not.
+The bank must be readable by container UID 65532.
+
+A Linux-flavoured bank ships as an example rather than as the default: see
+[`examples/questions/`](examples/questions/), one file per supported language,
+asking about kernel.org, gnu.org and how to save and quit vim. Point
+`factory_questions_file` at the one matching the language your groups read.
+
+The deployment bank applies to newly registered groups as well as existing groups without
+their own bank. The question page shows the effective bank and its source: factory,
+configuration file, or group override. Restoring a group removes its override and reveals
+the inherited bank; it does not rewrite the deployment file. Edit the file and restart to
+change the deployment bank. Existing per-group question and message editors remain available.
+
 ## Licence
 
 See `LICENSE`.
+
+Releases include `THIRD-PARTY-LICENSES`. Native installs place it at
+`/usr/local/share/doc/vestibule/THIRD-PARTY-LICENSES`; containers carry it at
+`/usr/share/doc/vestibule/THIRD-PARTY-LICENSES`. It covers the pinned Go runtime and
+release dependencies, browser runtime dependencies, and vendored icons and styles.
+The inventory records the missing upstream notice for the shared style source without
+inventing a copyright holder.
+
+Container builds append the actual Alpine runtime package inventory and source notices.
+The corresponding source archives, Alpine build recipes and patches, and original
+notices are shipped at `/usr/share/doc/vestibule/alpine-runtime-sources`.
+
+After updating dependencies or vendored sources, run
+`python3 scripts/generate-third-party-licenses.py`, then
+`python3 scripts/check-third-party-licenses.py`. Regeneration and checking require network
+access to pinned npm archives and Bot API/TDLib source notices.

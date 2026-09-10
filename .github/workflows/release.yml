@@ -32,6 +32,7 @@ jobs:
           python3 scripts/check-no-baked-identity.py
           python3 scripts/check-vendored.py
           python3 scripts/check-locale-catalogues.py
+          python3 scripts/check-third-party-licenses.py
           python3 scripts/check-inherited-commands.py
           python3 scripts/check-one-clock.py
           python3 scripts/check-one-transport.py
@@ -79,6 +80,7 @@ jobs:
           done
           go run ./cmd/schema-manifest -output dist/vestibule-schema-manifest
           cp deploy/vestibule.service dist/vestibule.service
+          cp THIRD-PARTY-LICENSES dist/THIRD-PARTY-LICENSES
           cp deploy/install.sh dist/vestibule-install
           cp deploy/install-common.sh dist/vestibule-install-common
           cp deploy/install-native.sh dist/vestibule-install-native
@@ -90,9 +92,9 @@ jobs:
           (
             cd dist
             sha256sum vestibule-linux-amd64 vestibule-linux-arm64 vestibule-schema-manifest \
-              vestibule.service vestibule-install vestibule-install-common vestibule-install-native \
-              vestibule-install-container vestibule-replace vestibule-replace.service \
-              vestibule-replace.path compose.yaml > SHA256SUMS
+              THIRD-PARTY-LICENSES vestibule.service vestibule-install vestibule-install-common \
+              vestibule-install-native vestibule-install-container vestibule-replace \
+              vestibule-replace.service vestibule-replace.path compose.yaml > SHA256SUMS
           )
           ls -l dist
       - name: Publish credential-free container images
@@ -117,6 +119,7 @@ jobs:
             dist/vestibule-linux-arm64
             dist/vestibule-schema-manifest
             dist/vestibule.service
+            dist/THIRD-PARTY-LICENSES
             dist/vestibule-install
             dist/vestibule-install-common
             dist/vestibule-install-native

@@ -48,7 +48,7 @@ EXCLUDED = {
     "scripts/check-css-coverage.py":
         "it reads the console stylesheets and their demonstration markup, which the release does not publish",
     "scripts/check-no-external-assets.py":
-        "it reads the built console CSS bundle, which the release does not publish",
+        "it reads the built console CSS and JavaScript bundles, which the release does not publish",
     "scripts/check-type-ramp.py":
         "it reads the console stylesheets and reference pages, which the release does not publish",
     "scripts/check-console-html.py":

@@ -4,7 +4,7 @@
     "allowed_unban_failed": "✅ Channel %[1]d was added to this group's allowlist, but unbanning it here failed. Make sure the bot can ban users, then unban the channel manually.",
     "disabled": "Sender-channel blocking is disabled.",
     "enabled": "🛡 Sender-channel blocking is enabled. Disable the bot's privacy mode in BotFather, or the bot cannot receive these messages.",
-    "invalid_channel_id": "Invalid channel ID. Enter a full ID (for example, -1001234567890) or its digits without the -100 prefix (for example, 1234567890).",
+    "invalid_channel_id": "Invalid channel ID. Enter a full ID (for example, -1009000000001) or its digits without the -100 prefix (for example, 9000000001).",
     "removed": "Channel %[1]d was removed from this group's allowlist.",
     "sender_ban_failed_alert": "🛡 Deleted the message sent as channel “%[1]s”, but failed to ban the channel. The bot may be missing permission to ban users. Ban the channel manually. (ID %[2]d, group %[3]d)",
     "sender_banned_alert": "🛡 Deleted the message sent as channel “%[1]s” and permanently banned the channel; the ban will not lift automatically. If this was a mistake, use /bc allow %[4]d to unban and allowlist it. (ID %[2]d, group %[3]d)",

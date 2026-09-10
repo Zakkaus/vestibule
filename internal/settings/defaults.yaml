@@ -34,7 +34,7 @@ factory:
   # Challenge destination: group, dm, or both.
   delivery_mode: both
   # Verification strategy: kernel, quiz, or mixed.
-  verify_mode: kernel
+  verify_mode: quiz
   # Hide applicant names in public challenge messages.
   name_spoiler: true
   # Ban duration in seconds; 0 means permanent, otherwise Telegram requires 30..31622400.
@@ -70,10 +70,15 @@ factory:
   # Invite URL for a private required channel.
   channel_invite_url: ""
   # Multiple-choice challenge bank. See examples.question below.
-  questions: []
-  # Answer-hidden chat override. See examples.fallback_question below.
-  fallback_questions: []
-  # Use the answer-hidden bank embedded in rules/provisioning.
+  questions:
+    - q: "2 + 2 = ?"
+      options: ["4", "5"]
+      answer: 0
+  # Answer-hidden challenge bank used by the no-Linux path.
+  fallback_questions:
+    - q: "2 + 2 = ?"
+      answers: ["4"]
+  # Use the built-in neutral answer-hidden bank when no custom bank is active.
   fallback_builtin: true
   # Chat language: zh, zh-Hant, or en.
   lang: zh
@@ -97,7 +102,7 @@ examples:
     repo: gentoo/gentoo
     branch: master
   feed:
-    chat_id: -1001234567890
+    chat_id: -1009000000001
     lang: zh
     interval_seconds: 300
     bugs: true
@@ -106,17 +111,17 @@ examples:
     bug_component: ""
     silent_bugs: false
   question:
-    q: Which package manager belongs to Gentoo?
-    options: [Portage, apt]
+    q: "2 + 2 = ?"
+    options: ["4", "5"]
     answer: 0
   fallback_question:
-    q: Name the Gentoo package manager.
-    answers: [Portage, emerge]
+    q: "2 + 2 = ?"
+    answers: ["4"]
   chat:
-    id: -1001234567890
+    id: -1009000000001
     enabled: true
     delivery_mode: both
-    verify_mode: kernel
+    verify_mode: quiz
     name_spoiler: true
     ban_seconds: 0
     lookup_ttl_seconds: 180

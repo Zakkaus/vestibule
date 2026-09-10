@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -198,13 +199,49 @@ func TestVerifyModeResolution(t *testing.T) {
 }
 
 func TestPickModeQuizWithoutQuestions(t *testing.T) {
-	v := newTestService(&settings.Config{Groups: []settings.GroupConfig{{ID: -100}}, GroupIDs: []int64{-100}, VerifyMode: settings.ModeQuiz})
-	if got := v.pickMode(-100); got != (settings.ModeKernel) {
-		t.Errorf("quiz mode with no questions should fall back to %q, got %q", settings.ModeKernel, got)
+	v := newTestService(&settings.Config{
+		Groups: []settings.GroupConfig{{ID: -100}}, GroupIDs: []int64{-100},
+		VerifyMode: settings.ModeQuiz, Questions: []settings.Question{},
+	})
+	if got := v.pickMode(-100); got != settings.ModeKernel {
+		t.Fatalf("explicitly empty chat bank changed its legacy fallback: %q", got)
 	}
 	mode, text, opts, idx := v.newChallenge(-100, i18n.LangZH)
-	if mode != (settings.ModeKernel) || text != tgfmt.KernelQuestion(&i18n.Messages, i18n.LangZH) || opts != nil || idx != -1 {
-		t.Errorf("kernel challenge = (%q, %q, %v, %d), want the kernel question with no options and idx -1", mode, text, opts, idx)
+	if mode != settings.ModeKernel || text != tgfmt.KernelQuestion(v.messages, i18n.LangZH) || opts != nil || idx != -1 {
+		t.Fatalf("kernel challenge = (%q, %q, %v, %d)", mode, text, opts, idx)
+	}
+}
+
+func TestBuiltinFallbackQuestionUsesDeploymentSettingsBank(t *testing.T) {
+	const groupID = int64(-1009000002998)
+	dir := t.TempDir()
+	bank := `{"fallback_questions":[{"q":"Deployment question?","answers":["deployment"]}]}`
+	if err := os.WriteFile(filepath.Join(dir, "questions.json"), []byte(bank), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	configPath := filepath.Join(dir, "config.json")
+	config := `{"factory_questions_file":"questions.json","groups":[{
+		"id":-1009000002998,"verify_mode":"kernel","fallback_builtin":true,
+		"fallback_questions":[{"q":"Ignored chat question?","answers":["wrong"]}]
+	}]}`
+	if err := os.WriteFile(configPath, []byte(config), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := settings.LoadConfig(configPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v := newTestService(cfg)
+	question, answers := v.fallbackQuestion(groupID, i18n.LangEN)
+	if question != "Deployment question?" || len(answers) != 1 || answers[0] != "deployment" {
+		t.Fatalf("builtin fallback = %q %v, want deployment settings bank", question, answers)
+	}
+}
+
+func TestEffectiveModeUnknownGroupDoesNotBecomeKernel(t *testing.T) {
+	v := newTestService(&settings.Config{VerifyMode: settings.ModeKernel})
+	if got := v.EffectiveMode(-1009000002999); got == settings.ModeKernel {
+		t.Fatalf("unknown group mode = %q, want no implicit kernel fallback", got)
 	}
 }
 
@@ -769,37 +806,6 @@ func TestKernelPromptLocalised(t *testing.T) {
 	}
 	if !strings.Contains(plain, zhPrompt) || !strings.Contains(plain, zhTrap) {
 		t.Errorf("the fallback rendering lost catalogue content: %s", plain)
-	}
-}
-
-func TestFactoryFallbackWebsiteAnswers(t *testing.T) {
-	bank := rules.FactoryFallbackQuestions(i18n.LangZH.String())
-	kernel, gnu := bank[0].Answers, bank[1].Answers
-	tests := []struct {
-		name    string
-		text    string
-		answers []string
-		want    bool
-	}{
-		{name: "kernel bare", text: "kernel.org", answers: kernel, want: true},
-		{name: "kernel case", text: "Kernel.org", answers: kernel, want: true},
-		{name: "kernel scheme", text: "https://kernel.org", answers: kernel, want: true},
-		{name: "kernel URL", text: "http://www.kernel.org/", answers: kernel, want: true},
-		{name: "kernel punctuation", text: "（kernel.org。）", answers: kernel, want: true},
-		{name: "GNU bare", text: "gnu.org", answers: gnu, want: true},
-		{name: "GNU URL", text: "https://www.gnu.org/", answers: gnu, want: true},
-		{name: "both for kernel", text: "kernel.org gnu.org", answers: kernel},
-		{name: "both for GNU", text: "kernel.org gnu.org", answers: gnu},
-		{name: "kernel in prose", text: "是 kernel.org", answers: kernel},
-		{name: "wrong bank", text: "kernel.org", answers: gnu},
-		{name: "unknown", text: "不知道", answers: kernel},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := matchesFallbackAnswer(tt.text, tt.answers); got != tt.want {
-				t.Errorf("OneOf.MatchesAnswer(%q) = %v, want %v", tt.text, got, tt.want)
-			}
-		})
 	}
 }
 

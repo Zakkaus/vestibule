@@ -33,6 +33,8 @@ jobs:
           python3 scripts/check-baseline-ratchet.py "$base"
       - name: Static gates reject the regressions they are meant to stop
         run: python3 scripts/test-gate-self-coverage.py
+      - name: Dependency notices match the shipped sources
+        run: python3 scripts/check-third-party-licenses.py
 
 
       - name: go vet
@@ -98,7 +100,7 @@ jobs:
         run: python3 scripts/check-locale-catalogues.py
       - name: Nothing the previous generation answered has disappeared
         run: python3 scripts/check-inherited-commands.py
-      - name: No deployment's bot handle is compiled into the shipped code
+      - name: No known deployment identity is compiled into shipped code
         run: python3 scripts/check-no-baked-identity.py
       - name: Every declared message field is read outside the catalogue
         run: python3 scripts/check-message-fields-are-read.py
@@ -192,7 +194,8 @@ jobs:
           done
           python3 scripts/design-checks/undefined-var.py \
             "${undefined_definitions[@]}" "${project_css[@]}"
-          python3 scripts/check-no-external-assets.py "${emitted_css[@]}"
+          python3 scripts/check-no-external-assets.py \
+            "${emitted_css[@]}" web/dist/assets/*.js
           python3 scripts/check-type-ramp.py
           python3 scripts/check-css-coverage.py web/src/app/app.css web/src/app/app.css.fixture.html
           # The deployment guide is served by the Go binary and never enters the

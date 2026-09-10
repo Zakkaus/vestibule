@@ -8,9 +8,11 @@ Clean @font-face rules did exactly that, and the wait is what hung
 document.fonts.ready in CI.
 
 Fonts, images and any other asset must be inlined or served from the instance.
-A data: URL is fine. Anything with a scheme is not.
+A data: URL is fine. Anything in a CSS url(...) token with a scheme is not.
+When scanning JavaScript bundles, ordinary links and namespace URLs are ignored; embedded
+CSS url(...) tokens are still checked.
 
-Usage: check-no-external-assets.py <css file>...
+Usage: check-no-external-assets.py <css or js file>...
 """
 import re
 import sys
@@ -22,7 +24,7 @@ ALLOWED = {"data:"}
 
 def main(paths: list[str]) -> int:
     if not paths:
-        print("check-no-external-assets: no stylesheet given", file=sys.stderr)
+        print("check-no-external-assets: no asset file given", file=sys.stderr)
         return 2
     findings = []
     for name in paths:
@@ -37,7 +39,7 @@ def main(paths: list[str]) -> int:
         print(finding)
     if findings:
         return 1
-    print(f"check-no-external-assets: passed; {len(paths)} stylesheets, every asset is inline or local")
+    print(f"check-no-external-assets: passed; {len(paths)} asset files, every asset is inline or local")
     return 0
 
 

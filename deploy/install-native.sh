@@ -1,5 +1,8 @@
 # Native lifecycle actions for install.sh.
 
+native_notice=${prefix%/bin}/share/doc/${name}/THIRD-PARTY-LICENSES
+previous_native_notice=${native_notice}.previous
+
 stage_previous_release() {
 	cp -p -- "$binary" "${work}/retained-binary"
 	cp -p -- "$current_manifest" "${work}/retained-manifest"
@@ -7,6 +10,12 @@ stage_previous_release() {
 	txn_replace "${work}/retained-binary" 755 "$previous_binary"
 	txn_replace "${work}/retained-manifest" 644 "$previous_manifest"
 	txn_replace "${work}/retained-version" 644 "$previous_version_file"
+	if [ -f "$native_notice" ]; then
+		cp -p -- "$native_notice" "${work}/retained-native-notice"
+		txn_replace "${work}/retained-native-notice" 644 "$previous_native_notice"
+	else
+		txn_remove "$previous_native_notice"
+	fi
 	if [ -f "$unit" ]; then
 		cp -p -- "$unit" "${work}/retained-unit"
 		txn_replace "${work}/retained-unit" 644 "$previous_unit"
@@ -47,6 +56,8 @@ native_install_or_upgrade() {
 	txn_replace "${work}/${name}-schema-manifest" 644 "$current_manifest"
 	printf '%s\n' "$version" > "${work}/release-version"
 	txn_replace "${work}/release-version" 644 "$current_version_file"
+	txn_replace "${work}/THIRD-PARTY-LICENSES" 644 "$native_notice"
+
 	install_support_files
 	if [ "$manager" = systemd ]; then
 		txn_replace "${work}/${name}.service" 644 "$unit"
@@ -123,6 +134,7 @@ native_rollback_release() {
 		"$current_version_file" "$previous_version_file"; do
 		[ -f "$required" ] || fail "cannot roll back; retained file is missing: $required"
 	done
+	# Legacy releases may lack notices; binary/schema checks govern rollback.
 	make_workdir
 	detect_service_manager
 	check_manual_rollback
@@ -130,6 +142,15 @@ native_rollback_release() {
 	swap_release_file "$binary" "$previous_binary" 755 binary
 	swap_release_file "$current_manifest" "$previous_manifest" 644 manifest
 	swap_release_file "$current_version_file" "$previous_version_file" 644 version
+	if [ -f "$native_notice" ] && [ -f "$previous_native_notice" ]; then
+		swap_release_file "$native_notice" "$previous_native_notice" 644 native-notice
+	elif [ -f "$native_notice" ]; then
+		txn_replace "$native_notice" 644 "$previous_native_notice"
+		txn_remove "$native_notice"
+	elif [ -f "$previous_native_notice" ]; then
+		txn_replace "$previous_native_notice" 644 "$native_notice"
+		txn_remove "$previous_native_notice"
+	fi
 	if [ -f "$unit" ] && [ -f "$previous_unit" ]; then
 		swap_release_file "$unit" "$previous_unit" 644 unit
 	fi
@@ -154,7 +175,8 @@ native_show_status() {
 	fi
 	installed_version=unknown
 	[ ! -f "$current_version_file" ] || installed_version=$(sed -n '1p' "$current_version_file")
-	if [ -f "$previous_binary" ] && [ -f "$previous_manifest" ]; then
+	if [ -f "$previous_binary" ] && [ -f "$current_manifest" ] && \
+		[ -f "$previous_manifest" ]; then
 		rollback_available=yes
 	else
 		rollback_available=no
@@ -208,6 +230,7 @@ native_uninstall_release() {
 	begin_transaction
 	for installed_file in "$binary" "$previous_binary" "$unit" "$previous_unit" \
 		"$current_manifest" "$previous_manifest" "$current_version_file" "$previous_version_file" \
+		"$native_notice" "$previous_native_notice" \
 		"$managed_installer" "$managed_common" "$managed_native" "$managed_container" \
 		"$replacement_runner" "$replacement_service" "$replacement_path" "$replacement_unit_state"; do
 		txn_remove "$installed_file"

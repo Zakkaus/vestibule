@@ -3,6 +3,7 @@
   "package": "lucide-static",
   "version": "1.39.0",
   "sourceTarball": "https://registry.npmjs.org/lucide-static/-/lucide-static-1.39.0.tgz",
+  "integrity": "sha512-TaDiwNFZ78c+HrZRNWHoR+LVkIOL8ebYOyNYvytdPkaLWE29G9umks6p1aeCE8kSEIoifnlNLPxMvvE3zqT/YA==",
   "license": "ISC (with the bundled Feather MIT notice for its derived icons; see LICENSE)",
   "icons": [
     {

@@ -190,9 +190,9 @@
       "idOnly": "ID {{id}}"
     },
     "names": {
-      "gentooZh": "Gentoo Chinese Community",
-      "archZh": "Arch Linux Chinese Community",
-      "oldOt": "Old OT"
+      "gentooZh": "Example group A",
+      "archZh": "Example group B",
+      "oldOt": "Example group C"
     }
   },
   "queue": {
@@ -741,7 +741,7 @@
     "source": {
       "value": "Source: {{source}}",
       "fallbackMode": "Fallback mode source: {{source}}",
-      "fallbackBank": "Custom fallback bank source: {{source}}",
+      "fallbackBank": "Fallback bank source: {{source}}",
       "factoryDefault": "Factory default",
       "userFile": "Configuration file",
       "chatOverride": "Group override",
@@ -755,7 +755,7 @@
       "title": "Challenge language",
       "description": "Choose the language used for questions and verification messages shown to applicants.",
       "label": "Group challenge language",
-      "settingDescription": "Choose Simplified Chinese, Traditional Chinese, or English. Built-in fallback questions use the same language.",
+      "settingDescription": "Choose Simplified Chinese, Traditional Chinese, or English. Fallback text questions use their configured wording.",
       "zh": "Simplified Chinese",
       "zhHant": "Traditional Chinese",
       "en": "English"
@@ -776,12 +776,17 @@
     },
     "fallback": {
       "title": "Fallback text questions",
-      "description": "Manage the fallback questions used for applicants who cannot answer the Linux question.",
+      "description": "Kernel verification is optional. These fallback questions are used when an applicant cannot answer the kernel question.",
       "modeLabel": "Fallback question source",
-      "modeDescription": "Use the built-in localized questions or maintain this group's own prompts and accepted answers.",
-      "builtin": "Built-in localized questions",
+      "modeDescription": "Use the inherited deployment/default bank, which may come from a configuration file, or maintain this group's own prompts and accepted answers.",
+      "builtin": "Inherited deployment/default bank",
       "custom": "Custom fallback questions",
-      "builtinDescription": "The bot uses the fallback questions shipped with the program in the challenge language selected above.",
+      "builtinDescription": "The bot uses the actual inherited deployment fallback bank. This preview is read-only; the bank may come from a configuration file.",
+      "builtinExampleDescription": "The bot is using the embedded neutral example bank. This preview is read-only; a deployment can provide its own bank through a configuration file.",
+      "inheritedCount_one": "{{count}} inherited fallback question",
+      "inheritedCount_other": "{{count}} inherited fallback questions",
+      "inheritedPending": "The inherited bank will be shown after this change is saved.",
+      "inheritedEmpty": "The inherited bank contains no questions.",
       "count_one": "{{count}} custom fallback question",
       "count_other": "{{count}} custom fallback questions",
       "itemTitle": "Fallback question {{number}}",

@@ -33,8 +33,9 @@ func TestSettingsChatOverridesWinForVerificationAndSupportSettings(t *testing.T)
 		"required_channel_fail_open override would admit members during a lookup outage")
 }
 
-func TestSettingsBuiltinFallbackHidesCustomQuestionsAndKeepsSource(t *testing.T) {
-	staleQuestions := []ShortQuestion{{Q: "Package manager?", Answers: []string{"portage"}}}
+func TestSettingsBuiltinFallbackUsesDeploymentQuestionsAndKeepsSource(t *testing.T) {
+	staleQuestions := []ShortQuestion{{Q: "Ignored package manager?", Answers: []string{"portage"}}}
+	deploymentQuestions := []ShortQuestion{{Q: "Deployment question?", Answers: []string{"answer"}}}
 	tests := []struct {
 		name            string
 		baselineBuiltin BaselineValue[bool]
@@ -61,15 +62,20 @@ func TestSettingsBuiltinFallbackHidesCustomQuestionsAndKeepsSource(t *testing.T)
 				Value:  cloneShortQuestions(staleQuestions),
 				Source: SourceUserFile,
 			}
+			factory := testSettingsBaseline().Factory
+			factory.FallbackQuestions = BaselineValue[[]ShortQuestion]{
+				Value:  cloneShortQuestions(deploymentQuestions),
+				Source: SourceFactory,
+			}
 			effective := buildEffectiveGroup(baseline, groupRecord{
 				GroupOverrides: GroupOverrides{FallbackBuiltin: test.override},
-			}, false)
+			}, false, factory)
 
 			requireEqual(t, effective.fallbackBuiltin, Setting[bool]{Value: true, Source: test.wantSource},
 				"fallback_builtin source")
-			requireDeepEqual(t, effective.fallbackQuestions.Value, []ShortQuestion{},
-				"builtin fallback would expose ignored custom questions to administrators")
-			requireEqual(t, effective.fallbackQuestions.Source, test.wantSource,
+			requireDeepEqual(t, effective.fallbackQuestions.Value, deploymentQuestions,
+				"builtin fallback must use the deployment factory bank")
+			requireEqual(t, effective.fallbackQuestions.Source, SourceFactory,
 				"builtin fallback question source")
 		})
 	}

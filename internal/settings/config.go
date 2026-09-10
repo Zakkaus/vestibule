@@ -59,7 +59,15 @@ func ValidDeliveryMode(mode string) bool {
 	return false
 }
 
-const defaultVerifyMode = ModeKernel
+const defaultVerifyMode = ModeQuiz
+
+// factoryQuestionBank contains optional deployment-wide question values loaded from a file.
+type factoryQuestionBank struct {
+	questions         []Question
+	questionsPresent  bool
+	fallbackQuestions []ShortQuestion
+	fallbackPresent   bool
+}
 
 // ValidMode reports whether mode names a supported verification mode.
 func ValidMode(mode string) bool {
@@ -323,7 +331,7 @@ type Config struct {
 	DeliveryMode string `json:"delivery_mode"`
 	// FallbackQuestions is the answer-hidden path for applicants without Linux.
 	FallbackQuestions []ShortQuestion `json:"fallback_questions"`
-	// FallbackBuiltin selects the embedded factory rules when no chat bank is configured.
+	// FallbackBuiltin selects the inherited deployment bank rather than a per-chat bank.
 	FallbackBuiltin *bool `json:"fallback_builtin"`
 	// Overlays lists GitHub overlays searched by /pkg.
 	Overlays []OverlayCfg `json:"overlays"`
@@ -352,7 +360,10 @@ type Config struct {
 	// Feed accepts the legacy singular feed form and is merged into Feeds.
 	Feed *FeedConfig `json:"feed"`
 	// Questions is the global verification quiz pool.
-	Questions              []Question `json:"questions"`
+	Questions []Question `json:"questions"`
+	// FactoryQuestionsFile points to a deployment-wide question bank relative to config.json.
+	FactoryQuestionsFile   string `json:"factory_questions_file"`
+	factoryQuestions       *factoryQuestionBank
 	processSettingsSources processSettingsSources
 }
 
@@ -485,7 +496,13 @@ func (c *Config) QuestionsFor(id int64) []Question {
 	if g := c.group(id); g != nil && len(g.Questions) > 0 {
 		return g.Questions
 	}
-	return c.Questions
+	if c.Questions != nil {
+		return c.Questions
+	}
+	if c.factoryQuestions != nil && c.factoryQuestions.questionsPresent {
+		return c.factoryQuestions.questions
+	}
+	return embeddedDefaults.Factory.Questions
 }
 
 // IsKnownChat is the auto-leave allowlist, including support-only chats.

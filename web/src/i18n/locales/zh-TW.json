@@ -189,9 +189,9 @@
       "idOnly": "ID {{id}}"
     },
     "names": {
-      "gentooZh": "Gentoo 中文社群",
-      "archZh": "Arch Linux 中文社群",
-      "oldOt": "老 OT"
+      "gentooZh": "範例群組 A",
+      "archZh": "範例群組 B",
+      "oldOt": "範例群組 C"
     }
   },
   "queue": {
@@ -737,7 +737,7 @@
     "source": {
       "value": "來源：{{source}}",
       "fallbackMode": "備用題模式來源：{{source}}",
-      "fallbackBank": "自訂備用題來源：{{source}}",
+      "fallbackBank": "備用題庫來源：{{source}}",
       "factoryDefault": "出廠預設",
       "userFile": "設定檔",
       "chatOverride": "此群組覆寫",
@@ -751,7 +751,7 @@
       "title": "答題語言",
       "description": "選擇機器人向申請人顯示題目和驗證訊息時使用的語言。",
       "label": "群組內答題語言",
-      "settingDescription": "可選簡體中文、繁體中文或英文；內建備用題也使用此語言。",
+      "settingDescription": "可選簡體中文、繁體中文或英文；備用填空題使用其設定的題面和答案。",
       "zh": "簡體中文",
       "zhHant": "繁體中文",
       "en": "英文"
@@ -771,12 +771,16 @@
     },
     "fallback": {
       "title": "備用填空題",
-      "description": "管理無法回答 Linux 題目的申請人所使用的備用題。",
+      "description": "核心版本驗證為選用模式；無法回答核心題目時，改用這些備用題。",
       "modeLabel": "備用題來源",
-      "modeDescription": "使用內建本地化題目，或維護目前群組自己的題面和可接受答案。",
-      "builtin": "內建本地化題目",
+      "modeDescription": "使用繼承的部署預設題庫（可能來自設定檔），或維護目前群組自己的題面和可接受答案。",
+      "builtin": "繼承的部署預設題庫",
       "custom": "自訂備用題",
-      "builtinDescription": "機器人會按上面的答題語言使用隨程式提供的備用題目。",
+      "builtinDescription": "機器人會使用實際繼承的部署備用題庫。此處僅供查看；題庫可能來自設定檔。",
+      "builtinExampleDescription": "目前使用程式內建的中性示例題庫。此處僅供查看；部署者可透過設定檔提供實際備用題庫。",
+      "inheritedCount_other": "共 {{count}} 道繼承的備用題",
+      "inheritedPending": "儲存此變更後將顯示繼承的題庫。",
+      "inheritedEmpty": "繼承題庫不包含題目。",
       "count_other": "共 {{count}} 道自訂備用題",
       "itemTitle": "備用題 {{number}}",
       "prompt": "題面",

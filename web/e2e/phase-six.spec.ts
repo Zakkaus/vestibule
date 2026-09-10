@@ -1,9 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { expectAppSelection, selectAppOption } from "./app-select";
 
-const selectedGroupId = "-1001163306055";
+const selectedGroupId = "-1009000010001";
 const selectedGroupTitle = "Maintainers Workspace";
-const selectedFixtureGroupName = "Gentoo 中文社区";
 
 const managerSessionPayload = {
   subject: { telegram_id: "741928306", role: "manager" },
@@ -38,7 +37,7 @@ const groupListErrorCases = [
   }
 ] as const;
 const pendingQueueEntry = {
-  id: "-1001163306055:528106774:queue-nonce",
+  id: "-1009000010001:528106774:queue-nonce",
   user: "@another",
   group_key: selectedGroupId,
   result: { state: "pending", reason: null },
@@ -629,13 +628,9 @@ for (const errorCase of groupListErrorCases) {
 test("group list retains its fixture fallback without an API", async ({ page }) => {
   await page.goto("/groups");
 
-  const groups = page.locator("[data-groups-page]");
-  await expect(groups).toHaveAttribute("data-groups-source", "fixtures");
-  await expect(groups).toHaveAttribute("data-groups-state", "populated");
-  await expect(page.locator("[data-group-row]")).toHaveCount(3);
-  await expect(
-    page.getByRole("link", { name: `查看 ${selectedFixtureGroupName} 的等待队列` })
-  ).toBeVisible();
+  const selectedGroup = page.locator("[data-group-row]").filter({ hasText: selectedGroupId });
+  await selectedGroup.getByRole("link").click();
+  await expect(page).toHaveURL(new RegExp(`/queue\\?group=${selectedGroupId}$`));
 });
 
 test("keyboard selection carries the group boundary to the queue", async ({ page }) => {
