@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -296,7 +297,13 @@ func TestWriteSyncsParentDirectory(t *testing.T) {
 	path := filepath.Join(dir, "state.json")
 	wantErr := errors.New("directory sync failed")
 	oldSyncParent := syncParent
-	t.Cleanup(func() { syncParent = oldSyncParent })
+	oldLogWriter := log.Writer()
+	var logs bytes.Buffer
+	t.Cleanup(func() {
+		syncParent = oldSyncParent
+		log.SetOutput(oldLogWriter)
+	})
+	log.SetOutput(&logs)
 	var synced string
 	syncParent = func(path string) error {
 		synced = path
@@ -310,7 +317,33 @@ func TestWriteSyncsParentDirectory(t *testing.T) {
 	if synced != dir {
 		t.Errorf("synced directory = %q, want %q", synced, dir)
 	}
-	if _, err := os.Stat(path); err != nil {
-		t.Errorf("post-rename durability failure rolled back committed state: %v", err)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read committed state: %v", err)
+	}
+	var got wjState
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatalf("decode committed state: %v", err)
+	}
+	if got != (wjState{A: 9, B: "committed"}) {
+		t.Errorf("committed state = %+v, want committed value", got)
+	}
+	if !bytes.Contains(logs.Bytes(), []byte(path)) {
+		t.Errorf("parent sync log does not identify %q: %s", path, logs.String())
+	}
+	if !bytes.Contains(logs.Bytes(), []byte(wantErr.Error())) {
+		t.Errorf("parent sync log does not identify cause %q: %s", wantErr, logs.String())
+	}
+	if bytes.Contains(logs.Bytes(), []byte("committed")) {
+		t.Errorf("parent sync log included state payload: %s", logs.String())
+	}
+
+	logs.Reset()
+	syncParent = func(string) error { return nil }
+	if err := Write(path, wjState{A: 10, B: "healthy"}); err != nil {
+		t.Fatalf("successful Write: %v", err)
+	}
+	if logs.Len() != 0 {
+		t.Errorf("successful write logged an error: %s", logs.String())
 	}
 }
