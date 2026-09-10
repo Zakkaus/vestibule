@@ -188,6 +188,9 @@ must be listed, and only origins under `web/src` are project CSS. The final emit
 also checked by the project's Lightning CSS parser; the Python hook check is intentionally
 not a complete CSS grammar parser. Dependency CSS is checked for nonempty output and
 resolvable custom properties without applying project colour and radius rules to it.
+Frontend custom properties are checked against project sources, Spectrum macro provenance,
+and emitted CSS together. The variable checker also reads emitted definitions while checking
+project references and theme scope. Standalone pages use their own CSS without Vite output.
 
 ```sh
 gofmt -l .                       # must print nothing

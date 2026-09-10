@@ -162,3 +162,124 @@ class SpectrumGateCases:
                                       ".generated { --metric-ink: var(--ink); }", ""),
             *arguments,
         )
+
+    def test_theme_only_emitted_definition_rejects_unconditional_project_reference(
+        self,
+    ) -> None:
+        tree = self.temporary_tree()
+        frontend, _ = self.spectrum_fixture(tree)
+        emitted = frontend / "dist/assets/index.css"
+        project = frontend / "src/style.css"
+        arguments = ("--definitions", str(emitted), str(project))
+        script = "scripts/design-checks/undefined-var.py"
+        self.assert_gate_passes(tree, script, *arguments)
+        restore = self.replace_text(
+            tree,
+            "web/css-gate-fixture/dist/assets/index.css",
+            ".generated { --metric-ink: var(--ink); }",
+            "@media (prefers-color-scheme: dark) { :root { --metric-ink: var(--ink); } }",
+        )
+        try:
+            self.assert_gate_rejects(
+                tree,
+                script,
+                "an unconditional project reference reads a theme-only definition",
+                ("--metric-ink", "declared only inside a theme block"),
+                *arguments,
+            )
+        finally:
+            restore()
+        self.assert_gate_passes(tree, script, *arguments)
+
+    def test_theme_only_emitted_definition_allows_matching_conditional_reference(
+        self,
+    ) -> None:
+        tree = self.temporary_tree()
+        frontend, _ = self.spectrum_fixture(tree)
+        emitted = frontend / "dist/assets/index.css"
+        project = frontend / "src/style.css"
+        arguments = ("--definitions", str(emitted), str(project))
+        script = "scripts/design-checks/undefined-var.py"
+        self.assert_gate_passes(tree, script, *arguments)
+        restore_emitted = self.replace_text(
+            tree,
+            "web/css-gate-fixture/dist/assets/index.css",
+            ".generated { --metric-ink: var(--ink); }",
+            "@media (prefers-color-scheme: dark) { :root { --metric-ink: var(--ink); } }",
+        )
+        restore_project = self.replace_text(
+            tree,
+            "web/css-gate-fixture/src/style.css",
+            ".known { color: var(--metric-ink); }",
+            "@media (prefers-color-scheme: dark) { .known { color: var(--metric-ink); } }",
+        )
+        try:
+            self.assert_gate_passes(tree, script, *arguments)
+        finally:
+            restore_project()
+            restore_emitted()
+        self.assert_gate_passes(tree, script, *arguments)
+
+    def test_genuine_unconditional_project_definition_allows_reference(self) -> None:
+        tree = self.temporary_tree()
+        frontend, _ = self.spectrum_fixture(tree)
+        emitted = frontend / "dist/assets/index.css"
+        project = frontend / "src/style.css"
+        arguments = ("--definitions", str(emitted), str(project))
+        script = "scripts/design-checks/undefined-var.py"
+        self.assert_gate_passes(tree, script, *arguments)
+        restore_emitted = self.replace_text(
+            tree,
+            "web/css-gate-fixture/dist/assets/index.css",
+            ".generated { --metric-ink: var(--ink); }",
+            "@media (prefers-color-scheme: dark) { :root { --metric-ink: var(--ink); } }",
+        )
+        restore_project = self.replace_text(
+            tree,
+            "web/css-gate-fixture/src/style.css",
+            ":root { --ink: oklch(0.2 0 0); }",
+            ":root { --ink: oklch(0.2 0 0); --metric-ink: var(--ink); }",
+        )
+        try:
+            self.assert_gate_passes(tree, script, *arguments)
+        finally:
+            restore_project()
+            restore_emitted()
+        self.assert_gate_passes(tree, script, *arguments)
+
+    def test_definition_only_css_ignores_vendor_reference_but_checks_project_reference(
+        self,
+    ) -> None:
+        tree = self.temporary_tree()
+        frontend, _ = self.spectrum_fixture(tree)
+        emitted = frontend / "dist/assets/index.css"
+        project = frontend / "src/style.css"
+        arguments = ("--definitions", str(emitted), str(project))
+        script = "scripts/design-checks/undefined-var.py"
+        restore_emitted = self.replace_text(
+            tree,
+            "web/css-gate-fixture/dist/assets/index.css",
+            ".generated { --metric-ink: var(--ink); }",
+            ".generated { --metric-ink: var(--vendor-runtime); }",
+        )
+        try:
+            self.assert_gate_passes(tree, script, *arguments)
+            restore_project = self.replace_text(
+                tree,
+                "web/css-gate-fixture/src/style.css",
+                ".known { color: var(--metric-ink); }",
+                ".known { color: var(--app-missing); }",
+            )
+            try:
+                self.assert_gate_rejects(
+                    tree,
+                    script,
+                    "a project reference is missing from emitted definitions",
+                    ("--app-missing", "which nothing defines"),
+                    *arguments,
+                )
+            finally:
+                restore_project()
+        finally:
+            restore_emitted()
+        self.assert_gate_passes(tree, script, *arguments)

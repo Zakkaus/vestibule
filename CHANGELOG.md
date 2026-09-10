@@ -17,6 +17,8 @@ All notable changes to this project are documented here. The format is based on
 - Locale validation requires all three supported console catalogues.
 - The documented gate contract checks executed Go commands in both directions,
   including race detection, build tags, and pinned analysis-tool versions.
+- Frontend CSS variable checks retain theme-scope validation while accepting
+  definitions from provenance-checked Spectrum output.
 - Navigation documentation consistently describes the selected item's pale accent
   background and non-colour indicators.
 - Group names use explicit colon-separated labels in Simplified Chinese, Traditional
