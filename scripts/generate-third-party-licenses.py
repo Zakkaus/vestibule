@@ -188,9 +188,13 @@ def npm_license_files(metadata: dict) -> list[tuple[str, str]]:
             stream = archive.extractfile(member)
             if stream is None:
                 continue
-            files.append((member.name.removeprefix("package/"), stream.read().decode("utf-8")))
-    if not files:
-        raise RuntimeError(f"npm package {resolved} has no license or notice file")
+            # Some packages ship CRLF licence text. Writing it out verbatim and reading it
+            # back translates the line endings, so the artifact could never match a fresh
+            # render and the check failed on every run. Normalise once, here.
+            text = stream.read().decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+            files.append((member.name.removeprefix("package/"), text))
+    if not files and not metadata.get("license"):
+        raise RuntimeError(f"npm package {resolved} has no license or notice file and declares none")
     return sorted(files)
 
 
@@ -333,6 +337,11 @@ def render() -> str:
                 "----- END LICENSE -----",
                 "",
             ])
+        if not license_lines:
+            # A package may declare its terms in package.json and ship no separate file.
+            # The declaration above is then the whole statement, and saying so is more
+            # honest than an empty section that looks like a missing notice.
+            license_lines = ["No license file ships in the tarball; the declaration above is the package's own."]
         output.append(section(f"npm: {name} @ {metadata['version']}", [
             f"Source tarball: {metadata['resolved']}",
             f"Tarball integrity: {metadata['integrity']}",

@@ -56,6 +56,7 @@ body {
 [data-bypass-member-whitelist],
 [data-questions-section],
 [data-question-item],
+[data-fallback-preview],
 [data-capability-card],
 [data-feeds-section],
 [data-stats-chart-section],
@@ -1195,6 +1196,7 @@ body {
 
 [data-question-bank-editor],
 [data-fallback-question-editor],
+[data-fallback-preview-list],
 [data-question-list] {
   display: grid;
   gap: var(--sp-4);
@@ -1266,9 +1268,23 @@ body {
   background: var(--surface-raised);
 }
 
-[data-question-item] {
+[data-question-item],
+[data-fallback-preview-item] {
   min-inline-size: 0;
   margin: 0;
+}
+
+/* The inherited bank is read-only, so its prompt and its waiting notice are plain
+   text where the editor has fields. They take the reading colour and the same
+   leading, not the field spacing. */
+[data-fallback-preview-prompt] {
+  margin: 0;
+  color: var(--foreground);
+}
+
+[data-fallback-preview-pending] {
+  margin: 0;
+  color: var(--muted-foreground);
 }
 
 [data-question-item-heading] {
