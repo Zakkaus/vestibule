@@ -105,16 +105,17 @@ function TrendChart({ model, locale }: Readonly<{ model: TrendModel; locale: str
         <Content data-home-trend-scroll styles={style({ width: "full", minWidth: 0, overflowX: "auto", overscrollBehaviorX: "contain" })}>
           <Content styles={style({
             minWidth: { default: `[${size(400)}]`, lg: `[${size(360)}]`, isExtendedRange: `[${size(640)}]` },
-            height: `[${size(200)}]`,
+            height: `[${size(260)}]`,
             display: "block"
           })({ isExtendedRange: model.points.length > 7 })}>
-            {/* Built from the library's chart components. Every bar carries its count. The
-                line has no per-point labels: the library routes those through a collision
-                pass that hides whichever cannot be placed, and on a 200px tile that was most
-                of them, drawn over the line. The rate is read by hover and by the date reader
-                below, which is the honest version of what the library offers. */}
-            <Chart {...shared} dataTestId="home-combined-chart" height="100%" padding={12}>
-              <Bar name="requests" dimension="date" metric="count" metricAxis="yCount" color={{ value: "blue-900" }} paddingRatio={0.4}>
+            {/* The library rotates an axis title, which turns a Chinese label on its side,
+                so the series are named in the legend below instead. The bars keep a label
+                on every bar;
+                the line does not, because the library hides per-point labels it cannot
+                place and on this tile that was most of them. The rate is read by hover and
+                by the date reader below. */}
+            <Chart {...shared} dataTestId="home-combined-chart" height="100%" padding={16}>
+              <Bar name="requests" dimension="date" metric="count" metricAxis="yCount" color={{ value: "blue-900" }} paddingRatio={0.3}>
                 <BarDirectLabel position="end-outside" format=",.0f" />
                 <ChartInspect targets={["item"]}>{(datum) => <Text>{String(datum.summary)}</Text>}</ChartInspect>
               </Bar>
@@ -123,7 +124,7 @@ function TrendChart({ model, locale }: Readonly<{ model: TrendModel; locale: str
               </Line>
               <Axis position="bottom" baseline labels={model.points.map((point) => ({ value: point.date, label: point.axisLabel }))} />
               <Axis position="left" name="yCount" grid ticks numberFormat=",.0f" tickMinStep={5} />
-              <Axis position="right" ticks labelFormat="percentage" range={[0, 1]} />
+              <Axis position="right" ticks labelFormat="percentage" range={[0, 1]} tickCountLimit={3} />
             </Chart>
           </Content>
         </Content>
