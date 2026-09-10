@@ -181,10 +181,11 @@ function AttentionSection({
           {items.map((item) => (
             <Link key={item.id} href={`${item.path}${groupSearch}`} isStandalone isQuiet data-home-attention={item.id}
               aria-label={`${t(item.titleKey)} ${t(item.descriptionKey, { count: item.count })}`}>
-              <Content styles={style({ display: "flex", alignItems: "center", gap: 8, font: "body", minWidth: 0 })}>
+              <Content styles={style({ display: "flex", alignItems: "center", gap: 12, font: "body", minWidth: 0, padding: 12, borderRadius: "lg", backgroundColor: "layer-2" })}>
                 <Badge variant={item.tone === "error" ? "negative" : "notice"} fillStyle="subtle"><Icon name={attentionIcons[item.tone]} /> {t(`home.attention.tones.${item.tone}`)}</Badge>
-                <Text data-home-attention-copy>{t(item.titleKey)}</Text>
+                <Text data-home-attention-copy styles={style({ flexGrow: 1 })}>{t(item.titleKey)}</Text>
                 {item.count !== undefined ? <Text>{item.count}</Text> : null}
+                <Icon name="arrowRight" />
               </Content>
             </Link>
           ))}

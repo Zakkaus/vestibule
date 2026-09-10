@@ -62,12 +62,25 @@ function ConfigEntry({
 }>) {
   const { t } = useTranslation();
   return (
+    // A row on the section's own ground: the tile is a layer down from the panel, so a
+    // white row is an edge you can see, and the arrow says it goes somewhere.
     <Link href={`${path}${groupSearch}`} isStandalone isQuiet data-home-entry={id}>
-      <Content data-home-entry-values styles={style({ display: "grid", gap: 4, minWidth: 0 })}>
-        <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", color: "neutral-subdued" })}>
-          <Icon name={iconName} /> {t(titleKey)}
-        </Text>
-        {children}
+      <Content styles={style({
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        minWidth: 0,
+        padding: 12,
+        borderRadius: "lg",
+        backgroundColor: "layer-2"
+      })}>
+        <Content data-home-entry-values styles={style({ display: "grid", gap: 4, minWidth: 0, flexGrow: 1 })}>
+          <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", color: "neutral-subdued" })}>
+            <Icon name={iconName} /> {t(titleKey)}
+          </Text>
+          {children}
+        </Content>
+        <Icon name="arrowRight" />
       </Content>
     </Link>
   );
