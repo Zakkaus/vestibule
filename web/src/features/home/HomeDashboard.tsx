@@ -185,7 +185,7 @@ function AttentionSection({
                 <Badge variant={item.tone === "error" ? "negative" : "notice"} fillStyle="subtle"><Icon name={attentionIcons[item.tone]} /> {t(`home.attention.tones.${item.tone}`)}</Badge>
                 <Text data-home-attention-copy styles={style({ flexGrow: 1 })}>{t(item.titleKey)}</Text>
                 {item.count !== undefined ? <Text>{item.count}</Text> : null}
-                <Icon name="arrowRight" />
+                <Content styles={style({ display: "flex", color: "neutral-subdued" })}><Icon name="arrowRight" /></Content>
               </Content>
             </Link>
           ))}

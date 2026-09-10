@@ -62,13 +62,15 @@ function ConfigEntry({
 }>) {
   const { t } = useTranslation();
   return (
-    // A row on the section's own ground: the tile is a layer down from the panel, so a
-    // white row is an edge you can see, and the arrow says it goes somewhere.
+    // One row: a grid of [label over value] and the arrow. Link takes only positioning
+    // styles, so the surface sits on the one element inside it.
     <Link href={`${path}${groupSearch}`} isStandalone isQuiet data-home-entry={id}>
       <Content styles={style({
-        display: "flex",
+        display: "grid",
+        gridTemplateColumns: ["minmax(0, 1fr)", "auto"],
         alignItems: "center",
-        gap: 12,
+        columnGap: 12,
+        rowGap: 4,
         minWidth: 0,
         padding: 12,
         borderRadius: "lg",
@@ -77,13 +79,15 @@ function ConfigEntry({
         borderColor: "gray-200",
         backgroundColor: "layer-2"
       })}>
-        <Content data-home-entry-values styles={style({ display: "grid", gap: 4, minWidth: 0, flexGrow: 1 })}>
-          <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", fontWeight: "medium", color: "neutral-subdued" })}>
-            <Icon name={iconName} /> {t(titleKey)}
-          </Text>
-          {children}
+        <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", fontWeight: "medium", color: "neutral-subdued" })}>
+          <Icon name={iconName} /> {t(titleKey)}
+        </Text>
+        {/* The arrow is an affordance, not an action: it takes the label's colour so the
+            accent stays reserved for things you press. */}
+        <Content styles={style({ gridRowStart: 1, gridRowEnd: 3, gridColumnStart: 2, display: "flex", alignItems: "center", color: "neutral-subdued" })}>
+          <Icon name="arrowRight" />
         </Content>
-        <Icon name="arrowRight" />
+        <Content data-home-entry-values styles={style({ minWidth: 0, gridColumnStart: 1 })}>{children}</Content>
       </Content>
     </Link>
   );

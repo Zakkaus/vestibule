@@ -186,7 +186,7 @@ export function HomeTrend({
           {model.missingDays > 0 ? <Text data-home-trend-coverage styles={style({ font: "body-sm", color: "neutral-subdued" })}>{coverageText}</Text> : null}
         </Content>
         <Link href={`/stats${groupSearch}`} isStandalone isQuiet>
-          <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", fontWeight: "medium" })}>
+          <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", fontWeight: "medium", color: "neutral-subdued" })}>
             {t("home.trend.openStats")} <Icon name="arrowRight" />
           </Text>
         </Link>
