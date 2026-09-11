@@ -1590,9 +1590,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ----- END LICENSE -----
 
-## Go: modernc.org/libc @ v1.74.4
+## Go: modernc.org/libc @ v1.75.6
 
-Source module: modernc.org/libc@v1.74.4
+Source module: modernc.org/libc@v1.75.6
 License file: LICENSE
 ----- BEGIN LICENSE -----
 Copyright (c) 2017 The Libc Authors. All rights reserved.
@@ -1967,9 +1967,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ----- END LICENSE -----
 
-## Go: modernc.org/memory @ v1.11.0
+## Go: modernc.org/memory @ v1.12.1
 
-Source module: modernc.org/memory@v1.11.0
+Source module: modernc.org/memory@v1.12.1
 License file: LICENSE
 ----- BEGIN LICENSE -----
 Copyright (c) 2017 The Memory Authors. All rights reserved.
@@ -2065,9 +2065,9 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ----- END LICENSE -----
 
-## Go: modernc.org/sqlite @ v1.57.0
+## Go: modernc.org/sqlite @ v1.58.0
 
-Source module: modernc.org/sqlite@v1.57.0
+Source module: modernc.org/sqlite@v1.58.0
 License file: LICENSE
 ----- BEGIN LICENSE -----
 Copyright (c) 2017 The Sqlite Authors. All rights reserved.
