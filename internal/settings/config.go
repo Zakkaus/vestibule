@@ -216,13 +216,23 @@ type GroupConfig struct {
 	RequiredChannelFailOpen *bool            `json:"required_channel_fail_open"`
 }
 
-// GitHubRepo identifies one repository and optional branch for commit subscriptions.
+// GitHubRepo identifies one repository and optional event subscriptions.
 type GitHubRepo struct {
 	// Repo is the repository in owner/name form.
 	Repo string `json:"repo"`
 	// Branch selects a branch; empty follows the repository's default branch.
 	Branch string `json:"branch,omitempty"`
+	// Issues enables issue creation posts and defaults to false.
+	Issues *bool `json:"issues,omitempty"`
+	// Pulls enables pull-request creation posts and defaults to false.
+	Pulls *bool `json:"pulls,omitempty"`
 }
+
+// IssuesOn reports whether issue creation posts are enabled.
+func (r GitHubRepo) IssuesOn() bool { return r.Issues != nil && *r.Issues }
+
+// PullsOn reports whether pull-request creation posts are enabled.
+func (r GitHubRepo) PullsOn() bool { return r.Pulls != nil && *r.Pulls }
 
 // FeedConfig configures one optional Bugzilla, news, and GitHub destination.
 type FeedConfig struct {
@@ -242,7 +252,7 @@ type FeedConfig struct {
 	BugComponent string `json:"bug_component"`
 	// SilentBugs makes every bug post silent when true.
 	SilentBugs *bool `json:"silent_bugs"`
-	// GitHubRepos lists repositories whose commit Atom feeds this destination follows.
+	// GitHubRepos lists repositories whose commits and enabled creation events this destination follows.
 	GitHubRepos []GitHubRepo `json:"github_repos,omitempty"`
 }
 
@@ -339,6 +349,8 @@ type Config struct {
 	NewsURL string `json:"news_url"`
 	// GitHubAtomBase is the normalized base URL used for GitHub Atom requests and commit links.
 	GitHubAtomBase string `json:"github_atom_base,omitempty"`
+	// GitHubAPIBase is the normalized base URL used for GitHub REST requests.
+	GitHubAPIBase string `json:"github_api_base,omitempty"`
 	// StatsTimezone is the IANA time zone for the daily /stats boundary.
 	StatsTimezone string `json:"stats_timezone"`
 	// RichMessages enables rich Bot API messages with an HTML fallback.

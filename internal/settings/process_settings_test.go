@@ -29,19 +29,24 @@ func TestProcessSettingsViewDetachesCollections(t *testing.T) {
 }
 
 func TestProcessSettingsDeepCopiesGitHubRepos(t *testing.T) {
+	issues, pulls := true, false
 	config := &Config{
 		Feeds: []FeedConfig{{
-			GitHubRepos: []GitHubRepo{{Repo: "owner/repo", Branch: "main"}},
+			GitHubRepos: []GitHubRepo{{Repo: "owner/repo", Branch: "main", Issues: &issues, Pulls: &pulls}},
 		}},
 	}
 
 	view := config.ProcessSettings().Feeds()
 	view.Value[0].GitHubRepos[0].Repo = "changed/repo"
 	view.Value[0].GitHubRepos[0].Branch = "changed"
+	*view.Value[0].GitHubRepos[0].Issues = false
+	*view.Value[0].GitHubRepos[0].Pulls = true
 
 	again := config.ProcessSettings().Feeds().Value
 	if len(again) != 1 || len(again[0].GitHubRepos) != 1 ||
-		again[0].GitHubRepos[0].Repo != "owner/repo" || again[0].GitHubRepos[0].Branch != "main" {
+		again[0].GitHubRepos[0].Repo != "owner/repo" || again[0].GitHubRepos[0].Branch != "main" ||
+		again[0].GitHubRepos[0].Issues == nil || !*again[0].GitHubRepos[0].Issues ||
+		again[0].GitHubRepos[0].Pulls == nil || *again[0].GitHubRepos[0].Pulls {
 		t.Fatalf("process settings changed nested GitHub repository data: %+v", again)
 	}
 }
