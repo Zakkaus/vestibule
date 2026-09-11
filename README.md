@@ -44,7 +44,7 @@ They render in the tokens they document, so a broken token breaks the page.
 
 ## Feed subscriptions
 
-Process configuration can send Bugzilla, news, and GitHub commit posts to each delivery target. Set `github_repos` to choose repositories and branches; an omitted branch follows the repository's current default branch. See [`docs/GITHUB-FEEDS.md`](docs/GITHUB-FEEDS.md) for the configuration and delivery rules, and [`examples/feeds.json`](examples/feeds.json) for a complete example.
+Process configuration can send Bugzilla, news, and GitHub commit, issue, and pull request posts to each delivery target. Set `github_repos` to choose repositories and branches, then enable `issues` or `pulls` per repository; both event switches default to off. An omitted branch follows the repository's current default branch. See [`docs/GITHUB-FEEDS.md`](docs/GITHUB-FEEDS.md) for the configuration and delivery rules, and [`examples/feeds.json`](examples/feeds.json) for a complete example.
 
 ## What it has to become
 

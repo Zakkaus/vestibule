@@ -39,7 +39,7 @@ python3 -m http.server 8787 --bind 127.0.0.1 --directory web
 
 ## 订阅推送
 
-进程配置可以向每个订阅目标发送 Bugzilla、新闻和 GitHub 提交推送。设置 `github_repos` 可选择仓库与分支；省略分支时跟随仓库当前默认分支。配置与投递规则参见 [`docs/GITHUB-FEEDS.md`](docs/GITHUB-FEEDS.md)，完整示例参见 [`examples/feeds.json`](examples/feeds.json)。
+进程配置可以向每个订阅目标发送 Bugzilla、新闻以及 GitHub 提交、issue 和 pull request 推送。设置 `github_repos` 可选择仓库与分支，再为各仓库启用 `issues` 或 `pulls`；两个开关默认关闭。省略分支时跟随仓库当前默认分支。配置与投递规则参见 [`docs/GITHUB-FEEDS.md`](docs/GITHUB-FEEDS.md)，完整示例参见 [`examples/feeds.json`](examples/feeds.json)。
 
 ## 目标
 
