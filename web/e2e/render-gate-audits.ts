@@ -179,8 +179,15 @@ export async function horizontalGeometry(page: Page): Promise<HorizontalGeometry
       const widest = [...element.querySelectorAll<HTMLElement>("*")]
         .map((child) => ({ child, right: child.getBoundingClientRect().right }))
         .sort((a, b) => b.right - a.right)[0];
+      const box = (node: Element): string => {
+        const rect = node.getBoundingClientRect();
+        return `${Math.round(rect.left)}..${Math.round(rect.right)}`;
+      };
+      const children = [...element.children]
+        .map((child) => `${child.tagName.toLowerCase()}${child.getAttributeNames().filter((name) => name.startsWith("data-")).map((name) => `[${name}]`).join("")} ${box(child)} ${getComputedStyle(child).display}`)
+        .join("; ");
       const detail = widest
-        ? ` ← ${widest.child.tagName.toLowerCase()} right=${Math.round(widest.right)} "${(widest.child.textContent ?? "").trim().slice(0, 40)}"`
+        ? ` ← ${widest.child.tagName.toLowerCase()} ${box(widest.child)} "${(widest.child.textContent ?? "").trim().slice(0, 40)}" | children: ${children}`
         : "";
       return `${element.tagName.toLowerCase()}${dataName ? `[${dataName}]` : ""} scroll=${element.scrollWidth} client=${element.clientWidth}${detail}`;
     };
