@@ -79,11 +79,11 @@ test("Lucide icon assets are traceable and exclusive", () => {
     .sort();
   expect(svgPaths).toEqual(manifestFiles.map((file) => join("icons", "lucide", file)).sort());
 
-  // A component may inline an SVG only to draw a chart, and it says so on the
-  // element. Naming the one file that was allowed to made the rule invisible to
-  // the next chart: the home trend chart arrived from another branch and this
-  // assertion reported it as a stray glyph. The rule is the declared capability,
-  // not the filename.
+  // A component may inline an SVG only to draw a chart or to carry a vendored
+  // icon, and it says which on the element. Naming the one file that was allowed
+  // to made the rule invisible to the next chart: the home trend chart arrived
+  // from another branch and this assertion reported it as a stray glyph. The
+  // rule is the declared capability, not the filename.
   const rawSvgSources = sourceFiles(sourceRoot)
     .filter((path) => /\.tsx?$/.test(path))
     .flatMap((path) => {
@@ -92,7 +92,9 @@ test("Lucide icon assets are traceable and exclusive", () => {
       if (openings.length === 0) {
         return [];
       }
-      const undeclared = openings.filter((opening) => !/data-[a-z-]*chart[a-z-]*/.test(opening[0]));
+      const undeclared = openings.filter(
+        (opening) => !/data-(icon\b|[a-z-]*chart[a-z-]*)/.test(opening[0])
+      );
       return undeclared.length === 0 ? [] : [relative(sourceRoot, path)];
     })
     .sort();
@@ -111,7 +113,7 @@ for (const route of readRenderRoutes()) {
         .filter((button) => !button.querySelector("[data-icon]"))
         .map((button) => button.textContent?.trim() ?? "")
     );
-    const missingNavigation = await page.locator(".console-sidebar nav a[href]").evaluateAll((items) =>
+    const missingNavigation = await page.locator(".console-sidebar [data-navigation-item]").evaluateAll((items) =>
       items
         .filter((item) => !item.querySelector("[data-icon]"))
         .map((item) => item.textContent?.trim() ?? "")
@@ -119,5 +121,9 @@ for (const route of readRenderRoutes()) {
 
     expect(missingButtons, `${route.sourcePath}: buttons without icons`).toEqual([]);
     expect(missingNavigation, `${route.sourcePath}: navigation without icons`).toEqual([]);
+    // A console route carries the whole side nav; an entry route carries none of it.
+    const destinations = await page.locator(".console-sidebar [data-navigation-item]").count();
+    const consoleRoute = (await page.locator(".console-sidebar").count()) > 0;
+    expect(consoleRoute ? destinations >= 14 : destinations === 0, `${route.sourcePath}: ${destinations} destinations`).toBe(true);
   });
 }

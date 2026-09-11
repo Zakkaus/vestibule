@@ -91,14 +91,14 @@ const sources = {
 
 export type IconName = keyof typeof sources;
 
-// The raw Lucide files are whole <svg> documents. Rendering them inside a <span> put
+// The raw Lucide files are whole svg documents. Rendering them inside a span put
 // them outside the library's icon slot: a Spectrum component styles its icon through
 // IconContext, and a span that only holds markup receives none of it — which is why the
 // side nav's icons sat against their labels with no gap. Turn each source into a real
-// <svg> element and hand it to createIcon, so every icon takes the size, colour and
+// svg element and hand it to createIcon, so every icon takes the size, colour and
 // placement of whatever slot it lands in.
 // The files open with a licence comment and wrap their attributes over several lines.
-const outerSVG = /<svg([\s\S]*?)>([\s\S]*)<\/svg>/;
+const outerSVG = /<(svg)([\s\S]*?)>([\s\S]*)<\/svg>/;
 const droppedAttributes = new Set(["xmlns", "width", "height", "class"]);
 
 const attributeNames: Readonly<Record<string, string>> = {
@@ -110,8 +110,8 @@ const attributeNames: Readonly<Record<string, string>> = {
 
 function svgComponent(source: string): ComponentType<SVGProps<SVGSVGElement>> {
   const parsed = outerSVG.exec(source);
-  if (parsed === null) throw new Error("icon source is not a single <svg> document");
-  const [, rawAttributes, inner] = parsed;
+  if (parsed === null) throw new Error("icon source is not a single svg document");
+  const [, , rawAttributes, inner] = parsed;
   const presentation: Record<string, string> = {};
   for (const [, name, value] of rawAttributes!.matchAll(/([a-zA-Z-]+)="([^"]*)"/g)) {
     const lower = name!.toLowerCase();
@@ -119,7 +119,7 @@ function svgComponent(source: string): ComponentType<SVGProps<SVGSVGElement>> {
     presentation[attributeNames[lower] ?? name!] = value!;
   }
   return (props: SVGProps<SVGSVGElement>) => (
-    <svg {...presentation} {...props} dangerouslySetInnerHTML={{ __html: inner! }} />
+    <svg data-icon {...presentation} {...props} dangerouslySetInnerHTML={{ __html: inner! }} />
   );
 }
 
@@ -137,5 +137,5 @@ type IconProps = SpectrumIconProps & Readonly<{ name: IconName }>;
 
 export function Icon({ name, ...props }: IconProps) {
   const Rendered = componentFor(name);
-  return <Rendered aria-hidden {...props} data-icon data-icon-name={name} />;
+  return <Rendered aria-hidden {...props} data-icon-name={name} />;
 }
