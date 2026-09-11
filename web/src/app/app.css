@@ -127,6 +127,10 @@ body {
 
 [data-app-shell][data-shell-variant="entry"] {
   display: grid;
+  /* One column that never grows past the viewport: an implicit column is sized by the
+     widest child's min-content, and the entry card's heading in the widest locale is
+     enough to push the whole shell past 320px. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr;
 }
 
@@ -266,7 +270,9 @@ body {
 
 [data-entry-main] {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
+  min-inline-size: 0;
   padding: var(--sp-4) var(--sp-5);
 }
 
