@@ -289,6 +289,12 @@ body {
 
 [data-entry-page] [data-slot="card"] {
   padding: var(--sp-6);
+  /* The card is a grid with one implicit column, sized by its heading's longest word;
+     in the widest locale on a narrow screen that word may exceed the card. Let the
+     card shrink to the section and the word break rather than push the section. */
+  min-inline-size: 0;
+  grid-template-columns: minmax(0, 1fr);
+  overflow-wrap: anywhere;
 }
 
 /* A control that spans the card reads as the page's one action; these are the
