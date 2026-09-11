@@ -2,7 +2,7 @@
   "bug": {
     "usage": "用法：/bug <编号>。示例：/bug 900000。",
     "not_found": "❓ Bug %[1]s 不存在。请检查编号后重试。",
-    "unavailable": "❓ 暂时无法获取 Bug %[1]s 的详情。请稍后重试。也可直接查看：%[2]s",
+    "unavailable": "❓ 暂时无法获取 Bug %[1]s 的详情。稍后重试；也可直接查看：%[2]s",
     "heading": "🐞 <a href=\"%[1]s\">Bug %[2]s</a>\n%[3]s\n",
     "details": {
       "resolution_separator": " · ",
@@ -50,7 +50,7 @@
   },
   "news": {
     "latest_heading": "📰 Gentoo 最新新闻：",
-    "search_heading": "📰 Gentoo 新闻搜索「%[1]s」：",
+    "search_heading": "📰 Gentoo 新闻搜索：%[1]s",
     "no_matches": "未找到匹配的新闻。请尝试其他关键词。",
     "unavailable": "暂时无法获取新闻列表。请稍后重试。",
     "stale": "新闻列表暂时无法更新。以上结果可能不完整。请稍后重试。"
@@ -75,6 +75,6 @@
     "debian_forum": "Debian 论坛"
   },
   "transport": {
-    "private_rate_limited": "⏳ 查询过于频繁。私聊每分钟最多 %[1]d 次，请等待 1 分钟后重试；群组内不受此限制。"
+    "private_rate_limited": "⏳ 查询过于频繁。私聊每分钟最多 %[1]d 次；等待 1 分钟后重试。群组内不受此限制。"
   }
 }

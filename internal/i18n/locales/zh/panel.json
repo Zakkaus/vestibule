@@ -9,14 +9,14 @@
   },
   "verification": {
     "started": "✅ 入群验证已开启。",
-    "stopped": "⏸ 入群验证已关闭。新的入群申请不会自动验证，请由管理员手动审核。"
+    "stopped": "⏸ 入群验证已关闭。新的入群申请不会自动验证，须由管理员手动审核。"
   },
   "rich_text": {
     "enabled": "🎨 富文本输出已开启。/pkg 和 /use 将发送富文本消息；旧版或第三方客户端可能无法正确显示。",
     "disabled": "📄 富文本输出已关闭。/pkg 和 /use 将发送纯文本消息。"
   },
   "name_spoiler": {
-    "enabled": "🫥 新成员姓名遮盖已开启。姓名将以防剧透格式显示，避免广告姓名直接显示在群组内。",
+    "enabled": "🫥 新成员姓名遮盖已开启。姓名将以防剧透格式显示；广告姓名不会直接显示在群组内。",
     "disabled": "👁 新成员姓名遮盖已关闭。姓名将正常显示。"
   },
   "verification_mode": {
@@ -45,7 +45,7 @@
   },
   "error": {
     "save_settings": "❌ 无法保存设置。请稍后重试。",
-    "admin_only": "⛔ 该命令仅限群组管理员使用。如需更改设置，请联系群组管理员。"
+    "admin_only": "⛔ 该命令仅限群组管理员使用。"
   },
   "menu": {
     "settings": "打开设置面板"
@@ -74,7 +74,7 @@
     },
     "source": {
       "runtime": "群组覆盖值",
-      "config": "config.json",
+      "config": "配置文件",
       "default": "默认值"
     },
     "mode": {
@@ -84,7 +84,7 @@
     },
     "delivery": {
       "group": "仅群内消息",
-      "dm": "私聊，拒绝时回退到群内",
+      "dm": "私聊；拒绝时改用群内消息",
       "both": "群内消息和私聊"
     },
     "screen": {
@@ -102,7 +102,7 @@
       "fallback_detail": "备用问题\n问题：%[1]s\n可接受答案：\n%[2]s",
       "channel": "群组 %[1]d 的必需频道\nID：%[2]d\n显示名称：%[3]s\n邀请链接：%[4]s",
       "confirm": "请确认此操作：\n%[1]s",
-      "input": "正在等待输入\n%[1]s\n请回复下方单独发送的提示消息。",
+      "input": "等待输入中\n%[1]s\n回复下方单独发送的提示消息。",
       "moderation": "群组 %[1]d 的管理设置\n频道身份发言：%[2]s\n禁言时长：%[3]s\n警告上限：%[4]s\n富文本输出（机器人全局）：%[5]s\n告警聊天（机器人全局）：%[6]s"
     },
     "field": {
@@ -192,7 +192,7 @@
       "invalid_chat": "无法验证所选聊天。",
       "question_needs_options": "选择题至少需要两个选项，并且必须指定一个正确选项。",
       "fallback_needs_answer": "备用问题至少需要一个可接受答案。",
-      "input_blocked_verification": "请先完成当前验证，再输入面板内容。",
+      "input_blocked_verification": "完成当前验证后，再输入面板内容。",
       "input_canceled_verification": "验证提示出现后，面板输入已取消。此回复未计入验证尝试。",
       "panel_unavailable": "无法打开设置面板。请重试。",
       "whitelist_unban_failed": "频道已加入白名单，但无法解除现有的频道身份封禁。"
