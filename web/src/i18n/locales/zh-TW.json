@@ -26,7 +26,7 @@
       "group": "群組",
       "content": "內容",
       "observe": "觀察",
-      "console": "這台控制台"
+      "console": "此控制台"
     },
     "queue": "等待佇列",
     "groups": "群組與頻道",
@@ -38,60 +38,60 @@
     "allGroups": "全部可管理的群組"
   },
   "entry": {
-    "nextSteps": "下一步",
-    "thisBot": "這台執行個體的機器人",
+    "nextSteps": "後續步驟",
+    "thisBot": "此執行個體的機器人",
     "unclaimed": {
-      "title": "這台執行個體還沒有被認領",
-      "description": "認領之前這裡沒有機器人，也沒有可以進入的控制台。",
+      "title": "此執行個體尚未認領",
+      "description": "認領前，此執行個體沒有機器人，也沒有可開啟的控制台。",
       "steps": {
-        "link": "在部署這台機器的終端機裡找出安裝指令碼印出的一次性連結。",
-        "token": "開啟那條連結，填入 Telegram 機器人權杖。"
+        "link": "在部署此機器的終端機中，找出安裝程式輸出的一次性連結。",
+        "token": "開啟該連結，輸入 Telegram 機器人權杖。"
       }
     },
     "loading": {
       "title": "正在開啟控制台",
-      "description": "正在確認目前的工作階段。"
+      "description": "正在確認目前工作階段。"
     },
     "unavailable": {
       "title": "暫時無法開啟控制台",
-      "description": "控制台沒有傳回可用的工作階段狀態。請稍後從 Telegram 開啟機器人的選單，或向機器人索取新的連結。",
+      "description": "控制台未回傳可用的工作階段狀態。稍後從 Telegram 開啟機器人選單，或向機器人索取新連結。",
       "retry": "重試"
     },
     "noSession": {
       "title": "從 Telegram 開啟控制台",
-      "description": "這台控制台沒有登入畫面，入口在 Telegram 裡。",
+      "description": "此控制台不提供登入畫面；入口位於 Telegram。",
       "steps": {
         "openBot": "在 Telegram 中開啟 {{botUsername}}。",
-        "manager": "群組管理員從機器人的選單進入控制台。",
+        "manager": "群組管理員從機器人選單開啟控制台。",
         "operator": "維運人員向機器人索取一次性連結。"
       }
     },
     "expired": {
-      "title": "這條連結已過期",
-      "description": "一次性連結有有效期限。過期並不表示帳號或控制台發生故障。",
+      "title": "此連結已過期",
+      "description": "一次性連結具有有效期限。連結過期不表示帳號或控制台故障。",
       "steps": {
         "request": "向 {{botUsername}} 索取新的一次性連結。"
       }
     },
     "redeemed": {
-      "title": "這條連結已被使用",
-      "description": "這可能表示有人先開啟了它。請勿繼續轉傳原連結。",
+      "title": "此連結已使用",
+      "description": "該連結可能已由其他人先行開啟。請勿繼續轉傳原連結。",
       "steps": {
-        "request": "向 {{botUsername}} 索取新連結，並確認連結只發給預定的維運人員。"
+        "request": "向 {{botUsername}} 索取新連結，並確認連結僅傳送給預定的維運人員。"
       }
     },
     "noGroups": {
-      "title": "這個帳號尚未取得任何群組授權",
+      "title": "此帳號尚未取得任何群組授權",
       "description": "工作階段有效，但 Telegram 帳號 {{accountId}} 目前沒有可管理的群組。",
       "steps": {
-        "authorization": "請讓群組擁有者在 Telegram 中將這個帳號設為群組管理員，然後從機器人的選單開啟控制台。"
+        "authorization": "請由群組擁有者在 Telegram 將此帳號設為群組管理員，再從機器人選單開啟控制台。"
       }
     },
     "outsideTelegram": {
       "title": "群組管理只能從 Telegram 內開啟",
-      "description": "這是刻意設定的安全邊界。一般瀏覽器無法提供群組管理員需要的簽名身分資料。",
+      "description": "群組管理僅開放從 Telegram 存取。一般瀏覽器無法提供群組管理員所需的簽名身分資料。",
       "steps": {
-        "desktop": "在 Telegram Desktop 中開啟 {{botUsername}} 的選單，再進入控制台。"
+        "desktop": "在 Telegram Desktop 開啟 {{botUsername}} 的選單，再進入控制台。"
       }
     }
   },
@@ -105,24 +105,24 @@
       "superseded": "已取代"
     },
     "reason": {
-      "wrongAnswer": "答錯",
-      "rejected": "答對但觸發否決條件",
+      "wrongAnswer": "回答錯誤",
+      "rejected": "回答正確，但觸發否決條件",
       "externalUnmet": "無法查詢外部條件"
     }
   },
   "groups": {
     "title": "群組與頻道",
-    "description": "這裡只列出目前帳號有權管理的群組。選擇一個群組，繼續檢視它的等待佇列。",
-    "managedCount_other": "{{count}} 個可管理的群組",
+    "description": "此處只列出目前帳號有權管理的群組。選擇群組後，檢視其等待佇列。",
+    "managedCount_other": "可管理的群組：{{count}} 個",
     "authorized": "已授權",
-    "liveGroupNote": "選擇這個群組後，後續操作都會限定在此群組內。",
+    "liveGroupNote": "選擇此群組後，後續操作僅適用於此群組。",
     "identity": "{{name}} · 使用者 ID {{id}}",
     "owner": {
       "heading": "Telegram 群組擁有者"
     },
     "administrators": {
       "heading": "群組管理員",
-      "unavailable": "暫時無法讀取管理員詳細資料",
+      "unavailable": "暫時無法讀取管理員詳細資料。",
       "creator": "群組擁有者",
       "administrator": "管理員"
     },
@@ -151,24 +151,24 @@
     },
     "empty": {
       "title": "沒有可管理的群組",
-      "description": "帳號 {{accountId}} 尚未取得任何群組的管理權限。請聯絡群主授予權限。"
+      "description": "帳號 {{accountId}} 尚未取得任何群組的管理權限。請聯絡群組擁有者授予權限。"
     },
     "error": {
       "authenticationExpired": {
         "title": "工作階段已過期",
-        "description": "請從 Telegram 機器人的選單重新開啟控制台，或向機器人取得新的維運連結。"
+        "description": "從 Telegram 機器人選單重新開啟控制台，或向機器人索取新的維運連結。"
       },
       "authenticationInvalid": {
         "title": "無法驗證工作階段",
-        "description": "請確認從 Telegram 機器人提供的入口開啟控制台。"
+        "description": "請從 Telegram 機器人提供的入口開啟控制台。"
       },
       "initDataReplayed": {
-        "title": "這次開啟請求已被使用",
-        "description": "請關閉目前頁面，再從 Telegram 機器人的選單重新開啟控制台。"
+        "title": "此開啟要求已使用",
+        "description": "關閉目前頁面，再從 Telegram 機器人選單重新開啟控制台。"
       },
       "authenticationUnavailable": {
         "title": "驗證服務暫時無法使用",
-        "description": "服務恢復後可重新讀取群組清單。"
+        "description": "驗證服務恢復後，才能重新讀取群組清單。"
       },
       "verificationUnavailable": {
         "title": "群組清單暫時無法使用",
@@ -176,15 +176,15 @@
       },
       "network": {
         "title": "無法連線至控制台",
-        "description": "請檢查網路連線後重新讀取群組清單。"
+        "description": "檢查網路連線後，重新讀取群組清單。"
       },
       "response": {
         "title": "無法讀取群組清單",
-        "description": "控制台傳回的資料無法使用。"
+        "description": "控制台回傳的資料無法使用。"
       },
       "unknown": {
         "title": "無法讀取群組清單",
-        "description": "服務拒絕了群組清單請求。"
+        "description": "服務拒絕群組清單要求。"
       }
     },
     "actions": {
@@ -195,7 +195,7 @@
     "mode": {
       "approval": "審核制",
       "joinRestrict": "先加入再限制",
-      "joinRestrictNote": "未通過的人已在群組內，仍可看到群組中的訊息。"
+      "joinRestrictNote": "未通過驗證的成員已在群組內，仍可看見群組訊息。"
     },
     "verification": {
       "available": "可驗證",
@@ -236,28 +236,28 @@
       "actions": "操作"
     },
     "status": {
-      "pending": "等待中 {{time}}"
+      "pending": "等待中：{{time}}"
     },
     "timeUnavailable": "時間未知",
     "loading": {
       "title": "正在載入等待佇列",
-      "description": "正在讀取等待中的申請…"
+      "description": "正在讀取申請清單…"
     },
     "filter": {
       "label": "篩選等待佇列",
-      "placeholder": "按使用者或群組篩選"
+      "placeholder": "依使用者或群組篩選"
     },
     "empty": {
       "title": "尚無人申請",
-      "description": "收到第一份申請後，等待中的人會出現在這裡。"
+      "description": "收到申請後，等待中的申請會顯示在此處。"
     },
     "groupRequired": {
-      "title": "先選擇一個群組",
+      "title": "請先選擇群組",
       "description": "選擇已獲授權的群組後，才能檢視其等待佇列。",
       "select": "選擇群組"
     },
     "noGroups": {
-      "title": "此帳號尚未獲任何群組授權",
+      "title": "此帳號尚未取得任何群組授權",
       "description": "等待佇列只會顯示已獲授權的群組。"
     },
     "unavailable": {
@@ -272,23 +272,23 @@
       "reload": "重新讀取"
     },
     "feedback": {
-      "releaseSuccess": "已放行 {{user}}，現在可以進入「{{group}}」。",
-      "releaseFailure": "無法放行 {{user}}。該申請仍在等待中，可以重試。"
+      "releaseSuccess": "已放行 {{user}}，現在可進入群組 {{group}}。",
+      "releaseFailure": "無法放行 {{user}}。該申請仍在等待中，可重試。"
     },
     "errors": {
       "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
       "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
-      "accessDenied": "你已不再擁有此群組的管理權限。",
-      "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
+      "accessDenied": "目前帳號已不再具備此群組的管理權限。",
+      "accessUnavailable": "暫時無法確認目前帳號對此群組的管理權限。請重試。",
       "chatNotFound": "此群組已不再可在控制台中管理。",
       "challengeConflict": "此申請已由其他管理員處理，等待佇列已更新。",
       "csrfInvalid": "此頁的安全權杖已過期。重新整理頁面後再重試。",
-      "invalidSettlement": "此申請目前不能放行。重新整理等待佇列後再重試。",
-      "loadUnavailable": "等待佇列暫時不可用。",
+      "invalidSettlement": "此申請目前無法放行。重新整理等待佇列後重試。",
+      "loadUnavailable": "等待佇列暫時無法使用。請重試。",
       "network": "連線已中斷。重新整理等待佇列後，再決定是否重試。",
       "queueUnavailable": "暫時無法讀取等待佇列。請重試。",
       "settlementUnavailable": "暫時無法放行此申請。請重試。",
-      "targetProtected": "此申請人是群組管理員，不能在這裡放行。",
+      "targetProtected": "此申請人是群組管理員，無法在此放行。",
       "targetUnavailable": "暫時無法確認此申請人的群組成員狀態。請重試。"
     },
     "filteredEmpty": {
@@ -300,19 +300,19 @@
   },
   "preferences": {
     "title": "偏好",
-    "description": "這些選項只影響目前的瀏覽器。",
+    "description": "這些選項僅影響目前瀏覽器。",
     "interface": {
       "title": "介面",
-      "description": "佈景主題與語言會儲存在目前裝置上，不會變更群組設定。"
+      "description": "佈景主題與語言儲存在目前裝置，不會變更群組設定。"
     }
   },
   "moderation": {
     "navigation": "管理與處罰",
     "title": "管理與處罰",
-    "description": "調整目前群組的警告上限、頻道身分冒充防護和處罰記錄去向。",
+    "description": "調整目前群組的警告上限、頻道身分冒充防護及處罰記錄目的地。",
     "loading": {
       "title": "正在載入管理與處罰設定",
-      "description": "正在讀取目前群組的有效設定與設定來源…"
+      "description": "正在讀取目前群組的有效設定及設定來源…"
     },
     "groupRequired": {
       "title": "請先選擇群組",
@@ -329,26 +329,26 @@
     },
     "source": {
       "factory": "出廠預設",
-      "file": "由檔案管理",
-      "chat": "此群組設定",
+      "file": "設定檔提供",
+      "chat": "此群組覆寫",
       "pending": "尚未儲存",
-      "restoring": "將還原預設"
+      "restoring": "待還原預設值"
     },
     "warnLimit": {
       "label": "警告上限",
-      "description": "同一成員累計達到此次數後，機器人會將其移出群組。"
+      "description": "同一成員累計達到此數值後，機器人會將該成員移出群組。"
     },
     "antispam": {
       "label": "攔截冒充頻道身分的發言",
-      "description": "刪除由不受信任的頻道身分傳送的訊息。確認該身分不是此群組的關聯頻道後，封鎖該頻道身分。此項預設啟用。"
+      "description": "刪除不受信任的頻道身分傳送的訊息。確認該身分不是此群組的關聯頻道後，封鎖該頻道身分。此功能預設啟用。"
     },
     "adminLog": {
       "label": "處罰記錄群組",
-      "description": "留白等同群組 ID 0：不另外傳送處罰記錄；處罰失敗通知仍傳送至目前群組。"
+      "description": "留白等同群組 ID 0：不另行傳送處罰記錄；處罰失敗通知仍傳送至目前群組。"
     },
     "validation": {
       "warnLimit": "警告上限必須是大於 0 的整數。",
-      "adminLog": "請輸入整數群組 ID，或留白使用群組 ID 0。"
+      "adminLog": "請輸入整數群組 ID，或留白以使用群組 ID 0。"
     },
     "save": {
       "label": "儲存管理與處罰設定",
@@ -364,80 +364,80 @@
     },
     "feedback": {
       "saved": "管理與處罰設定已儲存。",
-      "conflict": "其他人已修改這些設定。請重新載入後再儲存。"
+      "conflict": "其他管理員已修改管理與處罰設定。重新載入後再儲存。"
     },
     "errors": {
-      "authenticationInvalid": "控制台工作階段無效。請從 Telegram 重新開啟控制台。",
+      "authenticationInvalid": "控制台工作階段無效。從 Telegram 重新開啟控制台。",
       "csrfInvalid": "此頁的安全權杖已過期。重新整理頁面後再重試。",
       "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
-      "accessDenied": "你已不再擁有此群組的管理權限。",
-      "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
+      "accessDenied": "目前帳號已不再具備此群組的管理權限。",
+      "accessUnavailable": "暫時無法確認目前帳號對此群組的管理權限。請重試。",
       "chatNotFound": "此群組已無法在控制台中管理。",
-      "invalidSettings": "這些設定未通過驗證。請檢查變更後重試。",
+      "invalidSettings": "管理與處罰設定未通過驗證。檢查變更後重試。",
       "settingsLimitExceeded": "這項變更會超過執行個體擁有者設定的上限。請降低數值，或請擁有者提高上限。",
       "settingsUnavailable": "設定服務暫時無法使用。請重試。",
-      "loadUnavailable": "管理與處罰設定暫時無法使用。",
+      "loadUnavailable": "暫時無法讀取管理與處罰設定。請重試。",
       "saveUnavailable": "無法儲存管理與處罰設定。請重試。"
     }
   },
   "feeds": {
     "navigation": "訂閱推送",
     "title": "訂閱推送",
-    "description": "檢視整個處理程序使用的訂閱目標、新聞來源，以及儲存庫與分支設定。這些值不會隨目前群組變更。",
+    "description": "檢視整個處理程序使用的訂閱目標、新聞來源、儲存庫及分支設定。這些值不會隨目前群組變更。",
     "loading": {
       "title": "正在載入訂閱推送設定",
       "description": "正在讀取處理程序層級設定及其來源…"
     },
     "accessDenied": {
       "title": "沒有權限檢視處理程序設定",
-      "description": "此畫面僅供維運人員使用。群組管理員只能檢視自己管理群組的設定，不能讀取整個處理程序的訂閱設定。"
+      "description": "此畫面僅供維運人員使用。群組管理員只能檢視所管理群組的設定，無法讀取整個處理程序的訂閱設定。"
     },
     "unavailable": {
       "title": "無法讀取訂閱推送設定",
       "retry": "重試"
     },
     "readOnly": {
-      "title": "由設定檔管理",
+      "title": "訂閱設定為唯讀",
       "badge": "唯讀",
-      "description": "這些值來自程式預設設定或啟動設定檔。此畫面不提供寫入功能；控制台只顯示介面回傳的目前值與來源。"
+      "description": "訂閱設定無法在控制台修改。此處顯示 API 回傳的生效值與來源。設定來自程式預設值或 -config 指定的設定檔（預設檔名為 config.json）。"
     },
     "source": {
       "value": "來源：{{source}}",
-      "factoryDefault": "出廠預設",
-      "userFile": "由設定檔管理"
+      "factoryDefault": "程式預設",
+      "userFile": "設定檔提供"
     },
     "feed": {
       "title": "訂閱目標",
-      "description": "每一項對應一個接收 Bugzilla、新聞或 GitHub 提交推送的群組或頻道。",
+      "description": "feeds 中的每筆設定指定一個接收 Bugzilla、新聞或 GitHub 提交推送的群組或頻道。",
       "itemTitle": "目標 {{number}}",
-      "destination": "接收群組或頻道",
+      "destination": "接收目標群組或頻道",
       "language": "推送語言",
       "interval": "擷取間隔",
       "bugzilla": "Bugzilla 推送",
       "news": "新聞推送",
       "bugProduct": "Bugzilla 產品",
       "bugComponent": "Bugzilla 元件",
-      "silentBugs": "Bugzilla 一律靜默",
+      "silentBugs": "Bugzilla 一律靜默推送",
       "githubRepository": "GitHub 儲存庫",
       "followingDefault": "跟隨預設分支",
       "allProducts": "所有產品",
       "allComponents": "所有元件",
       "emptyTitle": "未設定訂閱目標",
-      "emptyDescription": "目前處理程序不會向任何群組或頻道傳送 Bugzilla、新聞或 GitHub 提交推送。"
+      "emptyDescription": "機器人不會向任何群組或頻道傳送 Bugzilla、新聞或 GitHub 提交推送。feeds 未設定接收目標。"
     },
     "newsURL": {
       "title": "新聞來源網址",
-      "description": "處理程序擷取新聞條目時使用的全域網址。",
+      "description": "news_url 指定的新聞來源網址，供整個執行個體擷取新聞項目。",
       "empty": "未設定新聞來源網址"
     },
     "overlays": {
       "title": "儲存庫與分支",
-      "description": "介面回傳的 GitHub overlay 儲存庫及其分支。",
+      "description": "overlays 中設定的 GitHub overlay 儲存庫及分支。",
       "repository": "儲存庫",
       "branch": "分支",
       "defaultBranch": "master（預設）",
       "emptyTitle": "未設定儲存庫",
-      "emptyDescription": "目前處理程序沒有 overlay 儲存庫與分支設定。"
+      "emptyDescription": "overlays 未設定任何儲存庫或分支。"
     },
     "languages": {
       "default": "簡體中文（預設）",
@@ -466,10 +466,10 @@
   "bypass": {
     "navigation": "免驗證來源",
     "title": "免驗證來源",
-    "description": "管理目前群組的信任群組、必須加入的頻道和頻道身分允許清單。",
+    "description": "管理目前群組的信任群組、必須加入的頻道及頻道身分允許清單。",
     "loading": {
       "title": "正在載入免驗證來源設定",
-      "description": "正在讀取目前群組的有效設定與設定來源…"
+      "description": "正在讀取目前群組的有效設定及設定來源…"
     },
     "groupRequired": {
       "title": "請先選擇群組",
@@ -486,51 +486,51 @@
     },
     "source": {
       "factory": "出廠預設",
-      "file": "由檔案管理",
-      "chat": "此群組設定",
+      "file": "設定檔提供",
+      "chat": "此群組覆寫",
       "pending": "尚未儲存",
-      "restoring": "將還原預設"
+      "restoring": "待還原預設值"
     },
     "trusted": {
       "title": "信任群組",
       "label": "信任這些群組的成員",
-      "description": "確認是任一信任群組成員的申請人會跳過驗證。無法讀取成員身分時仍會繼續驗證。每行輸入一個 Telegram 群組 ID。"
+      "description": "確認為任一信任群組成員的申請人會跳過驗證。無法讀取成員身分時，仍會繼續驗證。每行輸入一個 Telegram 群組 ID。"
     },
     "requiredChannel": {
       "title": "必須加入的頻道",
       "sectionDescription": "申請人必須是此頻道成員，才能通過此條件。",
       "id": {
         "label": "必須加入的頻道 ID",
-        "description": "留白或填入 0 會關閉此條件。啟用後，必須填寫以 @ 開頭的顯示名稱或頻道邀請連結。"
+        "description": "留白或輸入 0 會關閉此條件。啟用後，必須填寫以 @ 開頭的顯示名稱或頻道邀請連結。"
       },
       "display": {
         "label": "頻道顯示名稱",
-        "description": "公開頻道填寫以 @ 開頭的顯示名稱，機器人會在申請提示中使用它。私人頻道可留白，但必須填寫邀請連結。"
+        "description": "公開頻道填寫以 @ 開頭的顯示名稱，機器人會在申請提示中使用。私人頻道可留白，但必須填寫邀請連結。"
       },
       "invite": {
         "label": "頻道邀請連結",
-        "description": "私人頻道填寫可存取的邀請連結。公開頻道可以留白。"
+        "description": "私人頻道填寫可存取的邀請連結；公開頻道可留白。"
       },
       "failOpen": {
-        "label": "無法檢查頻道時仍放行",
-        "description": "當機器人無法讀取申請人及自身在必須加入的頻道中的成員身分時，可選擇是否放行已通過其餘所有驗證的申請人。",
-        "enabled": "目前會放行已通過其餘所有驗證的申請人。機器人無法檢查頻道時，未加入該頻道的人也可能進入；必須加入的頻道驗證不再保護此群組。",
-        "disabled": "目前會拒絕申請。機器人暫時失去頻道權限或 Telegram 查詢失敗時，正常申請人也可能被誤拒，需要稍後重新申請。"
+        "label": "頻道無法檢查時仍放行",
+        "description": "機器人無法讀取申請人及自身在必須加入的頻道中的成員身分時，可選擇是否放行已通過其餘所有驗證的申請人。",
+        "enabled": "目前會放行已通過其餘驗證的申請人。頻道無法檢查時，未加入該頻道的人也可能進入；必須加入的頻道驗證不再保護此群組。",
+        "disabled": "目前會拒絕申請。機器人暫時失去頻道權限或 Telegram 查詢失敗時，正常申請人也可能被誤拒，之後需要重新申請。"
       }
     },
     "channelWhitelist": {
       "title": "頻道允許清單",
       "label": "允許這些頻道身分發言",
-      "description": "這些頻道身分可以在受保護群組中發言。它不是成員允許清單。每行輸入一個 Telegram 頻道 ID。"
+      "description": "此清單允許指定的頻道身分在受保護群組中發言，不會讓成員略過驗證。每行輸入一個 Telegram 頻道 ID。"
     },
     "memberWhitelist": {
       "title": "成員允許清單",
       "description": "目前設定介面沒有成員允許清單欄位。頻道允許清單只允許頻道身分發言，不會讓成員跳過驗證。"
     },
     "validation": {
-      "integer": "請輸入整數頻道 ID，或留白關閉此條件。",
-      "list": "每行填寫一個非 0 的整數 Telegram ID，且不能重複。",
-      "reachableChannel": "必須加入的頻道已啟用時，必須填寫以 @ 開頭的顯示名稱或頻道邀請連結。"
+      "integer": "請輸入整數頻道 ID，或留白以關閉此條件。",
+      "list": "每行輸入一個非 0 的整數 Telegram ID，且不可重複。",
+      "reachableChannel": "啟用必須加入的頻道時，必須填寫以 @ 開頭的顯示名稱或頻道邀請連結。"
     },
     "save": {
       "label": "儲存免驗證來源設定",
@@ -546,13 +546,13 @@
     },
     "feedback": {
       "saved": "免驗證來源設定已儲存。",
-      "conflict": "其他人已修改這些設定。已重新載入最新值，請重新套用仍需要的變更。"
+      "conflict": "其他管理員已修改免驗證來源設定。已重新載入最新值，請重新套用仍需要的變更。"
     },
     "errors": {
       "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
       "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
-      "accessDenied": "你已不再擁有此群組的管理權限。",
-      "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
+      "accessDenied": "目前帳號已不再具備此群組的管理權限。",
+      "accessUnavailable": "暫時無法確認目前帳號對此群組的管理權限。請重試。",
       "chatNotFound": "此群組已無法在控制台中管理。",
       "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
       "invalidSettings": "一項或多項設定無效。檢查後重新儲存。",
@@ -610,41 +610,41 @@
     },
     "feedback": {
       "undoSuccess": "已撤銷對 {{user}} 的封鎖。原判定仍保留在操作記錄中。",
-      "undoPending": "已提交對 {{user}} 的封鎖撤銷，系統將繼續重試。",
+      "undoPending": "已提交撤銷 {{user}} 封鎖的要求，系統將繼續嘗試。",
       "undoFailure": "無法撤銷對 {{user}} 的封鎖。原判定仍保留在操作記錄中。"
     },
     "errors": {
       "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
       "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
-      "auditConflict": "提交撤銷前，記錄已經變更。封鎖沒有改變。",
+      "auditConflict": "提交撤銷前，記錄已變更；封鎖狀態未變更。",
       "auditNotFound": "此操作記錄已不存在。",
-      "auditNotUndoable": "目前帳號不能撤銷這項封鎖。",
+      "auditNotUndoable": "目前帳號無法撤銷這項封鎖。",
       "auditUnavailable": "暫時無法讀取操作記錄。請重試。",
-      "accessDenied": "你已不再擁有此群組的管理權限。",
-      "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
+      "accessDenied": "目前帳號已不再具備此群組的管理權限。",
+      "accessUnavailable": "暫時無法確認目前帳號對此群組的管理權限。請重試。",
       "chatNotFound": "此群組已無法在控制台中管理。",
       "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
-      "invalidAudit": "此操作記錄不能撤銷。",
+      "invalidAudit": "此操作記錄無法撤銷。",
       "network": "連線已中斷。重新整理操作記錄後，再決定是否重試。",
       "loadUnavailable": "操作記錄暫時無法使用。",
       "undoUnavailable": "暫時無法撤銷這項封鎖。請重試。"
     },
     "empty": {
       "title": "尚無已結算的判定",
-      "description": "驗證判定結算後會顯示在這裡，並保留原始歷史。"
+      "description": "驗證判定結算後會顯示在此處，並保留原始歷史。"
     }
   },
   "verification": {
     "navigation": "驗證方式",
     "title": "驗證方式",
-    "description": "這些設定只影響目前群組。儲存時會檢查版本，避免覆蓋其他管理員的變更。",
+    "description": "這些設定僅影響目前群組。儲存時會檢查版本，避免覆蓋其他管理員的變更。",
     "loading": {
       "title": "正在載入驗證設定",
       "description": "正在讀取此群組目前的驗證設定…"
     },
     "groupRequired": {
       "title": "請先選擇群組",
-      "description": "選擇已獲授權的群組後，才能修改它的驗證設定。",
+      "description": "選擇已獲授權的群組後，才能修改該群組的驗證設定。",
       "select": "選擇群組"
     },
     "noGroups": {
@@ -661,9 +661,9 @@
       "label": "挑戰投遞",
       "group": "僅群組內",
       "dm": "私人訊息優先",
-      "both": "群組內和私人訊息",
+      "both": "群組內及私人訊息",
       "groupDescription": "挑戰只傳送到受保護的群組內。",
-      "dmDescription": "先嘗試私人訊息驗證；明確拒絕時才在群組內傳送挑戰。",
+      "dmDescription": "先嘗試透過私人訊息驗證；明確拒絕時，才在群組內傳送挑戰。",
       "bothDescription": "先在群組內傳送挑戰，再嘗試私人訊息。"
     },
     "challenge": {
@@ -672,29 +672,29 @@
       "label": "驗證策略",
       "kernel": "核心版本",
       "quiz": "選擇題",
-      "mixed": "按申請人選擇",
+      "mixed": "混合驗證",
       "kernelDescription": "要求申請人輸入 Linux 核心版本。",
       "quizDescription": "向申請人顯示隨機選擇題。",
-      "mixedDescription": "為每位申請人選擇核心版本或選擇題。"
+      "mixedDescription": "機器人為每位申請人選擇核心版本題或選擇題。"
     },
     "timing": {
       "title": "時間與處置",
-      "description": "設定挑戰截止時間、重試間隔和自動處置。",
+      "description": "設定挑戰截止時間、重試間隔及自動處置。",
       "timeout": {
         "label": "驗證逾時",
         "description": "請輸入 30 至 1,800 之間的整數秒。"
       },
       "maxFails": {
-        "label": "自動封鎖失敗上限",
-        "description": "0 或負數會關閉自動封鎖。"
+        "label": "自動封鎖的驗證失敗次數上限",
+        "description": "輸入 0 或負數會關閉自動封鎖。"
       },
       "retry": {
         "label": "重試冷卻",
-        "description": "0 或負數會關閉冷卻；正數最長 366 天。"
+        "description": "輸入 0 或負數會關閉冷卻；正數上限為 366 天。"
       },
       "ban": {
         "label": "拒絕後封鎖時長",
-        "description": "0 表示永久；其他值必須在 30 秒至 366 天之間。"
+        "description": "0 表示永久；其他值必須介於 30 秒與 366 天之間。"
       },
       "mute": {
         "label": "禁言時長",
@@ -718,27 +718,27 @@
       "clean": "沒有待儲存的變更。"
     },
     "actions": {
-      "restore": "恢復繼承值",
+      "restore": "還原繼承值",
       "save": "儲存變更",
       "saving": "正在儲存…",
       "reload": "重新讀取"
     },
     "feedback": {
       "saved": "已儲存驗證設定。",
-      "conflict": "其他管理員已經變更設定。已載入最新值；請重新套用仍需要的變更。"
+      "conflict": "其他管理員已變更設定。已載入最新值；請重新套用仍需要的變更。"
     },
     "validation": {
       "integer": "請輸入整數。",
       "timeout": "請輸入 30 至 1,800 之間的整數。",
-      "retry": "正數不能超過 31,622,400 秒。",
+      "retry": "正數不可超過 31,622,400 秒。",
       "ban": "請輸入 0，或 30 至 31,622,400 之間的整數。",
       "mute": "請輸入 30 至 31,622,400 之間的整數。"
     },
     "errors": {
       "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
       "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
-      "accessDenied": "你已不再擁有此群組的管理權限。",
-      "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
+      "accessDenied": "目前帳號已不再具備此群組的管理權限。",
+      "accessUnavailable": "暫時無法確認目前帳號對此群組的管理權限。請重試。",
       "chatNotFound": "此群組已無法在控制台中管理。",
       "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
       "invalidSettings": "一或多個設定無效。檢查後重新儲存。",
@@ -752,11 +752,11 @@
   "questions": {
     "navigation": "題庫",
     "title": "題庫",
-    "description": "管理目前群組的選擇題、備用填空題和答題語言。",
+    "description": "管理目前群組的選擇題、備用填空題及答題語言。",
     "trial": {
       "title": "試答已儲存題目",
-      "description": "檢查作答結果，不產生驗證紀錄或統計。",
-      "savedOnly": "試答採用已儲存的題目，尚未儲存的修改不會影響結果。",
+      "description": "檢查作答結果，不會產生驗證記錄或統計。",
+      "savedOnly": "試答採用已儲存的題目；未儲存的修改不會影響結果。",
       "collectionLabel": "題庫",
       "multipleChoice": "選擇題",
       "fallback": "備用填空題",
@@ -767,31 +767,31 @@
       "submitting": "正在判定…",
       "correct": "回答正確",
       "incorrect": "回答錯誤",
-      "noQuestions": "這個題庫沒有已儲存的題目。",
+      "noQuestions": "此題庫沒有已儲存的題目。",
       "retry": "重新讀取已儲存題目",
       "errors": {
         "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
         "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
-        "accessDenied": "你已不再擁有此群組的管理權限。",
-        "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
+        "accessDenied": "目前帳號已不再具備此群組的管理權限。",
+        "accessUnavailable": "暫時無法確認目前帳號對此群組的管理權限。請重試。",
         "chatNotFound": "此群組已無法在控制台中管理。",
-        "csrfInvalid": "此頁的安全權杖已過期。重新整理頁面後再試。",
-        "invalidRule": "試答內容無效。請重新讀取已儲存題目後再試。",
-        "questionNotFound": "找不到這道已儲存題目。請重新讀取題庫。",
-        "conflict": "題庫已被其他管理員修改。請重新讀取後再試。",
+        "csrfInvalid": "此頁的安全權杖已過期。重新整理頁面後重試。",
+        "invalidRule": "試答內容無效。請重新讀取已儲存題目後重試。",
+        "questionNotFound": "該已儲存題目不存在。請重新讀取題庫。",
+        "conflict": "題庫已由其他管理員修改。請重新讀取後重試。",
         "settingsUnavailable": "已儲存題目設定暫時無法使用。請重試。",
-        "network": "連線已中斷。重新讀取已儲存題目後再試。",
-        "invalidResponse": "伺服器傳回無法辨識的試答結果。請重新讀取已儲存題目後再試。",
+        "network": "連線已中斷。重新讀取已儲存題目後重試。",
+        "invalidResponse": "伺服器回傳無法辨識的試答結果。請重新讀取已儲存題目後重試。",
         "unavailable": "目前無法完成試答。請重試。"
       }
     },
     "loading": {
       "title": "正在載入題庫",
-      "description": "正在讀取此群組目前的題目、備用題和設定來源…"
+      "description": "正在讀取此群組目前的題目、備用題及設定來源…"
     },
     "groupRequired": {
       "title": "請先選擇群組",
-      "description": "選擇已獲授權的群組後，才能修改它的題庫。",
+      "description": "選擇已獲授權的群組後，才能修改該群組的題庫。",
       "select": "選擇群組"
     },
     "noGroups": {
@@ -812,14 +812,14 @@
       "restoring": "待還原繼承值"
     },
     "concurrency": {
-      "title": "整份題庫一起儲存",
-      "description": "兩位管理員同時修改不同題目也會發生版本衝突。衝突時頁面會重新載入最新題庫，尚未儲存的本機草稿不會寫入。"
+      "title": "整份題庫儲存",
+      "description": "兩位管理員同時修改不同題目也會發生版本衝突。發生衝突時，頁面會重新載入最新題庫；未儲存的本機草稿不會寫入。"
     },
     "language": {
       "title": "答題語言",
-      "description": "選擇機器人向申請人顯示題目和驗證訊息時使用的語言。",
+      "description": "選擇機器人向申請人顯示題目及驗證訊息時使用的語言。",
       "label": "群組內答題語言",
-      "settingDescription": "可選簡體中文、繁體中文、英文、日文或俄文；備用填空題使用其設定的題面和答案。",
+      "settingDescription": "可選簡體中文、繁體中文、英文、日文或俄文；備用填空題使用其設定的題面及答案。",
       "zh": "簡體中文",
       "zhHant": "繁體中文",
       "en": "英文",
@@ -830,34 +830,34 @@
       "title": "選擇題",
       "description": "每道題至少有兩個選項。正確答案以選項在清單中的位置儲存。",
       "count_other": "共 {{count}} 道選擇題",
-      "empty": "尚無選擇題。新增第一道題後才能用於選擇題驗證。",
+      "empty": "尚無選擇題。新增第一道題後，才能用於選擇題驗證。",
       "itemTitle": "選擇題 {{number}}",
       "prompt": "題面",
       "options": "選項與正確答案",
       "optionsDescription": "使用選項旁的按鈕將其設為正確答案。",
       "option": "選項 {{number}}",
       "correctAnswerFor": "將選項 {{number}} 設為正確答案",
-      "confirmDelete": "刪除選擇題 {{number}}？儲存後，這道題會從目前群組的題庫中移除。"
+      "confirmDelete": "刪除選擇題 {{number}}？儲存後，該題會從目前群組的題庫移除。"
     },
     "fallback": {
       "title": "備用填空題",
       "description": "核心版本驗證為選用模式；無法回答核心題目時，改用這些備用題。",
       "modeLabel": "備用題來源",
-      "modeDescription": "使用繼承的部署預設題庫（可能來自設定檔），或維護目前群組自己的題面和可接受答案。",
+      "modeDescription": "使用繼承的部署預設題庫（可能來自設定檔），或維護目前群組的自訂題面及可接受答案。",
       "builtin": "繼承的部署預設題庫",
       "custom": "自訂備用題",
-      "builtinDescription": "機器人會使用實際繼承的部署備用題庫。此處僅供查看；題庫可能來自設定檔。",
-      "builtinExampleDescription": "目前使用程式內建的中性示例題庫。此處僅供查看；部署者可透過設定檔提供實際備用題庫。",
+      "builtinDescription": "機器人會使用實際繼承的部署備用題庫。此處僅供檢視；題庫可能來自設定檔。",
+      "builtinExampleDescription": "目前使用程式內建的中性範例題庫。此處僅供檢視；部署者可透過設定檔提供實際備用題庫。",
       "inheritedCount_other": "共 {{count}} 道繼承的備用題",
-      "inheritedPending": "儲存此變更後將顯示繼承的題庫。",
+      "inheritedPending": "儲存此變更後會顯示繼承的題庫。",
       "inheritedEmpty": "繼承題庫不包含題目。",
       "count_other": "共 {{count}} 道自訂備用題",
       "itemTitle": "備用題 {{number}}",
       "prompt": "題面",
       "answers": "可接受答案",
-      "answersDescription": "判定會使用與實際挑戰相同的伺服器端答案正規化規則。請在此輸入每個完整的可接受回答。",
+      "answersDescription": "判定會使用與實際挑戰相同的伺服器端答案正規化規則。請輸入每個完整的可接受回答。",
       "answer": "答案 {{number}}",
-      "confirmDelete": "刪除備用題 {{number}}？儲存後，這道題會從目前群組的備用題庫中移除。"
+      "confirmDelete": "刪除備用題 {{number}}？儲存後，該題會從目前群組的備用題庫移除。"
     },
     "actions": {
       "restore": "還原繼承值",
@@ -883,25 +883,25 @@
     },
     "feedback": {
       "saved": "已儲存題庫設定。",
-      "conflict": "另一位管理員已修改這些設定。頁面已重新載入最新題庫，你尚未儲存的草稿沒有寫入。每個題庫都以完整清單儲存，即使修改不同題目也會發生版本衝突；請依最新內容重新編輯。"
+      "conflict": "另一位管理員已修改題庫設定。頁面已重新載入最新題庫，未儲存的草稿沒有寫入。每個題庫都以完整清單儲存，因此修改不同題目也會發生版本衝突；請依最新內容重新編輯。"
     },
     "validation": {
       "questionPrompt": "請輸入題面。",
       "questionOptions": "每道選擇題至少需要兩個選項。",
-      "questionAnswer": "請選擇清單中現有的一個選項作為正確答案。",
+      "questionAnswer": "請選擇清單中現有的選項作為正確答案。",
       "fallbackRequired": "使用自訂備用題時，至少需要一道題。",
       "fallbackPrompt": "請輸入備用題題面。",
       "fallbackAnswers": "每道備用題至少需要一個可接受答案。",
-      "fallbackAnswerBlank": "可接受答案不能留空。"
+      "fallbackAnswerBlank": "可接受答案不可留白。"
     },
     "errors": {
       "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
       "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
-      "accessDenied": "你已不再擁有此群組的管理權限。",
-      "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
+      "accessDenied": "目前帳號已不再具備此群組的管理權限。",
+      "accessUnavailable": "暫時無法確認目前帳號對此群組的管理權限。請重試。",
       "chatNotFound": "此群組已無法在控制台中管理。",
       "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
-      "invalidSettings": "題庫未通過驗證。檢查題目和答案後重新儲存。",
+      "invalidSettings": "題庫未通過驗證。檢查題目及答案後重新儲存。",
       "settingsLimitExceeded": "這項變更會超過執行個體擁有者設定的上限。請降低數值，或請擁有者提高上限。",
       "settingsUnavailable": "題庫設定暫時無法使用。請重試。",
       "loadUnavailable": "暫時無法讀取題庫。請重試。",
@@ -912,14 +912,14 @@
   "diagnostics": {
     "navigation": "診斷",
     "title": "診斷",
-    "description": "檢視此執行個體的執行狀態、Bot API 探測與設定持久化狀態。",
+    "description": "檢視此執行個體的執行狀態、Bot API 探測及設定持久化狀態。",
     "daily": {
       "title": "每日狀態報告",
-      "description": "每天透過私訊將狀態摘要傳送給執行個體擁有者。",
+      "description": "每天透過私人訊息將狀態摘要傳送給執行個體擁有者。",
       "loading": "正在讀取每日報告設定…",
       "enabled": {
         "label": "每日狀態報告",
-        "description": "依 {{timezone}} 時區於每天 {{time}} 傳送。失敗後當天不重試，隔天再嘗試。"
+        "description": "依 {{timezone}} 時區於每天 {{time}} 傳送。傳送失敗後當天不重試，隔天再嘗試。"
       },
       "status": {
         "saving": "正在儲存…",
@@ -944,11 +944,11 @@
     },
     "loading": {
       "title": "正在載入執行個體狀態",
-      "description": "正在讀取此執行個體已經上報的狀態…"
+      "description": "正在讀取此執行個體已上報的狀態…"
     },
     "accessDenied": {
       "title": "群組管理員無權檢視執行個體狀態",
-      "description": "此畫面僅供維運人員使用。群組管理員可管理自己的群組，但不能讀取整個執行個體的執行狀態。"
+      "description": "此畫面僅供維運人員使用。群組管理員可管理所屬群組，但無法讀取整個執行個體的執行狀態。"
     },
     "unavailable": {
       "title": "無法讀取執行個體狀態",
@@ -957,7 +957,7 @@
     "sections": {
       "health": {
         "title": "執行就緒",
-        "description": "處理程序、設定與 Telegram 連線目前的就緒訊號。"
+        "description": "處理程序、設定及 Telegram 連線目前的就緒訊號。"
       },
       "botAPI": {
         "title": "Bot API 探測",
@@ -965,15 +965,15 @@
       },
       "persistence": {
         "title": "設定持久化",
-        "description": "設定儲存的設定、持久化與寫入狀態。"
+        "description": "檢視設定儲存位置是否已指定、資料是否已持久儲存，以及是否可寫入。"
       },
       "notReported": {
         "title": "尚未上報的診斷項目",
-        "description": "這些項目屬於診斷職責，但目前的執行個體端點沒有提供狀態。"
+        "description": "這些項目屬於診斷職責，但目前執行個體端點未提供狀態。"
       },
       "rollback": {
         "title": "回退條件讀數",
-        "description": "第十階段預先固定的四項回退條件對應的讀數。此畫面僅顯示數值與閾值，是否回退由人工判斷。"
+        "description": "四項回退條件的實際讀數。此畫面僅顯示數值及閾值，是否回退由人工判斷。"
       }
     },
     "labels": {
@@ -998,9 +998,9 @@
       "firstProblem": "首個未恢復失敗",
       "lastProblem": "最近一次失敗",
       "lastRecovered": "上次恢復",
-      "failedDeliveries": "本段傳送失敗",
-      "duplicateDeliveries": "本段重複傳送",
-      "unavailableAttempts": "本段失敗次數",
+      "failedDeliveries": "本次連續異常期間的傳送失敗次數",
+      "duplicateDeliveries": "本次連續異常期間的重複傳送次數",
+      "unavailableAttempts": "本次連續異常期間的失敗次數",
       "failureRate": "失敗率",
       "writeScope": "統計範圍"
     },
@@ -1028,7 +1028,7 @@
       "durationMinutesSeconds": "{{minutes}} 分 {{seconds}} 秒"
     },
     "notReported": {
-      "permissionPreflight": "沒有按群組權限結果，不能以 Telegram 就緒狀態代替。",
+      "permissionPreflight": "沒有按群組區分的權限結果，無法以 Telegram 就緒狀態代替。",
       "queryCache": "沒有快取狀態或命中資料。",
       "queryRateLimit": "查詢限流按群組設定，不納入此執行個體狀態。"
     },
@@ -1044,17 +1044,17 @@
       "invalidResponse": "執行個體回傳的診斷資料不符合端點契約。請重試。"
     },
     "rollback": {
-      "unavailable": "目前的執行個體沒有回傳回退讀數。回退到不上報這四項的版本後，這裡同樣是空的。",
+      "unavailable": "目前執行個體未回傳回退讀數。不上報這四項的版本也會在此處顯示空白。",
       "streak": {
-        "rule": "閾值 {{threshold}}：連續失敗超過它才構成回退條件，單次失敗的連續時長為 0。"
+        "rule": "閾值 {{threshold}}：連續失敗超過此值才構成回退條件；單次失敗的連續時長為 0。"
       },
       "databaseWrites": {
         "rule": "觀測區間 {{window}}：失敗率嚴格超過百分之一才構成回退條件。",
         "rate": "{{rate}}（{{failed}} / {{total}} 次寫入）"
       },
       "rejections": {
-        "reading": "最近 {{window}} 內依原因彙總的拒絕與封鎖結算數。這是供人工核對的資料，不代表有人遭錯誤拒絕。",
-        "unavailable": "本次沒有讀到拒絕記錄，下方不顯示數字。",
+        "reading": "最近 {{window}} 內依原因彙總的拒絕及封鎖結算數。此資料供人工核對，不表示有人遭到錯誤拒絕。",
+        "unavailable": "本次未讀到拒絕記錄，下方不顯示數字。",
         "none": "區間內沒有拒絕或封鎖結算。"
       }
     }
@@ -1062,28 +1062,28 @@
   "version": {
     "navigation": "版本",
     "title": "版本",
-    "description": "檢視正在執行的版本，依需要檢查已發布的版本，並在升級前確認回退相容性。",
+    "description": "檢視正在執行的版本，必要時檢查已發布版本，並在升級前確認回退相容性。",
     "actions": {
       "retry": "重試",
       "cancel": "取消"
     },
     "loading": {
       "title": "正在讀取版本狀態",
-      "description": "正在讀取目前版本和主機端替換單元的狀態…",
+      "description": "正在讀取目前版本及主機端替換單元的狀態…",
       "permissionTitle": "正在確認存取權限",
       "permissionUnavailableTitle": "無法確認存取權限",
       "permissionDescription": "確認此工作階段具備執行個體維運權限後，才會讀取版本狀態。"
     },
     "accessDenied": {
-      "title": "這是執行個體維運資訊",
-      "description": "此畫面只對維運人員開放。群組管理員不能讀取版本資訊或啟動升級。"
+      "title": "執行個體維運資訊",
+      "description": "此畫面僅供維運人員使用。群組管理員無法讀取版本資訊或啟動升級。"
     },
     "unavailable": {
       "title": "無法讀取版本狀態"
     },
     "current": {
       "title": "目前版本",
-      "description": "應用程式正在執行的版本，以及主機是否可以執行替換。",
+      "description": "應用程式目前正在執行的版本，以及主機是否可執行替換。",
       "version": "執行版本",
       "hostUnit": "主機端替換單元",
       "hostUnitAvailable": "可用",
@@ -1107,14 +1107,14 @@
         "requestClaimFailed": "主機無法接管升級要求。",
         "invalidDeployment": "主機記錄的部署資訊無效。",
         "invalidRequest": "升級要求格式無效，主機已拒絕執行。",
-        "applyFailed": "新版本未能完成替換，主機已依策略處理回退。",
+        "applyFailed": "新版本未完成替換，主機已依策略處理回退。",
         "healthcheckFailed": "新版本未通過存活或就緒探針。",
         "unknown": "主機回傳了無法識別的原因：{{reason}}。"
       }
     },
     "release": {
       "title": "可用的新版本",
-      "description": "只有按下檢查更新才會存取 GitHub。查詢失敗不影響目前版本和主機狀態。",
+      "description": "只有按下檢查更新時才會存取 GitHub。查詢失敗不會影響目前版本及主機狀態。",
       "check": "檢查更新",
       "checking": "正在檢查",
       "notChecked": "尚未檢查。此頁不會在背景存取發布來源。",
@@ -1130,12 +1130,12 @@
       "available": "目標 schema 為 v{{target}}，最低回退 schema 為 v{{minimum}}。目前保留版本支援 schema v{{retained}}。",
       "schemaIncompatible": "無法回退。目標 schema v{{target}} 要求保留版本至少支援 schema v{{minimum}}。目前保留版本只支援 schema v{{retained}}。",
       "unknownTarget": "無法確認目標 schema v{{target}} 的相容範圍，因此不會啟動升級。",
-      "notEarlier": "目前保留版本的 schema v{{retained}} 高於目標 schema v{{target}}。因此，它不是可用的回退版本。",
+      "notEarlier": "目前保留版本的 schema v{{retained}} 高於目標 schema v{{target}}，因此不是可用的回退版本。",
       "unknown": "無法確認此版本的回退條件，因此不會啟動升級。"
     },
     "manual": {
       "title": "請在主機上手動更新",
-      "description": "此執行個體沒有主機端替換單元，並非應用程式故障。應用程式只能寫入升級意圖，不能替換主機程序或容器。使用安裝程式管理容器部署時，請在 Compose 目錄的 container.env 檔案中設定下列內容，再執行這些命令。",
+      "description": "此執行個體沒有主機端替換單元，並非應用程式故障。應用程式只能寫入升級意圖，無法替換主機程序或容器。使用安裝程式管理容器部署時，請在 Compose 目錄的 container.env 檔案中設定下列內容，再執行這些命令。",
       "imageLabel": "映像設定",
       "commandsLabel": "主機命令"
     },
@@ -1144,7 +1144,7 @@
       "confirm": "是否允許主機端替換單元升級至 {{version}}？升級會重新啟動應用程式；健康檢查失敗時，主機會依上方顯示的回退條件處理。",
       "confirmAction": "確認升級",
       "requesting": "正在提交升級",
-      "monitoring": "等待主機結果",
+      "monitoring": "正在等待主機結果",
       "restartNotice": "升級會重新啟動應用程式。連線恢復後，此頁會繼續讀取結果。",
       "tryAgain": "再次升級",
       "rollbackBlocked": "回退預檢未通過，因此不會向主機提交升級要求。"
@@ -1154,29 +1154,29 @@
     },
     "errors": {
       "authenticationExpired": "工作階段已過期。請重新從 Telegram 進入控制台。",
-      "accessDenied": "只有維運人員可以檢視發行資訊或發起升級。",
+      "accessDenied": "只有維運人員可以檢視發布資訊或發起升級。",
       "csrfInvalid": "此頁的安全權杖已過期。重新整理頁面後再重試。",
       "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
       "authenticationUnavailable": "暫時無法確認此工作階段的執行個體維運權限。請重試。",
-      "statusNetwork": "連線已中斷。目前版本狀態未能載入，請重試。",
+      "statusNetwork": "連線已中斷。目前版本狀態未載入；請重試。",
       "statusUnavailable": "版本狀態暫時無法使用。請重試。",
       "statusInvalidResponse": "執行個體回傳的版本狀態不符合端點契約。請重試。",
-      "releaseNetwork": "無法連線到發布來源。目前版本仍可檢視；請稍後重試。",
+      "releaseNetwork": "無法連線至發布來源。目前版本仍可檢視；請稍後重試。",
       "releaseUnavailable": "發布來源或版本清單暫時無法使用。這不表示目前版本已是最新版本。",
       "releaseInvalidResponse": "發布來源回傳的資料不符合端點契約。目前版本仍可檢視。",
-      "upgradeNetwork": "提交升級時連線中斷。請先重試讀取結果，再決定是否重新提交。",
+      "upgradeNetwork": "提交升級時連線中斷。先重試讀取結果，再決定是否重新提交。",
       "upgradeUnavailable": "主機暫時無法接收升級要求。請重試。",
       "upgradeInvalidResponse": "執行個體沒有確認升級要求。請重試。",
-      "monitorUnavailable": "暫時無法確認主機的最終結果。升級狀態仍會保留在執行個體資料目錄中，請重試讀取。"
+      "monitorUnavailable": "暫時無法確認主機的最終結果。升級狀態仍保留在執行個體資料目錄中；請重試讀取。"
     }
   },
   "stats": {
     "navigation": "統計",
     "title": "統計",
-    "description": "檢視目前群組的加入結果趨勢、通過率和各驗證方式的攔截量。",
+    "description": "檢視目前群組的加入結果趨勢、通過率及各驗證方式的攔截量。",
     "loading": {
       "title": "正在載入統計",
-      "description": "正在按所選日期和時區彙總加入結果…"
+      "description": "正在依所選日期及時區彙總加入結果…"
     },
     "groupRequired": {
       "title": "請先選擇群組",
@@ -1196,19 +1196,19 @@
       "from": "開始日期",
       "to": "結束日期（不含）",
       "timezone": "時區",
-      "timezoneDescription": "時區預設值由目前瀏覽器提供（{{timezone}}）。統計按輸入的 IANA 時區劃分日界；它不是機器人程序的 stats_timezone 設定。",
+      "timezoneDescription": "時區預設值由目前瀏覽器提供（{{timezone}}）。統計依輸入的 IANA 時區劃分日期；該設定不是機器人程序的 stats_timezone 設定。",
       "apply": "更新統計",
       "errors": {
         "from": "請輸入有效的開始日期。",
         "to": "請輸入有效的結束日期。",
-        "range": "結束日期不能早於開始日期。",
+        "range": "結束日期不可早於開始日期。",
         "timezone": "請輸入有效的 IANA 時區名稱。"
       }
     },
     "range": {
-      "applied": "統計範圍：{{from}} 至 {{to}}，結束日期不含；時區 {{timezone}}。"
+      "applied": "統計範圍：{{from}} 至 {{to}}，不含結束日期；時區：{{timezone}}。"
     },
-    "zero": "所選日期範圍內沒有加入結果。趨勢圖和每日結果表仍會顯示數值為零的日期。",
+    "zero": "所選日期範圍內沒有加入結果。趨勢圖及每日結果表仍會顯示數值為零的日期。",
     "summary": {
       "title": "彙總",
       "challenges": "挑戰",
@@ -1220,7 +1220,7 @@
     },
     "trend": {
       "title": "加入結果趨勢",
-      "description": "柱表示挑戰量，線表示通過率。精確數字見下方每日結果表。",
+      "description": "柱表示挑戰量，線表示通過率；精確數字見下方每日結果表。",
       "chartDescription": "加入結果趨勢圖，精確數字見下方每日結果表。",
       "legendLabel": "圖例",
       "challenges": "挑戰量",
@@ -1248,8 +1248,8 @@
     "errors": {
       "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
       "authenticationInvalid": "無法驗證此控制台工作階段。請在 Telegram 中重新開啟控制台。",
-      "accessDenied": "你已不再擁有此群組的管理權限。",
-      "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
+      "accessDenied": "目前帳號已不再具備此群組的管理權限。",
+      "accessUnavailable": "暫時無法確認目前帳號對此群組的管理權限。請重試。",
       "chatNotFound": "此群組已無法在控制台中管理。",
       "invalidQuery": "統計查詢無效。修改範圍後再重試。",
       "unavailable": "統計暫時無法使用。請重試。",
@@ -1260,14 +1260,14 @@
   "messages": {
     "navigation": "訊息與文案",
     "title": "訊息與文案",
-    "description": "管理目前群組已有的自動回覆規則、訊息顯示和查詢自動撤回。",
+    "description": "管理目前群組的自動回覆規則、訊息顯示及查詢自動撤回。",
     "loading": {
       "title": "正在載入訊息與文案",
       "description": "正在確認目前群組並讀取可用的訊息設定…"
     },
     "groupRequired": {
       "title": "請先選擇群組",
-      "description": "選擇已獲授權的群組後，才能管理它的訊息與文案。",
+      "description": "選擇已獲授權的群組後，才能管理其訊息與文案。",
       "select": "選擇群組"
     },
     "noGroups": {
@@ -1288,8 +1288,8 @@
     },
     "rules": {
       "title": "自動回覆規則",
-      "description": "規則定義由服務端解讀。此畫面保留每條定義，只管理啟用狀態和比對順序。",
-      "saveSemantics": "變更啟用狀態會立即儲存一條規則；調整順序會取代整個規則集合。",
+      "description": "規則定義由服務端解讀。此畫面保留每條定義，僅管理啟用狀態及比對順序。",
+      "saveSemantics": "變更啟用狀態會立即儲存單條規則；調整順序會取代整個規則集合。",
       "loading": {
         "title": "正在載入自動回覆規則",
         "description": "正在讀取目前群組儲存的規則集合…"
@@ -1301,7 +1301,7 @@
         "autoReply": "自動回覆",
         "unknown": "未知規則集合：{{collection}}"
       },
-      "collectionDescription": "規則會按這裡顯示的順序比對。",
+      "collectionDescription": "規則會依此處顯示的順序比對。",
       "collectionCount": "共 {{count}} 條規則",
       "collectionSaving": "正在儲存集合…",
       "itemTitle": "規則 {{number}}",
@@ -1316,17 +1316,17 @@
       "itemSaving": "正在儲存…",
       "empty": {
         "title": "尚無自動回覆規則",
-        "description": "規則集合為空時會顯示在這裡。"
+        "description": "目前群組沒有自動回覆規則；空的規則集合仍會列出。"
       },
       "feedback": {
-        "itemSaved": "已儲存規則啟停狀態。",
+        "itemSaved": "已儲存規則啟用狀態。",
         "orderSaved": "已儲存 {{collection}} 的規則順序。",
         "conflict": "其他管理員已更改規則。已載入最新規則；請依目前順序重新操作。"
       }
     },
     "display": {
       "title": "訊息顯示",
-      "description": "調整目前群組訊息中的顯示名稱和富文字傳送方式。",
+      "description": "調整目前群組訊息中的顯示名稱及富文字傳送方式。",
       "nameSpoiler": {
         "label": "隱藏申請人的顯示名稱",
         "description": "在公開驗證訊息中隱藏申請人的顯示名稱。"
@@ -1375,8 +1375,8 @@
     },
     "copyGap": {
       "title": "文案欄位無法使用",
-      "description": "加入和離開通知以及驗證流程文案尚未提供讀取或儲存欄位，因此此畫面不會以其他設定替代這些欄位。",
-      "joinLeave": "加入和離開通知",
+      "description": "加入及離開通知與驗證流程文案尚未提供讀取或儲存欄位，因此此畫面不會以其他設定替代這些欄位。",
+      "joinLeave": "加入及離開通知",
       "verification": "驗證流程文案"
     },
     "validation": {
@@ -1386,8 +1386,8 @@
     "errors": {
       "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
       "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
-      "accessDenied": "你已不再擁有此群組的管理權限。",
-      "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
+      "accessDenied": "目前帳號已不再具備此群組的管理權限。",
+      "accessUnavailable": "暫時無法確認目前帳號對此群組的管理權限。請重試。",
       "chatNotFound": "此群組已無法在控制台中管理。",
       "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
       "invalidSettings": "一或多個訊息設定無效。檢查後重新儲存。",
@@ -1397,8 +1397,8 @@
       "loadSettingsUnavailable": "暫時無法讀取訊息設定。請重試。",
       "saveSettingsUnavailable": "暫時無法儲存訊息設定。請重試。",
       "invalidRule": "規則定義無效。請重新讀取規則後重試。",
-      "ruleNotFound": "這條規則已不存在。請重新讀取規則。",
-      "ruleConflict": "規則已被其他管理員更改。請重新讀取規則。",
+      "ruleNotFound": "該規則已不存在。請重新讀取規則。",
+      "ruleConflict": "規則已由其他管理員更改。請重新讀取規則。",
       "rulesUnavailable": "自動回覆規則暫時無法使用。請重試。",
       "loadRulesUnavailable": "暫時無法讀取自動回覆規則。請重試。",
       "saveRulesUnavailable": "暫時無法儲存自動回覆規則。請重試。",
@@ -1408,14 +1408,14 @@
   "capabilities": {
     "navigation": "功能",
     "title": "功能",
-    "description": "檢視目前群組的各項功能及啟用或停用後的影響。詳細控制仍保留在各自頁面，以確保每項設定只有一個儲存入口。",
+    "description": "檢視目前群組的功能及啟用或停用後的影響。詳細控制仍保留在各功能頁面，確保每項設定只有一個儲存入口。",
     "loading": {
       "title": "正在載入功能",
       "description": "正在讀取目前群組的功能狀態…"
     },
     "groupRequired": {
       "title": "先選擇一個群組",
-      "description": "功能依群組生效。選擇要檢視的群組後再繼續。",
+      "description": "功能依群組生效。選擇要檢視的群組後繼續。",
       "select": "選擇群組"
     },
     "noGroups": {
@@ -1440,20 +1440,20 @@
       "userFile": "設定檔",
       "chatOverride": "此群組覆寫",
       "pending": "目前工作階段尚未儲存",
-      "restoring": "等待還原繼承值"
+      "restoring": "待還原繼承值"
     },
     "verification": {
       "title": "自動入群驗證",
-      "summary": "決定機器人是否為新的入群申請和新成員啟動自動驗證。",
-      "enabled": "新的入群申請會進入自動驗證；已直接加入群組且符合條件的新成員也會收到挑戰。",
-      "disabled": "新的入群申請會留給管理員手動處理，新加入群組的成員不會收到挑戰；已開始的驗證仍會繼續。",
+      "summary": "決定機器人是否為新的入群申請及新成員啟動自動驗證。",
+      "enabled": "新的入群申請會進入自動驗證；直接加入群組且符合條件的新成員也會收到挑戰。",
+      "disabled": "新的入群申請由管理員手動處理，新加入群組的成員不會收到挑戰；已開始的驗證仍會繼續。",
       "details": "設定驗證方式"
     },
     "antispam": {
       "title": "頻道身分冒充防護",
-      "summary": "決定機器人是否攔截由不受信任的頻道身分傳送的訊息。",
-      "enabled": "BotFather 隱私模式關閉時，機器人會刪除由不受信任的頻道身分傳送的訊息。確認該身分不是此群組的關聯頻道後，機器人會封鎖該頻道身分，並向處罰記錄群組傳送通知。",
-      "disabled": "機器人不檢查頻道身分，相關訊息會繼續交給後續處理。",
+      "summary": "決定機器人是否攔截不受信任的頻道身分傳送的訊息。",
+      "enabled": "BotFather 隱私模式關閉時，機器人會刪除不受信任的頻道身分傳送的訊息。確認該身分不是此群組的關聯頻道後，機器人會封鎖該頻道身分，並向處罰記錄群組傳送通知。",
+      "disabled": "機器人不檢查頻道身分，相關訊息會繼續交由後續處理。",
       "details": "在管理與處罰中調整"
     },
     "save": {
@@ -1476,8 +1476,8 @@
     "errors": {
       "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
       "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
-      "accessDenied": "你已不再擁有此群組的管理權限。",
-      "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
+      "accessDenied": "目前帳號已不再具備此群組的管理權限。",
+      "accessUnavailable": "暫時無法確認目前帳號對此群組的管理權限。請重試。",
       "chatNotFound": "此群組已無法在控制台中管理。",
       "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
       "invalidSettings": "功能設定無效。請重新載入後重試。",
@@ -1490,14 +1490,14 @@
   },
   "owner": {
     "navigation": "部署者設定",
-    "title": "實例上限",
+    "title": "執行個體上限",
     "description": "儲存群組設定時會檢查上限。0 表示不另設上限，原有欄位限制仍然有效。降低上限不會更改既有設定。封禁時長上限為正數時，不允許永久封禁。",
     "loading": {
-      "title": "正在載入實例上限",
-      "description": "正在讀取上限及超限的群組…"
+      "title": "正在載入執行個體上限",
+      "description": "正在讀取上限及超過上限的群組…"
     },
     "unavailable": {
-      "title": "無法讀取實例上限"
+      "title": "無法讀取執行個體上限"
     },
     "fields": {
       "timeout_seconds": "驗證逾時（秒）",
@@ -1507,34 +1507,34 @@
       "verify_retry_seconds": "驗證重試間隔（秒）",
       "verify_max_fails": "驗證失敗次數",
       "warn_limit": "警告次數",
-      "private_query_per_min": "每分鐘私聊查詢次數",
+      "private_query_per_min": "每分鐘私人訊息查詢次數",
       "questions": "選擇題數量",
       "fallback_questions": "備用題數量",
       "channel_whitelist": "允許的頻道數",
       "trusted_member_group_ids": "受信任群組數",
-      "known_chat_ids": "已知聊天數"
+      "known_chat_ids": "已知聊天數量"
     },
     "actions": {
       "save": "儲存上限",
       "saving": "正在儲存…",
       "unsaved": "有未儲存的變更",
-      "retry": "重新載入"
+      "retry": "重新讀取"
     },
     "violations": {
       "title": "超出目前上限的群組",
       "row": "群組 {{chatId}}：{{field}}為 {{value}}，上限為 {{limit}}。"
     },
     "feedback": {
-      "saved": "實例上限已儲存。"
+      "saved": "執行個體上限已儲存。"
     },
     "errors": {
-      "network": "連線已中斷，請重試。",
-      "unavailable": "暫時無法讀取實例上限，請重試。",
-      "csrfInvalid": "此頁的安全權杖已過期，請重新整理頁面後再試。",
-      "invalidRequest": "提交的上限無效，請檢查數值後再試。",
-      "ownerRequired": "只有實例部署者可以修改這些上限。",
-      "conflict": "另一個工作階段已更改上限，請重新載入後再儲存。",
-      "settingsUnavailable": "無法持久儲存實例上限，請檢查設定儲存空間後再試。"
+      "network": "連線已中斷。請重試。",
+      "unavailable": "暫時無法讀取執行個體上限。請重試。",
+      "csrfInvalid": "此頁的安全權杖已過期。重新整理頁面後重試。",
+      "invalidRequest": "提交的上限無效。檢查數值後重試。",
+      "ownerRequired": "只有執行個體部署者可以修改這些上限。",
+      "conflict": "另一個工作階段已更改上限。重新載入後再儲存。",
+      "settingsUnavailable": "無法持久儲存執行個體上限。檢查設定儲存空間後重試。"
     }
   },
   "home": {
@@ -1559,7 +1559,7 @@
       "enabled": "已啟用",
       "disabled": "已停用",
       "configured": "已設定",
-      "questions_other": "{{count}} 道題",
+      "questions_other": "{{count}} 道題目",
       "verifyMode": {
         "kernel": "核心版本題",
         "quiz": "選擇題",
@@ -1568,16 +1568,16 @@
     },
     "loading": {
       "title": "正在載入首頁",
-      "description": "正在讀取目前群組的佇列、統計和設定…"
+      "description": "正在讀取目前群組的佇列、統計及設定…"
     },
     "groupRequired": {
       "title": "請先選擇群組",
-      "description": "首頁一次只彙總一個群組。選擇群組後再檢視其概況。",
+      "description": "首頁一次只彙總一個群組。選擇群組後檢視其概況。",
       "select": "選擇群組"
     },
     "noGroups": {
       "title": "此帳號尚未取得任何群組授權",
-      "description": "取得群組管理權限後，首頁才會顯示該群組的資料。"
+      "description": "取得群組管理權限後，首頁才會顯示該群組資料。"
     },
     "unavailable": {
       "title": "無法載入首頁",
@@ -1599,8 +1599,8 @@
       },
       "empty": {
         "badge": "目前正常",
-        "managerDescription": "等待佇列為空，目前群組沒有需要處理的事項。",
-        "operatorDescription": "等待佇列為空，執行個體診斷與設定持久化均正常。"
+        "managerDescription": "等待佇列為空，目前群組沒有待處理事項。",
+        "operatorDescription": "等待佇列為空；執行個體診斷及設定持久化均正常。"
       },
       "queue": {
         "title": "等待佇列",
@@ -1608,19 +1608,19 @@
       },
       "diagnosticsUnavailable": {
         "title": "無法讀取執行個體診斷",
-        "description": "首頁仍會顯示群組資料。請開啟診斷畫面以檢視執行個體狀態。"
+        "description": "首頁仍會顯示群組資料。開啟診斷畫面以檢視執行個體狀態。"
       },
       "health": {
         "title": "執行個體尚未就緒",
-        "description": "存活、設定或 Telegram 連線檢查中至少一項未通過。"
+        "description": "存活、設定或 Telegram 連線檢查中，至少一項未通過。"
       },
       "persistenceError": {
         "title": "設定持久化已記錄失敗",
-        "description": "診斷端點上報了最近一次持久化錯誤。"
+        "description": "診斷端點已上報最近一次持久化錯誤。"
       },
       "persistenceUnconfigured": {
-        "title": "尚未設定設定持久化",
-        "description": "目前執行個體沒有已設定的設定持久化目標。"
+        "title": "尚未設定持久化儲存",
+        "description": "此執行個體尚未指定設定資料的持久化儲存位置。"
       },
       "persistenceUnwritable": {
         "title": "設定持久化無法寫入",
@@ -1633,14 +1633,14 @@
     },
     "trend": {
       "title": "近七天趨勢",
-      "coverage": "有 {{missing}} 天沒有記錄，趨勢圖僅顯示已有日期。",
+      "coverage": "有 {{missing}} 天沒有記錄；趨勢圖僅顯示已有日期。",
       "openStats": "檢視統計",
       "empty": "所選日期範圍內沒有可用記錄。",
-      "chartDescription": "雙軸圖：柱表示請求數（左軸），線表示通過率（右軸）。圖中標註每日數值；可停留游標檢視，或用日期選單逐日讀取。",
+      "chartDescription": "雙軸圖：柱表示請求數（左軸），線表示通過率（右軸）。圖中標註每日數值；可停留游標檢視，或使用日期選單逐日讀取。",
       "countSeries": "請求數（左軸）",
       "rateSeries": "通過率（右軸）",
-      "readDate": "選擇日期讀取數值",
-      "daySummary": "{{date}}：{{count}} 次挑戰，通過率 {{passRate}}"
+      "readDate": "選擇日期以讀取數值",
+      "daySummary": "{{date}}：{{count}} 次挑戰，通過率：{{passRate}}"
     },
     "entries": {
       "title": "常用設定",
