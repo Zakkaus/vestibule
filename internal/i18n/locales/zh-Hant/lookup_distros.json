@@ -3,7 +3,7 @@
     "usage": "用法：/armpkgs <套件名稱>。範例：/armpkgs htop。比較此套件在 Gentoo、Debian、Ubuntu、Fedora、Arch Linux ARM 和 AUR 的 arm64（AArch64）支援情況。",
     "heading": "🦾 <b>%[1]s</b> · arm64（AArch64）跨發行版支援",
     "row": "\n • <a href=\"%[1]s\">%[2]s</a>：%[3]s",
-    "footer": "<i>⚠️「查詢失敗」表示對應來源暫時無法使用。請稍後重試。Gentoo 未設定 arm64 keyword 時，即使其他發行版有套件，也不能據此判斷該 ebuild 可用。請先測試；如需嘗試，再於 package.accept_keywords 中只對該套件接受 **。</i>",
+    "footer": "<i>⚠️「查詢失敗」表示對應來源暫時無法使用。稍後重試。Gentoo 未設定 arm64 keyword 時，即使其他發行版有套件，也不能據此判斷該 ebuild 可用。先測試；如需嘗試，僅在 package.accept_keywords 中對該套件接受 **。</i>",
     "query_failed": "⚠️ 查詢失敗",
     "not_in_official_tree": "❌ 不在官方樹",
     "stable_testing": "✅ stable %[1]s · 🧪 ~%[2]s",
@@ -16,7 +16,7 @@
     "not_in_fedora": "❌ 不在 Fedora",
     "fedora_query_failed": "⚠️ Fedora 查詢失敗",
     "fedora_rawhide": "✅ Rawhide %[1]s",
-    "pkgbuild_parse_failed": "⚠️ 無法剖析 PKGBUILD，請開啟 AUR 連結檢查",
+    "pkgbuild_parse_failed": "⚠️ 無法剖析 PKGBUILD。開啟 AUR 連結檢查。",
     "any_architecture": "✅ any（架構無關）",
     "declares_aarch64": "✅ 宣告 aarch64",
     "arm32_only": "🟡 僅 32 位元 ARM（無 aarch64）",
@@ -28,7 +28,7 @@
   },
   "cve": {
     "heading": "🔒 <a href=\"%[1]s\">%[2]s</a>",
-    "not_found": "❓ 未找到 %[1]s。請檢查編號，或該漏洞尚未收錄。",
+    "not_found": "❓ 未找到 %[1]s。編號可能有誤，或該漏洞尚未收錄。",
     "published": "公開於 %[1]s，目前狀態 %[2]s",
     "severity": "<b>%[1]s</b>　CVSS %[2]s",
     "unavailable": "⚠️ 暫時無法讀取 NVD 資料。請稍後重試。",
@@ -36,21 +36,21 @@
   },
   "kernel": {
     "eol": "（已停止維護）",
-    "footer": "進行加入群組驗證時，請傳送本機實際執行的版本號，而非此處顯示的版本號。",
+    "footer": "加入群組驗證時傳送本機實際執行的版本號，不要傳送此處顯示的版本號。",
     "heading": "🐧 <a href=\"https://www.kernel.org/\">kernel.org</a> 目前發布版本：",
     "row": "%[1]s <b>%[2]s</b>　%[3]s",
     "unavailable": "⚠️ 暫時無法讀取 kernel.org 的版本資訊。請稍後重試。"
   },
   "man": {
     "heading": "📖 <a href=\"%[1]s\">%[2]s</a>",
-    "not_found": "❓ 未找到「%[1]s」的手冊頁。請檢查名稱，或指定章節，範例：%[1]s.5。",
+    "not_found": "❓ 未找到 %[1]s 的手冊頁。檢查名稱，或指定章節，例如 %[1]s.5。",
     "synopsis": "<b>用法</b>\n<code>%[1]s</code>",
     "unavailable": "⚠️ 暫時無法讀取手冊頁。請稍後重試。",
     "usage": "用法：/man <名稱>　範例：/man ls、/man fstab.5"
   },
   "pkgs": {
-    "repology_unavailable": "暫時無法查詢 Repology 中「%[1]s」的跨發行版資訊。請稍後重試。",
-    "repology_not_found": "❓ Repology 中沒有與「%[1]s」相符的跨發行版套件。請嘗試更精確的套件名稱。",
+    "repology_unavailable": "暫時無法查詢 Repology 中 %[1]s 的跨發行版資訊。稍後重試。",
+    "repology_not_found": "❓ Repology 中沒有與 %[1]s 相符的跨發行版套件。嘗試更精確的套件名稱。",
     "usage": "用法：/pkgs <套件名稱>。範例：/pkgs firefox。比較 Gentoo、AUR、Arch、Alpine、Debian、Ubuntu、Nixpkgs、Fedora、RHEL、CentOS Stream 和 openSUSE 等發行版的套件版本；Debian 等顯示 stable/testing 通道，RHEL 資料來自 AlmaLinux 和 Rocky Linux。",
     "no_supported_distro": "未在 Gentoo、AUR、Arch、Alpine、Debian、Ubuntu、Nixpkgs、Fedora、RHEL、CentOS Stream、EPEL 或 openSUSE 中找到「%[1]s」的套件版本。此套件可能只由其他發行版提供。",
     "heading": "📦 <a href=\"%[1]s\">%[2]s</a> 跨發行版版本",

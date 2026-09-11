@@ -385,7 +385,7 @@ test("messages settings discard a previous group's delayed response", async ({ p
 
   await page.goto(`/messages?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
   await settingsRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await selectAppOption(page.getByRole("button", { name: "当前群组" }), otherGroupID);
   await expect(page).toHaveURL(new RegExp(`/messages\\?group=${otherGroupID}$`));
   await expect(page.locator("#messages-name-spoiler")).toHaveAttribute("aria-checked", "false");
 
@@ -440,7 +440,7 @@ test("messages settings ignore a previous group's delayed save", async ({ page }
   await page.locator("#messages-name-spoiler").click();
   await page.locator("[data-messages-settings-savebar] [data-slot='button']").click();
   await patchRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await selectAppOption(page.getByRole("button", { name: "当前群组" }), otherGroupID);
   await expect(page).toHaveURL(new RegExp(`/messages\\?group=${otherGroupID}$`));
   await expect(page.locator("#messages-name-spoiler")).toHaveAttribute("aria-checked", "true");
 
@@ -495,7 +495,7 @@ test("message rules discard a previous group's delayed response", async ({ page 
 
   await page.goto(`/messages?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
   await rulesRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await selectAppOption(page.getByRole("button", { name: "当前群组" }), otherGroupID);
   await expect(page).toHaveURL(new RegExp(`/messages\\?group=${otherGroupID}$`));
   await expect(page.locator("[data-messages-rule-item]").first()).toContainText("ID：b-rule");
 
@@ -547,7 +547,7 @@ test("message rules ignore a previous group's delayed save", async ({ page }) =>
 
   await page.locator("[data-messages-rule-item]").first().getByRole("switch").click();
   await writeRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await selectAppOption(page.getByRole("button", { name: "当前群组" }), otherGroupID);
   await expect(page).toHaveURL(new RegExp(`/messages\\?group=${otherGroupID}$`));
   await expect(page.locator("[data-messages-rule-item]").first()).toContainText("ID：b-rule");
 

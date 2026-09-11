@@ -120,13 +120,13 @@ test("diagnostics preserves null probes separately from a measured zero latency"
 
   await expect(screen.locator("[data-diagnostics-unreported-item]")).toHaveCount(3);
   await expect(screen.locator('[data-diagnostics-unreported-item="permission-preflight"]')).toContainText(
-    "不能以 Telegram 就绪代替"
+    "不能用 Telegram 就绪状态代替"
   );
   await expect(screen.locator('[data-diagnostics-unreported-item="query-cache"]')).toContainText(
-    "没有缓存状态或命中数据"
+    "没有可用的缓存状态或命中数据"
   );
   await expect(screen.locator('[data-diagnostics-unreported-item="query-rate-limit"]')).toContainText(
-    "按群设置"
+    "按群配置"
   );
 });
 
@@ -139,7 +139,7 @@ test("diagnostics tells group managers that instance state is not a load failure
   const screen = page.locator("[data-diagnostics-page]");
   await expect(screen).toHaveAttribute("data-diagnostics-state", "access-denied");
   await expect(
-    screen.getByRole("heading", { name: "群管理员无权查看实例状态" })
+    screen.getByRole("heading", { name: "仅运维人员可查看实例状态" })
   ).toBeVisible();
   await expect(screen).toContainText("此页面仅供运维人员使用");
   await expect(screen.getByText("无法读取实例状态", { exact: true })).toHaveCount(0);
@@ -306,15 +306,15 @@ test("diagnostics shows the write denominator and leaves declines as raw materia
   await expect(writes.locator('[data-diagnostics-value="database-writes-rate"]')).toContainText(
     "0.4%（12 / 3,000 次写入）"
   );
-  await expect(writes).toContainText("观测窗口 10 分钟");
+  await expect(writes).toContainText("观测窗口为 10 分钟");
   await expect(writes.locator('[data-diagnostics-value="database-writes-scope"] code')).toHaveText(
     "retry_store_write"
   );
 
   const rejections = screen.locator('[data-diagnostics-rollback-item="rejections"]');
   await expect(rejections).toHaveAttribute("data-diagnostics-rollback-state", "listed");
-  await expect(rejections).toContainText("需人工判读");
-  await expect(rejections).toContainText("不代表有人被错误拒绝");
+  await expect(rejections).toContainText("需要人工审核");
+  await expect(rejections).toContainText("不表示存在错误拒绝");
   await expect(rejections).toContainText("最近 24 小时");
   await expect(
     rejections.locator('[data-diagnostics-rejection-reason="challenge_timeout"]')
@@ -349,7 +349,7 @@ test("diagnostics does not read an empty write window as a rate inside the limit
 
   const rejections = screen.locator('[data-diagnostics-rollback-item="rejections"]');
   await expect(rejections).toHaveAttribute("data-diagnostics-rollback-state", "unavailable");
-  await expect(rejections).toContainText("本次没有读到拒绝记录");
+  await expect(rejections).toContainText("本次无法读取拒绝记录");
 
   const delivery = screen.locator('[data-diagnostics-rollback-item="challenge-delivery"]');
   await expect(delivery).toHaveAttribute("data-diagnostics-rollback-state", "clear");
@@ -370,7 +370,7 @@ test("diagnostics keeps working when the instance reports no rollback readings",
   const screen = page.locator("[data-diagnostics-page]");
   await expect(screen).toHaveAttribute("data-diagnostics-state", "loaded");
   await expect(screen.locator("[data-diagnostics-rollback-unavailable]")).toContainText(
-    "当前实例没有返回回退读数"
+    "当前实例未返回回退读数"
   );
   await expect(screen.locator("[data-diagnostics-rollback-item]")).toHaveCount(0);
 });

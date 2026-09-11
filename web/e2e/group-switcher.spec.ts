@@ -50,7 +50,7 @@ test("a chat with a missing title falls back to its group ID", async ({ page }) 
   ]);
   await page.goto(`/groups?group=${namedGroupId}`);
 
-  const trigger = page.getByRole("button", { name: "当前群" });
+  const trigger = page.getByRole("button", { name: "当前群组" });
   await expect(trigger).toHaveText(title);
   await expect(trigger).not.toContainText(/-100\d+/);
   await expect(page.locator("[data-group-row][data-selected]")).not.toContainText(/-100\d+/);
@@ -99,7 +99,7 @@ test("fixture group selection exposes one current item and preserves queue routi
   );
 
   const secondGroupTitle = await rows.nth(1).getByRole("heading", { level: 2 }).innerText();
-  const trigger = page.getByRole("button", { name: "当前群" });
+  const trigger = page.getByRole("button", { name: "当前群组" });
   await trigger.click();
   await page.getByRole("option", { name: secondGroupTitle, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/groups\\?group=${secondFixtureGroupId}$`));
@@ -122,7 +122,7 @@ test("titled group pages and switcher selections never expose transport IDs", as
     { id: unnamedGroupId, title: otherTitle, owner: null, administrators: [], administrators_status: "unavailable" }
   ]);
   await page.goto(`/groups?group=${namedGroupId}`);
-  const trigger = page.getByRole("button", { name: "当前群" });
+  const trigger = page.getByRole("button", { name: "当前群组" });
   await expect(trigger).toHaveText(title);
   await expect(page.locator("[data-groups-page]")).not.toContainText(/-100\d+/);
   await expect(page.locator("[data-group-row]").first().getByRole("link")).toHaveAccessibleName(new RegExp(title));
@@ -144,10 +144,10 @@ test("group switcher renders angle brackets and emoji as text", async ({ page })
   await page.goto(`/groups?group=${namedGroupId}`);
 
   const switcher = page.locator("[data-group-switcher]");
-  await expect(page.getByRole("button", { name: "当前群" })).toHaveText(title);
+  await expect(page.getByRole("button", { name: "当前群组" })).toHaveText(title);
   await expect(switcher.locator("img")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "当前群" }).click();
+  await page.getByRole("button", { name: "当前群组" }).click();
   await expect(page.getByRole("option", { name: title, exact: true })).toBeVisible();
   await expect(switcher.locator("img")).toHaveCount(0);
 });

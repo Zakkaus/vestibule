@@ -178,12 +178,12 @@ test("bypass restores only the selected channel invite override with null", asyn
   );
 
   const inviteSetting = page.locator("[data-bypass-setting=channelInviteURL]");
-  await expect(inviteSetting).toContainText("本群设定");
-  await inviteSetting.getByRole("button", { name: "恢复默认" }).click();
+  await expect(inviteSetting).toContainText("当前群设置");
+  await inviteSetting.getByRole("button", { name: "恢复默认值" }).click();
   await page.getByRole("button", { name: "保存" }).click();
   await patchSettled;
   await expect(page.locator("#bypass-channel-invite-url")).toHaveValue("");
-  await expect(inviteSetting).toContainText("出厂默认");
+  await expect(inviteSetting).toContainText("程序默认值");
   await expect(page.locator("[data-bypass-feedback]")).toContainText("免验证来源设置已保存");
 });
 
@@ -223,7 +223,7 @@ test("bypass conflict reloads the newest revision and tells the administrator", 
     "aria-checked",
     "false"
   );
-  await expect(page.locator("[data-bypass-feedback]")).toContainText("其他人已修改这些设置");
+  await expect(page.locator("[data-bypass-feedback]")).toContainText("其他管理员已修改这些设置");
 });
 
 test("bypass rejects an invalid ID list before it starts a PATCH request", async ({ page }) => {
@@ -246,7 +246,7 @@ test("bypass rejects an invalid ID list before it starts a PATCH request", async
     "true"
   );
   await expect(page.locator("#bypass-channel-whitelist")).toHaveAttribute("aria-invalid", "true");
-  await expect(page.locator("#bypass-channel-whitelist-error")).toContainText("非 0 的整数");
+  await expect(page.locator("#bypass-channel-whitelist-error")).toContainText("不为 0 且不重复的整数");
   expect(patchRequests).toBe(0);
 });
 
@@ -293,9 +293,9 @@ test("bypass explains the risk of each required-channel failure direction", asyn
   );
 
   const setting = page.locator("[data-bypass-setting=requiredChannelFailOpen]");
-  await expect(setting).toContainText("未加入该频道的人也可能进入");
+  await expect(setting).toContainText("未加入该频道的申请人也可能进入");
   await page.locator("#bypass-required-channel-fail-open").click();
-  await expect(setting).toContainText("正常申请人也可能被误拒");
+  await expect(setting).toContainText("正常申请也可能被误拒");
 });
 
 test("bypass discards a previous group's delayed settings response", async ({ page }) => {
@@ -335,7 +335,7 @@ test("bypass discards a previous group's delayed settings response", async ({ pa
 
   await page.goto(`/bypass?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
   await settingsRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await selectAppOption(page.getByRole("button", { name: "当前群组" }), otherGroupID);
   await expect(page).toHaveURL(new RegExp(`/bypass\\?group=${otherGroupID}$`));
   await expect(page.locator("#bypass-channel-display")).toHaveValue("@group-b");
 
@@ -389,7 +389,7 @@ test("bypass ignores a previous group's delayed settings save", async ({ page })
   await page.locator("#bypass-channel-display").fill("@group-a");
   await page.getByRole("button", { name: "保存" }).click();
   await patchRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await selectAppOption(page.getByRole("button", { name: "当前群组" }), otherGroupID);
   await expect(page).toHaveURL(new RegExp(`/bypass\\?group=${otherGroupID}$`));
   await expect(page.locator("#bypass-channel-display")).toHaveValue("@group-b");
 

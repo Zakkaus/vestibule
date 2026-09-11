@@ -170,7 +170,7 @@ test("saved quiz trial presents a real missing-question error", async ({ page, r
   expect(response.status()).toBe(404);
   const payload = (await response.json()) as { error?: { code?: unknown } };
   expect(payload.error?.code).toBe("rule_not_found");
-  await expect(trialRegion(page).getByRole("alert")).toContainText("找不到");
+  await expect(trialRegion(page).getByRole("alert")).toContainText("已保存的题目不存在");
   await expect(trialRegion(page).getByRole("status")).toHaveCount(0);
 });
 
@@ -246,7 +246,7 @@ test("trial result clears when the selected group changes", async ({ page }) => 
   await openMockQuestions(page);
   await submitTrial(page);
   await expect(trialRegion(page).getByRole("status")).toHaveCount(1);
-  await selectAppOption(page.getByRole("button", { name: "当前群" }), mockGroupBID);
+  await selectAppOption(page.getByRole("button", { name: "当前群组" }), mockGroupBID);
   await expect(page).toHaveURL(new RegExp(`/questions\\?group=${mockGroupBID}$`));
   await expect(trialRegion(page)).toBeVisible();
   await expect(trialRegion(page).getByRole("status")).toHaveCount(0);

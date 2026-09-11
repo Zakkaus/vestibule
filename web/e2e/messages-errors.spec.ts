@@ -94,7 +94,7 @@ test("a missing message rule provides the reload action named by its error", asy
 
   await page.locator("[data-messages-rule-item]").getByRole("switch").click();
   const feedback = page.locator("[data-messages-rules-feedback]");
-  await expect(feedback).toContainText("这条规则已不存在。请重新读取规则。");
+  await expect(feedback).toContainText("该规则已不存在。请重新读取规则。");
   await feedback.getByRole("button", { name: "重新读取" }).click();
   await expect.poll(() => ruleReads).toBe(2);
   await expect(feedback).toHaveCount(0);

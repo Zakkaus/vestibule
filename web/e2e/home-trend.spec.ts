@@ -24,13 +24,13 @@ const partialTrend: readonly TrendFixtureDay[] = [
 
 const coverageText = {
   "zh-CN": "有 5 天没有记录，趋势图仅显示已有日期。",
-  "zh-TW": "有 5 天沒有記錄，趨勢圖僅顯示已有日期。",
+  "zh-TW": "有 5 天沒有記錄；趨勢圖僅顯示已有日期。",
   en: "Days without readings: 5. Only dates with readings are shown."
 } as const;
 
 const emptyCoverageText = {
   "zh-CN": "有 7 天没有记录，趋势图仅显示已有日期。",
-  "zh-TW": "有 7 天沒有記錄，趨勢圖僅顯示已有日期。",
+  "zh-TW": "有 7 天沒有記錄；趨勢圖僅顯示已有日期。",
   en: "Days without readings: 7. Only dates with readings are shown."
 } as const;
 const emptyTrendText = {

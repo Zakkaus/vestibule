@@ -102,13 +102,13 @@ test("capabilities explains both states, shows provenance, and keeps one writer 
   });
 
   const verification = page.locator('[data-capability-card="verification"]');
-  await expect(verification).toContainText("来源：此群覆盖");
+  await expect(verification).toContainText("来源：当前群覆盖");
   await expect(verification).toContainText("已关闭");
   await expect(verification).toContainText(
     "新的入群申请会进入自动验证；已直接入群且符合条件的新成员也会收到挑战。"
   );
   await expect(verification).toContainText(
-    "新的入群申请留给管理员手动处理，新入群成员不会收到挑战；已经开始的验证仍会继续。"
+    "新的入群申请由管理员手动处理，新入群成员不会收到挑战；已经开始的验证仍会继续。"
   );
   await expect(verification.getByRole("switch", { name: "自动入群验证" })).toHaveAttribute(
     "aria-checked",
@@ -120,9 +120,9 @@ test("capabilities explains both states, shows provenance, and keeps one writer 
   await expect(antispam).toContainText("来源：配置文件");
   await expect(antispam).toContainText("已开启");
   await expect(antispam).toContainText(
-    "BotFather 隐私模式关闭时，机器人会删除由未受信任的频道身份发送的消息。确认该身份不是本群关联频道后，机器人会封禁该频道身份，并向处罚记录群发送提醒。"
+    "BotFather 隐私模式关闭时，机器人会删除未受信任的频道身份发送的消息。确认该身份不是本群关联频道后，机器人会封禁该频道身份，并向处罚记录群发送提醒。"
   );
-  await expect(antispam).toContainText("机器人不检查频道身份，相关消息会继续交给后续处理。");
+  await expect(antispam).toContainText("机器人不检查频道身份，相关消息继续由后续流程处理。");
   await expect(antispam.getByRole("switch")).toHaveCount(0);
   await expect(antispam.getByRole("link", { name: "在管理与处罚中调整" })).toHaveAttribute(
     "href",
@@ -245,7 +245,7 @@ test("capabilities saves one sparse change once and preserves CSRF and revision"
     "true"
   );
   await expect(page.locator('[data-capability-card="verification"]')).toContainText(
-    "来源：此群覆盖"
+    "来源：当前群覆盖"
   );
 });
 
@@ -271,7 +271,7 @@ test("capabilities restores the editable override with an explicit null", async 
   );
 
   await page.getByRole("button", { name: "恢复继承值" }).click();
-  await expect(page.locator("[data-capability-pending]")).toContainText("待恢复继承值");
+  await expect(page.locator("[data-capability-pending]")).toContainText("待恢复为继承值");
   await expect(page.getByRole("switch", { name: "自动入群验证" })).toHaveAttribute(
     "aria-disabled",
     "true"
@@ -280,7 +280,7 @@ test("capabilities restores the editable override with an explicit null", async 
 
   expect(requestBody).toEqual({ expected_revision: 7, changes: { enabled: null } });
   await expect(page.locator('[data-capability-card="verification"]')).toContainText(
-    "来源：出厂默认"
+    "来源：程序默认值"
   );
   await expect(page.getByRole("button", { name: "恢复继承值" })).toHaveCount(0);
 });
@@ -310,18 +310,18 @@ test("capabilities names a revision conflict and reloads the latest value", asyn
   await page.getByRole("switch", { name: "自动入群验证" }).click();
   await page.getByRole("button", { name: "保存更改" }).click();
   await expect(page.locator('[data-capabilities-feedback="conflict"]')).toContainText(
-    "其他管理员已经更改功能设置。重新载入最新值后再操作。"
+    "其他管理员已更改功能设置。请重新加载最新值后再操作。"
   );
   expect(requestBody).toEqual({ expected_revision: 7, changes: { enabled: true } });
 
-  await page.getByRole("button", { name: "重新载入" }).click();
+  await page.getByRole("button", { name: "重新加载" }).click();
   await expect(page.getByRole("switch", { name: "自动入群验证" })).toHaveAttribute(
     "aria-checked",
     "true"
   );
   await expect(page.locator('[data-capabilities-feedback="conflict"]')).toHaveCount(0);
   await expect(page.locator('[data-capability-card="verification"]')).toContainText(
-    "来源：此群覆盖"
+    "来源：当前群覆盖"
   );
 });
 
@@ -359,7 +359,7 @@ test("capabilities discards a previous group's delayed settings response", async
 
   await page.goto(`/capabilities?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
   await settingsRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await selectAppOption(page.getByRole("button", { name: "当前群组" }), otherGroupID);
   await expect(page).toHaveURL(new RegExp(`/capabilities\\?group=${otherGroupID}$`));
   await expect(page.getByRole("switch", { name: "自动入群验证" })).toHaveAttribute(
     "aria-checked",
@@ -413,7 +413,7 @@ test("capabilities ignores a previous group's delayed settings save", async ({ p
   await page.getByRole("switch", { name: "自动入群验证" }).click();
   await page.getByRole("button", { name: "保存更改" }).click();
   await patchRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await selectAppOption(page.getByRole("button", { name: "当前群组" }), otherGroupID);
   await expect(page).toHaveURL(new RegExp(`/capabilities\\?group=${otherGroupID}$`));
   await expect(page.getByRole("switch", { name: "自动入群验证" })).toHaveAttribute(
     "aria-checked",
@@ -442,8 +442,8 @@ test("invalid capability feedback provides the reload action it names", async ({
   await page.getByRole("switch", { name: "自动入群验证" }).click();
   await page.getByRole("button", { name: "保存更改" }).click();
   const feedback = page.locator('[data-capabilities-feedback="error"]');
-  await expect(feedback).toContainText("功能设置无效。请重新载入后重试。");
-  await feedback.getByRole("button", { name: "重新载入" }).click();
+  await expect(feedback).toContainText("功能设置无效。请重新加载后重试。");
+  await feedback.getByRole("button", { name: "重新加载" }).click();
   await expect.poll(() => settingsReads).toBe(2);
   await expect(feedback).toHaveCount(0);
 });

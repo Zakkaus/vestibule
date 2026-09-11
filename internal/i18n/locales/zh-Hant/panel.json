@@ -9,14 +9,14 @@
   },
   "verification": {
     "started": "✅ 加入群組驗證已開啟。",
-    "stopped": "⏸ 加入群組驗證已關閉。新的加入申請不會自動驗證，請由管理員手動審核。"
+    "stopped": "⏸ 加入群組驗證已關閉。新的加入申請不會自動驗證，須由管理員手動審核。"
   },
   "rich_text": {
     "enabled": "🎨 富文字輸出已開啟。/pkg 與 /use 將傳送富文字訊息；舊版或第三方用戶端可能無法正確顯示。",
     "disabled": "📄 富文字輸出已關閉。/pkg 與 /use 將傳送純文字訊息。"
   },
   "name_spoiler": {
-    "enabled": "🫥 新成員姓名遮蔽已開啟。姓名會以防劇透格式顯示，避免廣告姓名直接顯示於群組內。",
+    "enabled": "🫥 新成員姓名遮蔽已開啟。姓名將以防劇透格式顯示；廣告姓名不會直接顯示於群組內。",
     "disabled": "👁 新成員姓名遮蔽已關閉。姓名將正常顯示。"
   },
   "verification_mode": {
@@ -45,7 +45,7 @@
   },
   "error": {
     "save_settings": "❌ 無法儲存設定。請稍後重試。",
-    "admin_only": "⛔ 此指令僅限群組管理員使用。如需變更設定，請聯絡群組管理員。"
+    "admin_only": "⛔ 此指令僅限群組管理員使用。"
   },
   "menu": {
     "settings": "開啟設定面板"
@@ -74,7 +74,7 @@
     },
     "source": {
       "runtime": "群組覆寫值",
-      "config": "config.json",
+      "config": "設定檔",
       "default": "預設值"
     },
     "mode": {
@@ -84,7 +84,7 @@
     },
     "delivery": {
       "group": "僅群組訊息",
-      "dm": "私訊，遭拒時改用群組訊息",
+      "dm": "私訊；遭拒時改用群組訊息",
       "both": "群組訊息和私訊"
     },
     "screen": {
@@ -102,7 +102,7 @@
       "fallback_detail": "備用問題\n問題：%[1]s\n可接受答案：\n%[2]s",
       "channel": "群組 %[1]d 的必要頻道\nID：%[2]d\n顯示名稱：%[3]s\n邀請連結：%[4]s",
       "confirm": "請確認此操作：\n%[1]s",
-      "input": "正在等待輸入\n%[1]s\n請回覆下方另行傳送的提示訊息。",
+      "input": "等待輸入中\n%[1]s\n回覆下方另行傳送的提示訊息。",
       "moderation": "群組 %[1]d 的管理設定\n頻道身分發言：%[2]s\n禁言時長：%[3]s\n警告上限：%[4]s\n富文字輸出（機器人全域）：%[5]s\n告警聊天（機器人全域）：%[6]s"
     },
     "field": {
@@ -192,7 +192,7 @@
       "invalid_chat": "無法驗證所選聊天室。",
       "question_needs_options": "選擇題至少需要兩個選項，並且必須指定一個正確選項。",
       "fallback_needs_answer": "備用問題至少需要一個可接受答案。",
-      "input_blocked_verification": "請先完成目前驗證，再輸入面板內容。",
+      "input_blocked_verification": "完成目前驗證後，再輸入面板內容。",
       "input_canceled_verification": "驗證提示出現後，面板輸入已取消。此回覆未計入驗證嘗試。",
       "panel_unavailable": "無法開啟設定面板。請重試。",
       "whitelist_unban_failed": "頻道已加入允許清單，但無法解除現有的頻道身分封禁。"

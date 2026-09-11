@@ -328,7 +328,7 @@ test("question bank adds and edits an item, then sends only the complete questio
     "data-questions-state",
     "loaded"
   );
-  await expect(page.getByText("来源：此群覆盖").first()).toBeVisible();
+  await expect(page.getByText("来源：当前群覆盖").first()).toBeVisible();
 });
 test("inherited fallback questions are visible in a read-only preview without creating an override", async ({
   page
@@ -438,7 +438,7 @@ test("fallback custom questions restore to the saved inherited bank", async ({ p
   await page.getByRole("button", { name: "保存更改" }).click();
   await expect(fallback.locator("[data-fallback-preview]")).toHaveCount(0);
   await expect(fallback).toContainText(customFallback.q);
-  await expect(fallback).toContainText("备用题库来源：此群覆盖");
+  await expect(fallback).toContainText("备用题库来源：当前群覆盖");
 
   await fallback.getByRole("button", { name: "恢复备用题继承值" }).click();
   await expect(fallback.locator("[data-fallback-preview-pending]")).toBeVisible();
@@ -448,7 +448,7 @@ test("fallback custom questions restore to the saved inherited bank", async ({ p
   await expect(fallback.locator("[data-fallback-preview-prompt]")).toHaveText(
     inheritedFallback.q
   );
-  await expect(fallback).toContainText("备用题库来源：出厂默认");
+  await expect(fallback).toContainText("备用题库来源：程序默认值");
   expect(patchCalls).toBe(2);
 });
 
@@ -510,19 +510,19 @@ test("factory question bank overrides and restores the inherited factory bank", 
   const bank = page.getByRole("region", { name: "选择题", exact: true });
   const prompt = bank.getByLabel("题面").first();
   await expect(prompt).toHaveValue(factoryQuestion.q);
-  await expect(bank).toContainText("来源：出厂默认");
+  await expect(bank).toContainText("来源：程序默认值");
   await prompt.fill(overriddenQuestion.q);
   await bank.getByLabel("选项 1", { exact: true }).fill(overriddenQuestion.options[0]);
   await bank.getByLabel("选项 2", { exact: true }).fill(overriddenQuestion.options[1]);
   await bank.getByRole("button", { name: "将选项 2 设为正确答案" }).click();
   await page.getByRole("button", { name: "保存更改" }).click();
   await expect(prompt).toHaveValue(overriddenQuestion.q);
-  await expect(bank).toContainText("来源：此群覆盖");
+  await expect(bank).toContainText("来源：当前群覆盖");
 
   await bank.getByRole("button", { name: "恢复继承值" }).click();
   await page.getByRole("button", { name: "保存更改" }).click();
   await expect(prompt).toHaveValue(factoryQuestion.q);
-  await expect(bank).toContainText("来源：出厂默认");
+  await expect(bank).toContainText("来源：程序默认值");
   expect(patchCalls).toBe(2);
 });
 
@@ -605,7 +605,7 @@ test("configuration-file question bank overrides and restores the configuration 
   await bank.getByRole("button", { name: "将选项 2 设为正确答案" }).click();
   await page.getByRole("button", { name: "保存更改" }).click();
   await expect(prompt).toHaveValue(overriddenQuestion.q);
-  await expect(bank).toContainText("来源：此群覆盖");
+  await expect(bank).toContainText("来源：当前群覆盖");
 
   await bank.getByRole("button", { name: "恢复继承值" }).click();
   await page.getByRole("button", { name: "保存更改" }).click();
@@ -703,7 +703,7 @@ test("question deletion requires confirmation and language restoration writes nu
   );
 
   const firstDelete = page.locator("[data-question-bank-editor] [data-question-item]").first().getByRole("button", {
-    name: "删除题目"
+    name: "删除选择题"
   });
   let dismissedMessage: string | undefined;
   page.once("dialog", async (dialog) => {
@@ -929,5 +929,5 @@ test("switching to custom fallback preserves the displayed bank over a hidden fi
   await expect(page.locator('[data-questions-feedback="saved"]')).toBeVisible();
   await expect(fallback.getByLabel("题面")).toHaveValue(displayedBank[0].q);
   await expect(fallback.getByLabel("答案 1", { exact: true })).toHaveValue(displayedBank[0].answers[0]);
-  await expect(fallback).toContainText("题库来源：此群覆盖");
+  await expect(fallback).toContainText("题库来源：当前群覆盖");
 });
