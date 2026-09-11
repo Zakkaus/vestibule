@@ -47,7 +47,6 @@ type ownerLimitsTestViolationResponse struct {
 	Limit  int64  `json:"limit"`
 }
 
-
 func TestOwnerLimitsOwnerManagerCanReadAndPatchWithZeroGroups(t *testing.T) {
 	store := newOwnerLimitsTestStore(t, ownerLimitsOwnerID)
 	manager, grant := ownerLimitsManagerSession(t, ownerLimitsOwnerID)

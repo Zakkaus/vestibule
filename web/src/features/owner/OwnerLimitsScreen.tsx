@@ -1,3 +1,5 @@
+import { Button } from "@react-spectrum/s2/Button";
+import { Text } from "@react-spectrum/s2";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -207,17 +209,19 @@ export function OwnerLimitsScreen() {
             <span aria-live="polite">
               {hasChanges ? t("owner.actions.unsaved") : null}
             </span>
-            <button
+            <Button
               type="submit"
+              variant="accent"
+              size="S"
               data-slot="button"
-              data-variant="primary"
-              data-size="sm"
               data-owner-limits-save
-              disabled={!hasChanges || saving}
+              aria-disabled={saving ? "true" : undefined}
+              isPending={saving}
+              isDisabled={!hasChanges}
             >
-              <Icon name={saving ? "loaderCircle" : "save"} />
-              {t(saving ? "owner.actions.saving" : "owner.actions.save")}
-            </button>
+              <Icon name="save" />
+              <Text>{t(saving ? "owner.actions.saving" : "owner.actions.save")}</Text>
+            </Button>
           </aside>
 
           {loaded.violations.length > 0 ? (
@@ -251,16 +255,10 @@ export function OwnerLimitsScreen() {
                 {feedback.kind === "saved" ? t("owner.feedback.saved") : t(errorKey(feedback.error))}
               </span>
               {canReload ? (
-                <button
-                  type="button"
-                  data-slot="button"
-                  data-variant="outline"
-                  data-size="sm"
-                  onClick={() => setReloadVersion((version) => version + 1)}
-                >
+                <Button variant="secondary" size="S" data-slot="button" onPress={() => setReloadVersion((version) => version + 1)}>
                   <Icon name="refreshCw" />
-                  {t("owner.actions.retry")}
-                </button>
+                  <Text>{t("owner.actions.retry")}</Text>
+                </Button>
               ) : null}
             </div>
           ) : null}
@@ -268,16 +266,10 @@ export function OwnerLimitsScreen() {
       ) : null}
 
       {screenState.kind === "unavailable" ? (
-        <button
-          type="button"
-          data-slot="button"
-          data-variant="outline"
-          data-size="sm"
-          onClick={() => setReloadVersion((version) => version + 1)}
-        >
+        <Button variant="primary" size="S" data-slot="button" onPress={() => setReloadVersion((version) => version + 1)}>
           <Icon name="refreshCw" />
-          {t("owner.actions.retry")}
-        </button>
+          <Text>{t("owner.actions.retry")}</Text>
+        </Button>
       ) : null}
     </section>
   );

@@ -50,6 +50,7 @@ export async function mockDiagnosticsTransport(
       await fulfillJSON(route, {
         subject: { telegram_id: actorID, role },
         expires_at: "2026-09-02T12:00:00Z",
+        is_owner: false,
         csrf_token: "diagnostics-csrf"
       });
       return;

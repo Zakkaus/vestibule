@@ -115,7 +115,6 @@ test("owner navigation opens limits, marks stale groups, and saves a new limit",
 
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/groups");
-  await page.locator('.console-sidebar [data-navigation-group="console"]').click();
   const ownerNavigation = page.locator("[data-owner-navigation]");
   await expect(ownerNavigation).toHaveAttribute("href", "/owner");
   await ownerNavigation.click();

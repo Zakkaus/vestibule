@@ -105,7 +105,8 @@ func newTrialBrowserAuth(t *testing.T) (*auth.Manager, []trialBrowserCookie) {
 	now := time.Unix(1_800_000_000, 0)
 	manager, err := auth.New(auth.Config{
 		BotToken: apiTestToken, Now: func() time.Time { return now },
-		AdminChecker: &apiTestAdminChecker{allowed: true},
+		AdminChecker:  &apiTestAdminChecker{allowed: true},
+		RightsChecker: &apiTestAdminChecker{allowed: true},
 	})
 	if err != nil {
 		t.Fatal(err)
