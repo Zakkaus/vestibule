@@ -12,6 +12,7 @@ import { GroupSwitcher } from "../features/groups";
 import { Icon } from "../icons";
 import {
   canViewInstanceStatus,
+  canViewOwner,
   useConsoleSession,
   type ConsoleSessionState
 } from "./session";
@@ -161,7 +162,8 @@ const innerLayout = style({
 const capabilityChecks: Readonly<
   Record<NavigationCapability, (state: ConsoleSessionState) => boolean>
 > = {
-  "instance-status": canViewInstanceStatus
+  "instance-status": canViewInstanceStatus,
+  owner: canViewOwner
 };
 
 

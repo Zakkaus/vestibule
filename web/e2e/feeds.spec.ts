@@ -28,15 +28,16 @@ async function mockFeedsTransport(
       await fulfillJSON(route, {
         subject: { telegram_id: actorID, role },
         expires_at: "2026-09-02T12:00:00Z",
+        is_owner: false,
         csrf_token: "feeds-csrf"
       });
       return;
     }
     if (path === "/api/chats" && request.method() === "GET") {
       await fulfillJSON(route, { chats: [
-        { id: selectedGroupID, title: "Gentoo-zh Community" },
-        { id: "-1009000000203", title: "Gentoo Package Updates" },
-        { id: "-1009000000204", title: "Linux News" }
+        { id: selectedGroupID, title: "Gentoo-zh Community", owner: null, administrators: [], administrators_status: "unavailable" },
+        { id: "-1009000000203", title: "Gentoo Package Updates", owner: null, administrators: [], administrators_status: "unavailable" },
+        { id: "-1009000000204", title: "Linux News", owner: null, administrators: [], administrators_status: "unavailable" }
       ] });
       return;
     }

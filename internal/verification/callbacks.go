@@ -3,6 +3,7 @@ package verification
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -151,7 +152,17 @@ func (v *Service) OnAdminAction(ctx *HandlerContext, update Update) error {
 		ackResult(c, bot, cq.ID, admin.AlreadyHandled.For(l), true)
 		return nil
 	}
-	if !v.isGroupAdmin(c, bot, gid, cq.From.ID) {
+	if cq.From.ID <= 0 || cq.From.IsBot {
+		ackResult(c, bot, cq.ID, admin.OnlyGroupAdmin.For(l), true)
+		return nil
+	}
+	rights, err := bot.FreshRights(c, gid, cq.From.ID)
+	if err != nil {
+		log.Printf("verification administrator rights check chat=%d user=%d: %v", gid, cq.From.ID, err)
+		ackResult(c, bot, cq.ID, admin.OnlyGroupAdmin.For(l), true)
+		return nil
+	}
+	if !rights.CanInviteUsers || !rights.CanRestrictMembers || !rights.CanDeleteMessages {
 		ackResult(c, bot, cq.ID, admin.OnlyGroupAdmin.For(l), true)
 		return nil
 	}

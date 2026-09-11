@@ -2,6 +2,7 @@ import { useEffect, useSyncExternalStore } from "react";
 
 import {
   createApiTransport,
+  objectFromPayload,
   type ApiRequestError,
   type ApiTransport
 } from "../lib/api";
@@ -15,11 +16,36 @@ export type ConsoleSession = Readonly<{
   }>;
   expiresAt: string;
   csrfToken: string;
+  isOwner: boolean;
+}>;
+
+export type ConsoleChatUser = Readonly<{
+  id: string;
+  firstName: string;
+  lastName?: string;
+  username?: string;
+}>;
+
+export type ConsoleChatPermissionKey = (typeof consoleChatPermissionKeys)[number];
+
+export type ConsoleChatPermissions = Readonly<
+  Record<ConsoleChatPermissionKey, boolean | null>
+>;
+
+export type ConsoleChatAdministratorStatus = "creator" | "administrator";
+
+export type ConsoleChatAdministrator = Readonly<{
+  user: ConsoleChatUser;
+  status: ConsoleChatAdministratorStatus;
+  permissions: ConsoleChatPermissions;
 }>;
 
 export type ConsoleChat = Readonly<{
   id: string;
   title?: string;
+  owner: ConsoleChatUser | null;
+  administrators: readonly ConsoleChatAdministrator[];
+  administratorsStatus: "available" | "unavailable";
 }>;
 
 export type ConsoleSessionState =
@@ -56,7 +82,8 @@ function sessionFromPayload(payload: unknown): ConsoleSession | undefined {
     !("telegram_id" in payload.subject) ||
     !("role" in payload.subject) ||
     !("expires_at" in payload) ||
-    !("csrf_token" in payload)
+    !("csrf_token" in payload) ||
+    !("is_owner" in payload)
   ) {
     return undefined;
   }
@@ -65,6 +92,7 @@ function sessionFromPayload(payload: unknown): ConsoleSession | undefined {
   const role = payload.subject.role;
   const expiresAt = payload.expires_at;
   const csrfToken = payload.csrf_token;
+  const isOwner = payload.is_owner;
 
   if (
     typeof telegramId !== "string" ||
@@ -73,7 +101,8 @@ function sessionFromPayload(payload: unknown): ConsoleSession | undefined {
     typeof expiresAt !== "string" ||
     expiresAt.length === 0 ||
     typeof csrfToken !== "string" ||
-    csrfToken.length === 0
+    csrfToken.length === 0 ||
+    typeof isOwner !== "boolean"
   ) {
     return undefined;
   }
@@ -81,38 +110,136 @@ function sessionFromPayload(payload: unknown): ConsoleSession | undefined {
   return {
     subject: { telegramId, role },
     expiresAt,
-    csrfToken
+    csrfToken,
+    isOwner
   };
 }
 
-function chatsFromPayload(payload: unknown): readonly ConsoleChat[] | undefined {
+export const consoleChatPermissionKeys = [
+  "can_manage_chat",
+  "can_delete_messages",
+  "can_manage_video_chats",
+  "can_restrict_members",
+  "can_promote_members",
+  "can_change_info",
+  "can_invite_users",
+  "can_post_stories",
+  "can_edit_stories",
+  "can_delete_stories",
+  "can_post_messages",
+  "can_edit_messages",
+  "can_pin_messages",
+  "can_manage_topics"
+] as const;
+
+function chatUserFromPayload(payload: unknown): ConsoleChatUser | undefined {
+  const value = objectFromPayload(payload);
   if (
-    typeof payload !== "object" ||
-    payload === null ||
-    Array.isArray(payload) ||
-    !("chats" in payload) ||
-    !Array.isArray(payload.chats)
+    !value ||
+    typeof value.id !== "string" ||
+    value.id.length === 0 ||
+    typeof value.first_name !== "string" ||
+    value.first_name.length === 0
   ) {
+    return undefined;
+  }
+  const lastName = value.last_name;
+  const username = value.username;
+  if (
+    (lastName !== undefined && typeof lastName !== "string") ||
+    (username !== undefined && typeof username !== "string")
+  ) {
+    return undefined;
+  }
+  return {
+    id: value.id,
+    firstName: value.first_name,
+    ...(lastName === undefined ? {} : { lastName }),
+    ...(username === undefined ? {} : { username })
+  };
+}
+
+function chatPermissionsFromPayload(payload: unknown): ConsoleChatPermissions | undefined {
+  const value = objectFromPayload(payload);
+  if (!value) {
+    return undefined;
+  }
+  const permissions = {} as Record<ConsoleChatPermissionKey, boolean | null>;
+  for (const key of consoleChatPermissionKeys) {
+    const permission = value[key];
+    if (permission !== null && typeof permission !== "boolean") {
+      return undefined;
+    }
+    permissions[key] = permission;
+  }
+  return permissions;
+}
+
+function chatAdministratorFromPayload(payload: unknown): ConsoleChatAdministrator | undefined {
+  const value = objectFromPayload(payload);
+  if (!value || (value.status !== "creator" && value.status !== "administrator")) {
+    return undefined;
+  }
+  const user = chatUserFromPayload(value.user);
+  const permissions = chatPermissionsFromPayload(value.permissions);
+  return user === undefined || permissions === undefined
+    ? undefined
+    : { user, status: value.status, permissions };
+}
+
+function chatsFromPayload(payload: unknown): readonly ConsoleChat[] | undefined {
+  const result = objectFromPayload(payload);
+  if (!result || !Array.isArray(result.chats)) {
     return undefined;
   }
 
   const chats: ConsoleChat[] = [];
-  for (const chat of payload.chats) {
-    if (
-      typeof chat !== "object" ||
-      chat === null ||
-      Array.isArray(chat) ||
-      !("id" in chat) ||
-      typeof chat.id !== "string" ||
-      chat.id.length === 0
-    ) {
+  for (const rawValue of result.chats) {
+    const value = objectFromPayload(rawValue);
+    if (!value || typeof value.id !== "string" || value.id.length === 0) {
       return undefined;
     }
-    const title = "title" in chat ? chat.title : undefined;
+    const title = value.title;
     if (title !== undefined && typeof title !== "string") {
       return undefined;
     }
-    chats.push({ id: chat.id, title });
+
+    let owner: ConsoleChatUser | null;
+    if (value.owner === null) {
+      owner = null;
+    } else {
+      const parsedOwner = chatUserFromPayload(value.owner);
+      if (parsedOwner === undefined) {
+        return undefined;
+      }
+      owner = parsedOwner;
+    }
+
+    if (!Array.isArray(value.administrators)) {
+      return undefined;
+    }
+    const administrators: ConsoleChatAdministrator[] = [];
+    for (const administrator of value.administrators) {
+      const parsed = chatAdministratorFromPayload(administrator);
+      if (parsed === undefined) {
+        return undefined;
+      }
+      administrators.push(parsed);
+    }
+
+    if (value.administrators_status !== "available" && value.administrators_status !== "unavailable") {
+      return undefined;
+    }
+    const administratorsStatus = value.administrators_status;
+
+    const chat: ConsoleChat = {
+      id: value.id,
+      title,
+      owner,
+      administrators,
+      administratorsStatus
+    };
+    chats.push(chat);
   }
 
   return chats;
@@ -223,6 +350,9 @@ export const consoleApi = consoleSessionStore.api;
 
 export function canViewInstanceStatus(state: ConsoleSessionState): boolean {
   return "session" in state && state.session.subject.role === "operator";
+}
+export function canViewOwner(state: ConsoleSessionState): boolean {
+  return "session" in state && state.session.isOwner;
 }
 
 export function retryConsoleGroups(): Promise<void> {

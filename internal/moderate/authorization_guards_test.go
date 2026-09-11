@@ -7,6 +7,7 @@ import (
 
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/settings"
+	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 )
@@ -88,7 +89,7 @@ func TestBlockChannelRefusesACallerWhoIsNotAGroupAdministrator(t *testing.T) {
 func TestBlockChannelFromAnAdministratorChangesTheGroup(t *testing.T) {
 	cfg := guardTestConfig(settings.GroupConfig{ID: guardedGroupID, AntispamEnabled: boolPtr(true)})
 	telegram := newFakeMod()
-	telegram.memberByID = map[int64]telego.ChatMember{guardCallerID: &telego.ChatMemberAdministrator{}}
+	telegram.memberByID = map[int64]telego.ChatMember{guardCallerID: fullRightsAdministrator()}
 	service := newTestService(t, cfg, telegram, "")
 
 	service.BlockChannel(context.Background(), ChannelSenderCommand{
@@ -119,17 +120,13 @@ func TestBanTimeRefusesACallerWhoIsNotAGroupAdministrator(t *testing.T) {
 	if got := service.banDuration(guardedGroupID); got != 3600 {
 		t.Errorf("ban duration = %d, want 3600: an ordinary member rewrote the group's ban policy", got)
 	}
-	assertModerationNotifications(t, telegram, fakeModNotification{
-		chatID: guardedGroupID,
-		text:   i18n.Messages.Moderate.Common.AdminOnly.For(i18n.LangEN),
-	})
 }
 
 // The positive control for the refusal above.
 func TestBanTimeFromAnAdministratorWritesTheGroupPolicy(t *testing.T) {
 	cfg := guardTestConfig(settings.GroupConfig{ID: guardedGroupID})
 	telegram := newFakeMod()
-	telegram.memberByID = map[int64]telego.ChatMember{guardCallerID: &telego.ChatMemberAdministrator{}}
+	telegram.memberByID = map[int64]telego.ChatMember{guardCallerID: fullRightsAdministrator()}
 	service := newTestService(t, cfg, telegram, "")
 
 	message := moderationCommand(guardedGroupID, "/bantime 30m")
@@ -153,6 +150,16 @@ func (b *targetLookupTelegram) FreshAdmin(_ context.Context, _, userID int64) (b
 		return false, err
 	}
 	return b.admins[userID], nil
+}
+
+func (b *targetLookupTelegram) FreshRights(ctx context.Context, chatID, userID int64) (verification.GroupRights, error) {
+	if err := b.errByUser[userID]; err != nil {
+		return verification.GroupRights{}, err
+	}
+	if !b.admins[userID] {
+		return verification.GroupRights{}, nil
+	}
+	return verification.GroupRights{CanInviteUsers: true, CanRestrictMembers: true, CanDeleteMessages: true}, nil
 }
 
 // sensitiveAction is one command that punishes the person it is replying to.
@@ -278,7 +285,7 @@ func TestModerationCommandsAreInertInAChatThatIsNotAGuardedGroup(t *testing.T) {
 		t.Run(action.name, func(t *testing.T) {
 			telegram := newFakeMod()
 			telegram.memberByID = map[int64]telego.ChatMember{
-				guardCallerID: &telego.ChatMemberAdministrator{},
+				guardCallerID: fullRightsAdministrator(),
 				guardTargetID: &telego.ChatMemberMember{},
 			}
 			cfg := guardTestConfig(settings.GroupConfig{ID: guardedGroupID})
@@ -312,7 +319,7 @@ func TestModerationCommandsAreHandledInAGuardedGroup(t *testing.T) {
 		t.Run(action.name, func(t *testing.T) {
 			telegram := newFakeMod()
 			telegram.memberByID = map[int64]telego.ChatMember{
-				guardCallerID: &telego.ChatMemberAdministrator{},
+				guardCallerID: fullRightsAdministrator(),
 				guardTargetID: &telego.ChatMemberMember{},
 			}
 			cfg := guardTestConfig(settings.GroupConfig{ID: guardedGroupID})

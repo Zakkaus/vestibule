@@ -455,7 +455,7 @@ func (v *Panel) OnPanelInput(ctx *th.Context, update telego.Update) error {
 			v.finishSession(ctx.Context(), ctx.Bot(), session, i18n.Messages.Panel.Settings.Error.ConcurrentChange.For(session.language))
 			return nil
 		}
-		v.finishSession(ctx.Context(), ctx.Bot(), session, i18n.Messages.Panel.Settings.Error.SaveFailed.For(session.language))
+		v.finishSession(ctx.Context(), ctx.Bot(), session, settingsFailureMessage(err, session.language, i18n.Messages.Panel.Settings.Error.SaveFailed))
 		return nil
 	}
 	_ = ctx.Bot().DeleteMessage(ctx.Context(), &telego.DeleteMessageParams{ChatID: tu.ID(session.chatID), MessageID: pending.promptMessageID})
@@ -519,7 +519,7 @@ func (v *Panel) OnPanelChatShared(ctx *th.Context, update telego.Update) error {
 		if errors.Is(err, settings.ErrSettingsConflict) {
 			v.finishSession(ctx.Context(), ctx.Bot(), session, i18n.Messages.Panel.Settings.Error.ConcurrentChange.For(session.language))
 		} else {
-			v.finishSession(ctx.Context(), ctx.Bot(), session, i18n.Messages.Panel.Settings.Error.SaveFailed.For(session.language))
+			v.finishSession(ctx.Context(), ctx.Bot(), session, settingsFailureMessage(err, session.language, i18n.Messages.Panel.Settings.Error.SaveFailed))
 		}
 		return nil
 	}
@@ -530,7 +530,7 @@ func (v *Panel) OnPanelChatShared(ctx *th.Context, update telego.Update) error {
 }
 
 func (v *Panel) authorizeInput(ctx context.Context, bot *telego.Bot, session *panelSession) bool {
-	admin, err := v.telegram.FreshAdmin(ctx, session.groupID, session.ownerID)
+	admin, err := v.isGroupRestrictAdmin(ctx, session.groupID, session.ownerID)
 	if err != nil {
 		_, _ = bot.SendMessage(ctx, tu.Message(tu.ID(session.chatID), i18n.Messages.Panel.Settings.Error.AuthorizationCheckFailed.For(session.language)))
 		return false

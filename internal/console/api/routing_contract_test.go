@@ -85,7 +85,8 @@ func newRoutingContractHarness(t *testing.T) routingContractHarness {
 		OperatorAllowed: func(id int64) bool {
 			return id == 42 || id == 43
 		},
-		AdminChecker: &apiTestAdminChecker{allowed: true},
+		AdminChecker:  &apiTestAdminChecker{allowed: true},
+		RightsChecker: &apiTestAdminChecker{allowed: true},
 	})
 	if err != nil {
 		t.Fatal(err)

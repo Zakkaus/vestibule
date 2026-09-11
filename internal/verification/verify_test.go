@@ -554,6 +554,9 @@ type fakeVerifyBot struct {
 	member            ChatMember
 	memberByID        map[int64]ChatMember
 	memberErr         error
+	rights            GroupRights
+	rightsSet         bool
+	rightsErr         error
 	memberRequests    []memberRequest
 	answers           int
 	callbackAnswers   []callbackAnswer

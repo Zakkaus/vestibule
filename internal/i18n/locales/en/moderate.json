@@ -27,7 +27,6 @@
     "usage": "Usage: /bantime <duration> sets the duration used by /ban, /sb, and automatic bans after repeated verification failures:\n• /bantime 0 — permanent ban (does not lift automatically; the user cannot rejoin this group)\n• /bantime 7d / 12h / 30m / 3600 — temporary ban (lifts automatically when the duration ends; the user may then submit another join request)\n(d = days, h = hours, m = minutes, bare number = seconds; minimum 30 seconds)"
   },
   "common": {
-    "admin_only": "⛔ Only group administrators can use this command.",
     "command_admin_only": "⛔ Only group administrators can use %[1]s.",
     "reply_usage": "Usage: reply to the target user's message, then send %[1]s.",
     "settings_save_failed": "❌ Could not save the settings. Try again later.",

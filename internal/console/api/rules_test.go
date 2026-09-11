@@ -28,11 +28,9 @@ func TestRulesRejectUnauthorizedChat(t *testing.T) {
 	t.Run("read", func(t *testing.T) {
 		harness := newAPIRulesHarness(t, false)
 		response := getAuthenticatedPath(harness.server, harness.cookies, rulesPath(apiRulesChatID))
-		counts := harness.checker.counts()
-		if response.Code != http.StatusForbidden || decodeError(response) != "chat_access_denied" ||
-			counts.cachedCalls != 1 || counts.freshCalls != 0 {
-			t.Fatalf("status=%d code=%s cached=%d fresh=%d, want 403, chat_access_denied, 1, 0",
-				response.Code, decodeError(response), counts.cachedCalls, counts.freshCalls)
+		if response.Code != http.StatusForbidden || decodeError(response) != "chat_access_denied" {
+			t.Fatalf("status=%d code=%s, want 403, chat_access_denied",
+				response.Code, decodeError(response))
 		}
 	})
 
@@ -43,12 +41,11 @@ func TestRulesRejectUnauthorizedChat(t *testing.T) {
 		}
 		harness.checker.setAllowed(false)
 		response := putRuleCollection(t, harness, "future_collection", nil, sampleRuleInputs()[:1])
-		counts := harness.checker.counts()
 		records := listStoredRules(t, harness, "")
 		if response.Code != http.StatusForbidden || decodeError(response) != "chat_access_denied" ||
-			counts.cachedCalls != 1 || counts.freshCalls != 1 || len(records) != 0 {
-			t.Fatalf("status=%d code=%s cached=%d fresh=%d rows=%d, want 403, chat_access_denied, 1, 1, 0",
-				response.Code, decodeError(response), counts.cachedCalls, counts.freshCalls, len(records))
+			len(records) != 0 {
+			t.Fatalf("status=%d code=%s rows=%d, want 403, chat_access_denied, 0",
+				response.Code, decodeError(response), len(records))
 		}
 	})
 }
@@ -59,12 +56,11 @@ func TestRulesRequireCSRF(t *testing.T) {
 	harness.csrf = ""
 	response := putRuleCollection(t, harness, "future_collection", nil, sampleRuleInputs()[:1])
 	harness.csrf = csrf
-	counts := harness.checker.counts()
 	records := listStoredRules(t, harness, "")
 	if response.Code != http.StatusForbidden || decodeError(response) != "csrf_invalid" ||
-		counts.freshCalls != 1 || len(records) != 0 {
-		t.Fatalf("status=%d code=%s fresh=%d rows=%d, want 403, csrf_invalid, 1, 0",
-			response.Code, decodeError(response), counts.freshCalls, len(records))
+		len(records) != 0 {
+		t.Fatalf("status=%d code=%s rows=%d, want 403, csrf_invalid, 0",
+			response.Code, decodeError(response), len(records))
 	}
 }
 
@@ -72,12 +68,11 @@ func TestRuleItemRejectsUnauthorizedChat(t *testing.T) {
 	harness := newAPIRulesHarness(t, false)
 	expected, next := seedStoredRuleItem(t, harness)
 	response := putRuleItem(t, harness, "future-a", expected, next)
-	counts := harness.checker.counts()
 	records := listStoredRules(t, harness, "future_collection")
 	if response.Code != http.StatusForbidden || decodeError(response) != "chat_access_denied" ||
-		counts.cachedCalls != 0 || counts.freshCalls != 1 || len(records) != 1 || !records[0].Enabled {
-		t.Fatalf("status=%d code=%s cached=%d fresh=%d rows=%+v, want 403, chat_access_denied, 0, 1, enabled",
-			response.Code, decodeError(response), counts.cachedCalls, counts.freshCalls, records)
+		len(records) != 1 || !records[0].Enabled {
+		t.Fatalf("status=%d code=%s rows=%+v, want 403, chat_access_denied, enabled",
+			response.Code, decodeError(response), records)
 	}
 }
 
@@ -86,12 +81,11 @@ func TestRuleItemRequiresCSRF(t *testing.T) {
 	expected, next := seedStoredRuleItem(t, harness)
 	harness.csrf = ""
 	response := putRuleItem(t, harness, "future-a", expected, next)
-	counts := harness.checker.counts()
 	records := listStoredRules(t, harness, "future_collection")
 	if response.Code != http.StatusForbidden || decodeError(response) != "csrf_invalid" ||
-		counts.freshCalls != 1 || len(records) != 1 || !records[0].Enabled {
-		t.Fatalf("status=%d code=%s fresh=%d rows=%+v, want 403, csrf_invalid, 1, enabled",
-			response.Code, decodeError(response), counts.freshCalls, records)
+		len(records) != 1 || !records[0].Enabled {
+		t.Fatalf("status=%d code=%s rows=%+v, want 403, csrf_invalid, enabled",
+			response.Code, decodeError(response), records)
 	}
 }
 

@@ -209,7 +209,7 @@ func TestMuteDeletesOffendingMessageAfterRestrictionSucceeds(t *testing.T) {
 	const groupID = int64(-1009000000805)
 	telegram := newFakeMod()
 	telegram.memberByID = map[int64]telego.ChatMember{
-		7: &telego.ChatMemberAdministrator{},
+		7: fullRightsAdministrator(),
 		8: &telego.ChatMemberMember{},
 	}
 	service := newTestService(t, &settings.Config{

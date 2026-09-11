@@ -43,23 +43,24 @@ type ChatTitleResolver interface {
 
 // Config injects policy services into the HTTP adapter. The adapter owns no database access.
 type Config struct {
-	Authenticator        *auth.Manager
-	Verification         ConsoleService
-	Settings             SettingsService
-	ChatTitleResolver    ChatTitleResolver
-	Rules                RulesService
-	ProcessSettings      ProcessSettingsService
-	Health               *status.Health
-	Persistence          PersistenceService
-	RollbackObservations RollbackObservationsService
-	RollbackRejections   RollbackRejectionService
-	Replacement          ReplacementService
-	Release              ReleaseService
-	Daily                DailyService
-	Version              string
-	ObserveOnly          bool
-	Setup                SetupService
-	SetupClaimed         func()
+	Authenticator              *auth.Manager
+	Verification               ConsoleService
+	Settings                   SettingsService
+	ChatTitleResolver          ChatTitleResolver
+	ChatAdministratorsResolver ChatAdministratorsResolver
+	Rules                      RulesService
+	ProcessSettings            ProcessSettingsService
+	Health                     *status.Health
+	Persistence                PersistenceService
+	RollbackObservations       RollbackObservationsService
+	RollbackRejections         RollbackRejectionService
+	Replacement                ReplacementService
+	Release                    ReleaseService
+	Daily                      DailyService
+	Version                    string
+	ObserveOnly                bool
+	Setup                      SetupService
+	SetupClaimed               func()
 	// BotUsername is the Telegram handle this instance answers on. The screen a
 	// visitor without a session lands on has to name the bot they should open,
 	// and that name is different for every deployment.
@@ -68,28 +69,29 @@ type Config struct {
 
 // Server owns listener admission and HTTP handler draining separately for ordered shutdown.
 type Server struct {
-	authenticator        *auth.Manager
-	verification         ConsoleService
-	settings             SettingsService
-	chatTitleResolver    ChatTitleResolver
-	rules                RulesService
-	processSettings      ProcessSettingsService
-	health               *status.Health
-	persistence          PersistenceService
-	rollbackObservations RollbackObservationsService
-	rollbackRejections   RollbackRejectionService
-	replacement          ReplacementService
-	release              ReleaseService
-	daily                DailyService
-	version              string
-	observeOnly          bool
-	setup                SetupService
-	setupClaimed         func()
-	botUsername          string
-	routes               atomic.Pointer[routeSet]
-	mu                   sync.Mutex
-	listener             net.Listener
-	httpServer           *http.Server
+	authenticator              *auth.Manager
+	verification               ConsoleService
+	settings                   SettingsService
+	chatTitleResolver          ChatTitleResolver
+	chatAdministratorsResolver ChatAdministratorsResolver
+	rules                      RulesService
+	processSettings            ProcessSettingsService
+	health                     *status.Health
+	persistence                PersistenceService
+	rollbackObservations       RollbackObservationsService
+	rollbackRejections         RollbackRejectionService
+	replacement                ReplacementService
+	release                    ReleaseService
+	daily                      DailyService
+	version                    string
+	observeOnly                bool
+	setup                      SetupService
+	setupClaimed               func()
+	botUsername                string
+	routes                     atomic.Pointer[routeSet]
+	mu                         sync.Mutex
+	listener                   net.Listener
+	httpServer                 *http.Server
 }
 
 func (s *Server) Start(address string) error {
@@ -176,6 +178,8 @@ func (s *Server) apiRoute(writer http.ResponseWriter, request *http.Request) {
 		s.currentSession(writer, request)
 	case request.Method == http.MethodPost && request.URL.Path == "/api/session":
 		s.createSession(writer, request)
+	case request.URL.Path == "/api/owner/limits":
+		s.ownerLimitsRoute(writer, request)
 	case request.Method == http.MethodGet && request.URL.Path == "/api/process/settings":
 		s.readProcessSettings(writer, request)
 	case strings.HasPrefix(request.URL.Path, "/api/status"):
@@ -232,7 +236,7 @@ func (s *Server) currentSession(writer http.ResponseWriter, request *http.Reques
 	if !ok {
 		return
 	}
-	writeJSON(writer, http.StatusOK, newSessionResponse(grant))
+	writeJSON(writer, http.StatusOK, s.sessionResponse(grant))
 }
 
 func (s *Server) createSession(writer http.ResponseWriter, request *http.Request) {
@@ -252,7 +256,7 @@ func (s *Server) createSession(writer http.ResponseWriter, request *http.Request
 		return
 	}
 	s.authenticator.SetCookies(writer, grant)
-	writeJSON(writer, http.StatusCreated, newSessionResponse(grant))
+	writeJSON(writer, http.StatusCreated, s.sessionResponse(grant))
 }
 
 func (s *Server) enter(writer http.ResponseWriter, request *http.Request) {
@@ -375,7 +379,7 @@ func (s *Server) queue(writer http.ResponseWriter, request *http.Request, chatID
 }
 
 func (s *Server) settle(writer http.ResponseWriter, request *http.Request, chatID int64, challengeID string) {
-	session, ok := s.authorizedSession(writer, request, chatID, auth.WriteAccess)
+	session, ok := s.authorizedSession(writer, request, chatID, auth.SettlementAccess)
 	if !ok {
 		return
 	}
@@ -509,6 +513,7 @@ type sessionResponse struct {
 	} `json:"subject"`
 	ExpiresAt time.Time `json:"expires_at"`
 	CSRFToken string    `json:"csrf_token"`
+	IsOwner   bool      `json:"is_owner"`
 }
 
 func newSessionResponse(grant auth.Grant) sessionResponse {

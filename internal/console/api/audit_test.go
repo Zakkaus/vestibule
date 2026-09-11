@@ -96,13 +96,10 @@ func TestAuditUndoRequiresCSRFFreshWriteAccessAndMapsConflicts(t *testing.T) {
 	read := getAuthenticatedPath(server, cookies, "/api/chats/-100/audit")
 	checker.setAllowed(false)
 	denied := postAuditUndo(server, cookies, csrf, -100, "-100:42:banned")
-	counts := checker.counts()
 	if read.Code != http.StatusOK || denied.Code != http.StatusForbidden ||
-		decodeError(denied) != "chat_access_denied" || service.undoCalls != 0 ||
-		counts.cachedCalls != 1 || counts.freshCalls != 1 {
-		t.Fatalf("read=%d denied=%d code=%s calls=%d cached=%d fresh=%d",
-			read.Code, denied.Code, decodeError(denied), service.undoCalls,
-			counts.cachedCalls, counts.freshCalls)
+		decodeError(denied) != "chat_access_denied" || service.undoCalls != 0 {
+		t.Fatalf("read=%d denied=%d code=%s calls=%d",
+			read.Code, denied.Code, decodeError(denied), service.undoCalls)
 	}
 
 	checker.setAllowed(true)

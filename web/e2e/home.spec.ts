@@ -189,6 +189,7 @@ async function mockHomeTransport(
       await fulfillJSON(route, {
         subject: { telegram_id: actorID, role: options.role },
         expires_at: "2026-09-02T03:00:00Z",
+        is_owner: false,
         csrf_token: "home-csrf"
       });
       return;
@@ -196,9 +197,9 @@ async function mockHomeTransport(
     if (pathname === "/api/chats" && request.method() === "GET") {
       await fulfillJSON(route, {
         chats: [
-          { id: selectedGroupID, title: selectedGroupTitle },
-          { id: otherGroupIDs[0], title: "Arch Linux Community" },
-          { id: otherGroupIDs[1], title: "Linux Study Group" }
+          { id: selectedGroupID, title: selectedGroupTitle, owner: null, administrators: [], administrators_status: "unavailable" },
+          { id: otherGroupIDs[0], title: "Arch Linux Community", owner: null, administrators: [], administrators_status: "unavailable" },
+          { id: otherGroupIDs[1], title: "Linux Study Group", owner: null, administrators: [], administrators_status: "unavailable" }
         ]
       });
       return;

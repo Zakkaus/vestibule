@@ -14,14 +14,6 @@ type rollbackAvailabilityChecker struct {
 }
 
 func (c *rollbackAvailabilityChecker) CachedAdmin(context.Context, int64, int64) (bool, error) {
-	return c.check()
-}
-
-func (c *rollbackAvailabilityChecker) FreshAdmin(context.Context, int64, int64) (bool, error) {
-	return c.check()
-}
-
-func (c *rollbackAvailabilityChecker) check() (bool, error) {
 	if c.err != nil {
 		return false, c.err
 	}

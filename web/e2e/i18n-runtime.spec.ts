@@ -29,6 +29,7 @@ async function mockConsoleSession(page: Page): Promise<void> {
         body: JSON.stringify({
           subject: { telegram_id: "741928306", role: "manager" },
           expires_at: "2026-09-03T02:00:00Z",
+          is_owner: false,
           csrf_token: "locale-runtime-csrf"
         })
       });
@@ -38,7 +39,7 @@ async function mockConsoleSession(page: Page): Promise<void> {
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupID, title: "Gentoo-zh Community" }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupID, title: "Gentoo-zh Community", owner: null, administrators: [], administrators_status: "unavailable" }] })
       });
       return;
     }

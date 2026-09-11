@@ -9,7 +9,7 @@ import (
 )
 
 // SettingsSchemaVersion is the settings.json schema written by this package.
-const SettingsSchemaVersion = 3
+const SettingsSchemaVersion = 4
 
 // Source identifies where an effective setting came from.
 type Source uint8
@@ -239,6 +239,8 @@ type settingsFile struct {
 	EnrollmentNonces     []EnrollmentNonce     `json:"enrollment_nonces"`
 	PendingRegistrations []PendingRegistration `json:"pending_registrations"`
 	UnknownGroupLeaves   []UnknownGroupLeave   `json:"unknown_group_leaves,omitempty"`
+	LimitsRevision       uint64                `json:"limits_revision"`
+	Limits               OwnerLimits           `json:"limits"`
 	Groups               map[int64]groupRecord `json:"groups"`
 }
 
@@ -279,9 +281,11 @@ type effectiveGroup struct {
 }
 
 type settingsSnapshot struct {
-	groups       map[int64]*effectiveGroup
-	groupIDs     []int64
-	registration RegistrationState
+	groups         map[int64]*effectiveGroup
+	groupIDs       []int64
+	registration   RegistrationState
+	limits         OwnerLimits
+	limitsRevision uint64
 }
 
 type statusError struct{ err error }
@@ -411,9 +415,7 @@ func (s *Store) Update(groupID int64, expectedRevision uint64, next GroupOverrid
 		return CommitResult{}, &ConflictError{GroupID: groupID, Expected: expectedRevision, Actual: group.revision}
 	}
 	next = compactGroupOverrides(cloneGroupOverrides(next), group.baseline)
-	if reflect.DeepEqual(group.overrides, next) {
-		return CommitResult{Revision: group.revision, Durable: s.repository != nil || s.path != ""}, nil
-	}
+
 	candidate := cloneSettingsFile(s.state)
 	record := candidate.Groups[groupID]
 	record.Revision = group.revision + 1
@@ -422,6 +424,12 @@ func (s *Store) Update(groupID int64, expectedRevision uint64, next GroupOverrid
 	snap, err := s.buildSnapshot(candidate)
 	if err != nil {
 		return CommitResult{}, err
+	}
+	if violations := ownerLimitViolationsForGroup(snap.groups[groupID], current.limits); len(violations) > 0 {
+		return CommitResult{}, &OwnerLimitsExceededError{Violations: violations}
+	}
+	if reflect.DeepEqual(group.overrides, next) {
+		return CommitResult{Revision: group.revision, Durable: s.repository != nil || s.path != ""}, nil
 	}
 	if s.repository != nil {
 		actual, written, writeErr := s.repository.CompareAndSwapSettings(groupID, expectedRevision, next)

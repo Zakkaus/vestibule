@@ -43,6 +43,7 @@ async function mockQueueTransport(
         body: JSON.stringify({
           subject: { telegram_id: actorID, role: "manager" },
           expires_at: "2026-09-01T02:00:00Z",
+          is_owner: false,
           csrf_token: "queue-stale-csrf"
         })
       });
@@ -51,7 +52,7 @@ async function mockQueueTransport(
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: groupAID, title: "Gentoo-zh Community" }, { id: groupBID, title: "Arch Linux Community" }] })
+        body: JSON.stringify({ chats: [{ id: groupAID, title: "Gentoo-zh Community", owner: null, administrators: [], administrators_status: "unavailable" }, { id: groupBID, title: "Arch Linux Community", owner: null, administrators: [], administrators_status: "unavailable" }] })
       });
       return;
     }

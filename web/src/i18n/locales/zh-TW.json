@@ -114,6 +114,35 @@
     "managedCount_other": "{{count}} 個可管理的群組",
     "authorized": "已授權",
     "liveGroupNote": "選擇這個群組後，後續操作都會限定在此群組內。",
+    "identity": "{{name}} · 使用者 ID {{id}}",
+    "owner": {
+      "heading": "Telegram 群組擁有者"
+    },
+    "administrators": {
+      "heading": "群組管理員",
+      "unavailable": "暫時無法讀取管理員詳細資料",
+      "creator": "群組擁有者",
+      "administrator": "管理員"
+    },
+    "permissions": {
+      "heading": "管理權限",
+      "granted": "有權限",
+      "denied": "無權限",
+      "can_manage_chat": "管理群組",
+      "can_delete_messages": "刪除訊息",
+      "can_manage_video_chats": "管理視訊聊天",
+      "can_restrict_members": "限制成員",
+      "can_promote_members": "任命管理員",
+      "can_change_info": "修改群組資訊",
+      "can_invite_users": "邀請使用者",
+      "can_post_stories": "發佈限時動態",
+      "can_edit_stories": "編輯限時動態",
+      "can_delete_stories": "刪除限時動態",
+      "can_post_messages": "發佈訊息",
+      "can_edit_messages": "編輯訊息",
+      "can_pin_messages": "置頂訊息",
+      "can_manage_topics": "管理主題"
+    },
     "loading": {
       "title": "正在讀取群組清單…",
       "description": "正在確認目前帳號可管理的群組。"
@@ -343,6 +372,7 @@
       "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
       "chatNotFound": "此群組已無法在控制台中管理。",
       "invalidSettings": "這些設定未通過驗證。請檢查變更後重試。",
+      "settingsLimitExceeded": "這項變更會超過執行個體擁有者設定的上限。請降低數值，或請擁有者提高上限。",
       "settingsUnavailable": "設定服務暫時無法使用。請重試。",
       "loadUnavailable": "管理與處罰設定暫時無法使用。",
       "saveUnavailable": "無法儲存管理與處罰設定。請重試。"
@@ -522,6 +552,7 @@
       "chatNotFound": "此群組已無法在控制台中管理。",
       "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
       "invalidSettings": "一項或多項設定無效。檢查後重新儲存。",
+      "settingsLimitExceeded": "這項變更會超過執行個體擁有者設定的上限。請降低數值，或請擁有者提高上限。",
       "settingsUnavailable": "免驗證來源設定暫時無法使用。請重試。",
       "loadUnavailable": "暫時無法讀取免驗證來源設定。請重試。",
       "saveUnavailable": "暫時無法儲存免驗證來源設定。請重試。",
@@ -707,6 +738,7 @@
       "chatNotFound": "此群組已無法在控制台中管理。",
       "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
       "invalidSettings": "一或多個設定無效。檢查後重新儲存。",
+      "settingsLimitExceeded": "這項變更會超過執行個體擁有者設定的上限。請降低數值，或請擁有者提高上限。",
       "settingsUnavailable": "驗證設定暫時無法使用。請重試。",
       "loadUnavailable": "暫時無法讀取驗證設定。請重試。",
       "saveUnavailable": "暫時無法儲存驗證設定。請重試。",
@@ -864,6 +896,7 @@
       "chatNotFound": "此群組已無法在控制台中管理。",
       "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
       "invalidSettings": "題庫未通過驗證。檢查題目和答案後重新儲存。",
+      "settingsLimitExceeded": "這項變更會超過執行個體擁有者設定的上限。請降低數值，或請擁有者提高上限。",
       "settingsUnavailable": "題庫設定暫時無法使用。請重試。",
       "loadUnavailable": "暫時無法讀取題庫。請重試。",
       "saveUnavailable": "暫時無法儲存題庫。請重試。",
@@ -1352,6 +1385,7 @@
       "chatNotFound": "此群組已無法在控制台中管理。",
       "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
       "invalidSettings": "一或多個訊息設定無效。檢查後重新儲存。",
+      "settingsLimitExceeded": "這項變更會超過執行個體擁有者設定的上限。請降低數值，或請擁有者提高上限。",
       "settingsUnavailable": "訊息設定暫時無法使用。請重試。",
       "loadUnavailable": "訊息與文案暫時無法使用。請重試。",
       "loadSettingsUnavailable": "暫時無法讀取訊息設定。請重試。",
@@ -1441,10 +1475,60 @@
       "chatNotFound": "此群組已無法在控制台中管理。",
       "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
       "invalidSettings": "功能設定無效。請重新載入後重試。",
+      "settingsLimitExceeded": "這項變更會超過執行個體擁有者設定的上限。請降低數值，或請擁有者提高上限。",
       "settingsUnavailable": "功能設定暫時無法使用。請重試。",
       "loadUnavailable": "暫時無法讀取功能。請重試。",
       "saveUnavailable": "暫時無法儲存功能設定。請重試。",
       "network": "連線已中斷。重新載入功能後，再決定是否重試。"
+    }
+  },
+  "owner": {
+    "navigation": "部署者設定",
+    "title": "實例上限",
+    "description": "儲存群組設定時會檢查上限。0 表示不另設上限，原有欄位限制仍然有效。降低上限不會更改既有設定。封禁時長上限為正數時，不允許永久封禁。",
+    "loading": {
+      "title": "正在載入實例上限",
+      "description": "正在讀取上限及超限的群組…"
+    },
+    "unavailable": {
+      "title": "無法讀取實例上限"
+    },
+    "fields": {
+      "timeout_seconds": "驗證逾時（秒）",
+      "ban_seconds": "封禁時長（秒）",
+      "mute_seconds": "禁言時長（秒）",
+      "lookup_ttl_seconds": "查詢結果保留時間（秒）",
+      "verify_retry_seconds": "驗證重試間隔（秒）",
+      "verify_max_fails": "驗證失敗次數",
+      "warn_limit": "警告次數",
+      "private_query_per_min": "每分鐘私聊查詢次數",
+      "questions": "選擇題數量",
+      "fallback_questions": "備用題數量",
+      "channel_whitelist": "允許的頻道數",
+      "trusted_member_group_ids": "受信任群組數",
+      "known_chat_ids": "已知聊天數"
+    },
+    "actions": {
+      "save": "儲存上限",
+      "saving": "正在儲存…",
+      "unsaved": "有未儲存的變更",
+      "retry": "重新載入"
+    },
+    "violations": {
+      "title": "超出目前上限的群組",
+      "row": "群組 {{chatId}}：{{field}}為 {{value}}，上限為 {{limit}}。"
+    },
+    "feedback": {
+      "saved": "實例上限已儲存。"
+    },
+    "errors": {
+      "network": "連線已中斷，請重試。",
+      "unavailable": "暫時無法讀取實例上限，請重試。",
+      "csrfInvalid": "此頁的安全權杖已過期，請重新整理頁面後再試。",
+      "invalidRequest": "提交的上限無效，請檢查數值後再試。",
+      "ownerRequired": "只有實例部署者可以修改這些上限。",
+      "conflict": "另一個工作階段已更改上限，請重新載入後再儲存。",
+      "settingsUnavailable": "無法持久儲存實例上限，請檢查設定儲存空間後再試。"
     }
   },
   "home": {

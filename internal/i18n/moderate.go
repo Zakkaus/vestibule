@@ -24,8 +24,6 @@ type ModerateCatalog struct {
 type ModerateCommonCatalog struct {
 	// CommandAdminOnly formats a command-specific authorization failure.
 	CommandAdminOnly Format
-	// AdminOnly reports a generic authorization failure.
-	AdminOnly Text
 	// ReplyUsage formats reply-target command guidance.
 	ReplyUsage Format
 	// TargetAdminCheckFailed reports an unavailable target-admin check.

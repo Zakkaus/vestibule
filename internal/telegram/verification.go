@@ -126,6 +126,10 @@ func (g *VerificationGateway) FreshAdmin(ctx context.Context, chatID, userID int
 	ok, err := g.connector.FreshAdmin(ctx, chatID, userID)
 	return ok, verificationError(err)
 }
+func (g *VerificationGateway) FreshRights(ctx context.Context, chatID, userID int64) (verification.GroupRights, error) {
+	rights, err := g.connector.FreshRights(ctx, chatID, userID)
+	return rights, verificationError(err)
+}
 
 func (g *VerificationGateway) AckFast(ctx context.Context, interactionID string) error {
 	return verificationError(g.connector.bot.AnswerCallbackQuery(ctx, tu.CallbackQuery(interactionID)))

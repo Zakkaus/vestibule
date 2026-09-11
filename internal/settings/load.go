@@ -10,7 +10,7 @@ import (
 )
 
 const currentSettingsBase = `
-version: 3
+version: 4
 registration_revision: 0
 owner_id: 0
 owner_claim_nonce: ""
@@ -19,6 +19,21 @@ registered_groups: []
 enrollment_nonces: []
 pending_registrations: []
 unknown_group_leaves: []
+limits_revision: 0
+limits:
+  timeout_seconds: 0
+  ban_seconds: 0
+  mute_seconds: 0
+  lookup_ttl_seconds: 0
+  verify_retry_seconds: 0
+  verify_max_fails: 0
+  warn_limit: 0
+  private_query_per_min: 0
+  questions: 0
+  fallback_questions: 0
+  channel_whitelist: 0
+  trusted_member_group_ids: 0
+  known_chat_ids: 0
 groups: {}
 `
 
@@ -68,6 +83,8 @@ var settingsCopyRules = []copyRule{
 	{configupgrade.List, []string{"enrollment_nonces"}},
 	{configupgrade.List, []string{"pending_registrations"}},
 	{configupgrade.List, []string{"unknown_group_leaves"}},
+	{configupgrade.Int, []string{"limits_revision"}},
+	{configupgrade.Map, []string{"limits"}},
 }
 
 var groupCopyRules = []copyRule{

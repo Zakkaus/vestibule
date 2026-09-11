@@ -181,8 +181,8 @@ func TestChatResponsesIncludeRegisteredTitlesAndKeepMissingTitlesOptional(t *tes
 		t.Fatal(err)
 	}
 	want := []chatResponse{
-		{ID: strconv.FormatInt(namedChatID, 10), Title: title},
-		{ID: strconv.FormatInt(unnamedChatID, 10)},
+		{ID: strconv.FormatInt(namedChatID, 10), Title: title, Owner: nil, Administrators: []ChatAdministrator{}, AdministratorsStatus: "unavailable"},
+		{ID: strconv.FormatInt(unnamedChatID, 10), Owner: nil, Administrators: []ChatAdministrator{}, AdministratorsStatus: "unavailable"},
 	}
 	if response.Code != http.StatusOK || !reflect.DeepEqual(body.Chats, want) {
 		t.Fatalf("chat list response lost its registered title or ID fallback: status=%d chats=%+v want=%+v",

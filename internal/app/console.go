@@ -28,7 +28,7 @@ func newConsoleAuthentication(
 	accessObserver auth.AccessAvailabilityObserver,
 ) (*auth.Manager, th.Handler, error) {
 	manager, err := auth.New(auth.Config{
-		BotToken: options.Token, AdminChecker: connector,
+		BotToken: options.Token, AdminChecker: connector, RightsChecker: connector,
 		OperatorAllowed: operatorIsOwner(state),
 		AccessObserver:  accessObserver,
 	})

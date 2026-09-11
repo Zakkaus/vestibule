@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@react-spectrum/s2/Button";
 
 import { Icon, type IconName } from "../../icons";
+import { SettingsLimitNotice } from "../../components/SettingsLimitNotice";
 import type { ApiRequestError } from "../../lib/api";
 import type { SettingSource, SettingValue } from "./api";
 import type { ModerationEvaluation, ModerationField } from "./model";
@@ -28,6 +29,7 @@ const errorMessageKeys: Readonly<Record<string, string>> = {
   chat_not_found: "moderation.errors.chatNotFound",
   csrf_invalid: "moderation.errors.csrfInvalid",
   invalid_settings: "moderation.errors.invalidSettings",
+  settings_limit_exceeded: "moderation.errors.settingsLimitExceeded",
   settings_unavailable: "moderation.errors.settingsUnavailable"
 };
 
@@ -276,7 +278,13 @@ function ModerationFeedbackNotice({
       role={feedback.kind === "saved" ? "status" : "alert"}
     >
       <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
-      <span>{t(messageKey)}</span>
+      {feedback.kind === "error" &&
+      feedback.error.kind === "api" &&
+      feedback.error.code === "settings_limit_exceeded" ? (
+        <SettingsLimitNotice error={feedback.error} messageKey={messageKey} />
+      ) : (
+        <span>{t(messageKey)}</span>
+      )}
       {feedback.kind === "conflict" ? (
         <Button type="button" variant="secondary" data-slot="button" onPress={onReload}>
           <Icon name="refreshCw" />

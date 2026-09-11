@@ -74,8 +74,8 @@ func newRuntimeRegistrationFixture(
 		commandMenus: make(chan struct{}, 1),
 	}
 	caller.setMember(groupID, ownerID, &telego.ChatMemberAdministrator{
-		Status: telego.MemberStatusAdministrator,
-		User:   telego.User{ID: ownerID},
+		Status: telego.MemberStatusAdministrator, CanRestrictMembers: true,
+		User: telego.User{ID: ownerID},
 	})
 	caller.setMember(groupID, botID, &telego.ChatMemberAdministrator{
 		Status: telego.MemberStatusAdministrator,
@@ -417,7 +417,9 @@ func requireTenantAuthorizationIsolation(
 	groupA, groupB, adminID int64,
 ) {
 	t.Helper()
-	manager, err := auth.New(auth.Config{BotToken: "1:" + strings.Repeat("a", 35), AdminChecker: connector})
+	manager, err := auth.New(auth.Config{
+		BotToken: "1:" + strings.Repeat("a", 35), AdminChecker: connector, RightsChecker: connector,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -433,6 +435,7 @@ func requireTenantAuthorizationIsolation(
 	})
 	caller.setMember(groupB, adminID, &telego.ChatMemberAdministrator{
 		Status: telego.MemberStatusAdministrator, User: telego.User{ID: adminID},
+		CanInviteUsers: true, CanRestrictMembers: true, CanDeleteMessages: true,
 	})
 	if err = manager.AuthorizeChat(context.Background(), session, groupA, auth.WriteAccess); !errors.Is(err, auth.ErrAccessDenied) {
 		t.Fatalf("revoked first tenant write authorization: %v", err)

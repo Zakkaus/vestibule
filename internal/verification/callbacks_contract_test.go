@@ -121,7 +121,7 @@ type freshAdminGateway struct {
 	*fakeVerifyBot
 	fresh       bool
 	cachedCalls int
-	freshCalls  int
+	rightsCalls int
 }
 
 func (b *freshAdminGateway) CachedAdmin(context.Context, int64, int64) (bool, error) {
@@ -129,9 +129,12 @@ func (b *freshAdminGateway) CachedAdmin(context.Context, int64, int64) (bool, er
 	return true, nil
 }
 
-func (b *freshAdminGateway) FreshAdmin(context.Context, int64, int64) (bool, error) {
-	b.freshCalls++
-	return b.fresh, nil
+func (b *freshAdminGateway) FreshRights(context.Context, int64, int64) (GroupRights, error) {
+	b.rightsCalls++
+	if !b.fresh {
+		return GroupRights{}, nil
+	}
+	return GroupRights{CanInviteUsers: true, CanRestrictMembers: true, CanDeleteMessages: true}, nil
 }
 
 func TestOnlyCurrentGroupAdministratorsSettleAdministratorCallbacks(t *testing.T) {
@@ -163,8 +166,8 @@ func TestOnlyCurrentGroupAdministratorsSettleAdministratorCallbacks(t *testing.T
 			if err != nil {
 				t.Fatalf("administrator callback returned %v", err)
 			}
-			if bot.freshCalls != 1 || bot.cachedCalls != 0 {
-				t.Fatalf("administrator checks = fresh %d cached %d, want 1/0", bot.freshCalls, bot.cachedCalls)
+			if bot.rightsCalls != 1 || bot.cachedCalls != 0 {
+				t.Fatalf("administrator checks = rights %d cached %d, want 1/0", bot.rightsCalls, bot.cachedCalls)
 			}
 			if base.approves != tc.wantApprove || base.bans != tc.wantBan {
 				t.Fatalf("administrator actions = approve %d ban %d, want %d/%d",
@@ -214,9 +217,9 @@ func TestAStaleAdministratorCallbackDoesNotQueryFreshAuthorization(t *testing.T)
 			if err != nil {
 				t.Fatalf("stale administrator callback returned %v", err)
 			}
-			if bot.freshCalls != tc.wantFreshCall || bot.cachedCalls != 0 {
-				t.Fatalf("stale administrator checks = fresh %d cached %d, want %d/0",
-					bot.freshCalls, bot.cachedCalls, tc.wantFreshCall)
+			if bot.rightsCalls != tc.wantFreshCall || bot.cachedCalls != 0 {
+				t.Fatalf("stale administrator checks = rights %d cached %d, want %d/0",
+					bot.rightsCalls, bot.cachedCalls, tc.wantFreshCall)
 			}
 			if base.approves != tc.wantApprove || base.bans != 0 {
 				t.Fatalf("stale administrator actions = approve %d ban %d, want %d/0",
@@ -240,18 +243,18 @@ func TestAStaleAdministratorCallbackDoesNotQueryFreshAuthorization(t *testing.T)
 	}
 }
 
-type stagedFreshAdminGateway struct {
+type stagedFreshRightsGateway struct {
 	*fakeVerifyBot
 	mu            sync.Mutex
-	freshCalls    int
+	rightsCalls   int
 	firstReady    chan struct{}
 	secondReady   chan struct{}
 	releaseFirst  chan struct{}
 	releaseSecond chan struct{}
 }
 
-func newStagedFreshAdminGateway() *stagedFreshAdminGateway {
-	return &stagedFreshAdminGateway{
+func newStagedFreshRightsGateway() *stagedFreshRightsGateway {
+	return &stagedFreshRightsGateway{
 		fakeVerifyBot: newFakeVerifyBot(),
 		firstReady:    make(chan struct{}, 1),
 		secondReady:   make(chan struct{}, 1),
@@ -260,10 +263,10 @@ func newStagedFreshAdminGateway() *stagedFreshAdminGateway {
 	}
 }
 
-func (b *stagedFreshAdminGateway) FreshAdmin(context.Context, int64, int64) (bool, error) {
+func (b *stagedFreshRightsGateway) FreshRights(context.Context, int64, int64) (GroupRights, error) {
 	b.mu.Lock()
-	b.freshCalls++
-	call := b.freshCalls
+	b.rightsCalls++
+	call := b.rightsCalls
 	b.mu.Unlock()
 	switch call {
 	case 1:
@@ -273,7 +276,7 @@ func (b *stagedFreshAdminGateway) FreshAdmin(context.Context, int64, int64) (boo
 		b.secondReady <- struct{}{}
 		<-b.releaseSecond
 	}
-	return true, nil
+	return GroupRights{CanInviteUsers: true, CanRestrictMembers: true, CanDeleteMessages: true}, nil
 }
 
 func TestConcurrentAdministratorCallbacksSettleOneChallengeOnce(t *testing.T) {
@@ -290,7 +293,7 @@ func TestConcurrentAdministratorCallbacksSettleOneChallengeOnce(t *testing.T) {
 			v := newTestService(&settings.Config{GroupIDs: []int64{gid}, BanSeconds: 3600})
 			key := pkey{gid: gid, uid: uid}
 			v.pend[key] = &pending{nonce: "current", deadline: time.Now().Add(time.Hour)}
-			bot := newStagedFreshAdminGateway()
+			bot := newStagedFreshRightsGateway()
 			release := func(ch chan<- struct{}) {
 				select {
 				case ch <- struct{}{}:
@@ -310,9 +313,9 @@ func TestConcurrentAdministratorCallbacksSettleOneChallengeOnce(t *testing.T) {
 				result <- administratorCallbackResult(v, bot, update)
 			}
 			go call("first")
-			waitForFreshAdmin(t, bot.firstReady, "first callback")
+			waitForFreshRights(t, bot.firstReady, "first callback")
 			go call("second")
-			waitForFreshAdmin(t, bot.secondReady, "second callback")
+			waitForFreshRights(t, bot.secondReady, "second callback")
 			release(bot.releaseSecond)
 			waitForAdminCallback(t, result, "second callback")
 			release(bot.releaseFirst)
@@ -324,9 +327,9 @@ func TestConcurrentAdministratorCallbacksSettleOneChallengeOnce(t *testing.T) {
 			if tc.action == "ban" && bot.declines != 1 {
 				t.Fatalf("concurrent kick declines = %d, want 1", bot.declines)
 			}
-			if bot.freshCalls != 2 || len(bot.callbackAnswers) != 2 {
+			if bot.rightsCalls != 2 || len(bot.callbackAnswers) != 2 {
 				t.Fatalf("concurrent administrator checks/acknowledgements = %d/%d, want 2/2",
-					bot.freshCalls, len(bot.callbackAnswers))
+					bot.rightsCalls, len(bot.callbackAnswers))
 			}
 			wantSecond := v.adminSays(gateRequest).CannotApprove.For(i18n.LangZH)
 			if tc.action == "ban" {
@@ -351,12 +354,12 @@ func administratorCallbackResult(v *Service, bot Gateway, update Update) (err er
 	return v.OnAdminAction(NewHandlerContext(context.Background(), bot), update)
 }
 
-func waitForFreshAdmin(t *testing.T, ready <-chan struct{}, callback string) {
+func waitForFreshRights(t *testing.T, ready <-chan struct{}, callback string) {
 	t.Helper()
 	select {
 	case <-ready:
 	case <-time.After(time.Second):
-		t.Fatalf("%s did not reach fresh administrator authorization", callback)
+		t.Fatalf("%s did not reach fresh capability authorization", callback)
 	}
 }
 

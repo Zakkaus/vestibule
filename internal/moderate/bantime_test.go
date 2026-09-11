@@ -44,7 +44,7 @@ func TestBareBanTimeReportsCurrentGroupPolicy(t *testing.T) {
 	)
 	telegram := newFakeMod()
 	telegram.memberByID = map[int64]telego.ChatMember{
-		7: &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator},
+		7: fullRightsAdministrator(),
 	}
 	service := newTestService(t, &settings.Config{
 		GroupIDs:         []int64{groupID},

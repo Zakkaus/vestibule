@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 
+import { ownerLimitFields } from "../src/features/owner/api";
 import { readRenderRoutes } from "./render-gate-routes";
 
 const selectedGroupID = "-1009000010001";
@@ -134,15 +135,24 @@ async function mockSpacingTransport(page: Page): Promise<void> {
       await fulfillJSON(route, {
         subject: { telegram_id: actorID, role: "operator" },
         expires_at: "2026-09-02T03:00:00Z",
+        is_owner: true,
         csrf_token: "spacing-csrf"
       });
       return;
     }
     if (path === "/api/chats" && request.method() === "GET") {
       await fulfillJSON(route, { chats: [
-        { id: selectedGroupID, title: "Gentoo-zh Community" },
-        { id: "-1009000000203", title: "Gentoo Package Updates" }
+        { id: selectedGroupID, title: "Gentoo-zh Community", owner: null, administrators: [], administrators_status: "unavailable" },
+        { id: "-1009000000203", title: "Gentoo Package Updates", owner: null, administrators: [], administrators_status: "unavailable" }
       ] });
+      return;
+    }
+    if (path === "/api/owner/limits" && request.method() === "GET") {
+      await fulfillJSON(route, {
+        revision: 0,
+        limits: Object.fromEntries(ownerLimitFields.map((field) => [field, 0])),
+        violations: []
+      });
       return;
     }
     if (path === `/api/chats/${selectedGroupID}/settings` && request.method() === "GET") {

@@ -113,12 +113,13 @@ async function mockQuestionTransport(
       await fulfillJSON(route, {
         subject: { telegram_id: actorID, role: "manager" },
         expires_at: "2026-09-01T02:00:00Z",
+        is_owner: false,
         csrf_token: "questions-csrf"
       });
       return;
     }
     if (path === "/api/chats" && request.method() === "GET") {
-      await fulfillJSON(route, { chats: [{ id: selectedGroupID, title: "Gentoo-zh Community" }] });
+      await fulfillJSON(route, { chats: [{ id: selectedGroupID, title: "Gentoo-zh Community", owner: null, administrators: [], administrators_status: "unavailable" }] });
       return;
     }
     if (path === `/api/chats/${selectedGroupID}/settings` && request.method() === "GET") {

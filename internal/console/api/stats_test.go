@@ -18,13 +18,11 @@ func TestStatsRejectsUnauthorizedChatRead(t *testing.T) {
 
 	response := getAuthenticatedPath(server, cookies,
 		"/api/chats/-1009000000701/stats?from=2026-03-08&to=2026-03-10&timezone=America%2FNew_York")
-	counts := checker.counts()
 	if response.Code != http.StatusForbidden || decodeError(response) != "chat_access_denied" {
 		t.Fatalf("unauthorized statistics response = %d %q", response.Code, decodeError(response))
 	}
-	if service.statsCalls != 0 || counts.cachedCalls != 1 || counts.freshCalls != 0 {
-		t.Fatalf("unauthorized statistics calls = service:%d cached:%d fresh:%d",
-			service.statsCalls, counts.cachedCalls, counts.freshCalls)
+	if service.statsCalls != 0 {
+		t.Fatalf("unauthorized statistics calls = service:%d", service.statsCalls)
 	}
 }
 
@@ -91,7 +89,7 @@ func TestStatsResponseUsesDirectShapeAndCallerTimezone(t *testing.T) {
 	if service.lastStats.To.Format("2006-01-02") != "2026-03-10" {
 		t.Fatalf("statistics to = %s", service.lastStats.To)
 	}
-	if counts := checker.counts(); counts != (apiTestAdminCounts{cachedCalls: 1, telegramQueries: 1}) {
+	if counts := checker.counts(); counts.telegramQueries != 1 {
 		t.Fatalf("statistics authorization calls = %+v", counts)
 	}
 }

@@ -182,6 +182,7 @@ func (s *registrationService) handlerRoutes() []registrationRoute {
 	return []registrationRoute{
 		{name: "registration.owner_claim", handler: s.onOwnerClaim, predicates: []th.Predicate{th.And(th.CommandEqual("start"), startPayloadPrefix("owner_"), privateMessage)}},
 		{name: "registration.enrollment_start", handler: s.onEnrollmentStart, predicates: []th.Predicate{th.And(th.CommandEqual("start"), startPayloadPrefix("enroll_"))}},
+		{name: "registration.start_identity", handler: s.onStartIdentity, predicates: []th.Predicate{th.And(th.TextPrefix("/"), s.registrationStartIdentity)}},
 		{name: "registration.enrollment_command", handler: s.onEnrollmentCommand, predicates: []th.Predicate{th.And(th.CommandEqual("enroll"), privateMessage)}},
 		{name: "registration.unregister_command", handler: s.onUnregisterCommand, predicates: []th.Predicate{th.And(th.CommandEqual("unregister"), privateMessage)}},
 		{name: "registration.unknown_membership", handler: s.onMyChatMember, predicates: []th.Predicate{s.registrationMembershipUpdate}},
@@ -191,6 +192,28 @@ func (s *registrationService) handlerRoutes() []registrationRoute {
 
 func privateMessage(_ context.Context, update telego.Update) bool {
 	return update.Message != nil && update.Message.Chat.Type == telego.ChatTypePrivate
+}
+
+func (s *registrationService) registrationStartIdentity(_ context.Context, update telego.Update) bool {
+	message := update.Message
+	if message == nil || message.From == nil || message.Chat.Type != telego.ChatTypePrivate {
+		return false
+	}
+	if s.settings.Registrations().OwnerID != 0 {
+		return false
+	}
+	fields := strings.Fields(message.Text)
+	if len(fields) != 1 {
+		return false
+	}
+	command := strings.TrimPrefix(strings.ToLower(fields[0]), "/")
+	if at := strings.IndexByte(command, '@'); at >= 0 {
+		if !strings.EqualFold(command[at+1:], s.username) {
+			return false
+		}
+		command = command[:at]
+	}
+	return command == "start"
 }
 
 func startPayloadPrefix(prefix string) th.Predicate {
@@ -307,6 +330,17 @@ func (s *registrationService) onOwnerClaim(ctx *th.Context, update telego.Update
 	if s.onOwnerClaimed != nil {
 		s.onOwnerClaimed(ctx.Context())
 	}
+	return nil
+}
+
+func (s *registrationService) onStartIdentity(ctx *th.Context, update telego.Update) error {
+	message := update.Message
+	if message == nil || message.From == nil {
+		return nil
+	}
+	l := i18n.FromRequester(message.From.LanguageCode, i18n.LangEN)
+	s.sendRegistrationText(ctx.Context(), message.Chat.ID,
+		i18n.Messages.Bot.Registration.StartIdentity.Render(l, message.From.ID))
 	return nil
 }
 

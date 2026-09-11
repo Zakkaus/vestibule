@@ -11,6 +11,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/telegram/ids"
 	"github.com/Zakkaus/vestibule/internal/telegram/queue"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
+	"github.com/Zakkaus/vestibule/internal/verification"
 
 	"github.com/mymmrac/telego"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -308,9 +309,41 @@ func (c *Connector) CachedAdmin(ctx context.Context, chatID, userID int64) (bool
 	return c.fetchAdmin(ctx, key)
 }
 
-// FreshAdmin bypasses the positive cache for destructive authorization checks.
+// FreshAdmin checks uncached administrator identity for target protection, registration,
+// and read-only group enumeration. Caller authorization for writes uses FreshRights.
 func (c *Connector) FreshAdmin(ctx context.Context, chatID, userID int64) (bool, error) {
 	return c.fetchAdmin(ctx, adminKey{chatID: chatID, userID: userID})
+}
+
+// FreshRights reads the caller's current Telegram capabilities without using the identity cache.
+// Creator status grants every capability used by administrator-controlled writes.
+func (c *Connector) FreshRights(ctx context.Context, chatID, userID int64) (verification.GroupRights, error) {
+	member, err := c.bot.GetChatMember(ctx, &telego.GetChatMemberParams{
+		ChatID: tu.ID(chatID), UserID: userID,
+	})
+	if err != nil {
+		return verification.GroupRights{}, err
+	}
+	if member == nil {
+		return verification.GroupRights{}, errors.New("get chat member returned no result")
+	}
+	if member.MemberUser().IsBot {
+		return verification.GroupRights{}, nil
+	}
+	switch typed := member.(type) {
+	case *telego.ChatMemberOwner:
+		return verification.GroupRights{
+			CanInviteUsers: true, CanRestrictMembers: true, CanDeleteMessages: true,
+		}, nil
+	case *telego.ChatMemberAdministrator:
+		return verification.GroupRights{
+			CanInviteUsers:     typed.CanInviteUsers,
+			CanRestrictMembers: typed.CanRestrictMembers,
+			CanDeleteMessages:  typed.CanDeleteMessages,
+		}, nil
+	default:
+		return verification.GroupRights{}, nil
+	}
 }
 
 // MissingModRights reports missing invite, restrict, and delete capabilities for an administrator.

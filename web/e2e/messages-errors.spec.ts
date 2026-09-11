@@ -45,12 +45,13 @@ async function mockMessagesTransport(
       await fulfillJSON(route, {
         subject: { telegram_id: actorID, role: "manager" },
         expires_at: "2026-09-02T12:00:00Z",
+        is_owner: false,
         csrf_token: "messages-errors-csrf"
       });
       return;
     }
     if (path === "/api/chats" && request.method() === "GET") {
-      await fulfillJSON(route, { chats: [{ id: groupID }] });
+      await fulfillJSON(route, { chats: [{ id: groupID, owner: null, administrators: [], administrators_status: "unavailable" }] });
       return;
     }
     if (path === `/api/chats/${groupID}/settings`) {

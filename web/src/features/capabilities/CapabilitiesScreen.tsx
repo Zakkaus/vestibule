@@ -9,6 +9,7 @@ import {
   useConsoleSession
 } from "../../app/session";
 import { Icon } from "../../icons";
+import { SettingsLimitNotice } from "../../components/SettingsLimitNotice";
 import type { IconName } from "../../icons";
 import type { ApiRequestError } from "../../lib/api";
 import {
@@ -38,6 +39,7 @@ const errorMessageKeys: Readonly<Record<string, string>> = {
   chat_not_found: "capabilities.errors.chatNotFound",
   csrf_invalid: "capabilities.errors.csrfInvalid",
   invalid_settings: "capabilities.errors.invalidSettings",
+  settings_limit_exceeded: "capabilities.errors.settingsLimitExceeded",
   settings_unavailable: "capabilities.errors.settingsUnavailable"
 };
 
@@ -398,16 +400,25 @@ export function CapabilitiesScreen() {
           role={feedback.kind === "saved" ? "status" : "alert"}
           aria-atomic="true"
         >
-          <span>
+          <div>
             <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
-            {t(
-              feedback.kind === "saved"
-                ? "capabilities.feedback.saved"
-                : feedback.kind === "conflict"
-                  ? "capabilities.feedback.conflict"
-                  : capabilityErrorMessageKey(feedback.error, "capabilities.errors.saveUnavailable")
+            {feedback.kind === "error" &&
+            feedback.error.kind === "api" &&
+            feedback.error.code === "settings_limit_exceeded" ? (
+              <SettingsLimitNotice
+                error={feedback.error}
+                messageKey="capabilities.errors.settingsLimitExceeded"
+              />
+            ) : (
+              t(
+                feedback.kind === "saved"
+                  ? "capabilities.feedback.saved"
+                  : feedback.kind === "conflict"
+                    ? "capabilities.feedback.conflict"
+                    : capabilityErrorMessageKey(feedback.error, "capabilities.errors.saveUnavailable")
+              )
             )}
-          </span>
+          </div>
           {feedback.kind === "conflict" ||
           (feedback.kind === "error" &&
             (feedback.error.kind === "network" ||

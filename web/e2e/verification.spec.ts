@@ -68,12 +68,13 @@ async function mockVerificationTransport(
       await fulfillJSON(route, {
         subject: { telegram_id: actorID, role: "manager" },
         expires_at: "2026-09-01T02:00:00Z",
+        is_owner: false,
         csrf_token: "verification-csrf"
       });
       return;
     }
     if (path === "/api/chats" && request.method() === "GET") {
-      await fulfillJSON(route, { chats: [{ id: selectedGroupID, title: "Gentoo-zh Community" }] });
+      await fulfillJSON(route, { chats: [{ id: selectedGroupID, title: "Gentoo-zh Community", owner: null, administrators: [], administrators_status: "unavailable" }] });
       return;
     }
     if (path === `/api/chats/${selectedGroupID}/settings` && request.method() === "GET") {
@@ -143,6 +144,34 @@ test("verification saves only the edited field through the shared CSRF transport
   await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "quiz");
   await expect(page.getByText("来源：此群覆盖")).toBeVisible();
   await expect(page.locator("[data-verification-feedback]")).toContainText("已保存验证设置");
+});
+
+test("verification explains an existing cap violation and keeps the rejected draft", async ({ page }) => {
+  await openLiveVerification(
+    page,
+    async route => fulfillJSON(route, settingsResponse()),
+    async route => fulfillJSON(route, {
+      error: { code: "settings_limit_exceeded" },
+      violations: [{
+        chat_id: selectedGroupID,
+        field: "timeout_seconds",
+        value: 240,
+        limit: 120
+      }]
+    }, 400)
+  );
+
+  await selectAppOption(page.locator("#verification-mode"), "quiz");
+  await page.getByRole("button", { name: "保存更改" }).click();
+  const feedback = page.locator("[data-verification-feedback]");
+  await expect(feedback).toHaveAttribute("role", "alert");
+  const violations = feedback.locator("[data-settings-limit-violations]");
+  await expect(violations).toContainText(selectedGroupID);
+  await expect(violations).toContainText("240");
+  await expect(violations).toContainText("120");
+  await expect(violations).not.toContainText("owner.fields.");
+  await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "quiz");
+  await expect(page.getByRole("button", { name: "保存更改" })).toBeEnabled();
 });
 
 test("verification restores only the selected chat override with null", async ({ page }) => {

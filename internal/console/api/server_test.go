@@ -28,15 +28,17 @@ type apiTestAdminChecker struct {
 	mu              sync.Mutex
 	allowed         bool
 	err             error
+	rights          verification.GroupRights
+	rightsSet       bool
 	cache           map[[2]int64]struct{}
 	cachedCalls     int
-	freshCalls      int
+	rightsCalls     int
 	telegramQueries int
 }
 
 type apiTestAdminCounts struct {
 	cachedCalls     int
-	freshCalls      int
+	rightsCalls     int
 	telegramQueries int
 }
 
@@ -51,11 +53,18 @@ func (c *apiTestAdminChecker) CachedAdmin(_ context.Context, chatID, userID int6
 	return c.queryLocked(key)
 }
 
-func (c *apiTestAdminChecker) FreshAdmin(_ context.Context, chatID, userID int64) (bool, error) {
+func (c *apiTestAdminChecker) FreshRights(_ context.Context, chatID, _ int64) (verification.GroupRights, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.freshCalls++
-	return c.queryLocked([2]int64{chatID, userID})
+	c.rightsCalls++
+	allowed, err := c.queryLocked([2]int64{chatID, 0})
+	if err != nil || !allowed {
+		return verification.GroupRights{}, err
+	}
+	if c.rightsSet {
+		return c.rights, nil
+	}
+	return verification.GroupRights{CanInviteUsers: true, CanRestrictMembers: true, CanDeleteMessages: true}, nil
 }
 
 func (c *apiTestAdminChecker) queryLocked(key [2]int64) (bool, error) {
@@ -84,7 +93,8 @@ func (c *apiTestAdminChecker) counts() apiTestAdminCounts {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return apiTestAdminCounts{
-		cachedCalls: c.cachedCalls, freshCalls: c.freshCalls, telegramQueries: c.telegramQueries,
+		cachedCalls: c.cachedCalls, rightsCalls: c.rightsCalls,
+		telegramQueries: c.telegramQueries,
 	}
 }
 
@@ -253,7 +263,8 @@ func TestOperatorCanSettleAfterReadingCurrentSession(t *testing.T) {
 		},
 	}
 	manager, err := auth.New(auth.Config{
-		BotToken: apiTestToken, Now: func() time.Time { return now }, AdminChecker: checker,
+		BotToken: apiTestToken, Now: func() time.Time { return now },
+		AdminChecker: checker, RightsChecker: checker,
 		OperatorAllowed: func(id int64) bool { return id == 9 },
 	})
 	if err != nil {
@@ -310,7 +321,7 @@ func TestPostSettlementRejectsMembershipLookupFailure(t *testing.T) {
 	t.Logf("getChatMember query failure -> %d; settlement calls=%d", response.Code, queue.settlementCalls)
 }
 
-func TestPostSettlementUsesFreshAdminAfterCachedRead(t *testing.T) {
+func TestPostSettlementRejectsRevokedRightsAfterCachedRead(t *testing.T) {
 	checker := &apiTestAdminChecker{allowed: true}
 	queue := &apiTestQueueService{groups: []int64{-100}}
 	server, cookies, csrf := apiTestServer(t, checker, queue, nil)
@@ -320,17 +331,41 @@ func TestPostSettlementUsesFreshAdminAfterCachedRead(t *testing.T) {
 	}
 	checker.setAllowed(false)
 	write := postSettlement(server, cookies, csrf, -100, "-100:42:nonce")
-	counts := checker.counts()
 	if write.Code != http.StatusForbidden || decodeError(write) != "chat_access_denied" ||
-		counts.cachedCalls != 1 || counts.freshCalls != 1 || counts.telegramQueries != 2 ||
 		queue.settlementCalls != 0 {
-		t.Fatalf("write status=%d code=%s cached_reads=%d fresh_writes=%d Telegram_queries=%d settlement_calls=%d",
-			write.Code, decodeError(write), counts.cachedCalls, counts.freshCalls, counts.telegramQueries,
-			queue.settlementCalls)
+		t.Fatalf("write status=%d code=%s settlement_calls=%d, want 403, chat_access_denied, and 0",
+			write.Code, decodeError(write), queue.settlementCalls)
 	}
-	t.Logf("write_status=%d code=%s cached_reads=%d fresh_writes=%d Telegram_queries=%d settlement_calls=%d",
-		write.Code, decodeError(write), counts.cachedCalls, counts.freshCalls, counts.telegramQueries,
-		queue.settlementCalls)
+	t.Logf("warm read then revoked write -> status=%d code=%s settlement_calls=%d",
+		write.Code, decodeError(write), queue.settlementCalls)
+}
+
+func TestPostSettlementRequiresEveryFreshCapability(t *testing.T) {
+	cases := []struct {
+		name   string
+		rights verification.GroupRights
+	}{
+		{name: "none", rights: verification.GroupRights{}},
+		{name: "invite only", rights: verification.GroupRights{CanInviteUsers: true}},
+		{name: "restrict only", rights: verification.GroupRights{CanRestrictMembers: true}},
+		{name: "delete only", rights: verification.GroupRights{CanDeleteMessages: true}},
+		{name: "invite and restrict", rights: verification.GroupRights{CanInviteUsers: true, CanRestrictMembers: true}},
+		{name: "invite and delete", rights: verification.GroupRights{CanInviteUsers: true, CanDeleteMessages: true}},
+		{name: "restrict and delete", rights: verification.GroupRights{CanRestrictMembers: true, CanDeleteMessages: true}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			checker := &apiTestAdminChecker{allowed: true, rights: tc.rights, rightsSet: true}
+			queue := &apiTestQueueService{groups: []int64{-100}}
+			server, cookies, csrf := apiTestServer(t, checker, queue, nil)
+			response := postSettlement(server, cookies, csrf, -100, "-100:42:nonce")
+			if response.Code != http.StatusForbidden || decodeError(response) != "chat_access_denied" ||
+				queue.settlementCalls != 0 {
+				t.Fatalf("status=%d code=%s settlement_calls=%d, want 403, chat_access_denied, and 0",
+					response.Code, decodeError(response), queue.settlementCalls)
+			}
+		})
+	}
 }
 
 func TestChatsReusesPositiveAdminCache(t *testing.T) {
@@ -342,12 +377,10 @@ func TestChatsReusesPositiveAdminCache(t *testing.T) {
 	second := getAuthenticatedPath(server, cookies, "/api/chats")
 	secondCounts := checker.counts()
 	if first.Code != http.StatusOK || second.Code != http.StatusOK || firstCounts.telegramQueries != 1 ||
-		secondCounts.telegramQueries != firstCounts.telegramQueries || secondCounts.cachedCalls != 2 ||
-		secondCounts.freshCalls != 0 {
-		t.Fatalf("statuses=%d,%d first_queries=%d second_query_delta=%d cached_calls=%d fresh_calls=%d",
+		secondCounts.telegramQueries != firstCounts.telegramQueries {
+		t.Fatalf("statuses=%d,%d first_queries=%d second_query_delta=%d",
 			first.Code, second.Code, firstCounts.telegramQueries,
-			secondCounts.telegramQueries-firstCounts.telegramQueries,
-			secondCounts.cachedCalls, secondCounts.freshCalls)
+			secondCounts.telegramQueries-firstCounts.telegramQueries)
 	}
 	t.Logf("first_queries=%d second_query_delta=%d total_queries=%d",
 		firstCounts.telegramQueries, secondCounts.telegramQueries-firstCounts.telegramQueries,
@@ -435,7 +468,11 @@ func apiTestServer(
 		t.Fatal("apiTestServer accepts at most one settings service")
 	}
 	now := time.Unix(1_800_000_000, 0)
-	manager, err := auth.New(auth.Config{BotToken: apiTestToken, Now: func() time.Time { return now }, AdminChecker: checker})
+	rightsChecker, _ := checker.(auth.RightsChecker)
+	manager, err := auth.New(auth.Config{
+		BotToken: apiTestToken, Now: func() time.Time { return now },
+		AdminChecker: checker, RightsChecker: rightsChecker,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

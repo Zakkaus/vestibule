@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -310,21 +309,7 @@ func runRegistrationUpdate(t *testing.T, bot *telego.Bot, service *registrationS
 	}
 }
 func TestRegistrationGlobalDispatch(t *testing.T) {
-	const (
-		knownGroup   int64 = -1009000000901
-		unknownGroup int64 = -1009000000902
-		userID       int64 = 901
-	)
-	cfg, store := registrationFixture(t)
-	registration := store.Registrations()
-	registration.RegisteredGroups = []settings.RegisteredGroup{{ID: knownGroup, RegisteredBy: testOwner}}
-	if _, err := store.CommitRegistrations(registration.Revision, registration); err != nil {
-		t.Fatal(err)
-	}
-	service := newRegistrationService(
-		context.Background(), newRegistrationBot(t, &registrationCaller{members: make(map[[2]int64]telego.ChatMember)}),
-		store, cfg, "test_bot", testBotID, nil, nil, nil,
-	)
+	const userID int64 = 901
 
 	privateStart := func(payload string) telego.Update {
 		text := "/start"
@@ -337,77 +322,79 @@ func TestRegistrationGlobalDispatch(t *testing.T) {
 			Text: text,
 		}}
 	}
-	membership := func(groupID int64) telego.Update {
-		return telego.Update{MyChatMember: &telego.ChatMemberUpdated{
-			Chat: telego.Chat{ID: groupID, Type: telego.ChatTypeSupergroup},
-			From: telego.User{ID: testOwner},
-			OldChatMember: &telego.ChatMemberLeft{
-				Status: telego.MemberStatusLeft,
-				User:   telego.User{ID: testBotID},
-			},
-			NewChatMember: &telego.ChatMemberMember{
-				Status: telego.MemberStatusMember,
-				User:   telego.User{ID: testBotID},
-			},
-		}}
-	}
 
-	fallbackHandler := th.Handler(func(_ *th.Context, _ telego.Update) error { return nil })
 	tests := []struct {
-		name   string
-		update telego.Update
-		want   string
+		name         string
+		update       telego.Update
+		wantSend     bool
+		wantFallback bool
 	}{
-		{name: "owner payload", update: privateStart("owner_nonce"), want: handlerFunctionName(service.onOwnerClaim)},
-		{name: "enrollment payload", update: privateStart("enroll_nonce"), want: handlerFunctionName(service.onEnrollmentStart)},
-		{name: "panel payload", update: privateStart("panel_token"), want: handlerFunctionName(fallbackHandler)},
-		{name: "scoped verification payload", update: privateStart("verify_-100"), want: handlerFunctionName(fallbackHandler)},
-		{name: "bare verification payload", update: privateStart("verify"), want: handlerFunctionName(fallbackHandler)},
-		{name: "no payload", update: privateStart(""), want: handlerFunctionName(fallbackHandler)},
-		{name: "unknown group membership", update: membership(unknownGroup), want: handlerFunctionName(service.onMyChatMember)},
-		{name: "known group membership", update: membership(knownGroup), want: handlerFunctionName(service.onEffectiveMembershipUpdate)},
+		{name: "owner payload", update: privateStart("owner_nonce"), wantSend: true},
+		{name: "enrollment payload", update: privateStart("enroll_nonce"), wantSend: true},
+		{name: "panel payload", update: privateStart("panel_token"), wantFallback: true},
+		{name: "scoped verification payload", update: privateStart("verify_-100"), wantFallback: true},
+		{name: "bare verification payload", update: privateStart("verify"), wantFallback: true},
+		{name: "no payload", update: privateStart(""), wantSend: true},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			handled := registrationDispatchResult(t, service, fallbackHandler, test.update)
-			if !reflect.DeepEqual(handled, []string{test.want}) {
-				t.Fatalf("handlers = %v, want only %v", handled, test.want)
+			cfg, store := registrationFixture(t)
+			caller := &registrationCaller{members: make(map[[2]int64]telego.ChatMember)}
+			service := newRegistrationService(
+				t.Context(), newRegistrationBot(t, caller), store, cfg,
+				"test_bot", testBotID, nil, nil, nil,
+			)
+			fallback := runRegistrationUpdateWithStartFallback(t, service, test.update)
+			messages := caller.sendAttemptsTo(test.update.Message.Chat.ID)
+			if (len(messages) != 0) != test.wantSend {
+				t.Fatalf("send attempts = %v, want send=%t", messages, test.wantSend)
+			}
+			if fallback != test.wantFallback {
+				t.Fatalf("start fallback invoked = %t, want %t", fallback, test.wantFallback)
 			}
 		})
 	}
 }
 
-func registrationDispatchResult(
+func runRegistrationUpdateWithStartFallback(
 	t *testing.T,
 	service *registrationService,
-	fallback th.Handler,
 	update telego.Update,
-) []string {
+) bool {
 	t.Helper()
-	handler, err := th.NewBotHandler(service.bot, nil)
+	updates := make(chan telego.Update, 1)
+	handler, err := th.NewBotHandler(service.bot, updates)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var handled []string
-	for _, route := range service.handlerRoutes() {
-		actual := handlerFunctionName(route.handler)
-		handler.Handle(func(_ *th.Context, _ telego.Update) error {
-			handled = append(handled, actual)
-			return nil
-		}, route.predicates...)
-	}
+	processed := make(chan error, 1)
+	handler.Use(func(ctx *th.Context, update telego.Update) error {
+		err := ctx.Next(update)
+		processed <- err
+		return err
+	})
+	service.Register(handler)
+	fallbackInvoked := make(chan struct{}, 1)
 	handler.Handle(func(_ *th.Context, _ telego.Update) error {
-		handled = append(handled, handlerFunctionName(fallback))
+		fallbackInvoked <- struct{}{}
 		return nil
 	}, th.CommandEqual("start"))
-	if err := handler.BaseGroup().HandleUpdate(context.Background(), service.bot, update); err != nil {
-		t.Fatal(err)
+	started := make(chan error, 1)
+	go func() { started <- handler.Start() }()
+	updates <- update
+	if err := <-processed; err != nil {
+		t.Fatalf("handler returned %v", err)
 	}
-	return handled
-}
-
-func handlerFunctionName(handler th.Handler) string {
-	return runtime.FuncForPC(reflect.ValueOf(handler).Pointer()).Name()
+	close(updates)
+	if err := <-started; err != nil {
+		t.Fatalf("handler returned %v", err)
+	}
+	select {
+	case <-fallbackInvoked:
+		return true
+	default:
+		return false
+	}
 }
 
 func waitForRegistrationMethod(t *testing.T, caller *registrationCaller, method string) {

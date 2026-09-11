@@ -124,6 +124,12 @@ def runtime_template_values(
         source = sources.get(Path("features/version/VersionScreen.tsx"))
         match = re.search(r'\bscope:\s*((?:"[A-Za-z][A-Za-z0-9_-]*"\s*\|\s*)+"[A-Za-z][A-Za-z0-9_-]*")', source) if source else None
         values = quoted_values(match.group(1)) if match else None
+    elif (prefix, expression, suffix) == ("groups.permissions.", "key", ""):
+        values = declared_array_values(sources, Path("app/session.ts"), "consoleChatPermissionKeys")
+    elif (prefix, expression, suffix) == ("groups.administrators.", "administrator.status", ""):
+        values = declared_type_values(sources, Path("app/session.ts"), "ConsoleChatAdministratorStatus")
+    elif prefix == "owner.fields." and expression in {"field", "violation.field"} and suffix == "":
+        values = declared_array_values(sources, Path("features/owner/api.ts"), "ownerLimitFields")
     else:
         return None
     return {prefix + value + suffix for value in values} if values else None

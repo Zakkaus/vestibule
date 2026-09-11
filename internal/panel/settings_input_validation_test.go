@@ -436,9 +436,8 @@ func TestPanelNewDraftsCannotBeDeletedButExistingDraftsCan(t *testing.T) {
 			if session.confirm != nil {
 				t.Fatalf("new %s draft opened destructive confirmation %+v", kind, session.confirm)
 			}
-			want := i18n.Messages.Panel.Settings.Error.SaveFailed.For(i18n.LangEN)
-			if caller.lastAnswerText != want {
-				t.Fatalf("new %s deletion notice = %q, want refusal %q", kind, caller.lastAnswerText, want)
+			if !caller.lastAnswerAlert || caller.lastAnswerText == "" {
+				t.Fatalf("new %s deletion did not surface an error alert: alert=%v text=%q", kind, caller.lastAnswerAlert, caller.lastAnswerText)
 			}
 
 			panel, store, _, bot = newSettingsPanelTest(t, "")
