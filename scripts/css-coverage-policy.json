@@ -23,6 +23,7 @@
     "data-header-title": "Current route title metadata does not style the Spectrum Text primitive.",
     "data-home-attention": "Attention identity supports API outcome checks; Spectrum Card owns its appearance.",
     "data-home-attention-copy": "Attention content identity does not style the Spectrum Content slot.",
+    "data-home-attention-tone": "Tone identity names the badge a journey asserts on; Spectrum Badge owns its appearance.",
     "data-home-attention-empty": "All-clear identity supports alignment checks; Spectrum Content and Badge own its appearance.",
     "data-home-attention-list": "Attention collection identity does not style its Spectrum macro grid.",
     "data-home-chart-reading": "Keyboard reading identity supports date/value assertions; Spectrum Content owns its appearance.",

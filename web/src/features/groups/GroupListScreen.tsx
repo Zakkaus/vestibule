@@ -1,6 +1,7 @@
 import { type ReactNode, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
+import { Button } from "@react-spectrum/s2/Button";
 
 import {
   retryConsoleGroups,
@@ -102,7 +103,7 @@ function OpenQueueLink({ groupId, groupName }: Readonly<{ groupId: string; group
     <Link
       data-slot="button"
       data-size="sm"
-      data-variant="primary"
+      data-variant="accent"
       data-select-group={groupId}
       to={`/queue?${query.toString()}`}
       aria-label={t("groups.actions.openQueueFor", { group: groupName })}
@@ -380,16 +381,10 @@ function GroupsUnavailable({
   const presentation = groupErrorPresentation(error);
   const action =
     canRetry && presentation.retryable ? (
-      <button
-        data-slot="button"
-        data-size="sm"
-        data-variant="primary"
-        type="button"
-        onClick={() => void retryConsoleGroups()}
-      >
+      <Button variant="secondary" size="S" data-slot="button" data-size="sm" onPress={() => void retryConsoleGroups()}>
         <Icon name="refreshCw" />
         {t("groups.actions.retry")}
-      </button>
+      </Button>
     ) : undefined;
 
   return (

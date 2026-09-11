@@ -1,3 +1,5 @@
+import { Button } from "@react-spectrum/s2/Button";
+import { Text } from "@react-spectrum/s2";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
@@ -7,6 +9,7 @@ import {
   retryConsoleAccess,
   useConsoleSession
 } from "../../app/session";
+import { useConsoleSize } from "../../components/ConsoleProvider";
 import { Icon, type IconName } from "../../icons";
 import type { ApiRequestError } from "../../lib/api";
 import {
@@ -100,6 +103,7 @@ function StateCard({
 
 export function VerificationScreen() {
   const { t } = useTranslation();
+  const size = useConsoleSize("L");
   const session = useConsoleSession();
   const [searchParams] = useSearchParams();
   const selectedGroupID = searchParams.get("group");
@@ -330,16 +334,16 @@ export function VerificationScreen() {
           )}
           role="alert"
         >
-          <button
+          <Button
             type="button"
+            variant="primary"
+            size={size}
             data-slot="button"
-            data-variant="outline"
-            data-size="sm"
-            onClick={reloadVerification}
+            onPress={reloadVerification}
           >
             <Icon name="refreshCw" />
-            {t("verification.unavailable.retry")}
-          </button>
+            <Text>{t("verification.unavailable.retry")}</Text>
+          </Button>
         </StateCard>
       ) : null}
       {screenState.kind === "loaded" && draft ? (
@@ -371,16 +375,16 @@ export function VerificationScreen() {
                 : verificationErrorMessageKey(feedback.error, "verification.errors.saveUnavailable")
           )}
           {feedback.kind === "error" && feedback.error.kind === "network" ? (
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size={size}
               data-slot="button"
-              data-variant="outline"
-              data-size="sm"
-              onClick={reloadVerification}
+              onPress={reloadVerification}
             >
               <Icon name="refreshCw" />
-              {t("verification.actions.reload")}
-            </button>
+              <Text>{t("verification.actions.reload")}</Text>
+            </Button>
           ) : null}
         </div>
       ) : null}

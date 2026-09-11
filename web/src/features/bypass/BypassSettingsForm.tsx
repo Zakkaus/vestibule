@@ -1,6 +1,9 @@
+import { Button } from "@react-spectrum/s2/Button";
+import { Text } from "@react-spectrum/s2";
 import type { FormEvent, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useConsoleSize } from "../../components/ConsoleProvider";
 import { Icon } from "../../icons";
 import type { SettingSource, SettingValue } from "./api";
 import type {
@@ -46,6 +49,7 @@ function SettingMeta({
   onSetRestoring
 }: SettingMetaProps) {
   const { t } = useTranslation();
+  const size = useConsoleSize("L");
   return (
     <span data-setting-meta>
       <span
@@ -63,21 +67,19 @@ function SettingMeta({
         </span>
       ) : null}
       {source === "chat override" ? (
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size={size}
           data-slot="button"
-          data-variant="link"
-          data-size="sm"
-          aria-disabled={saving ? "true" : undefined}
-          onClick={() => {
-            if (!saving) {
-              onSetRestoring(field, !restoring);
-            }
+          isDisabled={saving}
+          onPress={() => {
+            onSetRestoring(field, !restoring);
           }}
         >
           <Icon name={restoring ? "x" : "rotateCcw"} />
-          {t(restoring ? "bypass.actions.cancelRestore" : "bypass.actions.restore")}
-        </button>
+          <Text>{t(restoring ? "bypass.actions.cancelRestore" : "bypass.actions.restore")}</Text>
+        </Button>
       ) : null}
     </span>
   );
@@ -356,6 +358,7 @@ function BypassFeedbackNotice({
         ? "bypass.feedback.conflict"
         : errorMessageKey(feedback.error);
   const reloadable = feedback.kind === "error" && feedback.error.kind === "network";
+  const size = useConsoleSize("L");
   return (
     <div
       data-bypass-feedback={feedback.kind}
@@ -365,16 +368,10 @@ function BypassFeedbackNotice({
       <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
       {t(messageKey)}
       {reloadable ? (
-        <button
-          type="button"
-          data-slot="button"
-          data-variant="outline"
-          data-size="sm"
-          onClick={onReload}
-        >
+        <Button type="button" variant="secondary" size={size} data-slot="button" onPress={onReload}>
           <Icon name="refreshCw" />
-          {t("bypass.actions.reload")}
-        </button>
+          <Text>{t("bypass.actions.reload")}</Text>
+        </Button>
       ) : null}
     </div>
   );
@@ -404,10 +401,14 @@ export function BypassSettingsForm({
   errorMessageKey
 }: BypassSettingsFormProps) {
   const { t } = useTranslation();
+  const size = useConsoleSize("L");
   const saveBlocked = state.saving || !evaluation.valid;
 
   function submit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
+    if (saveBlocked) {
+      return;
+    }
     onSave();
   }
 
@@ -529,36 +530,30 @@ export function BypassSettingsForm({
         >
           <span aria-live="polite">{t("bypass.save.unsaved", { count: evaluation.count })}</span>
           <span data-save-actions>
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size={size}
               data-slot="button"
-              data-variant="outline"
-              data-size="sm"
-              aria-disabled={state.saving ? "true" : undefined}
-              onClick={() => {
-                if (!state.saving) {
-                  onDiscard();
-                }
+              isDisabled={state.saving}
+              onPress={() => {
+                onDiscard();
               }}
             >
               <Icon name="trash2" />
-              {t("bypass.actions.discard")}
-            </button>
-            <button
+              <Text>{t("bypass.actions.discard")}</Text>
+            </Button>
+            <Button
               type="submit"
+              variant="accent"
+              size={size}
               data-slot="button"
-              data-variant="primary"
-              data-size="sm"
               aria-disabled={saveBlocked ? "true" : undefined}
-              onClick={(event) => {
-                if (saveBlocked) {
-                  event.preventDefault();
-                }
-              }}
+              isPending={state.saving}
             >
               <Icon name="save" />
-              {t(state.saving ? "bypass.actions.saving" : "bypass.actions.save")}
-            </button>
+              <Text>{t(state.saving ? "bypass.actions.saving" : "bypass.actions.save")}</Text>
+            </Button>
           </span>
         </aside>
       ) : null}

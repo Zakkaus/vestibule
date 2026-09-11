@@ -1,11 +1,16 @@
 import {
-  ColorSchemeContext, Content, Header, Heading, Link, Picker, PickerItem, Text
+  ColorSchemeContext,
+  Content,
+  Header,
+  Heading,
+  Link,
+  Picker,
+  PickerItem,
+  Text
 } from "@react-spectrum/s2";
 import { size, style } from "@react-spectrum/s2/style" with { type: "macro" };
-import { Chart, type ChartProps } from "@spectrum-charts/react-spectrum-charts-s2";
-import { getS2ColorValue, getSpectrum2VegaConfig } from "@spectrum-charts/themes";
-import { compile, type TopLevelSpec } from "vega-lite";
-import type { Spec } from "vega";
+import { sectionSurface } from "./surface";
+import { Axis, Bar, BarDirectLabel, Chart, ChartInspect, Line, type ChartProps } from "@spectrum-charts/react-spectrum-charts-s2";
 import { useContext, useMemo, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -20,6 +25,10 @@ type TrendPoint = {
   axisLabel: string;
   count: number;
   rate: number;
+  // LinePointAnnotation prints a field, it does not format one.
+  rateLabel: string;
+  // Line only emits annotation marks for rows flagged as static points.
+  alwaysPoint: true;
   summary: string;
 };
 
@@ -59,6 +68,8 @@ function chartModel(data: HomeData, locale: string, t: TFunction): TrendModel {
       axisLabel: axisDateFormat.format(date),
       count: day.challenges,
       rate: day.pass_rate,
+      rateLabel,
+      alwaysPoint: true as const,
       summary: t("home.trend.daySummary", {
         date: label, count: numberFormat.format(day.challenges), passRate: rateLabel
       })
@@ -72,123 +83,6 @@ function chartModel(data: HomeData, locale: string, t: TFunction): TrendModel {
   };
 }
 
-function plotSpec(
-  model: TrendModel,
-  scheme: "light" | "dark"
-): Spec {
-  const theme = getSpectrum2VegaConfig(scheme);
-  const labels = Object.fromEntries(model.points.map(({ date, axisLabel }) => [date, axisLabel]));
-  const x = {
-    field: "date",
-    type: "ordinal" as const,
-    scale: { domain: model.points.map(({ date }) => date) },
-    axis: { title: null, labelAngle: 0, labelExpr: `${JSON.stringify(labels)}[datum.label]` }
-  };
-  const countColor = getS2ColorValue("blue-900", scheme);
-  const rateColor = getS2ColorValue("seafoam-900", scheme);
-  const seriesScale = {
-    domain: [model.countSeries, model.rateSeries],
-    range: [countColor, rateColor]
-  };
-  const chart: TopLevelSpec = {
-    width: "container",
-    autosize: { type: "fit", contains: "padding" },
-    padding: theme.axis?.labelPadding as number,
-    background: theme.background as string,
-    config: { view: { stroke: theme.axis?.gridColor as string } },
-    data: { values: model.points },
-    layer: [
-      {
-        transform: [{ calculate: JSON.stringify(model.countSeries), as: "series" }],
-        mark: { type: "bar" },
-        encoding: {
-          x,
-          y: {
-            field: "count",
-            type: "quantitative",
-            scale: { zero: true },
-            axis: {
-              orient: "left",
-              title: null,
-              grid: true,
-              ticks: true,
-              format: ",.0f",
-              tickMinStep: 1
-            }
-          },
-          color: {
-            field: "series",
-            type: "nominal",
-            scale: seriesScale,
-            legend: null
-          },
-          tooltip: { field: "summary", type: "nominal", title: "" }
-        }
-      },
-      {
-        mark: {
-          type: "text",
-          color: theme.text?.fill as string,
-          baseline: "bottom",
-          dy: -(theme.axis?.labelPadding as number)
-        },
-        encoding: {
-          x,
-          y: { field: "count", type: "quantitative", scale: { zero: true }, axis: null },
-          text: { field: "count", type: "quantitative", format: ",.0f" }
-        }
-      },
-      {
-        transform: [{ calculate: JSON.stringify(model.rateSeries), as: "series" }],
-        mark: {
-          type: "line",
-          invalid: "break-paths-show-domains",
-          point: {
-            filled: true,
-            size: theme.symbol?.size as number,
-            strokeWidth: theme.symbol?.strokeWidth as number
-          }
-        },
-        encoding: {
-          x,
-          y: {
-            field: "rate",
-            type: "quantitative",
-            scale: { domain: [0, 1] },
-            axis: { orient: "right", title: null, grid: false, ticks: true, format: ".0%" }
-          },
-          color: { field: "series", type: "nominal", scale: seriesScale, legend: null },
-          tooltip: { field: "summary", type: "nominal", title: "" }
-        }
-      },
-      {
-        mark: {
-          type: "text",
-          color: theme.text?.fill as string,
-          baseline: "bottom",
-          dy: -((theme.text?.fontSize as number) + (theme.axis?.labelPadding as number) * 2)
-        },
-        encoding: {
-          x,
-          y: { field: "count", type: "quantitative", scale: { zero: true }, axis: null },
-          text: { field: "rate", type: "quantitative", format: ".1~%" }
-        }
-      }
-    ],
-    resolve: { scale: { y: "independent" } }
-  };
-  const spec = compile(chart).spec;
-  // Labels must not intercept pointer input intended for the series below them.
-  for (const mark of spec.marks ?? []) {
-    if (mark.type === "text") mark.interactive = false;
-  }
-  // Spectrum Chart supplies measured width; do not run Vega-Lite's separate container observer.
-  spec.signals = spec.signals?.filter((signal) => signal.name !== "width");
-  spec.width = 0;
-  spec.config = { ...spec.config, ...theme };
-  return spec;
-}
-
 function TrendChart({ model, locale }: Readonly<{ model: TrendModel; locale: string }>) {
   const { t } = useTranslation();
   const controlSize = useConsoleSize("L");
@@ -197,7 +91,6 @@ function TrendChart({ model, locale }: Readonly<{ model: TrendModel; locale: str
   const scheme = preference === "light" || preference === "dark" ? preference : systemScheme;
   const [selectedDate, setSelectedDate] = useState<string>();
   const selected = model.points.find((point) => point.date === selectedDate) ?? model.points[0];
-  const spec = useMemo(() => plotSpec(model, scheme), [model, scheme]);
   const shared: ChartProps = {
     data: model.points,
     colorScheme: scheme,
@@ -212,10 +105,27 @@ function TrendChart({ model, locale }: Readonly<{ model: TrendModel; locale: str
         <Content data-home-trend-scroll styles={style({ width: "full", minWidth: 0, overflowX: "auto", overscrollBehaviorX: "contain" })}>
           <Content styles={style({
             minWidth: { default: `[${size(400)}]`, lg: `[${size(360)}]`, isExtendedRange: `[${size(640)}]` },
-            height: `[${size(200)}]`,
+            height: { default: `[${size(220)}]`, "@media (max-height: 800px)": `[${size(170)}]` },
             display: "block"
           })({ isExtendedRange: model.points.length > 7 })}>
-            <Chart {...shared} dataTestId="home-combined-chart" height="100%" padding={spec.padding as number} UNSAFE_vegaSpec={spec} />
+            {/* The library rotates an axis title, which turns a Chinese label on its side,
+                so the series are named in the legend below instead. The bars keep a label
+                on every bar;
+                the line does not, because the library hides per-point labels it cannot
+                place and on this tile that was most of them. The rate is read by hover and
+                by the date reader below. */}
+            <Chart {...shared} dataTestId="home-combined-chart" height="100%" padding={16}>
+              <Bar name="requests" dimension="date" metric="count" metricAxis="yCount" color={{ value: "blue-900" }} paddingRatio={0.3}>
+                <BarDirectLabel position="end-outside" format=",.0f" />
+                <ChartInspect targets={["item"]}>{(datum) => <Text>{String(datum.summary)}</Text>}</ChartInspect>
+              </Bar>
+              <Line name="passRate" dimension="date" metric="rate" scaleType="point" color={{ value: "seafoam-900" }} staticPoint="alwaysPoint" showHoverLabel={false}>
+                <ChartInspect targets={["item"]}>{(datum) => <Text>{String(datum.summary)}</Text>}</ChartInspect>
+              </Line>
+              <Axis position="bottom" baseline labels={model.points.map((point) => ({ value: point.date, label: point.axisLabel }))} />
+              <Axis position="left" name="yCount" grid ticks numberFormat=",.0f" tickMinStep={5} />
+              <Axis position="right" ticks labelFormat="percentage" range={[0, 1]} tickCountLimit={3} />
+            </Chart>
           </Content>
         </Content>
       </Content>
@@ -270,14 +180,16 @@ export function HomeTrend({
   const coverageText = t("home.trend.coverage", { missing: model.missingDays });
 
   return (
-    <Content data-home-section="trend" aria-labelledby="home-trend-title" styles={style({ display: "grid", gap: `[${size(8)}]`, width: "full", minWidth: 0 })}>
-      <Header data-home-section-heading styles={style({ display: "flex", flexWrap: "wrap", alignItems: "end", justifyContent: "space-between", gap: `[${size(16)}]` })}>
-        <Content styles={style({ display: "grid", gap: `[${size(8)}]` })}>
-          <Heading level={2} id="home-trend-title" styles={style({ font: "heading", margin: 0 })}>{t("home.trend.title")}</Heading>
+    <Content data-home-section="trend" aria-labelledby="home-trend-title" styles={sectionSurface}>
+      <Header data-home-section-heading styles={style({ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: `[${size(16)}]` })}>
+        <Content styles={style({ display: "grid", gap: `[${size(4)}]` })}>
+          <Heading level={2} id="home-trend-title" styles={style({ font: "heading-lg", margin: 0 })}>{t("home.trend.title")}</Heading>
           {model.missingDays > 0 ? <Text data-home-trend-coverage styles={style({ font: "body-sm", color: "neutral-subdued" })}>{coverageText}</Text> : null}
         </Content>
-        <Link href={`/stats${groupSearch}`} isStandalone>
-          {t("home.trend.openStats")}
+        <Link href={`/stats${groupSearch}`} isStandalone isQuiet>
+          <Text styles={style({ display: "flex", alignItems: "center", gap: `[${size(4)}]`, font: "ui-sm", fontWeight: "medium", color: "neutral-subdued" })}>
+            {t("home.trend.openStats")} <Icon name="arrowRight" />
+          </Text>
         </Link>
       </Header>
       {model.points.length > 0 ? <TrendChart model={model} locale={i18n.language} /> : (

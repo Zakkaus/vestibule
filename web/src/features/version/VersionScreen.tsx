@@ -1,4 +1,6 @@
 import { useMemo, type ReactNode } from "react";
+import { Button } from "@react-spectrum/s2/Button";
+import { Text } from "@react-spectrum/s2";
 import { useTranslation } from "react-i18next";
 import { Navigate } from "react-router-dom";
 
@@ -7,6 +9,7 @@ import {
   retryConsoleSession,
   useConsoleSession
 } from "../../app/session";
+import { useConsoleSize } from "../../components/ConsoleProvider";
 import { StatusBadge, type StatusTone } from "../../components/StatusBadge";
 import { Icon, type IconName } from "../../icons";
 import type { ApiRequestError } from "../../lib/api";
@@ -230,23 +233,29 @@ function ManualUpgradeNotice({ version }: Readonly<{ version: string }>) {
 function UpgradeProgress({ controller }: Readonly<{ controller: VersionController }>) {
   const { t } = useTranslation();
   const { upgradeState } = controller;
+  const size = useConsoleSize("L");
   if (upgradeState.kind !== "requesting" && upgradeState.kind !== "monitoring") {
     return null;
   }
   return (
     <div data-version-upgrade-progress={upgradeState.kind} role="status">
-      <button
-        type="button"
-        data-slot="button"
+      <Button
+        variant="accent"
+        size={size}
+        isPending
+        data-console-control
+        data-control-size={size}
         data-version-action="upgrade"
         aria-disabled="true"
-        onClick={controller.confirmUpgrade}
+        onPress={controller.confirmUpgrade}
       >
         <Icon name="loaderCircle" />
-        {t(upgradeState.kind === "requesting"
-          ? "version.upgrade.requesting"
-          : "version.upgrade.monitoring")}
-      </button>
+        <Text>
+          {t(upgradeState.kind === "requesting"
+            ? "version.upgrade.requesting"
+            : "version.upgrade.monitoring")}
+        </Text>
+      </Button>
       <p>{t("version.upgrade.restartNotice")}</p>
     </div>
   );
@@ -255,20 +264,22 @@ function UpgradeProgress({ controller }: Readonly<{ controller: VersionControlle
 function UpgradeFeedback({ controller }: Readonly<{ controller: VersionController }>) {
   const { t } = useTranslation();
   const { upgradeState } = controller;
+  const size = useConsoleSize("L");
   if (upgradeState.kind === "applied" || upgradeState.kind === "failed") {
     return (
       <div data-version-upgrade-outcome={upgradeState.kind} role={upgradeState.kind === "failed" ? "alert" : "status"}>
         <ReplacementResultNotice result={upgradeState.result} />
         {upgradeState.kind === "failed" ? (
-          <button
-            type="button"
-            data-slot="button"
-            data-variant="outline"
-            onClick={() => controller.beginUpgrade(upgradeState.result.requestedVersion)}
+          <Button
+            variant="primary"
+            size={size}
+            data-console-control
+            data-control-size={size}
+            onPress={() => controller.beginUpgrade(upgradeState.result.requestedVersion)}
           >
             <Icon name="rotateCcw" />
-            {t("version.upgrade.tryAgain")}
-          </button>
+            <Text>{t("version.upgrade.tryAgain")}</Text>
+          </Button>
         ) : null}
       </div>
     );
@@ -281,14 +292,14 @@ function UpgradeFeedback({ controller }: Readonly<{ controller: VersionControlle
       <div data-version-upgrade-outcome="unavailable" role="alert">
         <p>{t(descriptionKey)}</p>
         <div data-button-row>
-          <button type="button" data-slot="button" data-variant="outline" onClick={controller.retryUpgrade}>
+          <Button variant="primary" size={size} data-console-control data-control-size={size} onPress={controller.retryUpgrade}>
             <Icon name="refreshCw" />
-            {t("version.actions.retry")}
-          </button>
-          <button type="button" data-slot="button" data-variant="ghost" onClick={controller.cancelUpgrade}>
+            <Text>{t("version.actions.retry")}</Text>
+          </Button>
+          <Button variant="secondary" size={size} data-console-control data-control-size={size} onPress={controller.cancelUpgrade}>
             <Icon name="x" />
-            {t("version.actions.cancel")}
-          </button>
+            <Text>{t("version.actions.cancel")}</Text>
+          </Button>
         </div>
       </div>
     );
@@ -299,19 +310,20 @@ function UpgradeFeedback({ controller }: Readonly<{ controller: VersionControlle
 function UpgradeControls({ version, controller }: Readonly<{ version: string; controller: VersionController }>) {
   const { t } = useTranslation();
   const { upgradeState } = controller;
+  const size = useConsoleSize("L");
   if (upgradeState.kind === "confirming") {
     return (
       <div data-version-upgrade-confirmation role="alert">
         <p>{t("version.upgrade.confirm", { version })}</p>
         <div data-button-row>
-          <button type="button" data-slot="button" data-version-action="upgrade-confirm" onClick={controller.confirmUpgrade}>
+          <Button variant="accent" size={size} data-console-control data-control-size={size} data-version-action="upgrade-confirm" onPress={controller.confirmUpgrade}>
             <Icon name="refreshCw" />
-            {t("version.upgrade.confirmAction")}
-          </button>
-          <button type="button" data-slot="button" data-variant="ghost" onClick={controller.cancelUpgrade}>
+            <Text>{t("version.upgrade.confirmAction")}</Text>
+          </Button>
+          <Button variant="secondary" size={size} data-console-control data-control-size={size} onPress={controller.cancelUpgrade}>
             <Icon name="x" />
-            {t("version.actions.cancel")}
-          </button>
+            <Text>{t("version.actions.cancel")}</Text>
+          </Button>
         </div>
       </div>
     );
@@ -320,15 +332,17 @@ function UpgradeControls({ version, controller }: Readonly<{ version: string; co
     return <UpgradeFeedback controller={controller} />;
   }
   return (
-    <button
-      type="button"
-      data-slot="button"
+    <Button
+      variant="accent"
+      size={size}
+      data-console-control
+      data-control-size={size}
       data-version-action="upgrade"
-      onClick={() => controller.beginUpgrade(version)}
+      onPress={() => controller.beginUpgrade(version)}
     >
       <Icon name="refreshCw" />
-      {t("version.upgrade.action")}
-    </button>
+      <Text>{t("version.upgrade.action")}</Text>
+    </Button>
   );
 }
 
@@ -399,6 +413,7 @@ function ReleaseSection({
   const { t } = useTranslation();
   const { releaseState } = controller;
   const checking = releaseState.kind === "checking";
+  const size = useConsoleSize("L");
   return (
     <VersionSection
       id="release"
@@ -406,26 +421,28 @@ function ReleaseSection({
       descriptionKey="version.release.description"
     >
       <div data-version-release-actions>
-        <button
-          type="button"
-          data-slot="button"
-          data-variant="outline"
+        <Button
+          variant="primary"
+          size={size}
+          isPending={checking}
+          data-console-control
+          data-control-size={size}
           data-version-action="check"
           aria-disabled={checking || undefined}
-          onClick={controller.checkLatest}
+          onPress={controller.checkLatest}
         >
           <Icon name={checking ? "loaderCircle" : "refreshCw"} />
-          {t(checking ? "version.release.checking" : "version.release.check")}
-        </button>
+          <Text>{t(checking ? "version.release.checking" : "version.release.check")}</Text>
+        </Button>
         {releaseState.kind === "idle" ? <p>{t("version.release.notChecked")}</p> : null}
       </div>
       {releaseState.kind === "unavailable" ? (
         <div data-version-release-error role="alert">
           <p>{t(errorMessageKey(releaseState.error, "release"))}</p>
-          <button type="button" data-slot="button" data-variant="outline" onClick={controller.checkLatest}>
+          <Button variant="secondary" size={size} data-console-control data-control-size={size} onPress={controller.checkLatest}>
             <Icon name="refreshCw" />
-            {t("version.actions.retry")}
-          </button>
+            <Text>{t("version.actions.retry")}</Text>
+          </Button>
         </div>
       ) : null}
       {releaseState.kind === "loaded" ? (
@@ -450,6 +467,7 @@ function OperatorVersionScreen() {
     day: "2-digit"
   }), [locale]);
   const { baseState } = controller;
+  const size = useConsoleSize("L");
   return (
     <section
       data-version-page
@@ -469,10 +487,10 @@ function OperatorVersionScreen() {
       ) : null}
       {baseState.kind === "unavailable" ? (
         <VersionStateCard id="unavailable" titleKey="version.unavailable.title" descriptionKey={errorMessageKey(baseState.error, "status")} icon="circleAlert" role="alert">
-          <button type="button" data-slot="button" data-variant="outline" onClick={controller.reloadStatus}>
+          <Button variant="primary" size={size} data-console-control data-control-size={size} onPress={controller.reloadStatus}>
             <Icon name="refreshCw" />
-            {t("version.actions.retry")}
-          </button>
+            <Text>{t("version.actions.retry")}</Text>
+          </Button>
         </VersionStateCard>
       ) : null}
       {baseState.kind === "loaded" ? (
@@ -488,6 +506,7 @@ function OperatorVersionScreen() {
 function PermissionPendingScreen({ unavailable }: Readonly<{ unavailable: boolean }>) {
   const { t } = useTranslation();
   const stateID = unavailable ? "session-unavailable" : "permission-loading";
+  const size = useConsoleSize("L");
   return (
     <section
       data-permission-pending={stateID}
@@ -506,15 +525,16 @@ function PermissionPendingScreen({ unavailable }: Readonly<{ unavailable: boolea
         role={unavailable ? "alert" : "status"}
       >
         {unavailable ? (
-          <button
-            type="button"
-            data-slot="button"
-            data-variant="outline"
-            onClick={() => void retryConsoleSession()}
+          <Button
+            variant="primary"
+            size={size}
+            data-console-control
+            data-control-size={size}
+            onPress={() => void retryConsoleSession()}
           >
             <Icon name="refreshCw" />
-            {t("version.actions.retry")}
-          </button>
+            <Text>{t("version.actions.retry")}</Text>
+          </Button>
         ) : null}
       </VersionStateCard>
     </section>

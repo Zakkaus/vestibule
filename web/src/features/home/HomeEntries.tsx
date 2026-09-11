@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Card, Content, Heading, Text } from "@react-spectrum/s2";
+import { Content, Heading, Link, Text } from "@react-spectrum/s2";
 import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 
+import { sectionSurface } from "./surface";
 import { Icon, type IconName } from "../../icons";
 import type { SettingSource } from "../verification/api";
 import type { HomeSettings } from "./api";
@@ -61,17 +62,31 @@ function ConfigEntry({
 }>) {
   const { t } = useTranslation();
   return (
-    <Card
-      href={`${path}${groupSearch}`}
-      data-console-card
-      data-home-entry={id}
-      styles={style({ width: "full", minWidth: 0 })}
-    >
-      <Content data-home-entry-values styles={style({ minWidth: 0 })}>
-        <Text slot="title"><Icon name={iconName} /> {t(titleKey)}</Text>
-        {children}
+    // One row: a grid of [label over value] and the arrow. Link takes only positioning
+    // styles, so the surface sits on the one element inside it.
+    <Link href={`${path}${groupSearch}`} isStandalone isQuiet data-home-entry={id}>
+      <Content styles={style({
+        display: "grid",
+        gridTemplateColumns: ["minmax(0, 1fr)", "auto"],
+        alignItems: "center",
+        columnGap: 12,
+        rowGap: 4,
+        minWidth: 0,
+        padding: 12,
+        borderRadius: "lg",
+        backgroundColor: "layer-1"
+      })}>
+        <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", fontWeight: "medium", color: "neutral-subdued" })}>
+          <Icon name={iconName} /> {t(titleKey)}
+        </Text>
+        {/* The arrow is an affordance, not an action: it takes the label's colour so the
+            accent stays reserved for things you press. */}
+        <Content styles={style({ gridRowStart: 1, gridRowEnd: 3, gridColumnStart: 2, display: "flex", alignItems: "center", color: "neutral-subdued" })}>
+          <Icon name="arrowRight" />
+        </Content>
+        <Content data-home-entry-values styles={style({ minWidth: 0, gridColumnStart: 1 })}>{children}</Content>
       </Content>
-    </Card>
+    </Link>
   );
 }
 
@@ -163,10 +178,10 @@ export function HomeEntries({ settings, groupSearch }: EntryProps) {
     <Content
       data-home-section="entries"
       aria-labelledby="home-entries-title"
-      styles={style({ display: "grid", gap: 8, minWidth: 0 })}
+      styles={sectionSurface}
     >
       <Content data-home-section-heading>
-        <Heading level={2} id="home-entries-title" styles={style({ font: "heading", margin: 0 })}>
+        <Heading level={2} id="home-entries-title" styles={style({ font: "heading-lg", margin: 0 })}>
           {t("home.entries.title")}
         </Heading>
       </Content>

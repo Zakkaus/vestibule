@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { Button } from "@react-spectrum/s2/Button";
 
 import { Icon } from "../../icons";
 import type { SettingSource } from "./api";
@@ -31,8 +32,10 @@ export function SourceMeta({
 
   return (
     <span data-capability-meta>
+      {/* Every source is a badge. Dropping the slot for the factory default left one row
+          where the icon touched its text and sat 4px off the others' centre line. */}
       <span
-        data-slot={source === "factory default" ? undefined : "badge"}
+        data-slot="badge"
         data-status={source === "chat override" ? "info" : "neutral"}
         data-capability-source={source}
       >
@@ -46,13 +49,12 @@ export function SourceMeta({
         </span>
       ) : null}
       {allowRestore && source === "chat override" && onToggleRestore ? (
-        <button
+        <Button
           type="button"
+          variant="secondary"
           data-slot="button"
-          data-variant="link"
-          data-size="sm"
           aria-disabled={saving ? "true" : undefined}
-          onClick={() => {
+          onPress={() => {
             if (!saving) {
               onToggleRestore();
             }
@@ -60,7 +62,7 @@ export function SourceMeta({
         >
           <Icon name={restoring ? "x" : "rotateCcw"} />
           {t(restoring ? "capabilities.actions.cancelRestore" : "capabilities.actions.restore")}
-        </button>
+        </Button>
       ) : null}
     </span>
   );
@@ -132,7 +134,7 @@ export function CapabilityCard({
         <Link
           to={{ pathname: detailsPath, search: groupSearch }}
           data-slot="button"
-          data-variant="outline"
+          data-variant="secondary"
           data-size="sm"
         >
           <Icon name="arrowRight" />

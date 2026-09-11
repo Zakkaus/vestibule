@@ -1,3 +1,6 @@
+import { Button } from "@react-spectrum/s2/Button";
+import { Text } from "@react-spectrum/s2";
+import { ToggleButton } from "@react-spectrum/s2/ToggleButton";
 import { useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -193,16 +196,10 @@ function TrialErrorNotice({ error, onReload }: Readonly<{ error: ApiRequestError
       <p>
         <Icon name="circleAlert" /> {t(trialErrorMessageKey(error))}
       </p>
-      <button
-        type="button"
-        data-slot="button"
-        data-variant="outline"
-        data-size="sm"
-        onClick={onReload}
-      >
+      <Button variant="secondary" onPress={onReload}>
         <Icon name="refreshCw" />
-        {t("questions.trial.retry")}
-      </button>
+        <Text>{t("questions.trial.retry")}</Text>
+      </Button>
     </div>
   );
 }
@@ -221,16 +218,13 @@ function TrialAnswer({ controller }: Readonly<{ controller: TrialController }>) 
           <legend>{t("questions.trial.choiceLabel")}</legend>
           <div data-question-option-list>
             {question.options.map((option, index) => (
-              <button
+              <ToggleButton
                 key={`${index}-${option}`}
-                type="button"
-                data-slot="button"
-                data-variant="outline"
-                aria-pressed={choice === index}
-                onClick={() => chooseChoice(index)}
+                isSelected={choice === index}
+                onChange={(selected) => { if (selected) chooseChoice(index); }}
               >
-                {option}
-              </button>
+                <Text>{option}</Text>
+              </ToggleButton>
             ))}
           </div>
         </fieldset>
@@ -293,16 +287,17 @@ function TrialControls({ controller, onReload }: Readonly<{ controller: TrialCon
       </div>
       <TrialAnswer controller={controller} />
       <div data-question-list-heading>
-        <button
+        {/* Secondary: the screen's one accent action is saving the bank. */}
+        <Button
           type="submit"
-          data-slot="button"
-          data-variant="primary"
+          variant="secondary"
           aria-disabled={pending ? "true" : undefined}
-          disabled={!controller.question || pending}
+          isPending={pending}
+          isDisabled={!controller.question}
         >
-          <Icon name={pending ? "loaderCircle" : "arrowRight"} />
-          {t(pending ? "questions.trial.submitting" : "questions.trial.submit")}
-        </button>
+          <Icon name="arrowRight" />
+          <Text>{t(pending ? "questions.trial.submitting" : "questions.trial.submit")}</Text>
+        </Button>
         {result ? <TrialResultNotice result={result} /> : null}
         {error ? <TrialErrorNotice error={error} onReload={onReload} /> : null}
       </div>

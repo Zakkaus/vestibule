@@ -68,7 +68,7 @@ function GroupRequiredState() {
     >
       <LinkButton
         href="/groups"
-        variant="accent"
+        variant="primary"
         size={size}
         data-console-control
         data-control-size={size}
@@ -91,7 +91,7 @@ function UnavailableState({ reload }: Readonly<{ reload: () => void }>) {
       role="alert"
     >
       <Button
-        variant="accent"
+        variant="primary"
         size={size}
         data-console-control
         data-control-size={size}

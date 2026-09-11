@@ -1,3 +1,6 @@
+import { createIcon, type IconProps as SpectrumIconProps } from "@react-spectrum/s2/Icon";
+import type { ComponentType, FunctionComponent, SVGProps } from "react";
+
 import activity from "./lucide/activity.svg?raw";
 import arrowRight from "./lucide/arrow-right.svg?raw";
 import bookOpen from "./lucide/book-open.svg?raw";
@@ -88,17 +91,51 @@ const sources = {
 
 export type IconName = keyof typeof sources;
 
-type IconProps = Readonly<{
-  name: IconName;
-}>;
+// The raw Lucide files are whole svg documents. Rendering them inside a span put
+// them outside the library's icon slot: a Spectrum component styles its icon through
+// IconContext, and a span that only holds markup receives none of it — which is why the
+// side nav's icons sat against their labels with no gap. Turn each source into a real
+// svg element and hand it to createIcon, so every icon takes the size, colour and
+// placement of whatever slot it lands in.
+// The files open with a licence comment and wrap their attributes over several lines.
+const outerSVG = /<(svg)([\s\S]*?)>([\s\S]*)<\/svg>/;
+const droppedAttributes = new Set(["xmlns", "width", "height", "class"]);
 
-export function Icon({ name }: IconProps) {
-  return (
-    <span
-      aria-hidden="true"
-      data-icon
-      data-icon-name={name}
-      dangerouslySetInnerHTML={{ __html: sources[name] }}
-    />
+const attributeNames: Readonly<Record<string, string>> = {
+  viewbox: "viewBox",
+  "stroke-width": "strokeWidth",
+  "stroke-linecap": "strokeLinecap",
+  "stroke-linejoin": "strokeLinejoin"
+};
+
+function svgComponent(source: string): ComponentType<SVGProps<SVGSVGElement>> {
+  const parsed = outerSVG.exec(source);
+  if (parsed === null) throw new Error("icon source is not a single svg document");
+  const [, , rawAttributes, inner] = parsed;
+  const presentation: Record<string, string> = {};
+  for (const [, name, value] of rawAttributes!.matchAll(/([a-zA-Z-]+)="([^"]*)"/g)) {
+    const lower = name!.toLowerCase();
+    if (droppedAttributes.has(lower)) continue;
+    presentation[attributeNames[lower] ?? name!] = value!;
+  }
+  return (props: SVGProps<SVGSVGElement>) => (
+    <svg data-icon {...presentation} {...props} dangerouslySetInnerHTML={{ __html: inner! }} />
   );
+}
+
+const components = new Map<IconName, FunctionComponent<SpectrumIconProps>>();
+
+function componentFor(name: IconName): FunctionComponent<SpectrumIconProps> {
+  const existing = components.get(name);
+  if (existing !== undefined) return existing;
+  const created = createIcon(svgComponent(sources[name]));
+  components.set(name, created);
+  return created;
+}
+
+type IconProps = SpectrumIconProps & Readonly<{ name: IconName }>;
+
+export function Icon({ name, ...props }: IconProps) {
+  const Rendered = componentFor(name);
+  return <Rendered aria-hidden {...props} data-icon-name={name} />;
 }

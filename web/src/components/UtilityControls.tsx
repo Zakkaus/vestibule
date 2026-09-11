@@ -44,9 +44,11 @@ const themeLabelKeys: Record<ThemePreference, string> = {
   light: "theme.light",
   dark: "theme.dark"
 };
+// Wide enough for the longest value in each supported language: at 160 the
+// browser-default language read as "跟随浏…".
 const chromePickerLayout = style({
   width: {
-    default: 160,
+    default: 176,
     "@media (max-width: 48rem)": "full"
   },
   minWidth: 0
@@ -123,8 +125,11 @@ export function UtilityControls({ variant = "labelled" }: UtilityControlsProps) 
             data-console-control
             data-control-size={size}
             styles={chromePickerLayout}
+            // Picker gives the icon a slot with its own trailing space. Adding a gap on top
+            // of it put 15px between the icon and its label — as much as the button's own
+            // padding — while every other icon in the console sits 4-7px from its text.
             renderValue={(items) => (
-              <Content data-console-choice-value styles={style({ display: "flex", alignItems: "center", gap: 8, minWidth: 0 })}>
+              <Content data-console-choice-value styles={style({ display: "flex", alignItems: "center", minWidth: 0 })}>
                 <Icon name={themeIcons[theme]} /><Text styles={style({ minWidth: 0, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" })}>{items[0]?.label}</Text>
               </Content>
             )}
@@ -144,7 +149,7 @@ export function UtilityControls({ variant = "labelled" }: UtilityControlsProps) 
             data-control-size={size}
             styles={chromePickerLayout}
             renderValue={(items) => (
-              <Content data-console-choice-value styles={style({ display: "flex", alignItems: "center", gap: 8, minWidth: 0 })}>
+              <Content data-console-choice-value styles={style({ display: "flex", alignItems: "center", minWidth: 0 })}>
                 <Icon name="languages" /><Text styles={style({ minWidth: 0, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" })}>{items[0]?.label}</Text>
               </Content>
             )}

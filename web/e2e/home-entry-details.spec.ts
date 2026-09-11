@@ -126,7 +126,8 @@ test("home configuration entries stay stacked, sourced, and limited to three val
 
   for (const [id, value, icon] of expected) {
     const entry = page.locator(`[data-home-entry="${id}"]`);
-    await expect(entry.locator("[data-icon-name]")).toHaveAttribute("data-icon-name", icon);
+    await expect(entry.locator("[data-icon-name]").first()).toHaveAttribute("data-icon-name", icon);
+    await expect(entry.locator("[data-icon-name]").last()).toHaveAttribute("data-icon-name", "arrowRight");
     const values = entry.locator("[data-home-entry-value]");
     const valueText = values.locator("[data-home-entry-value-text]");
     const sources = values.locator("[data-home-entry-source]");

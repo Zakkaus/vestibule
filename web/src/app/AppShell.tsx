@@ -26,7 +26,7 @@ type RouteHandle = {
 const shellLayout = style({
   display: "grid",
   gridTemplateColumns: {
-    default: [size(224), "minmax(0, 1fr)"],
+    default: [size(280), "minmax(0, 1fr)"],
     "@media (max-width: 48rem)": ["minmax(0, 1fr)"]
   },
   height: "screen",
@@ -69,6 +69,7 @@ const brandLinkLayout = style({
   alignItems: "center",
   minWidth: 0,
   gap: 8,
+  font: "title",
   color: "neutral",
   textDecoration: "none"
 });
@@ -84,6 +85,7 @@ const mainLayout = style({
 });
 
 const headerLayout = style({
+  justifyContent: "end",
   position: "sticky",
   top: 0,
   zIndex: 1,
@@ -124,8 +126,11 @@ const controlsLayout = style({
 });
 
 const contentLayout = style({
-  alignSelf: { default: "stretch", isHome: "start" },
-  maxHeight: { default: "none", isHome: "full" },
+  // The panel reaches the bottom of the window on every route. Letting the home page
+  // shrink to its content left a fifth of the window showing the shell behind it,
+  // and overflow already keeps a long page from pushing the window taller.
+  alignSelf: "stretch",
+  maxHeight: "none",
   minHeight: 0,
   minWidth: 0,
   marginEnd: {
@@ -134,11 +139,8 @@ const contentLayout = style({
   },
   padding: {
     default: 32,
+    "@media (max-height: 800px)": 20,
     "@media (max-width: 48rem)": 16
-  },
-  paddingBottom: {
-    default: { default: 32, "@media (max-width: 48rem)": 16 },
-    isHome: 16
   },
   overflow: "auto",
   overscrollBehavior: "contain",
@@ -248,9 +250,6 @@ function ShellContent() {
                 </Popover>
               </DialogTrigger>
             </Content>
-            <Text UNSAFE_className="console-header-title" styles={headerTitleLayout} data-header-title>
-              {currentNavigationItem ? t(currentNavigationItem.labelKey) : t("app.name")}
-            </Text>
             <Content UNSAFE_className="console-controls" styles={controlsLayout}>
               <GroupSwitcher />
               <UtilityControls variant="chrome" />
@@ -258,7 +257,7 @@ function ShellContent() {
           </Header>
           <Content
             UNSAFE_className="console-content"
-            styles={contentLayout({ isHome: location.pathname === "/home" })}
+            styles={contentLayout}
           >
             <Content key={location.pathname} UNSAFE_className="console-inner" styles={innerLayout}>
               <Outlet />

@@ -1,7 +1,10 @@
+import { Button } from "@react-spectrum/s2/Button";
+import { Text } from "@react-spectrum/s2";
 import { type FormEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { AppSelect, type AppSelectOption } from "../../components/AppSelect";
+import { useConsoleSize } from "../../components/ConsoleProvider";
 import { StatusBadge } from "../../components/StatusBadge";
 import { Icon } from "../../icons";
 import {
@@ -96,6 +99,7 @@ function SettingRow({
   children
 }: SettingRowProps) {
   const { t } = useTranslation();
+  const size = useConsoleSize("L");
   const descriptionID = `${controlID}-description`;
   const errorID = `${controlID}-error`;
   const describedBy = errorKey ? `${descriptionID} ${errorID}` : descriptionID;
@@ -117,16 +121,16 @@ function SettingRow({
       <div data-verification-setting-control>
         {children(describedBy)}
         {source === "chat override" ? (
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size={size}
             data-slot="button"
-            data-variant="link"
-            data-size="sm"
-            onClick={() => onRestore(field)}
+            onPress={() => onRestore(field)}
           >
             <Icon name="rotateCcw" />
-            {t("verification.actions.restore")}
-          </button>
+            <Text>{t("verification.actions.restore")}</Text>
+          </Button>
         ) : null}
       </div>
     </div>
@@ -185,6 +189,7 @@ export function VerificationSettingsForm({
   onRestore
 }: VerificationSettingsFormProps) {
   const { t } = useTranslation();
+  const size = useConsoleSize("L");
   const deliveryOptions: readonly AppSelectOption<DeliveryMode>[] = deliveryModes.map((mode) => ({
     label: t(deliveryModeMessageKeys[mode]),
     value: mode
@@ -355,16 +360,17 @@ export function VerificationSettingsForm({
 
       <footer data-slot="card" data-verification-savebar>
         <p>{t(hasChanges ? "verification.save.dirty" : "verification.save.clean")}</p>
-        <button
+        <Button
           type="submit"
+          variant="accent"
+          size={size}
           data-slot="button"
-          data-variant="primary"
-          aria-disabled={saving ? "true" : undefined}
-          disabled={!hasChanges}
+          isDisabled={!hasChanges}
+          isPending={saving}
         >
           <Icon name="save" />
-          {t(saving ? "verification.actions.saving" : "verification.actions.save")}
-        </button>
+          <Text>{t(saving ? "verification.actions.saving" : "verification.actions.save")}</Text>
+        </Button>
       </footer>
     </form>
   );

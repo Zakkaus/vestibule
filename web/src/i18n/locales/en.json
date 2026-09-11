@@ -433,7 +433,7 @@
     }
   },
   "bypass": {
-    "navigation": "Verification bypass sources",
+    "navigation": "Bypass sources",
     "title": "Verification bypass sources",
     "description": "Manage trusted groups, the required channel, and sender-channel allowlist for this group.",
     "loading": {

@@ -1,3 +1,4 @@
+import { Button, Text } from "@react-spectrum/s2/Button";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../../icons";
 
@@ -56,13 +57,13 @@ function FallbackAnswerRow({
           }}
         />
       </div>
-      <button
+      <Button
         type="button"
+        variant="secondary"
         data-slot="button"
-        data-variant="link"
         aria-disabled={readOnly ? "true" : undefined}
         aria-label={t("questions.actions.removeAnswerFor", { number: answerIndex + 1 })}
-        onClick={() => {
+        onPress={() => {
           if (!readOnly) {
             onChange({
               ...question,
@@ -72,8 +73,8 @@ function FallbackAnswerRow({
         }}
       >
         <Icon name="trash2" />
-        {t("questions.actions.removeAnswer")}
-      </button>
+        <Text>{t("questions.actions.removeAnswer")}</Text>
+      </Button>
     </div>
   );
 }
@@ -103,20 +104,20 @@ function FallbackQuestionItem({
         <h3 id={`fallback-question-${question.id}-title`}>
           {t("questions.fallback.itemTitle", { number })}
         </h3>
-        <button
+        <Button
           type="button"
+          variant="negative"
           data-slot="button"
-          data-variant="destructive"
           aria-disabled={readOnly ? "true" : undefined}
-          onClick={() => {
+          onPress={() => {
             if (!readOnly) {
               onDelete();
             }
           }}
         >
           <Icon name="trash2" />
-          {t("questions.actions.deleteFallback")}
-        </button>
+          <Text>{t("questions.actions.deleteFallback")}</Text>
+        </Button>
       </header>
       <div data-question-field>
         <label htmlFor={promptID}>{t("questions.fallback.prompt")}</label>
@@ -158,21 +159,20 @@ function FallbackQuestionItem({
             {t(errors.answers)}
           </p>
         ) : null}
-        <button
+        <Button
           type="button"
+          variant="secondary"
           data-slot="button"
-          data-variant="outline"
-          data-size="sm"
           aria-disabled={readOnly ? "true" : undefined}
-          onClick={() => {
+          onPress={() => {
             if (!readOnly) {
               onChange({ ...question, answers: [...question.answers, ""] });
             }
           }}
         >
           <Icon name="plus" />
-          {t("questions.actions.addAnswer")}
-        </button>
+          <Text>{t("questions.actions.addAnswer")}</Text>
+        </Button>
       </fieldset>
     </section>
   );

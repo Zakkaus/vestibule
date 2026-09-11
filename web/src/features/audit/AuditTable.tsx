@@ -1,3 +1,5 @@
+import { Button } from "@react-spectrum/s2/Button";
+import { Text } from "@react-spectrum/s2";
 import { useTranslation } from "react-i18next";
 
 import { useConsoleSession } from "../../app/session";
@@ -26,21 +28,20 @@ function AuditAction({ record, pending, onUndo }: AuditActionProps) {
 
   if (record.undoState === "available") {
     return (
-      <button
+      <Button
         type="button"
-        data-slot="button"
-        data-variant="outline"
-        data-size="sm"
+        variant="primary"
         data-audit-action="undo"
         aria-disabled={pending ? true : undefined}
         aria-label={t(pending ? "audit.actions.undoingFor" : "audit.actions.undoFor", {
           user: record.user
         })}
-        onClick={() => onUndo(record)}
+        isPending={pending}
+        onPress={() => onUndo(record)}
       >
         <Icon name="undo2" />
-        {t(pending ? "audit.actions.undoing" : "audit.actions.undo")}
-      </button>
+        <Text>{t(pending ? "audit.actions.undoing" : "audit.actions.undo")}</Text>
+      </Button>
     );
   }
 

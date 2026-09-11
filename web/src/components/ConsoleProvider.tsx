@@ -11,11 +11,14 @@ function subscribeTheme(listener: () => void): () => void {
   return () => window.removeEventListener(THEME_PREFERENCE_CHANGE_EVENT, listener);
 }
 
+// The content panel is layer-2. A card on it takes layer-1, one step back towards the
+// page ground, which is the same tint the home page's rows use: a card that was also
+// layer-2 was white on white and had only its border to show it was there.
 const legacySurfaceStyles = style({
   "--background": { type: "backgroundColor", value: "layer-1" },
-  "--card": { type: "backgroundColor", value: "layer-2" },
+  "--card": { type: "backgroundColor", value: "layer-1" },
   "--popover": { type: "backgroundColor", value: "layer-2" },
-  "--surface-raised": { type: "backgroundColor", value: "layer-1" },
+  "--surface-raised": { type: "backgroundColor", value: "layer-2" },
   "--muted": { type: "backgroundColor", value: "layer-1" }
 });
 

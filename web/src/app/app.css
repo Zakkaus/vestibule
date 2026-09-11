@@ -10,8 +10,12 @@ body {
   line-height: 1.6;
 }
 
+/* Inside the shell a card is told apart by its fill, like every row on the home
+   page; the vendored border and shadow would draw a second edge around it. */
 [data-app-shell] [data-slot="card"] {
   padding: var(--sp-4) var(--sp-5);
+  border: 0;
+  box-shadow: none;
 }
 
 /* Content rhythm moves from page boundaries, to card stacks, to card sections. */
@@ -73,19 +77,16 @@ body {
   text-decoration: none;
 }
 
+/* The icon is the svg itself now, not a span wrapping one, so it takes the text box
+   it sits in rather than declaring its own display. */
 [data-icon] {
-  display: inline-flex;
   flex: none;
   inline-size: 1em;
   block-size: 1em;
-  line-height: 1;
+  vertical-align: -0.125em;
 }
 
-[data-icon] > svg {
-  display: block;
-  inline-size: 100%;
-  block-size: 100%;
-}
+
 
 [data-state-heading] {
   display: inline-flex;
@@ -298,13 +299,21 @@ body {
 }
 
 
+/* The size the component library's own pages open at. A console screen is read
+   from the top, and a title that competes with its own section headings gives the
+   reader nothing to anchor on. */
 [data-entry-page] h1,
 [data-page-heading] h1 {
   margin: 0;
-  font-size: 1.5rem;
+  /* Nine screens open with an icon beside the title. Left inline it overlapped the
+     first glyph once the title grew. */
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-size: clamp(1.75rem, 1rem + 1.5vw, 2.6rem);
   font-weight: 600;
   letter-spacing: -0.02em;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 [data-entry-copy],

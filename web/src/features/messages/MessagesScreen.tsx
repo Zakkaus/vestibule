@@ -1,6 +1,7 @@
 import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
+import { Button } from "@react-spectrum/s2/Button";
 
 import {
   retryConsoleAccess,
@@ -93,16 +94,10 @@ function SettingsFeedbackNotice({
       <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
       {t(messageKey)}
       {reloadable ? (
-        <button
-          type="button"
-          data-slot="button"
-          data-variant="outline"
-          data-size="sm"
-          onClick={onReload}
-        >
+        <Button variant="secondary" size="S" data-slot="button" data-size="sm" onPress={onReload}>
           <Icon name="refreshCw" />
           {t("messages.actions.reload")}
-        </button>
+        </Button>
       ) : null}
     </div>
   );
@@ -148,18 +143,18 @@ export function MessagesScreen() {
         descriptionKey={errorMessageKey(session.error, "messages.errors.loadUnavailable")}
         role="alert"
       >
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          size="S"
           data-slot="button"
-          data-variant="outline"
           data-size="sm"
-          onClick={() => {
+          onPress={() => {
             retryConsoleAccess(session);
           }}
         >
           <Icon name="refreshCw" />
           {t("messages.actions.retry")}
-        </button>
+        </Button>
       </StateCard>
     );
   } else if (session.state === "no-groups") {
@@ -227,16 +222,10 @@ export function MessagesScreen() {
             descriptionKey={errorMessageKey(rules.state.error, "messages.errors.loadRulesUnavailable")}
             role="alert"
           >
-            <button
-              type="button"
-              data-slot="button"
-              data-variant="outline"
-              data-size="sm"
-              onClick={rules.retry}
-            >
+            <Button variant="secondary" size="S" data-slot="button" data-size="sm" onPress={rules.retry}>
               <Icon name="refreshCw" />
               {t("messages.actions.retry")}
-            </button>
+            </Button>
           </StateCard>
         ) : null}
         {rules.state.kind === "loaded" ? (
@@ -269,16 +258,10 @@ export function MessagesScreen() {
             )}
             role="alert"
           >
-            <button
-              type="button"
-              data-slot="button"
-              data-variant="outline"
-              data-size="sm"
-              onClick={settings.retry}
-            >
+            <Button variant="secondary" size="S" data-slot="button" data-size="sm" onPress={settings.retry}>
               <Icon name="refreshCw" />
               {t("messages.actions.retry")}
-            </button>
+            </Button>
           </StateCard>
         ) : null}
         {settings.state.kind === "loaded" && settings.draft && settings.evaluation ? (

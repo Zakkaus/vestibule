@@ -1,4 +1,6 @@
 import { type FormEvent, type ReactNode } from "react";
+import { Button } from "@react-spectrum/s2/Button";
+import { Text } from "@react-spectrum/s2";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
@@ -115,16 +117,10 @@ function QuestionsStateContent({ controller }: Readonly<{ controller: QuestionsC
         descriptionKey={questionErrorMessageKey(state.error, "questions.errors.loadUnavailable")}
         role="alert"
       >
-        <button
-          type="button"
-          data-slot="button"
-          data-variant="outline"
-          data-size="sm"
-          onClick={controller.reload}
-        >
+        <Button type="button" variant="primary" onPress={controller.reload}>
           <Icon name="refreshCw" />
-          {t("questions.unavailable.retry")}
-        </button>
+          <Text>{t("questions.unavailable.retry")}</Text>
+        </Button>
       </StateCard>
     );
   }
@@ -186,16 +182,10 @@ function QuestionsFeedbackNotice({
         {t(messageKey)}
       </span>
       {reloadable ? (
-        <button
-          type="button"
-          data-slot="button"
-          data-variant="outline"
-          data-size="sm"
-          onClick={onReload}
-        >
+        <Button type="button" variant="secondary" onPress={onReload}>
           <Icon name="refreshCw" />
-          {t("questions.actions.reload")}
-        </button>
+          <Text>{t("questions.actions.reload")}</Text>
+        </Button>
       ) : null}
     </div>
   );

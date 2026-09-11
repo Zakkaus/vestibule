@@ -152,7 +152,7 @@ test("missing chart days keep the exact returned date domain and explain coverag
   const axisLabels = chart.locator('[aria-label^="X-axis"] .role-axis-label text');
   await expect(axisLabels).toHaveText(["8/26", "8/27", "8/29", "8/30", "8/31", "9/1"]);
   await expect(axisLabels).toHaveCount(6);
-  await expect(chart.locator(".mark-text.role-mark text")).toHaveCount(12);
+  await expect(chart.locator(".role-mark.requestsDirectLabel0 text")).toHaveCount(6);
   await expect(chart.locator("svg")).toBeVisible();
   await expect(page.locator("[data-home-trend-coverage]")).toContainText("Days without readings: 1.");
   await expect(page.locator("[data-home-chart-reading]")).toContainText("Aug 26");
@@ -167,7 +167,7 @@ test("single-day responses use a single-day chart domain", async ({ page }) => {
 
   const chart = page.getByTestId("home-combined-chart");
   await expect(chart.locator('[aria-label^="X-axis"] .role-axis-label text')).toHaveText(["9/1"]);
-  await expect(chart.locator(".mark-text.role-mark text")).toHaveText(["8", "75%"]);
+  await expect(chart.locator(".role-mark.requestsDirectLabel0 text")).toHaveText(["8"]);
   await expect(page.locator("[data-home-trend-coverage]")).toContainText("Days without readings: 6.");
   await expect(page.locator("[data-home-chart-reading]")).toHaveText("Sep 1: 8 challenges, 75% pass rate");
 });
@@ -193,10 +193,9 @@ for (const locale of ["zh-CN", "zh-TW", "en"] as const) {
 
     await expect(page.locator("[data-home-trend-coverage]")).toHaveCount(0);
     await expect(page.locator("[data-home-trend-empty]")).toHaveCount(0);
-    await expect(page.getByTestId("home-combined-chart").locator(".mark-text.role-mark text")).toHaveText([
-      ...chartDays.map(() => "0"),
-      ...chartDays.map(() => "0%")
-    ]);
+    await expect(page.getByTestId("home-combined-chart").locator(".role-mark.requestsDirectLabel0 text")).toHaveText(
+      chartDays.map(() => "0")
+    );
   });
 
   test(`partial responses describe exactly the missing dates in ${locale}`, async ({ page }) => {
@@ -216,7 +215,7 @@ for (const locale of ["zh-CN", "zh-TW", "en"] as const) {
 
     await expect(page.locator("[data-home-trend-coverage]")).toHaveText(coverageText[locale]);
     await expect(page.locator("[data-home-trend-empty]")).toHaveCount(0);
-    await expect(page.getByTestId("home-combined-chart").locator(".mark-text.role-mark text")).toHaveCount(4);
+    await expect(page.getByTestId("home-combined-chart").locator(".role-mark.requestsDirectLabel0 text")).toHaveCount(2);
   });
 
   test(`empty responses explain the full missing range in ${locale}`, async ({ page }) => {
@@ -297,7 +296,7 @@ test("combined chart keeps distinct themed colors, surface contrast, and semanti
       };
       const chartElement = document.querySelector("[data-testid='home-combined-chart']");
       const legendElement = document.querySelector("[data-home-trend-legend]");
-      const bar = chartElement?.querySelector<SVGElement>(".mark-rect.role-mark path");
+      const bar = chartElement?.querySelector<SVGElement>(".mark-rect.role-mark.requests path");
       const line = chartElement?.querySelector<SVGElement>(".mark-line path");
       const countIcon = legendElement?.querySelector<HTMLElement>("[data-home-trend-series='count'] [data-icon-name]");
       const rateIcon = legendElement?.querySelector<HTMLElement>("[data-home-trend-series='rate'] [data-icon-name]");
@@ -326,12 +325,19 @@ test("combined chart keeps distinct themed colors, surface contrast, and semanti
         const color = rgba(getComputedStyle(node).backgroundColor);
         if (color.length === 3 || color[3] === 1) { background = luminance(color); break; }
       }
-      const bars = Array.from(element.querySelectorAll(".mark-rect.role-mark path")).map((bar) => ({
+      // The library draws a transparent hover area and a white backing rect alongside the
+      // bars; both are .mark-rect.role-mark, and counting them made every label look like
+      // it sat on black. Only the bars themselves are behind a label.
+      const bars = Array.from(element.querySelectorAll(".mark-rect.role-mark.requests path")).map((bar) => ({
         box: bar.getBoundingClientRect(),
         luminance: luminance(rgba(getComputedStyle(bar).fill))
       }));
       const contrasts = Array.from(element.querySelectorAll("svg text")).flatMap((label) => {
-        const foreground = luminance(rgba(getComputedStyle(label).fill));
+        const fill = rgba(getComputedStyle(label).fill);
+        // Each bar label is drawn twice: an invisible halo behind the visible glyphs.
+        // A fully transparent fill puts no ink on the screen and has no contrast to check.
+        if (fill.length === 4 && fill[3] === 0) return [];
+        const foreground = luminance(fill);
         const box = label.getBoundingClientRect();
         const behind = bars.filter(({ box: bar }) =>
           bar.left < box.right && bar.right > box.left && bar.top < box.bottom && bar.bottom > box.top);

@@ -1,3 +1,4 @@
+import { Button, Text } from "@react-spectrum/s2/Button";
 import { useTranslation } from "react-i18next";
 import { Navigate, useSearchParams } from "react-router-dom";
 
@@ -105,18 +106,17 @@ function EntryUnavailable({ error }: Readonly<{ error: ApiRequestError }>) {
         <p data-entry-copy role="alert">
           {t("entry.unavailable.description")}
         </p>
-        <button
+        <Button
           type="button"
+          variant="primary"
           data-slot="button"
-          data-variant="outline"
-          data-size="sm"
-          onClick={() => {
+          onPress={() => {
             void retryConsoleSession();
           }}
         >
           <Icon name="refreshCw" />
-          {t("entry.unavailable.retry")}
-        </button>
+          <Text>{t("entry.unavailable.retry")}</Text>
+        </Button>
       </div>
     </section>
   );

@@ -25,27 +25,17 @@ async function waitForQueue(page: Page): Promise<void> {
   await expect(page.locator("[data-queue-page]")).toHaveAttribute("data-queue-state", "populated");
 }
 
-async function expandNavigationGroup(page: Page, root: string, id: string) {
-  const group = page.locator(`${root} [data-navigation-group="${id}"]`);
-  if (await group.getAttribute("aria-expanded") === "false") await group.click();
-  await expect(group).toHaveAttribute("aria-expanded", "true");
-}
-
+// Every section of the side nav is open and visible at once; a section is the
+// library's row group, headed by our data-navigation-group text.
 async function navigationSections(page: Page, root: string) {
-  const groups = page.locator(`${root} [data-navigation-group]`);
-  const sections = [];
-  for (let index = 0; index < await groups.count(); index++) {
-    const id = (await groups.nth(index).getAttribute("data-navigation-group"))!;
-    await expandNavigationGroup(page, root, id);
-    await expect(page.locator(`${root} [data-navigation-group][aria-expanded="true"]`)).toHaveCount(1);
-    const panel = page.locator(`${root} [data-navigation-items="${id}"]`);
-    await expect(panel).toHaveAttribute("aria-hidden", "false");
-    const paths = await panel.locator("a[href]").evaluateAll((links) =>
-      links.map((link) => new URL((link as HTMLAnchorElement).href).pathname)
-    );
-    sections.push({ id, paths });
-  }
-  return sections;
+  const groups = page.locator(`${root} [role="rowgroup"]`);
+  await expect(groups.first()).toBeVisible();
+  return groups.evaluateAll((sections) => sections.map((section) => ({
+    id: section.querySelector("[data-navigation-group]")?.getAttribute("data-navigation-group") ?? null,
+    paths: [...section.querySelectorAll<HTMLAnchorElement>("[data-navigation-item]")].filter((link) =>
+      link.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })
+    ).map((link) => new URL(link.href).pathname)
+  })));
 }
 
 
@@ -97,25 +87,30 @@ test("operator navigation exposes all 15 destinations through accessible groups 
   expect(actualPaths).toEqual(operatorPaths);
 });
 
-test("operator navigation uses native accordion keyboard activation", async ({ page }) => {
+test("operator navigation is one tab stop whose rows the arrow keys walk", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await mockSpectrumTransport(page, { role: "operator" });
   await openSpectrumRoute(page, "/home");
   await waitForHome(page);
 
-  const nav = page.locator(".console-sidebar nav");
-  const group = nav.locator('[data-navigation-group="verification"]');
-  await group.focus();
-  await page.keyboard.press("Space");
-  await expect(group).toHaveAttribute("aria-expanded", "true");
-
-  const link = nav.locator('a[href^="/verification"]');
-  await expect(link).toBeVisible();
+  const nav = page.locator(".console-sidebar .console-navigation");
+  await page.locator(".console-brand a").focus();
   await page.keyboard.press("Tab");
+  await expect(nav.locator('[data-navigation-item="/home"]')).toBeFocused();
+  // Rows are reached by arrow, not by Tab: the fourth row is in the next section.
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  const link = nav.locator('[data-navigation-item="/verification"]');
   await expect(link).toBeFocused();
-  await expect(link).toHaveCSS("outline-style", "solid");
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(new RegExp(`/verification\\?group=${selectedGroupID}$`));
+  await expect(link).toHaveAttribute("aria-current", "page");
+  // Tab leaves the tree in one step; Shift+Tab returns to the current row.
+  await page.keyboard.press("Tab");
+  await expect(nav.locator(":focus")).toHaveCount(0);
+  await page.keyboard.press("Shift+Tab");
+  await expect(link).toBeFocused();
 });
 
 
@@ -168,9 +163,15 @@ test.describe("Spectrum shell geometry across changed routes", () => {
               pageWidth: pageRoot?.getBoundingClientRect().width
             };
           });
-          expect(geometry.contentPadding).toBe(width < 768 ? "16px" : "32px");
-          expect(geometry.contentPaddingBlock).toBe(width < 768 ? "16px" : "32px");
+          // The panel's padding steps down with the window: 32px, 20px under 800px tall, 16px on narrow screens.
+          expect(geometry.contentPadding).toBe(width < 768 ? "16px" : "20px");
+          expect(geometry.contentPaddingBlock).toBe(width < 768 ? "16px" : "20px");
           expect(geometry.headerGap).toBe("16px");
+          if (width === 1280) {
+            await page.setViewportSize({ width, height: 900 });
+            expect(await page.locator(".console-content").evaluate((content) => getComputedStyle(content).paddingInlineStart)).toBe("32px");
+            await page.setViewportSize({ width, height: 720 });
+          }
           await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
           expect(geometry.pageWidth).toBeGreaterThan(0);
           const controls = await controlGeometry(page);
@@ -275,8 +276,12 @@ for (const [preference, system] of [["light", "dark"], ["dark", "light"], ["syst
       const sidebar = document.querySelector<HTMLElement>(".console-sidebar");
       const header = document.querySelector<HTMLElement>(".console-header");
       const brand = document.querySelector<HTMLElement>(".console-brand");
-      const card = document.querySelector<HTMLElement>("[data-console-card]");
-      if (!shell || !main || !panel || !sidebar || !header || !brand || !card) {
+      // The home page's rows: a metric, an attention row and a configuration entry each
+      // put their surface on the one element inside the link.
+      const tiles = ["[data-home-metric] > *", "[data-home-attention] > *", "[data-home-entry] > *"]
+        .map((selector) => document.querySelector<HTMLElement>(selector));
+      const card = tiles[0];
+      if (!shell || !main || !panel || !sidebar || !header || !brand || tiles.some((tile) => !tile)) {
         throw new Error("console layer surfaces are missing");
       }
 
@@ -318,8 +323,11 @@ for (const [preference, system] of [["light", "dark"], ["dark", "light"], ["syst
         panelBackground,
         outerLuminance: luminance(outerBackground),
         panelLuminance: luminance(panelBackground),
-        card: getComputedStyle(card).backgroundColor,
-        cardShadow: getComputedStyle(card).boxShadow,
+        card: getComputedStyle(card!).backgroundColor,
+        cardLuminance: luminance(getComputedStyle(card!).backgroundColor),
+        tileBackgrounds: tiles.map((tile) => getComputedStyle(tile!).backgroundColor),
+        tileRadii: tiles.map((tile) => getComputedStyle(tile!).borderTopLeftRadius),
+        tileBorders: tiles.map((tile) => getComputedStyle(tile!).borderTopWidth),
         radii: [
           getComputedStyle(panel).borderTopLeftRadius,
           getComputedStyle(panel).borderTopRightRadius,
@@ -362,7 +370,14 @@ for (const [preference, system] of [["light", "dark"], ["dark", "light"], ["syst
     expect(nativeSurfaces.sidebarPhysicalRightBorder).toBe("0px");
     expect(nativeSurfaces.headerBottomBorder).toBe("0px");
     expect(nativeSurfaces.brandBottomBorder).toBe("0px");
-    expect(nativeSurfaces.cardShadow).not.toBe("none");
+    // One tint level inside the panel: every home row is the same fill, one step back
+    // towards the page ground, rounded, and separated by colour rather than a border.
+    expect(new Set(nativeSurfaces.tileBackgrounds).size).toBe(1);
+    expect(nativeSurfaces.card).not.toBe(nativeSurfaces.panelBackground);
+    expect(nativeSurfaces.card).toBe(nativeSurfaces.outerBackground);
+    expect(new Set(nativeSurfaces.tileRadii).size).toBe(1);
+    expect(parseFloat(nativeSurfaces.tileRadii[0]!)).toBeGreaterThan(0);
+    expect(nativeSurfaces.tileBorders).toEqual(["0px", "0px", "0px"]);
 
     await page.setViewportSize({ width: 1280, height: 600 });
     const panelScroll = await page.evaluate(() => {
@@ -387,10 +402,15 @@ for (const [preference, system] of [["light", "dark"], ["dark", "light"], ["syst
     await openSpectrumRoute(page, "/groups");
     await expect(page.locator("[data-groups-page]")).toBeVisible();
     await expect(page.locator("[data-group-row], [data-group-state]").first()).toBeVisible();
+    // Legacy cards take the same one step back as the home rows, and no second edge.
     const legacySurface = await page.locator('[data-slot="card"]').first().evaluate((element) => ({
-      background: getComputedStyle(element).backgroundColor
+      background: getComputedStyle(element).backgroundColor,
+      border: getComputedStyle(element).borderTopWidth,
+      shadow: getComputedStyle(element).boxShadow
     }));
     expect(legacySurface.background).toBe(nativeSurfaces.card);
+    expect(legacySurface.border).toBe("0px");
+    expect(legacySurface.shadow).toBe("none");
     await openSpectrumRoute(page, "/queue");
     await expect(page.locator("[data-queue-toolbar]")).toBeVisible();
     expect(await page.locator("[data-queue-toolbar]").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe(nativeSurfaces.card);
@@ -419,8 +439,7 @@ test("mobile navigation uses a portalled dialog, restores focus on Escape, and c
   await expect.poll(() => trigger.evaluate((element) => document.activeElement === element)).toBe(true);
 
   await trigger.click();
-  await expandNavigationGroup(page, ".console-mobile-panel", "console");
-  const destination = panel.locator('a[href^="/preferences"]');
+  const destination = panel.locator('[data-navigation-item="/preferences"]');
   await expect(destination).toBeVisible();
   await destination.click();
   await expect(page).toHaveURL((url) =>
@@ -467,11 +486,12 @@ test("home chart combines seven-day counts and rates with dual axes, labels, leg
   expect(chartGeometry.scrollHeight).toBeLessThanOrEqual(chartGeometry.scrollClientHeight + 1);
   expect(chartGeometry.clippedLabels).toEqual([]);
 
-  const labels = chart.locator(".mark-text.role-mark text");
-  await expect(labels).toHaveText([
-    ...chartDays.map((day) => String(day.challenges)),
-    "50%", "58%", "43%", "67%", "56%", "64%", "75%"
-  ]);
+  // The bars carry their counts as the library's direct labels. The line carries no
+  // per-point label: the chart library places those through Vega's label transform,
+  // which drops any it cannot fit, so the rates read from the hover and the reading.
+  const labels = chart.locator(".role-mark.requestsDirectLabel0 text");
+  await expect(labels).toHaveText(chartDays.map((day) => String(day.challenges)));
+  await expect(chart.locator(".mark-text.role-mark text").filter({ hasText: "%" })).toHaveCount(0);
 
   const yAxes = chart.locator('[aria-label^="Y-axis"]');
   await expect(yAxes).toHaveCount(2);
@@ -504,9 +524,11 @@ test("home chart combines seven-day counts and rates with dual axes, labels, leg
   await expect(page.locator('[data-home-metric="waiting"]')).toContainText("2");
   await expect(page.locator('[data-home-metric="banned"]')).toContainText("4");
 
-  await chart.locator(".mark-rect.role-mark path").first().hover();
+  // The line's transparent hover region lies over the bars, so the pointer lands on it
+  // rather than on the bar; both carry the same reading for the day.
+  await chart.locator(".mark-rect.role-mark.requests path").first().hover({ force: true });
   await expect(page.locator("#vg-tooltip-element")).toHaveText("Aug 26: 8 challenges, 50% pass rate");
-  await chart.locator(".mark-symbol.role-mark path").last().hover();
+  await chart.locator(".mark-symbol.role-mark path").last().hover({ force: true });
   await expect(page.locator("#vg-tooltip-element")).toHaveText("Sep 1: 8 challenges, 75% pass rate");
 });
 
@@ -519,10 +541,7 @@ test("zero-day combined chart data keeps exact zero readings and never emits NaN
   await waitForHome(page);
 
   const chart = page.getByTestId("home-combined-chart");
-  await expect(chart.locator(".mark-text.role-mark text")).toHaveText([
-    ...chartDays.map(() => "0"),
-    ...chartDays.map(() => "0%")
-  ]);
+  await expect(chart.locator(".role-mark.requestsDirectLabel0 text")).toHaveText(chartDays.map(() => "0"));
   expect(await chart.innerHTML()).not.toContain("NaN");
   await expect(page.locator("[data-home-chart-reading]")).toHaveText("Aug 26: 0 challenges, 0% pass rate");
   await expect(page.locator('[data-home-metric="challenges"]')).toContainText("0");

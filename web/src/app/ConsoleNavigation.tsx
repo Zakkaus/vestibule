@@ -1,13 +1,17 @@
-import { Accordion } from "@react-spectrum/s2/Accordion";
-import { Disclosure, DisclosurePanel } from "@react-spectrum/s2/Disclosure";
-import { Content, Heading, Text } from "@react-spectrum/s2";
-import { focusRing, size, style } from "@react-spectrum/s2/style" with { type: "macro" };
-import { Button } from "react-aria-components/Button";
-import { Link } from "react-aria-components/Link";
-import { useState } from "react";
+import { Content, Text } from "@react-spectrum/s2";
+import type { ReactNode } from "react";
+import {
+  SideNav,
+  SideNavHeader,
+  SideNavItem,
+  SideNavItemContent,
+  SideNavItemLink,
+  SideNavSection,
+  type SideNavItemLinkProps
+} from "@react-spectrum/s2/SideNav";
+import { size, style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { Key } from "@react-spectrum/s2";
 
 import { Icon, type IconName } from "../icons";
 export type NavigationCapability = "instance-status";
@@ -67,37 +71,19 @@ export const navigationItems: readonly NavigationItem[] = [
 
 
 const navigationLayout = style({
-  display: "flex",
-  flexDirection: "column",
   flexGrow: 1,
   minHeight: 0,
   minWidth: 0,
-  height: "full",
-  padding: size(16),
-  overflowY: "auto",
-  overscrollBehaviorY: "contain"
+  height: "full"
 });
 
-const navigationAccordionLayout = style({ minWidth: 0 });
-
-const navigationSectionLayout = style({
-  minWidth: 0,
-  marginTop: { default: size(64), ":first-child": 0 }
-});
-
-const navigationItemsLayout = style({
-  display: "grid",
-  minWidth: 0,
-  gap: size(6)
-});
-
-const navigationIconLayout = style({
+const navigationFrame = style({
   display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: size(16),
-  height: size(16),
-  flexShrink: 0
+  flexGrow: 1,
+  minHeight: 0,
+  minWidth: 0,
+  padding: size(16),
+  boxSizing: "border-box"
 });
 
 export function navigationSections(items: readonly NavigationItem[]): readonly NavigationSection[] {
@@ -109,112 +95,16 @@ export function navigationSections(items: readonly NavigationItem[]): readonly N
   return sections;
 }
 
-type NavigationGroupViewProps = Readonly<{
-  section: NavigationSection;
-  expandedGroup: NavigationGroupID | null;
-  selectedGroupSearch: string;
-  pathname: string;
-  idPrefix: string;
-  translate: (key: string) => string;
-}>;
-
-function NavigationGroupView({
-  section,
-  expandedGroup,
-  selectedGroupSearch,
-  pathname,
-  idPrefix,
-  translate
-}: NavigationGroupViewProps) {
-  const { group, items } = section;
-  const isExpanded = expandedGroup === group.id;
-  const buttonID = `${idPrefix}-${group.id}-navigation-group`;
-  const panelID = `${idPrefix}-${group.id}-navigation-items`;
-
-  return (
-    <Disclosure
-      id={group.id}
-      data-navigation-section={group.id}
-      isQuiet
-      styles={navigationSectionLayout}
-    >
-      <Heading level={3} styles={style({ margin: 0 })}>
-        <Button
-          id={buttonID}
-          slot="trigger"
-          data-navigation-group={group.id}
-          className={style({
-            ...focusRing(),
-            outlineStyle: { default: "none", ":focus-visible": "solid" },
-            display: "flex",
-            alignItems: "center",
-            width: "full",
-            minHeight: size(32),
-            gap: size(6),
-            padding: 0,
-            borderWidth: 0,
-            borderRadius: "none",
-            color: "neutral-subdued",
-            backgroundColor: "transparent",
-            textAlign: "start",
-            font: "ui-sm",
-            fontSize: `[${size(14)}]`,
-            fontWeight: "normal",
-            lineHeight: `[${size(32)}]`
-          })}
-        >
-          <Content styles={navigationIconLayout}>
-            <Icon name={isExpanded ? "chevronDown" : "chevronRight"} />
-          </Content>
-          <Text>{translate(group.labelKey)}</Text>
-        </Button>
-      </Heading>
-      <DisclosurePanel
-        id={panelID}
-        role="group"
-        aria-labelledby={buttonID}
-        data-navigation-items={group.id}
-      >
-        <Content styles={navigationItemsLayout}>
-          {items.map((item) => {
-            const href = `${item.path}${selectedGroupSearch}`;
-            const isSelected = item.path === pathname;
-            return (
-              <Link
-                key={item.path}
-                href={href}
-                data-navigation-item={item.path}
-                aria-current={isSelected ? "page" : undefined}
-                className={style({
-                  ...focusRing(),
-                  outlineStyle: { default: "none", ":focus-visible": "solid" },
-                  textDecoration: { default: "none", "@media (hover: hover)": { ":hover": "underline" } },
-                  display: "flex",
-                  alignItems: "center",
-                  width: "full",
-                  minHeight: size(32),
-                  boxSizing: "border-box",
-                  gap: size(6),
-                  font: "ui-sm",
-                  fontSize: `[${size(14)}]`,
-                  lineHeight: `[${size(32)}]`,
-                  borderRadius: "none",
-                  color: { default: "neutral-subdued", ":where([aria-current=page])": "neutral" },
-                  fontWeight: { default: "normal", ":where([aria-current=page])": "bold" }
-                })}
-              >
-                <Content styles={navigationIconLayout}>
-                  <Icon name={item.icon} />
-                </Content>
-                <Text>{translate(item.labelKey)}</Text>
-              </Link>
-            );
-          })}
-        </Content>
-      </DisclosurePanel>
-    </Disclosure>
-  );
-}
+// Every section stays open. The console has fifteen destinations in six groups; behind
+// an accordion the sidebar showed one group at a time and read as an empty column, and
+// finding a screen cost a click before it cost a glance. SideNav carries the section
+// header, the row rhythm and the current-item indicator, so none of that is written here.
+// SideNavItemLink forwards every prop it receives to react-aria-components' Link, but
+// its declared props stop at children. Name what we actually pass rather than casting
+// the call site to any.
+const NavigationLink = SideNavItemLink as (
+  props: SideNavItemLinkProps & { href: string } & Record<`data-${string}`, string>
+) => ReactNode;
 
 export function ConsoleNavigation({
   sections,
@@ -227,52 +117,44 @@ export function ConsoleNavigation({
 }>) {
   const { t } = useTranslation();
   const location = useLocation();
-  const currentSection = sections.find(({ items }) =>
-    items.some((item) => item.path === location.pathname)
-  );
-  const currentGroup = currentSection?.group.id;
   const selectedRoute = `${location.pathname}${selectedGroupSearch}`;
-  const [expansion, setExpansion] = useState(() => ({
-    route: selectedRoute,
-    group: currentGroup ?? null
-  }));
-  const routeChanged = expansion.route !== selectedRoute;
-  const expandedGroup = routeChanged ? currentGroup ?? null : expansion.group;
-
-  if (routeChanged) {
-    setExpansion({ route: selectedRoute, group: expandedGroup });
-  }
-
-  function updateExpandedGroups(keys: Set<Key>): void {
-    const expandedSection = sections.find(({ group }) => keys.has(group.id));
-    setExpansion({ route: selectedRoute, group: expandedSection?.group.id ?? null });
-  }
 
   return (
-    <Content UNSAFE_className="console-navigation" styles={navigationLayout}>
-      <nav className={style({ display: "flex", flexDirection: "column", flexGrow: 1, minHeight: 0, minWidth: 0 })} aria-label={t("navigation.label")}>
-        <Accordion
-          isQuiet
-          size="S"
-          density="compact"
-          allowsMultipleExpanded={false}
-          expandedKeys={expandedGroup === null ? [] : [expandedGroup]}
-          onExpandedChange={updateExpandedGroups}
-          styles={navigationAccordionLayout}
-        >
-          {sections.map((section) => (
-            <NavigationGroupView
-              key={section.group.id}
-              section={section}
-              expandedGroup={expandedGroup}
-              selectedGroupSearch={selectedGroupSearch}
-              pathname={location.pathname}
-              idPrefix={idPrefix}
-              translate={t}
-            />
+    <Content UNSAFE_className="console-navigation" styles={navigationFrame}>
+    <SideNav
+      aria-label={t("navigation.label")}
+      selectedRoute={selectedRoute}
+      styles={navigationLayout}
+    >
+      {sections.map((section) => (
+        <SideNavSection key={section.group.id} id={`${idPrefix}-${section.group.id}`}>
+          <SideNavHeader>
+            <Text data-navigation-group={section.group.id}>{t(section.group.labelKey)}</Text>
+          </SideNavHeader>
+          {section.items.map((item) => (
+            <SideNavItem
+              key={item.path}
+              id={`${idPrefix}-${item.path}`}
+              // The tree matches selectedRoute against the item's own href, not the
+              // link's, so the current destination is marked by the library rather
+              // than by a rule of ours.
+              href={`${item.path}${selectedGroupSearch}`}
+              textValue={t(item.labelKey)}
+            >
+              <SideNavItemContent>
+                <NavigationLink
+                  href={`${item.path}${selectedGroupSearch}`}
+                  data-navigation-item={item.path}
+                >
+                  <Icon name={item.icon} />
+                  <Text>{t(item.labelKey)}</Text>
+                </NavigationLink>
+              </SideNavItemContent>
+            </SideNavItem>
           ))}
-        </Accordion>
-      </nav>
+        </SideNavSection>
+      ))}
+    </SideNav>
     </Content>
   );
 }

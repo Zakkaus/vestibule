@@ -229,12 +229,11 @@ test("render gate reaches every queue row action through native grid navigation 
   await expect(grid).toBeVisible();
   await page.evaluate(async () => { await document.fonts.ready; });
 
-  const selectedNavigation = page.locator('.console-sidebar nav a[aria-current="page"]');
-  const dailyTrigger = page.locator('.console-sidebar [data-navigation-group="daily"]');
-  await expect(dailyTrigger).toHaveCount(1);
-  await dailyTrigger.focus();
-  await expect(dailyTrigger).toBeFocused();
+  // The side nav is one tab stop: Tab from its current row leaves the tree.
+  const selectedNavigation = page.locator('.console-sidebar [data-navigation-item][aria-current="page"]');
+  await expect(selectedNavigation).toHaveAttribute("data-navigation-item", "/queue");
   await selectedNavigation.focus();
+  await expect(selectedNavigation).toBeFocused();
   await page.keyboard.press("Tab");
   expect(await page.evaluate(() => document.activeElement?.closest('[role="treegrid"]') !== null)).toBe(false);
 

@@ -6,6 +6,7 @@ import { Icon, type IconName } from "../../icons";
 import { useConsoleSession } from "../../app/session";
 import { groupName } from "../../lib/chatNames";
 import { HomeEntries } from "./HomeEntries";
+import { sectionSurface } from "./surface";
 import { HomeSourceBadge } from "./HomeSourceBadge";
 import type { HomeData } from "./useHomeData";
 import { HomeTrend } from "./HomeTrend";
@@ -141,17 +142,26 @@ function OverviewSection({
   ] as const;
 
   return (
-    <Content data-home-section="overview" aria-labelledby="home-overview-title" styles={style({ display: "grid", gap: 8, minWidth: 0 })}>
-      <Heading level={2} id="home-overview-title" styles={style({ font: "heading", margin: 0 })}>{t("home.overview.title")}</Heading>
+    <Content data-home-section="overview" aria-labelledby="home-overview-title" styles={sectionSurface}>
+      <Heading level={2} id="home-overview-title" styles={style({ font: "heading-lg", margin: 0 })}>{t("home.overview.title")}</Heading>
       <Content aria-labelledby="home-overview-title" data-home-metrics styles={style({ display: "grid", gridTemplateColumns: { default: ["minmax(0, 1fr)", "minmax(0, 1fr)"], lg: ["minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)"] }, gap: 8, minWidth: 0 })}>
         {metrics.map((metric) => (
           <Link key={metric.id} href={`${metric.path}${groupSearch}`} isStandalone isQuiet data-home-metric={metric.id}>
-            <Content styles={style({ display: "flex", alignItems: "center", gap: 8, minWidth: 0 })}>
-              <Icon name={metric.icon} />
-              <Content styles={style({ display: "grid", gap: 4, minWidth: 0 })}>
-                <Text styles={style({ font: "heading-lg", color: "neutral" })}>{metric.value}</Text>
-                <Text styles={style({ font: "body-sm", color: "neutral-subdued" })}>{t(metric.labelKey)}</Text>
-              </Content>
+            {/* Same block as every other row on the page: its own ground, its own edge.
+                Without it the numbers were the one thing on the page with no boundary,
+                and the space under the heading read differently here than everywhere else. */}
+            <Content styles={style({
+              display: "grid",
+              gap: 4,
+              minWidth: 0,
+              padding: 12,
+              borderRadius: "lg",
+              backgroundColor: "layer-1"
+            })}>
+              <Text styles={style({ font: "heading", fontWeight: "bold", color: "neutral" })}>{metric.value}</Text>
+              <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", fontWeight: "medium", color: "neutral-subdued" })}>
+                <Icon name={metric.icon} /> {t(metric.labelKey)}
+              </Text>
             </Content>
           </Link>
         ))}
@@ -169,22 +179,23 @@ function AttentionSection({
   const isOperator = data.diagnostics.kind !== "hidden";
 
   return (
-    <Content data-home-section="attention" aria-labelledby="home-attention-title" styles={style({ display: "grid", gap: 8, minWidth: 0 })}>
-      <Heading level={2} id="home-attention-title" styles={style({ font: "heading", margin: 0 })}>{t("home.attention.title")}</Heading>
+    <Content data-home-section="attention" aria-labelledby="home-attention-title" styles={sectionSurface}>
+      <Heading level={2} id="home-attention-title" styles={style({ font: "heading-lg", margin: 0 })}>{t("home.attention.title")}</Heading>
       {items.length === 0 ? (
         <Content data-home-attention-empty styles={style({ display: "grid", justifyItems: "start", gap: 8, textAlign: "start" })}>
-          <Badge variant="positive" fillStyle="subtle"><Icon name="circleCheck" /> {t("home.attention.empty.badge")}</Badge>
+          <Badge variant="positive" fillStyle="subtle"><Icon name="circleCheck" /><Text>{t("home.attention.empty.badge")}</Text></Badge>
           <Text styles={style({ font: "body", color: "neutral-subdued" })}>{t(isOperator ? "home.attention.empty.operatorDescription" : "home.attention.empty.managerDescription")}</Text>
         </Content>
       ) : (
         <Content aria-labelledby="home-attention-title" data-home-attention-list styles={style({ display: "grid", gap: 8, minWidth: 0 })}>
           {items.map((item) => (
-            <Link key={item.id} href={`${item.path}${groupSearch}`} isStandalone data-home-attention={item.id}
+            <Link key={item.id} href={`${item.path}${groupSearch}`} isStandalone isQuiet data-home-attention={item.id}
               aria-label={`${t(item.titleKey)} ${t(item.descriptionKey, { count: item.count })}`}>
-              <Content styles={style({ display: "flex", alignItems: "center", gap: 8, font: "body", minWidth: 0 })}>
-                <Badge variant={item.tone === "error" ? "negative" : "notice"} fillStyle="subtle"><Icon name={attentionIcons[item.tone]} /> {t(`home.attention.tones.${item.tone}`)}</Badge>
-                <Text data-home-attention-copy>{t(item.titleKey)}</Text>
+              <Content styles={style({ display: "flex", alignItems: "center", gap: 12, font: "body", minWidth: 0, padding: 12, borderRadius: "lg", backgroundColor: "layer-1" })}>
+                <Badge data-home-attention-tone={item.tone} variant={item.tone === "error" ? "negative" : "notice"} fillStyle="subtle"><Icon name={attentionIcons[item.tone]} /><Text>{t(`home.attention.tones.${item.tone}`)}</Text></Badge>
+                <Text data-home-attention-copy styles={style({ flexGrow: 1 })}>{t(item.titleKey)}</Text>
                 {item.count !== undefined ? <Text>{item.count}</Text> : null}
+                <Content styles={style({ display: "flex", color: "neutral-subdued" })}><Icon name="arrowRight" /></Content>
               </Content>
             </Link>
           ))}
@@ -222,7 +233,7 @@ export function HomeDashboard({ data, chatID }: Readonly<{ data: HomeData; chatI
         styles={style({
           display: "grid",
           gridTemplateColumns: { default: ["minmax(0, 1fr)"], lg: ["minmax(0, 1fr)", "minmax(0, 1fr)"] },
-          gap: 16,
+          gap: { default: 32, "@media (max-height: 800px)": 20 },
           alignItems: "start",
           minWidth: 0
         })}
