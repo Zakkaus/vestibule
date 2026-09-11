@@ -717,6 +717,38 @@
     "navigation": "题库",
     "title": "题库",
     "description": "管理当前群的选择题、备用填空题和答题语言。",
+    "trial": {
+      "title": "试答已保存题目",
+      "description": "检查作答结果，不产生验证记录或统计。",
+      "savedOnly": "试答使用已保存的题目，不受未保存的修改影响。",
+      "collectionLabel": "题库",
+      "multipleChoice": "选择题",
+      "fallback": "备用填空题",
+      "questionLabel": "题目",
+      "choiceLabel": "选择答案",
+      "answerLabel": "输入答案",
+      "submit": "提交试答",
+      "submitting": "正在判定…",
+      "correct": "回答正确",
+      "incorrect": "回答错误",
+      "noQuestions": "这个题库没有已保存的题目。",
+      "retry": "重新读取已保存题目",
+      "errors": {
+        "authenticationExpired": "会话已过期。请从 Telegram 重新打开控制台。",
+        "authenticationInvalid": "无法验证此控制台会话。请从 Telegram 重新打开控制台。",
+        "accessDenied": "你已不再拥有此群的管理权限。",
+        "accessUnavailable": "暂时无法确认你对此群的管理权限。请重试。",
+        "chatNotFound": "此群已不再可在控制台中管理。",
+        "csrfInvalid": "此页的安全令牌已过期。刷新页面后再试。",
+        "invalidRule": "试答内容无效。请重新读取已保存题目后再试。",
+        "questionNotFound": "找不到这道已保存题目。请重新读取题库。",
+        "conflict": "题库已被其他管理员修改。请重新读取后再试。",
+        "settingsUnavailable": "已保存题目设置暂时不可用。请重试。",
+        "network": "连接已中断。重新读取已保存题目后再试。",
+        "invalidResponse": "服务器返回了无法识别的试答结果。请重新读取已保存题目后再试。",
+        "unavailable": "暂时无法完成试答。请重试。"
+      }
+    },
     "loading": {
       "title": "正在载入题库",
       "description": "正在读取此群当前的题目、备用题和设置来源…"

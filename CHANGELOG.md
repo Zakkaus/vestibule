@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+- The question bank can try saved multiple-choice and short-answer questions through
+  `POST /api/chats/{id}/rules/test`. Trials share the live answer predicates, reject stale
+  settings revisions, and create no verification records, audit entries, or statistics.
+
 ### Fixed
 - Owner private help lists active owner commands. The owner menu and help omit
   `/console` when its link handler is disabled.

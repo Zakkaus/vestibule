@@ -2255,7 +2255,7 @@ migrations/01-settings.sql      settings_revision</div>
         <tr><td class="mono">GET /api/chats/{id}/settings</td><td>验证方式、管理与处罚、功能三屏共用。带每项来源：出厂默认、本群设定或由文件管理</td></tr>
         <tr><td class="mono">PATCH /api/chats/{id}/settings</td><td>只提交改动过的字段，带版本号做冲突检测</td></tr>
         <tr><td class="mono">GET · PUT /api/chats/{id}/rules</td><td>题库、消息与文案、免验证来源三屏共用，<code>collection</code> 区分题库、自动回复、显示名黑名单与反垃圾。PUT 整份替换用于导入</td></tr>
-        <tr><td class="mono">POST /api/chats/{id}/rules/test</td><td>试答，调用线上同一份判定代码</td></tr>
+        <tr><td class="mono">POST /api/chats/{id}/rules/test</td><td>试答；从已保存设置读取 <code>questions</code> 或 <code>fallback_questions</code>，不读取编辑草稿。请求包含 <code>collection</code>、从零开始的 <code>question_index</code> 和 <code>expected_revision</code>；选择题传选项索引 <code>choice</code>，简答题传字符串 <code>answer</code>。返回布尔值 <code>correct</code>；版本冲突返回 409，题目不存在返回 404。调用线上同一份答案判定，不写入验证、审计或统计状态</td></tr>
         <tr><td class="mono">GET /api/chats/{id}/audit</td><td>操作记录</td></tr>
           <tr><td class="mono">POST /api/chats/{id}/audit/{aid}/undo</td><td>撤销一条。
             只有可逆的才给这个入口，删掉的消息回不来</td></tr>

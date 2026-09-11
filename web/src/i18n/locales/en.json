@@ -721,6 +721,38 @@
     "navigation": "Question bank",
     "title": "Question bank",
     "description": "Manage this group's multiple-choice questions, fallback text questions, and challenge language.",
+    "trial": {
+      "title": "Try a saved question",
+      "description": "Check an answer without creating verification records or statistics.",
+      "savedOnly": "Trials use saved questions, not unsaved edits.",
+      "collectionLabel": "Question bank",
+      "multipleChoice": "Multiple choice",
+      "fallback": "Short answer",
+      "questionLabel": "Question",
+      "choiceLabel": "Choose an answer",
+      "answerLabel": "Answer",
+      "submit": "Try answer",
+      "submitting": "Checking…",
+      "correct": "Correct answer",
+      "incorrect": "Incorrect answer",
+      "noQuestions": "This bank has no saved questions.",
+      "retry": "Reload saved questions",
+      "errors": {
+        "authenticationExpired": "The session has expired. Open the console again from Telegram.",
+        "authenticationInvalid": "This console session cannot be verified. Open the console again from Telegram.",
+        "accessDenied": "You no longer administer this group.",
+        "accessUnavailable": "Your management access for this group cannot be verified right now. Try again.",
+        "chatNotFound": "This group can no longer be managed in the console.",
+        "csrfInvalid": "The security token for this page has expired. Refresh the page and try again.",
+        "invalidRule": "The trial input is invalid. Reload the saved questions and try again.",
+        "questionNotFound": "This saved question was not found. Reload the question bank.",
+        "conflict": "The question bank changed in another session. Reload it before trying again.",
+        "settingsUnavailable": "The saved question settings are temporarily unavailable. Try again.",
+        "network": "The connection was interrupted. Reload the saved questions before trying again.",
+        "invalidResponse": "The server returned an unreadable trial result. Reload the saved questions and try again.",
+        "unavailable": "The trial could not be completed right now. Try again."
+      }
+    },
     "loading": {
       "title": "Loading the question bank",
       "description": "Reading this group's questions, fallback questions, and setting sources…"

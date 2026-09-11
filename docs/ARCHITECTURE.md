@@ -1115,7 +1115,7 @@ policr-mini 选了另一条：把 Telegram 的权限镜像进 `permissions` 表�
 | GET /api/chats/{id}/settings | 验证方式、管理与处罚、功能三屏共用。带每项来源：出厂默认、本群设定或由文件管理 |
 | PATCH /api/chats/{id}/settings | 只提交改动过的字段，带版本号做冲突检测 |
 | GET · PUT /api/chats/{id}/rules | 题库、消息与文案、免验证来源三屏共用，`collection` 区分题库、自动回复、显示名黑名单与反垃圾。PUT 整份替换用于导入 |
-| POST /api/chats/{id}/rules/test | 试答，调用线上同一份判定代码 |
+| POST /api/chats/{id}/rules/test | 试答；从已保存设置读取 `questions` 或 `fallback_questions`，不读取编辑草稿。请求包含 `collection`、从零开始的 `question_index` 和 `expected_revision`；选择题传选项索引 `choice`，简答题传字符串 `answer`。返回布尔值 `correct`；版本冲突返回 409，题目不存在返回 404。调用线上同一份答案判定，不写入验证、审计或统计状态 |
 | GET /api/chats/{id}/audit | 操作记录 |
 | POST /api/chats/{id}/audit/{aid}/undo | 撤销一条。 只有可逆的才给这个入口，删掉的消息回不来 |
 | GET · PUT /api/chats/{id}/feeds | 订阅推送。PUT 整份替换用于导入 |

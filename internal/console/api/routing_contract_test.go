@@ -123,7 +123,18 @@ func newRoutingContractHarness(t *testing.T) routingContractHarness {
 
 func newRoutingContractServer(t *testing.T, now time.Time, manager *auth.Manager) *Server {
 	t.Helper()
-	baseline, err := settings.LoadBaseline("", &settings.Config{GroupIDs: []int64{routingContractChatID}})
+	fallbackBuiltin := false
+	fallback := []settings.ShortQuestion{{Q: "fallback?", Answers: []string{"yes"}}}
+	baseline, err := settings.LoadBaseline("", &settings.Config{
+		Groups: []settings.GroupConfig{{
+			ID: routingContractChatID,
+			Questions: []settings.Question{{
+				Q: "triangle?", Options: []string{"triangle", "square"}, Answer: 0,
+			}},
+			FallbackQuestions: &fallback,
+			FallbackBuiltin:   &fallbackBuiltin,
+		}},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,6 +190,7 @@ func routingContractRequests(h routingContractHarness) []routingRequest {
 		{name: "diagnostics", method: http.MethodGet, path: "/api/status", cookies: h.operatorCookies, want: http.StatusOK},
 		{name: "release", method: http.MethodGet, path: "/api/status/release", cookies: h.operatorCookies, want: http.StatusOK},
 		{name: "process settings", method: http.MethodGet, path: "/api/process/settings", cookies: h.operatorCookies, want: http.StatusOK},
+		{name: "rule trial", method: http.MethodPost, path: chatPath + "/rules/test", body: `{"collection":"questions","question_index":0,"expected_revision":0,"choice":0}`, contentType: "application/json", cookies: h.managerCookies, csrf: h.managerGrant.CSRFToken, want: http.StatusOK},
 		{name: "upgrade", method: http.MethodPost, path: "/api/status/upgrade", body: `{"version":"v5.4.0"}`, contentType: "application/json", cookies: h.operatorCookies, csrf: h.operatorGrant.CSRFToken, want: http.StatusAccepted},
 	}
 }

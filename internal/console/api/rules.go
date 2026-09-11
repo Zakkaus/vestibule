@@ -64,6 +64,8 @@ func (s *Server) rulesRoute(writer http.ResponseWriter, request *http.Request, c
 		s.replaceRules(writer, request, chatID)
 	case request.Method == http.MethodPut && len(rest) == 1 && rest[0] != "":
 		s.updateRule(writer, request, chatID, rest[0])
+	case request.Method == http.MethodPost && len(rest) == 1 && rest[0] == "test":
+		s.testRule(writer, request, chatID)
 	default:
 		writeError(writer, http.StatusNotFound, "not_found")
 	}

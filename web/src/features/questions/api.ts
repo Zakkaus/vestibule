@@ -48,6 +48,49 @@ export type QuestionSettingsChanges = Partial<{
   fallback_builtin: boolean | null;
   lang: QuestionLanguage | null;
 }>;
+export type QuestionTrialCollection = "questions" | "fallback_questions";
+
+export type QuestionTrialRequest =
+  | Readonly<{
+      collection: "questions";
+      questionIndex: number;
+      expectedRevision: number;
+      choice: number;
+    }>
+  | Readonly<{
+      collection: "fallback_questions";
+      questionIndex: number;
+      expectedRevision: number;
+      answer: string;
+    }>;
+
+export type QuestionTrialResult = Readonly<{
+  correct: boolean;
+}>;
+
+function questionTrialResultFromPayload(payload: unknown): QuestionTrialResult | undefined {
+  const result = objectFromPayload(payload);
+  return result && typeof result.correct === "boolean" ? { correct: result.correct } : undefined;
+}
+
+export function testQuestion(
+  transport: ApiTransport,
+  chatID: string,
+  request: QuestionTrialRequest
+): Promise<ApiResult<QuestionTrialResult>> {
+  return transport.request(`/api/chats/${encodeURIComponent(chatID)}/rules/test`, {
+    method: "POST",
+    body: {
+      collection: request.collection,
+      question_index: request.questionIndex,
+      expected_revision: request.expectedRevision,
+      ...(request.collection === "questions"
+        ? { choice: request.choice }
+        : { answer: request.answer })
+    },
+    parse: questionTrialResultFromPayload
+  });
+}
 
 function choiceFromPayload<T extends readonly string[]>(
   value: unknown,

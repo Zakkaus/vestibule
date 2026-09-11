@@ -34,7 +34,7 @@ import {
 
 export type QuestionsScreenState =
   | Readonly<{ kind: "loading" }>
-  | Readonly<{ kind: "loaded"; settings: QuestionSettings }>
+  | Readonly<{ kind: "loaded"; settings: QuestionSettings; chatID: string }>
   | Readonly<{ kind: "unavailable"; error: ApiRequestError }>
   | Readonly<{ kind: "group-required" }>
   | Readonly<{ kind: "no-groups" }>;
@@ -141,7 +141,7 @@ function useQuestionSettingsLoad(
         setters.setState({ kind: "unavailable", error: result.error });
         return;
       }
-      setters.setState({ kind: "loaded", settings: result.data });
+      setters.setState({ kind: "loaded", settings: result.data, chatID: chatID! });
       setters.setDraft(draftFromSettings(result.data));
     });
 
@@ -169,7 +169,7 @@ async function submitQuestionSettings(context: SaveContext): Promise<void> {
   }
 
   if (result.ok) {
-    setters.setState({ kind: "loaded", settings: result.data });
+    setters.setState({ kind: "loaded", settings: result.data, chatID });
     setters.setDraft(draftFromSettings(result.data));
     setters.setRestored(new Set());
     setters.setAttemptedSave(false);
@@ -184,7 +184,7 @@ async function submitQuestionSettings(context: SaveContext): Promise<void> {
       return;
     }
     if (latest.ok) {
-      setters.setState({ kind: "loaded", settings: latest.data });
+      setters.setState({ kind: "loaded", settings: latest.data, chatID });
       setters.setDraft(draftFromSettings(latest.data));
       setters.setRestored(new Set());
       setters.setAttemptedSave(false);

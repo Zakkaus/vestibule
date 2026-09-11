@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import type { ApiRequestError } from "../../lib/api";
 import { Icon, type IconName } from "../../icons";
 import { QuestionsSettingsForm } from "./QuestionsSettingsForm";
+import { QuestionTrial } from "./QuestionTrial";
 import {
   useQuestionSettings,
   type QuestionsController,
@@ -137,18 +138,26 @@ function QuestionsStateContent({ controller }: Readonly<{ controller: QuestionsC
   }
 
   return (
-    <QuestionsSettingsForm
-      settings={state.settings}
-      draft={controller.draft}
-      validation={controller.validation}
-      restored={controller.restored}
-      saving={controller.saving}
-      hasChanges={controller.hasChanges}
-      onSubmit={submit}
-      onDraftChange={controller.updateDraft}
-      onRestore={controller.restore}
-      onRestoreFallback={controller.restoreFallback}
-    />
+    <>
+      <QuestionsSettingsForm
+        settings={state.settings}
+        draft={controller.draft}
+        validation={controller.validation}
+        restored={controller.restored}
+        saving={controller.saving}
+        hasChanges={controller.hasChanges}
+        onSubmit={submit}
+        onDraftChange={controller.updateDraft}
+        onRestore={controller.restore}
+        onRestoreFallback={controller.restoreFallback}
+      />
+      <QuestionTrial
+        key={`${state.chatID}:${state.settings.revision}`}
+        chatID={state.chatID}
+        settings={state.settings}
+        onReload={controller.reload}
+      />
+    </>
   );
 }
 
