@@ -15,7 +15,9 @@
   "git_hub": {
     "commit": "<a href=\"%[1]s\"><b>%[2]s</b></a> · <code>%[3]s</code>\n%[4]s%[5]s%[6]s",
     "branch": "\n<b>分支</b>：%[1]s",
-    "author": "\n<b>作者</b>：%[1]s"
+    "author": "\n<b>作者</b>：%[1]s",
+    "issue_opened": "<a href=\"%[1]s\"><b>%[2]s</b></a> · <code>#%[3]d</code> · 新建 issue\n%[4]s\n<b>作者</b>：%[5]s",
+    "pull_opened": "<a href=\"%[1]s\"><b>%[2]s</b></a> · <code>#%[3]d</code> · 新建 pull request\n%[4]s\n<b>作者</b>：%[5]s"
   },
   "config": {
   }

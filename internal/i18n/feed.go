@@ -4,13 +4,13 @@ package i18n
 type FeedCatalog struct {
 	// Bug contains Bugzilla feed field labels and separators.
 	Bug FeedBugCatalog
-	// GitHub contains GitHub commit message templates.
+	// GitHub contains GitHub feed message templates.
 	GitHub FeedGitHubCatalog
 	// Config contains user-facing configuration policy refusals.
 	Config FeedConfigCatalog
 }
 
-// FeedGitHubCatalog contains localized GitHub commit message templates.
+// FeedGitHubCatalog contains localized GitHub feed message templates.
 type FeedGitHubCatalog struct {
 	// Commit is the complete commit message template.
 	Commit Format
@@ -18,6 +18,10 @@ type FeedGitHubCatalog struct {
 	Branch Format
 	// Author labels a commit author when present.
 	Author Format
+	// IssueOpened is the complete issue creation message template.
+	IssueOpened Format
+	// PullOpened is the complete pull-request creation message template.
+	PullOpened Format
 }
 
 // FeedBugCatalog contains Bugzilla feed field labels and separators.
