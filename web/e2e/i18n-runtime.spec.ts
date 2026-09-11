@@ -87,6 +87,8 @@ test("browser and stored language choices select an available console catalogue"
     { browserLocale: "en-US", storedLocale: "zh-TW", want: "zh-TW" },
     { browserLocale: "zh-TW", storedLocale: "en", want: "en" }
   ] as const;
+  // Each case opens its own browser context; on the CI runner that is several seconds apiece.
+  testInfo.setTimeout(cases.length * 15_000);
 
   for (const localeCase of cases) {
     await test.step(`${localeCase.browserLocale} with ${localeCase.storedLocale ?? "no stored preference"}`, async () => {
