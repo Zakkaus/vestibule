@@ -50,68 +50,90 @@ type GitHubItem struct {
 	MergedAt *string
 }
 
+type rawGitHubItem struct {
+	Number    int    `json:"number"`
+	HTMLURL   string `json:"html_url"`
+	Title     string `json:"title"`
+	CreatedAt string `json:"created_at"`
+	State     string `json:"state"`
+	User      struct {
+		Login string `json:"login"`
+	} `json:"user"`
+	PullRequest *struct {
+		MergedAt json.RawMessage `json:"merged_at"`
+	} `json:"pull_request"`
+}
+
 func parseGitHubItems(body []byte, repo string) ([]GitHubItem, bool, error) {
 	trimmed := bytes.TrimSpace(body)
 	if len(trimmed) == 0 || trimmed[0] != '[' {
 		return nil, false, fmt.Errorf("GitHub REST root is not an array")
 	}
-	var rawItems []struct {
-		Number    int    `json:"number"`
-		HTMLURL   string `json:"html_url"`
-		Title     string `json:"title"`
-		CreatedAt string `json:"created_at"`
-		State     string `json:"state"`
-		User      struct {
-			Login string `json:"login"`
-		} `json:"user"`
-		PullRequest *struct {
-			MergedAt json.RawMessage `json:"merged_at"`
-		} `json:"pull_request"`
-	}
+	var rawItems []rawGitHubItem
 	if err := json.Unmarshal(body, &rawItems); err != nil {
 		return nil, false, err
 	}
 	items := make([]GitHubItem, len(rawItems))
-	const githubURLPrefix = "https://github.com/"
-	repoEnd := len(githubURLPrefix) + len(repo)
 	for index, raw := range rawItems {
-		if raw.Number <= 0 {
-			return nil, false, fmt.Errorf("GitHub REST item %d has invalid number", index)
-		}
-		if len(raw.HTMLURL) <= repoEnd || !strings.HasPrefix(raw.HTMLURL, githubURLPrefix) ||
-			!strings.EqualFold(raw.HTMLURL[len(githubURLPrefix):repoEnd], repo) || raw.HTMLURL[repoEnd] != '/' {
-			return nil, false, fmt.Errorf("GitHub REST item %d has invalid html_url", index)
-		}
-		title := sanitizeGitHubTitle(raw.Title)
-		if title == "" {
-			return nil, false, fmt.Errorf("GitHub REST item %d has empty title", index)
-		}
-		if strings.TrimSpace(raw.User.Login) == "" {
-			return nil, false, fmt.Errorf("GitHub REST item %d has empty user.login", index)
-		}
-		if _, err := time.Parse(time.RFC3339, raw.CreatedAt); err != nil {
-			return nil, false, fmt.Errorf("GitHub REST item %d has invalid created_at", index)
-		}
-		if raw.State != "open" && raw.State != "closed" {
-			return nil, false, fmt.Errorf("GitHub REST item %d has invalid state", index)
-		}
-		item := GitHubItem{Number: raw.Number, Title: title, Author: raw.User.Login, URL: raw.HTMLURL, State: raw.State}
-		if raw.PullRequest != nil {
-			item.IsPull = true
-			if raw.PullRequest.MergedAt != nil && !bytes.Equal(raw.PullRequest.MergedAt, []byte("null")) {
-				var mergedAt string
-				if err := json.Unmarshal(raw.PullRequest.MergedAt, &mergedAt); err != nil {
-					return nil, false, fmt.Errorf("GitHub REST item %d has invalid pull_request.merged_at", index)
-				}
-				if _, err := time.Parse(time.RFC3339, mergedAt); err != nil {
-					return nil, false, fmt.Errorf("GitHub REST item %d has invalid pull_request.merged_at", index)
-				}
-				item.MergedAt = &mergedAt
-			}
+		item, err := validateGitHubItem(raw, repo)
+		if err != nil {
+			return nil, false, fmt.Errorf("GitHub REST item %d %s", index, err)
 		}
 		items[index] = item
 	}
 	return items, len(rawItems) == 30, nil
+}
+
+// validateGitHubItem turns one REST item into a GitHubItem or says which field is bad.
+func validateGitHubItem(raw rawGitHubItem, repo string) (GitHubItem, error) {
+	const githubURLPrefix = "https://github.com/"
+	repoEnd := len(githubURLPrefix) + len(repo)
+	if raw.Number <= 0 {
+		return GitHubItem{}, fmt.Errorf("has invalid number")
+	}
+	if len(raw.HTMLURL) <= repoEnd || !strings.HasPrefix(raw.HTMLURL, githubURLPrefix) ||
+		!strings.EqualFold(raw.HTMLURL[len(githubURLPrefix):repoEnd], repo) || raw.HTMLURL[repoEnd] != '/' {
+		return GitHubItem{}, fmt.Errorf("has invalid html_url")
+	}
+	title := sanitizeGitHubTitle(raw.Title)
+	if title == "" {
+		return GitHubItem{}, fmt.Errorf("has empty title")
+	}
+	if strings.TrimSpace(raw.User.Login) == "" {
+		return GitHubItem{}, fmt.Errorf("has empty user.login")
+	}
+	if _, err := time.Parse(time.RFC3339, raw.CreatedAt); err != nil {
+		return GitHubItem{}, fmt.Errorf("has invalid created_at")
+	}
+	if raw.State != "open" && raw.State != "closed" {
+		return GitHubItem{}, fmt.Errorf("has invalid state")
+	}
+	item := GitHubItem{Number: raw.Number, Title: title, Author: raw.User.Login, URL: raw.HTMLURL, State: raw.State}
+	if raw.PullRequest == nil {
+		return item, nil
+	}
+	item.IsPull = true
+	mergedAt, err := parseGitHubMergedAt(raw.PullRequest.MergedAt)
+	if err != nil {
+		return GitHubItem{}, err
+	}
+	item.MergedAt = mergedAt
+	return item, nil
+}
+
+// parseGitHubMergedAt accepts a missing or null merged_at and validates a present one.
+func parseGitHubMergedAt(raw json.RawMessage) (*string, error) {
+	if raw == nil || bytes.Equal(raw, []byte("null")) {
+		return nil, nil
+	}
+	var mergedAt string
+	if err := json.Unmarshal(raw, &mergedAt); err != nil {
+		return nil, fmt.Errorf("has invalid pull_request.merged_at")
+	}
+	if _, err := time.Parse(time.RFC3339, mergedAt); err != nil {
+		return nil, fmt.Errorf("has invalid pull_request.merged_at")
+	}
+	return &mergedAt, nil
 }
 
 func sanitizeGitHubTitle(title string) string {

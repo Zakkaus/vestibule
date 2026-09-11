@@ -220,40 +220,7 @@ func pollGitHubWithFetchers(ctx context.Context, bot feedBot, f *settings.FeedCo
 			break
 		}
 		index := (start + visited) % len(f.GitHubRepos)
-		repo := f.GitHubRepos[index]
-		key := githubRepoKey(repo.Repo, repo.Branch)
-		repoState, initialized := gs.Repos[key]
-		commits, commitErr := commitFetch(ctx, repo.Repo, repo.Branch)
-		var items []lookup.GitHubItem
-		var full, itemsOK bool
-		if repo.IssuesOn() || repo.PullsOn() {
-			var itemErr error
-			items, full, itemErr = itemFetch(ctx, repo.Repo)
-			itemsOK = itemErr == nil
-			if itemErr != nil {
-				log.Printf("feed: WARNING GitHub REST %s: %v", repo.Repo, itemErr)
-			}
-		}
-		result := githubRepoTransient
-		if commitErr != nil {
-			log.Printf("feed: WARNING GitHub %s@%s: %v", repo.Repo, repo.Branch, commitErr)
-		} else {
-			result = deliverGitHubRepo(ctx, bot, f, repo, &repoState, initialized && !repoState.CommitBaselinePending, feedLanguage(f.Lang), &budget, commits)
-			if repoState.CommitBaselinePending && result == githubRepoComplete {
-				repoState.CommitBaselinePending = false
-			}
-		}
-		saveState := initialized || result == githubRepoComplete
-		if result != githubRepoRateLimited && result != githubRepoCanceled && itemsOK {
-			result = deliverGitHubEvents(ctx, bot, f, repo, &repoState, feedLanguage(f.Lang), &budget, items, full)
-			if !initialized && commitErr != nil {
-				repoState.CommitBaselinePending = true
-			}
-			saveState = true
-		}
-		if saveState {
-			gs.Repos[key] = repoState
-		}
+		result := pollGitHubRepo(ctx, bot, f, gs, f.GitHubRepos[index], &budget, commitFetch, itemFetch)
 		if result == githubRepoRateLimited {
 			gs.NextRepo = index
 			break
@@ -270,6 +237,50 @@ func pollGitHubWithFetchers(ctx context.Context, bot feedBot, f *settings.FeedCo
 	st.GitHub = gs
 }
 
+// pollGitHubRepo fetches one repository's commits and, when enabled, its issues and
+// pull requests, delivers what the budget allows, and stores the repository state.
+func pollGitHubRepo(ctx context.Context, bot feedBot, f *settings.FeedConfig, gs *githubState, repo settings.GitHubRepo, budget *int, commitFetch func(context.Context, string, string) ([]lookup.Commit, error), itemFetch githubItemsFetcher) githubRepoResult {
+	key := githubRepoKey(repo.Repo, repo.Branch)
+	repoState, initialized := gs.Repos[key]
+	commits, commitErr := commitFetch(ctx, repo.Repo, repo.Branch)
+	items, full, itemsOK := fetchGitHubItems(ctx, repo, itemFetch)
+	result := githubRepoTransient
+	if commitErr != nil {
+		log.Printf("feed: WARNING GitHub %s@%s: %v", repo.Repo, repo.Branch, commitErr)
+	} else {
+		result = deliverGitHubRepo(ctx, bot, f, repo, &repoState, initialized && !repoState.CommitBaselinePending, feedLanguage(f.Lang), budget, commits)
+		if repoState.CommitBaselinePending && result == githubRepoComplete {
+			repoState.CommitBaselinePending = false
+		}
+	}
+	saveState := initialized || result == githubRepoComplete
+	if result != githubRepoRateLimited && result != githubRepoCanceled && itemsOK {
+		result = deliverGitHubEvents(ctx, bot, f, repo, &repoState, feedLanguage(f.Lang), budget, items, full)
+		if !initialized && commitErr != nil {
+			repoState.CommitBaselinePending = true
+		}
+		saveState = true
+	}
+	if saveState {
+		gs.Repos[key] = repoState
+	}
+	return result
+}
+
+// fetchGitHubItems reads the issues page only when a kind is enabled; a failed read is
+// logged and reported as not usable so the cursors stay where they are.
+func fetchGitHubItems(ctx context.Context, repo settings.GitHubRepo, itemFetch githubItemsFetcher) ([]lookup.GitHubItem, bool, bool) {
+	if !repo.IssuesOn() && !repo.PullsOn() {
+		return nil, false, false
+	}
+	items, full, err := itemFetch(ctx, repo.Repo)
+	if err != nil {
+		log.Printf("feed: WARNING GitHub REST %s: %v", repo.Repo, err)
+		return nil, false, false
+	}
+	return items, full, true
+}
+
 func deliverGitHubEvents(ctx context.Context, bot feedBot, f *settings.FeedConfig, repo settings.GitHubRepo, state *githubRepoState, l i18n.Lang, budget *int, items []lookup.GitHubItem, full bool) githubRepoResult {
 	pageLow, pageHigh := githubItemBounds(items)
 	result := deliverGitHubCategory(ctx, bot, f, repo, state, l, budget, items, full, pageLow, pageHigh, false)
@@ -279,46 +290,65 @@ func deliverGitHubEvents(ctx context.Context, bot feedBot, f *settings.FeedConfi
 	return deliverGitHubCategory(ctx, bot, f, repo, state, l, budget, items, full, pageLow, pageHigh, true)
 }
 
-func deliverGitHubCategory(ctx context.Context, bot feedBot, f *settings.FeedConfig, repo settings.GitHubRepo, state *githubRepoState, l i18n.Lang, budget *int, items []lookup.GitHubItem, full bool, pageLow, pageHigh int, pull bool) githubRepoResult {
-	cursor, initialized, enabled := &state.LastIssue, &state.IssuesInitialized, repo.IssuesOn()
-	kind := "issue"
+// githubCategory is one kind of item (issue or pull request) with its own cursor and
+// baseline flag on the repository state.
+type githubCategory struct {
+	kind        string
+	cursor      *int
+	initialized *bool
+	items       []lookup.GitHubItem
+}
+
+func selectGitHubCategory(repo settings.GitHubRepo, state *githubRepoState, items []lookup.GitHubItem, pull bool) (githubCategory, bool) {
+	category := githubCategory{kind: "issue", cursor: &state.LastIssue, initialized: &state.IssuesInitialized}
+	enabled := repo.IssuesOn()
 	if pull {
-		cursor, initialized, enabled = &state.LastPull, &state.PullsInitialized, repo.PullsOn()
-		kind = "pull request"
+		category = githubCategory{kind: "pull request", cursor: &state.LastPull, initialized: &state.PullsInitialized}
+		enabled = repo.PullsOn()
 	}
-	if !enabled {
-		return githubRepoComplete
-	}
-	category := make([]lookup.GitHubItem, 0, len(items))
 	for _, item := range items {
 		if item.IsPull == pull {
-			category = append(category, item)
+			category.items = append(category.items, item)
 		}
 	}
-	low, high := githubItemBounds(category)
-	if !*initialized {
-		*initialized = true
+	return category, enabled
+}
+
+// settleGitHubCursor baselines a kind on first sight and advances past a truncated
+// page; it reports whether delivery should proceed.
+func settleGitHubCursor(f *settings.FeedConfig, repo settings.GitHubRepo, c githubCategory, full bool, pageLow, pageHigh int) bool {
+	low, high := githubItemBounds(c.items)
+	if !*c.initialized {
+		*c.initialized = true
 		if high > 0 {
-			*cursor = high
-		} else if full && pageLow > *cursor {
-			warnGitHubTruncation(f, repo, kind)
-			*cursor = pageHigh
+			*c.cursor = high
+		} else if full && pageLow > *c.cursor {
+			warnGitHubTruncation(f, repo, c.kind)
+			*c.cursor = pageHigh
 		}
-		log.Printf("feed: %d baselining GitHub %s cursor for %s@%s", f.ChatID, kind, repo.Repo, repo.Branch)
-		return githubRepoComplete
+		log.Printf("feed: %d baselining GitHub %s cursor for %s@%s", f.ChatID, c.kind, repo.Repo, repo.Branch)
+		return false
 	}
-	if full && ((low > 0 && low > *cursor) || (low == 0 && pageLow > *cursor)) {
-		warnGitHubTruncation(f, repo, kind)
+	if full && ((low > 0 && low > *c.cursor) || (low == 0 && pageLow > *c.cursor)) {
+		warnGitHubTruncation(f, repo, c.kind)
 		if high > 0 {
-			*cursor = high
+			*c.cursor = high
 		} else {
-			*cursor = pageHigh
+			*c.cursor = pageHigh
 		}
+		return false
+	}
+	return true
+}
+
+func deliverGitHubCategory(ctx context.Context, bot feedBot, f *settings.FeedConfig, repo settings.GitHubRepo, state *githubRepoState, l i18n.Lang, budget *int, items []lookup.GitHubItem, full bool, pageLow, pageHigh int, pull bool) githubRepoResult {
+	category, enabled := selectGitHubCategory(repo, state, items, pull)
+	if !enabled || !settleGitHubCursor(f, repo, category, full, pageLow, pageHigh) {
 		return githubRepoComplete
 	}
-	sort.Slice(category, func(i, j int) bool { return category[i].Number < category[j].Number })
-	for _, item := range category {
-		if item.Number <= *cursor || *budget >= maxCommitsPerCycle {
+	sort.Slice(category.items, func(i, j int) bool { return category.items[i].Number < category.items[j].Number })
+	for _, item := range category.items {
+		if item.Number <= *category.cursor || *budget >= maxCommitsPerCycle {
 			continue
 		}
 		if ctx.Err() != nil {
@@ -332,9 +362,9 @@ func deliverGitHubCategory(ctx context.Context, bot feedBot, f *settings.FeedCon
 			return githubRepoTransient
 		}
 		if permanent {
-			log.Printf("feed: skip permanently rejected GitHub %s #%d in %d", kind, item.Number, f.ChatID)
+			log.Printf("feed: skip permanently rejected GitHub %s #%d in %d", category.kind, item.Number, f.ChatID)
 		}
-		*cursor = item.Number
+		*category.cursor = item.Number
 		(*budget)++
 	}
 	return githubRepoComplete

@@ -1036,7 +1036,7 @@ Bot API 规定，机器人必须持有 `can_invite_users` 管理员权限才会�
 它由 `internal/verification/observe_only.go:68` 的 `ApplyObservationMode` 装在网关外面：
 读全部转给真网关，**每一次对外写入都换成一条落库的观察**，合成的消息号是负数，
 不可能指向真实的 Telegram 消息。
-开关是配置里的 `observe_only`（`internal/settings/config.go:273`），
+开关是配置里的 `observe_only`（`internal/settings/config.go:283`），
 由 `internal/app/app.go:208` 把它接上 `ObserveOnly`。
 观察写不进去时它**不报成功**，否则「没发出去」和「发了但没记下」会长得一样。
 

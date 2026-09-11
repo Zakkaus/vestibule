@@ -321,42 +321,40 @@ func TestGitHubEventBaselinePersistsWhenCommitFetchFails(t *testing.T) {
 	if bot.sends != 1 || state.GitHub.Repos["o/r@"].LastIssue != 2 {
 		t.Fatalf("event delivery after Atom failure: sends=%d state=%+v", bot.sends, state.GitHub)
 	}
-	raw, err := json.Marshal(state)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var restarted feedState
-	if err := json.Unmarshal(raw, &restarted); err != nil {
-		t.Fatal(err)
-	}
+	raw := marshalFeedState(t, state)
+	restarted := unmarshalFeedState(t, raw)
 	recoveredBot := &githubEventBot{}
-	pollGitHubWithFetchers(context.Background(), recoveredBot, feed, &restarted,
+	pollGitHubWithFetchers(context.Background(), recoveredBot, feed, restarted,
 		func(context.Context, string, string) ([]lookup.Commit, error) {
 			return githubTestRepoPage("o/r", 2), nil
 		}, itemFetch)
 	if recoveredBot.sends != 0 || restarted.GitHub.Repos["o/r@"].LastID != githubTestCommit(2).ID {
 		t.Fatalf("Atom recovery sent %d historical commits; state=%+v", recoveredBot.sends, restarted.GitHub)
 	}
-	var emptyRestarted feedState
-	if err := json.Unmarshal(raw, &emptyRestarted); err != nil {
-		t.Fatal(err)
-	}
+	emptyRestarted := unmarshalFeedState(t, raw)
 	emptyBot := &githubEventBot{}
-	pollGitHubWithFetchers(context.Background(), emptyBot, feed, &emptyRestarted, emptyCommitFetch, itemFetch)
+	pollGitHubWithFetchers(context.Background(), emptyBot, feed, emptyRestarted, emptyCommitFetch, itemFetch)
 	if emptyRestarted.GitHub.Repos["o/r@"].CommitBaselinePending {
 		t.Fatalf("valid empty Atom page left commit baseline pending: state=%+v", emptyRestarted.GitHub)
 	}
-	pollGitHubWithFetchers(context.Background(), emptyBot, feed, &emptyRestarted,
+	pollGitHubWithFetchers(context.Background(), emptyBot, feed, emptyRestarted,
 		func(context.Context, string, string) ([]lookup.Commit, error) {
 			return githubTestRepoPage("o/r", 0), nil
 		}, itemFetch)
 	if emptyBot.sends != 1 || emptyRestarted.GitHub.Repos["o/r@"].LastID != githubTestCommit(0).ID {
 		t.Fatalf("first commit after empty Atom baseline: sends=%d state=%+v", emptyBot.sends, emptyRestarted.GitHub)
 	}
+}
 
+// A repository state written before the event cursors existed still delivers commits.
+func TestGitHubLegacyStateStillDeliversCommits(t *testing.T) {
+	disableGitHubTestPacing(t)
 	legacyFeed := githubEventFeed(false, false, "o/r")
 	legacyState := &feedState{GitHub: &githubState{Repos: map[string]githubRepoState{"o/r@": {}}}}
 	legacyBot := &githubEventBot{}
+	itemFetch := func(context.Context, string) ([]lookup.GitHubItem, bool, error) {
+		return nil, false, nil
+	}
 	pollGitHubWithFetchers(context.Background(), legacyBot, legacyFeed, legacyState,
 		func(context.Context, string, string) ([]lookup.Commit, error) {
 			return githubTestRepoPage("o/r", 2), nil
@@ -364,6 +362,24 @@ func TestGitHubEventBaselinePersistsWhenCommitFetchFails(t *testing.T) {
 	if legacyBot.sends != 3 || legacyState.GitHub.Repos["o/r@"].LastID != githubTestCommit(2).ID {
 		t.Fatalf("legacy empty Atom state: sends=%d state=%+v", legacyBot.sends, legacyState.GitHub)
 	}
+}
+
+func marshalFeedState(t *testing.T, state *feedState) []byte {
+	t.Helper()
+	raw, err := json.Marshal(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return raw
+}
+
+func unmarshalFeedState(t *testing.T, raw []byte) *feedState {
+	t.Helper()
+	var state feedState
+	if err := json.Unmarshal(raw, &state); err != nil {
+		t.Fatal(err)
+	}
+	return &state
 }
 
 func TestGitHubTransientIssueSendPreservesCursor(t *testing.T) {

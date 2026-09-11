@@ -22,22 +22,7 @@ func TestNewConfiguresGitHubRequests(t *testing.T) {
 	hits := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hits++
-		switch r.URL.EscapedPath() {
-		case "/atom/owner/repo/commits/feature/keep%23x.atom":
-			if r.Header.Get("User-Agent") != "new-test-agent" || r.Header.Get("Authorization") != "" {
-				t.Errorf("GitHub Atom request headers = %v", r.Header)
-			}
-			_, _ = w.Write([]byte(`<feed xmlns="http://www.w3.org/2005/Atom"/>`))
-		case "/api/repos/owner/repo/issues":
-			if r.Header.Get("User-Agent") != "new-test-agent" ||
-				r.Header.Get("Accept") != "application/vnd.github+json" ||
-				r.Header.Get("Authorization") != "Bearer must-not-be-sent" {
-				t.Errorf("GitHub REST request headers = %v", r.Header)
-			}
-			_, _ = w.Write([]byte(`[]`))
-		default:
-			t.Errorf("unexpected GitHub request path %q", r.URL.EscapedPath())
-		}
+		serveConfiguredGitHubRequest(t, w, r)
 	}))
 	defer server.Close()
 	New(nil, nil, &settings.Config{
@@ -57,5 +42,27 @@ func TestNewConfiguresGitHubRequests(t *testing.T) {
 	items, full, err := RecentGitHubItems(context.Background(), "owner/repo")
 	if err != nil || len(items) != 0 || full || hits != 2 {
 		t.Fatalf("configured REST request: items=%v full=%v error=%v hits=%d", items, full, err, hits)
+	}
+}
+
+// serveConfiguredGitHubRequest answers the Atom and REST paths the configured lookup
+// must reach, checking the headers each carries.
+func serveConfiguredGitHubRequest(t *testing.T, w http.ResponseWriter, r *http.Request) {
+	t.Helper()
+	switch r.URL.EscapedPath() {
+	case "/atom/owner/repo/commits/feature/keep%23x.atom":
+		if r.Header.Get("User-Agent") != "new-test-agent" || r.Header.Get("Authorization") != "" {
+			t.Errorf("GitHub Atom request headers = %v", r.Header)
+		}
+		_, _ = w.Write([]byte(`<feed xmlns="http://www.w3.org/2005/Atom"/>`))
+	case "/api/repos/owner/repo/issues":
+		if r.Header.Get("User-Agent") != "new-test-agent" ||
+			r.Header.Get("Accept") != "application/vnd.github+json" ||
+			r.Header.Get("Authorization") != "Bearer must-not-be-sent" {
+			t.Errorf("GitHub REST request headers = %v", r.Header)
+		}
+		_, _ = w.Write([]byte(`[]`))
+	default:
+		t.Errorf("unexpected GitHub request path %q", r.URL.EscapedPath())
 	}
 }
