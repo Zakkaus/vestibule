@@ -226,7 +226,9 @@ async function exerciseBusyQuestionControls(
   await expect(page.locator("#questions-language-select")).toHaveAttribute("aria-expanded", "false");
   await expect(page.locator("[data-fallback-question-editor]")).toBeVisible();
 
-  await page.getByRole("button", { name: "正在保存…" }).dispatchEvent("click");
+  const saving = page.locator('[data-questions-savebar] button').last();
+  await expect(saving).toContainText("正在保存…");
+  await saving.dispatchEvent("click");
   await page.waitForTimeout(100);
   expect(patchCalls()).toBe(1);
 }
@@ -262,7 +264,9 @@ async function exerciseBusyVerificationControls(
   await invited.evaluate((input) => (input as HTMLInputElement).click());
   await expect(invited).toBeChecked();
 
-  await page.getByRole("button", { name: "正在保存…" }).dispatchEvent("click");
+  const saving = page.locator('[data-verification-savebar] button').last();
+  await expect(saving).toContainText("正在保存…");
+  await saving.dispatchEvent("click");
   await page.waitForTimeout(100);
   expect(patchCalls()).toBe(2);
 }
@@ -310,10 +314,9 @@ test("question bank adds and edits an item, then sends only the complete questio
   await added.getByRole("button", { name: "将选项 2 设为正确答案" }).click();
   await page.getByRole("button", { name: "保存更改" }).click();
   await patchRequested;
-  await expect(page.getByRole("button", { name: "正在保存…" })).toHaveAttribute(
-    "aria-disabled",
-    "true"
-  );
+  const saving = page.locator('[data-questions-savebar] button').last();
+  await expect(saving).toContainText("正在保存…");
+  await expect(saving).toHaveAttribute("aria-disabled", "true");
 
   releasePatch();
   await expect(page.locator('[data-questions-feedback="saved"]')).toContainText(

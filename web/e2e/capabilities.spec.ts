@@ -227,11 +227,10 @@ test("capabilities saves one sparse change once and preserves CSRF and revision"
   const save = page.getByRole("button", { name: "保存更改" });
   await save.click();
   await patchRequested;
-  await expect(page.getByRole("button", { name: "正在保存…" })).toHaveAttribute(
-    "aria-disabled",
-    "true"
-  );
-  await page.getByRole("button", { name: "正在保存…" }).dispatchEvent("click");
+  const saving = page.locator('[data-capabilities-savebar] button').last();
+  await expect(saving).toContainText("正在保存…");
+  await expect(saving).toHaveAttribute("aria-disabled", "true");
+  await saving.dispatchEvent("click");
   expect(patchCalls).toBe(1);
   expect(csrfHeader).toBe("capabilities-csrf");
   expect(requestBody).toEqual({ expected_revision: 7, changes: { enabled: true } });

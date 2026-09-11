@@ -164,10 +164,9 @@ test("moderation sends one sparse change with CSRF and accepts an unchanged revi
     "data-save-state",
     "submitting"
   );
-  await expect(page.getByRole("button", { name: "正在保存…" })).toHaveAttribute(
-    "aria-disabled",
-    "true"
-  );
+  const saving = page.locator('[data-moderation-savebar] button').last();
+  await expect(saving).toContainText("正在保存…");
+  await expect(saving).toHaveAttribute("aria-disabled", "true");
 
   releasePatch();
   await expect(page.locator("[data-moderation-form]")).toHaveAttribute(
