@@ -3,12 +3,16 @@ package lookup
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
+	"time"
+	"unicode"
 
 	"github.com/Zakkaus/vestibule/internal/settings"
 )
@@ -17,6 +21,7 @@ const (
 	githubAtomNamespace = "http://www.w3.org/2005/Atom"
 	githubAtomBaseURL   = "https://github.com"
 	maxGitHubAtomBytes  = 4 << 20
+	maxGitHubRESTBytes  = 4 << 20
 )
 
 var githubCommitIDRe = regexp.MustCompile(`^tag:github\.com,[0-9]{4}:Grit::Commit/([0-9a-f]{40})$`)
@@ -32,14 +37,111 @@ type Commit struct {
 }
 
 var githubAtomBase = githubAtomBaseURL
+var githubAPIBase = "https://api.github.com"
+
+// GitHubItem is one validated issue or pull request creation record.
+type GitHubItem struct {
+	Number   int
+	Title    string
+	Author   string
+	URL      string
+	IsPull   bool
+	State    string
+	MergedAt *string
+}
+
+func parseGitHubItems(body []byte, repo string) ([]GitHubItem, bool, error) {
+	trimmed := bytes.TrimSpace(body)
+	if len(trimmed) == 0 || trimmed[0] != '[' {
+		return nil, false, fmt.Errorf("GitHub REST root is not an array")
+	}
+	var rawItems []struct {
+		Number    int    `json:"number"`
+		HTMLURL   string `json:"html_url"`
+		Title     string `json:"title"`
+		CreatedAt string `json:"created_at"`
+		State     string `json:"state"`
+		User      struct {
+			Login string `json:"login"`
+		} `json:"user"`
+		PullRequest *struct {
+			MergedAt json.RawMessage `json:"merged_at"`
+		} `json:"pull_request"`
+	}
+	if err := json.Unmarshal(body, &rawItems); err != nil {
+		return nil, false, err
+	}
+	items := make([]GitHubItem, len(rawItems))
+	const githubURLPrefix = "https://github.com/"
+	repoEnd := len(githubURLPrefix) + len(repo)
+	for index, raw := range rawItems {
+		if raw.Number <= 0 {
+			return nil, false, fmt.Errorf("GitHub REST item %d has invalid number", index)
+		}
+		if len(raw.HTMLURL) <= repoEnd || !strings.HasPrefix(raw.HTMLURL, githubURLPrefix) ||
+			!strings.EqualFold(raw.HTMLURL[len(githubURLPrefix):repoEnd], repo) || raw.HTMLURL[repoEnd] != '/' {
+			return nil, false, fmt.Errorf("GitHub REST item %d has invalid html_url", index)
+		}
+		title := sanitizeGitHubTitle(raw.Title)
+		if title == "" {
+			return nil, false, fmt.Errorf("GitHub REST item %d has empty title", index)
+		}
+		if strings.TrimSpace(raw.User.Login) == "" {
+			return nil, false, fmt.Errorf("GitHub REST item %d has empty user.login", index)
+		}
+		if _, err := time.Parse(time.RFC3339, raw.CreatedAt); err != nil {
+			return nil, false, fmt.Errorf("GitHub REST item %d has invalid created_at", index)
+		}
+		if raw.State != "open" && raw.State != "closed" {
+			return nil, false, fmt.Errorf("GitHub REST item %d has invalid state", index)
+		}
+		item := GitHubItem{Number: raw.Number, Title: title, Author: raw.User.Login, URL: raw.HTMLURL, State: raw.State}
+		if raw.PullRequest != nil {
+			item.IsPull = true
+			if raw.PullRequest.MergedAt != nil && !bytes.Equal(raw.PullRequest.MergedAt, []byte("null")) {
+				var mergedAt string
+				if err := json.Unmarshal(raw.PullRequest.MergedAt, &mergedAt); err != nil {
+					return nil, false, fmt.Errorf("GitHub REST item %d has invalid pull_request.merged_at", index)
+				}
+				if _, err := time.Parse(time.RFC3339, mergedAt); err != nil {
+					return nil, false, fmt.Errorf("GitHub REST item %d has invalid pull_request.merged_at", index)
+				}
+				item.MergedAt = &mergedAt
+			}
+		}
+		items[index] = item
+	}
+	return items, len(rawItems) == 30, nil
+}
+
+func sanitizeGitHubTitle(title string) string {
+	runes := make([]rune, 0, min(len(title), 200))
+	for _, value := range title {
+		if !unicode.IsControl(value) {
+			runes = append(runes, value)
+		}
+	}
+	runes = []rune(strings.TrimSpace(string(runes)))
+	if len(runes) > 200 {
+		runes = runes[:200]
+	}
+	return string(runes)
+}
 
 // configureGitHub resets the base on every New call; direct callers also get slash normalization.
 func configureGitHub(cfg *settings.Config) {
 	githubAtomBase = githubAtomBaseURL
+	githubAPIBase = "https://api.github.com"
 	if cfg != nil && cfg.GitHubAtomBase != "" {
 		base := strings.TrimRight(cfg.GitHubAtomBase, "/")
 		if base != "" {
 			githubAtomBase = base
+		}
+	}
+	if cfg != nil && cfg.GitHubAPIBase != "" {
+		apiBase := strings.TrimRight(cfg.GitHubAPIBase, "/")
+		if apiBase != "" {
+			githubAPIBase = apiBase
 		}
 	}
 }
@@ -61,6 +163,32 @@ func RecentCommits(ctx context.Context, repo, branch string) ([]Commit, error) {
 		return nil, fmt.Errorf("parse GitHub Atom: %w", err)
 	}
 	return commits, nil
+}
+
+// RecentGitHubItems fetches and validates one GitHub issue/PR REST page.
+func RecentGitHubItems(ctx context.Context, repo string) ([]GitHubItem, bool, error) {
+	endpoint := githubAPIBase + "/repos/" + repo + "/issues?state=all&sort=created&direction=desc&per_page=30"
+	headers := http.Header{"Accept": {"application/vnd.github+json"}}
+	if githubToken != "" {
+		headers.Set("Authorization", "Bearer "+githubToken)
+	}
+	response, err := httpGet(ctx, endpoint, headers)
+	if err != nil {
+		return nil, false, fmt.Errorf("fetch GitHub REST: %w", err)
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(response.Body, maxGitHubRESTBytes+1))
+	if err != nil {
+		return nil, false, fmt.Errorf("fetch GitHub REST: %w", err)
+	}
+	if len(body) > maxGitHubRESTBytes {
+		return nil, false, &httpBodyTooLargeError{url: endpoint, limit: maxGitHubRESTBytes}
+	}
+	items, full, err := parseGitHubItems(body, repo)
+	if err != nil {
+		return nil, false, fmt.Errorf("parse GitHub REST: %w", err)
+	}
+	return items, full, nil
 }
 
 func githubCommitFeedURL(repo, branch string) string {
