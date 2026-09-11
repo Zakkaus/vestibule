@@ -120,8 +120,22 @@ func gentooModule(
 			},
 		},
 		start: func(ctx context.Context) <-chan struct{} {
-			done := startFeeds(ctx, cfg, bot, stateDirectory)
-			go lookups.Warm(ctx)
+			feedsDone := startFeeds(ctx, cfg, bot, stateDirectory)
+			// The warm-up is part of the module's lifetime: a Run that returns while it is
+			// still reading the overlay list races the next Run's configuration of it.
+			warmed := make(chan struct{})
+			go func() {
+				defer close(warmed)
+				lookups.Warm(ctx)
+			}()
+			done := make(chan struct{})
+			go func() {
+				defer close(done)
+				if feedsDone != nil {
+					<-feedsDone
+				}
+				<-warmed
+			}()
 			return done
 		},
 	}
