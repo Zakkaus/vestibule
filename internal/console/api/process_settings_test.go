@@ -87,6 +87,24 @@ func TestGetProcessSettingsReturnsEmptyResourcesAsArrays(t *testing.T) {
 	}
 }
 
+func TestGetProcessSettingsReturnsGitHubEventSwitches(t *testing.T) {
+	config := loadProcessSettingsConfig(t, map[string]any{
+		"feeds": []map[string]any{{
+			"chat_id": -1009000000205,
+			"github_repos": []map[string]any{{
+				"repo": "owner/repo", "issues": true, "pulls": false,
+			}},
+		}},
+	})
+	service := &apiTestProcessSettingsService{view: config.ProcessSettings()}
+	server, cookies := processSettingsTestServer(t, auth.RoleOperator, service)
+	body := decodeProcessSettings(t, processSettingsRequest(server, cookies, http.MethodGet))
+	repo := body.Feeds.Value[0].GitHubRepos[0]
+	if repo.Issues == nil || !*repo.Issues || repo.Pulls == nil || *repo.Pulls {
+		t.Fatalf("GitHub event switches = issues %v, pulls %v", repo.Issues, repo.Pulls)
+	}
+}
+
 func assertProcessSettingsResponse(
 	t *testing.T,
 	response *httptest.ResponseRecorder,

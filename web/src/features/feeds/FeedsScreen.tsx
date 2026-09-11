@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { Button, Text } from "@react-spectrum/s2/Button";
 import { useTranslation } from "react-i18next";
 
@@ -185,22 +185,28 @@ function FeedItem({ feed, number }: Readonly<{ feed: FeedConfig; number: number 
           <dd><BooleanValue value={feed.silentBugs} defaultValue={false} /></dd>
         </div>
         {feed.githubRepos.map((githubRepo, index) => (
-          <div
-            key={`${githubRepo.repo}:${githubRepo.branch}:${index}`}
-            data-feed-value
-            data-github-repo={githubRepo.repo}
-          >
-            <dt>{t("feeds.feed.githubRepository")}</dt>
-            <dd>
-              <code>{githubRepo.repo}</code>
-              <span aria-hidden="true"> · </span>
-              {githubRepo.branch ? (
-                <code>{githubRepo.branch}</code>
-              ) : (
-                t("feeds.feed.followingDefault")
-              )}
-            </dd>
-          </div>
+          <Fragment key={`${githubRepo.repo}:${githubRepo.branch}:${index}`}>
+            <div data-feed-value>
+              <dt>{t("feeds.feed.githubRepository")}</dt>
+              <dd>
+                <code>{githubRepo.repo}</code>
+                <span aria-hidden="true"> · </span>
+                {githubRepo.branch ? (
+                  <code>{githubRepo.branch}</code>
+                ) : (
+                  t("feeds.feed.followingDefault")
+                )}
+              </dd>
+            </div>
+            <div data-feed-value>
+              <dt>{t("feeds.feed.githubIssues")}</dt>
+              <dd><BooleanValue value={githubRepo.issues} defaultValue={false} /></dd>
+            </div>
+            <div data-feed-value>
+              <dt>{t("feeds.feed.githubPulls")}</dt>
+              <dd><BooleanValue value={githubRepo.pulls} defaultValue={false} /></dd>
+            </div>
+          </Fragment>
         ))}
       </dl>
     </article>

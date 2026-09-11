@@ -15,7 +15,9 @@
   "git_hub": {
     "commit": "<a href=\"%[1]s\"><b>%[2]s</b></a> · <code>%[3]s</code>\n%[4]s%[5]s%[6]s",
     "branch": "\n<b>Ветка</b>: %[1]s",
-    "author": "\n<b>Автор</b>: %[1]s"
+    "author": "\n<b>Автор</b>: %[1]s",
+    "issue_opened": "<a href=\"%[1]s\"><b>%[2]s</b></a> · <code>#%[3]d</code> · Создан issue\n%[4]s\n<b>Автор</b>: %[5]s",
+    "pull_opened": "<a href=\"%[1]s\"><b>%[2]s</b></a> · <code>#%[3]d</code> · Создан pull request\n%[4]s\n<b>Автор</b>: %[5]s"
   },
   "config": {
   }

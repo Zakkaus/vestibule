@@ -1136,7 +1136,7 @@ policr-mini 选了另一条：把 Telegram 的权限镜像进 `permissions` 表�
 | GET /api/status | 诊断屏与版本屏。健康、当前版本、设置持久化、Bot API 探测、回退条件读数和宿主替换状态。**只有运维可见** |
 | GET · PATCH /api/status/daily | 诊断屏的每日状态推送开关。仅运维可读写；PATCH 需要 CSRF，成功保存后返回 enabled、固定 time 与实际 timezone |
 | GET /api/status/release | 运维明确操作后，按需读取固定 GitHub 仓库的最新正式发布、变更说明与目标结构清单；失败不影响本地状态。同上，只有运维 |
-| GET /api/process/settings | 实例级设置的只读视图，每项带来源（出厂默认 / 用户文件 / 群覆盖）。**只有运维可见**，没有写入路由 |
+| GET /api/process/settings | 实例级设置的只读视图，每项带来源（出厂默认 / 用户文件 / 群覆盖）；`github_repos[]` 同时返回 issue 与 pull request 推送开关。**只有运维可见**，没有写入路由 |
 | GET /api/owner/limits | 部署者设置屏。仅当前非零 OwnerID 可见，返回上限、独立版本号与既有超限群；不依赖所选群或运维角色 |
 | PATCH /api/owner/limits | 仅当前 OwnerID 可写，校验会话与 CSRF。带 expected_revision 和 changes，省略字段不改，null 还原为 0。先原子持久化再发布；降低上限只标出既有超限群，不截断或重写群设置 |
 | POST /api/status/upgrade | 发起升级，只写目标版本，执行在宿主侧。同上，只有运维 |

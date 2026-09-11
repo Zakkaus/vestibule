@@ -23,6 +23,7 @@ type configValidationRule struct {
 
 var configValidationRules = [...]configValidationRule{
 	{field: "github_atom_base", validate: normalizeGitHubAtomBase},
+	{field: "github_api_base", validate: normalizeGitHubAPIBase},
 	{field: "overlays", validate: validateConfigOverlays},
 	{field: "questions", validate: validateConfigQuestions},
 	{field: "fallback_questions", validate: validateConfigFallbackQuestions},
@@ -444,37 +445,46 @@ func applyConfigDefaults(c *Config) {
 }
 
 func normalizeGitHubAtomBase(c *Config) error {
-	const defaultBase = "https://github.com"
-	if c.GitHubAtomBase == "" {
-		c.GitHubAtomBase = defaultBase
-		return nil
+	base, err := normalizeGitHubBase("github_atom_base", c.GitHubAtomBase, "https://github.com")
+	c.GitHubAtomBase = base
+	return err
+}
+
+func normalizeGitHubAPIBase(c *Config) error {
+	base, err := normalizeGitHubBase("github_api_base", c.GitHubAPIBase, "https://api.github.com")
+	c.GitHubAPIBase = base
+	return err
+}
+
+func normalizeGitHubBase(field, base, defaultBase string) (string, error) {
+	if base == "" {
+		return defaultBase, nil
 	}
-	base := c.GitHubAtomBase
 	parsed, err := url.Parse(base)
 	if err != nil {
-		return fmt.Errorf("github_atom_base is invalid")
+		return "", fmt.Errorf("%s is invalid", field)
 	}
 	if !strings.EqualFold(parsed.Scheme, "http") && !strings.EqualFold(parsed.Scheme, "https") {
-		return fmt.Errorf("github_atom_base must use http or https")
+		return "", fmt.Errorf("%s must use http or https", field)
 	}
 	if parsed.Hostname() == "" {
-		return fmt.Errorf("github_atom_base must include a host")
+		return "", fmt.Errorf("%s must include a host", field)
 	}
 	if parsed.User != nil {
-		return fmt.Errorf("github_atom_base must not include userinfo")
+		return "", fmt.Errorf("%s must not include userinfo", field)
 	}
 	if parsed.RawQuery != "" || parsed.ForceQuery {
-		return fmt.Errorf("github_atom_base must not include a query")
+		return "", fmt.Errorf("%s must not include a query", field)
 	}
 	if strings.Contains(base, "#") {
-		return fmt.Errorf("github_atom_base must not include a fragment")
+		return "", fmt.Errorf("%s must not include a fragment", field)
 	}
-	c.GitHubAtomBase = strings.TrimRight(base, "/")
-	return nil
+	return strings.TrimRight(base, "/"), nil
 }
 
 func validateGitHubRepos(feedIndex int, repos []GitHubRepo) error {
-	seen := make(map[GitHubRepo]struct{}, len(repos))
+	type repoKey struct{ repo, branch string }
+	seen := make(map[repoKey]struct{}, len(repos))
 	for repoIndex, repo := range repos {
 		if !githubRepoPattern.MatchString(repo.Repo) {
 			return fmt.Errorf(
@@ -487,11 +497,12 @@ func validateGitHubRepos(feedIndex int, repos []GitHubRepo) error {
 			return fmt.Errorf("feed %d github_repos[%d]: repo %q must not use . or .. as a segment",
 				feedIndex, repoIndex, repo.Repo)
 		}
-		if _, ok := seen[repo]; ok {
+		key := repoKey{repo: repo.Repo, branch: repo.Branch}
+		if _, ok := seen[key]; ok {
 			return fmt.Errorf("feed %d github_repos[%d]: duplicate repo %q on branch %q",
 				feedIndex, repoIndex, repo.Repo, repo.Branch)
 		}
-		seen[repo] = struct{}{}
+		seen[key] = struct{}{}
 	}
 	return nil
 }

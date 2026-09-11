@@ -9,6 +9,93 @@ import (
 type githubRepoProcessSettingsDTO struct {
 	Repo   string `json:"repo"`
 	Branch string `json:"branch"`
+	Issues bool   `json:"issues"`
+	Pulls  bool   `json:"pulls"`
+}
+
+func TestGitHubRepoEventSwitchesDefaultOff(t *testing.T) {
+	for _, repo := range []GitHubRepo{{}, {Issues: boolPointer(false), Pulls: boolPointer(false)}} {
+		if repo.IssuesOn() || repo.PullsOn() {
+			t.Fatalf("event switches = issues %v, pulls %v; want both disabled", repo.IssuesOn(), repo.PullsOn())
+		}
+	}
+	enabled := GitHubRepo{Issues: boolPointer(true), Pulls: boolPointer(true)}
+	if !enabled.IssuesOn() || !enabled.PullsOn() {
+		t.Fatalf("explicit event switches = issues %v, pulls %v; want both enabled", enabled.IssuesOn(), enabled.PullsOn())
+	}
+}
+
+func boolPointer(value bool) *bool { return &value }
+
+func TestLoadConfigRejectsDuplicateGitHubRepoWithDifferentEventSwitches(t *testing.T) {
+	_, err := LoadConfig(writeConfig(t, map[string]any{"feeds": []map[string]any{{
+		"chat_id": -1009000002307,
+		"github_repos": []map[string]any{
+			{"repo": "owner/repo", "branch": "main", "issues": true},
+			{"repo": "owner/repo", "branch": "main", "pulls": true},
+		},
+	}}}))
+	if err == nil {
+		t.Fatal("duplicate GitHub repository and branch with different switches was accepted")
+	}
+}
+
+func TestLoadConfigNormalizesGitHubAPIBase(t *testing.T) {
+	for _, test := range []struct {
+		name, raw, want string
+	}{
+		{name: "empty", want: "https://api.github.com"},
+		{name: "trailing slashes", raw: "https://api.example.com/root///", want: "https://api.example.com/root"},
+		{name: "local HTTP", raw: "http://127.0.0.1:1234/", want: "http://127.0.0.1:1234"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			config, err := LoadConfig(writeConfig(t, map[string]any{"github_api_base": test.raw}))
+			requireNoError(t, err)
+			if config.GitHubAPIBase != test.want {
+				t.Fatalf("github_api_base = %q, want %q", config.GitHubAPIBase, test.want)
+			}
+		})
+	}
+	for _, raw := range []string{"api.example.com", "ftp://api.example.com", "https:///api", "https://user:secret@api.example.com", "https://api.example.com?q=1", "https://api.example.com#fragment"} {
+		t.Run("reject "+raw, func(t *testing.T) {
+			if _, err := LoadConfig(writeConfig(t, map[string]any{"github_api_base": raw})); err == nil {
+				t.Fatalf("invalid github_api_base %q was accepted", raw)
+			}
+		})
+	}
+}
+
+func TestLoadConfigDoesNotLeakGitHubAPICredentials(t *testing.T) {
+	const password = "api-password-that-must-not-leak"
+	_, err := LoadConfig(writeConfig(t, map[string]any{"github_api_base": "https://user:" + password + "@api.example.com"}))
+	if err == nil || strings.Contains(err.Error(), password) {
+		t.Fatalf("credential-bearing github_api_base error = %v", err)
+	}
+}
+
+func TestLoadConfigUsesFactoryGitHubAPIBase(t *testing.T) {
+	old := embeddedDefaults.Resources.GitHubAPIBase
+	t.Cleanup(func() { embeddedDefaults.Resources.GitHubAPIBase = old })
+	embeddedDefaults.Resources.GitHubAPIBase = "https://api.factory.invalid/root///"
+	config, err := LoadConfig(writeConfig(t, map[string]any{}))
+	requireNoError(t, err)
+	if config.GitHubAPIBase != "https://api.factory.invalid/root" {
+		t.Fatalf("factory GitHub API base = %q", config.GitHubAPIBase)
+	}
+}
+
+func TestLoadConfigExampleEnablesGitHubIssuesAndPulls(t *testing.T) {
+	config, err := LoadConfig("../../config.example.json")
+	requireNoError(t, err)
+	found := false
+	for _, feed := range config.Feeds {
+		for _, repo := range feed.GitHubRepos {
+			found = found || repo.IssuesOn() && repo.PullsOn()
+		}
+	}
+	if !found {
+		t.Fatal("config.example.json has no GitHub repository with issues and pulls enabled")
+	}
 }
 
 type githubFeedProcessSettingsDTO struct {

@@ -6,6 +6,7 @@
     -1009000000001
   ],
   "github_atom_base": "",
+  "github_api_base": "",
   "feeds": [
     {
       "chat_id": -1009000000001,
@@ -18,7 +19,9 @@
       "silent_bugs": false,
       "github_repos": [
         {
-          "repo": "gentoo-zh/overlay"
+          "repo": "gentoo-zh/overlay",
+          "issues": true,
+          "pulls": true
         },
         {
           "repo": "Zakkaus/vestibule",

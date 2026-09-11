@@ -80,6 +80,10 @@ func cloneFeedConfigs(values []FeedConfig) []FeedConfig {
 
 func cloneFeedGitHubRepos(value FeedConfig) FeedConfig {
 	value.GitHubRepos = append([]GitHubRepo(nil), value.GitHubRepos...)
+	for index := range value.GitHubRepos {
+		value.GitHubRepos[index].Issues = clonePtr(value.GitHubRepos[index].Issues)
+		value.GitHubRepos[index].Pulls = clonePtr(value.GitHubRepos[index].Pulls)
+	}
 	return value
 }
 

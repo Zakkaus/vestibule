@@ -23,6 +23,8 @@ resources:
   news_url: ""
   # GitHub Atom base URL; empty uses https://github.com.
   github_atom_base: ""
+  # GitHub REST API base URL; empty uses https://api.github.com.
+  github_api_base: ""
   # GitHub overlays searched by package commands. See examples.overlay below.
   overlays: []
   # Bug/news/GitHub destinations. See examples.feed below.

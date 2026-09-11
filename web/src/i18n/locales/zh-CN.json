@@ -408,7 +408,7 @@
     },
     "feed": {
       "title": "订阅目标",
-      "description": "feeds 中的每条配置指定接收 Bugzilla、新闻或 GitHub 提交推送的群组或频道。",
+      "description": "feeds 中的每条配置指定接收 Bugzilla、新闻或 GitHub 动态推送的群组或频道。",
       "itemTitle": "目标 {{number}}",
       "destination": "接收群或频道",
       "language": "推送语言",
@@ -419,11 +419,13 @@
       "bugComponent": "Bugzilla 组件",
       "silentBugs": "Bugzilla 推送始终静默",
       "githubRepository": "GitHub 仓库",
+      "githubIssues": "Issue 推送",
+      "githubPulls": "PR 推送",
       "followingDefault": "跟随默认分支",
       "allProducts": "全部产品",
       "allComponents": "全部组件",
       "emptyTitle": "未配置订阅目标",
-      "emptyDescription": "机器人不会向任何群组或频道发送 Bugzilla、新闻或 GitHub 提交推送。feeds 未配置接收目标。"
+      "emptyDescription": "机器人不会向任何群组或频道发送 Bugzilla、新闻或 GitHub 动态推送。feeds 未配置接收目标。"
     },
     "newsURL": {
       "title": "新闻源地址",

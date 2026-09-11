@@ -7,6 +7,10 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 ### Added
+- GitHub feed repositories can independently publish newly created issues and pull requests.
+  Both event switches default to off, establish separate first-enable baselines, and share the
+  existing per-destination delivery budget with commits. Comments, close, merge, reopen, and
+  review events are not published, and existing messages are not edited.
 - The question bank can try saved multiple-choice and short-answer questions through
   `POST /api/chats/{id}/rules/test`. Trials share the live answer predicates, reject stale
   settings revisions, and create no verification records, audit entries, or statistics.
