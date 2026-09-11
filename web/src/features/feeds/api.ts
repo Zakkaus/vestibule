@@ -18,6 +18,8 @@ export type ProcessSetting<T> = Readonly<{
 export type GitHubRepo = Readonly<{
   repo: string;
   branch: string;
+  issues: boolean | null;
+  pulls: boolean | null;
 }>;
 
 export type FeedConfig = Readonly<{
@@ -103,7 +105,11 @@ function githubRepoFromPayload(payload: unknown): GitHubRepo | undefined {
   const name = stringFromPayload(repo.repo);
   const branch =
     repo.branch === undefined || repo.branch === null ? "" : stringFromPayload(repo.branch);
-  return name === undefined || branch === undefined ? undefined : { repo: name, branch };
+  const issues = repo.issues === undefined ? null : nullableBooleanFromPayload(repo.issues);
+  const pulls = repo.pulls === undefined ? null : nullableBooleanFromPayload(repo.pulls);
+  return name === undefined || branch === undefined || issues === undefined || pulls === undefined
+    ? undefined
+    : { repo: name, branch, issues, pulls };
 }
 
 function feedFromPayload(payload: unknown): FeedConfig | undefined {

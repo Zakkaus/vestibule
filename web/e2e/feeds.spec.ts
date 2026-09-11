@@ -76,9 +76,9 @@ const configuredProcessSettings = {
         bug_component: "Portage",
         silent_bugs: true,
         github_repos: [
-          { repo: "gentoo-zh/overlay", branch: "main" },
-          { repo: "gentoo-zh/overlay", branch: "release" },
-          { repo: "gentoo-zh/overlay" }
+          { repo: "gentoo-zh/overlay", branch: "main", issues: true, pulls: false },
+          { repo: "gentoo-zh/overlay", branch: "release", issues: false, pulls: true },
+          { repo: "gentoo-zh/overlay", issues: null, pulls: null }
         ]
       },
       {
@@ -90,7 +90,7 @@ const configuredProcessSettings = {
         bug_product: "",
         bug_component: "",
         silent_bugs: null,
-        github_repos: [{ repo: "Zakkaus/vestibule", branch: "v5/next" }]
+        github_repos: [{ repo: "Zakkaus/vestibule", branch: "v5/next", issues: true, pulls: true }]
       }
     ],
     source: "user file"
@@ -129,16 +129,23 @@ test("feed delivery renders process values, array records, and API provenance wi
   await expect(feeds.nth(0)).toContainText("Gentoo Package Updates");
   await expect(feeds.nth(1)).toContainText("Linux News");
   await expect(screen).not.toContainText(/-100\d+/);
-  const githubRepos = feeds.nth(0).locator("[data-github-repo]");
+  const githubRepos = feeds.nth(0).locator("[data-feed-value]").filter({ hasText: "GitHub 仓库" });
   await expect(githubRepos).toHaveCount(3);
   await expect(githubRepos.nth(0)).toContainText("gentoo-zh/overlay");
   await expect(githubRepos.nth(0)).toContainText("main");
   await expect(githubRepos.nth(1)).toContainText("release");
   await expect(githubRepos.nth(2)).toContainText("跟随默认分支");
-  const secondGitHubRepos = feeds.nth(1).locator("[data-github-repo]");
+  const secondGitHubRepos = feeds.nth(1).locator("[data-feed-value]").filter({ hasText: "GitHub 仓库" });
   await expect(secondGitHubRepos).toHaveCount(1);
   await expect(secondGitHubRepos).toContainText("Zakkaus/vestibule");
   await expect(secondGitHubRepos).toContainText("v5/next");
+  await expect(feeds.nth(0).getByText("Issue 推送", { exact: true })).toHaveCount(3);
+  await expect(feeds.nth(0).getByText("PR 推送", { exact: true })).toHaveCount(3);
+  await expect(feeds.nth(0).getByText("Issue 推送", { exact: true }).nth(0).locator("..")).toContainText("开启");
+  await expect(feeds.nth(0).getByText("PR 推送", { exact: true }).nth(0).locator("..")).toContainText("关闭");
+  await expect(feeds.nth(0).getByText("Issue 推送", { exact: true }).nth(2).locator("..")).toContainText("关闭（默认）");
+  await expect(feeds.nth(1).getByText("Issue 推送", { exact: true })).toHaveCount(1);
+  await expect(feeds.nth(1).getByText("PR 推送", { exact: true })).toHaveCount(1);
   await expect(feeds.nth(0)).toContainText("600 秒");
   await expect(feeds.nth(0)).toContainText("Gentoo Linux");
   await expect(feeds.nth(0)).toContainText("Portage");
@@ -247,7 +254,7 @@ test("feed delivery accepts missing, null, and empty GitHub repository lists", a
 
   await expect(feeds).toHaveCount(3);
   for (const feed of await feeds.all()) {
-    await expect(feed.locator("[data-github-repo]")).toHaveCount(0);
+    await expect(feed.getByText("GitHub 仓库", { exact: true })).toHaveCount(0);
   }
   expect(processMethods).toEqual(["GET"]);
 });

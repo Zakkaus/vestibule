@@ -408,7 +408,7 @@
     },
     "feed": {
       "title": "フィード先",
-      "description": "各項目は、Bugzilla、ニュース、または GitHub のコミット通知を受け取るグループまたはチャンネルに対応します。",
+      "description": "各項目は、Bugzilla、ニュース、または GitHub アクティビティの通知を受け取るグループまたはチャンネルに対応します。",
       "itemTitle": "送信先 {{number}}",
       "destination": "受信グループまたはチャンネル",
       "language": "フィード言語",
@@ -419,11 +419,13 @@
       "bugComponent": "Bugzilla コンポーネント",
       "silentBugs": "Bugzilla を常に無音にする",
       "githubRepository": "GitHub リポジトリ",
+      "githubIssues": "Issue 通知",
+      "githubPulls": "PR 通知",
       "followingDefault": "既定のブランチに従う",
       "allProducts": "すべての製品",
       "allComponents": "すべてのコンポーネント",
       "emptyTitle": "フィード先が設定されていません",
-      "emptyDescription": "現在のプロセスは、どのグループまたはチャンネルにも Bugzilla、ニュース、GitHub コミットの通知を送信しません。"
+      "emptyDescription": "現在のプロセスは、どのグループまたはチャンネルにも Bugzilla、ニュース、GitHub アクティビティの通知を送信しません。"
     },
     "newsURL": {
       "title": "ニュースソース URL",

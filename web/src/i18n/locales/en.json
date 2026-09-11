@@ -410,7 +410,7 @@
     },
     "feed": {
       "title": "Delivery targets",
-      "description": "Each item identifies a group or channel that receives Bugzilla, news, or GitHub commit posts.",
+      "description": "Each item identifies a group or channel that receives Bugzilla, news, or GitHub activity posts.",
       "itemTitle": "Target {{number}}",
       "destination": "Receiving group or channel",
       "language": "Delivery language",
@@ -421,11 +421,13 @@
       "bugComponent": "Bugzilla component",
       "silentBugs": "Always-silent Bugzilla posts",
       "githubRepository": "GitHub repository",
+      "githubIssues": "Issue posts",
+      "githubPulls": "PR posts",
       "followingDefault": "Following the default branch",
       "allProducts": "All products",
       "allComponents": "All components",
       "emptyTitle": "No delivery targets configured",
-      "emptyDescription": "This process does not send Bugzilla, news, or GitHub commit posts to any group or channel."
+      "emptyDescription": "This process does not send Bugzilla, news, or GitHub activity posts to any group or channel."
     },
     "newsURL": {
       "title": "News source URL",
