@@ -164,15 +164,16 @@ async function exerciseBusyQuestionControls(
 ): Promise<void> {
   await page.getByLabel("题面").first().fill("Edited while testing the busy state");
   const addQuestion = page.getByRole("button", { name: "添加选择题" });
+  const editor = page.locator("form").filter({ has: addQuestion });
   await addQuestion.focus();
-  await page.locator("[data-questions-form]").evaluate((form) => {
+  await editor.evaluate((form) => {
     (form as HTMLFormElement).requestSubmit();
   });
   await patchRequested;
 
   await expect(addQuestion).toBeFocused();
   await expect(addQuestion).toHaveAttribute("aria-disabled", "true");
-  const controls = page.locator(
+  const controls = editor.locator(
     [
       "#questions-language-select",
       "[data-question-list-heading] > button",
@@ -186,7 +187,7 @@ async function exerciseBusyQuestionControls(
     ].join(", ")
   );
   await expectControlsFocusable(controls);
-  const editorTextControls = page.locator(
+  const editorTextControls = editor.locator(
     "[data-question-bank-editor] input, [data-question-bank-editor] textarea, " +
       "[data-fallback-question-editor] input, [data-fallback-question-editor] textarea"
   );
@@ -197,7 +198,7 @@ async function exerciseBusyQuestionControls(
       )
     )
   ).toBe(true);
-  const guardedButtons = page.locator(
+  const guardedButtons = editor.locator(
     [
       "[data-question-list-heading] > button",
       "[data-fallback-mode-options] > button",

@@ -717,6 +717,38 @@
     "navigation": "題庫",
     "title": "題庫",
     "description": "管理目前群組的選擇題、備用填空題和答題語言。",
+    "trial": {
+      "title": "試答已儲存題目",
+      "description": "檢查作答結果，不產生驗證紀錄或統計。",
+      "savedOnly": "試答採用已儲存的題目，尚未儲存的修改不會影響結果。",
+      "collectionLabel": "題庫",
+      "multipleChoice": "選擇題",
+      "fallback": "備用填空題",
+      "questionLabel": "題目",
+      "choiceLabel": "選擇答案",
+      "answerLabel": "輸入答案",
+      "submit": "提交試答",
+      "submitting": "正在判定…",
+      "correct": "回答正確",
+      "incorrect": "回答錯誤",
+      "noQuestions": "這個題庫沒有已儲存的題目。",
+      "retry": "重新讀取已儲存題目",
+      "errors": {
+        "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
+        "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
+        "accessDenied": "你已不再擁有此群組的管理權限。",
+        "accessUnavailable": "暫時無法確認你對此群組的管理權限。請重試。",
+        "chatNotFound": "此群組已無法在控制台中管理。",
+        "csrfInvalid": "此頁的安全權杖已過期。重新整理頁面後再試。",
+        "invalidRule": "試答內容無效。請重新讀取已儲存題目後再試。",
+        "questionNotFound": "找不到這道已儲存題目。請重新讀取題庫。",
+        "conflict": "題庫已被其他管理員修改。請重新讀取後再試。",
+        "settingsUnavailable": "已儲存題目設定暫時無法使用。請重試。",
+        "network": "連線已中斷。重新讀取已儲存題目後再試。",
+        "invalidResponse": "伺服器傳回無法辨識的試答結果。請重新讀取已儲存題目後再試。",
+        "unavailable": "目前無法完成試答。請重試。"
+      }
+    },
     "loading": {
       "title": "正在載入題庫",
       "description": "正在讀取此群組目前的題目、備用題和設定來源…"
