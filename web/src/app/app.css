@@ -306,8 +306,8 @@ body {
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  font-size: 1.875rem;
-  font-weight: 700;
+  font-size: clamp(1.75rem, 1rem + 1.5vw, 2.6rem);
+  font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.15;
 }
