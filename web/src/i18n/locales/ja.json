@@ -116,6 +116,35 @@
     "managedCount_other": "管理可能なグループ {{count}} 件",
     "authorized": "許可済み",
     "liveGroupNote": "このグループを選択すると、以降の操作はそのグループ内に限定されます。",
+    "identity": "{{name}} · ユーザー ID {{id}}",
+    "owner": {
+      "heading": "Telegram の所有者"
+    },
+    "administrators": {
+      "heading": "管理者",
+      "unavailable": "管理者の情報を取得できません",
+      "creator": "作成者",
+      "administrator": "管理者"
+    },
+    "permissions": {
+      "heading": "権限",
+      "granted": "許可",
+      "denied": "不許可",
+      "can_manage_chat": "チャットの管理",
+      "can_delete_messages": "メッセージの削除",
+      "can_manage_video_chats": "ビデオチャットの管理",
+      "can_restrict_members": "メンバーの制限",
+      "can_promote_members": "メンバーの昇格",
+      "can_change_info": "チャット情報の変更",
+      "can_invite_users": "ユーザーの招待",
+      "can_post_stories": "ストーリーの投稿",
+      "can_edit_stories": "ストーリーの編集",
+      "can_delete_stories": "ストーリーの削除",
+      "can_post_messages": "メッセージの投稿",
+      "can_edit_messages": "メッセージの編集",
+      "can_pin_messages": "メッセージの固定",
+      "can_manage_topics": "トピックの管理"
+    },
     "loading": {
       "title": "グループ一覧を読み込んでいます…",
       "description": "現在のアカウントが管理できるグループを確認しています。"
@@ -345,6 +374,7 @@
       "accessUnavailable": "このグループを管理する権限を一時的に確認できません。再試行してください。",
       "chatNotFound": "このグループはコンソールで管理できなくなりました。",
       "invalidSettings": "これらの設定は検証に合格しませんでした。変更を確認して再試行してください。",
+      "settingsLimitExceeded": "この変更はインスタンス所有者が設定した上限を超えます。値を下げるか、所有者に上限の引き上げを依頼してください。",
       "settingsUnavailable": "設定サービスを一時的に利用できません。再試行してください。",
       "loadUnavailable": "モデレーションと処分の設定を一時的に利用できません。",
       "saveUnavailable": "モデレーションと処分の設定を保存できません。再試行してください。"
@@ -526,6 +556,7 @@
       "chatNotFound": "このグループはコンソールで管理できなくなりました。",
       "csrfInvalid": "このページのセキュリティトークンの有効期限が切れています。ページを更新してから再試行してください。",
       "invalidSettings": "1 つ以上の設定が無効です。確認してから保存し直してください。",
+      "settingsLimitExceeded": "この変更はインスタンス所有者が設定した上限を超えます。値を下げるか、所有者に上限の引き上げを依頼してください。",
       "settingsUnavailable": "認証免除のソース設定を一時的に利用できません。再試行してください。",
       "loadUnavailable": "認証免除のソース設定を一時的に読み込めません。再試行してください。",
       "saveUnavailable": "認証免除のソース設定を一時的に保存できません。再試行してください。",
@@ -711,6 +742,7 @@
       "chatNotFound": "このグループはコンソールで管理できなくなりました。",
       "csrfInvalid": "このページのセキュリティトークンの有効期限が切れています。ページを更新してから再試行してください。",
       "invalidSettings": "1 つ以上の設定が無効です。確認してから保存し直してください。",
+      "settingsLimitExceeded": "この変更はインスタンス所有者が設定した上限を超えます。値を下げるか、所有者に上限の引き上げを依頼してください。",
       "settingsUnavailable": "認証設定を一時的に利用できません。再試行してください。",
       "loadUnavailable": "認証設定を一時的に読み込めません。再試行してください。",
       "saveUnavailable": "認証設定を一時的に保存できません。再試行してください。",
@@ -870,6 +902,7 @@
       "chatNotFound": "このグループはコンソールで管理できなくなりました。",
       "csrfInvalid": "このページのセキュリティトークンの有効期限が切れています。ページを更新してから再試行してください。",
       "invalidSettings": "問題集が検証に合格しませんでした。問題と回答を確認してから保存し直してください。",
+      "settingsLimitExceeded": "この変更はインスタンス所有者が設定した上限を超えます。値を下げるか、所有者に上限の引き上げを依頼してください。",
       "settingsUnavailable": "問題集の設定を一時的に利用できません。再試行してください。",
       "loadUnavailable": "問題集を一時的に読み込めません。再試行してください。",
       "saveUnavailable": "問題集を一時的に保存できません。再試行してください。",
@@ -1358,6 +1391,7 @@
       "chatNotFound": "このグループはコンソールで管理できなくなりました。",
       "csrfInvalid": "このページのセキュリティトークンの有効期限が切れています。ページを更新してから再試行してください。",
       "invalidSettings": "1 つ以上のメッセージ設定が無効です。確認してから保存し直してください。",
+      "settingsLimitExceeded": "この変更はインスタンス所有者が設定した上限を超えます。値を下げるか、所有者に上限の引き上げを依頼してください。",
       "settingsUnavailable": "メッセージ設定を一時的に利用できません。再試行してください。",
       "loadUnavailable": "メッセージと文言を一時的に利用できません。再試行してください。",
       "loadSettingsUnavailable": "メッセージ設定を一時的に読み込めません。再試行してください。",
@@ -1447,10 +1481,60 @@
       "chatNotFound": "このグループはコンソールで管理できなくなりました。",
       "csrfInvalid": "このページのセキュリティトークンの有効期限が切れています。ページを更新してから再試行してください。",
       "invalidSettings": "機能設定が無効です。再読み込みしてから再試行してください。",
+      "settingsLimitExceeded": "この変更はインスタンス所有者が設定した上限を超えます。値を下げるか、所有者に上限の引き上げを依頼してください。",
       "settingsUnavailable": "機能設定を一時的に利用できません。再試行してください。",
       "loadUnavailable": "機能を一時的に読み込めません。再試行してください。",
       "saveUnavailable": "機能設定を一時的に保存できません。再試行してください。",
       "network": "接続が中断されました。機能を再読み込みしてから、再試行するか決めてください。"
+    }
+  },
+  "owner": {
+    "navigation": "所有者の上限",
+    "title": "インスタンス所有者の上限",
+    "description": "上限はグループ設定の保存時に適用されます。0 は上限を設けません。各項目の既存の値域はそのまま有効です。上限を下げても既存の設定は変わりません。禁止期間の上限が正の値のとき、無期限の禁止は拒否されます。",
+    "loading": {
+      "title": "所有者の上限を読み込んでいます",
+      "description": "現在のインスタンス上限と該当するグループを読み取っています…"
+    },
+    "unavailable": {
+      "title": "所有者の上限を読み取れません"
+    },
+    "fields": {
+      "timeout_seconds": "検証の制限時間（秒）",
+      "ban_seconds": "禁止期間（秒）",
+      "mute_seconds": "ミュート期間（秒）",
+      "lookup_ttl_seconds": "検索結果の保持期間（秒）",
+      "verify_retry_seconds": "検証の再試行間隔（秒）",
+      "verify_max_fails": "検証の最大失敗回数",
+      "warn_limit": "警告の上限回数",
+      "private_query_per_min": "個別チャットでの毎分の検索回数",
+      "questions": "選択式の問題数",
+      "fallback_questions": "記述式の問題数",
+      "channel_whitelist": "許可チャンネル数",
+      "trusted_member_group_ids": "信頼グループ数",
+      "known_chat_ids": "既知チャット数"
+    },
+    "actions": {
+      "save": "上限を保存",
+      "saving": "保存中…",
+      "unsaved": "未保存の変更があります",
+      "retry": "再試行"
+    },
+    "violations": {
+      "title": "現在の上限を超えているグループ",
+      "row": "グループ {{chatId}}：{{field}} は {{value}} で、上限は {{limit}} です。"
+    },
+    "feedback": {
+      "saved": "所有者の上限を保存しました。"
+    },
+    "errors": {
+      "network": "接続が中断されました。もう一度お試しください。",
+      "unavailable": "所有者の上限は一時的に利用できません。もう一度お試しください。",
+      "csrfInvalid": "このページのセキュリティトークンの有効期限が切れました。ページを更新してからもう一度お試しください。",
+      "invalidRequest": "送信された所有者の上限が無効です。値を確認してからもう一度お試しください。",
+      "ownerRequired": "所有者の上限を管理できるのはインスタンス所有者のみです。",
+      "conflict": "別の所有者セッションが上限を変更しました。保存する前に再読み込みしてください。",
+      "settingsUnavailable": "所有者の上限を保存する永続ストレージが利用できません。もう一度お試しください。"
     }
   },
   "home": {
