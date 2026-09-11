@@ -16,7 +16,7 @@ func TestPurgeNoticeReportsRevokedMessageHistory(t *testing.T) {
 	)
 	telegram := newFakeMod()
 	telegram.memberByID = map[int64]telego.ChatMember{
-		7: &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator},
+		7: fullRightsAdministrator(),
 		8: &telego.ChatMemberMember{},
 	}
 	service := newTestService(t, &settings.Config{

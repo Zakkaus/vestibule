@@ -65,6 +65,7 @@
     "owner_claimed": "Deployer ownership is now bound to this account. You can add groups.",
     "owner_claim_refused": "That owner link is not valid: it was used, or it expired. A fresh one is printed to the service log every time the process starts, on the line beginning OWNER UNCLAIMED.",
     "owner_claim_save_failed": "Could not save the owner claim. Restore write access to the service state directory, then retry the same link.",
+    "start_identity": "Your Telegram user ID is %[1]d. This instance has no deployer yet.",
     "enrollment_owner_only": "Only the bot owner can create group-enrollment links.",
     "enrollment_link": "Group-enrollment link (valid for %[1]d minutes and one use):\n%[2]s",
     "enrollment_refused": "This group-enrollment link is invalid, used, or expired. The bot will leave this group.",

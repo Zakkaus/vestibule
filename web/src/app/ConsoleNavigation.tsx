@@ -14,7 +14,7 @@ import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import { Icon, type IconName } from "../icons";
-export type NavigationCapability = "instance-status";
+export type NavigationCapability = "instance-status" | "owner";
 
 export type NavigationGroupID =
   | "daily"
@@ -66,7 +66,8 @@ export const navigationItems: readonly NavigationItem[] = [
   { path: "/diagnostics", labelKey: "diagnostics.navigation", icon: "activity", group: "observe" },
   { path: "/version", labelKey: "version.navigation", icon: "refreshCw", group: "console", capability: "instance-status" },
   { path: "/capabilities", labelKey: "capabilities.navigation", icon: "slidersHorizontal", group: "console" },
-  { path: "/preferences", labelKey: "navigation.preferences", icon: "settings", group: "console" }
+  { path: "/preferences", labelKey: "navigation.preferences", icon: "settings", group: "console" },
+  { path: "/owner", labelKey: "owner.navigation", icon: "settings", group: "console", capability: "owner" }
 ];
 
 
@@ -145,6 +146,7 @@ export function ConsoleNavigation({
                 <NavigationLink
                   href={`${item.path}${selectedGroupSearch}`}
                   data-navigation-item={item.path}
+                  data-owner-navigation={item.path === "/owner" ? "true" : undefined}
                 >
                   <Icon name={item.icon} />
                   <Text>{t(item.labelKey)}</Text>

@@ -255,10 +255,6 @@ func (c refusalAdminChecker) CachedAdmin(context.Context, int64, int64) (bool, e
 	return c.allowed, c.err
 }
 
-func (c refusalAdminChecker) FreshAdmin(context.Context, int64, int64) (bool, error) {
-	return c.allowed, c.err
-}
-
 func TestAuthorizeChatRefusesRequestsItCannotVerify(t *testing.T) {
 	validSession := Session{Principal: Principal{TelegramID: 42, Role: RoleManager}}
 	unavailable := errors.New("getChatMember unavailable")

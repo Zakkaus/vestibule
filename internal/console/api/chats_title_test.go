@@ -75,8 +75,8 @@ func TestChatsResolvesConfiguredTitleButPreservesRegisteredTitle(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := []chatResponse{
-		{ID: strconv.FormatInt(registeredTitleChatID, 10), Title: "Registered title"},
-		{ID: strconv.FormatInt(configuredTitleChatID, 10), Title: "Configured title"},
+		{ID: strconv.FormatInt(registeredTitleChatID, 10), Title: "Registered title", Owner: nil, Administrators: []ChatAdministrator{}, AdministratorsStatus: "unavailable"},
+		{ID: strconv.FormatInt(configuredTitleChatID, 10), Title: "Configured title", Owner: nil, Administrators: []ChatAdministrator{}, AdministratorsStatus: "unavailable"},
 	}
 	if response.Code != http.StatusOK || !reflect.DeepEqual(body.Chats, want) {
 		t.Fatalf("chat titles = status %d, %+v; want status %d, %+v", response.Code, body.Chats, http.StatusOK, want)
@@ -110,7 +110,7 @@ func TestChatsOmitsTitleWhenConfiguredLookupFails(t *testing.T) {
 	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}
-	want := []chatResponse{{ID: strconv.FormatInt(configuredTitleChatID, 10)}}
+	want := []chatResponse{{ID: strconv.FormatInt(configuredTitleChatID, 10), Owner: nil, Administrators: []ChatAdministrator{}, AdministratorsStatus: "unavailable"}}
 	if response.Code != http.StatusOK || !reflect.DeepEqual(body.Chats, want) {
 		t.Fatalf("failed configured title = status %d, %+v; want status %d, %+v",
 			response.Code, body.Chats, http.StatusOK, want)

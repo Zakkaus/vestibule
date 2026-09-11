@@ -405,8 +405,8 @@ func (f *dispatchFixture) joinRequest(userID int64) telego.Update {
 func (f *dispatchFixture) preparePanelInput(t *testing.T, userID int64) telego.Update {
 	t.Helper()
 	f.caller.setMember(f.groupID, userID, &telego.ChatMemberAdministrator{
-		Status: telego.MemberStatusAdministrator,
-		User:   telego.User{ID: userID},
+		Status: telego.MemberStatusAdministrator, CanRestrictMembers: true,
+		User: telego.User{ID: userID},
 	})
 	f.caller.setMember(f.groupID, f.botID, &telego.ChatMemberAdministrator{
 		Status: telego.MemberStatusAdministrator,

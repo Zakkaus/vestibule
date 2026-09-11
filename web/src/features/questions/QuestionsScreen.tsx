@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import type { ApiRequestError } from "../../lib/api";
+import { SettingsLimitNotice } from "../../components/SettingsLimitNotice";
 import { Icon, type IconName } from "../../icons";
 import { QuestionsSettingsForm } from "./QuestionsSettingsForm";
 import { QuestionTrial } from "./QuestionTrial";
@@ -22,6 +23,7 @@ const errorMessageKeys: Readonly<Record<string, string>> = {
   chat_not_found: "questions.errors.chatNotFound",
   csrf_invalid: "questions.errors.csrfInvalid",
   invalid_settings: "questions.errors.invalidSettings",
+  settings_limit_exceeded: "questions.errors.settingsLimitExceeded",
   settings_unavailable: "questions.errors.settingsUnavailable"
 };
 
@@ -177,10 +179,16 @@ function QuestionsFeedbackNotice({
       role={isError ? "alert" : "status"}
       aria-atomic="true"
     >
-      <span data-state-heading>
+      <div data-state-heading>
         <Icon name={isError ? "circleAlert" : "circleCheck"} />
-        {t(messageKey)}
-      </span>
+        {feedback.kind === "error" &&
+        feedback.error.kind === "api" &&
+        feedback.error.code === "settings_limit_exceeded" ? (
+          <SettingsLimitNotice error={feedback.error} messageKey={messageKey} />
+        ) : (
+          t(messageKey)
+        )}
+      </div>
       {reloadable ? (
         <Button type="button" variant="secondary" onPress={onReload}>
           <Icon name="refreshCw" />

@@ -156,6 +156,8 @@ type BotRegistrationCatalog struct {
 	OwnerClaimRefused Text
 	// OwnerClaimSaveFailed reports an owner claim that could not be made durable.
 	OwnerClaimSaveFailed Text
+	// StartIdentity reports the sender ID before this instance has a deployer.
+	StartIdentity Format
 	// EnrollmentOwnerOnly rejects enrollment-link creation by a non-owner.
 	EnrollmentOwnerOnly Text
 	// EnrollmentLink formats a one-use enrollment link and its lifetime.

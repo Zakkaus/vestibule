@@ -50,12 +50,13 @@ export async function mockDiagnosticsTransport(
       await fulfillJSON(route, {
         subject: { telegram_id: actorID, role },
         expires_at: "2026-09-02T12:00:00Z",
+        is_owner: false,
         csrf_token: "diagnostics-csrf"
       });
       return;
     }
     if (path === "/api/chats" && request.method() === "GET") {
-      await fulfillJSON(route, { chats: [{ id: selectedGroupID, title: "Gentoo-zh Community" }] });
+      await fulfillJSON(route, { chats: [{ id: selectedGroupID, title: "Gentoo-zh Community", owner: null, administrators: [], administrators_status: "unavailable" }] });
       return;
     }
     if (path === "/api/status/daily") {

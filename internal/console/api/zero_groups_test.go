@@ -54,7 +54,7 @@ func TestZeroConfiguredGroupsReturnEmptyListAndChatNotFound(t *testing.T) {
 		}
 	}
 	counts := checker.counts()
-	if counts.cachedCalls != 0 || counts.freshCalls != 0 || counts.telegramQueries != 0 {
+	if counts.telegramQueries != 0 {
 		t.Fatalf("zero-group endpoints queried Telegram: %+v", counts)
 	}
 }

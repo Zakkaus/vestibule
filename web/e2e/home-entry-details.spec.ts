@@ -74,6 +74,7 @@ async function mockHome(page: Page): Promise<void> {
       await fulfillJSON(route, {
         subject: { telegram_id: actorID, role: "manager" },
         expires_at: "2026-09-02T03:00:00Z",
+        is_owner: false,
         csrf_token: "home-entry-details-csrf"
       });
       return;
@@ -81,8 +82,8 @@ async function mockHome(page: Page): Promise<void> {
     if (pathname === "/api/chats" && request.method() === "GET") {
       await fulfillJSON(route, {
         chats: [
-          { id: selectedGroupID, title: "Gentoo Chinese Community" },
-          { id: "-1009000010002", title: "Arch Linux Chinese Community" }
+          { id: selectedGroupID, title: "Gentoo Chinese Community", owner: null, administrators: [], administrators_status: "unavailable" },
+          { id: "-1009000010002", title: "Arch Linux Chinese Community", owner: null, administrators: [], administrators_status: "unavailable" }
         ]
       });
       return;

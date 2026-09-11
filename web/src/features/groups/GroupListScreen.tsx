@@ -6,6 +6,9 @@ import { Button } from "@react-spectrum/s2/Button";
 import {
   retryConsoleGroups,
   type ConsoleChat,
+  type ConsoleChatAdministrator,
+  consoleChatPermissionKeys,
+  type ConsoleChatUser,
   useConsoleSession
 } from "../../app/session";
 import { StatusBadge, type StatusTone } from "../../components/StatusBadge";
@@ -109,8 +112,98 @@ function OpenQueueLink({ groupId, groupName }: Readonly<{ groupId: string; group
       aria-label={t("groups.actions.openQueueFor", { group: groupName })}
     >
       <Icon name="arrowRight" />
+
       {t("groups.actions.openQueue")}
     </Link>
+  );
+}
+
+function chatUserName(user: ConsoleChatUser): string {
+  return user.lastName === undefined ? user.firstName : `${user.firstName} ${user.lastName}`;
+}
+
+function AdministratorPermissions({
+  permissions
+}: Readonly<{ permissions: ConsoleChatAdministrator["permissions"] }>) {
+  const { t } = useTranslation();
+
+  return (
+    <ul data-administrator-permissions>
+      {consoleChatPermissionKeys.map((key) => {
+        const value = permissions[key];
+        if (value === null) {
+          return null;
+        }
+        return (
+          <li
+            key={key}
+            data-administrator-permission
+            data-permission-key={key}
+            data-permission-state={value ? "granted" : "denied"}
+          >
+            <span>{t(`groups.permissions.${key}`)}</span>
+            <StatusBadge tone={value ? "ok" : "error"}>
+              {t(value ? "groups.permissions.granted" : "groups.permissions.denied")}
+            </StatusBadge>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function GroupAdministration({ chat }: Readonly<{ chat: ConsoleChat }>) {
+  const { t } = useTranslation();
+  if (chat.administratorsStatus === "unavailable") {
+    return (
+      <div data-group-administration>
+        <section
+          data-group-administrators-status="unavailable"
+          role="status"
+        >
+          <h3>{t("groups.administrators.unavailable")}</h3>
+        </section>
+      </div>
+    );
+  }
+
+  return (
+    <div data-group-administration>
+      {chat.owner === null ? null : (
+        <section data-group-owner aria-labelledby={`owner-${chat.id}`}>
+          <h3 id={`owner-${chat.id}`}>{t("groups.owner.heading")}</h3>
+          <p>{t("groups.identity", { name: chatUserName(chat.owner), id: chat.owner.id })}</p>
+        </section>
+      )}
+      <section
+        data-group-administrators
+        data-group-administrators-status="available"
+        aria-labelledby={`administrators-${chat.id}`}
+      >
+        <h3 id={`administrators-${chat.id}`}>{t("groups.administrators.heading")}</h3>
+        <ul data-administrators-list>
+          {chat.administrators.map((administrator) => (
+            <li
+              key={administrator.user.id}
+              data-slot="card"
+              data-group-administrator
+              data-user-id={administrator.user.id}
+            >
+              <div>
+                {t("groups.identity", {
+                  name: chatUserName(administrator.user),
+                  id: administrator.user.id
+                })}
+              </div>
+              <StatusBadge tone="neutral">
+                {t(`groups.administrators.${administrator.status}`)}
+              </StatusBadge>
+              <AdministratorPermissions permissions={administrator.permissions} />
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
   );
 }
 
@@ -128,6 +221,7 @@ function LiveGroupList({
         key={chat.id}
         data-slot="card"
         data-group-row
+        data-group-chat-id={chat.id}
         data-selected={selectedGroupId === chat.id ? "" : undefined}
         aria-current={selectedGroupId === chat.id ? "true" : undefined}
       >
@@ -141,6 +235,7 @@ function LiveGroupList({
         <div data-group-actions>
           <OpenQueueLink groupId={chat.id} groupName={name} />
         </div>
+        <GroupAdministration chat={chat} />
       </article>
     );
   });

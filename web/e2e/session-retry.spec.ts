@@ -71,6 +71,7 @@ for (const [name, path] of groupRetryScreens) {
         await fulfillJSON(route, {
           subject: { telegram_id: actorID, role: "manager" },
           expires_at: "2026-09-02T12:00:00Z",
+          is_owner: false,
           csrf_token: "session-retry-csrf"
         });
         return;
@@ -98,6 +99,7 @@ for (const [name, path, endpoint, errorCode] of processRetryScreens) {
         await fulfillJSON(route, {
           subject: { telegram_id: actorID, role: "operator" },
           expires_at: "2026-09-02T12:00:00Z",
+          is_owner: false,
           csrf_token: "process-retry-csrf"
         });
         return;

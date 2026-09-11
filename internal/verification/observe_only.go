@@ -172,6 +172,10 @@ func (g *ObserveOnlyGateway) FreshAdmin(ctx context.Context, chatID, userID int6
 	return g.live.FreshAdmin(ctx, chatID, userID)
 }
 
+func (g *ObserveOnlyGateway) FreshRights(ctx context.Context, chatID, userID int64) (GroupRights, error) {
+	return g.live.FreshRights(ctx, chatID, userID)
+}
+
 func (g *ObserveOnlyGateway) AckFast(ctx context.Context, _ string) error {
 	return g.record(ctx, ObservedAction{Operation: ObservedAckFast})
 }

@@ -7,6 +7,7 @@ const selectedGroupTitle = "Maintainers Workspace";
 const managerSessionPayload = {
   subject: { telegram_id: "741928306", role: "manager" },
   expires_at: "2026-09-01T02:00:00Z",
+  is_owner: false,
   csrf_token: "manager-csrf"
 } as const;
 
@@ -142,6 +143,7 @@ async function mockQueueTransport(
         body: JSON.stringify({
           subject: { telegram_id: "741928306", role: "manager" },
           expires_at: "2026-09-01T02:00:00Z",
+          is_owner: false,
           csrf_token: "manager-csrf"
         })
       });
@@ -151,7 +153,7 @@ async function mockQueueTransport(
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle, owner: null, administrators: [], administrators_status: "unavailable" }] })
       });
       return;
     }
@@ -250,6 +252,7 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
         body: JSON.stringify({
           subject: { telegram_id: "741928306", role: "manager" },
           expires_at: "2026-09-01T02:00:00Z",
+          is_owner: false,
           csrf_token: "mini-app-csrf"
         })
       });
@@ -259,7 +262,7 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle, owner: null, administrators: [], administrators_status: "unavailable" }] })
       });
       return;
     }
@@ -401,6 +404,7 @@ test("operator cookie session skips Mini App exchange", async ({ page, baseURL }
         body: JSON.stringify({
           subject: { telegram_id: "741928306", role: "operator" },
           expires_at: "2026-09-01T02:00:00Z",
+          is_owner: false,
           csrf_token: "operator-csrf"
         })
       });
@@ -410,7 +414,7 @@ test("operator cookie session skips Mini App exchange", async ({ page, baseURL }
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle, owner: null, administrators: [], administrators_status: "unavailable" }] })
       });
       return;
     }
@@ -479,6 +483,7 @@ test("a valid session with no groups identifies the Telegram account", async ({ 
         body: JSON.stringify({
           subject: { telegram_id: "741928306", role: "manager" },
           expires_at: "2026-09-01T02:00:00Z",
+          is_owner: false,
           csrf_token: "manager-csrf"
         })
       });
@@ -589,7 +594,7 @@ for (const errorCase of groupListErrorCases) {
               }
             : {
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle }] })
+                body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle, owner: null, administrators: [], administrators_status: "unavailable" }] })
               }
         );
         return;
@@ -648,7 +653,7 @@ test("keyboard selection carries the group boundary to the queue", async ({ page
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle, owner: null, administrators: [], administrators_status: "unavailable" }] })
       });
       return;
     }
@@ -730,7 +735,7 @@ test("widest locale keeps group controls inside the desktop header", async ({ pa
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupId, title: selectedGroupTitle, owner: null, administrators: [], administrators_status: "unavailable" }] })
       });
       return;
     }

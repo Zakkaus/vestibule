@@ -70,6 +70,7 @@ test("production keeps the real account identity for a valid session without gro
       body: {
         subject: { telegram_id: accountId, role: "manager" },
         expires_at: "2030-09-04T12:00:00Z",
+        is_owner: false,
         csrf_token: "production-entry-csrf"
       }
     },

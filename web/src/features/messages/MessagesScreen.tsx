@@ -8,6 +8,7 @@ import {
   useConsoleSession
 } from "../../app/session";
 import type { ApiRequestError } from "../../lib/api";
+import { SettingsLimitNotice } from "../../components/SettingsLimitNotice";
 import { Icon, type IconName } from "../../icons";
 import { MessageSettingsForm } from "./MessageSettingsForm";
 import { RulesPanel } from "./RulesPanel";
@@ -25,6 +26,7 @@ const errorMessageKeys: Readonly<Record<string, string>> = {
   chat_not_found: "messages.errors.chatNotFound",
   csrf_invalid: "messages.errors.csrfInvalid",
   invalid_settings: "messages.errors.invalidSettings",
+  settings_limit_exceeded: "messages.errors.settingsLimitExceeded",
   settings_unavailable: "messages.errors.settingsUnavailable",
   invalid_rule: "messages.errors.invalidRule",
   rule_not_found: "messages.errors.ruleNotFound",
@@ -92,7 +94,13 @@ function SettingsFeedbackNotice({
       role={feedback.kind === "saved" ? "status" : "alert"}
     >
       <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
-      {t(messageKey)}
+      {feedback.kind === "error" &&
+      feedback.error.kind === "api" &&
+      feedback.error.code === "settings_limit_exceeded" ? (
+        <SettingsLimitNotice error={feedback.error} messageKey={messageKey} />
+      ) : (
+        t(messageKey)
+      )}
       {reloadable ? (
         <Button variant="secondary" size="S" data-slot="button" data-size="sm" onPress={onReload}>
           <Icon name="refreshCw" />

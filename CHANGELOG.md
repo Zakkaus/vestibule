@@ -14,6 +14,13 @@ All notable changes to this project are documented here. The format is based on
   timezone. The diagnostics screen can disable delivery persistently; failed attempts
   are not retried before the next local day.
   In observe-only mode, report delivery records a durable observation instead of sending.
+- Before an instance is claimed, a private `/start` without a payload replies with
+  the sender's Telegram user ID and explains that no deployer has claimed the instance.
+- Group and channel cards show the current Telegram creator and each administrator's
+  applicable rights. Failed lookups are marked unavailable rather than inventing an owner.
+- The instance deployer can set thirteen group-setting caps in the console and inspect
+  existing violations. Every group-setting write checks its complete effective values;
+  lowering a cap neither truncates existing settings nor prevents startup.
 
 ### Fixed
 - Owner private help lists active owner commands. The owner menu and help omit
@@ -52,6 +59,9 @@ All notable changes to this project are documented here. The format is based on
   default tier.
 
 ### Changed
+- Group-setting changes and moderation actions require fresh Telegram capabilities for
+  the operation. Manual verification settlements check restrict, invite, and delete rights
+  before changing verification state or issuing Telegram actions.
 - The home dashboard uses equal, aligned columns and a content-sized panel without
   excess space below the last section. Chart legends and date readings stay within
   the chart region; axis titles no longer render vertically.

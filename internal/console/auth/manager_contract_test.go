@@ -236,16 +236,10 @@ type authContractAdminChecker struct {
 	allowed map[int64]bool
 	errors  map[int64]error
 	cached  atomic.Int64
-	fresh   atomic.Int64
 }
 
 func (c *authContractAdminChecker) CachedAdmin(_ context.Context, chatID, _ int64) (bool, error) {
 	c.cached.Add(1)
-	return c.allowed[chatID], c.errors[chatID]
-}
-
-func (c *authContractAdminChecker) FreshAdmin(_ context.Context, chatID, _ int64) (bool, error) {
-	c.fresh.Add(1)
 	return c.allowed[chatID], c.errors[chatID]
 }
 
@@ -276,9 +270,8 @@ func TestAuthorizeChatRejectsInvalidSubjectsBeforeCallingTelegram(t *testing.T) 
 			t.Fatalf("%s reached an authorization decision: %v", name, authorizeErr)
 		}
 	}
-	cached, fresh := checker.cached.Load(), checker.fresh.Load()
-	if cached != 0 || fresh != 0 {
-		t.Fatalf("invalid authorization subjects reached Telegram: cached=%d fresh=%d", cached, fresh)
+	if cached := checker.cached.Load(); cached != 0 {
+		t.Fatalf("invalid authorization subjects reached Telegram: cached=%d", cached)
 	}
 	if err = manager.AuthorizeChat(context.Background(), validSession, chatID, ReadAccess); err != nil {
 		t.Fatalf("valid cached authorization was refused: %v", err)
@@ -303,10 +296,6 @@ func TestAccessibleChatsReturnsOnlyAllowedCandidatesInOriginalOrder(t *testing.T
 	want := []int64{first, first, last}
 	if !slices.Equal(got, want) {
 		t.Fatalf("accessible chats lost filtering, identifiers, or order: got=%v want=%v", got, want)
-	}
-	cached, fresh := checker.cached.Load(), checker.fresh.Load()
-	if cached != int64(len(candidates)) || fresh != 0 {
-		t.Fatalf("chat listing used the wrong authorization path: cached=%d fresh=%d", cached, fresh)
 	}
 }
 

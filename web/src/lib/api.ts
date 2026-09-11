@@ -11,6 +11,13 @@ export type ApiRequestError =
 
 export type ApiRequestMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
+export type ApiLimitViolation = Readonly<{
+  chatId: string;
+  field: string;
+  value: number;
+  limit: number;
+}>;
+
 export type JsonPayloadParser<T> = (payload: unknown) => T | undefined;
 
 export type ApiRequestOptions<T> = Readonly<{
@@ -49,7 +56,8 @@ export class ApiError extends Error {
 
   constructor(
     readonly code: string,
-    readonly status: number
+    readonly status: number,
+    readonly limitViolations: readonly ApiLimitViolation[] = []
   ) {
     super(`API request failed with ${code}`);
     this.name = "ApiError";
@@ -116,6 +124,43 @@ function errorCode(payload: unknown): string | undefined {
   return payload.error.code;
 }
 
+function limitViolationsFromPayload(payload: unknown): readonly ApiLimitViolation[] {
+  if (
+    typeof payload !== "object" ||
+    payload === null ||
+    Array.isArray(payload) ||
+    !("violations" in payload) ||
+    !Array.isArray(payload.violations)
+  ) {
+    return [];
+  }
+  const violations: ApiLimitViolation[] = [];
+  for (const value of payload.violations) {
+    if (
+      typeof value !== "object" ||
+      value === null ||
+      Array.isArray(value) ||
+      typeof value.chat_id !== "string" ||
+      value.chat_id.length === 0 ||
+      typeof value.field !== "string" ||
+      value.field.length === 0 ||
+      typeof value.value !== "number" ||
+      !Number.isSafeInteger(value.value) ||
+      typeof value.limit !== "number" ||
+      !Number.isSafeInteger(value.limit)
+    ) {
+      return [];
+    }
+    violations.push({
+      chatId: value.chat_id,
+      field: value.field,
+      value: value.value,
+      limit: value.limit
+    });
+  }
+  return violations;
+}
+
 export function createApiTransport(
   readSession: () => CsrfSession | undefined
 ): ApiTransport {
@@ -178,7 +223,11 @@ export function createApiTransport(
         return {
           ok: false,
           error: code
-            ? new ApiError(code, response.status)
+            ? new ApiError(
+                code,
+                response.status,
+                code === "settings_limit_exceeded" ? limitViolationsFromPayload(payload) : []
+              )
             : new InvalidPayloadError(response.status)
         };
       }

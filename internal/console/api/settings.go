@@ -317,8 +317,30 @@ func (s *Server) settingsGroup(writer http.ResponseWriter, chatID int64) (settin
 	return group, true
 }
 
+type settingsLimitErrorResponse struct {
+	Error struct {
+		Code string `json:"code"`
+	} `json:"error"`
+	Violations []ownerLimitViolationResponse `json:"violations"`
+}
+
+func writeSettingsLimitExceeded(writer http.ResponseWriter, exceeded *settings.OwnerLimitsExceededError) {
+	response := settingsLimitErrorResponse{
+		Violations: ownerLimitViolationViews(exceeded.Violations),
+	}
+	response.Error.Code = "settings_limit_exceeded"
+	writeJSON(writer, http.StatusBadRequest, response)
+}
+
 func writeSettingsError(writer http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, settings.ErrOwnerLimitsExceeded):
+		var exceeded *settings.OwnerLimitsExceededError
+		if errors.As(err, &exceeded) {
+			writeSettingsLimitExceeded(writer, exceeded)
+			return
+		}
+		writeError(writer, http.StatusBadRequest, "settings_limit_exceeded")
 	case errors.Is(err, settings.ErrSettingsConflict):
 		writeError(writer, http.StatusConflict, "settings_conflict")
 	case errors.Is(err, settings.ErrUnknownGroup):

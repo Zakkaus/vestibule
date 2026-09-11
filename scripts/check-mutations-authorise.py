@@ -43,7 +43,7 @@ DISPATCH = re.compile(r"s\.([a-zA-Z][A-Za-z0-9]*)\(writer, request")
 # function — not at the first brace that happens to close something.
 NEXT_CASE = re.compile(r"^\s*(case |default:)|^\}")
 FUNCTION = re.compile(r"^func \(s \*Server\) ([A-Za-z][A-Za-z0-9]*)\(", re.M)
-AUTHORISES = re.compile(r"authorizedSession\([^)]*auth\.WriteAccess|"
+AUTHORISES = re.compile(r"authorizedSession\([^)]*auth\.(?:WriteAccess|SettlementAccess)|"
                         r"Principal\.Role != auth\.RoleOperator|"
                         r"RedeemSetupToken|setupToken")
 # Presence was the wrong question. A handler that authorises on its last line
@@ -62,6 +62,10 @@ ALLOWED = {
     "requestUpgrade": "instance-wide rather than per-group; checks the operator role and CSRF",
     "enter": "spends the one-time link token, which is the authorisation; there is no "
              "session to ask about until it succeeds",
+    "ownerSession": "read-only identity guard shared by owner GET and PATCH; compares the "
+                    "authenticated Telegram user with the current nonzero OwnerID",
+    "patchOwnerLimits": "instance-wide rather than per-group; ownerLimitsRoute first requires "
+                        "ownerSession, and this handler checks CSRF before updating caps",
 }
 
 

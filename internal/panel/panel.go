@@ -3,6 +3,7 @@ package panel
 
 import (
 	"context"
+	"errors"
 	"log"
 	"strconv"
 	"strings"
@@ -348,13 +349,15 @@ func (v *Panel) hasPrivateQueries() bool {
 }
 
 // Settings and verification commands require a fresh, successful admin lookup.
-func (v *Panel) isGroupAdmin(ctx context.Context, _ *telego.Bot, chatID, userID int64) bool {
-	ok, err := v.telegram.FreshAdmin(ctx, chatID, userID)
+
+// isGroupRestrictAdmin performs a fresh capability lookup for settings writes.
+func (v *Panel) isGroupRestrictAdmin(ctx context.Context, chatID, userID int64) (bool, error) {
+	rights, err := v.telegram.FreshRights(ctx, chatID, userID)
 	if err != nil {
-		log.Printf("isGroupAdmin getChatMember chat=%d user=%d: %v", chatID, userID, err)
-		return false
+		log.Printf("isGroupRestrictAdmin getChatMember chat=%d user=%d: %v", chatID, userID, err)
+		return false, err
 	}
-	return ok
+	return rights.CanRestrictMembers, nil
 }
 
 func (v *Panel) isGroupAdminCached(ctx context.Context, _ *telego.Bot, chatID, userID int64) bool {
@@ -425,14 +428,25 @@ func (v *Panel) memberCmd(ctx *th.Context, update telego.Update, fn func(groupID
 	return nil
 }
 
+func settingsFailureMessage(err error, l i18n.Lang, fallback i18n.Text) string {
+	var exceeded *settings.OwnerLimitsExceededError
+	if errors.As(err, &exceeded) && len(exceeded.Violations) > 0 {
+		violation := exceeded.Violations[0]
+		return i18n.Messages.Panel.Settings.Error.LimitExceeded.Render(
+			l, violation.Field, violation.Value, violation.Limit,
+		)
+	}
+	return fallback.For(l)
+}
+
 func (v *Panel) notifySettingsFailure(c context.Context, bot *telego.Bot, groupID int64, l i18n.Lang, err error) {
 	log.Printf("settings command in group %d failed: %v", groupID, err)
-	v.notify(c, bot, groupID, i18n.Messages.Panel.Error.SaveSettings.For(l))
+	v.notify(c, bot, groupID, settingsFailureMessage(err, l, i18n.Messages.Panel.Error.SaveSettings))
 }
 
 func (v *Panel) settingsAdminCmd(ctx *th.Context, update telego.Update, fn func(groupID int64, l i18n.Lang) (string, error)) error {
 	msg := update.Message
-	if msg == nil || msg.From == nil || !v.isGroup(msg.Chat.ID) {
+	if msg == nil || msg.From == nil || msg.From.ID <= 0 || msg.From.IsBot || !v.isGroup(msg.Chat.ID) {
 		return nil
 	}
 	bot := ctx.Bot()
@@ -443,7 +457,12 @@ func (v *Panel) settingsAdminCmd(ctx *th.Context, update telego.Update, fn func(
 		_ = bot.DeleteMessage(c, &telego.DeleteMessageParams{ChatID: tu.ID(groupID), MessageID: msg.MessageID})
 	}()
 
-	if !v.isGroupAdmin(c, bot, groupID, msg.From.ID) {
+	admin, err := v.isGroupRestrictAdmin(c, groupID, msg.From.ID)
+	if err != nil {
+		v.notify(c, bot, groupID, i18n.Messages.Panel.Settings.Error.AuthorizationCheckFailed.For(l))
+		return nil
+	}
+	if !admin {
 		v.notify(c, bot, groupID, i18n.Messages.Panel.Error.AdminOnly.For(l))
 		return nil
 	}

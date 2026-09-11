@@ -10,6 +10,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram/ids"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
+	"github.com/Zakkaus/vestibule/internal/verification"
 )
 
 func (s *Service) antispamEnabled(groupID int64) bool {
@@ -132,12 +133,12 @@ func (s *Service) BlockChannel(ctx context.Context, command ChannelSenderCommand
 	}
 	l := s.groupLanguage(command.ChatID)
 	defer s.telegram.Delete(ctx, command.ChatID, command.MessageID)
-	if admin, err := s.isGroupAdmin(ctx, command.ChatID, command.CallerID); !admin {
-		s.notify(ctx, command.ChatID, callerRefusal(l, err, i18n.Messages.Moderate.Common.CommandAdminOnly.Render(l, "/bc")))
+	if !s.requireRights(ctx, command.ChatID, command.CallerID, "/bc", l,
+		verification.GroupRights{CanRestrictMembers: true}) {
 		return
 	}
-
 	fields := strings.Fields(commandArg(command.Text))
+
 	switch {
 	case len(fields) == 0:
 		enabled, err := s.toggleAntispam(command.ChatID)

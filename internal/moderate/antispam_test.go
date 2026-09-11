@@ -7,7 +7,6 @@ import (
 
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/settings"
-	"github.com/mymmrac/telego"
 )
 
 func TestBCAllowUpdatesOnlyInvokingGroup(t *testing.T) {
@@ -31,7 +30,7 @@ func TestBCAllowUpdatesOnlyInvokingGroup(t *testing.T) {
 				Lang:             test.lang,
 			}
 			telegram := newFakeMod()
-			telegram.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
+			telegram.member = fullRightsAdministrator()
 			if test.failUnban {
 				telegram.senderUnbanErr = map[int64]error{-200: errors.New("no rights")}
 			}
@@ -74,7 +73,7 @@ func TestBCDenyRemovesWhitelistWithoutUnbanning(t *testing.T) {
 		senderID int64 = -1009000000504
 	)
 	telegram := newFakeMod()
-	telegram.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
+	telegram.member = fullRightsAdministrator()
 	service := newTestService(t, &settings.Config{
 		GroupIDs: []int64{groupID},
 		Groups: []settings.GroupConfig{{
@@ -157,7 +156,7 @@ func newBlockChannelTestService(t *testing.T, antispamEnabled bool, whitelist []
 		Lang:             "en",
 	}
 	telegram := newFakeMod()
-	telegram.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
+	telegram.member = fullRightsAdministrator()
 	return newTestService(t, cfg, telegram, ""), telegram
 }
 

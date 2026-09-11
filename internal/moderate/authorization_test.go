@@ -7,6 +7,7 @@ import (
 
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/settings"
+	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 )
@@ -24,10 +25,9 @@ type authorizationTrackingTelegram struct {
 	freshErr    error
 	cachedAdmin bool
 	cachedErr   error
-	// Both lookups are fresh now, so a single answer for all of them cannot tell the
-	// caller from the target: everyone an administrator means the command refuses to
-	// touch its target, and nobody one means it refuses its caller.
+	// Capability checks authorize the caller; FreshAdmin remains the target identity check.
 	admins       map[int64]bool
+	rightsChecks []authorizationCheck
 	freshChecks  []authorizationCheck
 	cachedChecks []authorizationCheck
 }
@@ -38,6 +38,18 @@ func (b *authorizationTrackingTelegram) FreshAdmin(_ context.Context, chatID, us
 		return b.admins[userID], b.freshErr
 	}
 	return b.freshAdmin, b.freshErr
+}
+
+func (b *authorizationTrackingTelegram) FreshRights(_ context.Context, chatID, userID int64) (verification.GroupRights, error) {
+	b.rightsChecks = append(b.rightsChecks, authorizationCheck{chatID: chatID, userID: userID})
+	allowed := b.freshAdmin
+	if b.admins != nil {
+		allowed = b.admins[userID]
+	}
+	if b.freshErr != nil || !allowed {
+		return verification.GroupRights{}, b.freshErr
+	}
+	return verification.GroupRights{CanInviteUsers: true, CanRestrictMembers: true, CanDeleteMessages: true}, nil
 }
 
 func (b *authorizationTrackingTelegram) CachedAdmin(_ context.Context, chatID, userID int64) (bool, error) {
@@ -76,7 +88,7 @@ func newAuthorizationTestService(t *testing.T, telegram Telegram) *Service {
 	return service
 }
 
-func TestBanAndMuteAuthorizationChecksCallerAndTargetFresh(t *testing.T) {
+func TestBanAndMuteAuthorizationChecksCallerRightsAndTargetFresh(t *testing.T) {
 	for _, action := range authorizationActions() {
 		t.Run(action.name, func(t *testing.T) {
 			message := moderationCommand(authorizationTestGroupID, action.text)
@@ -92,11 +104,11 @@ func TestBanAndMuteAuthorizationChecksCallerAndTargetFresh(t *testing.T) {
 
 			wantCaller := authorizationCheck{chatID: authorizationTestGroupID, userID: message.From.ID}
 			wantTarget := authorizationCheck{chatID: authorizationTestGroupID, userID: message.ReplyToMessage.From.ID}
-			want := []authorizationCheck{wantCaller, wantTarget}
-			if len(telegram.freshChecks) != len(want) ||
-				telegram.freshChecks[0] != want[0] || telegram.freshChecks[1] != want[1] {
-				t.Errorf("fresh admin checks = %v, want %v: a sensitive command rechecks the caller "+
-					"and the target, in that order", telegram.freshChecks, want)
+			if len(telegram.rightsChecks) != 1 || telegram.rightsChecks[0] != wantCaller {
+				t.Errorf("fresh rights checks = %v, want caller %v", telegram.rightsChecks, wantCaller)
+			}
+			if len(telegram.freshChecks) != 1 || telegram.freshChecks[0] != wantTarget {
+				t.Errorf("fresh target checks = %v, want target %v", telegram.freshChecks, wantTarget)
 			}
 			if len(telegram.cachedChecks) != 0 {
 				t.Errorf("cached admin checks = %v, want none: a revoked administrator would stay "+
@@ -126,8 +138,9 @@ func TestBanAndMuteAuthorizationLookupFailureLeavesTargetEvidence(t *testing.T) 
 			if got := action.calls(telegram.fakeModBot); got != 0 {
 				t.Errorf("%s calls = %d, want 0: an unreadable caller check must fail closed", action.name, got)
 			}
-			if len(telegram.cachedChecks) != 0 {
-				t.Errorf("target checks = %v, want none after caller authorization failed", telegram.cachedChecks)
+			if len(telegram.rightsChecks) != 1 || len(telegram.freshChecks) != 0 || len(telegram.cachedChecks) != 0 {
+				t.Errorf("caller rights/target/cached checks = %v/%v/%v, want one/zero/zero",
+					telegram.rightsChecks, telegram.freshChecks, telegram.cachedChecks)
 			}
 			if len(telegram.deletedMessageIDs) != 1 || telegram.deletedMessageIDs[0] != message.MessageID {
 				t.Errorf("deleted message IDs = %v, want only command %d: failed authorization must leave target evidence", telegram.deletedMessageIDs, message.MessageID)

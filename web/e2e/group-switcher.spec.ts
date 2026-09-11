@@ -13,7 +13,7 @@ async function fulfillJSON(route: Route, body: unknown): Promise<void> {
 
 async function mockGroupSwitcher(
   page: Page,
-  chats: readonly Readonly<{ id: string; title?: string }>[]
+  chats: readonly Readonly<{ id: string; title?: string; owner: null; administrators: readonly []; administrators_status: "unavailable" }>[]
 ): Promise<void> {
   await page.route("**/api/**", async (route) => {
     const request = route.request();
@@ -23,6 +23,7 @@ async function mockGroupSwitcher(
       await fulfillJSON(route, {
         subject: { telegram_id: "741928306", role: "manager" },
         expires_at: "2030-09-04T12:00:00Z",
+        is_owner: false,
         csrf_token: "group-switcher-csrf"
       });
       return;
@@ -43,9 +44,9 @@ async function mockGroupSwitcher(
 test("a chat with a missing title falls back to its group ID", async ({ page }) => {
   const title = "维护者讨论群";
   await mockGroupSwitcher(page, [
-    { id: namedGroupId, title },
-    { id: unnamedGroupId },
-    { id: blankGroupId, title: "   " }
+    { id: namedGroupId, title, owner: null, administrators: [], administrators_status: "unavailable" },
+    { id: unnamedGroupId, owner: null, administrators: [], administrators_status: "unavailable" },
+    { id: blankGroupId, title: "   ", owner: null, administrators: [], administrators_status: "unavailable" }
   ]);
   await page.goto(`/groups?group=${namedGroupId}`);
 
@@ -66,13 +67,13 @@ test("a chat with a missing title falls back to its group ID", async ({ page }) 
   await page.getByRole("option", { name: unnamedGroupId, exact: true }).click();
   await expect(trigger).toHaveText(unnamedGroupId);
   await expect(page).toHaveURL(new RegExp(`/groups\\?group=${unnamedGroupId}$`));
-  await expect(page.locator("[data-group-row][data-selected]").getByRole("heading")).toHaveText(unnamedGroupId);
+  await expect(page.locator("[data-group-row][data-selected]").getByRole("heading", { level: 2 })).toHaveText(unnamedGroupId);
   await expect(page.locator("[data-group-row][aria-current]")).toHaveCount(1);
   await expect(page.locator("[data-group-row]").nth(1)).toHaveAttribute("aria-current", "true");
   await trigger.click();
   await page.getByRole("option", { name: blankGroupId, exact: true }).click();
   await expect(trigger).toHaveText(blankGroupId);
-  await expect(page.locator("[data-group-row][data-selected]").getByRole("heading")).toHaveText(blankGroupId);
+  await expect(page.locator("[data-group-row][data-selected]").getByRole("heading", { level: 2 })).toHaveText(blankGroupId);
   await expect(page.locator("[data-group-row][aria-current]")).toHaveCount(1);
   await expect(page.locator("[data-group-row]").nth(2)).toHaveAttribute("aria-current", "true");
   await trigger.click();
@@ -117,8 +118,8 @@ test("titled group pages and switcher selections never expose transport IDs", as
   const title = "Maintainers Workspace";
   const otherTitle = "Linux Study Group";
   await mockGroupSwitcher(page, [
-    { id: namedGroupId, title },
-    { id: unnamedGroupId, title: otherTitle }
+    { id: namedGroupId, title, owner: null, administrators: [], administrators_status: "unavailable" },
+    { id: unnamedGroupId, title: otherTitle, owner: null, administrators: [], administrators_status: "unavailable" }
   ]);
   await page.goto(`/groups?group=${namedGroupId}`);
   const trigger = page.getByRole("button", { name: "当前群" });
@@ -133,13 +134,13 @@ test("titled group pages and switcher selections never expose transport IDs", as
   await expect(page).toHaveURL(new RegExp(`/groups\\?group=${unnamedGroupId}$`));
   await expect(trigger).toHaveText(otherTitle);
   await expect(trigger).not.toContainText(/-100\d+/);
-  await expect(page.locator("[data-group-row][data-selected]").getByRole("heading")).toHaveText(otherTitle);
+  await expect(page.locator("[data-group-row][data-selected]").getByRole("heading", { level: 2 })).toHaveText(otherTitle);
   await expect(page.locator("[data-groups-page]")).not.toContainText(/-100\d+/);
 });
 
 test("group switcher renders angle brackets and emoji as text", async ({ page }) => {
   const title = "<img src=x onerror=alert('owned')> 管理群 🧪";
-  await mockGroupSwitcher(page, [{ id: namedGroupId, title }]);
+  await mockGroupSwitcher(page, [{ id: namedGroupId, title, owner: null, administrators: [], administrators_status: "unavailable" }]);
   await page.goto(`/groups?group=${namedGroupId}`);
 
   const switcher = page.locator("[data-group-switcher]");

@@ -115,6 +115,35 @@
     "managedCount_other": "{{count}} manageable groups",
     "authorized": "Authorized",
     "liveGroupNote": "After you select this group, later operations stay within its boundary.",
+    "identity": "{{name}} · User ID {{id}}",
+    "owner": {
+      "heading": "Telegram owner"
+    },
+    "administrators": {
+      "heading": "Administrators",
+      "unavailable": "Administrator details unavailable",
+      "creator": "Creator",
+      "administrator": "Administrator"
+    },
+    "permissions": {
+      "heading": "Permissions",
+      "granted": "Allowed",
+      "denied": "Not allowed",
+      "can_manage_chat": "Manage chat",
+      "can_delete_messages": "Delete messages",
+      "can_manage_video_chats": "Manage video chats",
+      "can_restrict_members": "Restrict members",
+      "can_promote_members": "Promote members",
+      "can_change_info": "Change chat information",
+      "can_invite_users": "Invite users",
+      "can_post_stories": "Post stories",
+      "can_edit_stories": "Edit stories",
+      "can_delete_stories": "Delete stories",
+      "can_post_messages": "Post messages",
+      "can_edit_messages": "Edit messages",
+      "can_pin_messages": "Pin messages",
+      "can_manage_topics": "Manage topics"
+    },
     "loading": {
       "title": "Loading groups…",
       "description": "Checking which groups this account may manage."
@@ -345,6 +374,7 @@
       "accessUnavailable": "Your administration access cannot be verified right now. Try again.",
       "chatNotFound": "This group can no longer be managed in the console.",
       "invalidSettings": "These settings did not pass validation. Review the changes and try again.",
+      "settingsLimitExceeded": "This change would exceed an instance owner limit. Reduce the value or ask the owner to raise the limit.",
       "settingsUnavailable": "The settings service is unavailable. Try again.",
       "loadUnavailable": "Moderation settings are unavailable.",
       "saveUnavailable": "Moderation settings cannot be saved right now. Try again."
@@ -526,6 +556,7 @@
       "chatNotFound": "This group can no longer be managed in the console.",
       "csrfInvalid": "This page's security token has expired. Refresh the page and try again.",
       "invalidSettings": "One or more settings are invalid. Review the changes and save again.",
+      "settingsLimitExceeded": "This change would exceed an instance owner limit. Reduce the value or ask the owner to raise the limit.",
       "settingsUnavailable": "Verification bypass sources are unavailable. Try again.",
       "loadUnavailable": "Verification bypass sources cannot be read right now. Try again.",
       "saveUnavailable": "Verification bypass sources cannot be saved right now. Try again.",
@@ -711,6 +742,7 @@
       "chatNotFound": "This group can no longer be managed in the console.",
       "csrfInvalid": "The security token for this page has expired. Refresh the page and try again.",
       "invalidSettings": "One or more settings are invalid. Check them and save again.",
+      "settingsLimitExceeded": "This change would exceed an instance owner limit. Reduce the value or ask the owner to raise the limit.",
       "settingsUnavailable": "Verification settings are temporarily unavailable. Try again.",
       "loadUnavailable": "Verification settings cannot be read right now. Try again.",
       "saveUnavailable": "Verification settings cannot be saved right now. Try again.",
@@ -871,6 +903,7 @@
       "chatNotFound": "This group can no longer be managed in the console.",
       "csrfInvalid": "The security token for this page has expired. Refresh the page and try again.",
       "invalidSettings": "The question bank did not pass validation. Check its questions and answers, then save again.",
+      "settingsLimitExceeded": "This change would exceed an instance owner limit. Reduce the value or ask the owner to raise the limit.",
       "settingsUnavailable": "Question-bank settings are temporarily unavailable. Try again.",
       "loadUnavailable": "The question bank cannot be read right now. Try again.",
       "saveUnavailable": "The question bank cannot be saved right now. Try again.",
@@ -1359,6 +1392,7 @@
       "chatNotFound": "This group can no longer be managed in the console.",
       "csrfInvalid": "The security token for this page has expired. Refresh the page and try again.",
       "invalidSettings": "One or more message settings are invalid. Check them, then save again.",
+      "settingsLimitExceeded": "This change would exceed an instance owner limit. Reduce the value or ask the owner to raise the limit.",
       "settingsUnavailable": "Message settings are temporarily unavailable. Try again.",
       "loadUnavailable": "Messages and copy are temporarily unavailable. Try again.",
       "loadSettingsUnavailable": "Message settings cannot be read right now. Try again.",
@@ -1448,10 +1482,60 @@
       "chatNotFound": "This group can no longer be managed in the console.",
       "csrfInvalid": "The security token for this page has expired. Refresh the page and try again.",
       "invalidSettings": "The capability settings are invalid. Reload them and try again.",
+      "settingsLimitExceeded": "This change would exceed an instance owner limit. Reduce the value or ask the owner to raise the limit.",
       "settingsUnavailable": "Capability settings are temporarily unavailable. Try again.",
       "loadUnavailable": "Capabilities cannot be loaded right now. Try again.",
       "saveUnavailable": "Capability settings cannot be saved right now. Try again.",
       "network": "The connection was interrupted. Reload capabilities before deciding whether to retry."
+    }
+  },
+  "owner": {
+    "navigation": "Owner limits",
+    "title": "Instance owner limits",
+    "description": "Caps apply when group settings are saved. Zero adds no cap; existing field restrictions still apply. Lowering a cap does not change existing settings. A positive ban-duration cap rejects permanent bans.",
+    "loading": {
+      "title": "Loading owner limits",
+      "description": "Reading the current instance caps and affected groups…"
+    },
+    "unavailable": {
+      "title": "Owner limits cannot be read"
+    },
+    "fields": {
+      "timeout_seconds": "Verification timeout (seconds)",
+      "ban_seconds": "Ban duration (seconds)",
+      "mute_seconds": "Mute duration (seconds)",
+      "lookup_ttl_seconds": "Lookup retention (seconds)",
+      "verify_retry_seconds": "Verification retry delay (seconds)",
+      "verify_max_fails": "Maximum verification failures",
+      "warn_limit": "Warning limit",
+      "private_query_per_min": "Private queries per minute",
+      "questions": "Primary questions",
+      "fallback_questions": "Fallback questions",
+      "channel_whitelist": "Allowed channels",
+      "trusted_member_group_ids": "Trusted groups",
+      "known_chat_ids": "Known chats"
+    },
+    "actions": {
+      "save": "Save limits",
+      "saving": "Saving…",
+      "unsaved": "Unsaved changes",
+      "retry": "Try again"
+    },
+    "violations": {
+      "title": "Groups above the current caps",
+      "row": "Group {{chatId}}: {{field}} is {{value}}; the limit is {{limit}}."
+    },
+    "feedback": {
+      "saved": "Owner limits saved."
+    },
+    "errors": {
+      "network": "The connection was interrupted. Try again.",
+      "unavailable": "Owner limits are temporarily unavailable. Try again.",
+      "csrfInvalid": "This page's security token has expired. Refresh the page and try again.",
+      "invalidRequest": "The submitted owner limits are invalid. Review the values and try again.",
+      "ownerRequired": "Only the instance owner can manage owner limits.",
+      "conflict": "Another owner session changed the limits. Reload before saving.",
+      "settingsUnavailable": "Durable owner-limit storage is unavailable. Try again."
     }
   },
   "home": {

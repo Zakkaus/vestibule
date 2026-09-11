@@ -156,6 +156,7 @@ export async function mockSpectrumTransport(page: Page, options: MockOptions = {
       await fulfillJSON(route, {
         subject: { telegram_id: actorID, role },
         expires_at: "2026-09-02T03:00:00Z",
+        is_owner: false,
         csrf_token: "spectrum-csrf"
       });
       return;
@@ -163,8 +164,8 @@ export async function mockSpectrumTransport(page: Page, options: MockOptions = {
     if (path === "/api/chats" && request.method() === "GET") {
       await fulfillJSON(route, {
         chats: [
-          { id: selectedGroupID, title: "Gentoo-zh Community" },
-          { id: "-1009000010002", title: "Arch Linux Community" }
+          { id: selectedGroupID, title: "Gentoo-zh Community", owner: null, administrators: [], administrators_status: "unavailable" },
+          { id: "-1009000010002", title: "Arch Linux Community", owner: null, administrators: [], administrators_status: "unavailable" }
         ]
       });
       return;

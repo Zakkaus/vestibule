@@ -24,6 +24,9 @@ var effectiveGroupValidators = [...]effectiveGroupValidator{
 }
 
 func (s *Store) buildSnapshot(state settingsFile) (*settingsSnapshot, error) {
+	if err := validateOwnerLimits(state.Limits); err != nil {
+		return nil, fmt.Errorf("owner limits: %w", err)
+	}
 	registration := RegistrationState{
 		Revision:             state.RegistrationRevision,
 		OwnerID:              state.OwnerID,
@@ -60,7 +63,10 @@ func (s *Store) buildSnapshot(state settingsFile) (*settingsSnapshot, error) {
 		groups[baseline.ID] = group
 		order = append(order, baseline.ID)
 	}
-	return &settingsSnapshot{groups: groups, groupIDs: order, registration: registration}, nil
+	return &settingsSnapshot{
+		groups: groups, groupIDs: order, registration: registration,
+		limits: state.Limits, limitsRevision: state.LimitsRevision,
+	}, nil
 }
 
 func buildEffectiveGroup(

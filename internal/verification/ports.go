@@ -18,6 +18,14 @@ const (
 	MemberStatusBanned        = "kicked"
 )
 
+// GroupRights are the Telegram capabilities required by administrator-controlled writes.
+// FreshAdmin remains an identity-only lookup; these fields are intentionally separate.
+type GroupRights struct {
+	CanInviteUsers     bool
+	CanRestrictMembers bool
+	CanDeleteMessages  bool
+}
+
 // User is the platform-neutral identity carried by an incoming verification event.
 type User struct {
 	ID           int64
@@ -232,6 +240,7 @@ type Gateway interface {
 
 	CachedAdmin(context.Context, int64, int64) (bool, error)
 	FreshAdmin(context.Context, int64, int64) (bool, error)
+	FreshRights(context.Context, int64, int64) (GroupRights, error)
 	AckFast(context.Context, string) error
 	AckResult(context.Context, string, AckResult) error
 }

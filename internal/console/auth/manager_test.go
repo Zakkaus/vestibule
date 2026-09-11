@@ -75,28 +75,13 @@ type blockingAdminChecker struct {
 	release     <-chan struct{}
 	inFlight    int
 	maxInFlight int
-	cachedCalls int
-	freshCalls  int
 }
 
 func (c *blockingAdminChecker) CachedAdmin(context.Context, int64, int64) (bool, error) {
-	return c.check(true)
-}
-
-func (c *blockingAdminChecker) FreshAdmin(context.Context, int64, int64) (bool, error) {
-	return c.check(false)
-}
-
-func (c *blockingAdminChecker) check(cached bool) (bool, error) {
 	c.mu.Lock()
 	c.inFlight++
 	if c.inFlight > c.maxInFlight {
 		c.maxInFlight = c.inFlight
-	}
-	if cached {
-		c.cachedCalls++
-	} else {
-		c.freshCalls++
 	}
 	c.mu.Unlock()
 	c.started <- struct{}{}
@@ -107,10 +92,10 @@ func (c *blockingAdminChecker) check(cached bool) (bool, error) {
 	return true, nil
 }
 
-func (c *blockingAdminChecker) counts() (maxInFlight, cachedCalls, freshCalls int) {
+func (c *blockingAdminChecker) counts() (maxInFlight int) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return c.maxInFlight, c.cachedCalls, c.freshCalls
+	return c.maxInFlight
 }
 
 func TestAccessibleChatsBoundsConcurrentChecks(t *testing.T) {
@@ -156,11 +141,10 @@ func TestAccessibleChatsBoundsConcurrentChecks(t *testing.T) {
 	}
 	close(release)
 	allowed := <-done
-	maxInFlight, cachedCalls, freshCalls := checker.counts()
-	if exceeded || maxInFlight > checkLimit || len(allowed) != candidateCount ||
-		cachedCalls != candidateCount || freshCalls != 0 {
-		t.Fatalf("max_in_flight=%d limit=%d allowed=%d cached_calls=%d fresh_calls=%d",
-			maxInFlight, checkLimit, len(allowed), cachedCalls, freshCalls)
+	maxInFlight := checker.counts()
+	if exceeded || maxInFlight > checkLimit || len(allowed) != candidateCount {
+		t.Fatalf("max_in_flight=%d limit=%d allowed=%d",
+			maxInFlight, checkLimit, len(allowed))
 	}
 	t.Logf("candidates=%d max_in_flight=%d limit=%d", candidateCount, maxInFlight, checkLimit)
 }

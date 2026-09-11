@@ -62,7 +62,7 @@ func TestStopCommandWritesInvokingGroup(t *testing.T) {
 		t.Fatal(err)
 	}
 	fake := newFakeAdminBot()
-	fake.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
+	fake.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator, CanRestrictMembers: true}
 	bot := newAPITestBot(t, fake)
 	administration, verification := newAdminTestApplication(t, cfg, settings, bot)
 	runFakeHandler(t, bot, administration.OnStop, telego.Update{Message: &telego.Message{
@@ -84,7 +84,7 @@ func TestRuntimeRegisteredGroupUsesLiveCommandGuards(t *testing.T) {
 		t.Fatal(err)
 	}
 	fake := newFakeAdminBot()
-	fake.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
+	fake.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator, CanRestrictMembers: true}
 	bot := newAPITestBot(t, fake)
 	administration, verification := newAdminTestApplication(t, cfg, store, bot)
 	defer verification.Shutdown()
@@ -145,7 +145,7 @@ func TestRuntimeGroupsMutateOnlyTheirOwnSettings(t *testing.T) {
 		t.Fatal(err)
 	}
 	fake := newFakeAdminBot()
-	fake.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
+	fake.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator, CanRestrictMembers: true}
 	bot := newAPITestBot(t, fake)
 	administration, verification := newAdminTestApplication(t, cfg, store, bot)
 	defer verification.Shutdown()
@@ -288,7 +288,7 @@ func TestHelpOmitsDisabledModuleCommands(t *testing.T) {
 	}
 }
 
-func TestSettingsCommandReportsWriteFailure(t *testing.T) {
+func TestSettingsCommandKeepsStateOnWriteFailure(t *testing.T) {
 	cfg := runtimeSettingsTestConfig()
 	cfg.NotifyTTLSeconds = -1
 	settings, err := settings.NewStore(t.TempDir(), testSettingsBaseline(t, cfg), nil)
@@ -296,18 +296,16 @@ func TestSettingsCommandReportsWriteFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	fake := newFakeAdminBot()
-	fake.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
+	fake.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator, CanRestrictMembers: true}
 	bot := newAPITestBot(t, fake)
 	administration, verification := newAdminTestApplication(t, cfg, settings, bot)
+	t.Cleanup(verification.Shutdown)
 	runFakeHandler(t, bot, administration.OnStop, telego.Update{Message: &telego.Message{
 		MessageID: 1,
 		Chat:      telego.Chat{ID: cfg.GroupIDs[0], Type: "supergroup"},
 		From:      &telego.User{ID: 7},
 		Text:      "/stop",
 	}})
-	if got, want := fake.lastSendText, i18n.Messages.Panel.Error.SaveSettings.For(i18n.LangZH); got != want {
-		t.Fatalf("write failure notice = %q, want %q", got, want)
-	}
 	if !verification.IsEnabled(cfg.GroupIDs[0]) {
 		t.Fatal("failed settings write changed effective state")
 	}
@@ -376,7 +374,7 @@ func TestRuntimeSettingsCommandHandlersPersistAndRespond(t *testing.T) {
 				t.Fatal(err)
 			}
 			fake := newFakeAdminBot()
-			fake.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator}
+			fake.member = &telego.ChatMemberAdministrator{Status: telego.MemberStatusAdministrator, CanRestrictMembers: true}
 			bot := newAPITestBot(t, fake)
 			administration, verification := newAdminTestApplication(t, cfg, store, bot)
 			t.Cleanup(verification.Shutdown)

@@ -229,6 +229,7 @@ type PanelSettingsErrorCatalog struct {
 	AuthorizationCheckFailed  Text
 	ConcurrentChange          Text
 	SaveFailed                Text
+	LimitExceeded             Format
 	SavedRenderFailed         Text
 	InvalidInput              Text
 	InvalidNumber             Text

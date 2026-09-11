@@ -11,6 +11,7 @@ import {
 } from "../../app/session";
 import { useConsoleSize } from "../../components/ConsoleProvider";
 import { Icon, type IconName } from "../../icons";
+import { SettingsLimitNotice } from "../../components/SettingsLimitNotice";
 import type { ApiRequestError } from "../../lib/api";
 import {
   loadVerificationSettings,
@@ -48,6 +49,7 @@ const errorMessageKeys: Readonly<Record<string, string>> = {
   chat_not_found: "verification.errors.chatNotFound",
   csrf_invalid: "verification.errors.csrfInvalid",
   invalid_settings: "verification.errors.invalidSettings",
+  settings_limit_exceeded: "verification.errors.settingsLimitExceeded",
   settings_unavailable: "verification.errors.settingsUnavailable"
 };
 
@@ -367,12 +369,21 @@ export function VerificationScreen() {
           aria-atomic="true"
         >
           <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
-          {t(
-            feedback.kind === "saved"
-              ? "verification.feedback.saved"
-              : feedback.kind === "conflict"
-                ? "verification.feedback.conflict"
-                : verificationErrorMessageKey(feedback.error, "verification.errors.saveUnavailable")
+          {feedback.kind === "error" &&
+          feedback.error.kind === "api" &&
+          feedback.error.code === "settings_limit_exceeded" ? (
+            <SettingsLimitNotice
+              error={feedback.error}
+              messageKey="verification.errors.settingsLimitExceeded"
+            />
+          ) : (
+            t(
+              feedback.kind === "saved"
+                ? "verification.feedback.saved"
+                : feedback.kind === "conflict"
+                  ? "verification.feedback.conflict"
+                  : verificationErrorMessageKey(feedback.error, "verification.errors.saveUnavailable")
+            )
           )}
           {feedback.kind === "error" && feedback.error.kind === "network" ? (
             <Button

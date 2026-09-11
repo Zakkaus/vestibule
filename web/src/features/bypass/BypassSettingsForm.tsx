@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { useConsoleSize } from "../../components/ConsoleProvider";
 import { Icon } from "../../icons";
+import { SettingsLimitNotice } from "../../components/SettingsLimitNotice";
 import type { SettingSource, SettingValue } from "./api";
 import type {
   BypassEvaluation,
@@ -366,7 +367,13 @@ function BypassFeedbackNotice({
       role={feedback.kind === "saved" ? "status" : "alert"}
     >
       <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
-      {t(messageKey)}
+      {feedback.kind === "error" &&
+      feedback.error.kind === "api" &&
+      feedback.error.code === "settings_limit_exceeded" ? (
+        <SettingsLimitNotice error={feedback.error} messageKey={messageKey} />
+      ) : (
+        t(messageKey)
+      )}
       {reloadable ? (
         <Button type="button" variant="secondary" size={size} data-slot="button" onPress={onReload}>
           <Icon name="refreshCw" />

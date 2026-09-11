@@ -36,17 +36,16 @@ func (s *apiTestSettingsService) Update(
 }
 
 func TestGetSettingsRejectsUnauthorizedChat(t *testing.T) {
-	server, cookies, _, service, checker := apiSettingsTestServer(t, false)
+	server, cookies, _, service, _ := apiSettingsTestServer(t, false)
 	response := getAuthenticatedPath(server, cookies, settingsPath(apiSettingsGroupID))
-	counts := checker.counts()
 	if response.Code != http.StatusForbidden || decodeError(response) != "chat_access_denied" ||
-		counts.cachedCalls != 1 || counts.freshCalls != 0 || service.updateCalls != 0 {
-		t.Fatalf("status=%d code=%s cached=%d fresh=%d updates=%d, want 403, chat_access_denied, 1, 0, 0",
-			response.Code, decodeError(response), counts.cachedCalls, counts.freshCalls, service.updateCalls)
+		service.updateCalls != 0 {
+		t.Fatalf("status=%d code=%s updates=%d, want 403, chat_access_denied, 0",
+			response.Code, decodeError(response), service.updateCalls)
 	}
 }
 
-func TestPatchSettingsUsesFreshAdminAfterCachedRead(t *testing.T) {
+func TestPatchSettingsRejectsRevokedRightsAfterCachedRead(t *testing.T) {
 	server, cookies, csrf, service, checker := apiSettingsTestServer(t, true)
 	read := getAuthenticatedPath(server, cookies, settingsPath(apiSettingsGroupID))
 	if read.Code != http.StatusOK {
@@ -55,28 +54,23 @@ func TestPatchSettingsUsesFreshAdminAfterCachedRead(t *testing.T) {
 	checker.setAllowed(false)
 	write := patchGroupSettings(server, cookies, csrf, apiSettingsGroupID,
 		`{"expected_revision":0,"changes":{"enabled":false}}`)
-	counts := checker.counts()
 	group, _ := service.store.Settings(apiSettingsGroupID)
 	if write.Code != http.StatusForbidden || decodeError(write) != "chat_access_denied" ||
-		counts.cachedCalls != 1 || counts.freshCalls != 1 || counts.telegramQueries != 2 ||
 		service.updateCalls != 0 || group.Revision() != 0 || !group.Enabled().Value {
-		t.Fatalf("status=%d code=%s cached=%d fresh=%d queries=%d updates=%d revision=%d enabled=%v",
-			write.Code, decodeError(write), counts.cachedCalls, counts.freshCalls, counts.telegramQueries,
-			service.updateCalls, group.Revision(), group.Enabled().Value)
+		t.Fatalf("status=%d code=%s updates=%d revision=%d enabled=%v",
+			write.Code, decodeError(write), service.updateCalls, group.Revision(), group.Enabled().Value)
 	}
 }
 
 func TestPatchSettingsRequiresCSRF(t *testing.T) {
-	server, cookies, _, service, checker := apiSettingsTestServer(t, true)
+	server, cookies, _, service, _ := apiSettingsTestServer(t, true)
 	response := patchGroupSettings(server, cookies, "", apiSettingsGroupID,
 		`{"expected_revision":0,"changes":{"enabled":false}}`)
 	group, _ := service.store.Settings(apiSettingsGroupID)
-	counts := checker.counts()
 	if response.Code != http.StatusForbidden || decodeError(response) != "csrf_invalid" ||
-		counts.freshCalls != 1 || service.updateCalls != 0 || group.Revision() != 0 || !group.Enabled().Value {
-		t.Fatalf("status=%d code=%s fresh=%d updates=%d revision=%d enabled=%v",
-			response.Code, decodeError(response), counts.freshCalls, service.updateCalls,
-			group.Revision(), group.Enabled().Value)
+		service.updateCalls != 0 || group.Revision() != 0 || !group.Enabled().Value {
+		t.Fatalf("status=%d updates=%d revision=%d enabled=%v",
+			response.Code, service.updateCalls, group.Revision(), group.Enabled().Value)
 	}
 }
 

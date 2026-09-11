@@ -31,12 +31,12 @@ type eligibleGroup struct {
 // OnSettings creates a user-bound session and replies with its private-chat deep link.
 func (v *Panel) OnSettings(ctx *th.Context, update telego.Update) error {
 	message := update.Message
-	if message == nil || message.From == nil || v.settings == nil || !v.settings.IsGroup(message.Chat.ID) {
+	if message == nil || message.From == nil || message.From.ID <= 0 || message.From.IsBot || v.settings == nil || !v.settings.IsGroup(message.Chat.ID) {
 		return nil
 	}
 	requestCtx := ctx.Context()
 	language := v.groupLanguage(message.Chat.ID)
-	admin, err := v.telegram.FreshAdmin(requestCtx, message.Chat.ID, message.From.ID)
+	admin, err := v.isGroupRestrictAdmin(requestCtx, message.Chat.ID, message.From.ID)
 	if err != nil {
 		v.notify(requestCtx, ctx.Bot(), message.Chat.ID, i18n.Messages.Panel.Settings.Error.AuthorizationCheckFailed.For(language))
 		return nil
@@ -94,7 +94,7 @@ func (v *Panel) openSettingsStart(ctx *th.Context, message *telego.Message, toke
 		_, _ = ctx.Bot().SendMessage(requestCtx, tu.Message(tu.ID(message.Chat.ID), i18n.Messages.Panel.Settings.Error.Expired.For(language)))
 		return true
 	}
-	admin, err := v.telegram.FreshAdmin(requestCtx, session.anchorGroupID, message.From.ID)
+	admin, err := v.isGroupRestrictAdmin(requestCtx, session.anchorGroupID, message.From.ID)
 	if err != nil {
 		_, _ = ctx.Bot().SendMessage(requestCtx, tu.Message(tu.ID(message.Chat.ID), i18n.Messages.Panel.Settings.Error.AuthorizationCheckFailed.For(language)))
 		return true
@@ -152,20 +152,8 @@ func (v *Panel) OnSettingsCallback(ctx *th.Context, update telego.Update) error 
 	}
 	requestCtx := ctx.Context()
 	bot := ctx.Bot()
-	data, err := parseCallback(query.Data)
-	if err != nil || v.settings == nil || !v.settings.IsGroup(data.group) {
-		v.answerCallback(requestCtx, bot, query.ID, "", false)
-		return nil
-	}
-	language := i18n.FromTelegram(query.From.LanguageCode)
-	admin, authErr := v.telegram.FreshAdmin(requestCtx, data.group, query.From.ID)
-	if authErr != nil {
-		v.answerCallback(requestCtx, bot, query.ID, i18n.Messages.Panel.Settings.Error.AuthorizationCheckFailed.For(language), true)
-		return nil
-	}
-	if !admin {
-		v.finishUserSession(requestCtx, bot, query.From.ID, query.Message, i18n.Messages.Panel.Settings.Error.AuthorizationLost.For(language))
-		v.answerCallback(requestCtx, bot, query.ID, i18n.Messages.Panel.Settings.Error.AuthorizationLost.For(language), true)
+	data, language, ok := v.authorizeSettingsCallback(requestCtx, bot, query)
+	if !ok {
 		return nil
 	}
 	session := v.sessionByToken(data.token)
@@ -211,8 +199,9 @@ func (v *Panel) OnSettingsCallback(ctx *th.Context, update telego.Update) error 
 			return nil
 		}
 		log.Printf("settings callback for group %d failed: %v", data.group, err)
-		v.finishSession(requestCtx, bot, session, i18n.Messages.Panel.Settings.Error.SaveFailed.For(session.language))
-		v.answerCallback(requestCtx, bot, query.ID, i18n.Messages.Panel.Settings.Error.SaveFailed.For(session.language), true)
+		text := settingsFailureMessage(err, session.language, i18n.Messages.Panel.Settings.Error.SaveFailed)
+		v.finishSession(requestCtx, bot, session, text)
+		v.answerCallback(requestCtx, bot, query.ID, text, true)
 		return nil
 	}
 	v.answerCallback(requestCtx, bot, query.ID, "", false)

@@ -91,6 +91,7 @@ async function installMockTransport(
       await fulfillJSON(route, {
         subject: { telegram_id: "741928306", role: "manager" },
         expires_at: "2026-09-01T02:00:00Z",
+        is_owner: false,
         csrf_token: "questions-trial-csrf"
       });
       return;
@@ -98,8 +99,8 @@ async function installMockTransport(
     if (path === "/api/chats" && request.method() === "GET") {
       await fulfillJSON(route, {
         chats: [
-          { id: mockGroupAID, title: "Trial group A" },
-          { id: mockGroupBID, title: "Trial group B" }
+          { id: mockGroupAID, title: "Trial group A", owner: null, administrators: [], administrators_status: "unavailable" },
+          { id: mockGroupBID, title: "Trial group B", owner: null, administrators: [], administrators_status: "unavailable" }
         ]
       });
       return;

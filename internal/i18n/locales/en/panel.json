@@ -181,6 +181,7 @@
       "authorization_check_failed": "Administrator access could not be checked. Try again.",
       "concurrent_change": "Someone else changed these settings. Reopen the panel.",
       "save_failed": "The setting could not be saved. Reopen the panel and try again.",
+      "limit_exceeded": "The group setting %[1]s (%[2]d) is not allowed by the instance cap %[3]d. Change the group setting or ask the deployer to adjust the cap.",
       "saved_render_failed": "The setting was probably saved, but the panel could not be refreshed. Reopen the panel before making another change.",
       "invalid_input": "The input is not valid. Reply to the same prompt with a valid value.",
       "invalid_number": "Send a number in the documented range.",

@@ -181,6 +181,7 @@
       "authorization_check_failed": "無法檢查管理員權限。請重試。",
       "concurrent_change": "其他管理員已變更這些設定。請重新開啟面板。",
       "save_failed": "無法儲存設定。請重新開啟面板後重試。",
+      "limit_exceeded": "群組設定 %[1]s 的值為 %[2]d，不符合實例上限 %[3]d。請調整群組設定，或聯絡部署者更改上限。",
       "saved_render_failed": "設定可能已儲存，但無法重新整理面板。請重新開啟面板，再進行其他變更。",
       "invalid_input": "輸入無效。請回覆同一則提示訊息並傳送有效值。",
       "invalid_number": "請傳送指定範圍內的數字。",

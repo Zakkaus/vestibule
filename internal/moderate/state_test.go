@@ -178,7 +178,7 @@ func testWarnStateWriteFailure(t *testing.T, adminLogID int64) {
 	stateDirectory := t.TempDir()
 	telegram := newFakeMod()
 	telegram.memberByID = map[int64]telego.ChatMember{
-		7: &telego.ChatMemberAdministrator{},
+		7: fullRightsAdministrator(),
 		8: &telego.ChatMemberMember{},
 	}
 	cfg := &settings.Config{

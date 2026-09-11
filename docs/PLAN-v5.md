@@ -364,7 +364,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 | `LoadPending` 出错静默退化为空 | `internal/verification/state_restore.go:19` 先 `disablePendingState`，再把错误包着返回 |
 | 三个 `Save` 的错误被丢弃 | `internal/verification/state.go:108`、`:298`、`:754` 都走 `retryStoreWrite`，失败落日志 |
 | `moderate` 的 `LoadWarnings` 同形状 | `internal/moderate/state.go:36` 记下 `loadErr` 并把错误返回 |
-| 构造函数无法返回恢复错误 | `internal/verification/service.go:193` 与 `internal/moderate/service.go:55` 都返回 `error` |
+| 构造函数无法返回恢复错误 | `internal/verification/service.go:193` 与 `internal/moderate/service.go:58` 都返回 `error` |
 | 装配层只能继续启动 | `internal/app/app.go:89-92` 在 `newBaseServices` 返回错误时终止启动 |
 
 「出错」与「条件不匹配影响 0 行」的区分由
@@ -563,8 +563,8 @@ internal/app  verification  rules  telegram  console  settings  database  status
 #### 后续补充：为运维会话提供写入凭据（**已完成**）
 
 原实现中，`GET /enter/{token}` 仅写入 HttpOnly 会话 Cookie，再以 `303` 重定向到首页
-（`internal/console/api/server.go:258-275`）；CSRF 令牌仅由
-`POST /api/session` 的 JSON 响应返回（`internal/console/api/server.go:238-255`），
+（`internal/console/api/server.go:262-279`）；CSRF 令牌仅由
+`POST /api/session` 的 JSON 响应返回（`internal/console/api/server.go:242-260`），
 而结算要求 `X-CSRF-Token`（`internal/console/auth/manager.go:317-323`）。
 
 因此，通过一次性链接进入的运维可以读取群和队列，但无法执行写入；
@@ -652,11 +652,11 @@ internal/app  verification  rules  telegram  console  settings  database  status
 
 **分支** 按屏分片，一屏一支一个 PR：`v5/screen-<屏名>`。
 
-设计文档的「各屏职责」列了 15 个屏。阶段六完成其中 2 个：等待队列和群与频道；
+设计文档的「各屏职责」列了 16 个屏。阶段六完成其中 2 个：等待队列和群与频道；
 阶段七完成偏好、操作记录、管理与处罚、验证方式、免验证来源、题库、
-订阅推送、统计、消息与文案、功能、诊断和首页；阶段九随后完成版本屏，现还剩 0 个。
+订阅推送、统计、消息与文案、功能、诊断和首页；阶段九完成版本屏，阶段十一增加部署者设置屏，现还剩 0 个。
 版本屏归阶段九，因为当前版本、可用新版、回退条件和升级入口均依赖该阶段的部署机制。
-阶段六还建立了进入屏，但该屏不在上述 15 个屏中：
+阶段六还建立了进入屏，但该屏不在上述 16 个屏中：
 表中的首页显示概况、需要注意和趋势；进入屏则显示无法进入控制台时的状态。
 `scripts/check-docs.py` 根据设计文档的表和 `web/src/app/App.tsx` 路由计算数量，
 并拒绝手工记录与计算结果不一致。
@@ -679,9 +679,9 @@ internal/app  verification  rules  telegram  console  settings  database  status
 （`/livez` `/readyz` `GET/POST /api/session` `/enter/` `/api/chats` `/api/chats/`）。
 当前顶层分发已包含 `GET · POST /setup/{token}`、`GET /api/process/settings`、
 `GET /api/status`、`GET · PATCH /api/status/daily`、`GET /api/status/release` 和 `POST /api/status/upgrade`
-（`internal/console/api/server.go:150-210`）；`/api/chats/` 也已按群展开为
+（`internal/console/api/server.go:152-194`）；`/api/chats/` 也已按群展开为
 `queue`、`audit`、`stats`、`settings`、`rules` 五组
-（`internal/console/api/server.go:288-317`）。
+（`internal/console/api/server.go:292-321`）。
 阶段七已经完成八个屏所依赖的设置端点。
 
 底层读写能力来自 `internal/settings/store.go:339` 的 `Settings(chatID)` 和
@@ -757,7 +757,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 | 现路径 | 处置 | 目标位置 |
 |---|---|---|
 | `internal/i18n/panel.go` | 拆分 | Telegram 命令文案保留在 `internal/i18n`；控制台文案迁至 `web/` 语言资源 |
-| `internal/panel/settings_panel.go:473–1381` | 重写 | `internal/console/api` 与 `web/` 的其余设置、规则、频道、反垃圾和统计屏 |
+| `internal/panel/settings_panel.go:489–1370` | 重写 | `internal/console/api` 与 `web/` 的其余设置、规则、频道、反垃圾和统计屏 |
 
 #### 必须保住的行为
 
@@ -1001,7 +1001,7 @@ Bot API 容器从独立的 `bot-api.env` 读取上游必需凭据。应用代码
 | 验证失败计数（`verifyfail.json`） | `cmd/import-state` | 丢了会让冷却与自动封禁从头计 |
 | 自动化代理计数（`agents.json`） | `cmd/import-state` | 反垃圾的历史依据 |
 | 心跳（`heartbeat.json`） | `cmd/import-state` | 决定恢复后要不要重发挑战 |
-| 每群设置与文案、题库、自动回复（`settings.json`） | **设置层直接读**（`internal/settings/store.go:305` 的对账） | 丢了会回到出厂默认，群管理员未必立刻发现；是手写内容，无法重建 |
+| 每群设置与文案、题库、自动回复（`settings.json`） | **设置层直接读**（`internal/settings/store.go:312` 的对账） | 丢了会回到出厂默认，群管理员未必立刻发现；是手写内容，无法重建 |
 | 反垃圾旧格式（`antispam.json`） | **设置层直接读**（`internal/settings/store_init.go:115`） | 上一代单独存了一份，不迁会静默回到默认 |
 | 进行中的待验证记录（`pending.json`） | `cmd/import-state -pending carry\|drop` | 是否迁移由维护者在切换前决定 |
 
@@ -1063,7 +1063,7 @@ Bot API 规定，机器人必须持有 `can_invite_users` 管理员权限才会�
   `streak.exceeds_threshold`，同样以超过 `600` 秒为界。
   该读数原本仅由 `AuthorizeChat` 记录群访问验证失败，
   未覆盖会话换取整体失败。当前由 `redemptionUnavailable`
-  （`internal/console/auth/manager.go:252`）记录应签发但未签发会话的两种情况：
+  （`internal/console/auth/manager.go:280`）记录应签发但未签发会话的两种情况：
   会话表已满或无法获得凭据熵；成功换取会话时记录恢复。
   链接无效、过期或已兑换不计入该指标，避免重复访问旧链接触发回退。
 - 数据库写入失败率超过百分之一。
@@ -1120,10 +1120,12 @@ Catppuccin Mocha、Tokyo Night Storm 和 Tokyo Night。
 每个 PR 测试实测最宽语言；定时任务测试全部语言与全部屏。
 该决定解决了「逐一测试全部语言或仅测试最宽语言」的待决项。
 
-**每个群仅绑定一个拥有者。** `ClaimOwner`
-（`internal/settings/store_registration.go:96`）仅在尚无拥有者时接受认领，
-并拒绝第二个人使用同一领取码。阶段十一还需在接口中返回拥有者，
-并在群与频道屏中支持显示和改绑。
+**区分实例部署者与群拥有者。**维护者于 2026-09-11 裁定：
+`ClaimOwner` 的单次认领与配置账号锁定保持不变，它绑定的是实例部署者。
+未认领时，私聊无参数 `/start` 显示发送者的 Telegram user ID。
+群与频道屏实时读取 Telegram `creator` 和管理员细分权限，不提供群拥有者改绑。
+部署者设置屏仅对当前 `OwnerID` 开放，管理群设置上限；群写入超限即拒绝，
+既有超限群保留原值并在该屏列出。操作授权按所需 Telegram 细分权限判定。
 
 **实现控制群。** 该功能属于管理与处罚屏。
 
@@ -1146,7 +1148,7 @@ Catppuccin Mocha、Tokyo Night Storm 和 Tokyo Night。
 
 **验收要求**：六套配色分别在两个宽度下渲染，无溢出且对比度达标；
 五种语言的目录键集和占位符一致，俄语复数类别完整；
-定时任务覆盖全部语言与全部屏；每个群仅能绑定一个拥有者；
+定时任务覆盖全部语言与全部屏；群拥有者来自 Telegram，部署者上限只允许 OwnerID 调整；
 控制群、试答和日报开关分别具有端到端用例；
 结构信号具有样本和断言，关闭后不影响其他反垃圾规则。
 
@@ -1163,8 +1165,8 @@ Catppuccin Mocha、Tokyo Night Storm 和 Tokyo Night。
 #### 必须保住的行为
 
 - 六套配色都要满足既有的主题不泄漏与对比度检查，默认那一套的观感不因为多了五套而改变。
-- 五种语言下现有的十五屏不出现截断、横向滚动、按钮被挤出容器。
-- 拥有者绑定不改变现有授权：拥有者是一个人，不是一种绕过权限检查的身份。
+- 五种语言下各屏不出现截断、横向滚动、按钮被挤出容器。
+- 实例部署者不因此取得群管理权限；群 creator 不因此取得部署者设置权限。认领码仍只消费一次。
 - 结构信号是加分项不是替代项，关掉它，现有反垃圾规则的判定一个字不变。
 
 #### 依赖

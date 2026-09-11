@@ -52,6 +52,8 @@ LIVE_ROUTES = {
     ),
     "GET /api/status/release": ("server.go", "statusRoute", ('request.URL.Path == "/api/status/release"',)),
     "GET /api/process/settings": ("server.go", "apiRoute", ('request.URL.Path == "/api/process/settings"',)),
+    "GET /api/owner/limits": ("owner_limits.go", "ownerLimitsRoute", ("case http.MethodGet:",)),
+    "PATCH /api/owner/limits": ("owner_limits.go", "ownerLimitsRoute", ("case http.MethodPatch:",)),
     "POST /api/status/upgrade": ("server.go", "statusRoute", ('request.URL.Path == "/api/status/upgrade"', "http.MethodPost")),
 }
 

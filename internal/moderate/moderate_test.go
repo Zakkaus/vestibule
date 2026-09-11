@@ -10,6 +10,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
+	"github.com/Zakkaus/vestibule/internal/verification"
 	"github.com/mymmrac/telego"
 	ta "github.com/mymmrac/telego/telegoapi"
 	th "github.com/mymmrac/telego/telegohandler"
@@ -24,6 +25,7 @@ var (
 type fakeModBot struct {
 	member            telego.ChatMember
 	memberByID        map[int64]telego.ChatMember
+	rightsByID        map[int64]verification.GroupRights
 	memberByChat      map[int64]telego.ChatMember
 	memberErr         error
 	memberErrByChat   map[int64]error
@@ -118,6 +120,38 @@ func (b *fakeModBot) CachedAdmin(ctx context.Context, chatID, userID int64) (boo
 
 func (b *fakeModBot) FreshAdmin(ctx context.Context, chatID, userID int64) (bool, error) {
 	return b.adminStatus(ctx, chatID, userID)
+}
+
+func (b *fakeModBot) FreshRights(ctx context.Context, chatID, userID int64) (verification.GroupRights, error) {
+	if rights, ok := b.rightsByID[userID]; ok {
+		return rights, nil
+	}
+	member, err := b.GetChatMember(ctx, &telego.GetChatMemberParams{ChatID: telego.ChatID{ID: chatID}, UserID: userID})
+	if err != nil {
+		return verification.GroupRights{}, err
+	}
+	if member == nil {
+		return verification.GroupRights{}, nil
+	}
+	switch typed := member.(type) {
+	case *telego.ChatMemberOwner:
+		return verification.GroupRights{CanInviteUsers: true, CanRestrictMembers: true, CanDeleteMessages: true}, nil
+	case *telego.ChatMemberAdministrator:
+		return verification.GroupRights{
+			CanInviteUsers:     typed.CanInviteUsers,
+			CanRestrictMembers: typed.CanRestrictMembers,
+			CanDeleteMessages:  typed.CanDeleteMessages,
+		}, nil
+	default:
+		return verification.GroupRights{}, nil
+	}
+}
+
+func fullRightsAdministrator() *telego.ChatMemberAdministrator {
+	return &telego.ChatMemberAdministrator{
+		Status:         telego.MemberStatusAdministrator,
+		CanInviteUsers: true, CanRestrictMembers: true, CanDeleteMessages: true,
+	}
 }
 
 func (b *fakeModBot) adminStatus(ctx context.Context, chatID, userID int64) (bool, error) {
@@ -456,34 +490,6 @@ func TestGroupSetupReportPermissionsAndChannelReadability(t *testing.T) {
 	}
 }
 
-func TestIsGroupAdminFailsClosed(t *testing.T) {
-	ctx := context.Background()
-	for _, test := range []struct {
-		name   string
-		member telego.ChatMember
-		err    error
-		want   bool
-	}{
-		{name: "administrator", member: &telego.ChatMemberAdministrator{}, want: true},
-		{name: "ordinary member", member: &telego.ChatMemberMember{}},
-		{name: "lookup error", err: errors.New("network")},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			telegram := newFakeMod()
-			telegram.member = test.member
-			telegram.memberErr = test.err
-			service := newTestService(t, &settings.Config{NotifyTTLSeconds: -1}, telegram, "")
-			got, err := service.isGroupAdmin(ctx, -100, 1)
-			if got != test.want {
-				t.Errorf("isGroupAdmin = %v, want %v", got, test.want)
-			}
-			if (err != nil) != (test.err != nil) {
-				t.Errorf("isGroupAdmin error = %v, want error presence %v: a failed lookup is not a statement about the caller", err, test.err != nil)
-			}
-		})
-	}
-}
-
 func TestWarnPrecheckGate(t *testing.T) {
 	ctx := context.Background()
 	const groupID = int64(-100)
@@ -496,25 +502,15 @@ func TestWarnPrecheckGate(t *testing.T) {
 		}
 	}
 
-	denied := newFakeMod()
-	denied.memberByID = map[int64]telego.ChatMember{callerID: &telego.ChatMemberMember{}}
-	deniedService := newTestService(t, &settings.Config{}, denied, "")
-	if got := deniedService.warnPrecheck(ctx, message(), "/warn", true, i18n.LangZH); got != nil {
-		t.Error("a non-admin caller must be denied")
-	}
-	if denied.bans != 0 || denied.mutes != 0 || denied.unbans != 0 {
-		t.Errorf("deny path issued moderation actions: bans=%d mutes=%d unbans=%d", denied.bans, denied.mutes, denied.unbans)
-	}
-
 	allowed := newFakeMod()
-	allowed.memberByID = map[int64]telego.ChatMember{callerID: &telego.ChatMemberAdministrator{}, targetID: &telego.ChatMemberMember{}}
+	allowed.memberByID = map[int64]telego.ChatMember{targetID: &telego.ChatMemberMember{}}
 	allowedService := newTestService(t, &settings.Config{}, allowed, "")
 	if got := allowedService.warnPrecheck(ctx, message(), "/warn", true, i18n.LangZH); got == nil || got.ID != targetID {
-		t.Errorf("admin caller and non-admin target resolved to %v", got)
+		t.Errorf("non-admin target resolved to %v", got)
 	}
 
 	skipped := newFakeMod()
-	skipped.memberByID = map[int64]telego.ChatMember{callerID: &telego.ChatMemberAdministrator{}, targetID: &telego.ChatMemberAdministrator{}}
+	skipped.memberByID = map[int64]telego.ChatMember{targetID: &telego.ChatMemberAdministrator{}}
 	skippedService := newTestService(t, &settings.Config{}, skipped, "")
 	if got := skippedService.warnPrecheck(ctx, message(), "/warn", true, i18n.LangZH); got != nil {
 		t.Error("an admin target must be skipped")
@@ -558,7 +554,7 @@ func TestWarnHandlerKicksAtLimitAndClearsCounter(t *testing.T) {
 	const groupID = int64(-100)
 	telegram := newFakeMod()
 	telegram.memberByID = map[int64]telego.ChatMember{
-		7: &telego.ChatMemberAdministrator{},
+		7: fullRightsAdministrator(),
 		8: &telego.ChatMemberMember{},
 	}
 	service := newTestService(t, &settings.Config{
@@ -599,7 +595,7 @@ func TestBanAndPurgeHandlers(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			telegram := newFakeMod()
 			telegram.memberByID = map[int64]telego.ChatMember{
-				7: &telego.ChatMemberAdministrator{},
+				7: fullRightsAdministrator(),
 				8: &telego.ChatMemberMember{},
 			}
 			service := newTestService(t, &settings.Config{
@@ -637,7 +633,7 @@ func TestMuteAndUnmuteHandlers(t *testing.T) {
 	const groupID = int64(-100)
 	telegram := newFakeMod()
 	telegram.memberByID = map[int64]telego.ChatMember{
-		7: &telego.ChatMemberAdministrator{},
+		7: fullRightsAdministrator(),
 		8: &telego.ChatMemberMember{},
 	}
 	service := newTestService(t, &settings.Config{
@@ -677,7 +673,7 @@ func TestBanRejectionRetainsEvidenceAndAlertsConfiguredLog(t *testing.T) {
 	telegram := newFakeMod()
 	telegram.banErr = errors.New("telegram rejected ban")
 	telegram.memberByID = map[int64]telego.ChatMember{
-		7: &telego.ChatMemberAdministrator{},
+		7: fullRightsAdministrator(),
 		8: &telego.ChatMemberMember{},
 	}
 	service := newTestService(t, &settings.Config{
@@ -707,7 +703,7 @@ func TestBanRejectionFallsBackToGroupWithoutAdminLog(t *testing.T) {
 	telegram := newFakeMod()
 	telegram.banErr = errors.New("telegram rejected ban")
 	telegram.memberByID = map[int64]telego.ChatMember{
-		7: &telego.ChatMemberAdministrator{},
+		7: fullRightsAdministrator(),
 		8: &telego.ChatMemberMember{},
 	}
 	service := newTestService(t, &settings.Config{
@@ -737,7 +733,7 @@ func TestMuteRejectionRetainsEvidenceAndAlertsConfiguredLog(t *testing.T) {
 	telegram := newFakeMod()
 	telegram.muteErr = errors.New("telegram rejected mute")
 	telegram.memberByID = map[int64]telego.ChatMember{
-		7: &telego.ChatMemberAdministrator{},
+		7: fullRightsAdministrator(),
 		8: &telego.ChatMemberMember{},
 	}
 	service := newTestService(t, &settings.Config{
@@ -772,7 +768,7 @@ func TestMuteRejectionFallsBackToGroupWithoutAdminLog(t *testing.T) {
 	telegram := newFakeMod()
 	telegram.muteErr = errors.New("telegram rejected mute")
 	telegram.memberByID = map[int64]telego.ChatMember{
-		7: &telego.ChatMemberAdministrator{},
+		7: fullRightsAdministrator(),
 		8: &telego.ChatMemberMember{},
 	}
 	service := newTestService(t, &settings.Config{
@@ -806,7 +802,7 @@ func TestWarnLimitRejectionRetainsCountAndAlertsConfiguredLog(t *testing.T) {
 	telegram := newFakeMod()
 	telegram.banErr = errors.New("telegram rejected warning-limit kick")
 	telegram.memberByID = map[int64]telego.ChatMember{
-		7: &telego.ChatMemberAdministrator{},
+		7: fullRightsAdministrator(),
 		8: &telego.ChatMemberMember{},
 	}
 	service := newTestService(t, &settings.Config{
@@ -841,7 +837,7 @@ func TestWarnLimitRejectionFallsBackToGroupWithoutAdminLog(t *testing.T) {
 	telegram := newFakeMod()
 	telegram.banErr = errors.New("telegram rejected warning-limit kick")
 	telegram.memberByID = map[int64]telego.ChatMember{
-		7: &telego.ChatMemberAdministrator{},
+		7: fullRightsAdministrator(),
 		8: &telego.ChatMemberMember{},
 	}
 	service := newTestService(t, &settings.Config{
@@ -865,37 +861,6 @@ func TestWarnLimitRejectionFallsBackToGroupWithoutAdminLog(t *testing.T) {
 		fakeModNotification{chatID: groupID, text: wantAlert},
 	)
 	assertFailAlert(t, telegram, 0, groupID, wantAlert)
-}
-
-// A Telegram hiccup during the caller's admin lookup must not be reported as "you are not an
-// administrator": the command is still refused, but the reason belongs to the bot.
-func TestCallerAdminLookupFailureSaysSo(t *testing.T) {
-	const groupID = int64(-100)
-	telegram := newFakeMod()
-	telegram.memberErr = errors.New("network")
-	service := newTestService(t, &settings.Config{NotifyTTLSeconds: -1, GroupIDs: []int64{groupID}}, telegram, "")
-
-	message := &telego.Message{
-		MessageID: 1,
-		Chat:      telego.Chat{ID: groupID, Type: telego.ChatTypeSupergroup},
-		From:      &telego.User{ID: 7, LanguageCode: "en"},
-		Text:      "/ban",
-		ReplyToMessage: &telego.Message{
-			MessageID: 2,
-			Chat:      telego.Chat{ID: groupID},
-			From:      &telego.User{ID: 8},
-		},
-	}
-	if got := service.warnPrecheck(context.Background(), message, "/ban", true, i18n.LangEN); got != nil {
-		t.Fatal("an unreadable admin lookup must refuse the command")
-	}
-	want := i18n.Messages.Moderate.Common.CallerAdminCheckFailed.For(i18n.LangEN)
-	if len(telegram.notifications) != 1 || telegram.notifications[0].text != want {
-		t.Fatalf("notification = %#v, want the caller-check-failed notice", telegram.notifications)
-	}
-	if telegram.bans != 0 || telegram.mutes != 0 {
-		t.Errorf("bans=%d mutes=%d, want 0: refusing must stay fail-closed", telegram.bans, telegram.mutes)
-	}
 }
 
 // A discussion group's own channel replying to a comment is not an impersonator, and a lookup

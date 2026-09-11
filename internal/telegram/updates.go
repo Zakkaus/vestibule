@@ -94,7 +94,7 @@ func channelSenderHandler(service *moderate.Service) th.Handler {
 func NewBlockChannelHandler(service *moderate.Service) th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
 		message := update.Message
-		if message == nil || message.From == nil {
+		if message == nil || message.From == nil || message.From.ID <= 0 || message.From.IsBot {
 			return nil
 		}
 		service.BlockChannel(ctx.Context(), moderate.ChannelSenderCommand{

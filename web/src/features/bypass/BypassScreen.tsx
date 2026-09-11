@@ -20,6 +20,7 @@ const errorMessageKeys: Readonly<Record<string, string>> = {
   chat_not_found: "bypass.errors.chatNotFound",
   csrf_invalid: "bypass.errors.csrfInvalid",
   invalid_settings: "bypass.errors.invalidSettings",
+  settings_limit_exceeded: "bypass.errors.settingsLimitExceeded",
   settings_unavailable: "bypass.errors.settingsUnavailable"
 };
 

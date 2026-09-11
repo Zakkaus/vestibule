@@ -13,7 +13,7 @@ import (
 func newPunishmentTestService(t *testing.T, telegram *fakeModBot) *Service {
 	t.Helper()
 	telegram.memberByID = map[int64]telego.ChatMember{
-		guardCallerID: &telego.ChatMemberAdministrator{},
+		guardCallerID: fullRightsAdministrator(),
 		guardTargetID: &telego.ChatMemberMember{},
 	}
 	return newTestService(t, guardTestConfig(settings.GroupConfig{ID: guardedGroupID}), telegram, "")

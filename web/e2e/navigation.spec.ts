@@ -34,13 +34,14 @@ async function mockNavigationTransport(page: Page, role: Role): Promise<void> {
       await fulfillJSON(route, {
         subject: { telegram_id: "741928306", role },
         expires_at: "2026-09-04T02:00:00Z",
+        is_owner: false,
         csrf_token: "navigation-csrf"
       });
       return;
     }
 
     if (path === "/api/chats" && request.method() === "GET") {
-      await fulfillJSON(route, { chats: [{ id: selectedGroupID, title: selectedGroupTitle }] });
+      await fulfillJSON(route, { chats: [{ id: selectedGroupID, title: selectedGroupTitle, owner: null, administrators: [], administrators_status: "unavailable" }] });
       return;
     }
 

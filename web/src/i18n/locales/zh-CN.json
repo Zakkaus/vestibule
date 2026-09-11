@@ -114,6 +114,35 @@
     "managedCount_other": "{{count}} 个可管理的群",
     "authorized": "已授权",
     "liveGroupNote": "选择这个群后，后续操作都会限定在这个群内。",
+    "identity": "{{name}} · 用户 ID {{id}}",
+    "owner": {
+      "heading": "Telegram 群主"
+    },
+    "administrators": {
+      "heading": "群管理员",
+      "unavailable": "暂时无法读取管理员详情",
+      "creator": "群主",
+      "administrator": "管理员"
+    },
+    "permissions": {
+      "heading": "管理权限",
+      "granted": "有权限",
+      "denied": "无权限",
+      "can_manage_chat": "管理群组",
+      "can_delete_messages": "删除消息",
+      "can_manage_video_chats": "管理视频聊天",
+      "can_restrict_members": "限制成员",
+      "can_promote_members": "任命管理员",
+      "can_change_info": "修改群组信息",
+      "can_invite_users": "邀请用户",
+      "can_post_stories": "发布故事",
+      "can_edit_stories": "编辑故事",
+      "can_delete_stories": "删除故事",
+      "can_post_messages": "发布消息",
+      "can_edit_messages": "编辑消息",
+      "can_pin_messages": "置顶消息",
+      "can_manage_topics": "管理话题"
+    },
     "loading": {
       "title": "正在读取群列表…",
       "description": "正在确认当前账号可管理的群。"
@@ -343,6 +372,7 @@
       "accessUnavailable": "暂时无法确认你对此群的管理权限。请重试。",
       "chatNotFound": "此群已不再可在控制台中管理。",
       "invalidSettings": "这些设置未通过校验。请检查改动后重试。",
+      "settingsLimitExceeded": "这项改动会超过实例所有者设定的上限。请降低数值，或请所有者提高上限。",
       "settingsUnavailable": "设置服务暂时不可用。请重试。",
       "loadUnavailable": "管理与处罚设置暂时不可用。",
       "saveUnavailable": "无法保存管理与处罚设置。请重试。"
@@ -522,6 +552,7 @@
       "chatNotFound": "此群已不再可在控制台中管理。",
       "csrfInvalid": "此页的安全令牌已过期。刷新页面后再重试。",
       "invalidSettings": "一个或多个设置无效。检查后重新保存。",
+      "settingsLimitExceeded": "这项改动会超过实例所有者设定的上限。请降低数值，或请所有者提高上限。",
       "settingsUnavailable": "免验证来源设置暂时不可用。请重试。",
       "loadUnavailable": "暂时无法读取免验证来源设置。请重试。",
       "saveUnavailable": "暂时无法保存免验证来源设置。请重试。",
@@ -707,6 +738,7 @@
       "chatNotFound": "此群已不再可在控制台中管理。",
       "csrfInvalid": "此页的安全令牌已过期。刷新页面后再重试。",
       "invalidSettings": "一个或多个设置无效。检查后重新保存。",
+      "settingsLimitExceeded": "这项改动会超过实例所有者设定的上限。请降低数值，或请所有者提高上限。",
       "settingsUnavailable": "验证设置暂时不可用。请重试。",
       "loadUnavailable": "暂时无法读取验证设置。请重试。",
       "saveUnavailable": "暂时无法保存验证设置。请重试。",
@@ -864,6 +896,7 @@
       "chatNotFound": "此群已不再可在控制台中管理。",
       "csrfInvalid": "此页的安全令牌已过期。刷新页面后再重试。",
       "invalidSettings": "题库未通过校验。检查题目和答案后重新保存。",
+      "settingsLimitExceeded": "这项改动会超过实例所有者设定的上限。请降低数值，或请所有者提高上限。",
       "settingsUnavailable": "题库设置暂时不可用。请重试。",
       "loadUnavailable": "暂时无法读取题库。请重试。",
       "saveUnavailable": "暂时无法保存题库。请重试。",
@@ -1352,6 +1385,7 @@
       "chatNotFound": "此群已不再可在控制台中管理。",
       "csrfInvalid": "此页的安全令牌已过期。刷新页面后再重试。",
       "invalidSettings": "一个或多个消息设置无效。检查后重新保存。",
+      "settingsLimitExceeded": "这项改动会超过实例所有者设定的上限。请降低数值，或请所有者提高上限。",
       "settingsUnavailable": "消息设置暂时不可用。请重试。",
       "loadUnavailable": "消息与文案暂时不可用。请重试。",
       "loadSettingsUnavailable": "暂时无法读取消息设置。请重试。",
@@ -1441,10 +1475,60 @@
       "chatNotFound": "此群已不再可在控制台中管理。",
       "csrfInvalid": "此页的安全令牌已过期。刷新页面后再重试。",
       "invalidSettings": "功能设置无效。请重新载入后重试。",
+      "settingsLimitExceeded": "这项改动会超过实例所有者设定的上限。请降低数值，或请所有者提高上限。",
       "settingsUnavailable": "功能设置暂时不可用。请重试。",
       "loadUnavailable": "暂时无法读取功能。请重试。",
       "saveUnavailable": "暂时无法保存功能设置。请重试。",
       "network": "连接已中断。重新载入功能后再决定是否重试。"
+    }
+  },
+  "owner": {
+    "navigation": "部署者设置",
+    "title": "实例上限",
+    "description": "群设置保存时按上限校验。0 表示不另设上限，原有字段限制仍然有效。降低上限不会修改既有设置。封禁时长上限为正数时，不允许永久封禁。",
+    "loading": {
+      "title": "正在载入实例上限",
+      "description": "正在读取上限及超限的群…"
+    },
+    "unavailable": {
+      "title": "无法读取实例上限"
+    },
+    "fields": {
+      "timeout_seconds": "验证超时（秒）",
+      "ban_seconds": "封禁时长（秒）",
+      "mute_seconds": "禁言时长（秒）",
+      "lookup_ttl_seconds": "查询结果保留时长（秒）",
+      "verify_retry_seconds": "验证重试间隔（秒）",
+      "verify_max_fails": "验证失败次数",
+      "warn_limit": "警告次数",
+      "private_query_per_min": "每分钟私聊查询次数",
+      "questions": "选择题条数",
+      "fallback_questions": "备用题条数",
+      "channel_whitelist": "允许的频道数",
+      "trusted_member_group_ids": "受信任群数",
+      "known_chat_ids": "已知聊天数"
+    },
+    "actions": {
+      "save": "保存上限",
+      "saving": "正在保存…",
+      "unsaved": "有未保存的修改",
+      "retry": "重新载入"
+    },
+    "violations": {
+      "title": "超出当前上限的群",
+      "row": "群 {{chatId}}：{{field}}为 {{value}}，上限为 {{limit}}。"
+    },
+    "feedback": {
+      "saved": "实例上限已保存。"
+    },
+    "errors": {
+      "network": "连接已中断，请重试。",
+      "unavailable": "暂时无法读取实例上限，请重试。",
+      "csrfInvalid": "此页的安全令牌已过期，请刷新页面后重试。",
+      "invalidRequest": "提交的上限无效，请检查数值后重试。",
+      "ownerRequired": "只有实例部署者可以修改这些上限。",
+      "conflict": "另一会话已修改上限，请重新载入后再保存。",
+      "settingsUnavailable": "无法持久保存实例上限，请检查设置存储后重试。"
     }
   },
   "home": {

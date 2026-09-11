@@ -54,6 +54,7 @@ async function mockAuditTransport(
         body: JSON.stringify({
           subject: { telegram_id: actorID, role: "manager" },
           expires_at: "2026-09-01T02:00:00Z",
+          is_owner: false,
           csrf_token: "audit-csrf"
         })
       });
@@ -62,7 +63,7 @@ async function mockAuditTransport(
     if (path === "/api/chats" && request.method() === "GET") {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chats: [{ id: selectedGroupID, title: "Gentoo-zh Community" }, { id: otherGroupID, title: "Arch Linux Community" }] })
+        body: JSON.stringify({ chats: [{ id: selectedGroupID, title: "Gentoo-zh Community", owner: null, administrators: [], administrators_status: "unavailable" }, { id: otherGroupID, title: "Arch Linux Community", owner: null, administrators: [], administrators_status: "unavailable" }] })
       });
       return;
     }

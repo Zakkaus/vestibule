@@ -6,6 +6,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"errors"
+	"github.com/Zakkaus/vestibule/internal/verification"
 	"net/http"
 	"sync"
 	"time"
@@ -61,20 +62,28 @@ type Grant struct {
 	CSRFToken string
 }
 
-// AccessIntent makes the authorization freshness requirement explicit at each call site.
+// AccessIntent makes the authorization freshness and capability requirement explicit at each call site.
 type AccessIntent uint8
 
 const (
-	// WriteAccess always rechecks Telegram so a revoked administrator cannot mutate state.
+	// WriteAccess always rechecks Telegram for restrict-member capability so a revoked
+	// administrator cannot mutate group policy.
 	WriteAccess AccessIntent = iota
 	// ReadAccess may reuse a recent positive Telegram result.
 	ReadAccess
+	// SettlementAccess requires every capability used by a queue settlement before any
+	// verification state transition or Telegram action is started.
+	SettlementAccess
 )
 
-// AdminChecker provides cached-positive reads and cache-bypassing writes.
+// RightsChecker performs an uncached Telegram capability lookup.
+type RightsChecker interface {
+	FreshRights(context.Context, int64, int64) (verification.GroupRights, error)
+}
+
+// AdminChecker provides cached-positive identity reads.
 type AdminChecker interface {
 	CachedAdmin(context.Context, int64, int64) (bool, error)
-	FreshAdmin(context.Context, int64, int64) (bool, error)
 }
 
 // AccessAvailabilityObserver records whether group-access checks are usable.
@@ -93,6 +102,7 @@ type Config struct {
 	Now             func() time.Time
 	OperatorAllowed func(int64) bool
 	AdminChecker    AdminChecker
+	RightsChecker   RightsChecker
 	AccessObserver  AccessAvailabilityObserver
 }
 
@@ -120,6 +130,7 @@ type Manager struct {
 	now             func() time.Time
 	operatorAllowed func(int64) bool
 	adminChecker    AdminChecker
+	rightsChecker   RightsChecker
 	accessObserver  AccessAvailabilityObserver
 
 	mu             sync.Mutex
@@ -140,7 +151,8 @@ func New(config Config) (*Manager, error) {
 		sessionTTL:      durationAtMost(config.SessionTTL, defaultSessionTTL),
 		operatorLinkTTL: durationAtMost(config.OperatorLinkTTL, defaultLinkTTL),
 		maxEntries:      positiveOr(config.MaxEntries, defaultMaxEntries), now: functionOr(config.Now, time.Now),
-		operatorAllowed: config.OperatorAllowed, adminChecker: config.AdminChecker, accessObserver: config.AccessObserver,
+		operatorAllowed: config.OperatorAllowed, adminChecker: config.AdminChecker,
+		rightsChecker: config.RightsChecker, accessObserver: config.AccessObserver,
 		sessions: make(map[string]sessionRecord), sessionByUser: make(map[int64]string),
 		replayedHashes: make(map[string]time.Time), links: make(map[string]linkRecord),
 		linkHistory: make(map[string]linkTombstone),
@@ -335,26 +347,48 @@ func (m *Manager) accessVerified() {
 	}
 }
 
-// AuthorizeChat verifies the session principal with the freshness required by intent.
+// AuthorizeChat verifies the session principal with the freshness and capabilities required by intent.
 func (m *Manager) AuthorizeChat(ctx context.Context, session Session, chatID int64, intent AccessIntent) error {
-	if m.adminChecker == nil || session.Principal.TelegramID <= 0 || chatID == 0 {
+	if session.Principal.TelegramID <= 0 || chatID == 0 {
 		return m.accessUnavailable()
 	}
-	var allowed bool
-	var err error
 	switch intent {
-	case WriteAccess:
-		allowed, err = m.adminChecker.FreshAdmin(ctx, chatID, session.Principal.TelegramID)
 	case ReadAccess:
-		allowed, err = m.adminChecker.CachedAdmin(ctx, chatID, session.Principal.TelegramID)
+		if m.adminChecker == nil {
+			return m.accessUnavailable()
+		}
+		allowed, err := m.adminChecker.CachedAdmin(ctx, chatID, session.Principal.TelegramID)
+		if err != nil {
+			return m.accessUnavailable()
+		}
+		m.accessVerified()
+		if !allowed {
+			return ErrAccessDenied
+		}
+		return nil
+	case WriteAccess:
+		return m.authorizeRights(ctx, chatID, session.Principal.TelegramID,
+			verification.GroupRights{CanRestrictMembers: true})
+	case SettlementAccess:
+		return m.authorizeRights(ctx, chatID, session.Principal.TelegramID,
+			verification.GroupRights{CanInviteUsers: true, CanRestrictMembers: true, CanDeleteMessages: true})
 	default:
 		return m.accessUnavailable()
 	}
+}
+
+func (m *Manager) authorizeRights(ctx context.Context, chatID, userID int64, required verification.GroupRights) error {
+	if m.rightsChecker == nil {
+		return m.accessUnavailable()
+	}
+	rights, err := m.rightsChecker.FreshRights(ctx, chatID, userID)
 	if err != nil {
 		return m.accessUnavailable()
 	}
 	m.accessVerified()
-	if !allowed {
+	if (required.CanInviteUsers && !rights.CanInviteUsers) ||
+		(required.CanRestrictMembers && !rights.CanRestrictMembers) ||
+		(required.CanDeleteMessages && !rights.CanDeleteMessages) {
 		return ErrAccessDenied
 	}
 	return nil
