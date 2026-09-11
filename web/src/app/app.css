@@ -933,11 +933,23 @@ body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  /* At 320px two pickers side by side leave each one less than its own content in the
-     widest locale: the theme and language controls take a row each. */
+  /* The controls wrapper is display: contents at this width (the component's own rule
+     wins over the grid above), so the two controls are the header's flex items. Let the
+     header wrap and give each control half a row; at 320px in the widest locale half a
+     row is less than a picker's content, so there they take a row each. */
+  [data-entry-utilities] {
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+  }
+
+  [data-entry-utilities] [data-utility-control] {
+    flex: 1 1 calc(50% - var(--sp-3));
+    min-inline-size: 0;
+  }
+
   @media (max-width: 24rem) {
-    [data-entry-utilities] [data-utility-controls] {
-      grid-template-columns: minmax(0, 1fr);
+    [data-entry-utilities] [data-utility-control] {
+      flex-basis: 100%;
     }
   }
 
