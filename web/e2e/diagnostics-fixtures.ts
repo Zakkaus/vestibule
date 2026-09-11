@@ -72,14 +72,11 @@ export async function mockDiagnosticsTransport(
   return statusMethods;
 }
 
+// Every side nav section is open; a destination is one click away.
 export async function clickSidebarLink(page: Page, path: "/groups" | "/diagnostics"): Promise<void> {
-  const group = path === "/groups" ? "group" : "observe";
-  const trigger = page.locator(`.console-sidebar [data-navigation-group="${group}"]`);
-  if (await trigger.getAttribute("aria-expanded") === "false") await trigger.click();
-  await expect(trigger).toHaveAttribute("aria-expanded", "true");
-  await expect(page.locator(`.console-sidebar [data-navigation-items="${group}"]`))
-    .toHaveAttribute("aria-hidden", "false");
-  await page.locator(`.console-sidebar [data-navigation-item="${path}"]`).click();
+  const link = page.locator(`.console-sidebar [data-navigation-item="${path}"]`);
+  await expect(link).toBeVisible();
+  await link.click();
 }
 
 export const unmeasuredDiagnostics = {

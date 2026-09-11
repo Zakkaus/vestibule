@@ -1,3 +1,5 @@
+import { Button } from "@react-spectrum/s2/Button";
+import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -74,17 +76,20 @@ function DailyUnavailable({
             : dailyErrorMessageKey(error, "diagnostics.daily.unavailable.description")
         )}
       </p>
+      {/* The button's own width beats a stylesheet rule, so the narrow-screen
+          full width is declared here rather than in app.css. */}
       {canRetry ? (
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          size="S"
           data-slot="button"
-          data-variant="outline"
           data-size="sm"
-          onClick={onRetry}
+          styles={style({ width: { default: "fit", "@media (max-width: 48rem)": "full" } })}
+          onPress={onRetry}
         >
           <Icon name="refreshCw" />
           {t("diagnostics.daily.actions.retry")}
-        </button>
+        </Button>
       ) : null}
     </section>
   );
