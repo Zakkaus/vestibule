@@ -10,6 +10,10 @@ All notable changes to this project are documented here. The format is based on
 - The question bank can try saved multiple-choice and short-answer questions through
   `POST /api/chats/{id}/rules/test`. Trials share the live answer predicates, reject stale
   settings revisions, and create no verification records, audit entries, or statistics.
+- Instance owners receive one private device-status summary at 09:00 in the statistics
+  timezone. The diagnostics screen can disable delivery persistently; failed attempts
+  are not retried before the next local day.
+  In observe-only mode, report delivery records a durable observation instead of sending.
 
 ### Fixed
 - Owner private help lists active owner commands. The owner menu and help omit

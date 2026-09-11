@@ -120,7 +120,7 @@ internal/
 │   └── assets/             前端产物 go:embed
 ├── settings/               配置，configupgrade
 ├── database/               dbutil 装配与迁移
-└── status/                 健康、替换状态与按需发布查询
+└── status/                 健康、每日状态摘要、替换状态与按需发布查询
 
 web/                        前端源码，Vite + React
 migrations/                 编号 SQL
@@ -506,7 +506,7 @@ callback_query       按钮作答
 
 ### 后台任务
 
-六个长期任务都在 `app.New` 构造期固定注册，不提供运行时插件 registry。 发送器与更新入口是具有特殊启停顺序的显式组件；其余四项放进固定的周期任务 slice， 由同一个 managed-task 适配器提供独立 context、`Done`、 `Err` 与有超时的停止方法。
+七个长期任务在 `app` 构造期固定注册，不提供运行时插件 registry。 发送器与更新入口是具有特殊启停顺序的显式组件；四项固定周期任务 由同一个 managed-task 适配器提供独立 context、`Done`、 `Err` 与有超时的停止方法。每日状态摘要由更新拉取租约的 context 管理，通过独立完成通道等待退出，不使用该适配器。
 
 | 任务 | 注册位置 | 启动 | 关闭 | 失败处理 |
 |---|---|---|---|---|
@@ -516,8 +516,9 @@ callback_query       按钮作答
 | 动作执行 | `verification.RunPendingActions` | 启动即领取 ready 动作，此后每 5 秒运行；领取 lease 为 30 秒 | 取消 context 后不再开始外部调用 | 临时错误按退避重试；永久或耗尽错误记录为 `failed` |
 | 权限同步 | 固定周期任务 slice | 与其他周期任务一同启动 | 按 slice 逆序停止 | 单个故障域暂停；全局认证错误返回进程级错误 |
 | 订阅抓取 | 固定周期任务 slice | 与其他周期任务一同启动 | 按 slice 逆序停止 | 单个 feed 失败只影响该 feed；任务循环意外返回属于进程级错误 |
+| 每日状态摘要 | `app` 的已认领运行期 | 取得更新拉取租约后启动，每分钟检查当地发送时间 | 取消 context 后等待在途单次请求退出 | 先原子记录当天尝试，再私聊实例拥有者；observe-only 模式只记录持久观察，不真实投递。 发送失败只记录一次，次日再尝试 |
 
-每个周期任务同步完成一次迭代后才重置 timer，同一任务不重叠； 一次执行过慢后，不并发执行积压周期。新增长期任务时，必须同时补入固定注册表、 启动与退出表、就绪和指标定义，以及生命周期测试。
+固定周期任务同步完成一次迭代后才重置 timer；每日状态摘要同步消费每分钟 ticker。 同一任务不重叠，一次执行过慢后不并发执行积压周期。新增长期任务时，必须同时补入 固定注册表、启动与退出表、就绪和指标定义，以及生命周期测试。
 
 **恢复只放在单项处理边界。**记录定位字段和 stack 后，把该项写成可重试或终态， 再继续下一项。顶层任务循环、发送调度器与 supervisor 不恢复；这些位置的 panic 或意外返回可能已经破坏锁、事务、堆或在途标记，必须让进程退出。
 
@@ -565,7 +566,7 @@ Sender {
 | 内存 bucket | 2,048 个活跃群 | 空 bucket 按最后使用时间驱逐，其他 due 群留在数据库 |
 | outbox | 全局 100,000 条，每群 500 条 | 事务返回 backpressure 错误，不静默丢弃 |
 
-收到 429 后不占用 worker 等待。当前行的 `available_at` 与对应 bucket 的 `blocked_until` 一起持久化为 `retry_after` 加 0 至 250 毫秒抖动， worker 随即释放。所有 Telegram 消息发送必须经过 `Sender`；权限查询等非消息 API 可有独立并发上限，但仍必须设置请求超时并处理 429。
+收到 429 后不占用 worker 等待。当前行的 `available_at` 与对应 bucket 的 `blocked_until` 一起持久化为 `retry_after` 加 0 至 250 毫秒抖动， worker 随即释放。需要重试的 Telegram 消息发送经过 `Sender`；权限查询等非消息 API 可有独立并发上限，但仍必须设置请求超时并处理 429。每日状态摘要是明确不重试的例外： 每个当地日期只领取一次机会，使用有超时的单次纯文本请求，不进入 outbox，也不回退重发。
 
 Telegram 限额与退避字段见 [Bot FAQ](https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this) 和 [ResponseParameters](https://core.telegram.org/bots/api#responseparameters)。
 
@@ -759,6 +760,13 @@ CREATE TABLE rule (
     enabled    BOOLEAN NOT NULL DEFAULT TRUE,
     definition TEXT   NOT NULL    -- 题面、条件、回复内容，三语
 );
+
+CREATE TABLE daily_status (
+    singleton         INTEGER PRIMARY KEY CHECK (singleton = 1),
+    enabled           BOOLEAN NOT NULL DEFAULT TRUE,
+    last_attempt_date TEXT    NOT NULL DEFAULT ''
+);
+INSERT INTO daily_status (singleton) VALUES (1);
 
 -- 以下四张表承载上一代那四份 JSON 状态。它们不在本节最初的设计里，
 -- 是阶段三第一片换介质时按现有状态的实际形状定下来的。
@@ -1124,6 +1132,7 @@ policr-mini 选了另一条：把 Telegram 的权限镜像进 `permissions` 表�
 | POST /api/chats/{id}/packages | 装一个包。先返回它将改动哪些项，确认后才落库 |
 | GET · PATCH /api/me/preferences | 看的人自己的偏好，不属于任何群 |
 | GET /api/status | 诊断屏与版本屏。健康、当前版本、设置持久化、Bot API 探测、回退条件读数和宿主替换状态。**只有运维可见** |
+| GET · PATCH /api/status/daily | 诊断屏的每日状态推送开关。仅运维可读写；PATCH 需要 CSRF，成功保存后返回 enabled、固定 time 与实际 timezone |
 | GET /api/status/release | 运维明确操作后，按需读取固定 GitHub 仓库的最新正式发布、变更说明与目标结构清单；失败不影响本地状态。同上，只有运维 |
 | GET /api/process/settings | 实例级设置的只读视图，每项带来源（出厂默认 / 用户文件 / 群覆盖）。**只有运维可见**，没有写入路由 |
 | POST /api/status/upgrade | 发起升级，只写目标版本，执行在宿主侧。同上，只有运维 |
@@ -1131,6 +1140,16 @@ policr-mini 选了另一条：把 Telegram 的权限镜像进 `permissions` 表�
 | GET · POST /setup/{token} | **只在认领之前存在。**安装脚本打印的一次性链接落在这里， 用来填写 Bot token，再给 Telegram 部署者一次性绑定链接；网页不接收或显示绑定口令。 **认领成功后这条路由不再注册**，之后任何人访问都是 404，不是隐藏 |
 
 **这张表是穷举的。**界面上多一个屏，这里就要多一行； 没有对应行的屏是还没设计，不是省略。两份文档的一致性照这条核对： 设计文档里的每一个屏，都要能在这里找到它取数与写入的那一行。
+
+### 每日状态摘要
+
+默认开启，每天按 `stats_timezone` 的当地时间 09:00 私聊实例拥有者。 时区复用统计服务的实际解析结果；空值或无效值沿用 UTC+8。每分钟检查一次， 启动或开启时已过发送时间，只处理当天，不补历史日报；未绑定拥有者时不消耗当天机会。
+
+摘要只包含实例在线、就绪、心跳、最近挑战投递失败时间和待处理总数，不包含群或申请人明细。 开关属于诊断屏，不属于个人外观偏好。开关和最近尝试日期保存在数据库的单行记录中， 条件更新同时检查开启状态与日期严格递增，只有领取成功的调用才发消息。 因为先记录尝试再发送，所以进程在两者之间退出可能漏报一天，但重启不能再次领取同一天。
+
+最近挑战投递失败时间来自当前进程的诊断观察，成功投递不会清除该时间； 进程重启后从未记录状态开始，不把它解释为完整历史。
+
+关闭成功后不再产生新的领取；已经领取的请求可以完成。 网络错误、429 和 5xx 均不重试，下一当地日期再尝试。 时钟或时区回退时不重新领取旧日期；时区向前进入新日期且已过 09:00 时允许领取新日期。 摘要失败不影响实例就绪，也不计入挑战投递失败指标。
 
 ### 错误
 
