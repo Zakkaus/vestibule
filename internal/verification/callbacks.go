@@ -16,6 +16,11 @@ type answerCallback struct {
 	choice int
 }
 
+// QuizAnswerMatches reports whether a quiz choice is the configured answer.
+func QuizAnswerMatches(choice, correctIndex int) bool {
+	return choice == correctIndex
+}
+
 func parseAnswerCallback(data string) (answerCallback, bool) {
 	parts := strings.Split(strings.TrimPrefix(data, AnswerCallbackPrefix), ":")
 	var nonce, choiceText string
@@ -76,7 +81,7 @@ func (v *Service) OnAnswer(ctx *HandlerContext, update Update) error {
 		return nil
 	}
 
-	if answer.choice != correctIdx {
+	if !QuizAnswerMatches(answer.choice, correctIdx) {
 		gate := v.pendingGate(answer.gid, answer.owner)
 		outcome, banned, err := v.decline(c, bot, answer.gid, answer.owner, answer.nonce, wrongAnswerReason)
 		if err != nil {
