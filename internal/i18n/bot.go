@@ -6,6 +6,8 @@ type BotCatalog struct {
 	Menu BotMenuCatalog
 	// Lifecycle contains process-level bot alerts.
 	Lifecycle BotLifecycleCatalog
+	// Daily contains owner daily status report text.
+	Daily BotDailyCatalog
 	// DirectMessage contains ordinary direct-message replies.
 	DirectMessage BotDirectMessageCatalog
 	// Registration contains owner claim and runtime group-registration text.
@@ -118,6 +120,24 @@ type BotOwnerMenuCatalog struct {
 type BotLifecycleCatalog struct {
 	// UnauthorizedChat formats an alert after leaving an unknown chat.
 	UnauthorizedChat Format
+}
+
+// BotDailyCatalog contains the fixed-time owner status report text.
+type BotDailyCatalog struct {
+	// Report renders one redacted daily status report.
+	Report Format
+	// Online labels a live process.
+	Online Text
+	// Offline labels a stopped process.
+	Offline Text
+	// Ready labels a process ready for requests.
+	Ready Text
+	// NotReady labels a process that is not ready for requests.
+	NotReady Text
+	// Never labels a measurement that has not happened.
+	Never Text
+	// NoFailure labels a challenge delivery with no recorded failure.
+	NoFailure Text
 }
 
 // BotDirectMessageCatalog contains ordinary direct-message replies.

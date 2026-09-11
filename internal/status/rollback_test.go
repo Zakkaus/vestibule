@@ -141,6 +141,19 @@ func TestSuccessfulDeliveryClearsResolvedIncidentCounters(t *testing.T) {
 	}
 }
 
+func TestChallengeDeliveryFailureTimestampSurvivesRecovery(t *testing.T) {
+	failedAt := time.Date(2026, time.September, 3, 10, 0, 0, 0, time.UTC)
+	now := failedAt
+	observations := NewRollbackObservations(func() time.Time { return now })
+	observations.RecordChallengeDeliveryFailure()
+	now = now.Add(time.Minute)
+	observations.RecordChallengeDeliverySuccess()
+	got := observations.Snapshot().ChallengeDelivery
+	if got.LastFailureAt == nil || !got.LastFailureAt.Equal(failedAt) {
+		t.Fatalf("last challenge failure after recovery = %+v, want %s", got.LastFailureAt, failedAt)
+	}
+}
+
 func TestDatabaseWriteFailureRateUsesLogicalWriteWindow(t *testing.T) {
 	now := time.Date(2026, time.September, 3, 10, 0, 0, 0, time.UTC)
 	observations := NewRollbackObservations(func() time.Time { return now })

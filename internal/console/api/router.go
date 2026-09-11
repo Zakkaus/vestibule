@@ -27,6 +27,7 @@ func (s *Server) ReplaceRoutes(config Config) {
 		rollbackRejections:   config.RollbackRejections,
 		replacement:          config.Replacement,
 		release:              config.Release,
+		daily:                config.Daily,
 		version:              config.Version,
 		observeOnly:          config.ObserveOnly,
 		setup:                config.Setup,

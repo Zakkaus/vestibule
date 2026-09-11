@@ -55,6 +55,7 @@ type Config struct {
 	RollbackRejections   RollbackRejectionService
 	Replacement          ReplacementService
 	Release              ReleaseService
+	Daily                DailyService
 	Version              string
 	ObserveOnly          bool
 	Setup                SetupService
@@ -79,6 +80,7 @@ type Server struct {
 	rollbackRejections   RollbackRejectionService
 	replacement          ReplacementService
 	release              ReleaseService
+	daily                DailyService
 	version              string
 	observeOnly          bool
 	setup                SetupService
@@ -189,6 +191,9 @@ func (s *Server) apiRoute(writer http.ResponseWriter, request *http.Request) {
 
 func (s *Server) statusRoute(writer http.ResponseWriter, request *http.Request) {
 	switch {
+	case (request.Method == http.MethodGet || request.Method == http.MethodPatch) &&
+		request.URL.Path == "/api/status/daily":
+		s.dailyRoute(writer, request)
 	case request.Method == http.MethodGet && request.URL.Path == "/api/status":
 		s.readDiagnostics(writer, request)
 	case request.Method == http.MethodGet && request.URL.Path == "/api/status/release":

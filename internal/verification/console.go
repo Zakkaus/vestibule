@@ -49,6 +49,24 @@ func (v *Service) ConsoleGroups() []int64 {
 	return v.settings.ChatIDs()
 }
 
+// StatsLocation returns the parsed statistics location used by daily boundaries.
+func (v *Service) StatsLocation() *time.Location {
+	return v.loc
+}
+
+// PendingCount returns the number of live, unsettled challenges without exposing identities.
+func (v *Service) PendingCount() int {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	count := 0
+	for _, pending := range v.pend {
+		if pending != nil && !pending.done {
+			count++
+		}
+	}
+	return count
+}
+
 // ConsoleQueue reads durable pending challenges. Terminal history stays outside the console queue.
 func (v *Service) ConsoleQueue(ctx context.Context, groupID int64) ([]ConsoleQueueEntry, error) {
 	if err := ctx.Err(); err != nil {

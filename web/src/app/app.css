@@ -67,7 +67,6 @@ body {
 [data-stats-table-section],
 [data-messages-settings-section],
 [data-messages-rules-section],
-[data-diagnostics-readonly],
 [data-diagnostics-section],
 [data-version-section] {
   display: grid;
@@ -405,7 +404,8 @@ body {
 }
 
 
-[data-moderation-settings-card] [data-slot="setting"] {
+[data-moderation-settings-card] [data-slot="setting"],
+[data-diagnostics-daily-setting] {
   align-items: start;
   padding: 0;
   border-block-end: 0;
@@ -968,7 +968,8 @@ body {
     inline-size: 100%;
   }
 
-  [data-moderation-settings-card] [data-slot="setting"] {
+  [data-moderation-settings-card] [data-slot="setting"],
+  [data-diagnostics-daily-setting] {
     flex-direction: column;
     gap: var(--sp-2);
   }
@@ -2250,8 +2251,6 @@ body {
 
 [data-diagnostics-state-card] h2,
 [data-diagnostics-state-card] p,
-[data-diagnostics-readonly] h2,
-[data-diagnostics-readonly] p,
 [data-diagnostics-section-heading] h2,
 [data-diagnostics-section-heading] p,
 [data-diagnostics-unreported-item] p {
@@ -2259,7 +2258,6 @@ body {
 }
 
 [data-diagnostics-state-card] h2,
-[data-diagnostics-readonly] h2,
 [data-diagnostics-section-heading] h2 {
   font-size: 1.0625rem;
   font-weight: 600;
@@ -2267,13 +2265,11 @@ body {
 }
 
 [data-diagnostics-state-card] p,
-[data-diagnostics-readonly] p,
 [data-diagnostics-section-heading] p,
 [data-diagnostics-unreported-item] p {
   color: var(--muted-foreground);
 }
 
-[data-diagnostics-readonly-heading],
 [data-diagnostics-section-heading] {
   display: flex;
   min-inline-size: 0;

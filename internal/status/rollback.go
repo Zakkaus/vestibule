@@ -44,6 +44,7 @@ type ChallengeDeliverySnapshot struct {
 	ProblemStreakSnapshot
 	FailedDeliveries    uint64
 	DuplicateDeliveries uint64
+	LastFailureAt       *time.Time
 }
 
 // DatabaseWriteSnapshot reports logical writes after retryStoreWrite has exhausted or completed its retry policy.
@@ -171,12 +172,14 @@ type deliveryProblemStreak struct {
 	problemStreak
 	failedDeliveries    uint64
 	duplicateDeliveries uint64
+	lastFailureAt       time.Time
 }
 
 func (s *deliveryProblemStreak) record(at time.Time, failed, duplicate bool) {
 	s.problemStreak.record(at)
 	if failed {
 		s.failedDeliveries++
+		s.lastFailureAt = at
 	}
 	if duplicate {
 		s.duplicateDeliveries++
@@ -194,6 +197,7 @@ func (s deliveryProblemStreak) snapshot(at time.Time) ChallengeDeliverySnapshot 
 		ProblemStreakSnapshot: s.problemStreak.snapshot(at),
 		FailedDeliveries:      s.failedDeliveries,
 		DuplicateDeliveries:   s.duplicateDeliveries,
+		LastFailureAt:         timePointer(s.lastFailureAt),
 	}
 }
 

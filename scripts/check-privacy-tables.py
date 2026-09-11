@@ -21,9 +21,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-MIGRATIONS = (
-    ROOT / "migrations" / "00-latest.sql",
-    ROOT / "internal" / "database" / "observation_migrations" / "00-latest.sql",
+MIGRATION_ROOTS = (
+    ROOT / "migrations",
+    ROOT / "internal" / "database" / "observation_migrations",
 )
 STATEMENTS = [ROOT / "docs" / "PRIVACY.md", ROOT / "docs" / "PRIVACY.zh-CN.md"]
 IDENTIFYING = ("user_id", "chat_id")
@@ -79,17 +79,17 @@ def all_tables(sql: str) -> set:
 
 
 def main() -> int:
-    missing = [migration for migration in MIGRATIONS if not migration.exists()]
-    if missing:
-        # A missing target must fail: otherwise moving a schema silently disables
-        # the comparison for every table it owns.
-        for migration in missing:
-            print("FAIL check-privacy-tables: %s is missing, so nothing was compared"
-                  % migration)
-        return 1
+    migration_files = []
+    for root in MIGRATION_ROOTS:
+        files = sorted(path for path in root.glob("*.sql") if path.is_file())
+        if not files:
+            print("FAIL check-privacy-tables: %s is missing or contains no regular *.sql files"
+                  % root)
+            return 1
+        migration_files.extend(files)
 
     schema_sql = "\n".join(
-        migration.read_text(encoding="utf-8") for migration in MIGRATIONS
+        migration.read_text(encoding="utf-8") for migration in migration_files
     )
     required = person_bearing_tables(schema_sql)
     if not required:

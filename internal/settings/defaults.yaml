@@ -10,7 +10,7 @@ process:
   notify_ttl_seconds: 60
   # Per-user query limit for direct messages. Must be positive.
   private_query_per_min: 3
-  # IANA timezone used for daily statistics; empty uses the process timezone.
+  # IANA timezone used for daily statistics; empty or invalid values use UTC+8.
   stats_timezone: ""
   # Outbound HTTP User-Agent override; empty uses the application default.
   user_agent: ""

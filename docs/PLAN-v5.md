@@ -563,8 +563,8 @@ internal/app  verification  rules  telegram  console  settings  database  status
 #### 后续补充：为运维会话提供写入凭据（**已完成**）
 
 原实现中，`GET /enter/{token}` 仅写入 HttpOnly 会话 Cookie，再以 `303` 重定向到首页
-（`internal/console/api/server.go:253-269`）；CSRF 令牌仅由
-`POST /api/session` 的 JSON 响应返回（`internal/console/api/server.go:233-250`），
+（`internal/console/api/server.go:258-275`）；CSRF 令牌仅由
+`POST /api/session` 的 JSON 响应返回（`internal/console/api/server.go:238-255`），
 而结算要求 `X-CSRF-Token`（`internal/console/auth/manager.go:317-323`）。
 
 因此，通过一次性链接进入的运维可以读取群和队列，但无法执行写入；
@@ -678,10 +678,10 @@ internal/app  verification  rules  telegram  console  settings  database  status
 核对时，控制台共有七条路由，均不支持设置读写
 （`/livez` `/readyz` `GET/POST /api/session` `/enter/` `/api/chats` `/api/chats/`）。
 当前顶层分发已包含 `GET · POST /setup/{token}`、`GET /api/process/settings`、
-`GET /api/status`、`GET /api/status/release` 和 `POST /api/status/upgrade`
-（`internal/console/api/server.go:148-200`）；`/api/chats/` 也已按群展开为
+`GET /api/status`、`GET · PATCH /api/status/daily`、`GET /api/status/release` 和 `POST /api/status/upgrade`
+（`internal/console/api/server.go:150-210`）；`/api/chats/` 也已按群展开为
 `queue`、`audit`、`stats`、`settings`、`rules` 五组
-（`internal/console/api/server.go:298-308`）。
+（`internal/console/api/server.go:288-317`）。
 阶段七已经完成八个屏所依赖的设置端点。
 
 底层读写能力来自 `internal/settings/store.go:339` 的 `Settings(chatID)` 和
@@ -1133,6 +1133,10 @@ Catppuccin Mocha、Tokyo Night Storm 和 Tokyo Night。
 上一代没有 HTTP 服务，因此它是新增功能。
 
 **支持每日推送设备状态，并允许关闭。** 诊断数据已经存在，阶段十一增加投递和开关。
+
+本项按维护者单独下发的说明书提前实施，不等待阶段十完成，也不改变其他阶段十一项目的顺序。
+开关属于诊断屏，仅运维可修改。默认开启，每天按统计时区的当地时间 09:00
+私聊实例拥有者；数据库在发送前原子记录尝试日期，失败当天不重试。
 
 **增加结构信号。** 架构文档定义的消息实体计分在两代代码中均不存在，
 维护者已将其归入阶段十一。

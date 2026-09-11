@@ -46,9 +46,10 @@ a table holding a user or chat identifier and this document does not name it.
 | `pending_action` | an applicant or member | what the bot is about to do about one challenge and has not finished — the action, its retries, its last error. It names no user directly; it points at a `challenge`, whose id is `chat:user:nonce`, so the two identifiers are inside it |
 | `verification_observation` | an applicant or member for membership changes; nobody identifiable for other actions | the suppressed operation and timestamp. Approve, decline, ban, unban, mute, and unmute observations also hold the group and user ids. No observation holds message text, notification text, callback ids or answers, challenge answers, or Telegram message ids |
 
-Three tables hold no personal data: `agent_tally` counts self-reported model names
-from the challenge's tripwire, `verification_runtime` holds two numbers, and
-`update_poll_lease` records which process is currently reading from Telegram.
+Four tables hold no personal data: `agent_tally` counts self-reported model names
+from the challenge's tripwire, `verification_runtime` holds two numbers,
+`update_poll_lease` records which process is currently reading from Telegram, and
+`daily_status` holds the daily report switch and last attempted local date.
 
 **It does not store:** message text, phone numbers, email addresses, IP
 addresses, location, or anything Telegram did not send with the events above. It

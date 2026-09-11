@@ -110,6 +110,97 @@ class GateSelfCoverageTest(SpectrumGateCases, unittest.TestCase):
             restore()
         self.assert_gate_passes(tree, script, *arguments)
 
+    def test_privacy_gate_reads_main_intermediate_migration(self) -> None:
+        self.assert_intermediate_privacy_migration("migrations", "user_id")
+
+    def test_privacy_gate_reads_observation_intermediate_migration(self) -> None:
+        self.assert_intermediate_privacy_migration(
+            "internal/database/observation_migrations", "chat_id"
+        )
+
+    def assert_intermediate_privacy_migration(self, relative: str, column: str) -> None:
+        tree = self.temporary_tree()
+        probe = tree / relative / "01-privacy-probe.sql"
+        benign = tree / relative / "99-benign.sql"
+        (tree / relative / "fixture.sql").mkdir()
+
+        def mutate() -> Callable[[], None]:
+            probe.write_text(
+                "CREATE TABLE privacy_probe (\n    %s BIGINT\n);\n" % column,
+                encoding="utf-8",
+            )
+            benign.write_text("-- no person-bearing table\n", encoding="utf-8")
+
+            def restore() -> None:
+                probe.unlink()
+                benign.unlink()
+
+            return restore
+
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-privacy-tables.py",
+            "an intermediate migration added a personal table",
+            (
+                "privacy_probe holds a person's identifier and "
+                "PRIVACY.md does not name it",
+                "privacy_probe holds a person's identifier and "
+                "PRIVACY.zh-CN.md does not name it",
+            ),
+            mutate,
+        )
+
+    def test_privacy_gate_rejects_each_missing_migration_root(self) -> None:
+        for relative in (
+            "migrations",
+            "internal/database/observation_migrations",
+        ):
+            tree = self.temporary_tree()
+            path = tree / relative
+
+            def mutate(path=path, relative=relative) -> Callable[[], None]:
+                shutil.rmtree(path)
+                return lambda: shutil.copytree(ROOT / relative, path)
+
+            self.assert_mutation_is_rejected(
+                tree,
+                "scripts/check-privacy-tables.py",
+                "a registered migration root disappeared",
+                ("FAIL check-privacy-tables:", relative,),
+                mutate,
+            )
+
+    def test_privacy_gate_rejects_each_root_without_regular_sql(self) -> None:
+        for relative in (
+            "migrations",
+            "internal/database/observation_migrations",
+        ):
+            tree = self.temporary_tree()
+            path = tree / relative
+            original = {
+                sql: sql.read_bytes() for sql in path.glob("*.sql") if sql.is_file()
+            }
+
+            def mutate(path=path, original=original) -> Callable[[], None]:
+                for sql in original:
+                    sql.unlink()
+                (path / "fixture.sql").mkdir()
+
+                def restore() -> None:
+                    (path / "fixture.sql").rmdir()
+                    for sql, contents in original.items():
+                        sql.write_bytes(contents)
+
+                return restore
+
+            self.assert_mutation_is_rejected(
+                tree,
+                "scripts/check-privacy-tables.py",
+                "a registered migration root contains no regular SQL",
+                ("FAIL check-privacy-tables:", relative,),
+                mutate,
+            )
+
     def test_every_whole_table_delete_without_chat_scope_names_a_guard(self) -> None:
         tree = self.temporary_tree()
         addition = """
@@ -554,6 +645,22 @@ func (s *Server) exportAudit(writer http.ResponseWriter, request *http.Request, 
             ("export", "exhaustive"),
             mutate,
         )
+
+    def test_daily_route_gate_requires_both_methods(self) -> None:
+        guard = "(request.Method == http.MethodGet || request.Method == http.MethodPatch)"
+        for method in ("http.MethodGet", "http.MethodPatch"):
+            with self.subTest(method=method):
+                tree = self.temporary_tree()
+                self.assert_mutation_is_rejected(
+                    tree,
+                    "scripts/check-console-routes.py",
+                    "the daily status route lost its read or write operation",
+                    ("GET · PATCH /api/status/daily",),
+                    lambda: self.replace_text(
+                        tree, "internal/console/api/server.go", guard,
+                        "(request.Method == %s)" % method,
+                    ),
+                )
 
     def test_every_present_tense_document_link_exists(self) -> None:
         tree = self.temporary_tree()

@@ -16,12 +16,14 @@ type runtimeLifecycle struct {
 	heartbeatDone     <-chan struct{}
 	expiryDone        <-chan struct{}
 	actionDone        <-chan struct{}
+	dailyDone         <-chan struct{}
 	flushVerification func()
 	feedDone          <-chan struct{}
 	notifierDone      <-chan error
 	stopAdmission     func() error
 	shutdownHTTP      func(context.Context) error
 	shutdownDeadline  time.Duration
+	cancelRuntime     context.CancelFunc
 }
 
 func runRuntimeLifecycle(ctx context.Context, lifecycle runtimeLifecycle) error {
@@ -30,6 +32,9 @@ func runRuntimeLifecycle(ctx context.Context, lifecycle runtimeLifecycle) error 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), lifecycle.deadline())
 	defer cancel()
 	stopHTTPAdmission(lifecycle.stopAdmission)
+	if lifecycle.cancelRuntime != nil {
+		lifecycle.cancelRuntime()
+	}
 	log.Printf("shutdown: stopping update polling and releasing its lease before draining handlers")
 	stopUpdateHandlers(shutdownCtx, lifecycle.stopHandlers)
 	// waitForHandlerShutdown logs the handler's error itself; nothing here reads it back.
@@ -39,6 +44,7 @@ func runRuntimeLifecycle(ctx context.Context, lifecycle runtimeLifecycle) error 
 	waitForShutdownComponent(shutdownCtx, "Telegram heartbeat", lifecycle.heartbeatDone)
 	waitForShutdownComponent(shutdownCtx, "verification expiry scanner", lifecycle.expiryDone)
 	waitForShutdownComponent(shutdownCtx, "verification action executor", lifecycle.actionDone)
+	waitForShutdownComponent(shutdownCtx, "daily status scheduler", lifecycle.dailyDone)
 	log.Printf("shutdown: flushing verification state")
 	if lifecycle.flushVerification != nil {
 		lifecycle.flushVerification()

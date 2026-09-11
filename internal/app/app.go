@@ -60,6 +60,7 @@ type services struct {
 	replacement          *status.Replacement
 	release              *status.ReleaseChecker
 	rollbackObservations *status.RollbackObservations
+	daily                *status.DailyService
 	version              string
 	identity             verification.Identity
 }
@@ -73,6 +74,7 @@ type activeRuntime struct {
 	heartbeatDone <-chan struct{}
 	expiryDone    <-chan struct{}
 	actionDone    <-chan struct{}
+	dailyDone     <-chan struct{}
 }
 
 // Run assembles the service graph, starts polling after a claim, and drains it on cancellation.
@@ -204,6 +206,7 @@ func claimedConsoleConfig(runtime *services) api.Config {
 		RollbackRejections:   runtime.verification,
 		Replacement:          runtime.replacement,
 		Release:              runtime.release,
+		Daily:                runtime.daily,
 		Version:              runtime.version,
 		ObserveOnly:          runtime.cfg.ObserveOnly,
 		BotUsername:          runtime.identity.Username,
@@ -243,6 +246,7 @@ func startActiveRuntime(parent context.Context, runtime *services) (*activeRunti
 		stopActiveRuntime(active)
 		return nil, fmt.Errorf("start long polling: %w", err)
 	}
+	active.dailyDone = polling.dailyDone
 	return active, nil
 }
 
@@ -265,9 +269,11 @@ func runActiveLifecycle(active *activeRuntime, console *api.Server, notifierDone
 		flushVerification: active.runtime.verification.Shutdown,
 		feedDone:          active.feedDone,
 		notifierDone:      notifierDone,
+		dailyDone:         active.dailyDone,
 		stopAdmission:     console.StopAdmission,
 		shutdownHTTP:      console.Shutdown,
 		shutdownDeadline:  shutdownDeadline,
+		cancelRuntime:     active.cancel,
 	})
 }
 
@@ -359,6 +365,7 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 	if err != nil {
 		return fmt.Errorf("verification: %w", err)
 	}
+	daily := newDailyService(runtime, verificationService, verificationGateway, time.Now)
 	administration := panel.New(
 		runtime.settings, connector, runtime.cfg, &i18n.Messages,
 		verificationService, moderation, lookups, options.Version, startedAt,
@@ -384,6 +391,7 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 	runtime.updates = updates
 	runtime.registration = registration
 	runtime.consoleAuth = consoleAuth
+	runtime.daily = daily
 	runtime.identity = identity
 	return nil
 }
