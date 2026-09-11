@@ -312,7 +312,7 @@ test("home switches its context to the selected chat title without showing trans
   await page.goto(`/home?group=${selectedGroupID}`);
   await expect(page.locator("[data-home-context]")).toContainText(selectedGroupTitle);
 
-  const switcher = page.getByRole("button", { name: "当前群" });
+  const switcher = page.getByRole("button", { name: "当前群组" });
   await selectAppOption(switcher, otherGroupIDs[0]);
   await expect(page).toHaveURL(new RegExp(`/home\\?group=${otherGroupIDs[0]}$`));
   await expect(page.locator("[data-home-context]")).toContainText("Arch Linux Community");

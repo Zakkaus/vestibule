@@ -115,7 +115,7 @@ test("feed delivery renders process values, array records, and API provenance wi
   const processMethods = await openLoadedFeeds(page, configuredProcessSettings);
   const screen = page.locator("[data-feeds-page]");
 
-  await expect(screen.locator("[data-feeds-readonly]")).toContainText("此页面不提供写入功能");
+  await expect(screen.locator("[data-feeds-readonly]")).toContainText("订阅设置无法在控制台修改");
   await expect(screen.locator("input, textarea, select, button")).toHaveCount(0);
   await expect(screen.getByText("保存", { exact: true })).toHaveCount(0);
   await expect(screen).not.toContainText("github_atom_base");
@@ -123,7 +123,7 @@ test("feed delivery renders process values, array records, and API provenance wi
 
   const feedSection = screen.locator('[data-feeds-section="feeds"]');
   await expect(feedSection).toHaveAttribute("data-process-setting-source", "user file");
-  await expect(feedSection).toContainText("来源：由文件管理");
+  await expect(feedSection).toContainText("来源：配置文件");
   const feeds = feedSection.locator("[data-feed-item]");
   await expect(feeds).toHaveCount(2);
   await expect(feeds.nth(0)).toContainText("Gentoo Package Updates");
@@ -142,17 +142,17 @@ test("feed delivery renders process values, array records, and API provenance wi
   await expect(feeds.nth(0)).toContainText("600 秒");
   await expect(feeds.nth(0)).toContainText("Gentoo Linux");
   await expect(feeds.nth(0)).toContainText("Portage");
-  await expect(feeds.nth(0)).toContainText("关闭");
-  await expect(feeds.nth(0)).toContainText("开启");
+  await expect(feeds.nth(0)).toContainText("已关闭");
+  await expect(feeds.nth(0)).toContainText("已开启");
   await expect(feeds.nth(1)).toContainText("简体中文（默认）");
-  await expect(feeds.nth(1)).toContainText("开启（默认）");
-  await expect(feeds.nth(1)).toContainText("关闭（默认）");
+  await expect(feeds.nth(1)).toContainText("已开启（默认）");
+  await expect(feeds.nth(1)).toContainText("已关闭（默认）");
   await expect(feeds.nth(1)).toContainText("全部产品");
   await expect(feeds.nth(1)).toContainText("全部组件");
 
   const newsURL = screen.locator('[data-feeds-section="news-url"]');
   await expect(newsURL).toHaveAttribute("data-process-setting-source", "factory default");
-  await expect(newsURL).toContainText("来源：出厂默认");
+  await expect(newsURL).toContainText("来源：程序默认值");
   await expect(newsURL.locator("code")).toHaveText("https://example.invalid/news-items.xml");
 
   const overlays = screen.locator('[data-feeds-section="overlays"]');
@@ -174,7 +174,7 @@ test("feed delivery identifies operator-only access instead of reporting a load 
   await page.goto("/feeds");
   const screen = page.locator("[data-feeds-page]");
   await expect(screen).toHaveAttribute("data-feeds-state", "access-denied");
-  await expect(screen.getByRole("heading", { name: "没有权限查看进程设置" })).toBeVisible();
+  await expect(screen.getByRole("heading", { name: "无权查看进程设置" })).toBeVisible();
   await expect(screen).toContainText("此页面仅供运维人员使用");
   await expect(screen.getByText("无法读取订阅推送配置", { exact: true })).toHaveCount(0);
   await expect(screen.getByRole("button", { name: "重试" })).toHaveCount(0);
@@ -191,7 +191,7 @@ test("feed delivery keeps empty process arrays visible with their sources", asyn
   const screen = page.locator("[data-feeds-page]");
 
   await expect(screen.locator("[data-feeds-empty]")).toContainText("未配置订阅目标");
-  await expect(screen.locator("[data-overlays-empty]")).toContainText("未配置仓库");
+  await expect(screen.locator("[data-overlays-empty]")).toContainText("未配置 overlay 仓库");
   await expect(screen.locator("[data-news-url-value]")).toContainText("未配置新闻源地址");
   await expect(screen.locator("[data-feed-item]")).toHaveCount(0);
   await expect(screen.locator("[data-overlay-item]")).toHaveCount(0);

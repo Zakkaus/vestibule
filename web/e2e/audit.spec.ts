@@ -137,8 +137,8 @@ test("audit renders settled history and waits for confirmed undo", async ({ page
   const declinedRow = page.locator("[data-audit-row]", { hasText: "@wrong_answer" });
   await expect(availableRow).toContainText("已封禁");
   await expect(otherActorRow.getByRole("button")).toHaveCount(0);
-  await expect(declinedRow).toContainText("已退回");
-  await expect(declinedRow).toContainText("答错");
+  await expect(declinedRow).toContainText("已拒绝");
+  await expect(declinedRow).toContainText("回答错误");
   await expect(declinedRow).toContainText("系统");
 
   const action = availableRow.getByRole("button", { name: "撤销对 @undo_target 的封禁" });
@@ -184,10 +184,10 @@ test("audit loading does not masquerade as an empty history", async ({ page }) =
   await page.goto(`/audit?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
   await readRequested;
   await expect(page.locator("[data-audit-page]")).toHaveAttribute("data-audit-state", "loading");
-  await expect(page.getByRole("heading", { name: "尚无已结算的判定" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "尚无已结算的验证判定" })).toHaveCount(0);
   resolveRead();
   await expect(page.locator("[data-audit-page]")).toHaveAttribute("data-audit-state", "empty");
-  await expect(page.getByRole("heading", { name: "尚无已结算的判定" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "尚无已结算的验证判定" })).toBeVisible();
 });
 
 test("audit discards group A's delayed read after the visible group switcher selects group B", async ({
@@ -233,7 +233,7 @@ test("audit discards group A's delayed read after the visible group switcher sel
   await page.goto(`/audit?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
   await aReadRequested;
 
-  const groupSwitcher = page.getByRole("button", { name: "当前群" });
+  const groupSwitcher = page.getByRole("button", { name: "当前群组" });
   await selectAppOption(groupSwitcher, otherGroupID);
   await expect(page).toHaveURL(new RegExp(`/audit\\?group=${otherGroupID}$`));
   await expect(groupSwitcher).toContainText("Arch Linux Community");
@@ -302,7 +302,7 @@ test("audit discards group A's delayed undo after the visible group switcher sel
   await undoRequested;
   await expect(groupARow).toHaveAttribute("data-undo-state", "submitting");
 
-  const groupSwitcher = page.getByRole("button", { name: "当前群" });
+  const groupSwitcher = page.getByRole("button", { name: "当前群组" });
   await selectAppOption(groupSwitcher, otherGroupID);
   await expect(page).toHaveURL(new RegExp(`/audit\\?group=${otherGroupID}$`));
   await expect(groupSwitcher).toContainText("Arch Linux Community");

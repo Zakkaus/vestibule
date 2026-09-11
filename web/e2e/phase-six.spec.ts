@@ -334,7 +334,7 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
   await test.step("review the selected managed group", async () => {
     // Home already selects the first authorised group, so this step reads the
     // switcher rather than changing it.
-    const groupSwitcher = page.getByRole("button", { name: "当前群" });
+    const groupSwitcher = page.getByRole("button", { name: "当前群组" });
     await expectAppSelection(groupSwitcher, selectedGroupId);
     await expect(groupSwitcher).toContainText(selectedGroupTitle);
     await expect(groupSwitcher).not.toContainText(/-100\d+/);
@@ -513,7 +513,7 @@ test("a valid session with no groups identifies the Telegram account", async ({ 
   const entry = page.locator("[data-entry-page]");
   await expect(entry).toHaveAttribute("data-entry-state", "no-groups");
   await expect(
-    page.getByRole("heading", { name: "这个账号尚未获任何群授权" })
+    page.getByRole("heading", { name: "该账号尚未获得任何群的管理授权" })
   ).toBeVisible();
   await expect(entry).toContainText("741928306");
   expect(handshake(requests)).toEqual(["GET /api/session", "GET /api/chats"]);
@@ -565,7 +565,7 @@ test("group list keeps loading distinct from a settled empty result", async ({ p
   await expect(groups).toHaveAttribute("data-groups-state", "empty");
   await expect(page.getByRole("heading", { name: "没有可管理的群" })).toBeVisible();
   await expect(groups).toContainText("741928306");
-  await expect(page.getByRole("button", { name: "重新读取" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "重新加载" })).toHaveCount(0);
 });
 
 for (const errorCase of groupListErrorCases) {
@@ -618,13 +618,13 @@ for (const errorCase of groupListErrorCases) {
     await expect(page.getByRole("heading", { name: errorCase.heading })).toBeVisible();
 
     if (errorCase.retryable) {
-      await page.getByRole("button", { name: "重新读取" }).click();
+      await page.getByRole("button", { name: "重新加载" }).click();
       await expect(groups).toHaveAttribute("data-groups-state", "populated");
       await expect(page.locator("[data-group-row]")).toContainText(selectedGroupTitle);
       await expect(groups).not.toContainText(/-100\d+/);
       expect(chatRequestCount).toBe(2);
     } else {
-      await expect(page.getByRole("button", { name: "重新读取" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "重新加载" })).toHaveCount(0);
       expect(chatRequestCount).toBe(1);
     }
   });
@@ -790,7 +790,7 @@ test("entry states retain their distinct guidance", async ({ page }) => {
   const stateCases = [
     ["no-session", "从 Telegram 打开控制台"],
     ["expired", "这条链接已过期"],
-    ["redeemed", "这条链接已被用过"],
+    ["redeemed", "该链接已使用"],
     ["outside-telegram", "群管理仅可从 Telegram 内打开"]
   ] as const;
 
@@ -874,12 +874,12 @@ test("queue waits for a real response before rendering empty", async ({ page }) 
 
   await page.goto(`/queue?group=${selectedGroupId}`, { waitUntil: "domcontentloaded" });
   await expect(page.locator("[data-queue-page]")).toHaveAttribute("data-queue-state", "loading");
-  await expect(page.getByRole("heading", { name: "尚无人申请" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "尚无申请" })).toHaveCount(0);
   await queueRequested;
   resolveQueue();
 
   await expect(page.locator("[data-queue-page]")).toHaveAttribute("data-queue-state", "empty");
-  await expect(page.getByRole("heading", { name: "尚无人申请" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "尚无申请" })).toBeVisible();
 });
 
 test("queue uses the API code for an unavailable load", async ({ page }) => {
@@ -904,7 +904,7 @@ test("queue uses the API code for an unavailable load", async ({ page }) => {
     "unavailable"
   );
   await expect(page.locator("[data-queue-unavailable]")).toContainText(
-    "你已不再拥有此群的管理权限"
+    "当前账号已不再拥有该群的管理权限"
   );
 });
 
@@ -929,7 +929,7 @@ test("a failed fixture release restores pending state and remaining time", async
   await expect(action).toHaveAttribute("aria-disabled", "true");
   await expect(action).toBeFocused();
 
-  await expect(page.locator("[data-queue-feedback]")).toContainText("未能放行 @retry_release");
+  await expect(page.locator("[data-queue-feedback]")).toContainText("无法放行 @retry_release");
   await expect(row).toHaveAttribute("data-action-state", "idle");
   await expect(row).toHaveAttribute("data-result", "pending");
   await expect(result).toContainText("等待中 3:39");
@@ -987,7 +987,7 @@ const settlementFailureCases = [
     name: "loss of management permission",
     kind: "api",
     code: "chat_access_denied",
-    message: "你已不再拥有此群的管理权限",
+    message: "当前账号已不再拥有该群的管理权限",
     expectedState: "unavailable"
   },
   {
@@ -1001,7 +1001,7 @@ const settlementFailureCases = [
     name: "an expired CSRF token",
     kind: "api",
     code: "csrf_invalid",
-    message: "此页的安全令牌已过期",
+    message: "当前页面的安全令牌已过期",
     expectedState: "populated"
   },
   {

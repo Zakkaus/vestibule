@@ -103,20 +103,20 @@ test("moderation shows provenance and expresses group ID zero as a blank destina
   });
 
   const warningRow = page.locator('[data-moderation-field="warnLimit"]');
-  await expect(warningRow).toContainText("本群设定");
-  await expect(warningRow.getByRole("button", { name: "恢复默认" })).toBeVisible();
+  await expect(warningRow).toContainText("当前群设置");
+  await expect(warningRow.getByRole("button", { name: "恢复默认值" })).toBeVisible();
 
   const antispamRow = page.locator('[data-moderation-field="antispamEnabled"]');
-  await expect(antispamRow).toContainText("出厂默认");
+  await expect(antispamRow).toContainText("程序默认值");
   await expect(antispamRow.getByRole("switch")).toHaveAttribute("aria-checked", "true");
 
   const adminLogRow = page.locator('[data-moderation-field="adminLogChatID"]');
   const adminLogInput = adminLogRow.getByLabel("处罚记录群");
-  await expect(adminLogRow).toContainText("由文件管理");
+  await expect(adminLogRow).toContainText("用户配置文件");
   await expect(adminLogInput).toHaveValue("");
   await expect(adminLogInput).toHaveAttribute("readonly", "");
   await expect(adminLogRow).toContainText(
-    "留空等同于群号 0：不另发处罚记录；处罚失败提醒仍发到当前群。"
+    "留空等同于群号 0：不发送额外的处罚记录；处罚失败提醒仍发送到当前群。"
   );
 });
 
@@ -153,7 +153,7 @@ test("moderation sends one sparse change with CSRF and accepts an unchanged revi
     }
   );
 
-  await page.getByRole("switch", { name: "拦截冒充频道身份的发言" }).click();
+  await page.getByRole("switch", { name: "拦截冒充频道身份的消息" }).click();
   await page.getByRole("button", { name: "保存", exact: true }).click();
   await patchRequested;
   expect(csrfHeader).toBe("moderation-csrf");
@@ -174,7 +174,7 @@ test("moderation sends one sparse change with CSRF and accepts an unchanged revi
     "data-save-state",
     "saved"
   );
-  await expect(page.getByRole("switch", { name: "拦截冒充频道身份的发言" })).toHaveAttribute(
+  await expect(page.getByRole("switch", { name: "拦截冒充频道身份的消息" })).toHaveAttribute(
     "aria-checked",
     "false"
   );
@@ -206,8 +206,8 @@ test("moderation restores one override with an explicit null", async ({ page }) 
   );
 
   const warningRow = page.locator('[data-moderation-field="warnLimit"]');
-  await warningRow.getByRole("button", { name: "恢复默认" }).click();
-  await expect(warningRow.locator("[data-setting-pending]")).toContainText("待恢复默认");
+  await warningRow.getByRole("button", { name: "恢复默认值" }).click();
+  await expect(warningRow.locator("[data-setting-pending]")).toContainText("待恢复为默认值");
   await page.getByRole("button", { name: "保存", exact: true }).click();
 
   await expect(page.locator("[data-moderation-form]")).toHaveAttribute(
@@ -216,8 +216,8 @@ test("moderation restores one override with an explicit null", async ({ page }) 
   );
   expect(requestBody).toEqual({ expected_revision: 7, changes: { warn_limit: null } });
   await expect(warningRow.getByLabel("警告上限")).toHaveValue("3");
-  await expect(warningRow).toContainText("出厂默认");
-  await expect(warningRow.getByRole("button", { name: "恢复默认" })).toHaveCount(0);
+  await expect(warningRow).toContainText("程序默认值");
+  await expect(warningRow.getByRole("button", { name: "恢复默认值" })).toHaveCount(0);
 });
 
 test("moderation identifies another administrator's revision conflict before reloading", async ({
@@ -248,7 +248,7 @@ test("moderation identifies another administrator's revision conflict before rel
   await adminLogInput.fill("");
   await page.getByRole("button", { name: "保存", exact: true }).click();
   await expect(page.locator('[data-moderation-feedback="conflict"]')).toContainText(
-    "其他人已修改这些设置。请重新载入后再保存。"
+    "其他管理员已修改这些设置。请重新加载后再保存。"
   );
   await expect(page.getByText("无法保存管理与处罚设置。请重试。")).toHaveCount(0);
   expect(requestBody).toEqual({
@@ -300,7 +300,7 @@ test("moderation discards a previous group's delayed settings response", async (
 
   await page.goto(`/moderation?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
   await settingsRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await selectAppOption(page.getByRole("button", { name: "当前群组" }), otherGroupID);
   await expect(page).toHaveURL(new RegExp(`/moderation\\?group=${otherGroupID}$`));
   await expect(page.getByLabel("警告上限")).toHaveValue("9");
 
@@ -352,17 +352,17 @@ test("moderation ignores a previous group's delayed settings save", async ({ pag
     }
   );
 
-  await page.getByRole("switch", { name: "拦截冒充频道身份的发言" }).click();
+  await page.getByRole("switch", { name: "拦截冒充频道身份的消息" }).click();
   await page.getByRole("button", { name: "保存", exact: true }).click();
   await patchRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群" }), otherGroupID);
+  await selectAppOption(page.getByRole("button", { name: "当前群组" }), otherGroupID);
   await expect(page).toHaveURL(new RegExp(`/moderation\\?group=${otherGroupID}$`));
   await expect(page.getByLabel("警告上限")).toHaveValue("9");
 
   releasePatch();
   await patchResponseSettled;
   await expect(page.getByLabel("警告上限")).toHaveValue("9");
-  await expect(page.getByRole("switch", { name: "拦截冒充频道身份的发言" })).toHaveAttribute(
+  await expect(page.getByRole("switch", { name: "拦截冒充频道身份的消息" })).toHaveAttribute(
     "aria-checked",
     "true"
   );

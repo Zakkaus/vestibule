@@ -81,7 +81,7 @@ function queueRow(page: Page, user: string) {
 }
 
 async function selectGroupB(page: Page): Promise<void> {
-  const groupSwitcher = page.getByRole("button", { name: "当前群" });
+  const groupSwitcher = page.getByRole("button", { name: "当前群组" });
   await selectAppOption(groupSwitcher, groupBID);
   await expect(page).toHaveURL(new RegExp(`/queue\\?group=${groupBID}$`));
   await expect(groupSwitcher).toContainText("Arch Linux Community");

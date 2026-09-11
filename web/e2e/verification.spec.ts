@@ -142,7 +142,7 @@ test("verification saves only the edited field through the shared CSRF transport
     "loaded"
   );
   await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "quiz");
-  await expect(page.getByText("来源：此群覆盖")).toBeVisible();
+  await expect(page.getByText("来源：当前群覆盖")).toBeVisible();
   await expect(page.locator("[data-verification-feedback]")).toContainText("已保存验证设置");
 });
 
@@ -208,12 +208,12 @@ test("verification restores only the selected chat override with null", async ({
   );
 
   const banSetting = page.locator("[data-verification-setting=ban_seconds]");
-  await expect(banSetting).toContainText("来源：此群覆盖");
+  await expect(banSetting).toContainText("来源：当前群覆盖");
   await banSetting.getByRole("button", { name: "恢复继承值" }).click();
   await page.getByRole("button", { name: "保存更改" }).click();
   await patchSettled;
   await expect(page.locator("#verification-ban-seconds")).toHaveValue("0");
-  await expect(banSetting).toContainText("来源：出厂默认");
+  await expect(banSetting).toContainText("来源：程序默认值");
   await expect(page.locator("[data-verification-feedback]")).toContainText("已保存验证设置");
 });
 
@@ -261,7 +261,7 @@ test("verification conflict loads the newer revision and says another administra
   );
   await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "mixed");
   await expect(page.locator("[data-verification-feedback]")).toContainText(
-    "其他管理员已经更改了设置"
+    "其他管理员已修改这些设置"
   );
   expect(reads).toBe(2);
 });
@@ -295,7 +295,7 @@ test("verification discards a previous group's delayed settings response", async
 
   await page.goto(`/verification?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
   await settingsRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群" }), "all");
+  await selectAppOption(page.getByRole("button", { name: "当前群组" }), "all");
   await expect(page).toHaveURL(/\/verification$/);
   await expect(page.locator("[data-verification-page]")).toHaveAttribute(
     "data-verification-state",
@@ -347,7 +347,7 @@ test("verification ignores a previous group's delayed settings save", async ({ p
   await selectAppOption(page.locator("#verification-mode"), "quiz");
   await page.getByRole("button", { name: "保存更改" }).click();
   await patchRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群" }), "all");
+  await selectAppOption(page.getByRole("button", { name: "当前群组" }), "all");
   await expect(page).toHaveURL(/\/verification$/);
   await expect(page.locator("[data-verification-page]")).toHaveAttribute(
     "data-verification-state",
