@@ -26,7 +26,7 @@ type RouteHandle = {
 const shellLayout = style({
   display: "grid",
   gridTemplateColumns: {
-    default: [size(224), "minmax(0, 1fr)"],
+    default: [size(280), "minmax(0, 1fr)"],
     "@media (max-width: 48rem)": ["minmax(0, 1fr)"]
   },
   height: "screen",
