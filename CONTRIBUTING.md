@@ -106,7 +106,7 @@ was extracted into the wrong place.
 | Commit messages | English |
 | `README.md` | English, with `README.zh-CN.md` alongside |
 | Code comments | English |
-| User-visible strings | Simplified Chinese source in the catalogue, plus Traditional Chinese and English |
+| User-visible strings | Simplified Chinese source in the catalogue, plus Traditional Chinese, English, Japanese, and Russian |
 | Design and architecture documents | Chinese |
 
 Write Traditional Chinese natively; never derive it by converting Simplified Chinese. Keep
@@ -229,7 +229,7 @@ python3 scripts/check-acceptance-exemptions.py  # every EXEMPT reason can still 
 # "Did someone edit a copy in place" is answered inside the repository, against
 # the hashes recorded when the copy was taken, so CI runs it:
 python3 scripts/check-vendored.py    # copies match scripts/vendored-manifest.json
-python3 scripts/check-locale-catalogues.py  # three catalogues agree, and the code's keys exist
+python3 scripts/check-locale-catalogues.py  # five catalogues agree, and the code's keys exist
 python3 scripts/check-inherited-commands.py  # every command the previous generation answered still exists
 python3 scripts/check-no-baked-identity.py  # no real group ID or known deployment handle/domain in shipped code
 python3 scripts/check-message-fields-are-read.py  # a declared message field has a reader
@@ -299,7 +299,7 @@ python3 scripts/check-console-html.py
 for c in html-structure coverage-floor style-rules shadowed undefined-var theme-leak comment-boundaries percentage-min; do \
   python3 "scripts/design-checks/$c.py" web/design.html web/architecture.html; done
 python3 scripts/check-css-coverage.py web/design.html web/architecture.html
-cd web && npm run e2e && cd ..  # the console journey and the render gate, in Chromium
+cd web && npm run e2e && cd ..  # PR gate: measure all five locales, render the widest
 ```
 
 The `gentoo` tag remains only as a compatibility regression: default and tagged commands must
@@ -378,6 +378,18 @@ put it back.
 
 Assert the anchor exists and is unique before replacing anything, and check that the diff is
 the size you expected. A script exiting zero is not evidence that it did the right thing.
+
+## Scheduled locale rendering
+
+PRs measure all five catalogues and render only the widest language. The separate
+`.github/workflows/locale-render.yml` schedule renders every locale and discovered
+route at both widths in all three themes. This exhaustive matrix is not a PR
+prerequisite. To exercise the scheduled job locally:
+
+```sh
+(cd web && PLAYWRIGHT_PORT_OFFSET=210 RENDER_GATE_LOCALES=all \
+  npm run e2e -- e2e/render-gate.spec.ts)  # exhaustive scheduled gate
+```
 
 ## Documents ship with the change that invalidates them
 

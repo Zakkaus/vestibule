@@ -127,6 +127,10 @@ body {
 
 [data-app-shell][data-shell-variant="entry"] {
   display: grid;
+  /* One column that never grows past the viewport: an implicit column is sized by the
+     widest child's min-content, and the entry card's heading in the widest locale is
+     enough to push the whole shell past 320px. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr;
 }
 
@@ -266,7 +270,9 @@ body {
 
 [data-entry-main] {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
+  min-inline-size: 0;
   padding: var(--sp-4) var(--sp-5);
 }
 
@@ -283,6 +289,12 @@ body {
 
 [data-entry-page] [data-slot="card"] {
   padding: var(--sp-6);
+  /* The card is a grid with one implicit column, sized by its heading's longest word;
+     in the widest locale on a narrow screen that word may exceed the card. Let the
+     card shrink to the section and the word break rather than push the section. */
+  min-inline-size: 0;
+  grid-template-columns: minmax(0, 1fr);
+  overflow-wrap: anywhere;
 }
 
 /* A control that spans the card reads as the page's one action; these are the
@@ -931,6 +943,26 @@ body {
     inline-size: 100%;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* The controls wrapper is display: contents at this width (the component's own rule
+     wins over the grid above), so the two controls are the header's flex items. Let the
+     header wrap and give each control half a row; at 320px in the widest locale half a
+     row is less than a picker's content, so there they take a row each. */
+  [data-entry-utilities] {
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+  }
+
+  [data-entry-utilities] [data-utility-control] {
+    flex: 1 1 calc(50% - var(--sp-3));
+    min-inline-size: 0;
+  }
+
+  @media (max-width: 24rem) {
+    [data-entry-utilities] [data-utility-control] {
+      flex-basis: 100%;
+    }
   }
 
   [data-entry-utilities] [data-utility-control] [data-slot="select"] {

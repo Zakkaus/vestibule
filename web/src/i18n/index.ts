@@ -2,20 +2,18 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
 import en from "./locales/en.json";
+import ja from "./locales/ja.json";
+import ru from "./locales/ru.json";
 import zhCN from "./locales/zh-CN.json";
 import zhTW from "./locales/zh-TW.json";
 
-export const locales = ["zh-CN", "zh-TW", "en"] as const;
+export const locales = ["zh-CN", "zh-TW", "en", "ja", "ru"] as const;
 
 export type AppLocale = (typeof locales)[number];
 
 export const DEFAULT_LOCALE: AppLocale = "zh-CN";
 export const LOCALE_STORAGE_KEY = "verify-console-locale";
 
-// The theme control has always offered "follow the system". The language control
-// offered three languages and nothing else, so choosing one was a one-way door:
-// there was no way back to following the browser, and a reader who tried the
-// other two out of curiosity was stuck with whichever they left it on.
 export const localePreferences = ["system", ...locales] as const;
 
 export type LocalePreference = (typeof localePreferences)[number];
@@ -38,6 +36,12 @@ export function localeFromBrowser(): AppLocale {
     }
     if (tag.startsWith("en")) {
       return "en";
+    }
+    if (tag === "ja" || tag.startsWith("ja-")) {
+      return "ja";
+    }
+    if (tag === "ru" || tag.startsWith("ru-")) {
+      return "ru";
     }
     if (tag.startsWith("zh")) {
       return "zh-CN";
@@ -67,7 +71,9 @@ i18n.use(initReactI18next).init({
   resources: {
     "zh-CN": { translation: zhCN },
     "zh-TW": { translation: zhTW },
-    en: { translation: en }
+    en: { translation: en },
+    ja: { translation: ja },
+    ru: { translation: ru }
   },
   lng: initialLocale(),
   fallbackLng: DEFAULT_LOCALE,

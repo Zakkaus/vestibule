@@ -148,6 +148,11 @@ export async function renderCell(
     (selectedLocale) => document.documentElement.lang === selectedLocale,
     locale
   );
+  // The picker's popover is sized from the trigger it was opened from; the new locale
+  // can relayout that trigger while the popover is still leaving. Measure only once no
+  // listbox is left in the document and every transition has finished.
+  await page.locator('[role="listbox"]').waitFor({ state: "detached" }).catch(() => {});
+  await page.waitForFunction(() => document.getAnimations().length === 0);
   await page.evaluate(async () => {
     await document.fonts.ready;
     await new Promise<void>((resolve) => {
@@ -170,11 +175,26 @@ export async function horizontalGeometry(page: Page): Promise<HorizontalGeometry
         );
       }
     );
+    // Name the element, and say what pushed it: the failure is read from a CI log, on a
+    // machine whose fonts differ, so a bare tag name cannot be reproduced here.
     const selectorFor = (element: HTMLElement): string => {
       const dataName = element
         .getAttributeNames()
         .find((name) => name.startsWith("data-"));
-      return `${element.tagName.toLowerCase()}${dataName ? `[${dataName}]` : ""}`;
+      const widest = [...element.querySelectorAll<HTMLElement>("*")]
+        .map((child) => ({ child, right: child.getBoundingClientRect().right }))
+        .sort((a, b) => b.right - a.right)[0];
+      const box = (node: Element): string => {
+        const rect = node.getBoundingClientRect();
+        return `${Math.round(rect.left)}..${Math.round(rect.right)}`;
+      };
+      const children = [...element.children]
+        .map((child) => `${child.tagName.toLowerCase()}${child.getAttributeNames().filter((name) => name.startsWith("data-")).map((name) => `[${name}]`).join("")} ${box(child)} ${getComputedStyle(child).display}`)
+        .join("; ");
+      const detail = widest
+        ? ` ← ${widest.child.tagName.toLowerCase()} ${box(widest.child)} "${(widest.child.textContent ?? "").trim().slice(0, 40)}" | children: ${children}`
+        : "";
+      return `${element.tagName.toLowerCase()}${dataName ? `[${dataName}]` : ""} scroll=${element.scrollWidth} client=${element.clientWidth}${detail}`;
     };
     const closestScopedScroller = (element: HTMLElement): HTMLElement | null => {
       for (

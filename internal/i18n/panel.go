@@ -173,6 +173,8 @@ type PanelSettingsFieldCatalog struct {
 	LanguageZH             Text
 	LanguageZHHant         Text
 	LanguageEN             Text
+	LanguageJA             Text
+	LanguageRU             Text
 	ChannelWhitelist       Text
 	TrustedGroups          Text
 	KnownChats             Text

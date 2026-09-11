@@ -1,0 +1,22 @@
+{
+  "bug": {
+    "field_separator": ": ",
+    "status_resolution_separator": " · ",
+    "status": "状態",
+    "product_component": "製品／コンポーネント",
+    "priority": "優先度",
+    "severity": "重大度",
+    "keywords": "キーワード",
+    "packages": "パッケージ",
+    "assignee": "担当者",
+    "reporter": "報告者",
+    "creation_date": "作成日"
+  },
+  "git_hub": {
+    "commit": "<a href=\"%[1]s\"><b>%[2]s</b></a> · <code>%[3]s</code>\n%[4]s%[5]s%[6]s",
+    "branch": "\n<b>ブランチ</b>: %[1]s",
+    "author": "\n<b>作成者</b>: %[1]s"
+  },
+  "config": {
+  }
+}

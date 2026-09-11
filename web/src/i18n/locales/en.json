@@ -14,7 +14,9 @@
     "system": "Follow the browser",
     "zhCN": "Chinese, Simplified",
     "zhTW": "Chinese, Traditional",
-    "en": "English"
+    "en": "English",
+    "ja": "Japanese",
+    "ru": "Russian"
   },
   "navigation": {
     "label": "Console navigation",
@@ -443,7 +445,9 @@
       "default": "Simplified Chinese (default)",
       "zh": "Simplified Chinese",
       "zhHant": "Traditional Chinese",
-      "en": "English"
+      "en": "English",
+      "ja": "Japanese",
+      "ru": "Russian"
     },
     "values": {
       "enabled": "Enabled",
@@ -819,10 +823,12 @@
       "title": "Challenge language",
       "description": "Choose the language used for questions and verification messages shown to applicants.",
       "label": "Group challenge language",
-      "settingDescription": "Choose Simplified Chinese, Traditional Chinese, or English. Fallback text questions use their configured wording.",
+      "settingDescription": "Choose Simplified Chinese, Traditional Chinese, English, Japanese, or Russian. Fallback text questions use their configured wording.",
       "zh": "Simplified Chinese",
       "zhHant": "Traditional Chinese",
-      "en": "English"
+      "en": "English",
+      "ja": "Japanese",
+      "ru": "Russian"
     },
     "questionBank": {
       "title": "Multiple-choice questions",

@@ -1,0 +1,22 @@
+{
+  "bug": {
+    "field_separator": ": ",
+    "status_resolution_separator": " · ",
+    "status": "Статус",
+    "product_component": "Продукт / компонент",
+    "priority": "Приоритет",
+    "severity": "Важность",
+    "keywords": "Ключевые слова",
+    "packages": "Пакеты",
+    "assignee": "Ответственный",
+    "reporter": "Автор сообщения",
+    "creation_date": "Создано"
+  },
+  "git_hub": {
+    "commit": "<a href=\"%[1]s\"><b>%[2]s</b></a> · <code>%[3]s</code>\n%[4]s%[5]s%[6]s",
+    "branch": "\n<b>Ветка</b>: %[1]s",
+    "author": "\n<b>Автор</b>: %[1]s"
+  },
+  "config": {
+  }
+}

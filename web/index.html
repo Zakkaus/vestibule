@@ -15,10 +15,7 @@
       (() => {
         const themeKey = "verify-console-theme";
         const localeKey = "verify-console-locale";
-        // Reads the browser's whole ordered list, not just its first entry: a
-        // browser asking for ja, then zh-TW, then en used to land on the default
-        // rather than on the second language it actually asked for. Hong Kong and
-        // Macau tags are traditional, and were being answered in simplified.
+        // Read the ordered browser preference list before falling back to the default.
         const localeFromBrowser = () => {
           const requested = navigator.languages && navigator.languages.length
             ? navigator.languages
@@ -27,6 +24,8 @@
             const tag = String(language).toLowerCase();
             if (tag === "zh-tw" || tag === "zh-hk" || tag === "zh-mo" || tag.indexOf("zh-hant") === 0) return "zh-TW";
             if (tag.indexOf("en") === 0) return "en";
+            if (tag === "ja" || tag.indexOf("ja-") === 0) return "ja";
+            if (tag === "ru" || tag.indexOf("ru-") === 0) return "ru";
             if (tag.indexOf("zh") === 0) return "zh-CN";
           }
           return "zh-CN";
@@ -40,7 +39,7 @@
           document.documentElement.dataset.themePreference = theme === "light" || theme === "dark" ? theme : "system";
 
           const locale = localStorage.getItem(localeKey);
-          document.documentElement.lang = locale === "zh-CN" || locale === "zh-TW" || locale === "en"
+          document.documentElement.lang = locale === "zh-CN" || locale === "zh-TW" || locale === "en" || locale === "ja" || locale === "ru"
             ? locale
             : localeFromBrowser();
         } catch {

@@ -26,7 +26,9 @@ const localeLabelKeys: Record<LocalePreference, string> = {
   system: "locale.system",
   "zh-CN": "locale.zhCN",
   "zh-TW": "locale.zhTW",
-  en: "locale.en"
+  en: "locale.en",
+  ja: "locale.ja",
+  ru: "locale.ru"
 };
 
 // The glyph belongs to the preference, not to the control: the theme icon has

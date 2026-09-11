@@ -126,6 +126,8 @@
       "language_zh": "簡體中文",
       "language_zh_hant": "繁體中文",
       "language_en": "英文",
+      "language_ja": "日文",
+      "language_ru": "俄文",
       "channel_whitelist": "頻道允許清單",
       "trusted_groups": "信任群組",
       "known_chats": "已知聊天室",

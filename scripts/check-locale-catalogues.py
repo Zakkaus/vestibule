@@ -1,26 +1,12 @@
 #!/usr/bin/env python3
-"""Hold the console's three locale catalogues to each other, and to the code.
+"""Validate the five console and bot locale catalogues.
 
-Nothing checked them. Agents edit all three every time a screen is added, the
-counts happen to match, and four failures were possible and invisible:
+Console catalogues must preserve logical keys, complete plural categories, and
+interpolation names. Literal and computed translation keys must resolve, and
+every catalogue key must remain reachable from the source.
 
-  - a key added to one catalogue and forgotten in another, which renders the key
-    itself on screen in that language and nowhere else;
-  - a placeholder renamed or dropped in a translation, which prints {{count}} to
-    a reader or silently deletes a number from the sentence. Key parity cannot
-    see this: the key is present and the value looks like a sentence;
-  - a mistyped key in a component. i18next has no typed key union here, so
-    t("hom.title") compiles and renders "hom.title".
-  - an empty or untranslated value, which leaves a blank control or changes the
-    language in the middle of an otherwise localized screen.
-
-All four were at zero when this was written, which is the cheapest moment to
-freeze them.
-
-Runtime keys are held too. The check validates every dotted key value declared in
-source and enumerates each computed-key family from its source domain. A new
-computed shape fails until the checker can enumerate it, rather than becoming an
-unchecked path.
+The default invocation also checks backend files, key and array structure, and
+indexed printf placeholders. Explicit fixture paths isolate frontend checks.
 
 Usage: check-locale-catalogues.py [locales-dir] [source-dir]
 """
@@ -39,8 +25,10 @@ KEY_LITERAL = re.compile(
 KEY_TEMPLATE = re.compile(r"`([A-Za-z][A-Za-z0-9_.]*)\$\{([^}]*)\}([A-Za-z0-9_.]*)`")
 QUOTED_VALUE = re.compile(r"""["']([A-Za-z][A-Za-z0-9_-]*)["']""")
 HAN = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
+JAPANESE = re.compile(r"[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
+CYRILLIC = re.compile(r"[\u0400-\u04ff]")
 CHINESE_CATALOGUES = {"zh-CN", "zh-TW"}
-SUPPORTED_CATALOGUES = ("en", "zh-CN", "zh-TW")
+SUPPORTED_CATALOGUES = ("en", "zh-CN", "zh-TW", "ja", "ru")
 
 NON_TRANSLATION_DOTTED_LITERALS = {"github.com"}
 LANGUAGE_NEUTRAL_CHINESE_VALUES = {
@@ -49,6 +37,10 @@ LANGUAGE_NEUTRAL_CHINESE_VALUES = {
     "groups.applicants.idOnly": "ID {{id}}",
     "diagnostics.values.percent": "{{value}}%",
     "messages.rules.identifier": "ID：{{id}}",
+}
+LANGUAGE_NEUTRAL_VALUES = {
+    "ja": dict(LANGUAGE_NEUTRAL_CHINESE_VALUES),
+    "ru": {**LANGUAGE_NEUTRAL_CHINESE_VALUES, "messages.rules.identifier": "ID: {{id}}"},
 }
 # i18next resolves a plural key to one of these suffixes at call time, so a
 # component asks for the bare key and the catalogue never holds it.
@@ -69,6 +61,29 @@ PLURAL_CATEGORIES = {
     "ja": {"other"},
     "ru": {"one", "few", "many", "other"},
 }
+# These frontend calls use i18next's count-aware lookup but their logical stems
+# are not recoverable from catalogue suffixes alone. Keep this registry in sync
+# with the production families below; fixture invocations only validate entries
+# they actually contain.
+COUNT_SENSITIVE_KEYS = (
+    "bypass.save.unsaved",
+    "feeds.values.seconds",
+    "groups.managedCount",
+    "home.attention.queue.description",
+    "home.values.questions",
+    "moderation.save.unsaved",
+    "questions.fallback.count",
+    "questions.fallback.inheritedCount",
+    "questions.questionBank.count",
+)
+
+
+def registered_stems_present(catalogues: dict[str, dict]) -> set[str]:
+    return {
+        stem
+        for stem in COUNT_SENSITIVE_KEYS
+        if any(key_exists(catalogue, stem) for catalogue in catalogues.values())
+    }
 
 
 def plural_stem(key: str) -> str:
@@ -147,8 +162,106 @@ def flatten(value: dict, prefix: str = "") -> dict:
             flat[path] = item
     return flat
 
+BACKEND_CATALOGUES = ("zh", "zh-Hant", "en", "ja", "ru")
+BACKEND_FILES = (
+    "bot.json",
+    "feed.json",
+    "lookup_content.json",
+    "lookup_distros.json",
+    "lookup_packages.json",
+    "moderate.json",
+    "panel.json",
+    "verification.json",
+)
+PRINTF = re.compile(r"%\[[0-9]+\][a-z]")
+
+
+def backend_shape(value):
+    if isinstance(value, dict):
+        return ("object", tuple((key, backend_shape(item)) for key, item in sorted(value.items())))
+    if isinstance(value, list):
+        return ("array", tuple(sorted({backend_shape(item) for item in value})))
+    return type(value).__name__
+
+
+def backend_strings(value, prefix=""):
+    if isinstance(value, dict):
+        for key, item in value.items():
+            path = f"{prefix}.{key}" if prefix else key
+            yield from backend_strings(item, path)
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            yield from backend_strings(item, f"{prefix}[{index}]")
+    elif isinstance(value, str):
+        yield prefix, value
+
+
+def check_backend_catalogues() -> None:
+    root = ROOT / "internal/i18n/locales"
+    if not root.is_dir():
+        failures.append("backend locale directory is missing")
+        return
+    loaded = {}
+    for name in BACKEND_CATALOGUES:
+        directory = root / name
+        if not directory.is_dir():
+            failures.append("internal/i18n/locales/%s is missing" % name)
+            continue
+        actual = {path.name for path in directory.glob("*.json")}
+        extra = sorted(actual - set(BACKEND_FILES))
+        for filename in extra:
+            failures.append("%s/%s is an unregistered backend catalogue file" % (name, filename))
+        for filename in BACKEND_FILES:
+            path = directory / filename
+            if not path.is_file():
+                failures.append("%s/%s is missing" % (name, filename))
+                continue
+            try:
+                catalogue = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as error:
+                failures.append("%s/%s is not valid JSON: %s" % (name, filename, error))
+                continue
+            if not isinstance(catalogue, dict):
+                failures.append("%s/%s must contain a JSON object" % (name, filename))
+                continue
+            loaded[(name, filename)] = catalogue
+    for filename in BACKEND_FILES:
+        source = loaded.get(("en", filename))
+        if source is None:
+            continue
+        expected_shape = backend_shape(source)
+        expected = dict(backend_strings(source))
+        for name in BACKEND_CATALOGUES:
+            catalogue = loaded.get((name, filename))
+            if catalogue is None:
+                continue
+            if backend_shape(catalogue) != expected_shape:
+                failures.append("%s/%s does not preserve the English key and array structure"
+                                % (name, filename))
+                continue
+            for key, value in backend_strings(catalogue):
+                source_value = expected.get(key)
+                if source_value is None:
+                    continue
+                if set(PRINTF.findall(value)) != set(PRINTF.findall(source_value)):
+                    failures.append("%s/%s %s changes printf placeholders"
+                                    % (name, filename, key))
+
+
 def check_values_are_nonempty_and_localized(name: str, catalogue: dict) -> None:
-    if name != "en" and name not in CHINESE_CATALOGUES:
+    if name == "en":
+        script_name = "English"
+        script = HAN
+    elif name in CHINESE_CATALOGUES:
+        script_name = "Chinese"
+        script = HAN
+    elif name == "ja":
+        script_name = "Japanese"
+        script = JAPANESE
+    elif name == "ru":
+        script_name = "Russian"
+        script = CYRILLIC
+    else:
         failures.append("%s.json has no value-language rule, so untranslated "
                         "entries would be invisible to this check" % name)
         return
@@ -161,18 +274,20 @@ def check_values_are_nonempty_and_localized(name: str, catalogue: dict) -> None:
             failures.append("%s.json %s is empty; operators would see a blank "
                             "label or message" % (name, key))
             continue
-        match = HAN.search(value)
-        if name == "en" and match:
-            failures.append("%s.json %s contains Chinese character %r; English "
-                            "operators would receive untranslated text"
-                            % (name, key, match.group()))
-        if name in CHINESE_CATALOGUES and not match:
-            if LANGUAGE_NEUTRAL_CHINESE_VALUES.get(key) == value:
-                continue
-            failures.append("%s.json %s contains no Chinese text and is not a "
-                            "language-neutral UI value; Chinese operators would "
-                            "receive untranslated text" % (name, key))
-
+        if name == "en":
+            if HAN.search(value):
+                failures.append("%s.json %s contains Chinese character; English "
+                                "operators would receive untranslated text"
+                                % (name, key))
+            continue
+        if script.search(value):
+            continue
+        neutral_values = LANGUAGE_NEUTRAL_CHINESE_VALUES if name in CHINESE_CATALOGUES else LANGUAGE_NEUTRAL_VALUES.get(name, {})
+        if neutral_values.get(key) == value:
+            continue
+        failures.append("%s.json %s contains no %s text and is not a "
+                        "language-neutral UI value; operators would receive "
+                        "untranslated text" % (name, key, script_name))
 
 def main() -> int:
     locales_dir = ROOT / (sys.argv[1] if len(sys.argv) > 1 else "web/src/i18n/locales")
@@ -201,6 +316,11 @@ def main() -> int:
               "would report success" % source_name)
         return 1
 
+    source_values_by_stem = {}
+    for source_key, source_value in source.items():
+        source_values_by_stem.setdefault(plural_stem(source_key), source_value)
+    source_stems = set(source_values_by_stem)
+
     for name, catalogue in sorted(catalogues.items()):
         if name == source_name:
             continue
@@ -208,7 +328,6 @@ def main() -> int:
         # plural forms where English needs two, so comparing leaf keys would
         # have made a correct Russian catalogue impossible to add — the first
         # thing found when preparing for it.
-        source_stems = {plural_stem(key) for key in source}
         catalogue_stems = {plural_stem(key) for key in catalogue}
         for stem in sorted(source_stems - catalogue_stems):
             failures.append("%s.json is missing %s, which %s.json has"
@@ -216,15 +335,29 @@ def main() -> int:
         for stem in sorted(catalogue_stems - source_stems):
             failures.append("%s.json has %s, which %s.json does not"
                             % (name, stem, source_name))
-        for key in sorted(set(source) & set(catalogue)):
-            wanted = set(PLACEHOLDER.findall(str(source[key])))
-            got = set(PLACEHOLDER.findall(str(catalogue[key])))
+        for key, value in sorted(catalogue.items()):
+            stem = plural_stem(key)
+            source_value = source.get(key)
+            if source_value is None:
+                source_value = source_values_by_stem.get(stem)
+                if source_value is None:
+                    continue
+            wanted = set(PLACEHOLDER.findall(str(source_value)))
+            got = set(PLACEHOLDER.findall(str(value)))
             if wanted != got:
                 failures.append("%s.json %s interpolates %s where %s.json "
                                 "interpolates %s" % (name, key, sorted(got) or "nothing",
                                                      source_name, sorted(wanted) or "nothing"))
 
-    # Each locale carries exactly the plural categories its language has.
+    # A registered stem must stay plural even if every catalogue currently
+    # contains only its bare key; suffix discovery alone cannot see that
+    # coordinated collapse.
+    plural_stems = {
+        plural_stem(key)
+        for catalogue in catalogues.values()
+        for key in catalogue
+        if plural_stem(key) != key
+    } | registered_stems_present(catalogues)
     for name, catalogue in sorted(catalogues.items()):
         expected = PLURAL_CATEGORIES.get(name)
         if expected is None:
@@ -238,7 +371,8 @@ def main() -> int:
             if stem == key:
                 continue
             groups.setdefault(stem, set()).add(key[len(stem) + 1:])
-        for stem, found in sorted(groups.items()):
+        for stem in sorted(plural_stems):
+            found = groups.get(stem, set())
             for extra in sorted(found - expected):
                 failures.append("%s.json defines %s_%s and %s never selects that "
                                 "category, so nobody can read it"
@@ -322,8 +456,24 @@ def main() -> int:
                for count in range(2, len(parts))):
             continue
         failures.append("%s.json defines %s and nothing in %s asks for it — use it "
-                        "or remove it from all three catalogues"
+                        "or remove it from all five catalogues"
                         % (source_name, key, source_dir.name))
+
+    if len(sys.argv) == 1:
+        production_stems = {
+            plural_stem(key)
+            for catalogue in catalogues.values()
+            for key in catalogue
+            if plural_stem(key) != key
+        }
+        registered = set(COUNT_SENSITIVE_KEYS)
+        for stem in sorted(registered - production_stems):
+            failures.append("count-sensitive registry lists %s, but production "
+                            "has no plural family for it" % stem)
+        for stem in sorted(production_stems - registered):
+            failures.append("production plural family %s is not in the "
+                            "count-sensitive registry" % stem)
+        check_backend_catalogues()
 
     if failures:
         print("FAIL check-locale-catalogues: the catalogues and the code disagree")

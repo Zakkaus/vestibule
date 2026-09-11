@@ -18,42 +18,56 @@ var (
 )
 
 func TestFromTelegram(t *testing.T) {
-	tests := map[string]Lang{
-		"zh-hans":   LangZH,
-		"zh-CN":     LangZH,
-		"zh":        LangZH,
-		"zh-sg":     LangZH,
-		" zh-Hant ": LangZHHant,
-		"zh-hant":   LangZHHant,
-		"zh-TW":     LangZHHant,
-		"zh-hk":     LangZHHant,
-		"zh-MO":     LangZHHant,
-		"yue":       LangZHHant,
-		"en":        LangEN,
-		"en-US":     LangEN,
-		"ru":        LangEN,
-		"ja":        LangEN,
-		"":          LangEN,
+	tests := map[string]string{
+		"zh-hans":   "zh",
+		"zh-CN":     "zh",
+		"zh":        "zh",
+		"zh-sg":     "zh",
+		" zh-Hant ": "zh-Hant",
+		"zh-hant":   "zh-Hant",
+		"zh-TW":     "zh-Hant",
+		"zh-hk":     "zh-Hant",
+		"zh-MO":     "zh-Hant",
+		"yue":       "zh-Hant",
+		"en":        "en",
+		"en-US":     "en",
+		"ja":        "ja",
+		"ja-JP":     "ja",
+		" JA_jp ":   "ja",
+		"ru":        "ru",
+		"ru-RU":     "ru",
+		" RU_ru ":   "ru",
+		"japan":     "en",
+		"rubbish":   "en",
+		"":          "en",
 	}
 	for tag, want := range tests {
-		if got := FromTelegram(tag); got != want {
+		if got := FromTelegram(tag).String(); got != want {
 			t.Errorf("FromTelegram(%q) = %s, want %s; an applicant would receive the wrong catalogue", tag, got, want)
 		}
 	}
 }
 
 func TestFromRequester(t *testing.T) {
-	for code, want := range map[string]Lang{
-		"en":      LangEN,
-		"en-US":   LangEN,
-		"en_US":   LangEN,
-		"zh-CN":   LangZH,
-		"zh-Hant": LangZHHant,
-		"yue-HK":  LangZHHant,
-		"":        LangZHHant,
-		"fr":      LangZHHant,
+	for code, want := range map[string]string{
+		"en":      "en",
+		"en-US":   "en",
+		"en_US":   "en",
+		"zh-CN":   "zh",
+		"zh-Hant": "zh-Hant",
+		"yue-HK":  "zh-Hant",
+		"ja":      "ja",
+		"ja-JP":   "ja",
+		" ja_JP ": "ja",
+		"ru":      "ru",
+		"ru-RU":   "ru",
+		" RU_ru ": "ru",
+		"":        "zh-Hant",
+		"fr":      "zh-Hant",
+		"japan":   "zh-Hant",
+		"rubbish": "zh-Hant",
 	} {
-		if got := FromRequester(code, LangZHHant); got != want {
+		if got := FromRequester(code, LangZHHant).String(); got != want {
 			t.Errorf("FromRequester(%q, zh-Hant) = %v, want %v; a requester would receive the wrong catalogue", code, got, want)
 		}
 	}
@@ -94,19 +108,38 @@ func TestFromRequesterNormalizesTagsBeforeMatching(t *testing.T) {
 }
 
 func TestFromStored(t *testing.T) {
-	tests := map[string]Lang{
-		"":          LangZH,
-		"zh":        LangZH,
-		"zh-hans":   LangZH,
-		" zh-Hant ": LangZHHant,
-		"zh-Hant":   LangZHHant,
-		"zh-hant":   LangZHHant,
-		"en":        LangEN,
-		"unknown":   LangZH,
+	tests := map[string]string{
+		"":          "zh",
+		"zh":        "zh",
+		"zh-hans":   "zh",
+		" zh-Hant ": "zh-Hant",
+		"zh-Hant":   "zh-Hant",
+		"zh-hant":   "zh-Hant",
+		"en":        "en",
+		"ja":        "ja",
+		" JA ":      "ja",
+		"ru":        "ru",
+		" RU ":      "ru",
+		"ja-JP":     "zh",
+		"ru-RU":     "zh",
+		"unknown":   "zh",
 	}
 	for tag, want := range tests {
-		if got := FromStored(tag); got != want {
+		if got := FromStored(tag).String(); got != want {
 			t.Errorf("FromStored(%q) = %s, want %s; a persisted language would render the wrong catalogue", tag, got, want)
+		}
+	}
+}
+
+func TestLanguagesIncludeEverySupportedCatalogue(t *testing.T) {
+	want := []string{"zh", "zh-Hant", "en", "ja", "ru"}
+	got := Languages()
+	if len(got) != len(want) {
+		t.Fatalf("Languages() has %d entries, want %d", len(got), len(want))
+	}
+	for index, language := range got {
+		if language.String() != want[index] {
+			t.Errorf("Languages()[%d] = %q, want %q", index, language.String(), want[index])
 		}
 	}
 }

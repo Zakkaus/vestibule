@@ -1,0 +1,76 @@
+{
+  "armpkgs": {
+    "usage": "使い方：/armpkgs <パッケージ>。例：/armpkgs htop。Gentoo、Debian、Ubuntu、Fedora、Arch Linux ARM、AUR におけるパッケージの arm64（AArch64）対応を比較します。",
+    "heading": "<b>%[1]s</b> · ディストリビューション間の arm64（AArch64）対応",
+    "row": "\n • <a href=\"%[1]s\">%[2]s</a>：%[3]s",
+    "footer": "<i>「クエリ失敗」は、その情報源を一時的に利用できないことを意味します。後でもう一度試してください。他のディストリビューションにパッケージがあっても、arm64 keyword のない ebuild が動作することは示しません。まずテストしてください。必要なら、そのパッケージだけを対象に package.accept_keywords で ** を受け入れてください。</i>",
+    "query_failed": "クエリ失敗",
+    "not_in_official_tree": "公式ツリーにありません",
+    "stable_testing": "stable %[1]s · ~%[2]s",
+    "stable_only": "stable %[1]s",
+    "testing_only": "~arm64 のみ %[1]s",
+    "no_arm64_keyword": "arm64 keyword なし",
+    "no_arm64_package": "arm64 パッケージなし",
+    "development_suite": "%[1]s（開発版）",
+    "available": "%[1]s %[2]s",
+    "not_in_fedora": "Fedora にありません",
+    "fedora_query_failed": "Fedora のクエリ失敗",
+    "fedora_rawhide": "Rawhide %[1]s",
+    "pkgbuild_parse_failed": "PKGBUILD を解析できません。AUR リンクを開いて確認してください",
+    "any_architecture": "any（アーキテクチャ非依存）",
+    "declares_aarch64": "aarch64 を宣言",
+    "arm32_only": "32 ビット ARM のみ（aarch64 なし）",
+    "x86_only": "PKGBUILD は x86 のみを宣言（aarch64 なし。ソースをビルドできるか確認してください）",
+    "not_in_aur": "AUR にありません",
+    "aur_query_failed": "AUR のクエリ失敗",
+    "not_packaged": "パッケージ化されていません",
+    "packaged": "パッケージ化済み"
+  },
+  "cve": {
+    "heading": "<a href=\"%[1]s\">%[2]s</a>",
+    "not_found": "%[1]s が見つかりません。識別子を確認するか、まだ公開されていない可能性があります。",
+    "published": "%[1]s に公開、現在の状態：%[2]s",
+    "severity": "<b>%[1]s</b>　CVSS %[2]s",
+    "unavailable": "NVD フィードを一時的に利用できません。後でもう一度試してください。",
+    "usage": "使い方：/cve CVE-2024-3094"
+  },
+  "kernel": {
+    "eol": "（サポート終了）",
+    "footer": "認証時は、この一覧のバージョンではなく、ご自身のマシンで実行中のバージョンを送信してください。",
+    "heading": "<a href=\"https://www.kernel.org/\">kernel.org</a> の現在のリリース：",
+    "row": "%[1]s <b>%[2]s</b>　%[3]s",
+    "unavailable": "kernel.org のリリース一覧を一時的に利用できません。後でもう一度試してください。"
+  },
+  "man": {
+    "heading": "<a href=\"%[1]s\">%[2]s</a>",
+    "not_found": "「%[1]s」のマニュアルページがありません。名前を確認するか、%[1]s.5 のようにセクションを指定してください。",
+    "synopsis": "<b>概要</b>\n<code>%[1]s</code>",
+    "unavailable": "マニュアルページを一時的に利用できません。後でもう一度試してください。",
+    "usage": "使い方：/man <名前>　例：/man ls、/man fstab.5"
+  },
+  "pkgs": {
+    "repology_unavailable": "Repology を一時的に利用できないため、「%[1]s」のディストリビューション間情報を取得できません。後でもう一度試してください。",
+    "repology_not_found": "Repology に「%[1]s」に一致するディストリビューション間パッケージがありません。より具体的なパッケージ名を試してください。",
+    "usage": "使い方：/pkgs <パッケージ>。例：/pkgs firefox。Gentoo、AUR、Arch、Alpine、Debian、Ubuntu、Nixpkgs、Fedora、RHEL、CentOS Stream、openSUSE のパッケージバージョンを比較します。Debian などは stable/testing チャンネルを表示し、RHEL のデータは AlmaLinux と Rocky Linux から取得します。",
+    "no_supported_distro": "Gentoo、AUR、Arch、Alpine、Debian、Ubuntu、Nixpkgs、Fedora、RHEL、CentOS Stream、EPEL、openSUSE に「%[1]s」のパッケージ化されたバージョンが見つかりません。別のディストリビューションでのみ利用できる可能性があります。",
+    "heading": "<a href=\"%[1]s\">%[2]s</a> · ディストリビューション間のバージョン",
+    "closest_match": " <i>（「%[1]s」に最も近い一致）</i>",
+    "plain_heading": "%[1]s：",
+    "release_role": " <i>（%[1]s）</i>",
+    "plain_row": "\n • <b>%[1]s</b>：%[2]s%[3]s",
+    "rich_row": "<li><b>%[1]s</b>：%[2]s%[3]s</li>",
+    "alternatives": "\nその他の一致：%[1]s",
+    "rich_alternatives": "<details><summary>その他の一致（%[1]d 件）</summary>%[2]s</details>"
+  },
+  "release": {
+    "standard_support_ended": " · 標準サポート終了"
+  },
+  "repology": {
+    "heading": "<a href=\"%[1]s\">%[2]s</a> のディストリビューション別バージョン：",
+    "more": "ほかに %[1]d 件のリポジトリがありますが、表示していません。",
+    "not_found": "repology に「%[1]s」というプロジェクトがありません。名前を確認してください。",
+    "row": "%[1]s　<b>%[2]s</b>",
+    "unavailable": "repology を一時的に利用できません。後でもう一度試してください。",
+    "usage": "使い方：/repology <パッケージ>　例：/repology bash"
+  }
+}

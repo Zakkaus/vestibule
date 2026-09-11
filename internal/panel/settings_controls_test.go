@@ -211,14 +211,7 @@ func testSettingsScreenContracts(t *testing.T) {
 		},
 		{
 			screen: "rt", wantText: expectedRuntimeScreen(panel, group, language),
-			actions: []string{
-				action(panelTestGroupA, "en", "_"),
-				action(panelTestGroupA, "df", "g"), action(panelTestGroupA, "df", "d"), action(panelTestGroupA, "df", "b"),
-				action(panelTestGroupA, "vm", "k"), action(panelTestGroupA, "vm", "q"), action(panelTestGroupA, "vm", "m"),
-				action(panelTestGroupA, "ns", "_"), action(panelTestGroupA, "bd", "_"), action(panelTestGroupA, "ld", "_"),
-				action(panelTestGroupA, "lt", "_"), action(panelTestGroupA, "lg", "z"), action(panelTestGroupA, "lg", "h"),
-				action(panelTestGroupA, "lg", "e"), action(panelTestGroupA, "go", "gh"),
-			},
+			actions: expectedRuntimeActions(panelTestGroupA),
 		},
 		{
 			screen: "ls",

@@ -32,18 +32,33 @@ test.describe("a chosen language can be handed back to the browser", () => {
   });
 });
 
-// The browser sends an ordered list, and reading only its first entry threw away
-// every fallback the reader had ranked after it.
-test.describe("the browser's second language still counts", () => {
+// The browser sends an ordered list, and the first supported Japanese language
+// now wins instead of falling through to the later Traditional Chinese entry.
+test.describe("the browser's first supported language counts", () => {
   test.use({ locale: "ja-JP" });
 
-  test("an unsupported first language falls to the next one the browser asks for", async ({
-    page
-  }) => {
+  test("a Japanese browser stays in Japanese", async ({ page }) => {
     await page.addInitScript(() => {
       Object.defineProperty(navigator, "languages", {
         configurable: true,
         get: () => ["ja-JP", "zh-TW", "en-US"]
+      });
+    });
+    await page.goto("/?state=expired");
+
+    await expect(page.locator("html")).toHaveAttribute("lang", "ja");
+  });
+});
+
+// An unsupported first language must still fall through to the next browser preference.
+test.describe("the browser's second language still counts", () => {
+  test.use({ locale: "fr-FR" });
+
+  test("an unsupported first language falls to the next supported language", async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "languages", {
+        configurable: true,
+        get: () => ["fr-FR", "zh-TW", "en-US"]
       });
     });
     await page.goto("/?state=expired");

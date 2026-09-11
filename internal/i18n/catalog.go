@@ -19,6 +19,10 @@ const (
 	LangZHHant
 	// LangEN selects English.
 	LangEN
+	// LangJA selects Japanese.
+	LangJA
+	// LangRU selects Russian.
+	LangRU
 	langCount
 )
 
@@ -31,6 +35,8 @@ var localeDefinitions = [langCount]localeDefinition{
 	{language: LangZH, tag: "zh"},
 	{language: LangZHHant, tag: "zh-Hant"},
 	{language: LangEN, tag: "en"},
+	{language: LangJA, tag: "ja"},
+	{language: LangRU, tag: "ru"},
 }
 
 // Languages returns every supported catalogue locale.
@@ -53,7 +59,12 @@ func (l Lang) String() string {
 // FromTelegram resolves a Telegram language tag to an applicant locale.
 func FromTelegram(code string) Lang {
 	code = strings.ToLower(strings.TrimSpace(code))
-	if !strings.HasPrefix(code, "zh") && !strings.HasPrefix(code, "yue") {
+	switch {
+	case languageTag(code, "ja"):
+		return LangJA
+	case languageTag(code, "ru"):
+		return LangRU
+	case !strings.HasPrefix(code, "zh") && !strings.HasPrefix(code, "yue"):
 		return LangEN
 	}
 	for _, tag := range [...]string{"hant", "tw", "hk", "mo", "yue"} {
@@ -64,12 +75,20 @@ func FromTelegram(code string) Lang {
 	return LangZH
 }
 
+func languageTag(code, language string) bool {
+	return code == language || strings.HasPrefix(code, language+"-") || strings.HasPrefix(code, language+"_")
+}
+
 // FromRequester resolves a supported requester language or returns fallback.
 func FromRequester(code string, fallback Lang) Lang {
 	code = strings.ToLower(strings.TrimSpace(code))
 	switch {
-	case code == "en" || strings.HasPrefix(code, "en-") || strings.HasPrefix(code, "en_"):
+	case languageTag(code, "en"):
 		return LangEN
+	case languageTag(code, "ja"):
+		return LangJA
+	case languageTag(code, "ru"):
+		return LangRU
 	case strings.HasPrefix(code, "zh") || strings.HasPrefix(code, "yue"):
 		return FromTelegram(code)
 	default:
@@ -84,6 +103,10 @@ func FromStored(tag string) Lang {
 		return LangEN
 	case "zh-hant":
 		return LangZHHant
+	case "ja":
+		return LangJA
+	case "ru":
+		return LangRU
 	default:
 		return LangZH
 	}

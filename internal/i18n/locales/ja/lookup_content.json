@@ -1,0 +1,80 @@
+{
+  "bug": {
+    "usage": "使い方：/bug <番号>。例：/bug 900000。",
+    "not_found": "Bug %[1]s は存在しません。番号を確認して再試行してください。",
+    "unavailable": "Bug %[1]s の詳細を一時的に取得できません。後でもう一度試すか、Bug を直接表示してください：%[2]s",
+    "heading": "<a href=\"%[1]s\">Bug %[2]s</a>\n%[3]s\n",
+    "details": {
+      "resolution_separator": " · ",
+      "status": "状態：%[1]s",
+      "severity": " · 重大度：%[1]s",
+      "product_component": "製品／コンポーネント：%[1]s"
+    },
+    "status": {
+      "unconfirmed": "未確認",
+      "confirmed": "確認済み",
+      "in_progress": "対応中",
+      "resolved": "解決済み",
+      "verified": "検証済み"
+    },
+    "resolution": {
+      "fixed": "修正済み",
+      "wont_fix": "修正しない",
+      "cant_fix": "修正できない",
+      "duplicate": "重複",
+      "invalid": "無効",
+      "works_for_me": "再現しない",
+      "obsolete": "廃止",
+      "upstream": "上流へ移管",
+      "package_removed": "パッケージ削除済み",
+      "need_info": "情報待ち",
+      "test_request": "テスト依頼",
+      "pending_upstream": "上流対応待ち"
+    },
+    "severity": {
+      "blocker": "ブロッカー",
+      "critical": "重大",
+      "major": "大",
+      "normal": "通常",
+      "minor": "小",
+      "trivial": "軽微",
+      "enhancement": "機能改善"
+    },
+    "priority": {
+      "highest": "最高",
+      "high": "高",
+      "normal": "通常",
+      "low": "低",
+      "lowest": "最低"
+    }
+  },
+  "news": {
+    "latest_heading": "Gentoo の最新ニュース：",
+    "search_heading": "Gentoo ニュースの「%[1]s」に関する検索結果：",
+    "no_matches": "一致するニュースが見つかりません。別のキーワードを試してください。",
+    "unavailable": "ニュース一覧を一時的に取得できません。後でもう一度試してください。",
+    "stale": "ニュース一覧を更新できませんでした。結果が不完全な可能性があります。後でもう一度試してください。"
+  },
+  "wiki": {
+    "usage": "使い方：/wiki <キーワード>。例：/wiki systemd boot。Gentoo Wiki と ArchWiki を検索し、英語のページを優先します。",
+    "heading": "<b>%[1]s</b> の Wiki 検索結果",
+    "sources_unavailable": "\n\n次の情報源を一時的に利用できないため、結果が不完全な可能性があります：%[1]s。後でもう一度試してください。",
+    "source_join": " と ",
+    "no_matches": "\n\n一致するページが見つかりません。別のキーワードを試してください。"
+  },
+  "bbs": {
+    "usage": "使い方：/bbs <キーワード>。例：/bbs nvidia black screen。Linux フォーラムを検索し、中国語の結果を優先します。",
+    "heading": "<b>%[1]s</b> のフォーラム検索結果",
+    "arch_cn_heading": "\n\n<b>Arch Linux CN フォーラム</b>",
+    "arch_cn_unavailable": "\n\nArch Linux CN フォーラムの結果を一時的に取得できません。後でもう一度試してください。",
+    "arch_cn_no_matches": "\n\nArch Linux CN フォーラムに一致する結果がありません。下のボタンで別のフォーラムを検索してください。",
+    "other_forums": "\n\nその他のフォーラム（ボタンで検索）：",
+    "gentoo_forum": "Gentoo フォーラム",
+    "arch_bbs": "Arch BBS",
+    "ubuntu_forum": "Ubuntu フォーラム",
+    "debian_forum": "Debian フォーラム"
+  },
+  "transport": {
+    "private_rate_limited": "クエリが多すぎます。ダイレクトメッセージは 1 分あたり %[1]d 件までです。1 分待ってから再試行してください。グループチャットには制限がありません。"
+  }
+}

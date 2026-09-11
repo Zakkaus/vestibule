@@ -7,7 +7,7 @@ import {
 export const settingSources = ["factory default", "user file", "chat override"] as const;
 export type SettingSource = (typeof settingSources)[number];
 
-export const questionLanguages = ["zh", "zh-Hant", "en"] as const;
+export const questionLanguages = ["zh", "zh-Hant", "en", "ja", "ru"] as const;
 export type QuestionLanguage = (typeof questionLanguages)[number];
 
 export const questionSettingFields = [

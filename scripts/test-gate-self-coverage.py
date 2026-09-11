@@ -250,7 +250,7 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
     def test_each_supported_locale_catalogue_is_required(self) -> None:
         tree = self.temporary_tree()
         locales = tree / "web/src/i18n/locales"
-        for name in ("en", "zh-CN", "zh-TW"):
+        for name in ("en", "zh-CN", "zh-TW", "ja", "ru"):
             path = locales / (name + ".json")
             original = path.read_text(encoding="utf-8")
 
@@ -265,6 +265,168 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
                 ("%s.json is a supported catalogue but is missing" % name,),
                 mutate,
             )
+
+    def test_five_locale_fixture_and_russian_plural_placeholders(self) -> None:
+        tree = self.temporary_tree()
+        fixture = tree / "locale-fixture"
+        locales = fixture / "locales"
+        source = fixture / "src"
+        locales.mkdir(parents=True)
+        source.mkdir(parents=True)
+        catalogues = {
+            "en": {
+                "groups": {
+                    "managedCount_one": "{{count}} group",
+                    "managedCount_other": "{{count}} groups",
+                }
+            },
+            "zh-CN": {"groups": {"managedCount_other": "{{count}} 个群组"}},
+            "zh-TW": {"groups": {"managedCount_other": "{{count}} 個群組"}},
+            "ja": {"groups": {"managedCount_other": "{{count}} グループ"}},
+            "ru": {
+                "groups": {
+                    "managedCount_one": "{{count}} группа",
+                    "managedCount_few": "{{count}} группы",
+                    "managedCount_many": "{{count}} групп",
+                    "managedCount_other": "{{count}} группы",
+                }
+            },
+        }
+        for name, catalogue in catalogues.items():
+            (locales / (name + ".json")).write_text(
+                json.dumps(catalogue, ensure_ascii=False) + "\n", encoding="utf-8"
+            )
+        (source / "probe.ts").write_text(
+            'export const rendered = t("groups.managedCount", { count: 2 });\n',
+            encoding="utf-8",
+        )
+        checker = ("locale-fixture/locales", "locale-fixture/src")
+        self.assert_gate_passes(tree, "scripts/check-locale-catalogues.py", *checker)
+
+        for category in ("few", "many"):
+            def remove_count(category=category) -> Callable[[], None]:
+                path = locales / "ru.json"
+                original = path.read_text(encoding="utf-8")
+                catalogue = json.loads(original)
+                catalogue["groups"]["managedCount_" + category] = (
+                    catalogue["groups"]["managedCount_" + category].replace("{{count}} ", "")
+                )
+                path.write_text(
+                    json.dumps(catalogue, ensure_ascii=False) + "\n", encoding="utf-8"
+                )
+                return lambda: path.write_text(original, encoding="utf-8")
+
+            self.assert_mutation_is_rejected(
+                tree,
+                "scripts/check-locale-catalogues.py",
+                "Russian %s plural lost its count placeholder" % category,
+                ("ru.json", "managedCount_" + category, "count"),
+                remove_count,
+                *checker,
+            )
+
+        def remove_russian_few() -> Callable[[], None]:
+            path = locales / "ru.json"
+            original = path.read_text(encoding="utf-8")
+            catalogue = json.loads(original)
+            del catalogue["groups"]["managedCount_few"]
+            path.write_text(
+                json.dumps(catalogue, ensure_ascii=False) + "\n", encoding="utf-8"
+            )
+            return lambda: path.write_text(original, encoding="utf-8")
+
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-locale-catalogues.py",
+            "Russian plural category disappeared",
+            ("ru.json", "managedCount_few", "ru selects"),
+            remove_russian_few,
+            *checker,
+        )
+
+        def collapse_russian_plural() -> Callable[[], None]:
+            path = locales / "ru.json"
+            original = path.read_text(encoding="utf-8")
+            catalogue = json.loads(original)
+            group = catalogue["groups"]
+            group["managedCount"] = group.pop("managedCount_other")
+            for category in ("one", "few", "many"):
+                del group["managedCount_" + category]
+            path.write_text(
+                json.dumps(catalogue, ensure_ascii=False) + "\n", encoding="utf-8"
+            )
+            return lambda: path.write_text(original, encoding="utf-8")
+
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-locale-catalogues.py",
+            "an unsuffixed Russian key replaced every cardinal form",
+            ("ru.json", "managedCount_few", "ru selects"),
+            collapse_russian_plural,
+            *checker,
+        )
+        def collapse_every_locale_plural() -> Callable[[], None]:
+            originals = {}
+            for path in sorted(locales.glob("*.json")):
+                original = path.read_text(encoding="utf-8")
+                originals[path] = original
+                catalogue = json.loads(original)
+                group = catalogue["groups"]
+                group["managedCount"] = group.pop("managedCount_other")
+                for key in tuple(group):
+                    if key.startswith("managedCount_"):
+                        del group[key]
+                path.write_text(
+                    json.dumps(catalogue, ensure_ascii=False) + "\n", encoding="utf-8"
+                )
+
+            def restore() -> None:
+                for path, original in originals.items():
+                    path.write_text(original, encoding="utf-8")
+
+            return restore
+
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-locale-catalogues.py",
+            "all five catalogues collapsed managedCount to one scalar",
+            ("ru.json", "groups.managedCount_few", "groups.managedCount_many"),
+            collapse_every_locale_plural,
+            *checker,
+        )
+
+
+        def remove_japanese_catalogue() -> Callable[[], None]:
+            path = locales / "ja.json"
+            original = path.read_text(encoding="utf-8")
+            path.unlink()
+            return lambda: path.write_text(original, encoding="utf-8")
+
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-locale-catalogues.py",
+            "Japanese catalogue disappeared",
+            ("ja.json is a supported catalogue but is missing",),
+            remove_japanese_catalogue,
+            *checker,
+        )
+
+    def test_backend_locale_requires_an_object(self) -> None:
+        tree = self.temporary_tree()
+
+        def replace_with_null() -> Callable[[], None]:
+            path = tree / "internal/i18n/locales/ru/bot.json"
+            original = path.read_text(encoding="utf-8")
+            path.write_text("null\n", encoding="utf-8")
+            return lambda: path.write_text(original, encoding="utf-8")
+
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-locale-catalogues.py",
+            "a null backend catalogue silently skipped the key contract",
+            ("ru/bot.json", "JSON object"),
+            replace_with_null,
+        )
 
     def test_gate_list_requires_each_go_invocation_in_both_directions(self) -> None:
         tree = self.temporary_tree()

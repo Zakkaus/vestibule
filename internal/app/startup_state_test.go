@@ -122,8 +122,8 @@ func TestNewServicesAllowsEmptyGroups(t *testing.T) {
 		t.Fatalf("zero-group service graph exposed groups %v", groups)
 	}
 	runtime.updates.SetupCommands(context.Background(), runtime.bot)
-	if got := commandMenus.Load(); got != 6 {
-		t.Fatalf("zero-group command menu registrations = %d, want 6 default scopes", got)
+	if got := commandMenus.Load(); got != 10 {
+		t.Fatalf("zero-group command menu registrations = %d, want 10 default scopes", got)
 	}
 
 	runtime.health.SetTelegramReady(true)

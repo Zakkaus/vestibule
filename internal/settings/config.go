@@ -81,7 +81,7 @@ func ValidMode(mode string) bool {
 // ValidLanguage reports whether lang is empty or a supported canonical language tag.
 func ValidLanguage(lang string) bool {
 	switch lang {
-	case "", "zh", "zh-Hant", "en":
+	case "", "zh", "zh-Hant", "en", "ja", "ru":
 		return true
 	default:
 		return false

@@ -126,6 +126,8 @@
       "language_zh": "Simplified Chinese",
       "language_zh_hant": "Traditional Chinese",
       "language_en": "English",
+      "language_ja": "Japanese",
+      "language_ru": "Russian",
       "channel_whitelist": "Channel allowlist",
       "trusted_groups": "Trusted groups",
       "known_chats": "Known chats",

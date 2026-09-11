@@ -757,7 +757,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 | 现路径 | 处置 | 目标位置 |
 |---|---|---|
 | `internal/i18n/panel.go` | 拆分 | Telegram 命令文案保留在 `internal/i18n`；控制台文案迁至 `web/` 语言资源 |
-| `internal/panel/settings_panel.go:489–1370` | 重写 | `internal/console/api` 与 `web/` 的其余设置、规则、频道、反垃圾和统计屏 |
+| `internal/panel/settings_panel.go:489–1366` | 重写 | `internal/console/api` 与 `web/` 的其余设置、规则、频道、反垃圾和统计屏 |
 
 #### 必须保住的行为
 
