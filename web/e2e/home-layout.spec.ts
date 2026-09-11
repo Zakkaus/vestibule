@@ -26,13 +26,22 @@ test("desktop home keeps equal section widths and aligned column starts", async 
       width: box.width
     };
   }));
+  // The grid's row gap steps down on short windows; the sections must sit exactly one gap apart.
+  const rowGap = await sections.first().evaluate((element) => {
+    const grid = element.parentElement;
+    if (!grid) {
+      throw new Error("home section has no grid parent");
+    }
+    return Number.parseFloat(getComputedStyle(grid).rowGap);
+  });
+  expect([20, 32]).toContain(rowGap);
   const widths = layout.map(({ width }) => width);
   expect(Math.max(...widths) - Math.min(...widths)).toBeLessThanOrEqual(1);
   expect(Math.abs(layout[0].top - layout[1].top)).toBeLessThanOrEqual(1);
   expect(Math.abs(layout[2].top - layout[3].top)).toBeLessThanOrEqual(1);
   expect(Math.abs(layout[0].left - layout[2].left)).toBeLessThanOrEqual(1);
   expect(Math.abs(layout[1].left - layout[3].left)).toBeLessThanOrEqual(1);
-  expect(Math.abs(layout[2].top - Math.max(layout[0].bottom, layout[1].bottom) - 16)).toBeLessThanOrEqual(1);
+  expect(Math.abs(layout[2].top - Math.max(layout[0].bottom, layout[1].bottom) - rowGap)).toBeLessThanOrEqual(1);
 });
 
 for (const width of [390, 320] as const) {

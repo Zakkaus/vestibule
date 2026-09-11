@@ -23,48 +23,51 @@ async function dateLabelOverlaps(page: Page) {
   });
 }
 
-async function clippedNavigation(page: Page) {
-  return page.locator(".console-sidebar .console-navigation").evaluate(async (scrollport) => {
-    await Promise.all(scrollport.getAnimations({ subtree: true }).map((animation) =>
-      animation.finished.catch(() => {})
-    ));
+// The side nav's own tree is the scroller; the sidebar around it never scrolls.
+const navigationScroller = ".console-sidebar .console-navigation [role='treegrid']";
+
+// How much of the first and last destination the tree's own scrollport shows.
+async function endRowsVisible(page: Page) {
+  return page.locator(navigationScroller).evaluate((scrollport) => {
+    if (!/(auto|scroll)/.test(getComputedStyle(scrollport).overflowY)) {
+      throw new Error("the navigation tree is not the scroller");
+    }
     const bounds = scrollport.getBoundingClientRect();
     const top = bounds.top + scrollport.clientTop;
     const bottom = top + scrollport.clientHeight;
-    const clipped = [];
-    for (const link of scrollport.querySelectorAll('[data-navigation-items][aria-hidden="false"] a[href]')) {
+    const links = [...scrollport.querySelectorAll("[data-navigation-item]")];
+    if (links.length !== 15) throw new Error(`expected 15 destinations, found ${links.length}`);
+    const visible = (link: Element) => {
       const box = link.getBoundingClientRect();
-      const visible = Math.min(box.bottom, bottom) - Math.max(box.top, top);
-      if (visible > 0.5 && visible < box.height - 0.5) {
-        clipped.push({ label: link.textContent, item: box.toJSON(), boundary: { top, bottom } });
-      }
-    }
-    return clipped;
+      return (Math.min(box.bottom, bottom) - Math.max(box.top, top)) / box.height;
+    };
+    return { first: visible(links[0]!), last: visible(links.at(-1)!), scrollTop: scrollport.scrollTop };
   });
 }
 
-test("sidebar never cuts a navigation item at a scroll boundary", async ({ page }) => {
+test("the navigation tree scrolls to whole rows at both ends", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await mockSpectrumTransport(page, { role: "operator" });
   await openSpectrumRoute(page, "/home");
   await expect(page.locator('[data-home-page]')).toHaveAttribute("data-home-state", "loaded");
-  await expect(page.locator('.console-sidebar a[aria-current="page"]')).toBeVisible();
-  expect(await clippedNavigation(page)).toEqual([]);
+  await expect(page.locator('.console-sidebar a[aria-current="page"]')).toBeInViewport({ ratio: 1 });
+  const atTop = await endRowsVisible(page);
+  expect(atTop.scrollTop).toBe(0);
+  expect(atTop.first).toBe(1);
+  // Fifteen rows do not fit 720px, so the last one starts below the fold.
+  expect(atTop.last).toBeLessThan(1);
 
-  const groups = page.locator('.console-sidebar [data-navigation-group]');
-  for (let index = 0; index < await groups.count(); index++) {
-    const group = groups.nth(index);
-    if (await group.getAttribute("aria-expanded") === "false") await group.click();
-    expect(await clippedNavigation(page)).toEqual([]);
-  }
-  await page.locator(".console-sidebar .console-navigation").evaluate((scrollport) => {
+  await page.locator(navigationScroller).evaluate((scrollport) => {
     scrollport.scrollTop = scrollport.scrollHeight;
   });
-  expect(await clippedNavigation(page)).toEqual([]);
+  const atBottom = await endRowsVisible(page);
+  expect(atBottom.scrollTop).toBeGreaterThan(0);
+  expect(atBottom.last).toBe(1);
+  await expect(page.locator('.console-sidebar [data-navigation-item="/preferences"]')).toBeInViewport({ ratio: 1 });
 });
 
 
-test("active navigation uses the docs-like weight and transparent square surface", async ({ page }) => {
+test("the current destination is marked by the side nav's own cues in both themes", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await mockSpectrumTransport(page, { role: "operator" });
   await openSpectrumRoute(page, "/home");
@@ -77,62 +80,60 @@ test("active navigation uses the docs-like weight and transparent square surface
       .first();
     await selectAppOption(themeTrigger, theme);
     await page.waitForFunction((expected) => document.documentElement.dataset.theme === expected, theme);
-    await page.evaluate(async () => {
-      await Promise.all(document.getAnimations().map((animation) => animation.finished.catch(() => {})));
-    });
+    // The theme change fades colours in several waves, each starting as the previous
+    // one lands; wait until no transition is running before measuring.
+    await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    await page.waitForFunction(() => document.getAnimations().length === 0);
 
-    const cues = await page.locator('.console-sidebar nav a[href]:visible').evaluateAll((links) => {
+    const cues = await page.locator('.console-sidebar [data-navigation-item]').evaluateAll((links) => {
       const measure = (link: Element) => {
         const svg = link.querySelector("svg");
         const box = link.getBoundingClientRect();
-        const row = link.closest("[data-navigation-section], [role='row']") ?? link.parentElement;
-        const surface = link.closest("[role='gridcell']")?.querySelector(":scope > div") ?? link.parentElement;
-        const rail = [...(row?.querySelectorAll<HTMLElement>("div") ?? [])].some((element) => {
+        const row = link.closest("[role='row']")!;
+        // The library's current-item indicator: a 2px bar in the text colour, left of the row.
+        const rails = [...row.querySelectorAll<HTMLElement>("div")].filter((element) => {
           const rect = element.getBoundingClientRect();
           const css = getComputedStyle(element);
           return rect.width >= 1 && rect.width <= 4 && rect.height >= 12 &&
             rect.right <= box.left && rect.bottom > box.top && rect.top < box.bottom &&
             css.backgroundColor !== "rgba(0, 0, 0, 0)";
-        });
+        }).map((element) => getComputedStyle(element).backgroundColor);
         return {
           weight: Number(getComputedStyle(link).fontWeight),
           color: getComputedStyle(link).color,
           stroke: svg ? getComputedStyle(svg).strokeWidth : null,
-          borderRadius: getComputedStyle(link).borderRadius,
-          background: surface ? getComputedStyle(surface).backgroundColor : null,
-          rail
+          rails
         };
       };
       const active = links.find((link) => link.getAttribute("aria-current") === "page")!;
       const idle = links.find((link) => !link.hasAttribute("aria-current"))!;
       return { active: measure(active), idle: measure(idle) };
     });
-    expect(cues.active.weight).toBe(700);
+    expect(cues.active.weight).toBe(500);
     expect(cues.idle.weight).toBe(400);
     expect(cues.active.color).not.toBe(cues.idle.color);
     expect(cues.active.stroke).toBe(cues.idle.stroke);
-    expect(cues.active.rail).toBe(false);
-    expect(cues.idle.rail).toBe(false);
-    expect(cues.active.borderRadius).toBe("0px");
-    expect(cues.active.background).toBe("rgba(0, 0, 0, 0)");
+    expect(cues.active.rails).toEqual([cues.active.color]);
+    expect(cues.idle.rails).toEqual([]);
+    // Text, not just the bar, follows the theme.
+    expect(cues.idle.color).toBe(theme === "light" ? "rgb(80, 80, 80)" : "rgb(175, 175, 175)");
   }
 });
 
-test("content navigation opens the destination group and preserves native keyboard entry", async ({ page }) => {
+test("content navigation moves the current marker and the keyboard entry point to the destination", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await mockSpectrumTransport(page, { role: "operator" });
   await openSpectrumRoute(page, "/home");
   await page.locator('[data-home-metric="challenges"]').click();
   await expect(page).toHaveURL(/\/stats\?/);
-  const group = page.locator('.console-sidebar [data-navigation-group="observe"]');
-  await expect(group).toHaveAttribute("aria-expanded", "true");
-  await group.focus();
-  await expect(group).toBeFocused();
-  const destination = page.locator('.console-sidebar nav a[href^="/stats"]');
-  await expect(destination).toBeVisible();
+  const destination = page.locator('.console-sidebar [data-navigation-item="/stats"]');
+  await expect(destination).toHaveAttribute("aria-current", "page");
+  await expect(page.locator('.console-sidebar [aria-current="page"]')).toHaveCount(1);
+  await expect(destination).toBeInViewport({ ratio: 1 });
+  // Tab from the brand link enters the tree at the current destination, not at the first row.
+  await page.locator(".console-brand a").focus();
   await page.keyboard.press("Tab");
   await expect(destination).toBeFocused();
-  await expect(destination).toHaveAttribute("aria-current", "page");
 });
 
 for (const locale of ["zh-CN", "zh-TW", "en"] as const) {
