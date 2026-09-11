@@ -10,8 +10,12 @@ body {
   line-height: 1.6;
 }
 
+/* Inside the shell a card is told apart by its fill, like every row on the home
+   page; the vendored border and shadow would draw a second edge around it. */
 [data-app-shell] [data-slot="card"] {
   padding: var(--sp-4) var(--sp-5);
+  border: 0;
+  box-shadow: none;
 }
 
 /* Content rhythm moves from page boundaries, to card stacks, to card sections. */
