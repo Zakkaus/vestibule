@@ -1,69 +1,10 @@
-import { expect, test, type Page, type Route } from "@playwright/test";
-
-const actorID = "9000000301";
-const selectedGroupID = "-1009000000302";
-
-type ConsoleRole = "manager" | "operator";
-type DiagnosticsHandler = (route: Route) => Promise<void>;
-
-async function fulfillJSON(route: Route, body: unknown, status = 200): Promise<void> {
-  await route.fulfill({
-    status,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-}
-
-async function mockDiagnosticsTransport(
-  page: Page,
-  role: ConsoleRole,
-  diagnostics: DiagnosticsHandler
-): Promise<string[]> {
-  const statusMethods: string[] = [];
-  await page.route("**/api/**", async (route) => {
-    const request = route.request();
-    const path = decodeURIComponent(new URL(request.url()).pathname);
-
-    if (path === "/api/session" && request.method() === "GET") {
-      await fulfillJSON(route, {
-        subject: { telegram_id: actorID, role },
-        expires_at: "2026-09-02T12:00:00Z",
-        csrf_token: "diagnostics-csrf"
-      });
-      return;
-    }
-    if (path === "/api/chats" && request.method() === "GET") {
-      await fulfillJSON(route, { chats: [{ id: selectedGroupID, title: "Gentoo-zh Community" }] });
-      return;
-    }
-    if (path === "/api/status") {
-      statusMethods.push(request.method());
-      await diagnostics(route);
-      return;
-    }
-    throw new Error(`Unexpected API request: ${request.method()} ${path}`);
-  });
-  return statusMethods;
-}
-
-const unmeasuredDiagnostics = {
-  health: {
-    live: true,
-    ready: false,
-    config_ready: true,
-    telegram_ready: false
-  },
-  bot_api: {
-    last_heartbeat_at: null,
-    latency_ms: 0
-  },
-  persistence: {
-    configured: true,
-    durable: true,
-    writable: true,
-    last_error: null
-  }
-} as const;
+import { expect, test } from "@playwright/test";
+import {
+  fulfillJSON,
+  mockDiagnosticsTransport,
+  selectedGroupID,
+  unmeasuredDiagnostics
+} from "./diagnostics-fixtures";
 
 type StreakOverrides = Readonly<{
   first_problem_at?: string | null;
@@ -162,7 +103,6 @@ test("diagnostics preserves null probes separately from a measured zero latency"
   await page.goto(`/diagnostics?group=${selectedGroupID}`);
   const screen = page.locator("[data-diagnostics-page]");
   await expect(screen).toHaveAttribute("data-diagnostics-state", "loaded");
-  await expect(screen.locator("input, textarea, select, button")).toHaveCount(0);
   expect(statusMethods).toEqual(["GET"]);
 
   await expect(screen.locator('[data-diagnostics-value="live"]')).toContainText("是");
@@ -265,12 +205,10 @@ test("diagnostics retries an unavailable read through the component button", asy
   const screen = page.locator("[data-diagnostics-page]");
   await expect(screen).toHaveAttribute("data-diagnostics-state", "unavailable");
   const retry = screen.getByRole("button", { name: "重试" });
-  await expect(retry).toHaveAttribute("data-slot", "button");
 
   await retry.click();
 
   await expect(screen).toHaveAttribute("data-diagnostics-state", "loaded");
-  await expect(screen.locator("input, textarea, select, button")).toHaveCount(0);
   expect(statusMethods).toEqual(["GET", "GET"]);
 });
 
@@ -309,7 +247,6 @@ test("diagnostics reads a single delivery failure and a sustained outage differe
   await page.goto("/diagnostics");
   const screen = page.locator("[data-diagnostics-page]");
   await expect(screen).toHaveAttribute("data-diagnostics-state", "loaded");
-  await expect(screen.locator("input, textarea, select, button")).toHaveCount(0);
   expect(statusMethods).toEqual(["GET"]);
 
   const delivery = screen.locator('[data-diagnostics-rollback-item="challenge-delivery"]');
@@ -449,6 +386,7 @@ test("a long decline reason scrolls inside its own list at 320px", async ({ page
     );
   });
 
+
   await page.setViewportSize({ width: 320, height: 900 });
   await page.goto("/diagnostics");
   const screen = page.locator("[data-diagnostics-page]");
@@ -467,3 +405,4 @@ test("a long decline reason scrolls inside its own list at 320px", async ({ page
   }));
   expect(column.scrollWidth).toBeLessThanOrEqual(column.clientWidth + 1);
 });
+

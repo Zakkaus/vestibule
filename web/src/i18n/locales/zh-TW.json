@@ -874,6 +874,35 @@
     "navigation": "診斷",
     "title": "診斷",
     "description": "檢視此執行個體的執行狀態、Bot API 探測與設定持久化狀態。",
+    "daily": {
+      "title": "每日狀態報告",
+      "description": "每天透過私訊將狀態摘要傳送給執行個體擁有者。",
+      "loading": "正在讀取每日報告設定…",
+      "enabled": {
+        "label": "每日狀態報告",
+        "description": "依 {{timezone}} 時區於每天 {{time}} 傳送。失敗後當天不重試，隔天再嘗試。"
+      },
+      "status": {
+        "saving": "正在儲存…",
+        "enabled": "已啟用",
+        "disabled": "已停用"
+      },
+      "feedback": {
+        "saved": "每日狀態報告設定已儲存。",
+        "error": "暫時無法儲存每日狀態報告設定。請重試。"
+      },
+      "accessDenied": {
+        "title": "每日狀態報告設定僅限維運人員",
+        "description": "只有執行個體維運人員可以檢視或修改每日狀態報告。"
+      },
+      "unavailable": {
+        "title": "無法讀取每日狀態報告設定",
+        "description": "每日狀態報告設定暫時無法使用。請重試。"
+      },
+      "actions": {
+        "retry": "重試"
+      }
+    },
     "loading": {
       "title": "正在載入執行個體狀態",
       "description": "正在讀取此執行個體已經上報的狀態…"
@@ -885,11 +914,6 @@
     "unavailable": {
       "title": "無法讀取執行個體狀態",
       "retry": "重試"
-    },
-    "readOnly": {
-      "title": "唯讀狀態",
-      "badge": "唯讀",
-      "description": "此畫面不會修改執行期狀態。端點只會回傳執行個體已上報的狀態。"
     },
     "sections": {
       "health": {
@@ -972,6 +996,9 @@
     "errors": {
       "authenticationExpired": "工作階段已過期。請重新從 Telegram 進入控制台。",
       "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
+      "accessDenied": "只有執行個體維運人員可以存取每日狀態報告設定。",
+      "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
+      "invalidRequest": "每日狀態報告設定無效。請重試。",
       "unavailable": "診斷服務暫時無法使用。請重試。",
       "loadUnavailable": "暫時無法讀取執行個體狀態。請重試。",
       "network": "連線已中斷。請重新讀取執行個體狀態。",

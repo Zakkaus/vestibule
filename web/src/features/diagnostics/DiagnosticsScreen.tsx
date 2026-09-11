@@ -12,6 +12,7 @@ import { Icon } from "../../icons";
 import type { IconName } from "../../icons";
 import type { ApiRequestError } from "../../lib/api";
 import { loadDiagnostics, type Diagnostics } from "./api";
+import { DailyStatusSection } from "./DailyStatusSection";
 import { DetailRow, DiagnosticsCard } from "./DiagnosticsCard";
 import type { DiagnosticsFormatters } from "./model";
 import { RollbackSection } from "./RollbackSection";
@@ -81,18 +82,6 @@ function BooleanStatus({ value }: Readonly<{ value: boolean }>) {
   return <StatusBadge tone={value ? "ok" : "error"}>{t(value ? "diagnostics.values.yes" : "diagnostics.values.no")}</StatusBadge>;
 }
 
-function ReadOnlyNotice() {
-  const { t } = useTranslation();
-  return (
-    <aside data-slot="card" data-diagnostics-readonly aria-labelledby="diagnostics-readonly-title">
-      <header data-diagnostics-readonly-heading>
-        <h2 id="diagnostics-readonly-title">{t("diagnostics.readOnly.title")}</h2>
-        <StatusBadge tone="neutral">{t("diagnostics.readOnly.badge")}</StatusBadge>
-      </header>
-      <p>{t("diagnostics.readOnly.description")}</p>
-    </aside>
-  );
-}
 
 function HealthSection({ health }: Readonly<{ health: Diagnostics["health"] }>) {
   return (
@@ -224,7 +213,7 @@ function DiagnosticsContent({
 }: Readonly<{ diagnostics: Diagnostics; formatters: DiagnosticsFormatters }>) {
   return (
     <div data-diagnostics-content>
-      <ReadOnlyNotice />
+      <DailyStatusSection />
       <HealthSection health={diagnostics.health} />
       <BotAPISection botAPI={diagnostics.botAPI} formatters={formatters} />
       <PersistenceSection persistence={diagnostics.persistence} />
@@ -233,7 +222,6 @@ function DiagnosticsContent({
     </div>
   );
 }
-
 function useDiagnosticsScreenState(): Readonly<{
   screenState: DiagnosticsScreenState;
   reload: () => void;

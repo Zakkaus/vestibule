@@ -783,7 +783,7 @@ internal/
 │   └── assets/             前端产物 go:embed
 ├── settings/               配置，configupgrade
 ├── database/               dbutil 装配与迁移
-└── status/                 健康、替换状态与按需发布查询
+└── status/                 健康、每日状态摘要、替换状态与按需发布查询
 
 web/                        前端源码，Vite + React
 migrations/                 编号 SQL
@@ -1399,10 +1399,11 @@ callback_query       按钮作答</div>
       inbox 与 outbox 始终以数据库为准。</p>
 
     <h3>后台任务</h3>
-    <p>六个长期任务都在 <code>app.New</code> 构造期固定注册，不提供运行时插件 registry。
-      发送器与更新入口是具有特殊启停顺序的显式组件；其余四项放进固定的周期任务 slice，
+    <p>七个长期任务在 <code>app</code> 构造期固定注册，不提供运行时插件 registry。
+      发送器与更新入口是具有特殊启停顺序的显式组件；四项固定周期任务
       由同一个 managed-task 适配器提供独立 context、<code>Done</code>、
-      <code>Err</code> 与有超时的停止方法。</p>
+      <code>Err</code> 与有超时的停止方法。每日状态摘要由更新拉取租约的
+      context 管理，通过独立完成通道等待退出，不使用该适配器。</p>
     <div class="tw"><table class="spec-table" style="min-inline-size:64rem;">
       <thead><tr><th>任务</th><th>注册位置</th><th>启动</th><th>关闭</th><th>失败处理</th></tr></thead>
       <tbody>
@@ -1424,11 +1425,15 @@ callback_query       按钮作答</div>
         <tr><td>订阅抓取</td><td>固定周期任务 slice</td>
             <td>与其他周期任务一同启动</td><td>按 slice 逆序停止</td>
             <td>单个 feed 失败只影响该 feed；任务循环意外返回属于进程级错误</td></tr>
+        <tr><td>每日状态摘要</td><td><code>app</code> 的已认领运行期</td>
+            <td>取得更新拉取租约后启动，每分钟检查当地发送时间</td><td>取消 context 后等待在途单次请求退出</td>
+            <td>先原子记录当天尝试，再私聊实例拥有者；observe-only 模式只记录持久观察，不真实投递。
+              发送失败只记录一次，次日再尝试</td></tr>
       </tbody>
     </table></div>
-    <p>每个周期任务同步完成一次迭代后才重置 timer，同一任务不重叠；
-      一次执行过慢后，不并发执行积压周期。新增长期任务时，必须同时补入固定注册表、
-      启动与退出表、就绪和指标定义，以及生命周期测试。</p>
+    <p>固定周期任务同步完成一次迭代后才重置 timer；每日状态摘要同步消费每分钟 ticker。
+      同一任务不重叠，一次执行过慢后不并发执行积压周期。新增长期任务时，必须同时补入
+      固定注册表、启动与退出表、就绪和指标定义，以及生命周期测试。</p>
     <p><b>恢复只放在单项处理边界。</b>记录定位字段和 stack 后，把该项写成可重试或终态，
       再继续下一项。顶层任务循环、发送调度器与 supervisor 不恢复；这些位置的 panic
       或意外返回可能已经破坏锁、事务、堆或在途标记，必须让进程退出。</p>
@@ -1487,8 +1492,9 @@ Sender {
     </table></div>
     <p>收到 429 后不占用 worker 等待。当前行的 <code>available_at</code> 与对应 bucket 的
       <code>blocked_until</code> 一起持久化为 <code>retry_after</code> 加 0 至 250 毫秒抖动，
-      worker 随即释放。所有 Telegram 消息发送必须经过 <code>Sender</code>；权限查询等非消息 API
-      可有独立并发上限，但仍必须设置请求超时并处理 429。</p>
+      worker 随即释放。需要重试的 Telegram 消息发送经过 <code>Sender</code>；权限查询等非消息 API
+      可有独立并发上限，但仍必须设置请求超时并处理 429。每日状态摘要是明确不重试的例外：
+      每个当地日期只领取一次机会，使用有超时的单次纯文本请求，不进入 outbox，也不回退重发。</p>
     <p style="font-size:0.875rem;">
       Telegram 限额与退避字段见
       <a href="https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this">Bot FAQ</a>
@@ -1743,6 +1749,13 @@ Sender {
     enabled    <span class="k-val">BOOLEAN</span> <span class="k-key">NOT NULL DEFAULT</span> <span class="k-val">TRUE</span>,
     definition <span class="k-val">TEXT</span>   <span class="k-key">NOT NULL</span>    <span class="k-cm">-- 题面、条件、回复内容，三语</span>
 );
+
+<span class="k-key">CREATE TABLE</span> daily_status (
+    singleton         <span class="k-val">INTEGER</span> <span class="k-key">PRIMARY KEY CHECK</span> (singleton = 1),
+    enabled           <span class="k-val">BOOLEAN</span> <span class="k-key">NOT NULL DEFAULT</span> <span class="k-val">TRUE</span>,
+    last_attempt_date <span class="k-val">TEXT</span>    <span class="k-key">NOT NULL DEFAULT</span> ''
+);
+<span class="k-key">INSERT INTO</span> daily_status (singleton) <span class="k-key">VALUES</span> (1);
 
 <span class="k-cm">-- 以下四张表承载上一代那四份 JSON 状态。它们不在本节最初的设计里，</span>
 <span class="k-cm">-- 是阶段三第一片换介质时按现有状态的实际形状定下来的。</span>
@@ -2265,6 +2278,7 @@ migrations/01-settings.sql      settings_revision</div>
           <tr><td class="mono">POST /api/chats/{id}/packages</td><td>装一个包。先返回它将改动哪些项，确认后才落库</td></tr>
           <tr><td class="mono">GET · PATCH /api/me/preferences</td><td>看的人自己的偏好，不属于任何群</td></tr>
           <tr><td class="mono">GET /api/status</td><td>诊断屏与版本屏。健康、当前版本、设置持久化、Bot API 探测、回退条件读数和宿主替换状态。<b>只有运维可见</b></td></tr>
+          <tr><td class="mono">GET · PATCH /api/status/daily</td><td>诊断屏的每日状态推送开关。仅运维可读写；PATCH 需要 CSRF，成功保存后返回 enabled、固定 time 与实际 timezone</td></tr>
           <tr><td class="mono">GET /api/status/release</td><td>运维明确操作后，按需读取固定 GitHub 仓库的最新正式发布、变更说明与目标结构清单；失败不影响本地状态。同上，只有运维</td></tr>
           <tr><td class="mono">GET /api/process/settings</td><td>实例级设置的只读视图，每项带来源（出厂默认 / 用户文件 / 群覆盖）。<b>只有运维可见</b>，没有写入路由</td></tr>
           <tr><td class="mono">POST /api/status/upgrade</td><td>发起升级，只写目标版本，执行在宿主侧。同上，只有运维</td></tr>
@@ -2274,10 +2288,25 @@ migrations/01-settings.sql      settings_revision</div>
             <b>认领成功后这条路由不再注册</b>，之后任何人访问都是 404，不是隐藏</td></tr>
       </tbody>
     </table></div>
-
     <p><b>这张表是穷举的。</b>界面上多一个屏，这里就要多一行；
       没有对应行的屏是还没设计，不是省略。两份文档的一致性照这条核对：
       设计文档里的每一个屏，都要能在这里找到它取数与写入的那一行。</p>
+
+    <h3>每日状态摘要</h3>
+    <p>默认开启，每天按 <code>stats_timezone</code> 的当地时间 09:00 私聊实例拥有者。
+      时区复用统计服务的实际解析结果；空值或无效值沿用 UTC+8。每分钟检查一次，
+      启动或开启时已过发送时间，只处理当天，不补历史日报；未绑定拥有者时不消耗当天机会。</p>
+    <p>摘要只包含实例在线、就绪、心跳、最近挑战投递失败时间和待处理总数，不包含群或申请人明细。
+      开关属于诊断屏，不属于个人外观偏好。开关和最近尝试日期保存在数据库的单行记录中，
+      条件更新同时检查开启状态与日期严格递增，只有领取成功的调用才发消息。
+      因为先记录尝试再发送，所以进程在两者之间退出可能漏报一天，但重启不能再次领取同一天。</p>
+    <p>最近挑战投递失败时间来自当前进程的诊断观察，成功投递不会清除该时间；
+      进程重启后从未记录状态开始，不把它解释为完整历史。</p>
+    <p>关闭成功后不再产生新的领取；已经领取的请求可以完成。
+      网络错误、429 和 5xx 均不重试，下一当地日期再尝试。
+      时钟或时区回退时不重新领取旧日期；时区向前进入新日期且已过 09:00 时允许领取新日期。
+      摘要失败不影响实例就绪，也不计入挑战投递失败指标。</p>
+
 
     <h3>错误</h3>
     <p>三层：Go 侧 sentinel 与 <code>%w</code> 包装；稳定的 API 错误码

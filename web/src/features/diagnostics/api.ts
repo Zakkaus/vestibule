@@ -73,6 +73,12 @@ export type DiagnosticsRollback = Readonly<{
   databaseWrites: DiagnosticsDatabaseWrites;
 }>;
 
+export type DiagnosticsDaily = Readonly<{
+  enabled: boolean;
+  time: "09:00";
+  timezone: string;
+}>;
+
 export type Diagnostics = Readonly<{
   health: DiagnosticsHealth;
   botAPI: DiagnosticsBotAPI;
@@ -82,6 +88,18 @@ export type Diagnostics = Readonly<{
 
 function booleanFromPayload(value: unknown): boolean | undefined {
   return typeof value === "boolean" ? value : undefined;
+}
+function dailyFromPayload(payload: unknown): DiagnosticsDaily | undefined {
+  const daily = objectFromPayload(payload);
+  if (!daily) {
+    return undefined;
+  }
+
+  const enabled = booleanFromPayload(daily.enabled);
+  const timezone = nonEmptyStringFromPayload(daily.timezone);
+  return enabled === undefined || daily.time !== "09:00" || timezone === undefined
+    ? undefined
+    : { enabled, time: "09:00", timezone };
 }
 
 function nullableTimestampFromPayload(value: unknown): string | null | undefined {
@@ -314,4 +332,46 @@ function diagnosticsFromPayload(payload: unknown): Diagnostics | undefined {
 
 export function loadDiagnostics(transport: ApiTransport): Promise<ApiResult<Diagnostics>> {
   return transport.request("/api/status", { parse: diagnosticsFromPayload });
+}
+
+// A remounted screen must not read ahead of the previous mount's unfinished write.
+let pendingDailySave: Promise<ApiResult<DiagnosticsDaily>> | undefined;
+
+export function loadDailyStatus(transport: ApiTransport): Promise<ApiResult<DiagnosticsDaily>> {
+  const pending = pendingDailySave;
+  return pending === undefined
+    ? transport.request("/api/status/daily", { parse: dailyFromPayload })
+    : pending.then(
+        () => transport.request("/api/status/daily", { parse: dailyFromPayload }),
+        () => transport.request("/api/status/daily", { parse: dailyFromPayload })
+      );
+}
+
+export function saveDailyStatus(
+  transport: ApiTransport,
+  enabled: boolean
+): Promise<ApiResult<DiagnosticsDaily>> {
+  if (pendingDailySave !== undefined) {
+    return pendingDailySave;
+  }
+
+  const request = transport.request("/api/status/daily", {
+    method: "PATCH",
+    body: { enabled },
+    parse: dailyFromPayload
+  });
+  pendingDailySave = request;
+  void request.then(
+    () => {
+      if (pendingDailySave === request) {
+        pendingDailySave = undefined;
+      }
+    },
+    () => {
+      if (pendingDailySave === request) {
+        pendingDailySave = undefined;
+      }
+    }
+  );
+  return request;
 }

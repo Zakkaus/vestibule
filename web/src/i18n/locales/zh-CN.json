@@ -874,6 +874,35 @@
     "navigation": "诊断",
     "title": "诊断",
     "description": "查看本实例的运行状态、Bot API 探测和设置持久化状态。",
+    "daily": {
+      "title": "每日状态推送",
+      "description": "每天向实例拥有者私聊发送一条状态摘要。",
+      "loading": "正在读取日报设置…",
+      "enabled": {
+        "label": "每日状态推送",
+        "description": "按 {{timezone}} 时区每天 {{time}} 发送。失败后当天不重试，次日再尝试。"
+      },
+      "status": {
+        "saving": "正在保存…",
+        "enabled": "已开启",
+        "disabled": "已关闭"
+      },
+      "feedback": {
+        "saved": "推送设置已保存。",
+        "error": "无法保存推送设置。请重试。"
+      },
+      "accessDenied": {
+        "title": "推送设置仅限运维人员",
+        "description": "只有实例运维人员可以查看或修改推送设置。"
+      },
+      "unavailable": {
+        "title": "无法读取推送设置",
+        "description": "推送设置暂时不可用。请重试。"
+      },
+      "actions": {
+        "retry": "重试"
+      }
+    },
     "loading": {
       "title": "正在载入实例状态",
       "description": "正在读取此实例已经上报的状态…"
@@ -885,11 +914,6 @@
     "unavailable": {
       "title": "无法读取实例状态",
       "retry": "重试"
-    },
-    "readOnly": {
-      "title": "只读状态",
-      "badge": "只读",
-      "description": "此页面不会修改运行时状态。接口仅返回实例已上报的状态。"
     },
     "sections": {
       "health": {
@@ -972,6 +996,9 @@
     "errors": {
       "authenticationExpired": "会话已过期。请重新从 Telegram 进入控制台。",
       "authenticationInvalid": "无法验证此控制台会话。请从 Telegram 重新打开控制台。",
+      "accessDenied": "只有实例运维人员可以访问每日状态设置。",
+      "csrfInvalid": "此页的安全令牌已过期。刷新页面后再重试。",
+      "invalidRequest": "每日状态设置无效。请重试。",
       "unavailable": "诊断服务暂时不可用。请重试。",
       "loadUnavailable": "暂时无法读取实例状态。请重试。",
       "network": "连接已中断。请重新读取实例状态。",

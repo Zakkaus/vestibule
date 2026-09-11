@@ -42,6 +42,14 @@ LIVE_ROUTES = {
     "POST /api/chats/{id}/audit/{aid}/undo": ("server.go", "auditRoute", ("case http.MethodPost:", 'rest[1] == "undo"')),
     "GET /api/chats/{id}/stats": ("stats.go", "statsRoute", ("request.Method == http.MethodGet",)),
     "GET /api/status": ("server.go", "statusRoute", ('request.URL.Path == "/api/status"',)),
+    "GET · PATCH /api/status/daily": (
+        "server.go",
+        "statusRoute",
+        (
+            "(request.Method == http.MethodGet || request.Method == http.MethodPatch) &&\n"
+            '\t\trequest.URL.Path == "/api/status/daily"',
+        ),
+    ),
     "GET /api/status/release": ("server.go", "statusRoute", ('request.URL.Path == "/api/status/release"',)),
     "GET /api/process/settings": ("server.go", "apiRoute", ('request.URL.Path == "/api/process/settings"',)),
     "POST /api/status/upgrade": ("server.go", "statusRoute", ('request.URL.Path == "/api/status/upgrade"', "http.MethodPost")),

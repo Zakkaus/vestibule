@@ -120,6 +120,11 @@ const statusPayload = {
   persistence: { configured: true, durable: true, writable: true, last_error: null }
 } as const;
 
+const dailyStatusPayload = {
+  time: "09:00",
+  timezone: "UTC"
+} as const;
+
 async function fulfillJSON(route: Route, body: unknown, status = 200): Promise<void> {
   await route.fulfill({
     status,
@@ -140,6 +145,7 @@ type MockOptions = Readonly<{
 export async function mockSpectrumTransport(page: Page, options: MockOptions = {}): Promise<void> {
   const role = options.role ?? "operator";
   const trend = options.trend ?? "full";
+  let dailyEnabled = true;
 
   await page.route("**/api/**", async (route) => {
     const request = route.request();
@@ -181,6 +187,22 @@ export async function mockSpectrumTransport(page: Page, options: MockOptions = {
     }
     if (path === "/api/status" && request.method() === "GET") {
       await fulfillJSON(route, statusPayload);
+      return;
+    }
+    if (path === "/api/status/daily" && (request.method() === "GET" || request.method() === "PATCH")) {
+      if (request.method() === "PATCH") {
+        const payload = request.postDataJSON();
+        if (
+          typeof payload === "object" &&
+          payload !== null &&
+          !Array.isArray(payload) &&
+          "enabled" in payload &&
+          typeof payload.enabled === "boolean"
+        ) {
+          dailyEnabled = payload.enabled;
+        }
+      }
+      await fulfillJSON(route, { enabled: dailyEnabled, ...dailyStatusPayload });
       return;
     }
     if (path === "/api/status/release" && request.method() === "GET") {

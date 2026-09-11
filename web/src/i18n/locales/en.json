@@ -881,6 +881,35 @@
     "navigation": "Diagnostics",
     "title": "Diagnostics",
     "description": "View this instance's runtime status, Bot API probes, and settings persistence.",
+    "daily": {
+      "title": "Daily status report",
+      "description": "Send the instance owner one private status summary each day.",
+      "loading": "Reading daily report settings…",
+      "enabled": {
+        "label": "Daily report",
+        "description": "One report is attempted at {{time}} each local day in {{timezone}}. A failed attempt is not retried until the next local day."
+      },
+      "status": {
+        "saving": "Saving…",
+        "enabled": "Enabled",
+        "disabled": "Disabled"
+      },
+      "feedback": {
+        "saved": "Daily report setting saved.",
+        "error": "The daily report setting could not be saved. Try again."
+      },
+      "accessDenied": {
+        "title": "Daily report settings are operator-only",
+        "description": "Only an instance operator can view or change the daily status report."
+      },
+      "unavailable": {
+        "title": "Daily report settings cannot be loaded",
+        "description": "Daily report settings are temporarily unavailable. Try again."
+      },
+      "actions": {
+        "retry": "Retry"
+      }
+    },
     "loading": {
       "title": "Loading instance status",
       "description": "Reading this instance's reported status…"
@@ -892,11 +921,6 @@
     "unavailable": {
       "title": "Instance status cannot be loaded",
       "retry": "Retry"
-    },
-    "readOnly": {
-      "title": "Read-only status",
-      "badge": "Read only",
-      "description": "This screen does not change runtime state. The endpoint returns only status already reported by the instance."
     },
     "sections": {
       "health": {
@@ -979,6 +1003,9 @@
     "errors": {
       "authenticationExpired": "The session has expired. Open the console again from Telegram.",
       "authenticationInvalid": "This console session cannot be verified. Open the console again from Telegram.",
+      "accessDenied": "Only an instance operator can access daily report settings.",
+      "csrfInvalid": "The security token for this page has expired. Refresh the page and try again.",
+      "invalidRequest": "The daily report setting was not valid. Try again.",
       "unavailable": "Diagnostics are temporarily unavailable. Try again.",
       "loadUnavailable": "Instance status cannot be loaded right now. Try again.",
       "network": "The connection was interrupted. Reload instance status.",
