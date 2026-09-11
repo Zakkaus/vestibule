@@ -279,7 +279,7 @@ func validateConfigFallbackQuestions(c *Config) error {
 
 func validateConfigLanguage(c *Config) error {
 	if !ValidLanguage(c.Lang) {
-		return fmt.Errorf("lang %q is not one of %q, %q, %q", c.Lang, "zh", "zh-Hant", "en")
+		return fmt.Errorf("lang %q is not one of %q, %q, %q, %q, %q", c.Lang, "zh", "zh-Hant", "en", "ja", "ru")
 	}
 	return nil
 }
@@ -350,7 +350,7 @@ func validateGroupDeliveryMode(_ *Config, group *GroupConfig) error {
 
 func validateGroupLanguage(_ *Config, group *GroupConfig) error {
 	if !ValidLanguage(group.Lang) {
-		return fmt.Errorf("group %d: lang %q is not one of %q, %q, %q", group.ID, group.Lang, "zh", "zh-Hant", "en")
+		return fmt.Errorf("group %d: lang %q is not one of %q, %q, %q, %q, %q", group.ID, group.Lang, "zh", "zh-Hant", "en", "ja", "ru")
 	}
 	return nil
 }
@@ -507,7 +507,7 @@ func normalizeConfigFeeds(c *Config) error {
 			return err
 		}
 		if !ValidLanguage(c.Feeds[i].Lang) {
-			return fmt.Errorf("feed %d: lang %q is not one of %q, %q, %q", i, c.Feeds[i].Lang, "zh", "zh-Hant", "en")
+			return fmt.Errorf("feed %d: lang %q is not one of %q, %q, %q, %q, %q", i, c.Feeds[i].Lang, "zh", "zh-Hant", "en", "ja", "ru")
 		}
 	}
 	seenFeed := map[int64]bool{}

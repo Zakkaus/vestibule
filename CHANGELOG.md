@@ -21,6 +21,9 @@ All notable changes to this project are documented here. The format is based on
 - The instance deployer can set thirteen group-setting caps in the console and inspect
   existing violations. Every group-setting write checks its complete effective values;
   lowering a cap neither truncates existing settings nor prevents startup.
+- Japanese and Russian console and bot locales, including language selection and
+  Russian cardinal plural forms.
+- A scheduled render gate covering every console locale, route, width, and theme.
 
 ### Fixed
 - Owner private help lists active owner commands. The owner menu and help omit
@@ -32,7 +35,8 @@ All notable changes to this project are documented here. The format is based on
 - Telegram command-menu summaries distinguish confirmed and unconfirmed registrations.
 - The group list exposes its current item to assistive technology when selecting,
   switching, or clearing the current group.
-- Locale validation requires all three supported console catalogues.
+- Locale validation requires all five supported console catalogues and checks
+  placeholders in language-specific plural forms.
 - The documented gate contract checks executed Go commands in both directions,
   including race detection, build tags, and pinned analysis-tool versions.
 - Frontend CSS variable checks retain theme-scope validation while accepting

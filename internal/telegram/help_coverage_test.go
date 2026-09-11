@@ -11,9 +11,8 @@ import (
 )
 
 var (
-	helpLocales    = []i18n.Lang{i18n.LangEN, i18n.LangZH, i18n.LangZHHant}
-	helpCommandRe  = regexp.MustCompile(`/([a-z]+)`)
-	helpLocaleName = map[i18n.Lang]string{i18n.LangEN: "en", i18n.LangZH: "zh", i18n.LangZHHant: "zh-Hant"}
+	helpLocales   = i18n.Languages()
+	helpCommandRe = regexp.MustCompile(`/([a-z]+)`)
 )
 
 func namesOf(cmds []telego.BotCommand) map[string]bool {
@@ -33,7 +32,7 @@ func TestMemberHelpListsEveryMenuCommand(t *testing.T) {
 		help := modules.MemberHelp(l)
 		for _, c := range modules.MemberMenu(l) {
 			if !regexp.MustCompile(`/` + c.Command + `\b`).MatchString(help) {
-				t.Errorf("%s: /%s is in the member menu but not in the /help text", helpLocaleName[l], c.Command)
+				t.Errorf("%s: /%s is in the member menu but not in the /help text", l.String(), c.Command)
 			}
 		}
 	}
@@ -45,7 +44,7 @@ func TestMemberHelpMentionsNoUnknownCommand(t *testing.T) {
 		known := namesOf(modules.MemberMenu(l))
 		for _, m := range helpCommandRe.FindAllStringSubmatch(modules.MemberHelp(l), -1) {
 			if !known[m[1]] {
-				t.Errorf("%s: /help lists /%s, which the bot does not register", helpLocaleName[l], m[1])
+				t.Errorf("%s: /help lists /%s, which the bot does not register", l.String(), m[1])
 			}
 		}
 	}
@@ -62,12 +61,12 @@ func TestAdminHelpMatchesAdminMenu(t *testing.T) {
 				continue // member commands are documented by the member help
 			}
 			if !regexp.MustCompile(`/` + c.Command + `\b`).MatchString(help) {
-				t.Errorf("%s: /%s is in the administrator menu but not in the administrator help", helpLocaleName[l], c.Command)
+				t.Errorf("%s: /%s is in the administrator menu but not in the administrator help", l.String(), c.Command)
 			}
 		}
 		for _, m := range helpCommandRe.FindAllStringSubmatch(help, -1) {
 			if !known[m[1]] {
-				t.Errorf("%s: administrator help lists /%s, which the bot does not register", helpLocaleName[l], m[1])
+				t.Errorf("%s: administrator help lists /%s, which the bot does not register", l.String(), m[1])
 			}
 		}
 	}
@@ -80,12 +79,12 @@ func TestOwnerHelpMatchesOwnerMenu(t *testing.T) {
 		known := modules.commandNames(CommandOwner)
 		for command := range known {
 			if !regexp.MustCompile(`/` + command + `\b`).MatchString(help) {
-				t.Errorf("%s: /%s is in the owner menu but not in the owner help", helpLocaleName[l], command)
+				t.Errorf("%s: /%s is in the owner menu but not in the owner help", l.String(), command)
 			}
 		}
 		for _, m := range helpCommandRe.FindAllStringSubmatch(help, -1) {
 			if !known[m[1]] {
-				t.Errorf("%s: owner help lists /%s, which the bot does not register", helpLocaleName[l], m[1])
+				t.Errorf("%s: owner help lists /%s, which the bot does not register", l.String(), m[1])
 			}
 		}
 	}
@@ -97,11 +96,11 @@ func TestAutoReplyNamesNoLookupCommand(t *testing.T) {
 	for _, l := range helpLocales {
 		reply := i18n.Messages.Bot.DirectMessage.AutoReply.Render(l, 5, i18n.Messages.Bot.DirectMessage.Identity.For(l))
 		if !strings.Contains(reply, "/help") {
-			t.Errorf("%s: the direct-message reply must point at /help", helpLocaleName[l])
+			t.Errorf("%s: the direct-message reply must point at /help", l.String())
 		}
 		for _, m := range helpCommandRe.FindAllStringSubmatch(reply, -1) {
 			if m[1] != "help" {
-				t.Errorf("%s: the direct-message reply names /%s; list commands in /help only", helpLocaleName[l], m[1])
+				t.Errorf("%s: the direct-message reply names /%s; list commands in /help only", l.String(), m[1])
 			}
 		}
 	}
@@ -142,7 +141,7 @@ func TestProductCopyClaimsNoCommunity(t *testing.T) {
 		reply := dm.AutoReply.Render(l, 5, dm.Identity.For(l))
 		for _, claim := range []string{"Gentoo-zh", "Gentoo 中文社区", "Gentoo 中文社群", "gentoozh"} {
 			if strings.Contains(reply, claim) {
-				t.Errorf("%s: direct-message reply claims %q: %q", helpLocaleName[l], claim, reply)
+				t.Errorf("%s: direct-message reply claims %q: %q", l.String(), claim, reply)
 			}
 		}
 	}

@@ -59,7 +59,9 @@ const sourceMessageKeys: Readonly<Record<SettingSource, string>> = {
 const languageMessageKeys: Readonly<Record<QuestionLanguage, string>> = {
   zh: "questions.language.zh",
   "zh-Hant": "questions.language.zhHant",
-  en: "questions.language.en"
+  en: "questions.language.en",
+  ja: "questions.language.ja",
+  ru: "questions.language.ru"
 };
 
 function QuestionSection({ id, titleKey, descriptionKey, children }: SectionProps) {

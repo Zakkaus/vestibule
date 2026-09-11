@@ -342,7 +342,10 @@ func (v *Panel) dispatchRuntime(ctx context.Context, bot *telego.Bot, session *p
 	case "lt":
 		return v.armTextInput(ctx, bot, session, inputLookupTTL, "rt")
 	case "lg":
-		value := map[string]string{"z": "zh", "h": "zh-Hant", "e": "en"}[data.value]
+		value, ok := languageCallbackValue(data.value)
+		if !ok {
+			return errors.New("invalid runtime language")
+		}
 		next.Lang = &value
 	default:
 		return errors.New("invalid runtime action")
@@ -636,6 +639,8 @@ func (v *Panel) buildRuntime(session *panelSession, token string) (string, *tele
 		{text: i18n.Messages.Panel.Settings.Field.LanguageZH.For(session.language), field: "lg", value: "z"},
 		{text: i18n.Messages.Panel.Settings.Field.LanguageZHHant.For(session.language), field: "lg", value: "h"},
 		{text: i18n.Messages.Panel.Settings.Field.LanguageEN.For(session.language), field: "lg", value: "e"},
+		{text: i18n.Messages.Panel.Settings.Field.LanguageJA.For(session.language), field: "lg", value: "j"},
+		{text: i18n.Messages.Panel.Settings.Field.LanguageRU.For(session.language), field: "lg", value: "r"},
 		{text: i18n.Messages.Panel.Settings.Common.Back.For(session.language), field: "go", value: "gh"},
 	}
 	return v.screenWithSingleButtons(text, token, session, buttons)
@@ -1221,15 +1226,6 @@ func (v *Panel) sourcedMode(language i18n.Lang, setting settings.Setting[string]
 func (v *Panel) sourcedDeliveryMode(language i18n.Lang, setting settings.Setting[string]) string {
 	return i18n.Messages.Panel.Settings.Value.Sourced.Render(
 		language, v.deliveryModeText(language, setting.Value), v.sourceText(language, setting.Source))
-}
-
-func (v *Panel) sourcedLanguage(language i18n.Lang, setting settings.Setting[string]) string {
-	value := map[string]string{
-		"zh":      i18n.Messages.Panel.Settings.Field.LanguageZH.For(language),
-		"zh-Hant": i18n.Messages.Panel.Settings.Field.LanguageZHHant.For(language),
-		"en":      i18n.Messages.Panel.Settings.Field.LanguageEN.For(language),
-	}[setting.Value]
-	return i18n.Messages.Panel.Settings.Value.Sourced.Render(language, value, v.sourceText(language, setting.Source))
 }
 
 func (v *Panel) sourcedSeconds(language i18n.Lang, setting settings.Setting[int], permanent bool) string {

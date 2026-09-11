@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/status"
 )
 
@@ -124,6 +125,62 @@ func TestSetupDoesNotReflectCredentialInResponseOrLogs(t *testing.T) {
 	if strings.Contains(response.Body.String(), credential) || strings.Contains(logs.String(), credential) {
 		t.Fatal("setup credential appeared in an HTTP response or log")
 	}
+}
+
+func TestHTTPSetupAndErrorPagesNegotiateAcceptLanguage(t *testing.T) {
+	cases := []struct {
+		name, acceptLanguage string
+		want                 i18n.Lang
+	}{
+		{"japanese list", "ja,en;q=0.9", i18n.LangJA},
+		{"russian list", "ru;q=1,en;q=0.8", i18n.LangRU},
+		{"weighted order", "en;q=0.1,ja;q=0.9", i18n.LangJA},
+		{"unsupported first", "fr,ru;q=0.5", i18n.LangRU},
+		{"zero quality excluded", "ja;q=0,ru;q=0.5", i18n.LangRU},
+		{"invalid quality skipped", "ja;q=invalid,ru;q=0.5", i18n.LangRU},
+		{"tie keeps first", "ru;q=0.7,en;q=0.7", i18n.LangRU},
+		{"reverse tie keeps first", "en;q=0.7,ru;q=0.7", i18n.LangEN},
+		{"chinese tag", "zh", i18n.LangZH},
+		{"english tag", "en", i18n.LangEN},
+		{"empty fallback", "", i18n.LangZH},
+		{"unknown fallback", "xx", i18n.LangZH},
+		{"english list", "en,zh-CN;q=0.8", i18n.LangEN},
+	}
+	server := newClaimableSetupServer(Config{
+		Setup:       &setupTestService{linkToken: setupTestLinkToken},
+		BotUsername: "example_bot",
+	})
+	pages := []struct {
+		name, path string
+		status     int
+		title      i18n.Text
+	}{
+		{"setup", "/setup/" + setupTestLinkToken, http.StatusOK, i18n.Messages.Bot.Setup.Title},
+		{"error", "/missing", http.StatusNotFound, i18n.Messages.Bot.ErrorPage.NotFoundTitle},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, page := range pages {
+				response := localizedPage(server, page.path, tc.acceptLanguage)
+				body := response.Body.String()
+				if response.Code != page.status ||
+					!strings.Contains(body, `lang="`+tc.want.String()+`"`) ||
+					!strings.Contains(body, page.title.For(tc.want)) {
+					t.Fatalf("%s response for %q did not render %s: status=%d body=%q",
+						page.name, tc.acceptLanguage, tc.want, response.Code, body)
+				}
+			}
+		})
+	}
+}
+
+func localizedPage(server *Server, path, acceptLanguage string) *httptest.ResponseRecorder {
+	request := httptest.NewRequest(http.MethodGet, path, nil)
+	request.Header.Set("Accept", "text/html")
+	request.Header.Set("Accept-Language", acceptLanguage)
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, request)
+	return response
 }
 
 func postSetup(server *Server, linkToken, botToken string) *httptest.ResponseRecorder {

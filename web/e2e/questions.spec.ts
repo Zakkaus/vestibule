@@ -1,10 +1,11 @@
+import { readFileSync } from "node:fs";
 import { expect, test, type Locator, type Page, type Route } from "@playwright/test";
-
+import { selectAppOption } from "./app-select";
 const selectedGroupID = "-1009000010001";
 const actorID = "741928306";
 
 type SettingSource = "factory default" | "user file" | "chat override";
-type QuestionLanguage = "zh" | "zh-Hant" | "en";
+type QuestionLanguage = "zh" | "zh-Hant" | "en" | "ja" | "ru";
 
 type SourcedSetting<T> = Readonly<{
   value: T;
@@ -728,6 +729,45 @@ test("question deletion requires confirmation and language restoration writes nu
     changes: { questions: remainingQuestions, lang: null }
   });
   await expect(page.locator("#questions-language-select")).toHaveAttribute("data-value", "zh");
+});
+
+test("Japanese and Russian challenge languages can be selected and saved", async ({ page }) => {
+  const languageLabels = JSON.parse(
+    readFileSync(new URL("../src/i18n/locales/zh-CN.json", import.meta.url), "utf8")
+  ).questions.language;
+  for (const language of ["ja", "ru"] as const) {
+    let requestBody: unknown;
+    await openQuestions(
+      page,
+      async (route) =>
+        fulfillJSON(
+          route,
+          settingsResponse({
+            revision: 20,
+          })
+        ),
+      async (route) => {
+        requestBody = route.request().postDataJSON();
+        await fulfillJSON(
+          route,
+          settingsResponse({
+            revision: 21,
+            lang: sourced(language, "chat override")
+          })
+        );
+      }
+    );
+    await selectAppOption(page.locator("#questions-language-select"), language);
+    await expect(page.locator("#questions-language-select")).toHaveText(
+      languageLabels[language]
+    );
+    await page.getByRole("button", { name: "保存更改" }).click();
+    expect(requestBody).toEqual({
+      expected_revision: 20,
+      changes: { lang: language }
+    });
+    await expect(page.locator("#questions-language-select")).toHaveAttribute("data-value", language);
+  }
 });
 
 test("switching custom fallback questions to built-ins clears the array override", async ({ page }) => {

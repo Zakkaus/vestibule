@@ -96,7 +96,7 @@ jobs:
         run: python3 scripts/check-acceptance-exemptions.py
       - name: The vendored copies still match the bytes they were copied at
         run: python3 scripts/check-vendored.py
-      - name: The three locale catalogues agree with each other and with the code
+      - name: The five frontend locale catalogues agree with each other and with the code
         run: python3 scripts/check-locale-catalogues.py
       - name: Nothing the previous generation answered has disappeared
         run: python3 scripts/check-inherited-commands.py
@@ -215,7 +215,7 @@ jobs:
         run: |
           cd web
           npx playwright install --with-deps chromium
-          npm run e2e
+          PLAYWRIGHT_PORT_OFFSET=210 npm run e2e
 
       - name: Structure, style rules and coverage of the reference pages
         run: |

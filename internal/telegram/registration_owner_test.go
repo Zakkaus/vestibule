@@ -81,8 +81,8 @@ func TestOwnerClaimRefreshesCommandMenus(t *testing.T) {
 	caller.mu.Lock()
 	scopeIDs := append([]int64(nil), caller.commandScopeIDs...)
 	caller.mu.Unlock()
-	if len(scopeIDs) != 3 {
-		t.Fatalf("owner command-menu refresh scopes = %v, want three owner chat scopes", scopeIDs)
+	if len(scopeIDs) != 5 {
+		t.Fatalf("owner command-menu refresh scopes = %v, want five owner chat scopes", scopeIDs)
 	}
 	for _, chatID := range scopeIDs {
 		if chatID != testOwner {

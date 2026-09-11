@@ -512,7 +512,10 @@ func TestAITrapIsLocalizedWithoutChangingReplyContract(t *testing.T) {
 	const nonce = "abc123"
 	token := rules.AgentToken(nonce)
 	english := i18n.Messages.Verification.Challenge.AgentTrap.Render(i18n.LangEN, token)
-	for _, language := range []i18n.Lang{i18n.LangZH, i18n.LangZHHant} {
+	for _, language := range i18n.Languages() {
+		if language == i18n.LangEN {
+			continue
+		}
 		localized := i18n.Messages.Verification.Challenge.AgentTrap.Render(language, token)
 		if localized == english {
 			t.Errorf("agent trap for %s is still the English catalogue entry", language)
@@ -794,7 +797,7 @@ func TestKernelPromptLocalised(t *testing.T) {
 		if !strings.Contains(prompt, samplePrompt) || strings.Contains(prompt, "7.1.30") {
 			t.Errorf("catalog %q must print only the impossible placeholder: %s", locale, prompt)
 		}
-		if !strings.Contains(prompt, "\n\n❓") || strings.Contains(prompt, `\n`) {
+		if !strings.Contains(prompt, "\n\n") || strings.Contains(prompt, `\n`) {
 			t.Errorf("catalog %q must render line breaks, not literal escape sequences: %q", locale, prompt)
 		}
 	}

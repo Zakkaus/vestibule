@@ -36,9 +36,9 @@ func (s *Updates) SetupCommands(ctx context.Context, bot *telego.Bot) {
 		groupIDs = s.settings.ChatIDs()
 		ownerID = s.settings.Registrations().OwnerID
 	}
-	menuCapacity := 6 + 2*len(groupIDs)
+	menuCapacity := 10 + 2*len(groupIDs)
 	if ownerID != 0 {
-		menuCapacity += 3
+		menuCapacity += 5
 	}
 	menus := make([]commandMenu, 0, menuCapacity)
 	for _, language := range []struct {
@@ -49,6 +49,8 @@ func (s *Updates) SetupCommands(ctx context.Context, bot *telego.Bot) {
 		{name: "fallback", lang: i18n.LangZH},
 		{name: "zh", lang: i18n.LangZH, code: "zh"},
 		{name: "en", lang: i18n.LangEN, code: "en"},
+		{name: "ja", lang: i18n.LangJA, code: "ja"},
+		{name: "ru", lang: i18n.LangRU, code: "ru"},
 	} {
 		member := s.memberCommands(language.lang)
 		admin := s.adminCommands(language.lang)

@@ -80,7 +80,7 @@ factory:
       answers: ["4"]
   # Use the built-in neutral answer-hidden bank when no custom bank is active.
   fallback_builtin: true
-  # Chat language: zh, zh-Hant, or en.
+  # Chat language: zh, zh-Hant, en, ja, or ru.
   lang: zh
   # Send rich Bot API messages with an HTML fallback.
   rich_messages: false

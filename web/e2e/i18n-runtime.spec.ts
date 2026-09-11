@@ -81,7 +81,8 @@ test("browser and stored language choices select an available console catalogue"
     { browserLocale: "zh-TW", storedLocale: null, want: "zh-TW" },
     { browserLocale: "zh-Hant-HK", storedLocale: null, want: "zh-TW" },
     { browserLocale: "en-US", storedLocale: null, want: "en" },
-    { browserLocale: "ja-JP", storedLocale: null, want: "zh-CN" },
+    { browserLocale: "ja-JP", storedLocale: null, want: "ja" },
+    { browserLocale: "ru-RU", storedLocale: null, want: "ru" },
     { browserLocale: "en-US", storedLocale: "zh-CN", want: "zh-CN" },
     { browserLocale: "en-US", storedLocale: "zh-TW", want: "zh-TW" },
     { browserLocale: "zh-TW", storedLocale: "en", want: "en" }
@@ -110,12 +111,115 @@ test("browser and stored language choices select an available console catalogue"
   }
 });
 
+test("Japanese and Russian preferences set the first document language", async ({ browser }, testInfo) => {
+  const cases = [
+    { browserLocale: "ja-JP", storedLocale: null, want: "ja" },
+    { browserLocale: "ru-RU", storedLocale: null, want: "ru" },
+    { browserLocale: "en-US", storedLocale: "ja", want: "ja" },
+    { browserLocale: "en-US", storedLocale: "ru", want: "ru" }
+  ] as const;
+
+  for (const localeCase of cases) {
+    await test.step(`${localeCase.browserLocale}/${localeCase.storedLocale ?? "system"}`, async () => {
+      const context = await browser.newContext({ locale: localeCase.browserLocale });
+      try {
+        const page = await context.newPage();
+        await page.addInitScript(({ key, value }) => {
+          if (value !== null) {
+            localStorage.setItem(key, value);
+          }
+        }, { key: localeStorageKey, value: localeCase.storedLocale });
+        // Stop React after the document's inline boot script has run; the DOM
+        // language at DOMContentLoaded is the value available to first paint.
+        await page.route("**/src/main.tsx", (route) =>
+          route.fulfill({ status: 200, contentType: "text/javascript", body: "" })
+        );
+        await page.goto(consoleURL(testInfo, "/preferences"));
+        await page.waitForLoadState("domcontentloaded");
+        await expect(
+          page.locator("html"),
+          "the inline boot must apply the locale preference before React mounts"
+        ).toHaveAttribute("lang", localeCase.want);
+      } finally {
+        await context.close();
+      }
+    });
+  }
+});
+
+test("Japanese and Russian choices survive a page refresh", async ({ page }) => {
+  await mockConsoleSession(page);
+  await page.goto("/preferences");
+  await waitForPreferences(page);
+
+  for (const locale of ["ja", "ru"] as const) {
+    await test.step(locale, async () => {
+      const controls = await preferenceControls(page);
+      await selectAppOption(controls.locale, locale);
+      await expectActiveLocale(page, locale);
+      await page.reload();
+      await waitForPreferences(page);
+      await expectActiveLocale(page, locale);
+      await expect(page.evaluate((key) => localStorage.getItem(key), localeStorageKey)).resolves.toBe(locale);
+    });
+  }
+});
+
+test("i18next selects the Japanese and Russian cardinal categories", async ({ page }) => {
+  await mockConsoleSession(page);
+  await page.goto("/preferences");
+  await waitForPreferences(page);
+
+  const pluralResults = await page.evaluate(async () => {
+    // The browser singleton must be exercised inside the page, not imported by the test runner.
+    const runtime = await import("/src/i18n/index.ts");
+    const counts = [1, 2, 5, 21, 1.5];
+    const results: Record<string, Array<{
+      count: number;
+      category: string;
+      text: string;
+      expected: string;
+      usedLng: string;
+    }>> = {};
+
+    for (const locale of ["ja", "ru"]) {
+      await runtime.default.changeLanguage(locale);
+      const rule = runtime.default.services.pluralResolver.getRule(locale);
+      results[locale] = counts.map((count) => {
+        const category = rule.select(count);
+        const key = "questions.questionBank.count";
+        const details = runtime.default.t(key, { count, returnDetails: true });
+        const expected = runtime.default.t(`${key}_${category}`, { count, returnDetails: true });
+        return {
+          count,
+          category,
+          text: details.res,
+          expected: expected.res,
+          usedLng: details.usedLng
+        };
+      });
+    }
+    return results;
+  });
+
+  expect(pluralResults.ja.map((entry) => entry.category)).toEqual(["other", "other", "other", "other", "other"]);
+  expect(pluralResults.ru.map((entry) => entry.category)).toEqual(["one", "few", "many", "one", "other"]);
+  for (const locale of ["ja", "ru"] as const) {
+    for (const result of pluralResults[locale]) {
+      expect(result.usedLng, `${locale} plural lookup fell back to another locale`).toBe(locale);
+      expect(result.text, `${locale} count ${result.count} did not resolve a catalogue key`).toBe(result.expected);
+      expect(result.text).toContain(String(result.count));
+      expect(result.text).not.toContain("questions.questionBank.count");
+    }
+  }
+});
+
 test("every offered console language switches and persists", async ({ page }) => {
   await mockConsoleSession(page);
   await page.goto("/preferences");
   await waitForPreferences(page);
 
-  for (const locale of ["zh-TW", "en", "zh-CN"] as const) {
+  for (const locale of ["zh-TW", "en", "zh-CN", "ja", "ru"] as const) {
     await test.step(locale, async () => {
       const controls = await preferenceControls(page);
       await selectAppOption(controls.locale, locale);

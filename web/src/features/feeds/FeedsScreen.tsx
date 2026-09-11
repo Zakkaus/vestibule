@@ -36,7 +36,9 @@ const languageMessageKeys: Readonly<Record<FeedLanguage, string>> = {
   "": "feeds.languages.default",
   zh: "feeds.languages.zh",
   "zh-Hant": "feeds.languages.zhHant",
-  en: "feeds.languages.en"
+  en: "feeds.languages.en",
+  ja: "feeds.languages.ja",
+  ru: "feeds.languages.ru"
 };
 
 const errorMessageKeys: Readonly<Record<string, string>> = {

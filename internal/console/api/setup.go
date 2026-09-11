@@ -8,6 +8,7 @@ import (
 	"errors"
 	"html/template"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/Zakkaus/vestibule/internal/i18n"
@@ -284,7 +285,43 @@ func claimedSetupText(language i18n.Lang, result SetupResult) string {
 }
 
 func setupLanguage(request *http.Request) i18n.Lang {
-	return i18n.FromRequester(request.Header.Get("Accept-Language"), i18n.LangZH)
+	const unsupported = i18n.Lang(255)
+	best, bestWeight := i18n.LangZH, float64(0)
+	for choice := range strings.SplitSeq(request.Header.Get("Accept-Language"), ",") {
+		language, parameters, _ := strings.Cut(choice, ";")
+		language = strings.TrimSpace(language)
+		if language == "" {
+			continue
+		}
+		weight := float64(1)
+		valid := true
+		for parameter := range strings.SplitSeq(parameters, ";") {
+			key, value, found := strings.Cut(strings.TrimSpace(parameter), "=")
+			if !found {
+				if strings.EqualFold(strings.TrimSpace(parameter), "q") {
+					valid = false
+				}
+				continue
+			}
+			if !strings.EqualFold(strings.TrimSpace(key), "q") {
+				continue
+			}
+			var err error
+			weight, err = strconv.ParseFloat(strings.TrimSpace(value), 64)
+			if err != nil || !(weight > 0 && weight <= 1) {
+				valid = false
+			}
+			break
+		}
+		if !valid {
+			continue
+		}
+		resolved := i18n.FromRequester(language, unsupported)
+		if resolved != unsupported && weight > bestWeight {
+			best, bestWeight = resolved, weight
+		}
+	}
+	return best
 }
 
 // consumedSetupLink answers a setup path on an instance that is already claimed.

@@ -1,0 +1,219 @@
+{
+  "state": {
+    "enabled": "有効",
+    "disabled": "無効"
+  },
+  "status": {
+    "ping": "pong｜バージョン：%[1]s｜稼働時間：%[2]s｜認証：%[3]s",
+    "stats": "本日（%[1]s）\n承認：%[2]d 件\n拒否：%[3]d 件\n認証：%[4]s｜稼働時間：%[5]s"
+  },
+  "verification": {
+    "started": "参加認証を有効にしました。",
+    "stopped": "参加認証を無効にしました。新しい参加申請は自動認証されません。管理者が手動で審査してください。"
+  },
+  "rich_text": {
+    "enabled": "リッチテキスト出力を有効にしました。/pkg と /use はリッチテキストメッセージを送信します。古いクライアントやサードパーティ製クライアントでは正しく表示されない場合があります。",
+    "disabled": "リッチテキスト出力を無効にしました。/pkg と /use はプレーンテキストメッセージを送信します。"
+  },
+  "name_spoiler": {
+    "enabled": "新規メンバーの名前非表示を有効にしました。名前はスポイラー形式で表示され、広告目的の名前がグループに直接表示されるのを防ぎます。",
+    "disabled": "新規メンバーの名前非表示を無効にしました。名前は通常どおり表示されます。"
+  },
+  "verification_mode": {
+    "config_source": "設定ファイル",
+    "runtime_source": "/vmode 設定",
+    "current": "現在の参加認証モード：%[1]s（ソース：%[2]s）。\n使い方：/vmode kernel は Linux カーネルバージョン、/vmode quiz は選択式問題、/vmode mixed はどちらかをランダムに使用し、/vmode auto は設定ファイルの値に戻します。",
+    "kernel_set": "参加認証で Linux カーネルバージョンを使用するようにしました。申請者はターミナルで uname -r を実行し、現在の Linux カーネルバージョンを送信してください。",
+    "set": "参加認証モードを %[1]s に変更しました。",
+    "auto_set": "設定ファイルの値に戻しました。現在の参加認証モード：%[1]s。",
+    "usage": "使い方：/vmode kernel|quiz|mixed|auto。引数を省略すると現在の設定を表示します。"
+  },
+  "auto_delete": {
+    "current_enabled": "検索結果の自動削除は有効です。結果と元のクエリは %[1]d 分後に削除されます。\n使い方：/autodel off で無効化、/autodel <minutes> で遅延を変更します。",
+    "current_disabled": "検索結果の自動削除は無効です。\n使い方：/autodel on で有効化、/autodel <minutes> で遅延を設定して有効化します。",
+    "disabled": "検索結果の自動削除は無効です。返信と元のクエリは保持されます。",
+    "enabled": "検索結果の自動削除は有効です。結果と元のクエリは %[1]d 分間保持されます。",
+    "set": "結果と元のクエリの削除遅延を %[1]d 分に設定しました。",
+    "usage": "使い方：/autodel on|off または /autodel <minutes>（1–1440）。"
+  },
+  "help": {
+    "member": "利用可能なコマンド：\n/pkg <package> — Gentoo パッケージを検索（公式ツリー、gentoo-zh、GURU）\n/use <package> — パッケージ情報と USE flags を表示\n/arm <package> — Gentoo arm64 keyword 状態を表示\n\n/pkgs <package> — ディストリビューション間のパッケージバージョンを比較（/distro <package> も使用可能）\n/armpkgs <package> — ディストリビューション間の arm64 対応を比較\n/bug <number> — Gentoo Bugzilla の課題を検索\n/news [keywords] — Gentoo ニュースを閲覧または検索\n/wiki <keywords> — Gentoo Wiki と ArchWiki を検索（中国語ページを含む）\n/bbs <keywords> — Linux フォーラムを検索（中国語を優先）\n/kernel — kernel.org で現在公開されているカーネルバージョン\n/man <name> — Linux マニュアルページを検索\n/cve <id> — 識別子で脆弱性を検索\n/repology <package> — ディストリビューションのリポジトリ間でパッケージバージョンを比較\n\n/ping — ボットの状態と稼働時間を表示\n/stats — 本日の承認数と拒否数を表示\n/help — この一覧を表示",
+    "group_state": "参加認証：%[1]s",
+    "admin": "管理者（対象メッセージに返信）：\n/mute [duration] — ユーザーをミュート。既定は 1h、例：/mute 30m\n/unmute — ユーザーのミュートを解除\n/ban — ユーザーをアクセス禁止にして削除。返信先のメッセージだけを削除\n/sb — ユーザーをアクセス禁止にして削除。そのユーザーの全メッセージも削除\n/warn — ユーザーに警告。%[1]d 回で自動的に削除\n/clearwarn — 警告を消去\n\nその他の管理コマンド：\n/settings — ダイレクトメッセージの設定パネルを開く\n/bantime <duration> — アクセス禁止期間を設定。0 は永久、例：7d、12h、30m\n/autodel [on|off|minutes] — 検索結果の自動削除を設定\n/rich — リッチな検索結果出力を切り替え\n/spoiler — 新規メンバーの名前非表示を切り替え\n/vmode <mode> — 認証モードを設定：kernel、quiz、mixed、auto\n/bc — 送信元チャンネルのブロックを切り替え。/bc allow|deny <channel ID> で許可リストを管理\n/start または /stop — 参加認証を有効化または無効化",
+    "owner": "所有者コマンド：\n/console — コンソールを開く\n/enroll — 一度だけ使えるグループ登録リンクを作成\n/unregister <group-id> — 実行時に登録されたグループの登録を解除",
+    "direct_message_note": "上記の検索コマンドはダイレクトメッセージでも使えます。1 分あたり %[1]d 件までです。審査と管理のコマンドはグループ内でのみ使えます。"
+  },
+  "error": {
+    "save_settings": "設定を保存できません。後でもう一度試してください。",
+    "admin_only": "このコマンドはグループ管理者のみ使用できます。設定の変更はグループ管理者に依頼してください。"
+  },
+  "menu": {
+    "settings": "設定パネルを開く"
+  },
+  "settings": {
+    "launch": {
+      "sent": "ダイレクトメッセージで設定パネルを開いてください。",
+      "open": "設定を開く"
+    },
+    "common": {
+      "back": "戻る",
+      "close": "閉じる",
+      "cancel": "キャンセル",
+      "save": "保存",
+      "delete": "削除",
+      "confirm": "確認",
+      "add": "追加",
+      "remove": "削除",
+      "prev": "前へ",
+      "next": "次へ",
+      "refresh": "更新",
+      "disable": "無効化",
+      "on": "オン",
+      "off": "オフ",
+      "none": "なし"
+    },
+    "source": {
+      "runtime": "上書き",
+      "config": "config.json",
+      "default": "既定値"
+    },
+    "mode": {
+      "kernel": "カーネル",
+      "quiz": "選択式",
+      "mixed": "混合"
+    },
+    "delivery": {
+      "group": "グループのみ",
+      "dm": "DM、グループにフォールバック",
+      "both": "グループと DM"
+    },
+    "screen": {
+      "groups": "設定グループ\n%[1]d ページ\n%[2]s",
+      "no_groups": "現在、管理できる保護グループはありません。",
+      "group_home": "グループ設定\n%[1]s（%[2]d）\nリビジョン：%[3]d\n永続化：%[4]s\n認証：%[5]s\nモード：%[6]s\n必須チャンネル：%[7]s\n選択式問題：%[8]d\nフォールバック問題：%[9]d\n言語：%[10]s",
+      "runtime": "%[1]d の実行時設定\n認証：%[2]s\nモード：%[3]s\n問題の配信：%[4]s\n名前の非表示：%[5]s\nアクセス禁止期間：%[6]s\n検索結果の自動削除：%[7]s\n検索結果の有効期間：%[8]s\n言語：%[9]s",
+      "lists": "%[1]d のリスト設定\nチャンネル許可リスト：%[2]d\n信頼グループ：%[3]d\n既知のチャット：%[4]d",
+      "list": "%[2]d の%[1]s\n項目：%[3]d\n%[4]s",
+      "verification": "%[1]d の認証パラメーター\nタイムアウト：%[2]s\n最大失敗数：%[3]s\n再試行クールダウン：%[4]s\n招待メンバーを認証：%[5]s\nプライベート検索レート（ボット全体）：%[6]s",
+      "content": "%[1]d の認証コンテンツ\n選択式問題：%[2]d\nフォールバック問題集：%[3]s\n必須チャンネル：%[4]s\n招待リンク：%[5]s",
+      "quiz_bank": "%[1]d の問題集\n問題：%[2]d\n%[3]s",
+      "quiz_detail": "選択式問題\n問題：%[1]s\n選択肢：\n%[2]s\n正解の選択肢：%[3]s",
+      "fallback_bank": "%[1]d のフォールバック問題集\nソース：%[2]s\n問題：%[3]d\n%[4]s",
+      "fallback_detail": "フォールバック問題\n問題：%[1]s\n受け付ける回答：\n%[2]s",
+      "channel": "%[1]d の必須チャンネル\nID：%[2]d\n表示名：%[3]s\n招待リンク：%[4]s",
+      "confirm": "この操作を確認してください：\n%[1]s",
+      "input": "入力を待機中\n%[1]s\n下に別途表示されるプロンプトに返信してください。",
+      "moderation": "%[1]d のモデレーション\n送信元チャンネルの投稿：%[2]s\nミュート期間：%[3]s\n警告上限：%[4]s\nリッチテキスト（ボット全体）：%[5]s\nアラートチャット（ボット全体）：%[6]s"
+    },
+    "field": {
+      "runtime": "実行時設定",
+      "lists": "リスト",
+      "verification_parameters": "認証パラメーター",
+      "content": "認証コンテンツ",
+      "change_group": "グループを変更",
+      "verification": "参加認証を切り替え",
+      "delivery_group": "グループのみを使用",
+      "delivery_dm": "グループにフォールバックする DM を使用",
+      "delivery_both": "グループと DM を使用",
+      "mode_kernel": "カーネルモードを使用",
+      "mode_quiz": "選択式モードを使用",
+      "mode_mixed": "混合モードを使用",
+      "name_spoiler": "名前非表示を切り替え",
+      "ban_duration": "アクセス禁止期間",
+      "lookup_delete": "検索結果の自動削除を切り替え",
+      "lookup_ttl": "検索結果の有効期間",
+      "language": "言語",
+      "language_zh": "簡体字中国語",
+      "language_zh_hant": "繁体字中国語",
+      "language_en": "英語",
+      "language_ja": "日本語",
+      "language_ru": "ロシア語",
+      "channel_whitelist": "チャンネル許可リスト",
+      "trusted_groups": "信頼グループ",
+      "known_chats": "既知のチャット",
+      "chat_group": "グループ",
+      "chat_channel": "チャンネル",
+      "timeout": "認証タイムアウト",
+      "max_fails": "最大失敗数",
+      "retry_cooldown": "再試行クールダウン",
+      "private_rate": "ボット全体のプライベート検索レート",
+      "quiz_bank": "問題集",
+      "fallback_bank": "フォールバック問題集",
+      "required_channel": "必須チャンネル",
+      "edit_question": "問題を編集",
+      "add_option": "選択肢を追加",
+      "add_answer": "回答を追加",
+      "correct_option": "正解の選択肢を設定",
+      "reset_builtin": "組み込み問題を使用",
+      "set_channel": "チャンネルを設定",
+      "set_invite": "招待リンクを設定",
+      "clear_invite": "招待リンクを消去",
+      "moderation": "モデレーション",
+      "antispam": "送信元チャンネルのブロックを切り替え",
+      "mute_duration": "ミュート期間",
+      "warn_limit": "警告上限",
+      "rich_text": "リッチテキストを切り替え",
+      "alert_chat": "アラートチャットを設定",
+      "clear_alert_chat": "アラートチャットを消去",
+      "verify_invited": "招待メンバーの認証を切り替え"
+    },
+    "prompt": {
+      "ban_duration": "永久にする場合は 0、または 30m、12h、7d などの期間を送信してください。",
+      "lookup_ttl": "検索結果の保持時間を分単位で送信してください（1–1440）。",
+      "timeout": "認証タイムアウトを秒単位で送信してください（30–1800）。",
+      "max_fails": "正の最大失敗回数、または off を送信してください。",
+      "retry_cooldown": "正の再試行クールダウン秒数、または off を送信してください。",
+      "private_rate": "ボット全体の 1 分あたりのプライベート検索上限を正の数で送信してください。",
+      "quiz_question": "選択式問題の本文を送信してください。",
+      "quiz_option": "選択肢を 1 つ送信してください。",
+      "fallback_question": "フォールバック問題の本文を送信してください。",
+      "fallback_answer": "受け付ける回答を 1 つ送信してください。",
+      "invite_url": "必須チャンネルの HTTPS t.me リンクを送信してください。",
+      "channel_whitelist": "許可リストに追加するチャンネルを選択してください。",
+      "trusted_group": "信頼するグループを選択してください。",
+      "known_chat": "既知のチャットを選択してください。",
+      "required_channel": "必須チャンネルを選択してください。",
+      "mute_duration": "30m、12h、7d などのミュート期間を送信してください。",
+      "warn_limit": "削除前の警告回数を送信してください。",
+      "alert_chat": "運用アラートを受信するチャットを選択してください。"
+    },
+    "error": {
+      "expired": "このパネルは古いか有効期限切れです。/settings で開き直してください。",
+      "authorization_lost": "管理者権限を失いました。権限を戻してからパネルを開き直してください。",
+      "authorization_check_failed": "管理者権限を確認できませんでした。もう一度試してください。",
+      "concurrent_change": "他のユーザーがこれらの設定を変更しました。パネルを開き直してください。",
+      "save_failed": "設定を保存できませんでした。パネルを開き直して、もう一度試してください。",
+      "saved_render_failed": "設定は保存された可能性がありますが、パネルを更新できませんでした。別の変更を行う前にパネルを開き直してください。",
+      "invalid_input": "入力が無効です。同じプロンプトに有効な値で返信してください。",
+      "invalid_number": "記載された範囲内の数値を送信してください。",
+      "invalid_duration": "0 または Telegram が対応する範囲内の期間を送信してください。",
+      "invalid_url": "有効な HTTPS t.me リンクを送信してください。",
+      "invalid_chat": "選択したチャットを検証できませんでした。",
+      "question_needs_options": "選択式問題には少なくとも 2 つの選択肢と 1 つの正解が必要です。",
+      "fallback_needs_answer": "フォールバック問題には少なくとも 1 つの受け付ける回答が必要です。",
+      "input_blocked_verification": "パネルのテキストを入力する前に、現在の認証を完了してください。",
+      "input_canceled_verification": "認証プロンプトが有効になったため、パネル入力をキャンセルしました。返信は採点されていません。",
+      "panel_unavailable": "設定パネルを開けませんでした。もう一度試してください。",
+      "whitelist_unban_failed": "チャンネルを許可リストに追加しましたが、既存の送信元アクセス禁止を解除できませんでした。"
+    },
+    "value": {
+      "sourced": "%[1]s（%[2]s）",
+      "group_button": "%[1]s（%[2]d）",
+      "id_item": "%[1]d",
+      "question_item": "%[1]d．%[2]s",
+      "option_item": "%[1]d．%[2]s",
+      "answer_item": "%[1]d．%[2]s",
+      "seconds": "%[1]d 秒",
+      "minutes": "%[1]d 分",
+      "permanent": "永久",
+      "durable": "永続的",
+      "runtime_only": "実行時のみ",
+      "unavailable": "利用不可",
+      "builtins": "組み込みのローカライズ済み問題",
+      "custom": "カスタム問題",
+      "required_disabled": "無効",
+      "invite_missing": "未設定",
+      "alert_fallback": "対象グループ"
+    }
+  }
+}

@@ -7,7 +7,7 @@ import (
 
 // Every locale shows the distribution-neutral shape accepted by the kernel rule.
 func TestKernelPromptUsesCanonicalExample(t *testing.T) {
-	for _, l := range []Lang{LangEN, LangZH, LangZHHant} {
+	for _, l := range Languages() {
 		for name, prompt := range map[string]string{
 			"kernel_prompt":      Messages.Verification.Challenge.KernelPrompt.Render(l, "Q", 3),
 			"kernel_prompt_held": Messages.Verification.Challenge.KernelPromptHeld.Render(l, "Q", 3),

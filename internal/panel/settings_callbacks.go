@@ -27,7 +27,7 @@ var callbackTransitions = map[string]map[string]func(string) bool{
 	"gl": {"go": screenValue("gh"), "pg": pageValue, "rf": emptyValue, "cl": emptyValue},
 	"gh": {"go": screenValue("gl", "rt", "ls", "md", "vp", "ct"), "rf": emptyValue, "cl": emptyValue},
 	"rt": {"en": emptyValue, "df": enumValue("g", "d", "b"), "vm": enumValue("k", "q", "m"), "ns": emptyValue, "bd": emptyValue,
-		"ld": emptyValue, "lt": emptyValue, "lg": enumValue("z", "h", "e"), "go": screenValue("gh")},
+		"ld": emptyValue, "lt": emptyValue, "lg": enumValue("z", "h", "e", "j", "r"), "go": screenValue("gh")},
 	"ls": {"cw": emptyValue, "tg": emptyValue, "kc": emptyValue, "go": screenValue("gh")},
 	"li": {"ca": enumValue("cw", "tg", "kc"), "cw": hexValue, "tg": hexValue, "kc": hexValue, "pg": pageValue, "go": screenValue("ls")},
 	"vp": {"to": emptyValue, "mf": emptyValue, "rc": emptyValue, "vi": emptyValue, "pr": emptyValue, "go": screenValue("gh")},

@@ -7,7 +7,7 @@ import {
 export const processSettingSources = ["factory default", "user file"] as const;
 export type ProcessSettingSource = (typeof processSettingSources)[number];
 
-export const feedLanguages = ["", "zh", "zh-Hant", "en"] as const;
+export const feedLanguages = ["", "zh", "zh-Hant", "en", "ja", "ru"] as const;
 export type FeedLanguage = (typeof feedLanguages)[number];
 
 export type ProcessSetting<T> = Readonly<{

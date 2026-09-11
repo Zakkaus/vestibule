@@ -1,0 +1,1522 @@
+{
+  "app": {
+    "title": "認証コンソール",
+    "name": "認証コンソール"
+  },
+  "theme": {
+    "label": "テーマ",
+    "system": "システムに従う",
+    "light": "ライト",
+    "dark": "ダーク"
+  },
+  "locale": {
+    "label": "言語",
+    "system": "ブラウザーに従う",
+    "zhCN": "中国語（簡体字）",
+    "zhTW": "中国語（繁体字）",
+    "en": "英語",
+    "ja": "日本語",
+    "ru": "ロシア語"
+  },
+  "navigation": {
+    "label": "コンソールナビゲーション",
+    "sections": {
+      "daily": "日常",
+      "verification": "認証",
+      "group": "グループ",
+      "content": "コンテンツ",
+      "observe": "監視",
+      "console": "このコンソール"
+    },
+    "queue": "待機キュー",
+    "groups": "グループとチャンネル",
+    "preferences": "環境設定"
+  },
+  "shell": {
+    "mobileNavigation": "ナビゲーションを開く",
+    "groupSwitcher": "現在のグループ",
+    "allGroups": "管理可能なすべてのグループ"
+  },
+  "entry": {
+    "nextSteps": "次の手順",
+    "thisBot": "このインスタンスのボット",
+    "unclaimed": {
+      "title": "このインスタンスはまだ登録されていません",
+      "description": "登録するまで、ここにはボットもアクセスできるコンソールもありません。",
+      "steps": {
+        "link": "このマシンをデプロイしたターミナルで、インストールスクリプトが出力した一度だけ使えるリンクを探してください。",
+        "token": "そのリンクを開き、Telegram ボットトークンを入力してください。"
+      }
+    },
+    "loading": {
+      "title": "コンソールを開いています",
+      "description": "現在のセッションを確認しています。"
+    },
+    "unavailable": {
+      "title": "コンソールを一時的に開けません",
+      "description": "コンソールから利用可能なセッション状態が返されませんでした。後でもう一度 Telegram からボットのメニューを開くか、ボットに新しいリンクを要求してください。",
+      "retry": "再試行"
+    },
+    "noSession": {
+      "title": "Telegram からコンソールを開く",
+      "description": "このコンソールにはログイン画面がありません。入口は Telegram にあります。",
+      "steps": {
+        "openBot": "Telegram で {{botUsername}} を開いてください。",
+        "manager": "グループ管理者はボットのメニューからコンソールに入ります。",
+        "operator": "運用担当者はボットに一度だけ使えるリンクを要求します。"
+      }
+    },
+    "expired": {
+      "title": "このリンクの有効期限が切れています",
+      "description": "一度だけ使えるリンクには有効期限があります。期限切れはアカウントやコンソールの故障を意味しません。",
+      "steps": {
+        "request": "{{botUsername}} に新しい一度だけ使えるリンクを要求してください。"
+      }
+    },
+    "redeemed": {
+      "title": "このリンクは使用済みです",
+      "description": "誰かが先に開いた可能性があります。元のリンクを転送し続けないでください。",
+      "steps": {
+        "request": "{{botUsername}} に新しいリンクを要求し、リンクが予定した運用担当者だけに送られることを確認してください。"
+      }
+    },
+    "noGroups": {
+      "title": "このアカウントにはまだグループが許可されていません",
+      "description": "セッションは有効ですが、Telegram アカウント {{accountId}} が管理できるグループはまだありません。",
+      "steps": {
+        "authorization": "Telegram でグループ所有者にこのアカウントをグループ管理者として設定してもらい、ボットのメニューからコンソールを開いてください。"
+      }
+    },
+    "outsideTelegram": {
+      "title": "グループ管理は Telegram 内からのみ開けます",
+      "description": "これは意図されたセキュリティ境界です。通常のブラウザーは、グループ管理者に必要な署名付き ID データを提供できません。",
+      "steps": {
+        "desktop": "Telegram Desktop で {{botUsername}} のメニューを開き、コンソールへ進んでください。"
+      }
+    }
+  },
+  "challenge": {
+    "state": {
+      "pending": "保留中",
+      "approved": "承認済み",
+      "declined": "拒否済み",
+      "banned": "アクセス禁止",
+      "expired": "期限切れ",
+      "superseded": "置き換え済み"
+    },
+    "reason": {
+      "wrongAnswer": "不正解",
+      "rejected": "正解だが拒否条件に該当",
+      "externalUnmet": "外部条件を確認できない"
+    }
+  },
+  "groups": {
+    "title": "グループとチャンネル",
+    "description": "ここには、このアカウントが管理する権限を持つグループだけが表示されます。グループを選択して待機キューを続けて確認してください。",
+    "managedCount_other": "管理可能なグループ {{count}} 件",
+    "authorized": "許可済み",
+    "liveGroupNote": "このグループを選択すると、以降の操作はそのグループ内に限定されます。",
+    "loading": {
+      "title": "グループ一覧を読み込んでいます…",
+      "description": "現在のアカウントが管理できるグループを確認しています。"
+    },
+    "empty": {
+      "title": "管理可能なグループがありません",
+      "description": "アカウント {{accountId}} には、まだどのグループの管理権限もありません。グループ所有者に権限を付与してもらってください。"
+    },
+    "error": {
+      "authenticationExpired": {
+        "title": "セッションの有効期限が切れています",
+        "description": "Telegram のボットメニューからコンソールを開き直すか、ボットから新しい運用リンクを取得してください。"
+      },
+      "authenticationInvalid": {
+        "title": "セッションを認証できません",
+        "description": "Telegram のボットが提供した入口からコンソールを開いたことを確認してください。"
+      },
+      "initDataReplayed": {
+        "title": "このオープン要求は使用済みです",
+        "description": "現在のページを閉じ、Telegram のボットメニューからコンソールを開き直してください。"
+      },
+      "authenticationUnavailable": {
+        "title": "認証サービスを一時的に利用できません",
+        "description": "サービスが復旧した後に、グループ一覧を再び読み込めます。"
+      },
+      "verificationUnavailable": {
+        "title": "グループ一覧を一時的に利用できません",
+        "description": "認証サービスの準備が整っていないため、管理可能なグループを確認できません。"
+      },
+      "network": {
+        "title": "コンソールに接続できません",
+        "description": "ネットワーク接続を確認してから、グループ一覧を再び読み込んでください。"
+      },
+      "response": {
+        "title": "グループ一覧を読み込めません",
+        "description": "コンソールが返したデータを使用できません。"
+      },
+      "unknown": {
+        "title": "グループ一覧を読み込めません",
+        "description": "サービスがグループ一覧の要求を拒否しました。"
+      }
+    },
+    "actions": {
+      "openQueue": "待機キューを表示",
+      "openQueueFor": "{{group}} の待機キューを表示",
+      "retry": "再読み込み"
+    },
+    "mode": {
+      "approval": "承認制",
+      "joinRestrict": "参加後に制限",
+      "joinRestrictNote": "認証に合格していない人もグループ内にいるため、グループのメッセージを引き続き閲覧できます。"
+    },
+    "verification": {
+      "available": "認証可能",
+      "unavailable": "認証不可"
+    },
+    "prerequisites": {
+      "heading": "認証の前提条件",
+      "joinRequestsEnabled": "グループで参加申請が有効",
+      "botIsAdministrator": "ボットが管理者",
+      "joinEventsDeclared": "ポーリングで参加申請イベントを取得対象として指定済み",
+      "present": "あり",
+      "missing": "不足"
+    },
+    "metrics": {
+      "applications48h": "過去 48 時間の申請",
+      "settled": "処理済み",
+      "expired": "期限切れ"
+    },
+    "applicants": {
+      "heading": "最近の申請者",
+      "withUsername": "@{{username}} · {{id}}",
+      "idOnly": "ID {{id}}"
+    },
+    "names": {
+      "gentooZh": "サンプルグループ A",
+      "archZh": "サンプルグループ B",
+      "oldOt": "サンプルグループ C"
+    }
+  },
+  "queue": {
+    "title": "待機キュー",
+    "tableLabel": "待機キューの記録",
+    "columns": {
+      "user": "ユーザー",
+      "group": "グループ",
+      "result": "結果",
+      "time": "時刻",
+      "actions": "操作"
+    },
+    "status": {
+      "pending": "保留中 {{time}}"
+    },
+    "timeUnavailable": "時刻不明",
+    "loading": {
+      "title": "待機キューを読み込んでいます",
+      "description": "保留中の申請を読み込んでいます…"
+    },
+    "filter": {
+      "label": "待機キューを絞り込む",
+      "placeholder": "ユーザーまたはグループで絞り込む"
+    },
+    "empty": {
+      "title": "申請はまだありません",
+      "description": "最初の申請を受け取ると、ここに待機中の申請者が表示されます。"
+    },
+    "groupRequired": {
+      "title": "先にグループを選択してください",
+      "description": "許可されたグループを選択すると、その待機キューを表示できます。",
+      "select": "グループを選択"
+    },
+    "noGroups": {
+      "title": "このアカウントにはまだグループが許可されていません",
+      "description": "待機キューには許可されたグループだけが表示されます。"
+    },
+    "unavailable": {
+      "title": "待機キューを読み込めません",
+      "retry": "再試行"
+    },
+    "actions": {
+      "release": "入場させる",
+      "releaseFor": "{{user}} を入場させる",
+      "releasing": "入場処理中…",
+      "releasingFor": "{{user}} を入場させています",
+      "reload": "再読み込み"
+    },
+    "feedback": {
+      "releaseSuccess": "{{user}} を入場させました。これで「{{group}}」に入れます。",
+      "releaseFailure": "{{user}} を入場させられませんでした。申請はまだ待機中のため、再試行できます。"
+    },
+    "errors": {
+      "authenticationExpired": "セッションの有効期限が切れています。Telegram からコンソールを開き直してください。",
+      "authenticationInvalid": "このコンソールセッションを認証できません。Telegram からコンソールを開き直してください。",
+      "accessDenied": "このグループを管理する権限を失いました。",
+      "accessUnavailable": "このグループを管理する権限を一時的に確認できません。再試行してください。",
+      "chatNotFound": "このグループはコンソールで管理できなくなりました。",
+      "challengeConflict": "この申請は別の管理者が処理しました。待機キューを更新しました。",
+      "csrfInvalid": "このページのセキュリティトークンの有効期限が切れています。ページを更新してから再試行してください。",
+      "invalidSettlement": "この申請は現在入場させられません。待機キューを更新してから再試行してください。",
+      "loadUnavailable": "待機キューを一時的に利用できません。",
+      "network": "接続が中断されました。待機キューを更新してから、再試行するか決めてください。",
+      "queueUnavailable": "待機キューを一時的に読み込めません。再試行してください。",
+      "settlementUnavailable": "この申請を一時的に入場させられません。再試行してください。",
+      "targetProtected": "この申請者はグループ管理者のため、ここから入場させられません。",
+      "targetUnavailable": "この申請者のグループメンバー状態を一時的に確認できません。再試行してください。"
+    },
+    "filteredEmpty": {
+      "title": "条件に一致する記録がありません",
+      "currentCondition": "現在の条件：グループは {{group}}、結果は {{result}}。",
+      "queryCondition": "現在の絞り込み：{{query}}。",
+      "clear": "絞り込みを消去"
+    }
+  },
+  "preferences": {
+    "title": "環境設定",
+    "description": "これらの項目は現在のブラウザーにのみ影響します。",
+    "interface": {
+      "title": "インターフェース",
+      "description": "テーマと言語は現在のデバイスに保存され、グループ設定は変更しません。"
+    }
+  },
+  "moderation": {
+    "navigation": "モデレーションと処分",
+    "title": "モデレーションと処分",
+    "description": "現在のグループの警告上限、チャンネルなりすまし対策、処分記録の送信先を調整します。",
+    "loading": {
+      "title": "モデレーションと処分の設定を読み込んでいます",
+      "description": "現在のグループの有効な設定と設定元を読み込んでいます…"
+    },
+    "groupRequired": {
+      "title": "先にグループを選択してください",
+      "description": "許可されたグループを選択すると、その処分設定を管理できます。",
+      "select": "グループを選択"
+    },
+    "noGroups": {
+      "title": "このアカウントにはまだグループが許可されていません",
+      "description": "モデレーションと処分の設定は、許可されたグループでのみ利用できます。"
+    },
+    "unavailable": {
+      "title": "モデレーションと処分の設定を読み込めません",
+      "retry": "再試行"
+    },
+    "source": {
+      "factory": "工場出荷時の既定値",
+      "file": "ファイル管理",
+      "chat": "このグループの設定",
+      "pending": "未保存",
+      "restoring": "既定値へ戻す待機中"
+    },
+    "warnLimit": {
+      "label": "警告上限",
+      "description": "同じメンバーがこの回数に達すると、ボットがグループから削除します。"
+    },
+    "antispam": {
+      "label": "チャンネルを装った投稿をブロック",
+      "description": "信頼されていないチャンネルとして送信されたメッセージを削除します。その ID がこのグループの関連チャンネルではないことを確認してから、チャンネル ID をアクセス禁止にします。既定で有効です。"
+    },
+    "adminLog": {
+      "label": "処分記録グループ",
+      "description": "空欄はグループ ID 0 と同じです。処分記録を別送せず、処分失敗の警告は現在のグループに送信します。"
+    },
+    "validation": {
+      "warnLimit": "警告上限は 0 より大きい整数でなければなりません。",
+      "adminLog": "整数のグループ ID を入力するか、グループ ID 0 を使う場合は空欄にしてください。"
+    },
+    "save": {
+      "label": "モデレーションと処分の設定を保存",
+      "unsaved_other": "未保存の変更 {{count}} 件"
+    },
+    "actions": {
+      "restore": "既定値に戻す",
+      "cancelRestore": "復元をキャンセル",
+      "discard": "破棄",
+      "save": "保存",
+      "saving": "保存中…",
+      "reload": "再読み込み"
+    },
+    "feedback": {
+      "saved": "モデレーションと処分の設定を保存しました。",
+      "conflict": "他のユーザーが設定を変更しました。再読み込みしてから保存してください。"
+    },
+    "errors": {
+      "authenticationInvalid": "コンソールセッションが無効です。Telegram からコンソールを開き直してください。",
+      "csrfInvalid": "このページのセキュリティトークンの有効期限が切れています。ページを更新してから再試行してください。",
+      "authenticationExpired": "セッションの有効期限が切れています。Telegram からコンソールを開き直してください。",
+      "accessDenied": "このグループを管理する権限を失いました。",
+      "accessUnavailable": "このグループを管理する権限を一時的に確認できません。再試行してください。",
+      "chatNotFound": "このグループはコンソールで管理できなくなりました。",
+      "invalidSettings": "これらの設定は検証に合格しませんでした。変更を確認して再試行してください。",
+      "settingsUnavailable": "設定サービスを一時的に利用できません。再試行してください。",
+      "loadUnavailable": "モデレーションと処分の設定を一時的に利用できません。",
+      "saveUnavailable": "モデレーションと処分の設定を保存できません。再試行してください。"
+    }
+  },
+  "feeds": {
+    "navigation": "フィード",
+    "title": "フィード",
+    "description": "プロセス全体で使用するフィード先、ニュースソース、リポジトリとブランチの設定を確認します。これらの値は現在のグループによって変わりません。",
+    "loading": {
+      "title": "フィード設定を読み込んでいます",
+      "description": "プロセスレベルの設定とその設定元を読み込んでいます…"
+    },
+    "accessDenied": {
+      "title": "プロセス設定を表示する権限がありません",
+      "description": "このページは運用担当者専用です。グループ管理者は管理するグループの設定だけを表示でき、プロセス全体のフィード設定は読み取れません。"
+    },
+    "unavailable": {
+      "title": "フィード設定を読み込めません",
+      "retry": "再試行"
+    },
+    "readOnly": {
+      "title": "設定ファイルで管理",
+      "badge": "読み取り専用",
+      "description": "これらの値はプログラムの既定設定または起動時の設定ファイルから取得されます。このページには書き込み機能がありません。コンソールはインターフェースが返した現在の値と設定元だけを表示します。"
+    },
+    "source": {
+      "value": "設定元：{{source}}",
+      "factoryDefault": "工場出荷時の既定値",
+      "userFile": "ファイル管理"
+    },
+    "feed": {
+      "title": "フィード先",
+      "description": "各項目は、Bugzilla、ニュース、または GitHub のコミット通知を受け取るグループまたはチャンネルに対応します。",
+      "itemTitle": "送信先 {{number}}",
+      "destination": "受信グループまたはチャンネル",
+      "language": "フィード言語",
+      "interval": "取得間隔",
+      "bugzilla": "Bugzilla 通知",
+      "news": "ニュース通知",
+      "bugProduct": "Bugzilla 製品",
+      "bugComponent": "Bugzilla コンポーネント",
+      "silentBugs": "Bugzilla を常に無音にする",
+      "githubRepository": "GitHub リポジトリ",
+      "followingDefault": "既定のブランチに従う",
+      "allProducts": "すべての製品",
+      "allComponents": "すべてのコンポーネント",
+      "emptyTitle": "フィード先が設定されていません",
+      "emptyDescription": "現在のプロセスは、どのグループまたはチャンネルにも Bugzilla、ニュース、GitHub コミットの通知を送信しません。"
+    },
+    "newsURL": {
+      "title": "ニュースソース URL",
+      "description": "プロセスがニュース項目を取得するときに使うグローバル URL。",
+      "empty": "ニュースソース URL が設定されていません"
+    },
+    "overlays": {
+      "title": "リポジトリとブランチ",
+      "description": "インターフェースが返した GitHub overlay リポジトリとそのブランチ。",
+      "repository": "リポジトリ",
+      "branch": "ブランチ",
+      "defaultBranch": "master（既定）",
+      "emptyTitle": "リポジトリが設定されていません",
+      "emptyDescription": "現在のプロセスには overlay リポジトリとブランチの設定がありません。"
+    },
+    "languages": {
+      "default": "簡体字中国語（既定）",
+      "zh": "簡体字中国語",
+      "zhHant": "繁体字中国語",
+      "en": "英語",
+      "ja": "日本語",
+      "ru": "ロシア語"
+    },
+    "values": {
+      "enabled": "有効",
+      "disabled": "無効",
+      "enabledByDefault": "有効（既定）",
+      "disabledByDefault": "無効（既定）",
+      "seconds_other": "{{count}} 秒"
+    },
+    "errors": {
+      "authenticationExpired": "セッションの有効期限が切れています。Telegram からコンソールを開き直してください。",
+      "authenticationInvalid": "このコンソールセッションを認証できません。Telegram からコンソールを開き直してください。",
+      "settingsUnavailable": "プロセス設定サービスを一時的に利用できません。再試行してください。",
+      "loadUnavailable": "プロセス設定を一時的に読み込めません。再試行してください。",
+      "invalidResponse": "プロセス設定の応答が不完全なため、安全に表示できません。再試行してください。",
+      "network": "接続が中断されました。設定を再読み込みしてから確認してください。"
+    }
+  },
+  "bypass": {
+    "navigation": "認証免除のソース",
+    "title": "認証免除のソース",
+    "description": "現在のグループの信頼グループ、参加必須チャンネル、チャンネル ID 許可リストを管理します。",
+    "loading": {
+      "title": "認証免除のソース設定を読み込んでいます",
+      "description": "現在のグループの有効な設定と設定元を読み込んでいます…"
+    },
+    "groupRequired": {
+      "title": "先にグループを選択してください",
+      "description": "許可されたグループを選択すると、その認証免除のソースを管理できます。",
+      "select": "グループを選択"
+    },
+    "noGroups": {
+      "title": "このアカウントにはまだグループが許可されていません",
+      "description": "認証免除のソースは、許可されたグループでのみ利用できます。"
+    },
+    "unavailable": {
+      "title": "認証免除のソース設定を読み込めません",
+      "retry": "再試行"
+    },
+    "source": {
+      "factory": "工場出荷時の既定値",
+      "file": "ファイル管理",
+      "chat": "このグループの設定",
+      "pending": "未保存",
+      "restoring": "既定値へ戻す待機中"
+    },
+    "trusted": {
+      "title": "信頼グループ",
+      "label": "これらのグループのメンバーを信頼",
+      "description": "いずれかの信頼グループに属すると確認できた申請者は認証を省略します。メンバー状態を読み取れない場合は、引き続き認証します。1 行に 1 つ Telegram グループ ID を入力してください。"
+    },
+    "requiredChannel": {
+      "title": "参加必須チャンネル",
+      "sectionDescription": "この条件を通過するには、申請者がこのチャンネルのメンバーである必要があります。",
+      "id": {
+        "label": "参加必須チャンネル ID",
+        "description": "空欄または 0 でこの条件を無効にします。有効にする場合は、@ で始まる表示名またはチャンネル招待リンクを入力してください。"
+      },
+      "display": {
+        "label": "チャンネル表示名",
+        "description": "公開チャンネルでは @ で始まる表示名を入力してください。ボットは申請者への案内で使用します。非公開チャンネルでは空欄にできますが、招待リンクが必要です。"
+      },
+      "invite": {
+        "label": "チャンネル招待リンク",
+        "description": "非公開チャンネルではアクセス可能な招待リンクを入力してください。公開チャンネルでは空欄にできます。"
+      },
+      "failOpen": {
+        "label": "チャンネルを確認できなくても入場させる",
+        "description": "ボットが申請者と自身の参加必須チャンネルでのメンバー状態を読み取れない場合、他のすべての認証に合格した申請者を入場させるか選択します。",
+        "enabled": "現在は、他のすべての認証に合格した申請者を入場させます。ボットがチャンネルを確認できない間は、未参加の人も入れる可能性があり、参加必須チャンネルの認証はこのグループを保護しません。",
+        "disabled": "現在は申請を拒否します。ボットが一時的にチャンネル権限を失った場合や Telegram の検索に失敗した場合、正当な申請者も誤って拒否される可能性があり、後で再申請が必要です。"
+      }
+    },
+    "channelWhitelist": {
+      "title": "チャンネル許可リスト",
+      "label": "これらのチャンネル ID に投稿を許可",
+      "description": "これらのチャンネル ID は保護されたグループに投稿できます。メンバーの許可リストではありません。1 行に 1 つ Telegram チャンネル ID を入力してください。"
+    },
+    "memberWhitelist": {
+      "title": "メンバー許可リスト",
+      "description": "現在の設定インターフェースにはメンバー許可リストの項目がありません。チャンネル許可リストはチャンネル ID の投稿だけを許可し、メンバーの認証を省略しません。"
+    },
+    "validation": {
+      "integer": "整数のチャンネル ID を入力するか、空欄にしてこの条件を無効にしてください。",
+      "list": "0 ではない整数の Telegram ID を 1 行に 1 つ入力し、重複させないでください。",
+      "reachableChannel": "参加必須チャンネルを有効にする場合、@ で始まる表示名またはチャンネル招待リンクを入力してください。"
+    },
+    "save": {
+      "label": "認証免除のソース設定を保存",
+      "unsaved_other": "未保存の変更 {{count}} 件"
+    },
+    "actions": {
+      "restore": "既定値に戻す",
+      "cancelRestore": "復元をキャンセル",
+      "discard": "破棄",
+      "save": "保存",
+      "saving": "保存中…",
+      "reload": "再読み込み"
+    },
+    "feedback": {
+      "saved": "認証免除のソース設定を保存しました。",
+      "conflict": "他のユーザーが設定を変更しました。最新の値を読み込みました。必要な変更をもう一度適用してください。"
+    },
+    "errors": {
+      "authenticationExpired": "セッションの有効期限が切れています。Telegram からコンソールを開き直してください。",
+      "authenticationInvalid": "このコンソールセッションを認証できません。Telegram からコンソールを開き直してください。",
+      "accessDenied": "このグループを管理する権限を失いました。",
+      "accessUnavailable": "このグループを管理する権限を一時的に確認できません。再試行してください。",
+      "chatNotFound": "このグループはコンソールで管理できなくなりました。",
+      "csrfInvalid": "このページのセキュリティトークンの有効期限が切れています。ページを更新してから再試行してください。",
+      "invalidSettings": "1 つ以上の設定が無効です。確認してから保存し直してください。",
+      "settingsUnavailable": "認証免除のソース設定を一時的に利用できません。再試行してください。",
+      "loadUnavailable": "認証免除のソース設定を一時的に読み込めません。再試行してください。",
+      "saveUnavailable": "認証免除のソース設定を一時的に保存できません。再試行してください。",
+      "network": "接続が中断されました。設定を再読み込みしてから、再試行するか決めてください。"
+    }
+  },
+  "audit": {
+    "navigation": "操作記録",
+    "title": "操作記録",
+    "tableLabel": "認証判定の履歴",
+    "columns": {
+      "user": "ユーザー",
+      "group": "グループ",
+      "result": "判定",
+      "reason": "理由",
+      "actor": "操作者",
+      "time": "判定時刻",
+      "actions": "操作"
+    },
+    "actor": {
+      "automatic": "システム"
+    },
+    "loading": {
+      "title": "操作記録を読み込んでいます",
+      "description": "処理済みの認証判定を読み込んでいます…"
+    },
+    "groupRequired": {
+      "title": "先にグループを選択してください",
+      "description": "許可されたグループを選択すると、その操作記録を表示できます。",
+      "select": "グループを選択"
+    },
+    "noGroups": {
+      "title": "このアカウントにはまだグループが許可されていません",
+      "description": "操作記録には許可されたグループだけが表示されます。"
+    },
+    "unavailable": {
+      "title": "操作記録を読み込めません",
+      "retry": "再試行"
+    },
+    "actions": {
+      "undo": "アクセス禁止を取り消す",
+      "undoFor": "{{user}} のアクセス禁止を取り消す",
+      "undoing": "取り消し中…",
+      "undoingFor": "{{user}} のアクセス禁止を取り消しています",
+      "reload": "再読み込み"
+    },
+    "undoState": {
+      "pending": "取り消し待ち",
+      "completed": "取り消し済み",
+      "failed": "取り消し失敗"
+    },
+    "feedback": {
+      "undoSuccess": "{{user}} のアクセス禁止を取り消しました。元の判定は操作記録に残ります。",
+      "undoPending": "{{user}} のアクセス禁止の取り消しを送信しました。システムは引き続き再試行します。",
+      "undoFailure": "{{user}} のアクセス禁止を取り消せませんでした。元の判定は操作記録に残ります。"
+    },
+    "errors": {
+      "authenticationExpired": "セッションの有効期限が切れています。Telegram からコンソールを開き直してください。",
+      "authenticationInvalid": "このコンソールセッションを認証できません。Telegram からコンソールを開き直してください。",
+      "auditConflict": "取り消しを送信する前に記録が変更されました。アクセス禁止は変更されていません。",
+      "auditNotFound": "この操作記録は存在しません。",
+      "auditNotUndoable": "現在のアカウントではこのアクセス禁止を取り消せません。",
+      "auditUnavailable": "操作記録を一時的に読み込めません。再試行してください。",
+      "accessDenied": "このグループを管理する権限を失いました。",
+      "accessUnavailable": "このグループを管理する権限を一時的に確認できません。再試行してください。",
+      "chatNotFound": "このグループはコンソールで管理できなくなりました。",
+      "csrfInvalid": "このページのセキュリティトークンの有効期限が切れています。ページを更新してから再試行してください。",
+      "invalidAudit": "この操作記録は取り消せません。",
+      "network": "接続が中断されました。操作記録を更新してから、再試行するか決めてください。",
+      "loadUnavailable": "操作記録を一時的に利用できません。",
+      "undoUnavailable": "このアクセス禁止を一時的に取り消せません。再試行してください。"
+    },
+    "empty": {
+      "title": "処理済みの判定はまだありません",
+      "description": "認証判定が処理されると、元の履歴を保持したままここに表示されます。"
+    }
+  },
+  "verification": {
+    "navigation": "認証方式",
+    "title": "認証方式",
+    "description": "これらの設定は現在のグループにのみ影響します。保存時にバージョンを確認し、他の管理者の変更を上書きしないようにします。",
+    "loading": {
+      "title": "認証設定を読み込んでいます",
+      "description": "このグループの現在の認証設定を読み込んでいます…"
+    },
+    "groupRequired": {
+      "title": "先にグループを選択してください",
+      "description": "許可されたグループを選択すると、その認証設定を変更できます。",
+      "select": "グループを選択"
+    },
+    "noGroups": {
+      "title": "このアカウントにはまだグループが許可されていません",
+      "description": "認証設定は、許可されたグループでのみ利用できます。"
+    },
+    "unavailable": {
+      "title": "認証設定を読み込めません",
+      "retry": "再試行"
+    },
+    "delivery": {
+      "title": "配信先",
+      "description": "問題を送信する場所を選択します。",
+      "label": "問題の配信",
+      "group": "グループのみ",
+      "dm": "DM を優先",
+      "both": "グループと DM",
+      "groupDescription": "問題は保護されたグループ内にのみ送信します。",
+      "dmDescription": "まず DM 認証を試し、明確に拒否された場合だけグループ内に問題を送信します。",
+      "bothDescription": "まずグループ内に問題を送信し、その後 DM を試します。"
+    },
+    "challenge": {
+      "title": "問題の種類",
+      "description": "認証戦略を選択します。",
+      "label": "認証戦略",
+      "kernel": "カーネルバージョン",
+      "quiz": "選択式問題",
+      "mixed": "申請者ごとに選択",
+      "kernelDescription": "申請者に Linux カーネルバージョンの入力を求めます。",
+      "quizDescription": "選択肢をランダムに並べ替えた問題を申請者に表示します。",
+      "mixedDescription": "申請者ごとにカーネルバージョンまたは選択式問題を選びます。"
+    },
+    "timing": {
+      "title": "時間と処置",
+      "description": "問題の期限、再試行間隔、自動処置を設定します。",
+      "timeout": {
+        "label": "認証タイムアウト",
+        "description": "30 から 1,800 の範囲の整数秒を入力してください。"
+      },
+      "maxFails": {
+        "label": "自動アクセス禁止までの認証失敗回数",
+        "description": "0 または負の数で自動アクセス禁止を無効にします。"
+      },
+      "retry": {
+        "label": "再試行クールダウン",
+        "description": "0 または負の数でクールダウンを無効にします。正の値は最長 366 日です。"
+      },
+      "ban": {
+        "label": "拒否後のアクセス禁止期間",
+        "description": "0 は永久を意味します。それ以外は 30 秒から 366 日の範囲で指定してください。"
+      },
+      "mute": {
+        "label": "ミュート期間",
+        "description": "30 秒から 366 日の範囲の整数を入力してください。"
+      }
+    },
+    "invited": {
+      "title": "招待されたメンバー",
+      "description": "他のメンバーに招待されて参加したメンバーにも認証を求めるか決めます。",
+      "label": "招待メンバーを認証",
+      "settingDescription": "無効にすると、他のメンバーに招待されて参加したメンバーは認証不要です。"
+    },
+    "source": {
+      "value": "設定元：{{source}}",
+      "factoryDefault": "工場出荷時の既定値",
+      "userFile": "設定ファイル",
+      "chatOverride": "このグループの上書き"
+    },
+    "save": {
+      "dirty": "保存していない変更があります。",
+      "clean": "保存する変更はありません。"
+    },
+    "actions": {
+      "restore": "継承値に戻す",
+      "save": "変更を保存",
+      "saving": "保存中…",
+      "reload": "再読み込み"
+    },
+    "feedback": {
+      "saved": "認証設定を保存しました。",
+      "conflict": "他の管理者が設定を変更しました。最新の値を読み込みました。必要な変更をもう一度適用してください。"
+    },
+    "validation": {
+      "integer": "整数を入力してください。",
+      "timeout": "30 から 1,800 の範囲の整数を入力してください。",
+      "retry": "正の数は 31,622,400 秒を超えられません。",
+      "ban": "0、または 30 から 31,622,400 の範囲の整数を入力してください。",
+      "mute": "30 から 31,622,400 の範囲の整数を入力してください。"
+    },
+    "errors": {
+      "authenticationExpired": "セッションの有効期限が切れています。Telegram からコンソールを開き直してください。",
+      "authenticationInvalid": "このコンソールセッションを認証できません。Telegram からコンソールを開き直してください。",
+      "accessDenied": "このグループを管理する権限を失いました。",
+      "accessUnavailable": "このグループを管理する権限を一時的に確認できません。再試行してください。",
+      "chatNotFound": "このグループはコンソールで管理できなくなりました。",
+      "csrfInvalid": "このページのセキュリティトークンの有効期限が切れています。ページを更新してから再試行してください。",
+      "invalidSettings": "1 つ以上の設定が無効です。確認してから保存し直してください。",
+      "settingsUnavailable": "認証設定を一時的に利用できません。再試行してください。",
+      "loadUnavailable": "認証設定を一時的に読み込めません。再試行してください。",
+      "saveUnavailable": "認証設定を一時的に保存できません。再試行してください。",
+      "network": "接続が中断されました。設定を再読み込みしてから、再試行するか決めてください。"
+    }
+  },
+  "questions": {
+    "navigation": "問題集",
+    "title": "問題集",
+    "description": "現在のグループの選択式問題、フォールバック問題、認証言語を管理します。",
+    "loading": {
+      "title": "問題集を読み込んでいます",
+      "description": "このグループの現在の問題、フォールバック問題、設定元を読み込んでいます…"
+    },
+    "groupRequired": {
+      "title": "先にグループを選択してください",
+      "description": "許可されたグループを選択すると、その問題集を変更できます。",
+      "select": "グループを選択"
+    },
+    "noGroups": {
+      "title": "このアカウントにはまだグループが許可されていません",
+      "description": "問題集は、許可されたグループでのみ利用できます。"
+    },
+    "unavailable": {
+      "title": "問題集を読み込めません",
+      "retry": "再試行"
+    },
+    "source": {
+      "value": "設定元：{{source}}",
+      "fallbackMode": "フォールバックモードの設定元：{{source}}",
+      "fallbackBank": "フォールバック問題集の設定元：{{source}}",
+      "factoryDefault": "工場出荷時の既定値",
+      "userFile": "設定ファイル",
+      "chatOverride": "このグループの上書き",
+      "restoring": "継承値へ戻す待機中"
+    },
+    "concurrency": {
+      "title": "問題集全体をまとめて保存",
+      "description": "2 人の管理者が異なる問題を同時に変更しても、バージョン競合になります。競合時は最新の問題集を再読み込みし、保存していないローカルの下書きは書き込みません。"
+    },
+    "language": {
+      "title": "認証言語",
+      "description": "ボットが申請者に問題と認証メッセージを表示するときの言語を選択します。",
+      "label": "グループの認証言語",
+      "settingDescription": "簡体字中国語、繁体字中国語、英語、日本語、ロシア語から選択できます。フォールバック問題は設定内の問題文と回答を使用します。",
+      "zh": "簡体字中国語",
+      "zhHant": "繁体字中国語",
+      "en": "英語",
+      "ja": "日本語",
+      "ru": "ロシア語"
+    },
+    "questionBank": {
+      "title": "選択式問題",
+      "description": "各問題には少なくとも 2 つの選択肢が必要です。正解はリスト内の位置として保存されます。",
+      "count_other": "選択式問題 {{count}} 件",
+      "empty": "選択式問題がありません。選択式認証で使うには、最初の問題を追加してください。",
+      "itemTitle": "選択式問題 {{number}}",
+      "prompt": "問題文",
+      "options": "選択肢と正解",
+      "optionsDescription": "選択肢の横にあるボタンで正解を設定します。",
+      "option": "選択肢 {{number}}",
+      "correctAnswerFor": "選択肢 {{number}} を正解に設定",
+      "confirmDelete": "選択式問題 {{number}} を削除しますか？保存すると、この問題は現在のグループの問題集から削除されます。"
+    },
+    "fallback": {
+      "title": "フォールバック問題",
+      "description": "カーネル認証は任意のモードです。カーネル問題に回答できない場合は、これらのフォールバック問題を使います。",
+      "modeLabel": "フォールバック問題の設定元",
+      "modeDescription": "デプロイから継承した既定の問題集（設定ファイル由来の場合があります）を使うか、現在のグループ独自の問題文と受け付ける回答を管理します。",
+      "builtin": "継承したデプロイ既定の問題集",
+      "custom": "カスタムフォールバック問題",
+      "builtinDescription": "実際に継承したデプロイのフォールバック問題集を使用します。ここは表示専用で、問題集は設定ファイル由来の場合があります。",
+      "builtinExampleDescription": "プログラムに組み込まれた中立的なサンプル問題集を使用しています。ここは表示専用で、デプロイ担当者は設定ファイルで実際のフォールバック問題集を提供できます。",
+      "inheritedCount_other": "継承したフォールバック問題 {{count}} 件",
+      "inheritedPending": "この変更を保存すると、継承した問題集が表示されます。",
+      "inheritedEmpty": "継承した問題集に問題はありません。",
+      "count_other": "カスタムフォールバック問題 {{count}} 件",
+      "itemTitle": "フォールバック問題 {{number}}",
+      "prompt": "問題文",
+      "answers": "受け付ける回答",
+      "answersDescription": "判定には実際の問題と同じサーバー側の回答正規化規則を使います。受け付ける回答を完全な形で 1 件ずつ入力してください。",
+      "answer": "回答 {{number}}",
+      "confirmDelete": "フォールバック問題 {{number}} を削除しますか？保存すると、この問題は現在のグループのフォールバック問題集から削除されます。"
+    },
+    "actions": {
+      "restore": "継承値に戻す",
+      "restoreFallback": "フォールバック問題の継承値に戻す",
+      "addQuestion": "選択式問題を追加",
+      "deleteQuestion": "問題を削除",
+      "addOption": "選択肢を追加",
+      "selectCorrectAnswer": "正解に設定",
+      "removeOption": "削除",
+      "removeOptionFor": "選択肢 {{number}} を削除",
+      "addFallback": "フォールバック問題を追加",
+      "deleteFallback": "フォールバック問題を削除",
+      "addAnswer": "回答を追加",
+      "removeAnswer": "削除",
+      "removeAnswerFor": "回答 {{number}} を削除",
+      "save": "変更を保存",
+      "saving": "保存中…",
+      "reload": "再読み込み"
+    },
+    "save": {
+      "dirty": "保存していない問題集の変更があります。",
+      "clean": "保存する問題集の変更はありません。"
+    },
+    "feedback": {
+      "saved": "問題集の設定を保存しました。",
+      "conflict": "別の管理者が設定を変更しました。最新の問題集を読み込みました。保存していない下書きは書き込まれていません。各問題集はリスト全体を保存するため、異なる問題を変更してもバージョン競合になります。最新の内容を確認して編集し直してください。"
+    },
+    "validation": {
+      "questionPrompt": "問題文を入力してください。",
+      "questionOptions": "各選択式問題には少なくとも 2 つの選択肢が必要です。",
+      "questionAnswer": "現在のリストから正解にする選択肢を 1 つ選択してください。",
+      "fallbackRequired": "カスタムフォールバック問題を使う場合は、少なくとも 1 問必要です。",
+      "fallbackPrompt": "フォールバック問題の本文を入力してください。",
+      "fallbackAnswers": "各フォールバック問題には少なくとも 1 つの受け付ける回答が必要です。",
+      "fallbackAnswerBlank": "受け付ける回答を空欄にはできません。"
+    },
+    "errors": {
+      "authenticationExpired": "セッションの有効期限が切れています。Telegram からコンソールを開き直してください。",
+      "authenticationInvalid": "このコンソールセッションを認証できません。Telegram からコンソールを開き直してください。",
+      "accessDenied": "このグループを管理する権限を失いました。",
+      "accessUnavailable": "このグループを管理する権限を一時的に確認できません。再試行してください。",
+      "chatNotFound": "このグループはコンソールで管理できなくなりました。",
+      "csrfInvalid": "このページのセキュリティトークンの有効期限が切れています。ページを更新してから再試行してください。",
+      "invalidSettings": "問題集が検証に合格しませんでした。問題と回答を確認してから保存し直してください。",
+      "settingsUnavailable": "問題集の設定を一時的に利用できません。再試行してください。",
+      "loadUnavailable": "問題集を一時的に読み込めません。再試行してください。",
+      "saveUnavailable": "問題集を一時的に保存できません。再試行してください。",
+      "network": "接続が中断されました。問題集を再読み込みしてから、再試行するか決めてください。"
+    }
+  },
+  "diagnostics": {
+    "navigation": "診断",
+    "title": "診断",
+    "description": "このインスタンスの稼働状態、Bot API の探査、設定の永続化状態を確認します。",
+    "loading": {
+      "title": "インスタンス状態を読み込んでいます",
+      "description": "このインスタンスが報告した状態を読み込んでいます…"
+    },
+    "accessDenied": {
+      "title": "グループ管理者はインスタンス状態を表示できません",
+      "description": "このページは運用担当者専用です。グループ管理者は自身のグループを管理できますが、インスタンス全体の稼働状態は読み取れません。"
+    },
+    "unavailable": {
+      "title": "インスタンス状態を読み込めません",
+      "retry": "再試行"
+    },
+    "readOnly": {
+      "title": "読み取り専用状態",
+      "badge": "読み取り専用",
+      "description": "このページは実行時状態を変更しません。インターフェースはインスタンスが報告した状態だけを返します。"
+    },
+    "sections": {
+      "health": {
+        "title": "稼働準備",
+        "description": "プロセス、設定、Telegram 接続の現在の準備状態。"
+      },
+      "botAPI": {
+        "title": "Bot API 探査",
+        "description": "直近で成功した探査の時刻と遅延。"
+      },
+      "persistence": {
+        "title": "設定の永続化",
+        "description": "設定ストレージの構成、永続性、書き込み状態。"
+      },
+      "notReported": {
+        "title": "未報告の診断項目",
+        "description": "これらは診断の対象ですが、現在のインスタンスエンドポイントは状態を提供していません。"
+      },
+      "rollback": {
+        "title": "ロールバック条件の測定値",
+        "description": "第 10 段階で事前に固定した 4 つのロールバック条件の測定値。このページは値としきい値だけを表示し、ロールバックの判断は人が行います。"
+      }
+    },
+    "labels": {
+      "live": "稼働中",
+      "ready": "準備完了",
+      "configReady": "設定準備完了",
+      "telegramReady": "Telegram 準備完了",
+      "lastHeartbeat": "最終ハートビート",
+      "latency": "Bot API 遅延",
+      "configured": "設定済み",
+      "durable": "永続化可能",
+      "writable": "書き込み可能",
+      "lastError": "直近の失敗理由",
+      "permissionPreflight": "権限の事前確認",
+      "queryCache": "検索キャッシュ",
+      "queryRateLimit": "検索レート制限",
+      "challengeDelivery": "認証メッセージ送信",
+      "consoleAccess": "コンソールのグループアクセス",
+      "databaseWrites": "データベース書き込み",
+      "rejections": "拒否とアクセス禁止の処理",
+      "problemSpan": "継続時間",
+      "firstProblem": "最初の未復旧の失敗",
+      "lastProblem": "直近の失敗",
+      "lastRecovered": "直近の復旧",
+      "failedDeliveries": "この区間の送信失敗",
+      "duplicateDeliveries": "この区間の重複送信",
+      "unavailableAttempts": "この区間の失敗回数",
+      "failureRate": "失敗率",
+      "writeScope": "集計範囲"
+    },
+    "values": {
+      "yes": "はい",
+      "no": "いいえ",
+      "notMeasured": "未測定",
+      "milliseconds": "{{value}} ミリ秒",
+      "noFailure": "失敗理由の記録なし",
+      "failureRecorded": "失敗を記録済み",
+      "notReported": "未報告",
+      "streakClear": "未復旧の失敗なし",
+      "streakWithin": "しきい値以内",
+      "streakExceeded": "しきい値超過",
+      "writeRateWithin": "1 パーセント以内",
+      "writeRateExceeded": "1 パーセント超過",
+      "noWrites": "この期間に書き込みなし",
+      "humanReview": "人による確認が必要",
+      "notRecorded": "未記録",
+      "reasonUnrecorded": "理由未記録",
+      "percent": "{{value}}%",
+      "durationSeconds": "{{seconds}} 秒",
+      "durationMinutes": "{{minutes}} 分",
+      "durationHours": "{{hours}} 時間",
+      "durationMinutesSeconds": "{{minutes}} 分 {{seconds}} 秒"
+    },
+    "notReported": {
+      "permissionPreflight": "グループ権限の結果がないため、Telegram の準備完了で代用できません。",
+      "queryCache": "キャッシュ状態またはヒットデータがありません。",
+      "queryRateLimit": "検索レート制限はグループごとの設定であり、このインスタンス状態には含まれません。"
+    },
+    "errors": {
+      "authenticationExpired": "セッションの有効期限が切れています。Telegram からコンソールに入り直してください。",
+      "authenticationInvalid": "このコンソールセッションを認証できません。Telegram からコンソールを開き直してください。",
+      "unavailable": "診断サービスを一時的に利用できません。再試行してください。",
+      "loadUnavailable": "インスタンス状態を一時的に読み込めません。再試行してください。",
+      "network": "接続が中断されました。インスタンス状態を再読み込みしてください。",
+      "invalidResponse": "インスタンスが返した診断データがインターフェースの契約に適合しません。再試行してください。"
+    },
+    "rollback": {
+      "unavailable": "現在のインスタンスはロールバック測定値を返していません。測定値を報告しないバージョンでは、ここは空欄になります。",
+      "streak": {
+        "rule": "しきい値 {{threshold}}：連続失敗がこれを超えるとロールバック条件になります。単独の失敗の継続時間は 0 です。"
+      },
+      "databaseWrites": {
+        "rule": "観測期間 {{window}}：失敗率が 1 パーセントを厳密に超えるとロールバック条件になります。",
+        "rate": "{{rate}}（書き込み {{failed}} / {{total}} 回）"
+      },
+      "rejections": {
+        "reading": "直近 {{window}} に理由別で集計した拒否とアクセス禁止の処理数。これは人が確認するためのデータであり、誰かが誤って拒否されたことを意味しません。",
+        "unavailable": "今回、拒否記録を読み取れなかったため、数値は表示しません。",
+        "none": "この期間に拒否またはアクセス禁止の処理はありません。"
+      }
+    }
+  },
+  "version": {
+    "navigation": "バージョン",
+    "title": "バージョン",
+    "description": "実行中のバージョン、必要に応じて公開済みバージョン、アップグレード前のロールバック互換性を確認します。",
+    "actions": {
+      "retry": "再試行",
+      "cancel": "キャンセル"
+    },
+    "loading": {
+      "title": "バージョン状態を読み込んでいます",
+      "description": "現在のバージョンとホスト置換ユニットの状態を読み込んでいます…",
+      "permissionTitle": "アクセス権を確認しています",
+      "permissionUnavailableTitle": "アクセス権を確認できません",
+      "permissionDescription": "バージョン状態を読み込む前に、このセッションにインスタンス運用権限があるか確認します。"
+    },
+    "accessDenied": {
+      "title": "これはインスタンス運用情報です",
+      "description": "このページは運用担当者専用です。グループ管理者はバージョン情報を読み取ったりアップグレードを開始したりできません。"
+    },
+    "unavailable": {
+      "title": "バージョン状態を読み込めません"
+    },
+    "current": {
+      "title": "現在のバージョン",
+      "description": "アプリケーションが実行しているバージョンと、ホストが置換を実行できるかどうか。",
+      "version": "実行バージョン",
+      "hostUnit": "ホスト置換ユニット",
+      "hostUnitAvailable": "利用可能",
+      "hostUnitUnavailable": "未インストール"
+    },
+    "replacement": {
+      "title": "直近の置換結果",
+      "requestedVersion": "要求されたバージョン",
+      "reasonCode": "理由コード",
+      "none": "置換結果はまだ記録されていません。",
+      "status": {
+        "applied": "アップグレード完了",
+        "failed": "アップグレード失敗",
+        "rejected": "要求を拒否",
+        "rolledBack": "自動ロールバック済み",
+        "rollbackFailed": "アップグレードと自動ロールバックの両方に失敗",
+        "unknown": "結果不明"
+      },
+      "reason": {
+        "complete": "新しいバージョンがホストのヘルスチェックに合格しました。",
+        "requestClaimFailed": "ホストがアップグレード要求を引き継げませんでした。",
+        "invalidDeployment": "ホストが記録したデプロイ情報が無効です。",
+        "invalidRequest": "アップグレード要求の形式が無効なため、ホストが実行を拒否しました。",
+        "applyFailed": "新しいバージョンの置換を完了できず、ホストがポリシーに従ってロールバックを処理しました。",
+        "healthcheckFailed": "新しいバージョンが稼働または準備プローブに合格しませんでした。",
+        "unknown": "ホストが認識できない理由を返しました：{{reason}}。"
+      }
+    },
+    "release": {
+      "title": "公開済みバージョン",
+      "description": "更新を確認したときだけ GitHub にアクセスします。検索に失敗しても、現在のバージョンとホスト状態には影響しません。",
+      "check": "更新を確認",
+      "checking": "確認中",
+      "notChecked": "まだ確認していません。このページはバックグラウンドでリリースソースにアクセスしません。",
+      "available": "新しいバージョンを利用できます",
+      "current": "最新バージョンです",
+      "notes": "変更内容",
+      "noNotes": "このリリースにはリリースノートがありません。",
+      "open": "リリースページ全体を開く"
+    },
+    "rollback": {
+      "safe": "ロールバック可能",
+      "blocked": "ロールバック不可",
+      "available": "対象 schema は v{{target}}、最低ロールバック schema は v{{minimum}} です。現在保持しているバージョンは schema v{{retained}} に対応します。",
+      "schemaIncompatible": "ロールバックできません。対象 schema v{{target}} には、保持バージョンが少なくとも schema v{{minimum}} に対応する必要があります。現在保持しているバージョンが対応するのは schema v{{retained}} です。",
+      "unknownTarget": "対象 schema v{{target}} の互換範囲を確認できないため、アップグレードを開始しません。",
+      "notEarlier": "現在保持しているバージョンの schema v{{retained}} は対象 schema v{{target}} より高いため、利用可能なロールバックバージョンではありません。",
+      "unknown": "このバージョンのロールバック条件を確認できないため、アップグレードを開始しません。"
+    },
+    "manual": {
+      "title": "ホストで手動更新してください",
+      "description": "このインスタンスにはホスト置換ユニットがありません。これはアプリケーションの故障ではありません。アプリケーションはアップグレードの意図だけを書き込め、ホストのプロセスやコンテナーを置き換えることはできません。インストーラーでコンテナーを管理している場合は、Compose ディレクトリの container.env ファイルに次の内容を設定してから、次のコマンドを実行してください。",
+      "imageLabel": "イメージ設定",
+      "commandsLabel": "ホストコマンド"
+    },
+    "upgrade": {
+      "action": "このバージョンにアップグレード",
+      "confirm": "ホスト置換ユニットで {{version}} にアップグレードしますか？アップグレードでアプリケーションが再起動します。ヘルスチェックに失敗した場合、ホストは上に表示したロールバック条件に従って処理します。",
+      "confirmAction": "アップグレードを確認",
+      "requesting": "アップグレードを送信しています",
+      "monitoring": "ホストの結果を待っています",
+      "restartNotice": "アップグレードでアプリケーションが再起動します。接続が復旧すると、このページで結果の読み込みを続けます。",
+      "tryAgain": "もう一度アップグレード",
+      "rollbackBlocked": "ロールバックの事前確認に合格しなかったため、ホストにアップグレード要求を送信しません。"
+    },
+    "values": {
+      "none": "なし"
+    },
+    "errors": {
+      "authenticationExpired": "セッションの有効期限が切れています。Telegram からコンソールに入り直してください。",
+      "accessDenied": "リリース情報の表示やアップグレードを開始できるのは運用担当者だけです。",
+      "csrfInvalid": "このページのセキュリティトークンの有効期限が切れています。ページを更新してから再試行してください。",
+      "authenticationInvalid": "このコンソールセッションを認証できません。Telegram からコンソールを開き直してください。",
+      "authenticationUnavailable": "このセッションのインスタンス運用権限を一時的に確認できません。再試行してください。",
+      "statusNetwork": "接続が中断されました。現在のバージョン状態を読み込めません。再試行してください。",
+      "statusUnavailable": "バージョン状態を一時的に利用できません。再試行してください。",
+      "statusInvalidResponse": "インスタンスが返したバージョン状態がインターフェースの契約に適合しません。再試行してください。",
+      "releaseNetwork": "リリースソースに接続できません。現在のバージョンは引き続き表示できます。後でもう一度試してください。",
+      "releaseUnavailable": "リリースソースまたはスキーママニフェストを一時的に利用できません。これは現在のバージョンが最新であることを意味しません。",
+      "releaseInvalidResponse": "リリースソースが返したデータがインターフェースの契約に適合しません。現在のバージョンは引き続き表示できます。",
+      "upgradeNetwork": "アップグレードの送信中に接続が中断されました。結果の読み込みを再試行してから、再送信するか決めてください。",
+      "upgradeUnavailable": "ホストが一時的にアップグレード要求を受け付けられません。再試行してください。",
+      "upgradeInvalidResponse": "インスタンスがアップグレード要求を確認しませんでした。再試行してください。",
+      "monitorUnavailable": "ホストの最終結果を一時的に確認できません。アップグレード状態はインスタンスのデータディレクトリに保持されます。読み込みを再試行してください。"
+    }
+  },
+  "stats": {
+    "navigation": "統計",
+    "title": "統計",
+    "description": "現在のグループの参加結果の傾向、合格率、認証方式ごとの阻止数を表示します。",
+    "loading": {
+      "title": "統計を読み込んでいます",
+      "description": "選択した日付とタイムゾーンで参加結果を集計しています…"
+    },
+    "groupRequired": {
+      "title": "先にグループを選択してください",
+      "description": "許可されたグループを選択すると、統計を表示できます。",
+      "select": "グループを選択"
+    },
+    "noGroups": {
+      "title": "このアカウントにはまだグループが許可されていません",
+      "description": "統計は、許可されたグループでのみ利用できます。"
+    },
+    "unavailable": {
+      "title": "統計を読み込めません",
+      "retry": "再試行"
+    },
+    "filters": {
+      "title": "統計範囲",
+      "from": "開始日",
+      "to": "終了日（含まない）",
+      "timezone": "タイムゾーン",
+      "timezoneDescription": "タイムゾーンの既定値は現在のブラウザーから提供されます（{{timezone}}）。統計は入力された IANA タイムゾーンで日付の境界を区切ります。これはボットプロセスの stats_timezone 設定ではありません。",
+      "apply": "統計を更新",
+      "errors": {
+        "from": "有効な開始日を入力してください。",
+        "to": "有効な終了日を入力してください。",
+        "range": "終了日は開始日より前にできません。",
+        "timezone": "有効な IANA タイムゾーン名を入力してください。"
+      }
+    },
+    "range": {
+      "applied": "統計範囲：{{from}} から {{to}} まで（終了日は含まない）、タイムゾーン {{timezone}}。"
+    },
+    "zero": "選択した日付範囲に参加結果はありません。傾向グラフと日別結果表には、値が 0 の日付も表示されます。",
+    "summary": {
+      "title": "概要",
+      "challenges": "問題",
+      "approved": "承認",
+      "declined": "拒否",
+      "banned": "アクセス禁止",
+      "expired": "タイムアウト",
+      "passRate": "合格率"
+    },
+    "trend": {
+      "title": "参加結果の傾向",
+      "description": "棒は問題数、線は合格率を示します。正確な数値は下の日別結果表で確認できます。",
+      "chartDescription": "参加結果の傾向グラフ。正確な数値は下の日別結果表で確認できます。",
+      "legendLabel": "凡例",
+      "challenges": "問題数",
+      "passRate": "合格率",
+      "noDays": "選択した範囲に日付がありません。"
+    },
+    "daily": {
+      "title": "日別結果",
+      "description": "グラフは傾向、表は正確な数値を表示します。",
+      "date": "日付",
+      "challenges": "問題",
+      "approved": "承認",
+      "declined": "拒否",
+      "banned": "アクセス禁止",
+      "expired": "タイムアウト",
+      "passRate": "合格率"
+    },
+    "interceptions": {
+      "title": "認証方式ごとの阻止数",
+      "description": "認証方式の名前は統計インターフェースから直接取得します。",
+      "kind": "認証方式",
+      "count": "阻止数",
+      "empty": "選択した日付範囲に阻止はありません。"
+    },
+    "errors": {
+      "authenticationExpired": "セッションの有効期限が切れています。Telegram からコンソールを開き直してください。",
+      "authenticationInvalid": "このコンソールセッションを認証できません。Telegram からコンソールを開き直してください。",
+      "accessDenied": "このグループを管理する権限を失いました。",
+      "accessUnavailable": "このグループを管理する権限を一時的に確認できません。再試行してください。",
+      "chatNotFound": "このグループはコンソールで管理できなくなりました。",
+      "invalidQuery": "統計クエリが無効です。範囲を変更してから再試行してください。",
+      "unavailable": "統計を一時的に利用できません。再試行してください。",
+      "loadUnavailable": "統計を一時的に読み込めません。再試行してください。",
+      "network": "接続が中断されました。統計を更新してから、再試行するか決めてください。"
+    }
+  },
+  "messages": {
+    "navigation": "メッセージと文言",
+    "title": "メッセージと文言",
+    "description": "現在のグループの自動返信ルール、メッセージ表示、検索の自動削除を管理します。",
+    "loading": {
+      "title": "メッセージと文言を読み込んでいます",
+      "description": "現在のグループを確認し、利用できるメッセージ設定を読み込んでいます…"
+    },
+    "groupRequired": {
+      "title": "先にグループを選択してください",
+      "description": "許可されたグループを選択すると、そのメッセージと文言を管理できます。",
+      "select": "グループを選択"
+    },
+    "noGroups": {
+      "title": "このアカウントにはまだグループが許可されていません",
+      "description": "メッセージと文言は、許可されたグループでのみ利用できます。"
+    },
+    "unavailable": {
+      "title": "メッセージと文言を一時的に利用できません"
+    },
+    "settings": {
+      "loading": {
+        "title": "メッセージ設定を読み込んでいます",
+        "description": "現在のグループのメッセージ表示と自動削除の設定を読み込んでいます…"
+      },
+      "unavailable": {
+        "title": "メッセージ設定を読み込めません"
+      }
+    },
+    "rules": {
+      "title": "自動返信ルール",
+      "description": "ルール定義はサーバーが解釈します。このページでは各定義を保持し、有効状態と一致順序だけを管理します。",
+      "saveSemantics": "有効状態の変更は 1 つのルールを直ちに保存します。順序の変更はルール集合全体を置き換えます。",
+      "loading": {
+        "title": "自動返信ルールを読み込んでいます",
+        "description": "現在のグループに保存されたルール集合を読み込んでいます…"
+      },
+      "unavailable": {
+        "title": "自動返信ルールを読み込めません"
+      },
+      "collections": {
+        "autoReply": "自動返信",
+        "unknown": "不明なルール集合：{{collection}}"
+      },
+      "collectionDescription": "ルールはここに表示された順序で一致判定されます。",
+      "collectionCount": "ルール {{count}} 件",
+      "collectionSaving": "集合を保存中…",
+      "itemTitle": "ルール {{number}}",
+      "identifier": "ID：{{id}}",
+      "enabled": "有効",
+      "disabled": "無効",
+      "orderActions": "ルール順序を調整",
+      "moveUp": "ルール {{id}} を上へ移動",
+      "moveDown": "ルール {{id}} を下へ移動",
+      "up": "上へ",
+      "down": "下へ",
+      "itemSaving": "保存中…",
+      "empty": {
+        "title": "自動返信ルールはまだありません",
+        "description": "ルール集合が空の場合、ここに表示されます。"
+      },
+      "feedback": {
+        "itemSaved": "ルールの有効状態を保存しました。",
+        "orderSaved": "{{collection}} のルール順序を保存しました。",
+        "conflict": "他の管理者がルールを変更しました。最新のルールを読み込みました。最新の順序に従ってもう一度操作してください。"
+      }
+    },
+    "display": {
+      "title": "メッセージ表示",
+      "description": "現在のグループのメッセージで表示名とリッチテキスト送信方式を調整します。",
+      "nameSpoiler": {
+        "label": "申請者の表示名を隠す",
+        "description": "公開認証メッセージで申請者の表示名を隠します。"
+      },
+      "richMessages": {
+        "label": "リッチテキストメッセージを有効化",
+        "description": "HTML フォールバック付きのリッチテキスト Bot API メッセージを使用します。"
+      }
+    },
+    "autoDelete": {
+      "title": "検索の自動削除",
+      "description": "検索コマンドとその返信の自動削除動作を調整します。",
+      "enabled": {
+        "label": "検索メッセージを自動削除",
+        "description": "検索コマンドとその返信を自動的に削除します。"
+      },
+      "delay": {
+        "label": "削除までの遅延",
+        "description": "1 から 86,400 の範囲の整数秒を入力してください。"
+      }
+    },
+    "settingsSave": {
+      "title": "メッセージ設定",
+      "dirty": "保存していないメッセージ設定の変更 {{count}} 件。",
+      "clean": "保存するメッセージ設定の変更はありません。"
+    },
+    "source": {
+      "value": "設定元：{{source}}",
+      "factoryDefault": "工場出荷時の既定値",
+      "userFile": "設定ファイル",
+      "chatOverride": "このグループの上書き",
+      "pending": "現在のセッションで未保存",
+      "restoring": "継承値へ戻す待機中"
+    },
+    "actions": {
+      "retry": "再試行",
+      "reload": "再読み込み",
+      "restore": "継承値に戻す",
+      "cancelRestore": "復元をキャンセル",
+      "saveSettings": "メッセージ設定を保存",
+      "savingSettings": "メッセージ設定を保存中…"
+    },
+    "settingsFeedback": {
+      "saved": "メッセージ設定を保存しました。",
+      "conflict": "他の管理者がメッセージ設定を変更しました。最新の値を読み込みました。必要な変更をもう一度適用してください。"
+    },
+    "copyGap": {
+      "title": "文言フィールドを利用できません",
+      "description": "参加・退出通知と認証フローの文言には読み書き用のフィールドがまだないため、このページでは別の設定で代用しません。",
+      "joinLeave": "参加・退出通知",
+      "verification": "認証フローの文言"
+    },
+    "validation": {
+      "integer": "整数を入力してください。",
+      "ttl": "1 から 86,400 の範囲の整数を入力してください。"
+    },
+    "errors": {
+      "authenticationExpired": "セッションの有効期限が切れています。Telegram からコンソールを開き直してください。",
+      "authenticationInvalid": "このコンソールセッションを認証できません。Telegram からコンソールを開き直してください。",
+      "accessDenied": "このグループを管理する権限を失いました。",
+      "accessUnavailable": "このグループを管理する権限を一時的に確認できません。再試行してください。",
+      "chatNotFound": "このグループはコンソールで管理できなくなりました。",
+      "csrfInvalid": "このページのセキュリティトークンの有効期限が切れています。ページを更新してから再試行してください。",
+      "invalidSettings": "1 つ以上のメッセージ設定が無効です。確認してから保存し直してください。",
+      "settingsUnavailable": "メッセージ設定を一時的に利用できません。再試行してください。",
+      "loadUnavailable": "メッセージと文言を一時的に利用できません。再試行してください。",
+      "loadSettingsUnavailable": "メッセージ設定を一時的に読み込めません。再試行してください。",
+      "saveSettingsUnavailable": "メッセージ設定を一時的に保存できません。再試行してください。",
+      "invalidRule": "ルール定義が無効です。ルールを再読み込みしてから再試行してください。",
+      "ruleNotFound": "このルールは存在しません。ルールを再読み込みしてください。",
+      "ruleConflict": "ルールが別の管理者に変更されました。ルールを再読み込みしてください。",
+      "rulesUnavailable": "自動返信ルールを一時的に利用できません。再試行してください。",
+      "loadRulesUnavailable": "自動返信ルールを一時的に読み込めません。再試行してください。",
+      "saveRulesUnavailable": "自動返信ルールを一時的に保存できません。再試行してください。",
+      "network": "接続が中断されました。メッセージと文言を再読み込みしてから、再試行するか決めてください。"
+    }
+  },
+  "capabilities": {
+    "navigation": "機能",
+    "title": "機能",
+    "description": "現在のグループの各機能と、有効化・無効化した場合の影響を確認します。詳細な制御は各ページに残し、各設定の保存入口を 1 つにします。",
+    "loading": {
+      "title": "機能を読み込んでいます",
+      "description": "現在のグループの機能状態を読み込んでいます…"
+    },
+    "groupRequired": {
+      "title": "先にグループを選択してください",
+      "description": "機能はグループごとに適用されます。表示するグループを選択して続けてください。",
+      "select": "グループを選択"
+    },
+    "noGroups": {
+      "title": "管理可能なグループがありません",
+      "description": "現在のアカウントには、コンソールで管理できるグループがありません。"
+    },
+    "unavailable": {
+      "title": "機能を読み込めません"
+    },
+    "status": {
+      "enabled": "有効",
+      "disabled": "無効"
+    },
+    "outcomes": {
+      "label": "状態ごとの影響",
+      "enabled": "有効な場合",
+      "disabled": "無効な場合"
+    },
+    "source": {
+      "value": "設定元：{{source}}",
+      "factoryDefault": "工場出荷時の既定値",
+      "userFile": "設定ファイル",
+      "chatOverride": "このグループの上書き",
+      "pending": "現在のセッションで未保存",
+      "restoring": "継承値へ戻す待機中"
+    },
+    "verification": {
+      "title": "自動参加認証",
+      "summary": "新しい参加申請と新しいメンバーに対して、ボットが自動認証を開始するか決めます。",
+      "enabled": "新しい参加申請は自動認証に入り、条件を満たして直接参加した新しいメンバーにも問題が送られます。",
+      "disabled": "新しい参加申請は管理者の手動処理に任せ、新しいメンバーには問題を送りません。すでに開始した認証は続行します。",
+      "details": "認証方式を設定"
+    },
+    "antispam": {
+      "title": "チャンネルなりすまし対策",
+      "summary": "信頼されていないチャンネル ID から送信されたメッセージをボットがブロックするか決めます。",
+      "enabled": "BotFather のプライバシーモードが無効な場合、ボットは信頼されていないチャンネル ID から送信されたメッセージを削除します。その ID がこのグループの関連チャンネルではないことを確認してから、チャンネル ID をアクセス禁止にし、処分記録グループへ通知します。",
+      "disabled": "ボットはチャンネル ID を確認せず、関連するメッセージを後続処理へ渡します。",
+      "details": "モデレーションと処分で調整"
+    },
+    "save": {
+      "label": "機能の変更を保存",
+      "unsaved": "自動参加認証に保存していない変更があります。"
+    },
+    "actions": {
+      "retry": "再試行",
+      "reload": "再読み込み",
+      "restore": "継承値に戻す",
+      "cancelRestore": "復元をキャンセル",
+      "discard": "破棄",
+      "save": "変更を保存",
+      "saving": "保存中…"
+    },
+    "feedback": {
+      "saved": "機能設定を保存しました。",
+      "conflict": "他の管理者が機能設定を変更しました。最新の値を読み込んでから操作してください。"
+    },
+    "errors": {
+      "authenticationExpired": "セッションの有効期限が切れています。Telegram からコンソールを開き直してください。",
+      "authenticationInvalid": "このコンソールセッションを認証できません。Telegram からコンソールを開き直してください。",
+      "accessDenied": "このグループを管理する権限を失いました。",
+      "accessUnavailable": "このグループを管理する権限を一時的に確認できません。再試行してください。",
+      "chatNotFound": "このグループはコンソールで管理できなくなりました。",
+      "csrfInvalid": "このページのセキュリティトークンの有効期限が切れています。ページを更新してから再試行してください。",
+      "invalidSettings": "機能設定が無効です。再読み込みしてから再試行してください。",
+      "settingsUnavailable": "機能設定を一時的に利用できません。再試行してください。",
+      "loadUnavailable": "機能を一時的に読み込めません。再試行してください。",
+      "saveUnavailable": "機能設定を一時的に保存できません。再試行してください。",
+      "network": "接続が中断されました。機能を再読み込みしてから、再試行するか決めてください。"
+    }
+  },
+  "home": {
+    "navigation": "ホーム",
+    "title": "ホーム",
+    "roles": {
+      "manager": "グループ管理者",
+      "operator": "運用担当者"
+    },
+    "context": {
+      "title": "グループ名：{{id}}",
+      "enabled": "認証は有効",
+      "disabled": "認証は無効"
+    },
+    "source": {
+      "value": "設定元：{{source}}",
+      "factoryDefault": "工場出荷時の既定値",
+      "userFile": "設定ファイル",
+      "chatOverride": "このグループの上書き"
+    },
+    "values": {
+      "enabled": "有効",
+      "disabled": "無効",
+      "configured": "設定済み",
+      "questions_other": "問題 {{count}} 件",
+      "verifyMode": {
+        "kernel": "カーネルバージョン問題",
+        "quiz": "選択式問題",
+        "mixed": "混合"
+      }
+    },
+    "loading": {
+      "title": "ホームを読み込んでいます",
+      "description": "現在のグループのキュー、統計、設定を読み込んでいます…"
+    },
+    "groupRequired": {
+      "title": "先にグループを選択してください",
+      "description": "ホームでは一度に 1 グループの概要を表示します。グループを選択して概要を確認してください。",
+      "select": "グループを選択"
+    },
+    "noGroups": {
+      "title": "このアカウントにはまだグループが許可されていません",
+      "description": "グループ管理権限を得ると、そのグループのデータがホームに表示されます。"
+    },
+    "unavailable": {
+      "title": "ホームを読み込めません",
+      "description": "現在のグループのキュー、統計、設定を一時的に読み込めません。再試行してください。",
+      "retry": "再試行"
+    },
+    "overview": {
+      "title": "概要",
+      "challenges": "過去 7 日間の問題",
+      "passRate": "過去 7 日間の合格率",
+      "waiting": "待機中",
+      "banned": "過去 7 日間のアクセス禁止"
+    },
+    "attention": {
+      "title": "要確認",
+      "tones": {
+        "pending": "処理待ち",
+        "error": "異常"
+      },
+      "empty": {
+        "badge": "現在は正常",
+        "managerDescription": "待機キューは空で、現在のグループに処理が必要な項目はありません。",
+        "operatorDescription": "待機キューは空で、インスタンスの診断と設定の永続化は正常です。"
+      },
+      "queue": {
+        "title": "待機キュー",
+        "description_other": "処理待ちの申請 {{count}} 件。"
+      },
+      "diagnosticsUnavailable": {
+        "title": "インスタンス診断を読み込めません",
+        "description": "ホームには引き続きグループデータを表示します。インスタンス状態は診断ページで確認してください。"
+      },
+      "health": {
+        "title": "インスタンスの準備が整っていません",
+        "description": "稼働、設定、Telegram 接続の確認のうち、少なくとも 1 つに合格していません。"
+      },
+      "persistenceError": {
+        "title": "設定の永続化で失敗が記録されています",
+        "description": "診断インターフェースが直近の永続化エラーを報告しています。"
+      },
+      "persistenceUnconfigured": {
+        "title": "設定の永続化が未設定です",
+        "description": "現在のインスタンスには、設定の永続化先が設定されていません。"
+      },
+      "persistenceUnwritable": {
+        "title": "設定の永続化先に書き込めません",
+        "description": "永続化先は存在しますが、現在は書き込めません。"
+      },
+      "persistenceVolatile": {
+        "title": "設定ストレージに永続性がありません",
+        "description": "現在のストレージは、インスタンス再起動後に設定を保持することを保証しません。"
+      }
+    },
+    "trend": {
+      "title": "過去 7 日間の傾向",
+      "coverage": "記録のない日が {{missing}} 日あるため、傾向グラフには記録済みの日付だけを表示します。",
+      "openStats": "統計を表示",
+      "empty": "選択した日付範囲に利用可能な記録がありません。",
+      "chartDescription": "2 軸グラフ：棒は問題数（左軸）、線は合格率（右軸）を示します。グラフには日別の値を記載します。ホバーして確認するか、日付のドロップダウンで日ごとに読み取れます。",
+      "countSeries": "問題数（左軸）",
+      "rateSeries": "合格率（右軸）",
+      "readDate": "日付を選択して値を読み取る",
+      "daySummary": "{{date}}：問題 {{count}} 件、合格率 {{passRate}}"
+    },
+    "entries": {
+      "title": "よく使う設定",
+      "verification": {
+        "title": "認証方式",
+        "mode": "認証戦略"
+      },
+      "questions": {
+        "title": "問題集",
+        "primary": "選択式問題"
+      },
+      "bypass": {
+        "title": "認証免除のソース",
+        "requiredChannel": "参加必須チャンネル"
+      },
+      "moderation": {
+        "title": "モデレーションと処分",
+        "antispam": "スパム対策"
+      }
+    }
+  }
+}

@@ -23,6 +23,7 @@ import {
 const routes = readRenderRoutes();
 const catalogues = readLocaleCatalogues();
 const configuredThemes = readThemePreferences();
+const requiredLocales = ["zh-CN", "zh-TW", "en", "ja", "ru"] as const;
 const requiredThemes: readonly ThemePreference[] = ["light", "dark", "system"];
 const unsupportedThemes = configuredThemes.filter(
   (theme) => !requiredThemes.includes(theme as ThemePreference)
@@ -42,10 +43,6 @@ if (unsupportedThemes.length > 0 || missingThemes.length > 0) {
 // the matrix instead, so the next five screens do not each rediscover this.
 const perCellBudgetMs = 4_000;
 
-function matrixTimeoutMs(): number {
-  return Math.max(30_000, matrixCells().length * perCellBudgetMs);
-}
-
 function matrixCells(): RenderCell[] {
   const cells: RenderCell[] = [];
 
@@ -59,6 +56,35 @@ function matrixCells(): RenderCell[] {
 
   return cells;
 }
+
+function renderGateLocales(
+  widestLocale: string,
+  mode: string | undefined
+): readonly string[] {
+  if (mode === undefined) {
+    return [widestLocale];
+  }
+  if (mode === "all") {
+    return requiredLocales;
+  }
+  throw new Error(
+    `RENDER_GATE_LOCALES must be unset or "all", received ${JSON.stringify(mode)}`
+  );
+}
+
+function matrixTimeoutMs(localeCount: number): number {
+  return Math.max(30_000, matrixCells().length * localeCount * perCellBudgetMs);
+}
+
+function logMatrix(locales: readonly string[]): RenderCell[] {
+  const cells = matrixCells();
+  console.log(
+    `[render-gate] mode=${process.env.RENDER_GATE_LOCALES ?? "widest"} locales=${locales.join(",")}; matrixCells=${locales.length * cells.length}; routes=${routes.length}; widths=${renderWidths.join(",")}; themes=${requiredThemes.join(",")}`
+  );
+  return cells;
+}
+
+
 
 async function widestLocaleFor(page: Page): Promise<string> {
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -158,66 +184,80 @@ function focusProblems(observation: FocusObservation): string[] {
 test("render gate rejects page overflow while allowing scoped horizontal scrollers", async ({
   page
 }) => {
-  test.setTimeout(matrixTimeoutMs());
+  const mode = process.env.RENDER_GATE_LOCALES;
+  test.setTimeout(matrixTimeoutMs(mode === "all" ? requiredLocales.length : 1));
   const widestLocale = await widestLocaleFor(page);
+  const locales = renderGateLocales(widestLocale, mode);
+  const cells = logMatrix(locales);
 
-  for (const cell of matrixCells()) {
-    await test.step(`${cell.route.sourcePath} at ${cell.width}px / ${cell.theme}`, async () => {
-      await renderCell(page, cell, widestLocale);
-      const geometry = await horizontalGeometry(page);
-      const cellName = `${cell.route.sourcePath} (${cell.width}px, ${cell.theme})`;
+  for (const locale of locales) {
+    for (const cell of cells) {
+      await test.step(`${locale}: ${cell.route.sourcePath} at ${cell.width}px / ${cell.theme}`, async () => {
+        await renderCell(page, cell, locale);
+        const geometry = await horizontalGeometry(page);
+        const cellName = `${locale}: ${cell.route.sourcePath} (${cell.width}px, ${cell.theme})`;
 
-      expect(geometry.document.scrollWidth, `${cellName}: page horizontal overflow`).toBeLessThanOrEqual(
-        geometry.document.clientWidth
-      );
-      expect(geometry.escapedElements, `${cellName}: overflow escaped every scoped scroller`).toEqual(
-        []
-      );
-      expect(
-        geometry.scopedScrollersOutsideViewport,
-        `${cellName}: scoped scroller extends beyond the page viewport`
-      ).toEqual([]);
-    });
+        expect(geometry.document.scrollWidth, `${cellName}: page horizontal overflow`).toBeLessThanOrEqual(
+          geometry.document.clientWidth
+        );
+        expect(geometry.escapedElements, `${cellName}: overflow escaped every scoped scroller`).toEqual(
+          []
+        );
+        expect(
+          geometry.scopedScrollersOutsideViewport,
+          `${cellName}: scoped scroller extends beyond the page viewport`
+        ).toEqual([]);
+      });
+    }
   }
 });
-
 test("render gate rejects visible placeholders and unresolved i18n keys", async ({ page }) => {
-  test.setTimeout(matrixTimeoutMs());
+  const mode = process.env.RENDER_GATE_LOCALES;
+  test.setTimeout(matrixTimeoutMs(mode === "all" ? requiredLocales.length : 1));
   const widestLocale = await widestLocaleFor(page);
+  const locales = renderGateLocales(widestLocale, mode);
+  const cells = logMatrix(locales);
 
-  for (const cell of matrixCells()) {
-    await test.step(`${cell.route.sourcePath} at ${cell.width}px / ${cell.theme}`, async () => {
-      await renderCell(page, cell, widestLocale);
-      const cellName = `${cell.route.sourcePath} (${cell.width}px, ${cell.theme})`;
+  for (const locale of locales) {
+    for (const cell of cells) {
+      await test.step(`${locale}: ${cell.route.sourcePath} at ${cell.width}px / ${cell.theme}`, async () => {
+        await renderCell(page, cell, locale);
+        const cellName = `${locale}: ${cell.route.sourcePath} (${cell.width}px, ${cell.theme})`;
 
-      expect(await visiblePlaceholderText(page), `${cellName}: visible placeholder text`).toEqual([]);
-    });
+        expect(await visiblePlaceholderText(page), `${cellName}: visible placeholder text`).toEqual([]);
+      });
+    }
   }
 });
-
 test("render gate rejects transparent, inherited, or light-leaking theme surfaces", async ({
   page
 }) => {
-  test.setTimeout(matrixTimeoutMs());
+  const mode = process.env.RENDER_GATE_LOCALES;
+  test.setTimeout(matrixTimeoutMs(mode === "all" ? requiredLocales.length : 1));
   const widestLocale = await widestLocaleFor(page);
+  const locales = renderGateLocales(widestLocale, mode);
+  const cells = logMatrix(locales);
   const lightSurfaces: Record<string, ThemeSurface | undefined> = {};
 
-  for (const cell of matrixCells()) {
-    await test.step(`${cell.route.sourcePath} at ${cell.width}px / ${cell.theme}`, async () => {
-      await renderCell(page, cell, widestLocale);
-      const surface = await themeSurface(page);
-      const baselineKey = `${cell.route.sourcePath}:${cell.width}`;
-      const lightSurface = lightSurfaces[baselineKey];
-      const cellName = `${cell.route.sourcePath} (${cell.width}px, ${cell.theme})`;
+  for (const locale of locales) {
+    for (const cell of cells) {
+      await test.step(`${locale}: ${cell.route.sourcePath} at ${cell.width}px / ${cell.theme}`, async () => {
+        await renderCell(page, cell, locale);
+        const surface = await themeSurface(page);
+        const baselineKey = `${locale}:${cell.route.sourcePath}:${cell.width}`;
+        const lightSurface = lightSurfaces[baselineKey];
+        const cellName = `${locale}: ${cell.route.sourcePath} (${cell.width}px, ${cell.theme})`;
 
-      expect(themeProblems(surface, cell, lightSurface), `${cellName}: theme surface`).toEqual([]);
+        expect(themeProblems(surface, cell, lightSurface), `${cellName}: theme surface`).toEqual([]);
 
-      if (cell.theme === "light") {
-        lightSurfaces[baselineKey] = surface;
-      }
-    });
+        if (cell.theme === "light") {
+          lightSurfaces[baselineKey] = surface;
+        }
+      });
+    }
   }
 });
+
 
 test("render gate reaches every queue row action through native grid navigation with a visible focus ring", async ({
   page

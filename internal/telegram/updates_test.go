@@ -222,14 +222,15 @@ func TestSetupCommandsLanguageScopes(t *testing.T) {
 	service := &Updates{cfg: cfg, settings: settings, handlers: HandlerSet{Commands: testCommandModules(t)}}
 	service.SetupCommands(context.Background(), testBot(t, caller))
 
-	if len(caller.requests) != 8 {
-		t.Fatalf("command menu requests = %d, want 8", len(caller.requests))
+	if len(caller.requests) != 12 {
+		t.Fatalf("command menu requests = %d, want 12", len(caller.requests))
 	}
 	languages, scopes := commandRequestCounts(t, caller.requests, cfg.WarnLimit)
-	if languages[""] != 4 || languages["zh"] != 2 || languages["en"] != 2 {
+	if languages[""] != 4 || languages["zh"] != 2 || languages["en"] != 2 ||
+		languages["ja"] != 2 || languages["ru"] != 2 {
 		t.Fatalf("command language codes = %v", languages)
 	}
-	if scopes["default"] != 3 || scopes["all_chat_administrators"] != 3 ||
+	if scopes["default"] != 5 || scopes["all_chat_administrators"] != 5 ||
 		scopes["chat"] != 1 || scopes["chat_administrators"] != 1 {
 		t.Fatalf("command scopes = %v", scopes)
 	}
@@ -257,10 +258,7 @@ func assertCommandRequest(t *testing.T, request commandRequest, warnLimit int) {
 	if chatScope && !strings.Contains(string(request.Scope.ChatID), "-100") {
 		t.Fatalf("zh-Hant chat scope has chat_id %s", request.Scope.ChatID)
 	}
-	language := i18n.LangZH
-	if request.LanguageCode == "en" {
-		language = i18n.LangEN
-	}
+	language := i18n.FromStored(request.LanguageCode)
 	if chatScope {
 		language = i18n.LangZHHant
 	}
@@ -298,11 +296,11 @@ func TestSetupCommandsRereadsRuntimeGroups(t *testing.T) {
 	}
 	service.SetupCommands(context.Background(), bot)
 
-	if len(caller.requests) != 14 {
-		t.Fatalf("command menu requests after runtime registration = %d, want 14", len(caller.requests))
+	if len(caller.requests) != 22 {
+		t.Fatalf("command menu requests after runtime registration = %d, want 22", len(caller.requests))
 	}
 	runtimeScopes := 0
-	for _, request := range caller.requests[6:] {
+	for _, request := range caller.requests[10:] {
 		if (request.Scope.Type == "chat" || request.Scope.Type == "chat_administrators") &&
 			strings.Contains(string(request.Scope.ChatID), "-1009000000501") {
 			runtimeScopes++
@@ -341,16 +339,14 @@ func TestSetupCommandsAddsOwnerPrivateMenuFromRuntimeState(t *testing.T) {
 		}
 		ownerMenus++
 		languages[request.LanguageCode]++
-		language := i18n.LangZH
-		if request.LanguageCode == "en" {
-			language = i18n.LangEN
-		}
+		language := i18n.FromStored(request.LanguageCode)
 		if difference := commandDifference(request.Commands, expectedOwnerCommands(language)); difference != "" {
 			t.Errorf("owner/%q commands: %s", request.LanguageCode, difference)
 		}
 	}
-	if ownerMenus != 3 || languages[""] != 1 || languages["zh"] != 1 || languages["en"] != 1 {
-		t.Fatalf("owner private menus/languages = %d/%v, want three localized scopes", ownerMenus, languages)
+	if ownerMenus != 5 || languages[""] != 1 || languages["zh"] != 1 || languages["en"] != 1 ||
+		languages["ja"] != 1 || languages["ru"] != 1 {
+		t.Fatalf("owner private menus/languages = %d/%v, want five localized scopes", ownerMenus, languages)
 	}
 }
 
@@ -368,8 +364,8 @@ func TestSetupCommandsUsesCurrentGroupLanguageOverride(t *testing.T) {
 	caller := &commandRecordingCaller{}
 	service := &Updates{cfg: cfg, settings: store, handlers: HandlerSet{Commands: testCommandModules(t)}}
 	service.SetupCommands(context.Background(), testBot(t, caller))
-	if len(caller.requests) != 6 {
-		t.Fatalf("English group command menu requests = %d, want six default scopes", len(caller.requests))
+	if len(caller.requests) != 10 {
+		t.Fatalf("English group command menu requests = %d, want ten default scopes", len(caller.requests))
 	}
 	group, ok := store.Settings(groupID)
 	if !ok {
@@ -384,7 +380,7 @@ func TestSetupCommandsUsesCurrentGroupLanguageOverride(t *testing.T) {
 	service.SetupCommands(context.Background(), testBot(t, caller))
 
 	seen := map[string]bool{}
-	for _, request := range caller.requests[6:] {
+	for _, request := range caller.requests[10:] {
 		switch request.Scope.Type {
 		case "chat":
 			if string(request.Scope.ChatID) != fmt.Sprint(groupID) {
@@ -417,7 +413,7 @@ func TestSetupCommandsReportsRegistrationOutcomes(t *testing.T) {
 	t.Cleanup(func() { log.SetOutput(oldLogWriter) })
 	log.SetOutput(&logs)
 
-	for _, failures := range []int{0, 1, 6} {
+	for _, failures := range []int{0, 1, 10} {
 		t.Run(fmt.Sprintf("%d failures", failures), func(t *testing.T) {
 			store, err := settings.NewStore(t.TempDir()+"/settings.json", botTestSettingsBaseline(t, cfg), nil)
 			if err != nil {
@@ -432,13 +428,13 @@ func TestSetupCommandsReportsRegistrationOutcomes(t *testing.T) {
 			logs.Reset()
 			service.SetupCommands(context.Background(), testBot(t, caller))
 
-			if got, want := len(caller.requests), 6; got != want {
+			if got, want := len(caller.requests), 10; got != want {
 				t.Fatalf("failed command registration stopped later menu registration: got %d requests, want %d", got, want)
 			}
 			summary := logs.String()
 			fields := strings.Fields(summary)
 			for _, count := range []string{
-				fmt.Sprintf("confirmed=%d", 6-failures),
+				fmt.Sprintf("confirmed=%d", 10-failures),
 				fmt.Sprintf("unconfirmed=%d", failures),
 			} {
 				if !slices.Contains(fields, count) {
