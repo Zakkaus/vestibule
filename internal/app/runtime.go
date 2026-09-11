@@ -104,3 +104,15 @@ func startPendingActions(ctx context.Context, verification *verification.Service
 	}()
 	return done
 }
+
+func startDaily(ctx context.Context, daily *status.DailyService) <-chan struct{} {
+	if daily == nil {
+		return nil
+	}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		daily.Run(ctx)
+	}()
+	return done
+}

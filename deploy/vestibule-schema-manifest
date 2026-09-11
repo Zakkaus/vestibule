@@ -1,2 +1,2 @@
-target_schema_version=2
+target_schema_version=3
 minimum_rollback_schema_version=1

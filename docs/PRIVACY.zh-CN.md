@@ -33,8 +33,9 @@
 | `pending_action` | 申请人或群组成员 | 机器人针对某次挑战即将执行但尚未完成的操作：操作内容、重试次数及上一次错误。它不直接记录用户 ID，而是关联到一条 `challenge`；该记录的 ID 形式为 `chat:user:nonce`，其中包含两个标识符 |
 | `verification_observation` | 成员关系变更关联申请人或群组成员；其他操作不关联任何可识别个人 | 被抑制的操作及其时间。批准、拒绝、封禁、解封、禁言和解除禁言的记录还保存群组 ID 和用户 ID。不保存消息正文、通知正文、callback ID 或其答案、挑战答案以及 Telegram 消息 ID |
 
-以下三张表不保存个人数据：`agent_tally` 统计挑战中 AI 诱捕触发时自报的模型名称；
-`verification_runtime` 保存两个数值；`update_poll_lease` 记录当前从 Telegram 读取更新的进程。
+以下四张表不保存个人数据：`agent_tally` 统计挑战中 AI 诱捕触发时自报的模型名称；
+`verification_runtime` 保存两个数值；`update_poll_lease` 记录当前从 Telegram 读取更新的进程；
+`daily_status` 保存日报开关与最近尝试的当地日期。
 
 **本软件不保存**：消息正文、电话号码、电子邮件地址、IP 地址、位置信息，以及 Telegram 未随上述事件发送的任何字段。本软件不会读取其不担任管理员的群组消息，也无法读取 Telegram 的秘密聊天消息。
 

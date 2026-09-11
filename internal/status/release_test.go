@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/Zakkaus/vestibule/migrations"
 )
 
 type releaseRoundTripFunc func(*http.Request) (*http.Response, error)
@@ -34,6 +36,8 @@ func TestReleaseCheckerLooksUpOnlyOnDemandAndAssessesRollback(t *testing.T) {
 func releaseTestChecker(t *testing.T, calls *int) *ReleaseChecker {
 	t.Helper()
 	checker := NewReleaseChecker("v5.1.0", "github-token")
+	checker.currentManifest = migrations.SchemaManifest{TargetSchemaVersion: 2, MinimumRollbackSchemaVersion: 1}
+	checker.manifestErr = nil
 	checker.client = &http.Client{Transport: releaseRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 		*calls++
 		switch request.URL.Host + request.URL.Path {

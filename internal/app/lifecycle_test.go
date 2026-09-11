@@ -38,9 +38,15 @@ func TestRuntimeLifecycleStopsHTTPAdmissionBeforePolling(t *testing.T) {
 	root, cancel := context.WithCancel(context.Background())
 	cancel()
 	handlerDone := make(chan error)
+	dailyDone := make(chan struct{})
 	var sequence []string
 	err := runRuntimeLifecycle(root, runtimeLifecycle{
 		handlerDone: handlerDone,
+		cancelRuntime: func() {
+			sequence = append(sequence, "runtime")
+			close(dailyDone)
+		},
+		dailyDone: dailyDone,
 		stopAdmission: func() error {
 			sequence = append(sequence, "http-admission")
 			return nil
@@ -58,7 +64,7 @@ func TestRuntimeLifecycleStopsHTTPAdmissionBeforePolling(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := []string{"http-admission", "polling", "http-drain"}; !reflect.DeepEqual(sequence, want) {
+	if want := []string{"http-admission", "runtime", "polling", "http-drain"}; !reflect.DeepEqual(sequence, want) {
 		t.Fatalf("shutdown sequence = %v, want %v", sequence, want)
 	}
 }

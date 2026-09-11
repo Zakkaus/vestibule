@@ -38,6 +38,7 @@ type pollingLease struct {
 	polling   *telegram.Polling
 	cancel    context.CancelFunc
 	done      chan error
+	dailyDone <-chan struct{}
 	stopping  bool
 	leaseLost bool
 	once      sync.Once
@@ -86,6 +87,7 @@ func (p *pollingLease) Start(ctx context.Context, runtime *services) error {
 	p.mu.Lock()
 	p.polling, p.cancel, p.done = polling, cancel, make(chan error, 1)
 	p.mu.Unlock()
+	p.dailyDone = startDaily(pollCtx, runtime.daily)
 	go p.forwardPollingDone(polling.Done())
 	go p.renew(pollCtx)
 	return nil

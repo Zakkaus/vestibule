@@ -48,6 +48,15 @@
   "lifecycle": {
     "unauthorized_chat": "🚪 Automatically left unauthorized chat: %[1]s (ID: %[2]d, type: %[3]s)."
   },
+  "daily": {
+    "report": "Daily device status for %[1]s\nOnline: %[2]s\nReady: %[3]s\nBot API heartbeat: %[4]s\nLast challenge delivery failure: %[5]s\nPending challenges: %[6]d",
+    "online": "yes",
+    "offline": "no",
+    "ready": "yes",
+    "not_ready": "no",
+    "never": "not measured",
+    "no_failure": "none"
+  },
   "direct_message": {
     "auto_reply": "👋 %[2]s\n\n• To join: submit a join request in the group. Answer a challenge sent here, or select “✅ Start verification” in any group message the bot posts.\n• Lookup commands also work in direct messages; /help lists every one of them. Direct messages are limited to %[1]d queries per minute; group chats are not rate-limited.\n• Review and administration commands only work in the group.",
     "identity": "This bot handles join verification and group moderation. Lookup commands are provided by optional modules."
