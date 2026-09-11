@@ -148,6 +148,11 @@ export async function renderCell(
     (selectedLocale) => document.documentElement.lang === selectedLocale,
     locale
   );
+  // The picker's popover is sized from the trigger it was opened from; the new locale
+  // can relayout that trigger while the popover is still leaving. Measure only once no
+  // listbox is left in the document and every transition has finished.
+  await page.locator('[role="listbox"]').waitFor({ state: "detached" }).catch(() => {});
+  await page.waitForFunction(() => document.getAnimations().length === 0);
   await page.evaluate(async () => {
     await document.fonts.ready;
     await new Promise<void>((resolve) => {
