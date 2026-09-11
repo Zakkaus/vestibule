@@ -406,6 +406,9 @@ export function BypassSettingsForm({
 
   function submit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
+    if (saveBlocked) {
+      return;
+    }
     onSave();
   }
 
@@ -545,7 +548,7 @@ export function BypassSettingsForm({
               variant="accent"
               size={size}
               data-slot="button"
-              isDisabled={saveBlocked}
+              aria-disabled={saveBlocked ? "true" : undefined}
               isPending={state.saving}
             >
               <Icon name="save" />
