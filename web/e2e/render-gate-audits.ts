@@ -170,11 +170,19 @@ export async function horizontalGeometry(page: Page): Promise<HorizontalGeometry
         );
       }
     );
+    // Name the element, and say what pushed it: the failure is read from a CI log, on a
+    // machine whose fonts differ, so a bare tag name cannot be reproduced here.
     const selectorFor = (element: HTMLElement): string => {
       const dataName = element
         .getAttributeNames()
         .find((name) => name.startsWith("data-"));
-      return `${element.tagName.toLowerCase()}${dataName ? `[${dataName}]` : ""}`;
+      const widest = [...element.querySelectorAll<HTMLElement>("*")]
+        .map((child) => ({ child, right: child.getBoundingClientRect().right }))
+        .sort((a, b) => b.right - a.right)[0];
+      const detail = widest
+        ? ` ← ${widest.child.tagName.toLowerCase()} right=${Math.round(widest.right)} "${(widest.child.textContent ?? "").trim().slice(0, 40)}"`
+        : "";
+      return `${element.tagName.toLowerCase()}${dataName ? `[${dataName}]` : ""} scroll=${element.scrollWidth} client=${element.clientWidth}${detail}`;
     };
     const closestScopedScroller = (element: HTMLElement): HTMLElement | null => {
       for (
