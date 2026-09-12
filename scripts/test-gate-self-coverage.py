@@ -453,10 +453,10 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
                 "go build -tags gentoo",
                 '        run: go build -tags "gentoo,integration" ./...\n',
             ),
-            ("        run: go test -race ./...\n", "go test -race"),
+            ("        run: go test -race -shuffle=on ./...\n", "go test -race -shuffle=on"),
             (
-                "        run: go test -race -tags gentoo ./...\n",
-                "go test -race -tags gentoo",
+                "        run: go test -race -shuffle=on -tags gentoo ./...\n",
+                "go test -race -shuffle=on -tags gentoo",
             ),
             (
                 "        run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...\n",
@@ -516,14 +516,16 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
                 'go build ./... && go build -tags "gentoo,integration" ./...\n',
             ),
             (
-                "go test -race ./... && go test -race -tags gentoo ./...\n",
-                "go test -race",
-                "go test -race -tags gentoo ./...\n",
+                "go test -race -shuffle=on ./... && "
+                "go test -race -shuffle=on -tags gentoo ./...\n",
+                "go test -race -shuffle=on",
+                "go test -race -shuffle=on -tags gentoo ./...\n",
             ),
             (
-                "go test -race ./... && go test -race -tags gentoo ./...\n",
-                "go test -race -tags gentoo",
-                "go test -race ./...\n",
+                "go test -race -shuffle=on ./... && "
+                "go test -race -shuffle=on -tags gentoo ./...\n",
+                "go test -race -shuffle=on -tags gentoo",
+                "go test -race -shuffle=on ./...\n",
             ),
             (
                 "go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...\n",
@@ -623,8 +625,53 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
             lambda: self.replace_text(
                 tree,
                 ".github/workflows/ci.yml",
+                "        run: go test -race -shuffle=on ./...\n",
+                "        run: go test -shuffle=on ./...\n",
+            ),
+        )
+
+    def test_gate_list_rejects_lost_go_test_shuffle(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-gate-list.py",
+            "the default Go test lost order shuffling",
+            ("go test -race -shuffle=on",),
+            lambda: self.replace_text(
+                tree,
+                ".github/workflows/ci.yml",
+                "        run: go test -race -shuffle=on ./...\n",
                 "        run: go test -race ./...\n",
-                "        run: go test ./...\n",
+            ),
+        )
+
+    def test_release_gate_rejects_lost_go_test_race(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-release-gate.py",
+            "the release Go test lost its race detector",
+            ("go test -race -shuffle=on",),
+            lambda: self.replace_text(
+                tree,
+                ".github/workflows/release.yml",
+                "          go test -race -shuffle=on ./...\n",
+                "          go test -shuffle=on ./...\n",
+            ),
+        )
+
+    def test_release_gate_rejects_lost_go_test_shuffle(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-release-gate.py",
+            "the release Go test lost order shuffling",
+            ("go test -race -shuffle=on",),
+            lambda: self.replace_text(
+                tree,
+                ".github/workflows/release.yml",
+                "          go test -race -shuffle=on ./...\n",
+                "          go test -race ./...\n",
             ),
         )
 
