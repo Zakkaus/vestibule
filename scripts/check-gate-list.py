@@ -152,7 +152,15 @@ def go_invocations(text: str) -> set:
         if tool == "gofmt":
             found.add("gofmt")
             continue
-        if tool not in {"vet", "build", "test", "run"}:
+        if tool not in {"mod", "vet", "build", "test", "run"}:
+            continue
+        if tool == "mod":
+            subcommand = arguments[0] if arguments else ""
+            if subcommand == "tidy":
+                diff = " -diff" if "-diff" in arguments[1:] else ""
+                found.add("go mod tidy" + diff)
+            elif subcommand == "verify":
+                found.add("go mod verify")
             continue
         if tool == "vet":
             found.add("go vet")

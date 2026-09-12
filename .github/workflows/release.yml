@@ -26,6 +26,8 @@ jobs:
           if [ -n "$unformatted" ]; then
             echo "These files are not gofmt-clean:"; echo "$unformatted"; exit 1
           fi
+          go mod tidy -diff
+          go mod verify
           go vet ./...
           scripts/lint.sh
           python3 scripts/check-test-chat-ids.py internal cmd testdata

@@ -25,6 +25,12 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+      - name: go.mod and go.sum are tidy
+        if: matrix.tags == ''
+        run: go mod tidy -diff
+      - name: Downloaded modules match go.sum
+        if: matrix.tags == ''
+        run: go mod verify
       - name: gofmt
         if: matrix.tags == ''
         run: |
