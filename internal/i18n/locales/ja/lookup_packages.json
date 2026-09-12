@@ -3,12 +3,12 @@
     "heading": "<a href=\"%[1]s\">%[2]s</a> の arm64（AArch64）keyword 状態：",
     "keyword_unavailable": "keyword 状態を一時的に取得できません。後でもう一度試すか、上のリンクを開いてください。",
     "no_keyword": "arm64 keyword が設定されていません。通常は、パッケージがまだ arm64 に対応していないか、テストされていないことを意味します。上のリンクを開いて現在の対応状況を確認してください。",
-    "not_found": "Gentoo 公式ツリーに「%[1]s」が見つかりません。パッケージ名を確認するか、/pkg %[1]s であいまい検索してください。",
+    "not_found": "Gentoo 公式ツリーに「%[1]s」が見つかりません。パッケージ名を確認するか、/gpkg %[1]s であいまい検索してください。",
     "official_unavailable": "Gentoo 公式ツリーを一時的に検索できません。後でもう一度試してください。",
     "stable_only": "\nstable keyword（arm64）：%[1]s",
     "stable_testing": "\nstable keyword（arm64）：%[1]s\ntesting keyword（~arm64）：%[2]s",
     "testing_only": "\ntesting keyword のみ（~arm64）：%[1]s（arm64 の stable keyword はありません。インストールするには package.accept_keywords で ~arm64 を受け入れてください）",
-    "usage": "使い方：/arm <パッケージ>。例：/arm firefox。Gentoo の arm64（AArch64）keyword 状態を表示します。"
+    "usage": "使い方：/garm <パッケージ>。例：/garm firefox。Gentoo の arm64（AArch64）keyword 状態を表示します。"
   },
   "pkg": {
     "keyword_legend": "公式ツリー：記号なしは amd64 の stable keyword を表します。~ は最新版に amd64 の stable keyword がなく、~amd64 を意味しません。overlay：~ は最新の ebuild だけを示し、~arch keyword を意味しません。",
@@ -17,7 +17,7 @@
     "overlay_count": "（%[1]d 件一致）",
     "results_heading": "%[1]s の検索結果",
     "unavailable": "次の情報源を一時的に利用できません：%[1]s。一致するパッケージを確認できません。後でもう一度試してください。",
-    "usage": "使い方：/pkg <パッケージ>。例：/pkg vim。リンクを貼り付けることもできます：/pkg https://packages.gentoo.org/packages/app-editors/vim"
+    "usage": "使い方：/gpkg <パッケージ>。例：/gpkg vim。リンクを貼り付けることもできます：/gpkg https://packages.gentoo.org/packages/app-editors/vim"
   },
   "source": {
     "gentoo_official_tree": "Gentoo 公式ツリー",
@@ -33,14 +33,14 @@
     "local_flags": "ローカル USE flags",
     "multiple_matches": "複数のパッケージが一致しました。完全なパッケージ名（category/package）を 1 つ指定してください：",
     "no_flags": "（このパッケージには USE flags がありません）",
-    "not_found": "「%[1]s」に完全一致するパッケージがありません。/pkg %[1]s であいまい検索してください。",
+    "not_found": "「%[1]s」に完全一致するパッケージがありません。/gpkg %[1]s であいまい検索してください。",
     "official_legend": "+ は既定で有効な USE flag を示します。バージョン前の ~ は amd64 の stable keyword がないことを示し、~amd64 を意味しません。",
     "overlay_legend": "overlay · USE flags は最新の ebuild に由来するため不完全な可能性があります。+ は既定で有効な flag を示します。",
     "partial_matches": "次の情報源を一時的に利用できません：%[1]s。一致結果が不完全な可能性があります。後でもう一度試してください。",
     "source_label": "（%[1]s）",
     "truncated_count": " …（合計 %[1]d 件）",
     "unavailable": "次の情報源を一時的に利用できません：%[2]s。「%[1]s」との完全一致を確認できません。後でもう一度試してください。",
-    "usage": "使い方：/use <パッケージ>。例：/use vim または /use app-editors/vim。packages.gentoo.org のリンクを貼り付けることもできます。",
+    "usage": "使い方：/guse <パッケージ>。例：/guse vim または /guse app-editors/vim。packages.gentoo.org のリンクを貼り付けることもできます。",
     "value_separator": ": ",
     "version_latest": "バージョン：~%[1]s",
     "version_stable": "バージョン：%[1]s",

@@ -12,7 +12,7 @@ func TestUseMultipleMatchesSuggestsCanonicalCommand(t *testing.T) {
 	atoms := []string{"www-client/firefox", "www-client/firefox-bin"}
 	for _, l := range i18n.Languages() {
 		got := renderUseMultipleMatches(l, append([]string(nil), atoms...), pkgLookupAvailability{})
-		want := "/use "
+		want := "/guse "
 		for _, atom := range atoms {
 			if !strings.Contains(got, want+atom) {
 				t.Errorf("%v: reply does not suggest %q for %s: %q", l, want, atom, got)

@@ -1409,7 +1409,7 @@ func renderUseMultipleMatches(l i18n.Lang, atoms []string, availability pkgLooku
 	var b strings.Builder
 	b.WriteString(i18n.Messages.LookupPackages.Use.MultipleMatches.For(l))
 	for _, a := range atoms {
-		fmt.Fprintf(&b, "\n • /use %s", a)
+		fmt.Fprintf(&b, "\n • /guse %s", a)
 	}
 	if availability.anyUnavailable() {
 		fmt.Fprintf(&b, "\n%s", i18n.Messages.LookupPackages.Use.PartialMatches.Render(l, availability.unavailableSources(l)))
