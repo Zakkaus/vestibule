@@ -384,7 +384,7 @@
   "feeds": {
     "navigation": "フィード",
     "title": "フィード",
-    "description": "選択したグループで有効な Bugzilla、ニュース、GitHub の配信設定を確認します。運用担当者にはプロセス全体のニュースソースと overlay も表示されます。",
+    "description": "選択したグループの Bugzilla、ニュース、GitHub 配信設定を編集します。運用担当者はプロセス全体のニュースソースと overlay も確認できます。",
     "loading": {
       "title": "フィード設定を読み込んでいます",
       "description": "グループのフィード設定値と設定元を読み込んでいます…"
@@ -397,34 +397,59 @@
       "title": "フィード設定を読み込めません",
       "retry": "再試行"
     },
-    "readOnly": {
-      "title": "フィード設定は読み取り専用です",
-      "badge": "読み取り専用",
-      "description": "この画面は API が返したグループの有効値と設定元を表示します。編集機能はありません。"
-    },
     "source": {
       "value": "設定元：{{source}}",
       "factoryDefault": "工場出荷時の既定値",
       "userFile": "ファイル管理",
       "chatOverride": "グループ上書き"
     },
-    "feed": {
-      "title": "フィード先",
-      "description": "選択したグループで現在有効な Bugzilla、ニュース、GitHub の配信設定です。",
-      "destination": "受信グループまたはチャンネル",
-      "language": "フィード言語",
-      "interval": "取得間隔",
-      "bugzilla": "Bugzilla 通知",
-      "news": "ニュース通知",
-      "bugProduct": "Bugzilla 製品",
-      "bugComponent": "Bugzilla コンポーネント",
-      "silentBugs": "Bugzilla を常に無音にする",
-      "githubRepository": "GitHub リポジトリ",
-      "githubIssues": "Issue 通知",
-      "githubPulls": "PR 通知",
-      "followingDefault": "既定のブランチに従う",
-      "allProducts": "すべての製品",
-      "allComponents": "すべてのコンポーネント"
+    "form": {
+      "title": "グループのフィード設定",
+      "description": "完全なフィード設定を保存すると、このグループに変更が適用されます。"
+    },
+    "fields": {
+      "language": {
+        "label": "配信言語",
+        "description": "フィードメッセージの言語を選ぶか、グループの言語に従います。"
+      },
+      "interval": {
+        "label": "取得間隔",
+        "description": "フィードを確認する間隔を 60 秒から 86400 秒まで設定します。"
+      },
+      "bugs": {
+        "label": "Bugzilla 通知",
+        "description": "このグループへの新しい Bugzilla 項目の配信を有効にします。"
+      },
+      "news": {
+        "label": "ニュース通知",
+        "description": "このグループへの設定済みニュース項目の配信を有効にします。"
+      },
+      "bugProduct": {
+        "label": "Bugzilla 製品",
+        "description": "Bugzilla 通知をこの製品に限定します。すべての製品には空欄にします。"
+      },
+      "bugComponent": {
+        "label": "Bugzilla コンポーネント",
+        "description": "Bugzilla 通知をこのコンポーネントに限定します。すべてのコンポーネントには空欄にします。"
+      },
+      "silentBugs": {
+        "label": "Bugzilla 通知を常に無音にする",
+        "description": "このグループに配信するすべての Bugzilla 通知を無音にします。"
+      }
+    },
+    "repositories": {
+      "title": "GitHub リポジトリ",
+      "description": "このグループで配信する GitHub リポジトリとイベント種別を選びます。",
+      "item": "リポジトリ {{number}}",
+      "itemDescription": "この行のリポジトリ、任意のブランチ、イベント種別を設定します。",
+      "repository": "リポジトリ",
+      "repositoryDescription": "owner/name 形式の GitHub リポジトリを入力します。",
+      "branch": "ブランチ",
+      "branchDescription": "リポジトリの既定ブランチに従う場合は空欄にします。",
+      "issues": "Issue",
+      "issuesDescription": "このリポジトリで新しく開かれた Issue を配信します。",
+      "pulls": "プルリクエスト",
+      "pullsDescription": "このリポジトリで新しく開かれたプルリクエストを配信します。"
     },
     "newsURL": {
       "title": "ニュースソース URL",
@@ -453,12 +478,42 @@
       "disabled": "無効",
       "seconds_other": "{{count}} 秒"
     },
+    "actions": {
+      "addRepository": "リポジトリを追加",
+      "removeRepository": "リポジトリを削除",
+      "restoreFactory": "工場出荷時の既定値に戻す",
+      "save": "フィード設定を保存",
+      "saving": "フィード設定を保存しています…",
+      "reload": "設定を再読み込み"
+    },
+    "save": {
+      "label": "グループのフィード設定を保存",
+      "clean": "未保存の変更はありません",
+      "dirty": "未保存のフィード変更"
+    },
+    "feedback": {
+      "saved": "フィード設定を保存しました。",
+      "conflict": "別の管理者が設定を変更しました。最新の値を読み込みました。必要な変更を適用してください。"
+    },
+    "validation": {
+      "required": "この項目は必須です。",
+      "invalidInterval": "60 秒から 86400 秒までの整数を入力してください。",
+      "invalidLanguage": "対応しているフィード言語を選んでください。",
+      "invalidRepository": "owner/name 形式の有効な GitHub リポジトリを入力してください。",
+      "duplicateRepository": "リポジトリとブランチの組み合わせは重複できません。",
+      "invalidRevision": "設定が古くなっています。最新の値を再読み込みしてから保存してください。"
+    },
     "errors": {
       "authenticationExpired": "セッションの有効期限が切れています。Telegram からコンソールを開き直してください。",
       "authenticationInvalid": "このコンソールセッションを認証できません。Telegram からコンソールを開き直してください。",
+      "accessDenied": "このグループを管理する権限がありません。",
+      "csrfInvalid": "このページのセキュリティトークンの有効期限が切れています。ページを更新して再試行してください。",
+      "invalidRequest": "フィード設定が拒否されました。強調表示された項目を確認して再試行してください。",
+      "reviewFields": "強調表示されたフィード項目を確認して再試行してください。",
       "settingsUnavailable": "プロセス設定サービスを一時的に利用できません。再試行してください。",
-      "loadUnavailable": "プロセス設定を一時的に読み込めません。再試行してください。",
-      "invalidResponse": "プロセス設定の応答が不完全なため、安全に表示できません。再試行してください。",
+      "loadUnavailable": "フィード設定を読み込めません。再試行してください。",
+      "saveUnavailable": "フィード設定を保存できません。再試行してください。",
+      "invalidResponse": "フィード設定の応答が不完全なため、安全に表示できません。再試行してください。",
       "network": "接続が中断されました。設定を再読み込みしてから確認してください。"
     }
   },

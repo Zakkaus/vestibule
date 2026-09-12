@@ -384,7 +384,7 @@
   "feeds": {
     "navigation": "订阅推送",
     "title": "订阅推送",
-    "description": "查看所选群的 Bugzilla、新闻与 GitHub 推送有效设置；运维人员还可查看进程级新闻源和 overlay 资源。",
+    "description": "编辑所选群的 Bugzilla、新闻与 GitHub 推送有效设置；运维人员还可查看进程级新闻源和 overlay 资源。",
     "loading": {
       "title": "正在载入订阅推送配置",
       "description": "正在读取群级订阅有效值及其来源…"
@@ -397,34 +397,59 @@
       "title": "无法读取订阅推送配置",
       "retry": "重试"
     },
-    "readOnly": {
-      "title": "订阅设置只读",
-      "badge": "只读",
-      "description": "此页面显示 API 返回的群级有效值及其来源，不提供修改控件。"
-    },
     "source": {
       "value": "来源：{{source}}",
       "factoryDefault": "程序默认值",
       "userFile": "配置文件",
       "chatOverride": "群覆盖"
     },
-    "feed": {
-      "title": "订阅目标",
-      "description": "所选群当前生效的 Bugzilla、新闻与 GitHub 推送设置。",
-      "destination": "接收群或频道",
-      "language": "推送语言",
-      "interval": "抓取间隔",
-      "bugzilla": "Bugzilla 推送",
-      "news": "新闻推送",
-      "bugProduct": "Bugzilla 产品",
-      "bugComponent": "Bugzilla 组件",
-      "silentBugs": "Bugzilla 推送始终静默",
-      "githubRepository": "GitHub 仓库",
-      "githubIssues": "Issue 推送",
-      "githubPulls": "PR 推送",
-      "followingDefault": "跟随默认分支",
-      "allProducts": "全部产品",
-      "allComponents": "全部组件"
+    "form": {
+      "title": "群级订阅设置",
+      "description": "保存完整订阅配置后，修改将应用于此群。"
+    },
+    "fields": {
+      "language": {
+        "label": "推送语言",
+        "description": "选择推送消息的语言，或跟随群语言。"
+      },
+      "interval": {
+        "label": "抓取间隔",
+        "description": "设置订阅检查频率，范围为 60 至 86400 秒。"
+      },
+      "bugs": {
+        "label": "Bugzilla 推送",
+        "description": "为此群开启新的 Bugzilla 条目推送。"
+      },
+      "news": {
+        "label": "新闻推送",
+        "description": "为此群开启已配置新闻条目的推送。"
+      },
+      "bugProduct": {
+        "label": "Bugzilla 产品",
+        "description": "仅推送此产品的 Bugzilla 条目，留空则推送全部产品。"
+      },
+      "bugComponent": {
+        "label": "Bugzilla 组件",
+        "description": "仅推送此组件的 Bugzilla 条目，留空则推送全部组件。"
+      },
+      "silentBugs": {
+        "label": "Bugzilla 推送始终静默",
+        "description": "使此群收到的所有 Bugzilla 推送均不发送通知。"
+      }
+    },
+    "repositories": {
+      "title": "GitHub 仓库",
+      "description": "选择此群接收的 GitHub 仓库和事件类型。",
+      "item": "仓库 {{number}}",
+      "itemDescription": "设置此行的仓库、可选分支和事件类型。",
+      "repository": "仓库",
+      "repositoryDescription": "输入 owner/name 格式的 GitHub 仓库。",
+      "branch": "分支",
+      "branchDescription": "留空则跟随仓库的默认分支。",
+      "issues": "Issue",
+      "issuesDescription": "推送此仓库中新建的 Issue。",
+      "pulls": "Pull request",
+      "pullsDescription": "推送此仓库中新建的 Pull request。"
     },
     "newsURL": {
       "title": "新闻源地址",
@@ -453,13 +478,43 @@
       "disabled": "已关闭",
       "seconds_other": "{{count}} 秒"
     },
+    "actions": {
+      "addRepository": "添加仓库",
+      "removeRepository": "移除仓库",
+      "restoreFactory": "恢复出厂默认值",
+      "save": "保存订阅设置",
+      "saving": "正在保存订阅设置…",
+      "reload": "重新载入设置"
+    },
+    "save": {
+      "label": "保存群级订阅设置",
+      "clean": "没有未保存的修改",
+      "dirty": "有未保存的订阅修改"
+    },
+    "feedback": {
+      "saved": "订阅设置已保存。",
+      "conflict": "其他管理员修改了这些设置。已载入最新值，请重新应用仍需保留的修改。"
+    },
+    "validation": {
+      "required": "此字段为必填项。",
+      "invalidInterval": "请输入 60 至 86400 秒范围内的整数。",
+      "invalidLanguage": "请选择受支持的推送语言。",
+      "invalidRepository": "请输入有效的 owner/name 格式 GitHub 仓库。",
+      "duplicateRepository": "仓库与分支的组合必须唯一。",
+      "invalidRevision": "设置已过期。请重新载入最新值后再保存。"
+    },
     "errors": {
       "authenticationExpired": "会话已过期。请从 Telegram 重新打开控制台。",
       "authenticationInvalid": "无法验证控制台会话。请从 Telegram 重新打开控制台。",
+      "accessDenied": "你已无法管理该群。",
+      "csrfInvalid": "页面安全令牌已过期。请刷新页面后重试。",
+      "invalidRequest": "订阅设置被拒绝。请检查突出显示的字段后重试。",
+      "reviewFields": "请检查突出显示的订阅字段后重试。",
       "settingsUnavailable": "进程设置服务暂时不可用。请重试。",
-      "loadUnavailable": "暂时无法读取进程设置。请重试。",
-      "invalidResponse": "进程设置响应不完整，无法安全显示。请重试。",
-      "network": "连接已中断。请重新加载进程设置后再确认配置。"
+      "loadUnavailable": "暂时无法读取订阅设置。请重试。",
+      "saveUnavailable": "暂时无法保存订阅设置。请重试。",
+      "invalidResponse": "订阅设置响应不完整，无法安全显示。请重试。",
+      "network": "连接已中断。请重新载入设置后再确认配置。"
     }
   },
   "bypass": {
