@@ -12,7 +12,7 @@ export default defineConfig({
   testDir: "./e2e",
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
-  workers: process.env.CI ? 2 : 1,
+  workers: 1,
   reporter: process.env.CI
     ? [
         ["line"],
