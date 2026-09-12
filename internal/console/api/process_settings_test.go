@@ -138,16 +138,6 @@ func assertUserFileProcessSettings(t *testing.T, body processSettingsResponse) {
 		t.Fatalf("overlay = %+v, want gentoo/overlay stable", overlay)
 	}
 }
-
-func assertConfiguredFeed(t *testing.T, feed settings.FeedConfig) {
-	t.Helper()
-	if feed.ChatID != -1009000000201 || feed.Lang != "en" || feed.IntervalSeconds != 600 ||
-		feed.Bugs == nil || *feed.Bugs || feed.News == nil || !*feed.News ||
-		feed.SilentBugs == nil || !*feed.SilentBugs {
-		t.Fatalf("feed = %+v, want configured feed", feed)
-	}
-}
-
 func TestGetProcessSettingsRejectsManager(t *testing.T) {
 	config := loadProcessSettingsConfig(t, map[string]any{})
 	service := &apiTestProcessSettingsService{view: config.ProcessSettings()}
