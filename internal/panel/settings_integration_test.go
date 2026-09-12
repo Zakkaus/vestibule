@@ -281,7 +281,7 @@ func TestHelpOmitsDisabledModuleCommands(t *testing.T) {
 	if got, want := fake.lastSendText, commands.MemberHelp(i18n.LangEN); got != want {
 		t.Errorf("disabled-module help = %q, want %q", got, want)
 	}
-	for _, command := range []string{"/pkg", "/wiki", "/repology"} {
+	for _, command := range []string{"/gpkg", "/wiki", "/repology"} {
 		if strings.Contains(fake.lastSendText, command) {
 			t.Errorf("disabled command %s remains in /help", command)
 		}

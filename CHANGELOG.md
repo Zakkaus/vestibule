@@ -70,6 +70,9 @@ All notable changes to this project are documented here. The format is based on
   default tier.
 
 ### Changed
+- Gentoo lookups now use `/gpkg`, `/guse`, `/garm`, `/gbug`, `/gnews`, and `/gbbs`.
+  The `/pkg`, `/use`, `/arm`, `/bug`, `/news`, and `/bbs` aliases only return rename notices,
+  stay hidden from menus and `/help`, and will be removed in v5.1.0.
 - Group-setting changes and moderation actions require fresh Telegram capabilities for
   the operation. Manual verification settlements check restrict, invite, and delete rights
   before changing verification state or issuing Telegram actions.

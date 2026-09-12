@@ -1,6 +1,6 @@
 {
   "bug": {
-    "usage": "使い方：/bug <番号>。例：/bug 900000。",
+    "usage": "使い方：/gbug <番号>。例：/gbug 900000。",
     "not_found": "Bug %[1]s は存在しません。番号を確認して再試行してください。",
     "unavailable": "Bug %[1]s の詳細を一時的に取得できません。後でもう一度試すか、Bug を直接表示してください：%[2]s",
     "heading": "<a href=\"%[1]s\">Bug %[2]s</a>\n%[3]s\n",
@@ -63,7 +63,7 @@
     "no_matches": "\n\n一致するページが見つかりません。別のキーワードを試してください。"
   },
   "bbs": {
-    "usage": "使い方：/bbs <キーワード>。例：/bbs nvidia black screen。Linux フォーラムを検索し、中国語の結果を優先します。",
+    "usage": "使い方：/gbbs <キーワード>。例：/gbbs nvidia black screen。Linux フォーラムを検索し、中国語の結果を優先します。",
     "heading": "<b>%[1]s</b> のフォーラム検索結果",
     "arch_cn_heading": "\n\n<b>Arch Linux CN フォーラム</b>",
     "arch_cn_unavailable": "\n\nArch Linux CN フォーラムの結果を一時的に取得できません。後でもう一度試してください。",

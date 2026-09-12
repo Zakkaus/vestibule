@@ -173,7 +173,7 @@ type ShortQuestion struct {
 	Answers []string `json:"answers"`
 }
 
-// OverlayCfg identifies a GitHub overlay searched by /pkg.
+// OverlayCfg identifies a GitHub overlay searched by /gpkg.
 type OverlayCfg struct {
 	// Name is the overlay's display and cache name.
 	Name string `json:"name"`
@@ -346,9 +346,9 @@ type Config struct {
 	FallbackQuestions []ShortQuestion `json:"fallback_questions"`
 	// FallbackBuiltin selects the inherited deployment bank rather than a per-chat bank.
 	FallbackBuiltin *bool `json:"fallback_builtin"`
-	// Overlays lists GitHub overlays searched by /pkg.
+	// Overlays lists GitHub overlays searched by /gpkg.
 	Overlays []OverlayCfg `json:"overlays"`
-	// NewsURL is the Gentoo news-items index used by /news.
+	// NewsURL is the Gentoo news-items index used by /gnews.
 	NewsURL string `json:"news_url"`
 	// GitHubAtomBase is the normalized base URL used for GitHub Atom requests and commit links.
 	GitHubAtomBase string `json:"github_atom_base,omitempty"`

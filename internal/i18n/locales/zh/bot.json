@@ -29,7 +29,7 @@
       "warn": "【管理】回复警告（满 %[1]d 次踢出）",
       "clear_warn": "【管理】回复清除警告",
       "channel": "【管理】管理频道身份发言",
-      "rich_text": "【管理】切换 /pkg、/use 富文本",
+      "rich_text": "【管理】切换 /gpkg、/guse 富文本",
       "name_spoiler": "【管理】切换新成员姓名遮盖",
       "verification_mode": "【管理】切换验证方式",
       "auto_delete": "【管理】切换查询结果自动删除",
@@ -45,6 +45,7 @@
       "console_local": "控制台监听 loopback 接口；该地址仅可从运行控制台的机器打开。其他机器需先配置端口转发。"
     }
   },
+  "renamed_command": "此命令已改名为 /%[1]s，请改用新名。",
   "lifecycle": {
     "unauthorized_chat": "🚪 已自动退出未授权聊天：%[1]s（ID：%[2]d，类型：%[3]s）。"
   },

@@ -12,8 +12,8 @@
     "stopped": "参加認証を無効にしました。新しい参加申請は自動認証されません。管理者が手動で審査してください。"
   },
   "rich_text": {
-    "enabled": "リッチテキスト出力を有効にしました。/pkg と /use はリッチテキストメッセージを送信します。古いクライアントやサードパーティ製クライアントでは正しく表示されない場合があります。",
-    "disabled": "リッチテキスト出力を無効にしました。/pkg と /use はプレーンテキストメッセージを送信します。"
+    "enabled": "リッチテキスト出力を有効にしました。/gpkg と /guse はリッチテキストメッセージを送信します。古いクライアントやサードパーティ製クライアントでは正しく表示されない場合があります。",
+    "disabled": "リッチテキスト出力を無効にしました。/gpkg と /guse はプレーンテキストメッセージを送信します。"
   },
   "name_spoiler": {
     "enabled": "新規メンバーの名前非表示を有効にしました。名前はスポイラー形式で表示され、広告目的の名前がグループに直接表示されるのを防ぎます。",
@@ -37,7 +37,7 @@
     "usage": "使い方：/autodel on|off または /autodel <minutes>（1–1440）。"
   },
   "help": {
-    "member": "利用可能なコマンド：\n/pkg <package> — Gentoo パッケージを検索（公式ツリー、gentoo-zh、GURU）\n/use <package> — パッケージ情報と USE flags を表示\n/arm <package> — Gentoo arm64 keyword 状態を表示\n\n/pkgs <package> — ディストリビューション間のパッケージバージョンを比較（/distro <package> も使用可能）\n/armpkgs <package> — ディストリビューション間の arm64 対応を比較\n/bug <number> — Gentoo Bugzilla の課題を検索\n/news [keywords] — Gentoo ニュースを閲覧または検索\n/wiki <keywords> — Gentoo Wiki と ArchWiki を検索（中国語ページを含む）\n/bbs <keywords> — Linux フォーラムを検索（中国語を優先）\n/kernel — kernel.org で現在公開されているカーネルバージョン\n/man <name> — Linux マニュアルページを検索\n/cve <id> — 識別子で脆弱性を検索\n/repology <package> — ディストリビューションのリポジトリ間でパッケージバージョンを比較\n\n/ping — ボットの状態と稼働時間を表示\n/stats — 本日の承認数と拒否数を表示\n/help — この一覧を表示",
+    "member": "利用可能なコマンド：\n/gpkg <package> — Gentoo パッケージを検索（公式ツリー、gentoo-zh、GURU）\n/guse <package> — パッケージ情報と USE flags を表示\n/garm <package> — Gentoo arm64 keyword 状態を表示\n\n/pkgs <package> — ディストリビューション間のパッケージバージョンを比較（/distro <package> も使用可能）\n/armpkgs <package> — ディストリビューション間の arm64 対応を比較\n/gbug <number> — Gentoo Bugzilla の課題を検索\n/gnews [keywords] — Gentoo ニュースを閲覧または検索\n/wiki <keywords> — Gentoo Wiki と ArchWiki を検索（中国語ページを含む）\n/gbbs <keywords> — Linux フォーラムを検索（中国語を優先）\n/kernel — kernel.org で現在公開されているカーネルバージョン\n/man <name> — Linux マニュアルページを検索\n/cve <id> — 識別子で脆弱性を検索\n/repology <package> — ディストリビューションのリポジトリ間でパッケージバージョンを比較\n\n/ping — ボットの状態と稼働時間を表示\n/stats — 本日の承認数と拒否数を表示\n/help — この一覧を表示",
     "group_state": "参加認証：%[1]s",
     "admin": "管理者（対象メッセージに返信）：\n/mute [duration] — ユーザーをミュート。既定は 1h、例：/mute 30m\n/unmute — ユーザーのミュートを解除\n/ban — ユーザーをアクセス禁止にして削除。返信先のメッセージだけを削除\n/sb — ユーザーをアクセス禁止にして削除。そのユーザーの全メッセージも削除\n/warn — ユーザーに警告。%[1]d 回で自動的に削除\n/clearwarn — 警告を消去\n\nその他の管理コマンド：\n/settings — ダイレクトメッセージの設定パネルを開く\n/bantime <duration> — アクセス禁止期間を設定。0 は永久、例：7d、12h、30m\n/autodel [on|off|minutes] — 検索結果の自動削除を設定\n/rich — リッチな検索結果出力を切り替え\n/spoiler — 新規メンバーの名前非表示を切り替え\n/vmode <mode> — 認証モードを設定：kernel、quiz、mixed、auto\n/bc — 送信元チャンネルのブロックを切り替え。/bc allow|deny <channel ID> で許可リストを管理\n/start または /stop — 参加認証を有効化または無効化",
     "owner": "所有者コマンド：\n/console — コンソールを開く\n/enroll — 一度だけ使えるグループ登録リンクを作成\n/unregister <group-id> — 実行時に登録されたグループの登録を解除",

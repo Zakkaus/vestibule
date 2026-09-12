@@ -29,7 +29,7 @@
       "warn": "[Administrator] Warn the user you replied to (removed after %[1]d warnings)",
       "clear_warn": "[Administrator] Clear warnings for the user you replied to",
       "channel": "[Administrator] Manage sender-channel blocking",
-      "rich_text": "[Administrator] Toggle rich text for /pkg and /use",
+      "rich_text": "[Administrator] Toggle rich text for /gpkg and /guse",
       "name_spoiler": "[Administrator] Toggle name hiding for new members",
       "verification_mode": "[Administrator] Change verification mode",
       "auto_delete": "[Administrator] Toggle automatic result deletion",
@@ -45,6 +45,7 @@
       "console_local": "This console listens on the loopback interface, so this address opens only from the machine it runs on. If you are somewhere else, forward the port first."
     }
   },
+  "renamed_command": "This command has been renamed to /%[1]s; please use the new name.",
   "lifecycle": {
     "unauthorized_chat": "🚪 Automatically left unauthorized chat: %[1]s (ID: %[2]d, type: %[3]s)."
   },

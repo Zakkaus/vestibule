@@ -14,10 +14,10 @@ func privMsg(text string) telego.Update {
 func TestPrivateNonStartPredicate(t *testing.T) {
 	predicate := privateNonStart(testCommandModules(t).MemberCommandNames())
 	handled := []string{
-		"/pkg vim", "/use vim", "/bug 1", "/news", "/wiki x", "/bbs x",
-		"/pkgs firefox", "/distro firefox", "/arm htop", "/armpkgs htop",
+		"/gpkg vim", "/guse vim", "/gbug 1", "/gnews", "/wiki x", "/gbbs x",
+		"/pkgs firefox", "/distro firefox", "/garm htop", "/armpkgs htop",
 		"/kernel", "/man ls", "/cve CVE-2024-3094", "/repology bash",
-		"/help", "/ping", "/stats", "/start", "/start verify", "/pkg@GentooZhVerifyBot vim",
+		"/help", "/ping", "/stats", "/start", "/start verify", "/gpkg@GentooZhVerifyBot vim",
 	}
 	for _, m := range handled {
 		if predicate(context.TODO(), privMsg(m)) {
@@ -31,7 +31,7 @@ func TestPrivateNonStartPredicate(t *testing.T) {
 		}
 	}
 	// Non-private messages never match the direct-message predicate.
-	if predicate(context.TODO(), telego.Update{Message: &telego.Message{Chat: telego.Chat{Type: "supergroup"}, Text: "/pkg x"}}) {
+	if predicate(context.TODO(), telego.Update{Message: &telego.Message{Chat: telego.Chat{Type: "supergroup"}, Text: "/gpkg x"}}) {
 		t.Errorf("group message should not match privateNonStart")
 	}
 }
