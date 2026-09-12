@@ -89,9 +89,9 @@ export function CapabilityCard({
   source: SettingSource;
   onKey: string;
   offKey: string;
-  detailsPath: string;
-  detailsKey: string;
-  groupSearch: string;
+  detailsPath?: string;
+  detailsKey?: string;
+  groupSearch?: string;
   sourceMeta?: ReactNode;
   control?: ReactNode;
 }>) {
@@ -130,17 +130,19 @@ export function CapabilityCard({
           <p>{t(offKey)}</p>
         </div>
       </div>
-      <footer data-capability-footer>
-        <Link
-          to={{ pathname: detailsPath, search: groupSearch }}
-          data-slot="button"
-          data-variant="secondary"
-          data-size="sm"
-        >
-          <Icon name="arrowRight" />
-          {t(detailsKey)}
-        </Link>
-      </footer>
+      {detailsPath && detailsKey ? (
+        <footer data-capability-footer>
+          <Link
+            to={{ pathname: detailsPath, search: groupSearch }}
+            data-slot="button"
+            data-variant="secondary"
+            data-size="sm"
+          >
+            <Icon name="arrowRight" />
+            {t(detailsKey)}
+          </Link>
+        </footer>
+      ) : null}
     </section>
   );
 }

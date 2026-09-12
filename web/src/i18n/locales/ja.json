@@ -1460,9 +1460,25 @@
       "disabled": "ボットはチャンネル ID を確認せず、関連するメッセージを後続処理へ渡します。",
       "details": "モデレーションと処分で調整"
     },
+    "gentooLookups": {
+      "title": "Gentoo 検索",
+      "summary": "グループで Gentoo 検索コマンドを使用できるか決めます。",
+      "enabled": "グループのメンバーは Gentoo 検索コマンドでパッケージ情報を取得できます。",
+      "disabled": "Gentoo 検索コマンドは使用できず、他の機能には影響しません。"
+    },
+    "linuxLookups": {
+      "title": "Linux 検索",
+      "summary": "グループで Linux 検索コマンドを使用できるか決めます。",
+      "enabled": "グループのメンバーは Linux 検索コマンドでカーネル情報を取得できます。",
+      "disabled": "Linux 検索コマンドは使用できず、他の機能には影響しません。"
+    },
+    "presets": {
+      "verificationOnly": "認証のみ有効化",
+      "all": "すべて有効化"
+    },
     "save": {
       "label": "機能の変更を保存",
-      "unsaved": "自動参加認証に保存していない変更があります。"
+      "unsaved": "保存していない機能の変更があります。"
     },
     "actions": {
       "retry": "再試行",

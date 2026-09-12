@@ -6,20 +6,40 @@ const otherGroupID = "-1009000000703";
 const actorID = "9000000702";
 
 type SettingSource = "factory default" | "user file" | "chat override";
+type SourcedBoolean = Readonly<{ value: boolean; source: SettingSource }>;
 type SettingsPayload = Readonly<{
   revision: number;
-  enabled: Readonly<{ value: boolean; source: SettingSource }>;
-  antispam_enabled: Readonly<{ value: boolean; source: SettingSource }>;
+  enabled: SourcedBoolean;
+  antispam_enabled: SourcedBoolean;
+  gentoo_lookups_enabled: SourcedBoolean;
+  linux_lookups_enabled: SourcedBoolean;
   warn_limit: Readonly<{ value: number; source: SettingSource }>;
   admin_log_chat_id: Readonly<{ value: number; source: SettingSource }>;
 }>;
 type ReadSettingsHandler = (route: Route, requestNumber: number) => Promise<void>;
 type PatchSettingsHandler = (route: Route) => Promise<void>;
+type PatchCapture = {
+  calls: number;
+  body: unknown;
+  csrfHeader: string | undefined;
+};
+
+function capturePatchRequest(capture: PatchCapture, route: Route): void {
+  capture.calls += 1;
+  capture.body = route.request().postDataJSON();
+  capture.csrfHeader = route.request().headers()["x-csrf-token"];
+}
+
+function newPatchCapture(): PatchCapture {
+  return { calls: 0, body: undefined, csrfHeader: undefined };
+}
 
 const baseSettings: SettingsPayload = {
   revision: 7,
   enabled: { value: false, source: "factory default" },
   antispam_enabled: { value: true, source: "user file" },
+  gentoo_lookups_enabled: { value: false, source: "factory default" },
+  linux_lookups_enabled: { value: false, source: "factory default" },
   warn_limit: { value: 3, source: "factory default" },
   admin_log_chat_id: { value: 0, source: "factory default" }
 };
@@ -90,6 +110,78 @@ async function openCapabilities(
     "loaded"
   );
 }
+type CapabilityBooleanValues = Readonly<{
+  enabled: boolean;
+  antispam_enabled: boolean;
+  gentoo_lookups_enabled: boolean;
+  linux_lookups_enabled: boolean;
+}>;
+
+async function assertPresetDraftAndPatch(
+  page: Page,
+  preset: "verification-only" | "all",
+  label: string,
+  expected: CapabilityBooleanValues
+): Promise<void> {
+  const patchCapture = newPatchCapture();
+  await openCapabilities(
+    page,
+    async (route) =>
+      fulfillJSON(
+        route,
+        settingsPayload({
+          enabled: { value: false, source: "factory default" },
+          antispam_enabled: { value: false, source: "factory default" },
+          gentoo_lookups_enabled: { value: false, source: "factory default" },
+          linux_lookups_enabled: { value: false, source: "factory default" }
+        })
+      ),
+    async (route) => {
+      capturePatchRequest(patchCapture, route);
+      await fulfillJSON(
+        route,
+        settingsPayload({
+          revision: 8,
+          enabled: { value: expected.enabled, source: "chat override" },
+          antispam_enabled: { value: expected.antispam_enabled, source: "chat override" },
+          gentoo_lookups_enabled: {
+            value: expected.gentoo_lookups_enabled,
+            source: "chat override"
+          },
+          linux_lookups_enabled: {
+            value: expected.linux_lookups_enabled,
+            source: "chat override"
+          }
+        })
+      );
+    }
+  );
+
+  const presetButton = page.locator(`[data-capabilities-preset="${preset}"]`);
+  await expect(presetButton).toContainText(label);
+  await presetButton.click();
+  expect(patchCapture.calls).toBe(0);
+
+  const expectedByCard = [
+    ["verification", expected.enabled],
+    ["antispam", expected.antispam_enabled],
+    ["gentoo-lookups", expected.gentoo_lookups_enabled],
+    ["linux-lookups", expected.linux_lookups_enabled]
+  ] as const;
+  for (const [cardID, value] of expectedByCard) {
+    await expect(
+      page.locator(`[data-capability-card="${cardID}"]`).getByRole("switch")
+    ).toHaveAttribute("aria-checked", String(value));
+  }
+
+  await page.getByRole("button", { name: "保存更改" }).click();
+  await expect(page.locator('[data-capabilities-feedback="saved"]')).toBeVisible();
+  expect(patchCapture.body).toEqual({
+    expected_revision: 7,
+    changes: expected
+  });
+}
+
 
 test("capabilities explains both states, shows provenance, and keeps one writer per setting", async ({
   page
@@ -129,6 +221,57 @@ test("capabilities explains both states, shows provenance, and keeps one writer 
     `/moderation?group=${selectedGroupID}`
   );
 
+});
+
+test("capabilities renders four independently editable boolean cards", async ({ page }) => {
+  await openCapabilities(page, async (route) =>
+    fulfillJSON(
+      route,
+      settingsPayload({
+        enabled: { value: false, source: "chat override" },
+        antispam_enabled: { value: false, source: "chat override" },
+        gentoo_lookups_enabled: { value: false, source: "chat override" },
+        linux_lookups_enabled: { value: false, source: "chat override" }
+      })
+    )
+  );
+
+  await expect(page.locator("[data-capabilities-list] [data-capability-card]")).toHaveCount(4);
+  await expect(page.locator('[data-capability-card="gentoo-lookups"] h2')).toHaveText(
+    "Gentoo 查询"
+  );
+  await expect(page.locator('[data-capability-card="linux-lookups"] h2')).toHaveText("Linux 查询");
+
+  const cardIDs = ["verification", "antispam", "gentoo-lookups", "linux-lookups"] as const;
+  for (const activeCardID of cardIDs) {
+    await page.locator(`[data-capability-card="${activeCardID}"]`).getByRole("switch").click();
+    for (const cardID of cardIDs) {
+      await expect(
+        page.locator(`[data-capability-card="${cardID}"]`).getByRole("switch")
+      ).toHaveAttribute("aria-checked", String(cardID === activeCardID));
+    }
+    await page.locator(`[data-capability-card="${activeCardID}"]`).getByRole("switch").click();
+  }
+});
+
+test.describe("capability presets", () => {
+  test("Only verification makes an ordinary draft and patches all booleans", async ({ page }) => {
+    await assertPresetDraftAndPatch(page, "verification-only", "只启用验证", {
+      enabled: true,
+      antispam_enabled: false,
+      gentoo_lookups_enabled: false,
+      linux_lookups_enabled: false
+    });
+  });
+
+  test("Enable all makes an ordinary draft and patches all booleans", async ({ page }) => {
+    await assertPresetDraftAndPatch(page, "all", "全部启用", {
+      enabled: true,
+      antispam_enabled: true,
+      gentoo_lookups_enabled: true,
+      linux_lookups_enabled: true
+    });
+  });
 });
 
 test("capabilities keeps the shared control contract and stepped setting geometry", async ({
@@ -201,17 +344,13 @@ test("capabilities saves one sparse change once and preserves CSRF and revision"
   const patchResponse = new Promise<void>((resolve) => {
     releasePatch = resolve;
   });
-  let patchCalls = 0;
-  let requestBody: unknown;
-  let csrfHeader: string | undefined;
+  const patchCapture = newPatchCapture();
 
   await openCapabilities(
     page,
     async (route) => fulfillJSON(route, settingsPayload()),
     async (route) => {
-      patchCalls += 1;
-      requestBody = route.request().postDataJSON();
-      csrfHeader = route.request().headers()["x-csrf-token"];
+      capturePatchRequest(patchCapture, route);
       markPatchRequested();
       await patchResponse;
       await fulfillJSON(
@@ -232,9 +371,9 @@ test("capabilities saves one sparse change once and preserves CSRF and revision"
   await expect(saving).toContainText("正在保存…");
   await expect(saving).toHaveAttribute("aria-disabled", "true");
   await saving.dispatchEvent("click");
-  expect(patchCalls).toBe(1);
-  expect(csrfHeader).toBe("capabilities-csrf");
-  expect(requestBody).toEqual({ expected_revision: 7, changes: { enabled: true } });
+  expect(patchCapture.calls).toBe(1);
+  expect(patchCapture.csrfHeader).toBe("capabilities-csrf");
+  expect(patchCapture.body).toEqual({ expected_revision: 7, changes: { enabled: true } });
 
   releasePatch();
   await expect(page.locator('[data-capabilities-feedback="saved"]')).toContainText(
@@ -250,7 +389,7 @@ test("capabilities saves one sparse change once and preserves CSRF and revision"
 });
 
 test("capabilities restores the editable override with an explicit null", async ({ page }) => {
-  let requestBody: unknown;
+  const patchCapture = newPatchCapture();
   await openCapabilities(
     page,
     async (route) =>
@@ -259,7 +398,7 @@ test("capabilities restores the editable override with an explicit null", async 
         settingsPayload({ enabled: { value: true, source: "chat override" } })
       ),
     async (route) => {
-      requestBody = route.request().postDataJSON();
+      capturePatchRequest(patchCapture, route);
       await fulfillJSON(
         route,
         settingsPayload({
@@ -278,7 +417,7 @@ test("capabilities restores the editable override with an explicit null", async 
   );
   await page.getByRole("button", { name: "保存更改" }).click();
 
-  expect(requestBody).toEqual({ expected_revision: 7, changes: { enabled: null } });
+  expect(patchCapture.body).toEqual({ expected_revision: 7, changes: { enabled: null } });
   await expect(page.locator('[data-capability-card="verification"]')).toContainText(
     "来源：程序默认值"
   );
@@ -286,7 +425,7 @@ test("capabilities restores the editable override with an explicit null", async 
 });
 
 test("capabilities names a revision conflict and reloads the latest value", async ({ page }) => {
-  let requestBody: unknown;
+  const patchCapture = newPatchCapture();
   await openCapabilities(
     page,
     async (route, requestNumber) => {
@@ -302,7 +441,7 @@ test("capabilities names a revision conflict and reloads the latest value", asyn
       );
     },
     async (route) => {
-      requestBody = route.request().postDataJSON();
+      capturePatchRequest(patchCapture, route);
       await fulfillJSON(route, { error: { code: "settings_conflict" } }, 409);
     }
   );
@@ -312,7 +451,7 @@ test("capabilities names a revision conflict and reloads the latest value", asyn
   await expect(page.locator('[data-capabilities-feedback="conflict"]')).toContainText(
     "其他管理员已更改功能设置。请重新加载最新值后再操作。"
   );
-  expect(requestBody).toEqual({ expected_revision: 7, changes: { enabled: true } });
+  expect(patchCapture.body).toEqual({ expected_revision: 7, changes: { enabled: true } });
 
   await page.getByRole("button", { name: "重新加载" }).click();
   await expect(page.getByRole("switch", { name: "自动入群验证" })).toHaveAttribute(

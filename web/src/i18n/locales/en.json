@@ -1467,9 +1467,25 @@
       "disabled": "The bot does not inspect sender-channel identities, and those messages continue through normal processing.",
       "details": "Open moderation controls"
     },
+    "gentooLookups": {
+      "title": "Gentoo lookups",
+      "summary": "Controls whether Gentoo lookup commands are available in the group.",
+      "enabled": "Group members can use Gentoo lookup commands to retrieve package information.",
+      "disabled": "Gentoo lookup commands are unavailable; other capabilities are unaffected."
+    },
+    "linuxLookups": {
+      "title": "Linux lookups",
+      "summary": "Controls whether Linux lookup commands are available in the group.",
+      "enabled": "Group members can use Linux lookup commands to retrieve kernel information.",
+      "disabled": "Linux lookup commands are unavailable; other capabilities are unaffected."
+    },
+    "presets": {
+      "verificationOnly": "Verification only",
+      "all": "Enable all"
+    },
     "save": {
       "label": "Save capability changes",
-      "unsaved": "Automatic join verification has an unsaved change."
+      "unsaved": "There are unsaved capability changes."
     },
     "actions": {
       "retry": "Try again",
