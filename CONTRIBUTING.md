@@ -195,6 +195,8 @@ project references and theme scope. Standalone pages use their own CSS without V
 
 ```sh
 gofmt -l .                       # must print nothing
+go mod tidy -diff                # must print nothing
+go mod verify
 scripts/lint.sh                  # package boundaries, file and function length, complexity
 python3 scripts/check-test-chat-ids.py internal cmd testdata  # test topology stays synthetic
 python3 scripts/check-baseline-ratchet.py origin/main   # a held violation may not grow

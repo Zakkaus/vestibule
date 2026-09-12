@@ -433,6 +433,8 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
         tree = self.temporary_tree()
         ci_cases = (
             ('        unformatted="$(gofmt -l .)"\n', "gofmt"),
+            ("        run: go mod tidy -diff\n", "go mod tidy -diff"),
+            ("        run: go mod verify\n", "go mod verify"),
             ("        run: go vet ./...\n", "go vet"),
             ("        run: go build ./...\n", "go build"),
             ("        run: go build -tags gentoo ./...\n", "go build -tags gentoo"),
@@ -485,6 +487,8 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
 
         document_cases = (
             ("gofmt -l .                       # must print nothing\n", "gofmt"),
+            ("go mod tidy -diff                # must print nothing\n", "go mod tidy -diff"),
+            ("go mod verify\n", "go mod verify"),
             ("go vet ./...\n", "go vet"),
             (
                 "go build ./... && go build -tags gentoo ./...\n",
@@ -575,6 +579,36 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
                 ".github/workflows/ci.yml",
                 '        tags: ["", "gentoo"]\n',
                 '        tags: [""]\n',
+            ),
+        )
+
+    def test_release_gate_rejects_lost_go_mod_tidy(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-release-gate.py",
+            "the release stopped checking module tidiness",
+            ("go mod tidy -diff",),
+            lambda: self.replace_text(
+                tree,
+                ".github/workflows/release.yml",
+                "          go mod tidy -diff\n",
+                "",
+            ),
+        )
+
+    def test_release_gate_rejects_lost_go_mod_verify(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-release-gate.py",
+            "the release stopped verifying downloaded modules",
+            ("go mod verify",),
+            lambda: self.replace_text(
+                tree,
+                ".github/workflows/release.yml",
+                "          go mod verify\n",
+                "",
             ),
         )
 

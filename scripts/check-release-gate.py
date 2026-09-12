@@ -59,6 +59,8 @@ EXCLUDED = {
 # Command-line gates that are not a repository script. Each is a substring CI's text contains.
 TOOL_GATES = {
     "gofmt -l": "gofmt",
+    "go mod tidy -diff": "go mod tidy -diff",
+    "go mod verify": "go mod verify",
     "go vet ./...": "go vet",
     "cmd/staticcheck": "staticcheck",
     "go build ./...": "go build",
