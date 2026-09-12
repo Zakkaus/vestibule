@@ -27,8 +27,9 @@ type githubRepoState struct {
 }
 
 type githubState struct {
-	Repos    map[string]githubRepoState `json:"repos,omitempty"`
-	NextRepo int                        `json:"next_repo"`
+	Repos         map[string]githubRepoState `json:"repos,omitempty"`
+	NextRepo      int                        `json:"next_repo"`
+	RemovedCycles map[string]int             `json:"removed_cycles,omitempty"`
 }
 
 func (s feedState) MarshalJSON() ([]byte, error) {
@@ -39,16 +40,17 @@ func (s feedState) MarshalJSON() ([]byte, error) {
 	return json.Marshal(stateJSON(s))
 }
 
-// UnmarshalJSON drops null repository entries instead of turning them into initialized cursors.
 func (s *githubState) UnmarshalJSON(data []byte) error {
 	var raw struct {
-		Repos    map[string]json.RawMessage `json:"repos"`
-		NextRepo int                        `json:"next_repo"`
+		Repos         map[string]json.RawMessage `json:"repos"`
+		NextRepo      int                        `json:"next_repo"`
+		RemovedCycles map[string]int             `json:"removed_cycles"`
 	}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
 	s.NextRepo = raw.NextRepo
+	s.RemovedCycles = raw.RemovedCycles
 	s.Repos = make(map[string]githubRepoState, len(raw.Repos))
 	for key, value := range raw.Repos {
 		if bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
@@ -72,16 +74,29 @@ func configuredGitHubRepos(f *settings.FeedConfig) map[string]bool {
 	}
 	return keys
 }
-
 func normalizeGitHubState(st *githubState, f *settings.FeedConfig) {
 	if st.Repos == nil {
 		st.Repos = map[string]githubRepoState{}
 	}
+	if st.RemovedCycles == nil {
+		st.RemovedCycles = map[string]int{}
+	}
 	keys := configuredGitHubRepos(f)
-	for key := range st.Repos {
-		if !keys[key] {
-			delete(st.Repos, key)
+	for key := range st.RemovedCycles {
+		if keys[key] {
+			delete(st.RemovedCycles, key)
 		}
+	}
+	for key := range st.Repos {
+		if keys[key] {
+			continue
+		}
+		if st.RemovedCycles[key] > 0 {
+			delete(st.Repos, key)
+			delete(st.RemovedCycles, key)
+			continue
+		}
+		st.RemovedCycles[key] = 1
 	}
 	if len(f.GitHubRepos) > 0 {
 		st.NextRepo = normalizeGitHubIndex(st.NextRepo, len(f.GitHubRepos))
@@ -205,7 +220,13 @@ type githubItemsFetcher func(context.Context, string) ([]lookup.GitHubItem, bool
 
 func pollGitHubWithFetchers(ctx context.Context, bot feedBot, f *settings.FeedConfig, st *feedState, commitFetch func(context.Context, string, string) ([]lookup.Commit, error), itemFetch githubItemsFetcher) {
 	if len(f.GitHubRepos) == 0 {
-		st.GitHub = nil
+		if st.GitHub == nil {
+			return
+		}
+		normalizeGitHubState(st.GitHub, f)
+		if len(st.GitHub.Repos) == 0 {
+			st.GitHub = nil
+		}
 		return
 	}
 	gs := st.GitHub

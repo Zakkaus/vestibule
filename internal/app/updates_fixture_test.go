@@ -336,7 +336,7 @@ func newDispatchFixture(t *testing.T, requiredChannel int64) *dispatchFixture {
 		PrivateQueryPerMin:  4,
 	}
 	cfg.PrivateReply = i18n.Messages.Bot.DirectMessage.AutoReply.Render(i18n.LangEN, cfg.PrivateQueryPerMin)
-	settings, err := settings.NewStore("", botTestSettingsBaseline(t, cfg), nil)
+	settings, err := settings.NewStore("", botTestSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -357,7 +357,7 @@ func newDispatchFixture(t *testing.T, requiredChannel int64) *dispatchFixture {
 	administration := panel.New(
 		settings, connector, cfg, &i18n.Messages, verification, moderation, lookups, "test", time.Now(),
 	)
-	modules, err := newRuntimeModules(cfg, telegramBot, stateDirectory, administration, moderation, lookups, false)
+	modules, err := newRuntimeModules(cfg, settings, telegramBot, stateDirectory, administration, moderation, lookups, false)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -96,7 +96,7 @@ func newRuntimeRegistrationFixture(
 		settings, connector, cfg, &i18n.Messages,
 		verification, moderation, lookups, "test", time.Now(),
 	)
-	modules, err := newRuntimeModules(cfg, bot, t.TempDir(), administration, moderation, lookups, false)
+	modules, err := newRuntimeModules(cfg, settings, bot, t.TempDir(), administration, moderation, lookups, false)
 	if err != nil {
 		t.Fatal(err)
 	}

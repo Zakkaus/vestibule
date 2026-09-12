@@ -48,17 +48,25 @@ func TestGitHubStateNullAndPruning(t *testing.T) {
 	pollGitHubWithFetcher(context.Background(), &fakeFeedBot{}, feed, &st, func(context.Context, string, string) ([]lookup.Commit, error) {
 		return nil, nil
 	})
+	if _, ok := st.GitHub.Repos["o/removed@"]; !ok {
+		t.Fatal("removed repository was pruned before the retention cycle completed")
+	}
+	pollGitHubWithFetcher(context.Background(), &fakeFeedBot{}, feed, &st, func(context.Context, string, string) ([]lookup.Commit, error) {
+		return nil, nil
+	})
 	if _, ok := st.GitHub.Repos["o/removed@"]; ok {
-		t.Fatal("removed repository survived pruning")
+		t.Fatal("removed repository survived the retention cycle")
 	}
 
 	feed.GitHubRepos = nil
-	pollGitHubWithFetcher(context.Background(), &fakeFeedBot{}, feed, &st, func(context.Context, string, string) ([]lookup.Commit, error) {
-		t.Fatal("fetch called for empty repository list")
-		return nil, nil
-	})
+	for range 2 {
+		pollGitHubWithFetcher(context.Background(), &fakeFeedBot{}, feed, &st, func(context.Context, string, string) ([]lookup.Commit, error) {
+			t.Fatal("fetch called for empty repository list")
+			return nil, nil
+		})
+	}
 	if st.GitHub != nil {
-		t.Fatal("empty repository list retained GitHub state")
+		t.Fatal("empty repository list retained GitHub state after the retention cycle")
 	}
 }
 
@@ -144,6 +152,7 @@ func TestGitHubReadditionDependsOnPersistedPruning(t *testing.T) {
 		feed := githubTestFeed()
 		feed.GitHubRepos = []settings.GitHubRepo{{Repo: "o/keep"}}
 		empty := func(context.Context, string, string) ([]lookup.Commit, error) { return nil, nil }
+		pollGitHubWithFetcher(context.Background(), &fakeFeedBot{}, feed, &current, empty)
 		pollGitHubWithFetcher(context.Background(), &fakeFeedBot{}, feed, &current, empty)
 		target := path
 		if !successfulSave {
