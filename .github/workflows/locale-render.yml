@@ -18,10 +18,33 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - name: Install frontend dependencies
         run: cd web && npm ci --silent
+      - name: Read Playwright version
+        id: playwright-version
+        run: |
+          echo "version=$(node -p "require('./web/package-lock.json').packages['node_modules/@playwright/test'].version")" >> "$GITHUB_OUTPUT"
+      - name: Cache Chromium
+        id: playwright-cache
+        uses: actions/cache@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+      - name: Install Chromium system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: cd web && npx playwright install-deps chromium
       - name: Install Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: cd web && npx playwright install --with-deps chromium
       - name: Render every locale, route, width, and theme
         env:
           PLAYWRIGHT_PORT_OFFSET: 210
           RENDER_GATE_LOCALES: all
         run: cd web && npm run e2e -- e2e/render-gate.spec.ts
+      - name: Upload Playwright diagnostics
+        if: failure()
+        uses: actions/upload-artifact@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          name: playwright-all-locales
+          path: |
+            web/test-results/
+            web/playwright-report/
+          retention-days: 7

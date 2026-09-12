@@ -70,6 +70,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
       - name: ARCHITECTURE.md is generated, not hand-edited
         run: python3 scripts/gen-arch-md.py --check
       - name: Documents agree with themselves
@@ -230,9 +235,25 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
       - name: Install frontend dependencies
         run: cd web && npm ci --silent
+      - name: Read Playwright version
+        id: playwright-version
+        run: |
+          echo "version=$(node -p "require('./web/package-lock.json').packages['node_modules/@playwright/test'].version")" >> "$GITHUB_OUTPUT"
+      - name: Cache Chromium
+        id: playwright-cache
+        uses: actions/cache@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+      - name: Install Chromium system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: cd web && npx playwright install-deps chromium
       - name: Install Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: cd web && npx playwright install --with-deps chromium
       - name: Run console journeys
         env:
