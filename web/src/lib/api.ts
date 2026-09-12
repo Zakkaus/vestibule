@@ -11,6 +11,11 @@ export type ApiRequestError =
 
 export type ApiRequestMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
+export type ApiFieldError = Readonly<{
+  name: string;
+  code: string;
+}>;
+
 export type ApiLimitViolation = Readonly<{
   chatId: string;
   field: string;
@@ -57,7 +62,8 @@ export class ApiError extends Error {
   constructor(
     readonly code: string,
     readonly status: number,
-    readonly limitViolations: readonly ApiLimitViolation[] = []
+    readonly limitViolations: readonly ApiLimitViolation[] = [],
+    readonly fields: readonly ApiFieldError[] = []
   ) {
     super(`API request failed with ${code}`);
     this.name = "ApiError";
@@ -95,6 +101,33 @@ export class JsonParseError extends Error {
     super("API response contained invalid JSON");
     this.name = "JsonParseError";
   }
+}
+function fieldErrorsFromPayload(payload: unknown): readonly ApiFieldError[] {
+  if (
+    typeof payload !== "object" ||
+    payload === null ||
+    Array.isArray(payload) ||
+    !("fields" in payload) ||
+    !Array.isArray(payload.fields)
+  ) {
+    return [];
+  }
+  const fields: ApiFieldError[] = [];
+  for (const value of payload.fields) {
+    if (
+      typeof value !== "object" ||
+      value === null ||
+      Array.isArray(value) ||
+      typeof value.name !== "string" ||
+      value.name.length === 0 ||
+      typeof value.code !== "string" ||
+      value.code.length === 0
+    ) {
+      return [];
+    }
+    fields.push({ name: value.name, code: value.code });
+  }
+  return fields;
 }
 
 export class InvalidPayloadError extends Error {
@@ -226,7 +259,8 @@ export function createApiTransport(
             ? new ApiError(
                 code,
                 response.status,
-                code === "settings_limit_exceeded" ? limitViolationsFromPayload(payload) : []
+                code === "settings_limit_exceeded" ? limitViolationsFromPayload(payload) : [],
+                fieldErrorsFromPayload(payload)
               )
             : new InvalidPayloadError(response.status)
         };

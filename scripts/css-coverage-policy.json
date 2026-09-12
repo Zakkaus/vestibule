@@ -128,7 +128,8 @@
     "data-home-trend-empty": "Home trend empty-state metadata is retained for tests and accessibility, not CSS.",
     "data-mobile-navigation": "Mobile trigger identity supports focus checks; its Spectrum macro owns layout.",
     "data-capabilities-preset": "Preset identity is consumed by the journeys that press a preset, not CSS.",
-    "data-feed-setting-source": "Feed source metadata is consumed by the journeys that read a setting's provenance, not CSS."
+    "data-feed-setting-source": "Feed source metadata is consumed by the journeys that read a setting's provenance, not CSS.",
+    "data-feed-setting": "Feed field identity is consumed by validation journeys; the shared setting slot owns layout."
   },
   "non_styling_classes": {
     "console-brand": "Brand identity is independent of its Spectrum Header layout.",
