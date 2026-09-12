@@ -94,12 +94,13 @@ func (s *Service) Warm(ctx context.Context) {
 	pkgC.refresh(ctx)
 }
 
-// DemandWarm performs the first Gentoo package-cache warm-up at the first allowed demand.
+// DemandWarm starts the Gentoo package-cache warm-up on the first demand and is a no-op
+// after that; it returns at once so a command handler is not held by the fetch.
 func (s *Service) DemandWarm(ctx context.Context) {
 	if s == nil {
 		return
 	}
-	s.warmOnce.Do(func() { s.Warm(ctx) })
+	s.warmOnce.Do(func() { go s.Warm(ctx) })
 }
 
 // AutoDelete returns the effective lookup cleanup duration and enabled state for one group.

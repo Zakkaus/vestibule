@@ -130,7 +130,7 @@ func gentooModule(
 func warmGentooHandler(lookups *lookup.Service, handler th.Handler) th.Handler {
 	return func(ctx *th.Context, update telego.Update) error {
 		if lookups != nil {
-			go lookups.DemandWarm(context.WithoutCancel(ctx.Context()))
+			lookups.DemandWarm(context.WithoutCancel(ctx.Context()))
 		}
 		if handler == nil {
 			return nil

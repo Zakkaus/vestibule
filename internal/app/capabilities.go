@@ -30,7 +30,7 @@ func newRuntimeCapabilitySettings(
 			runtime.updates.RefreshGroupCommands(context.Background(), bot, groupID)
 		}
 		if !before.GentooLookupsEnabled().Value && after.GentooLookupsEnabled().Value {
-			go lookups.DemandWarm(ctx)
+			lookups.DemandWarm(ctx)
 		}
 	})
 }
