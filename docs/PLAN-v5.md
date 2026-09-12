@@ -65,7 +65,7 @@
 | 群与频道 | 机器人所在的群、当前群模式、拥有者绑定 |
 | 管理与处罚 | 警告上限、反频道马甲、处罚记录去向 |
 | 消息与文案 | 自动回复、进出提示、验证全流程文案，留空即用默认 |
-| 订阅推送 | RSS 与 Atom 与 JSON Feed、过滤、静默、失败暂停 |
+| 订阅推送 | 群级设置；配置文件 `feeds` 仅首次导入；RSS／Atom／JSON Feed 与富文本待后续实现 |
 | 统计 | 结果趋势、通过率、各方式拦截量 |
 | 诊断 | 权限预检、接口延迟、心跳、一致性检查 |
 | 功能 | 能力开关，默认全关，另给两个预设按钮 |
@@ -707,14 +707,11 @@ internal/app  verification  rules  telegram  console  settings  database  status
 | 屏 | 字段 |
 |---|---|
 | 免验证来源、题库、消息与文案、功能、诊断 | 全部在按群的设置里，可以直接做 |
-| **订阅推送** | `feeds`、`news_url`、`overlays` 一个都不在 |
+| **订阅推送** | 群级 `feeds` 端点返回有效值与来源；配置文件 `feeds` 仅用于首次导入 |
 | **统计** | `stats_timezone` 不在 |
 
-缺的这四个不属于群，属于进程层：`internal/settings/defaults.yaml` 把它们放在
-`process` 与 `resources` 两节，而按群的那对端点承载的是 `GroupOverrides`。
-这些字段属于进程级设置，而非按群设置。
-订阅推送和统计因此使用单独的进程级设置接口；
-接口形状根据实际调用点确定。
+订阅推送现已作为群级设置保存于 `chat.settings`，其配置文件条目只在启动时补齐缺失覆盖。
+RSS／Atom／JSON Feed 来源与富文本控制明确留待后续阶段。统计仍使用进程级设置接口。
 
 消息与文案屏还需要规则表接口。该屏负责五项内容，
 其中显示名剧透、自动撤回（含延时）和富文本位于设置中；
@@ -1229,7 +1226,7 @@ Catppuccin Mocha、Tokyo Night Storm 和 Tokyo Night。
 | 控制台域名 | **阶段九已完成，代码不再等它；剩下的只有实机。** 实现把它做成了配置（`CONSOLE_URL`，留空即不投递链接，Mini App 登录接口照常），所以代码不需要答案。需要它的是那台真机：证书要签给某个域名，Mini App 也要填一个。阶段九剩的两条 `EXEMPT` 都卡在这里 |
 | 申请人应答顺序 | **已于 2026-09-02 确定提前应答。** 阶段三第三片已具备事务落库和执行器重试前提；文案表述为「已判定通过」，而非「已经进群」 |
 | 四屏欠的五条职责 | **三条已定 2026-09-02，归阶段十一**：强调色改为整套主题、拥有者绑定（唯一）、控制群。**两条仍待决**：题库的内置模板、偏好的标题图标 | 实测：把设计文档「各屏职责」表里每屏的特征词拿去比三份语言目录（控制台文案检查保证凡是屏上能看见的字都在目录里），四屏存在缺口：**题库**缺「内置模板」，**偏好**缺「强调色」与「标题图标」，**群与频道**缺「拥有者绑定」，**管理与处罚**缺「控制群」。试答已由本片实现，题库屏仍需补齐内置模板 |
-| 路由表与实现的差异要不要收敛 | 阶段十与阶段十一 | `POST /api/status/upgrade` 已由阶段九的宿主替换机制实现；当前未实现清单包括：`GET /api/chats/{id}/overview`、`GET /api/chats/{id}/packages`、`POST /api/chats/{id}/packages`、`GET · PATCH /api/me/preferences`、`GET · PUT /api/chats/{id}/feeds`、`PATCH /api/chats/{id}`、`GET /verify/{token}`。`POST /api/chats/{id}/rules/test` 已由本片实现。这份清单由 `scripts/check-console-routes.py` 打印，不是手数的 |
+| 路由表与实现的差异要不要收敛 | 阶段十与阶段十一 | `POST /api/status/upgrade` 已由阶段九的宿主替换机制实现；当前未实现清单包括：`GET /api/chats/{id}/overview`、`GET /api/chats/{id}/packages`、`POST /api/chats/{id}/packages`、`GET · PATCH /api/me/preferences`、`PATCH /api/chats/{id}`、`GET /verify/{token}`。`GET · PUT /api/chats/{id}/feeds` 与 `POST /api/chats/{id}/rules/test` 已实现。这份清单由 `scripts/check-console-routes.py` 打印，不是手数的 |
 | ~~全部语言或仅最宽语言参与渲染门禁~~ **已于 2026-09-02 确定：分两档执行** | 每个 PR 测试实测最宽语言，定时任务测试全部语言与全部屏；`scripts/check-locale-catalogues.py` 静态检查目录键集和占位符 |
 | 结构信号 | **已于 2026-09-02 确定归阶段十一。** 该功能是架构文档新增设计，两代代码均未实现 |
 

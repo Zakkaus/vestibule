@@ -1,38 +1,43 @@
 # GitHub 提交、issue 与 pull request 订阅配置
 
-GitHub 提交订阅使用 Atom 源，issue 与 pull request 订阅使用 REST API。配置在进程启动时读取；修改配置文件后必须重启进程，运行期间不会并发重配。GitHub 订阅仍属于 Gentoo 模块，因此禁用 `gentoo` 模块时不会启动这些来源。
+GitHub 提交订阅使用 Atom 源，issue 与 pull request 订阅使用 REST API。订阅是群级运行期设置；控制台页面只读，群级 API 可读取并保存。配置文件中的 `feeds` 只在启动时作为一次性导入输入，之后不再作为运行期来源。GitHub 订阅仍属于 Gentoo 模块，因此禁用 `gentoo` 模块时不会启动这些来源。
 
-## 最小配置
+## 运行期设置与首次导入
 
-`github_repos` 位于 `feeds` 条目内。只启用 GitHub 推送时，必须显式关闭原有的 Bugzilla 与新闻源：
+群级订阅的出厂默认值为：`interval_seconds=300`，`bugs=false`、`news=false`，其余字符串与 `github_repos` 为空。`GET /api/chats/{id}/feeds` 返回有效值、每项来源与群设置版本号。`PUT /api/chats/{id}/feeds` 要求运维会话、CSRF 令牌和完整请求体；它以 `expected_revision` 做条件更新，并整份替换该群的订阅覆盖：
 
 ```json
 {
-  "github_atom_base": "",
-  "github_api_base": "",
-  "feeds": [
+  "expected_revision": 0,
+  "lang": "en",
+  "interval_seconds": 300,
+  "bugs": false,
+  "news": false,
+  "bug_product": "",
+  "bug_component": "",
+  "silent_bugs": false,
+  "github_repos": [
     {
-      "chat_id": -1009000000101,
-      "bugs": false,
-      "news": false,
-      "github_repos": [
-        {"repo": "gentoo-zh/overlay", "issues": true, "pulls": true},
-        {"repo": "Zakkaus/vestibule", "branch": "v5/next"}
-      ]
+      "repo": "gentoo-zh/overlay",
+      "branch": "master",
+      "issues": true,
+      "pulls": true
     }
   ]
 }
 ```
 
-`issues` 和 `pulls` 分别控制新建 issue 与新建 pull request 推送。省略、设为 `null` 或设为 `false` 均表示关闭；只有 `true` 表示启用。提交推送继续随仓库配置启用，不受这两个开关影响。
+[`examples/feeds.json`](../examples/feeds.json) 是可提交到该 PUT 路由的请求体。所有字段均为必填；用空字符串或空数组显式清除对应覆盖。版本冲突返回 `409 settings_conflict`，校验失败返回字段错误且不改变版本号。
 
-省略 `branch` 会跟随仓库当前默认分支。仓库身份是 `(repo, branch)`，开关不同不会形成另一个身份；同一 `feeds` 条目中不能重复这个二元组。`repo` 必须是两段 `owner/name`，每段只能使用 ASCII 字母、数字、`.`、`_`、`-`，长度为 1 至 100，且段本身不能是 `.` 或 `..`。
+旧 `config.json` 的 `feeds` 与单数 `feed` 只作启动迁移输入。Store 仅为已管理、尚无订阅覆盖的群导入一次；文件状态使用原子替换，数据库状态使用版本比较交换。任一未管理群 ID、持久化错误或比较交换冲突都会终止启动，不会发布半完成快照。导入成功后应从配置文件删除这些条目，后续修改通过群设置接口持久化。为保持旧版行为，迁移条目中缺失或为 `null` 的 `bugs`、`news` 会导入为 `true`；运行期 PUT 不接受缺失或 `null` 的布尔值。
+
+`issues` 和 `pulls` 分别控制新建 issue 与新建 pull request 推送。运行期请求必须显式传布尔值；首次导入时，省略、设为 `null` 或设为 `false` 均表示关闭。提交推送继续随仓库配置启用，不受这两个开关影响。
+
+省略 `branch` 会跟随仓库当前默认分支。仓库身份是 `(repo, branch)`，开关不同不会形成另一个身份；同一群不能重复这个二元组。`repo` 必须是两段 `owner/name`，每段只能使用 ASCII 字母、数字、`.`、`_`、`-`，长度为 1 至 100，且段本身不能是 `.` 或 `..`。
 
 加载配置时不会验证 `branch` 是否是 Git ref。`branch` 可以包含 `/`、`@`、`#` 等字符；非法或不存在的分支由上游请求失败处理。`url.PathEscape` 只负责把分支分段编码进请求路径，不是分支合法性校验。
 
-`github_repos` 省略、设为 `null` 或设为空数组，都表示该目的地不订阅 GitHub。旧字段仍保持原语义：`bugs` 与 `news` 缺失或为 `null` 时启用，显式 `false` 时关闭，显式 `true` 时启用。
-
-`silent_bugs: true` 强制所有 Bugzilla 消息静默；缺失、`null` 或 `false` 时，仍按缺陷状态决定是否静默，例如 `UNCONFIRMED` 和首次观察时已解决的缺陷仍不发通知。该字段不影响 GitHub 提交消息，产品与组件过滤也只作用于 Bugzilla。
+空 `github_repos` 表示该群不订阅 GitHub。`silent_bugs: true` 强制所有 Bugzilla 消息静默；设为 `false` 时，仍按缺陷状态决定是否静默，例如 `UNCONFIRMED` 和首次观察时已解决的缺陷仍不发通知。该字段不影响 GitHub 提交消息，产品与组件过滤也只作用于 Bugzilla。
 
 ## GitHub 基地址
 
@@ -59,7 +64,7 @@ REST 每页最多 30 条，issue 与 pull request 共用编号。满页时，如
 
 Atom 的根元素、`entry`、`id`、标题类型和页内唯一性不符合解析契约时，整页拒绝并保留原状态。REST 中任一条目的正整数 `number`、仓库内 `html_url`、非空 `title`、非空 `user.login`、RFC 3339 `created_at`、`open` 或 `closed` 状态以及 pull request 的可空 RFC 3339 `merged_at` 不符合契约时，也会拒绝整页并保留两个事件游标。REST 标题会删除控制字符并截为 200 个字符；两类响应均限制为 4 MiB。
 
-状态键是 `repo@branch`，只按完整键查找，不按仓库序号绑定。提交、issue 与 pull request 游标在每次发送成功或永久拒绝后分别在内存中推进；完成该目的地的本轮轮询后，状态快照统一落盘。`repos` 中值为 `null` 的键会删除，不会变成已初始化的空游标；空表在保存时省略整个 `github` 字段。仓库剪枝只处理当前目的地的状态：仓库移除且剪枝成功落盘后，再加入该仓库会重新建立基线。状态目录为空或保存失败时，不承诺持久剪枝。整个目的地移出配置时，运行时不加载、不保存其状态文件；磁盘旧文件保留，重新加入后仍按旧游标继续。
+状态键是 `repo@branch`，只按完整键查找，不按仓库序号绑定。提交、issue 与 pull request 游标在每次发送成功或永久拒绝后分别在内存中推进；完成该目的地的本轮轮询后，状态快照统一落盘。`repos` 中值为 `null` 的键会删除，不会变成已初始化的空游标；空表在保存时省略整个 `github` 字段。移除的仓库键会保留一个轮询周期后再剪枝；重新加入时仍可沿用未剪枝游标。整个目的地移出配置时，运行时保留并刷写其状态；重新加入后重置为立即到期并按旧游标继续。
 
 每个状态文件由一个运行进程单写；进程内写入使用原子替换，但多个进程同时写同一目的地时，后写入的完整快照可能覆盖先写入的状态。消息先发送后保存，进程在发送成功与保存之间崩溃时，重启可能重复发送。旧版本读取新状态后重写会丢弃未知的 `github` 字段；因此回滚期间的提交可能漏收，重新升级后会重新建立基线。
 
