@@ -20,7 +20,6 @@ func newCapabilitySettings(store *settings.Store, onChange func(groupID int64, b
 	return &capabilitySettings{Store: store, onCapabilityChange: onChange}
 }
 func newRuntimeCapabilitySettings(
-	ctx context.Context,
 	runtime *services,
 	bot *telego.Bot,
 	lookups *lookup.Service,
@@ -30,7 +29,7 @@ func newRuntimeCapabilitySettings(
 			runtime.updates.RefreshGroupCommands(context.Background(), bot, groupID)
 		}
 		if !before.GentooLookupsEnabled().Value && after.GentooLookupsEnabled().Value {
-			lookups.DemandWarm(ctx)
+			lookups.DemandWarm()
 		}
 	})
 }

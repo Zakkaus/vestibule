@@ -311,6 +311,7 @@ func (s *startupTestServices) close() {
 		return
 	}
 	s.stopVerification()
+	stopLookupsForTest(s.lookups)
 	if err := s.database.Close(); err != nil {
 		s.t.Errorf("close startup test database: %v", err)
 	}

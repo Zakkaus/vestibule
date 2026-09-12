@@ -71,6 +71,9 @@ type Service struct {
 	mu        sync.Mutex
 	queryHits map[int64][]time.Time
 	warmOnce  sync.Once
+	warmCtx   context.Context
+	warmStop  context.CancelFunc
+	warmDone  chan struct{}
 }
 
 // New constructs a lookup service from runtime settings, Telegram transport, configuration, and an optional GitHub token.
@@ -81,11 +84,15 @@ func New(store *settings.Store, telegram *telegram.Connector, cfg *settings.Conf
 	configurePkg(cfg)
 	configureFeedSources(cfg)
 	githubToken = githubAPIToken
+	warmCtx, warmStop := context.WithCancel(context.Background())
 	return &Service{
 		settings:  store,
 		telegram:  telegram,
 		cfg:       cfg,
 		queryHits: map[int64][]time.Time{},
+		warmCtx:   warmCtx,
+		warmStop:  warmStop,
+		warmDone:  make(chan struct{}),
 	}
 }
 
@@ -95,12 +102,34 @@ func (s *Service) Warm(ctx context.Context) {
 }
 
 // DemandWarm starts the Gentoo package-cache warm-up on the first demand and is a no-op
-// after that; it returns at once so a command handler is not held by the fetch.
-func (s *Service) DemandWarm(ctx context.Context) {
+// after that; it returns at once so a command handler is not held by the fetch. The
+// warm-up runs under the service's own context rather than the caller's so a request
+// ending does not abort it and Shutdown can.
+func (s *Service) DemandWarm() {
 	if s == nil {
 		return
 	}
-	s.warmOnce.Do(func() { go s.Warm(ctx) })
+	s.warmOnce.Do(func() {
+		go func() {
+			defer close(s.warmDone)
+			s.Warm(s.warmCtx)
+		}()
+	})
+}
+
+// Shutdown aborts a running warm-up and waits for it to finish, or for ctx to expire.
+// The package-search cache and its sources are package state; a warm-up left running
+// past the service's lifetime would read them while the next service writes them.
+func (s *Service) Shutdown(ctx context.Context) {
+	if s == nil {
+		return
+	}
+	s.warmStop()
+	s.warmOnce.Do(func() { close(s.warmDone) })
+	select {
+	case <-s.warmDone:
+	case <-ctx.Done():
+	}
 }
 
 // AutoDelete returns the effective lookup cleanup duration and enabled state for one group.

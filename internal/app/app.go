@@ -264,6 +264,7 @@ func stopActiveRuntime(active *activeRuntime) {
 	defer cancel()
 	_ = active.polling.Stop(stopCtx)
 	active.runtime.verification.Shutdown()
+	active.runtime.lookups.Shutdown(stopCtx)
 }
 
 func runActiveLifecycle(active *activeRuntime, console *api.Server, notifierDone <-chan error) error {
@@ -275,6 +276,7 @@ func runActiveLifecycle(active *activeRuntime, console *api.Server, notifierDone
 		expiryDone:        active.expiryDone,
 		actionDone:        active.actionDone,
 		flushVerification: active.runtime.verification.Shutdown,
+		stopLookups:       active.runtime.lookups.Shutdown,
 		feedDone:          active.feedDone,
 		notifierDone:      notifierDone,
 		dailyDone:         active.dailyDone,
@@ -342,7 +344,7 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 		return err
 	}
 	lookups := lookup.New(runtime.settings, connector, runtime.cfg, options.GitHubToken)
-	settingsService := newRuntimeCapabilitySettings(ctx, runtime, bot, lookups)
+	settingsService := newRuntimeCapabilitySettings(runtime, bot, lookups)
 	runtime.settingsService = settingsService
 	logRuntimeOptions(options)
 	alertPersistenceProblem(ctx, bot, runtime.cfg, runtime.settings)

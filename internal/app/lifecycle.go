@@ -18,6 +18,7 @@ type runtimeLifecycle struct {
 	actionDone        <-chan struct{}
 	dailyDone         <-chan struct{}
 	flushVerification func()
+	stopLookups       func(context.Context)
 	feedDone          <-chan struct{}
 	notifierDone      <-chan error
 	stopAdmission     func() error
@@ -50,6 +51,9 @@ func runRuntimeLifecycle(ctx context.Context, lifecycle runtimeLifecycle) error 
 		lifecycle.flushVerification()
 	}
 	waitForShutdownComponent(shutdownCtx, "feed state flush", lifecycle.feedDone)
+	if lifecycle.stopLookups != nil {
+		lifecycle.stopLookups(shutdownCtx)
+	}
 	waitForNotifier(shutdownCtx, lifecycle.notifierDone)
 	if unexpectedStop {
 		return unexpectedHandlerError(handlerErr)
