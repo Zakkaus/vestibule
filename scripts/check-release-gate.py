@@ -65,8 +65,8 @@ TOOL_GATES = {
     "cmd/staticcheck": "staticcheck",
     "go build ./...": "go build",
     "go build -tags gentoo": "go build (gentoo tag)",
-    "go test -race ./...": "go test -race",
-    "go test -race -tags gentoo": "go test -race (gentoo tag)",
+    "go test -race -shuffle=on ./...": "go test -race -shuffle=on",
+    "go test -race -shuffle=on -tags gentoo": "go test -race -shuffle=on (gentoo tag)",
     "cmd/govulncheck": "govulncheck",
     "cmd/gosec": "gosec",
 }

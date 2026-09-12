@@ -16,7 +16,8 @@ flags — a base SHA where the document says origin/main, --silent where a perso
 wants output — and a checker demanding equal text would be switched off inside a
 week. Every repository script, npm script, Go check, and analysis tool must appear
 in both CI and the documented gate block. Go checks retain their matrix variants,
-race detector, build tags, and tool versions. Third-party CI actions must also be documented.
+race detector, shuffle mode, build tags, and tool versions. Third-party CI actions
+must also be documented.
 """
 import re
 import shlex
@@ -172,7 +173,9 @@ def go_invocations(text: str) -> set:
             continue
         if tool == "test":
             race = " -race" if any(argument == "-race" for argument in arguments) else ""
-            found.add("go test" + race + tag_suffix)
+            shuffle_value = _go_flag_value(arguments, "-shuffle")
+            shuffle = " -shuffle=" + shuffle_value if shuffle_value else ""
+            found.add("go test" + race + shuffle + tag_suffix)
             continue
         module = arguments[0] if arguments else ""
         found.add("go run " + (module or "(unversioned)"))
