@@ -5,6 +5,13 @@
 
 @layer legacy {
 
+/* The vendored control height was recorded from a library button that a
+   fixed height had stretched by two pixels. The library's own L control
+   renders at 40px, and a native field in the same row has to match it. */
+:root {
+  --control-h: 2.5rem;
+}
+
 body {
   font-size: 0.9375rem;
   line-height: 1.6;
@@ -79,6 +86,15 @@ body {
 }
 [data-slot="button"] {
   text-decoration: none;
+}
+
+/* A library button keeps the data-slot hook for the rules and journeys that
+   address buttons, but the vendored control height is written for buttons that
+   size themselves by it. The library button sizes itself by padding and a
+   minimum height, so the fixed height only stretched it and left its content
+   sitting at the top. */
+[data-slot="button"][data-rac] {
+  block-size: auto;
 }
 
 /* The icon is the svg itself now, not a span wrapping one, so it takes the text box

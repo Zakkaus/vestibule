@@ -158,10 +158,14 @@ function OverviewSection({
               borderRadius: "lg",
               backgroundColor: "layer-1"
             })}>
-              <Text styles={style({ font: "heading", fontWeight: "bold", color: "neutral" })}>{metric.value}</Text>
-              <Text styles={style({ display: "flex", alignItems: "center", gap: 4, font: "ui-sm", fontWeight: "medium", color: "neutral-subdued" })}>
-                <Icon name={metric.icon} /> {t(metric.labelKey)}
-              </Text>
+              {/* The icon sits beside the number, not inside the label: a label that wraps
+                  in a wider language would otherwise carry the icon on its first line and
+                  the four tiles would no longer line up. */}
+              <Content styles={style({ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, minWidth: 0 })}>
+                <Text styles={style({ font: "heading", fontWeight: "bold", color: "neutral" })}>{metric.value}</Text>
+                <Content styles={style({ display: "flex", color: "neutral-subdued" })}><Icon name={metric.icon} /></Content>
+              </Content>
+              <Text styles={style({ font: "ui-sm", fontWeight: "medium", color: "neutral-subdued" })}>{t(metric.labelKey)}</Text>
             </Content>
           </Link>
         ))}

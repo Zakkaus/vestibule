@@ -96,6 +96,7 @@ function QuestionOptionRow({
     <div data-question-option-row>
       <Button
         type="button"
+        size="L"
         variant="secondary"
         data-slot="button"
         aria-pressed={question.answer === optionIndex}
@@ -128,6 +129,7 @@ function QuestionOptionRow({
       </div>
       <Button
         type="button"
+        size="L"
         variant="secondary"
         data-slot="button"
         aria-disabled={readOnly ? "true" : undefined}
@@ -187,6 +189,7 @@ function QuestionOptionsEditor({ question, errors, readOnly, onChange }: Questio
       ) : null}
       <Button
         type="button"
+        size="L"
         variant="secondary"
         data-slot="button"
         aria-disabled={readOnly ? "true" : undefined}
@@ -225,6 +228,7 @@ function QuestionItem({
         </h3>
         <Button
           type="button"
+          size="L"
           variant="negative"
           data-slot="button"
           aria-disabled={readOnly ? "true" : undefined}
