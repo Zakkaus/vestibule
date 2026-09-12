@@ -93,6 +93,7 @@ class GateSelfCoverageTest(SpectrumGateCases, unittest.TestCase):
         path.write_text(original.replace(old, new, 1), encoding="utf-8")
         return lambda: path.write_text(original, encoding="utf-8")
 
+
     def assert_mutation_is_rejected(
         self,
         tree: Path,
@@ -546,6 +547,37 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
                     tree, "CONTRIBUTING.md", old, new
                 ),
             )
+
+    def test_gate_list_rejects_lost_default_go_matrix_entry(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-gate-list.py",
+            "the default Go matrix entry disappeared",
+            ("default Go matrix entry",),
+            lambda: self.replace_text(
+                tree,
+                ".github/workflows/ci.yml",
+                '        tags: ["", "gentoo"]\n',
+                '        tags: ["gentoo"]\n',
+            ),
+        )
+
+    def test_gate_list_rejects_lost_gentoo_go_matrix_entry(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-gate-list.py",
+            "the gentoo Go matrix entry disappeared",
+            ("gentoo Go matrix entry",),
+            lambda: self.replace_text(
+                tree,
+                ".github/workflows/ci.yml",
+                '        tags: ["", "gentoo"]\n',
+                '        tags: [""]\n',
+            ),
+        )
+
 
     def test_gate_list_rejects_lost_go_test_race(self) -> None:
         tree = self.temporary_tree()
