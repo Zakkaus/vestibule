@@ -112,7 +112,7 @@
   },
   "groups": {
     "title": "群与频道",
-    "description": "仅列出该账号有权管理的群。选择群后继续查看等待队列。",
+    "description": "查看 Telegram 中当前账号可管理的群与频道及其实时管理员权限；不提供改绑。",
     "managedCount_other": "{{count}} 个可管理的群",
     "authorized": "已授权",
     "liveGroupNote": "选择该群后，后续操作均限定在该群内。",
@@ -300,7 +300,7 @@
   },
   "preferences": {
     "title": "偏好",
-    "description": "这些选项仅影响当前浏览器。",
+    "description": "设置当前浏览器的标记、名称、强调色、标题图标、保存方式和界面语言；仅影响本人。",
     "interface": {
       "title": "界面",
       "description": "主题和语言保存在当前设备，不会修改群组配置。"
@@ -309,7 +309,7 @@
   "moderation": {
     "navigation": "管理与处罚",
     "title": "管理与处罚",
-    "description": "设置当前群的警告上限、频道身份冒充防护以及处罚记录去向。",
+    "description": "配置当前群的警告上限、反频道马甲、处罚记录群和控制群；群管理员可修改。",
     "loading": {
       "title": "正在载入管理与处罚设置",
       "description": "正在读取当前群的有效设置及其来源…"
@@ -383,7 +383,7 @@
   "feeds": {
     "navigation": "订阅推送",
     "title": "订阅推送",
-    "description": "查看进程级订阅目标、新闻源、仓库和分支配置。所选群不会影响这些值。",
+    "description": "查看整个实例的 RSS、Atom、JSON Feed、Bugzilla 与新闻源配置；仅运维可修改。",
     "loading": {
       "title": "正在载入订阅推送配置",
       "description": "正在读取进程级配置及其来源…"
@@ -468,7 +468,7 @@
   "bypass": {
     "navigation": "免验证来源",
     "title": "免验证来源",
-    "description": "管理当前群的信任群、要求加入的频道以及频道身份白名单。",
+    "description": "配置当前群的信任群、必关频道、频道白名单和成员白名单；群管理员可修改。",
     "loading": {
       "title": "正在载入免验证来源设置",
       "description": "正在读取当前群的有效设置及其来源…"
@@ -639,7 +639,7 @@
   "verification": {
     "navigation": "验证方式",
     "title": "验证方式",
-    "description": "这些设置仅影响当前群。保存时会检查版本，防止覆盖其他管理员的更改。",
+    "description": "配置当前群的验证投递渠道、挑战顺序、超时、失败次数和处罚时长；群管理员可修改。",
     "loading": {
       "title": "正在载入验证设置",
       "description": "正在读取当前群的验证设置…"
@@ -754,7 +754,7 @@
   "questions": {
     "navigation": "题库",
     "title": "题库",
-    "description": "管理当前群的选择题、备用填空题和答题语言。",
+    "description": "管理当前群的规则题、内置模板、试答和答题语言；群管理员可修改。",
     "trial": {
       "title": "试答已保存题目",
       "description": "用于检查作答结果，不会生成验证记录或统计数据。",
@@ -914,7 +914,7 @@
   "diagnostics": {
     "navigation": "诊断",
     "title": "诊断",
-    "description": "查看当前实例的运行状态、Bot API 探测和设置持久化状态。",
+    "description": "查看整个实例的权限预检、Telegram Bot API 延迟、心跳、回退读数和每日摘要；仅运维可查看。",
     "daily": {
       "title": "每日状态推送",
       "description": "每天向实例拥有者私聊发送一条状态摘要。",
@@ -1064,7 +1064,7 @@
   "version": {
     "navigation": "版本",
     "title": "版本",
-    "description": "查看当前运行版本，按需检查已发布版本，并在升级前确认回退兼容性。",
+    "description": "查看整个实例的运行版本、可用更新、回退原因和升级命令；仅运维可见。",
     "actions": {
       "retry": "重试",
       "cancel": "取消"
@@ -1175,7 +1175,7 @@
   "stats": {
     "navigation": "统计",
     "title": "统计",
-    "description": "查看当前群的入群结果趋势、通过率以及各验证方式的拦截数量。",
+    "description": "查看当前群的入群结果趋势、通过率、验证方式拦截量和时区；群管理员可查看。",
     "loading": {
       "title": "正在载入统计",
       "description": "正在按所选日期和时区汇总入群结果…"
@@ -1262,7 +1262,7 @@
   "messages": {
     "navigation": "消息与文案",
     "title": "消息与文案",
-    "description": "管理当前群已有的自动回复规则、消息显示设置及查询自动撤回设置。",
+    "description": "配置当前群的自动回复、进出提示、验证文案、显示名剧透和自动撤回；群管理员可修改。",
     "loading": {
       "title": "正在载入消息与文案",
       "description": "正在确认当前群并读取可用的消息设置…"
@@ -1410,7 +1410,7 @@
   "capabilities": {
     "navigation": "功能",
     "title": "功能",
-    "description": "查看当前群的各项功能及启用或停用后的影响。详细控制仍在各自页面中，以确保每项设置只有一个保存入口。",
+    "description": "查看当前群启用的能力及其影响；群管理员可修改群级能力。",
     "loading": {
       "title": "正在载入功能",
       "description": "正在读取当前群的功能状态…"
@@ -1493,7 +1493,7 @@
   "owner": {
     "navigation": "部署者设置",
     "title": "实例上限",
-    "description": "保存群设置时会校验这些上限。值为 0 表示不额外设置上限，但原有字段限制仍有效。降低上限不会修改现有设置。封禁时长上限为正数时，不允许永久封禁。",
+    "description": "在 /owner 设置整个实例的群配置数值与条数上限；仅当前 OwnerID 可修改。",
     "loading": {
       "title": "正在载入实例上限",
       "description": "正在读取上限及超出上限的群…"
