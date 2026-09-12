@@ -39,7 +39,7 @@ python3 -m http.server 8787 --bind 127.0.0.1 --directory web
 
 ## 订阅推送
 
-订阅推送属于群级有效设置。控制台只读屏与 `GET /api/chats/{id}/feeds` 显示当前值及来源；`PUT /api/chats/{id}/feeds` 通过版本号与 CSRF 校验整份替换订阅覆盖。`config.json` 的 `feeds` 条目仅用于启动时一次性导入。设置 `github_repos` 可选择仓库与分支，再为各仓库启用 `issues` 或 `pulls`；两个开关默认关闭。省略分支时跟随仓库当前默认分支。迁移与投递规则参见 [`docs/GITHUB-FEEDS.md`](docs/GITHUB-FEEDS.md)，PUT 请求示例参见 [`examples/feeds.json`](examples/feeds.json)。RSS、Atom、JSON Feed 来源和富文本控制尚未实现。
+订阅推送属于群级有效设置。控制台编辑页面和 `GET /api/chats/{id}/feeds` 显示当前值及来源；`PUT /api/chats/{id}/feeds` 通过版本号与 CSRF 校验整份替换订阅覆盖。`config.json` 的 `feeds` 条目仅用于启动时一次性导入。设置 `github_repos` 可选择仓库与分支，再为各仓库启用 `issues` 或 `pulls`；两个开关默认关闭。省略分支时跟随仓库当前默认分支。迁移与投递规则参见 [`docs/GITHUB-FEEDS.md`](docs/GITHUB-FEEDS.md)，PUT 请求示例参见 [`examples/feeds.json`](examples/feeds.json)。RSS、Atom、JSON Feed 来源和富文本控制尚未实现。
 
 ## 目标
 

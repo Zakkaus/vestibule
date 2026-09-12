@@ -44,7 +44,7 @@ They render in the tokens they document, so a broken token breaks the page.
 
 ## Feed subscriptions
 
-Feed subscriptions are effective group settings. The read-only console screen and `GET /api/chats/{id}/feeds` show their values and sources; `PUT /api/chats/{id}/feeds` replaces the complete feed override with revision and CSRF checks. `config.json` `feeds` entries are accepted only as a one-time startup import. Set `github_repos` to choose repositories and branches, then enable `issues` or `pulls` per repository; both event switches default to off. An omitted branch follows the repository's current default branch. See [`docs/GITHUB-FEEDS.md`](docs/GITHUB-FEEDS.md) for migration and delivery rules, and [`examples/feeds.json`](examples/feeds.json) for the PUT request body. RSS, Atom, JSON Feed ingestion and rich-text controls remain deferred.
+Feed subscriptions are effective group settings. The editable console screen and `GET /api/chats/{id}/feeds` show their values and sources; `PUT /api/chats/{id}/feeds` replaces the complete feed override with revision and CSRF checks. `config.json` `feeds` entries are accepted only as a one-time startup import. Set `github_repos` to choose repositories and branches, then enable `issues` or `pulls` per repository; both event switches default to off. An omitted branch follows the repository's current default branch. See [`docs/GITHUB-FEEDS.md`](docs/GITHUB-FEEDS.md) for migration and delivery rules, and [`examples/feeds.json`](examples/feeds.json) for the PUT request body. RSS, Atom, JSON Feed ingestion and rich-text controls remain deferred.
 
 ## What it has to become
 
