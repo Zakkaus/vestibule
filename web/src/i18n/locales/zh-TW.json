@@ -112,7 +112,7 @@
   },
   "groups": {
     "title": "群組與頻道",
-    "description": "檢視 Telegram 中目前帳號可管理的群組與頻道及其即時管理員權限；不提供改綁。",
+    "description": "檢視目前帳號在 Telegram 中可管理的群組與頻道，以及各群的即時管理員權限。選擇一個群組後，其餘各屏都作用於該群組。",
     "managedCount_other": "可管理的群組：{{count}} 個",
     "authorized": "已授權",
     "liveGroupNote": "選擇此群組後，後續操作僅適用於此群組。",

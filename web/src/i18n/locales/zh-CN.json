@@ -112,7 +112,7 @@
   },
   "groups": {
     "title": "群与频道",
-    "description": "查看 Telegram 中当前账号可管理的群与频道及其实时管理员权限；不提供改绑。",
+    "description": "查看当前账号在 Telegram 中可管理的群与频道，以及各群的实时管理员权限。选择一个群后，其余各屏都作用于该群。",
     "managedCount_other": "{{count}} 个可管理的群",
     "authorized": "已授权",
     "liveGroupNote": "选择该群后，后续操作均限定在该群内。",

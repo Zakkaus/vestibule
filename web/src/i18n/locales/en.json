@@ -112,7 +112,7 @@
   },
   "groups": {
     "title": "Groups and channels",
-    "description": "View the groups and channels this Telegram account can manage and their live administrator permissions; rebinding is not provided.",
+    "description": "View the groups and channels this Telegram account can manage, with each group’s live administrator permissions. Pick a group and the other screens apply to it.",
     "managedCount_one": "{{count}} manageable group",
     "managedCount_other": "{{count}} manageable groups",
     "authorized": "Authorized",
