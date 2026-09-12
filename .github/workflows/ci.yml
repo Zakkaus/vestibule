@@ -211,11 +211,6 @@ jobs:
               || echo "::warning::web/src/styles/$f.css differs from the shared design system"
           done
 
-      - name: Console session-to-release journey and render gate work in Chromium
-        run: |
-          cd web
-          npx playwright install --with-deps chromium
-          PLAYWRIGHT_PORT_OFFSET=210 npm run e2e
 
       - name: Structure, style rules and coverage of the reference pages
         run: |
@@ -223,3 +218,23 @@ jobs:
             python3 "scripts/design-checks/$c.py" web/design.html web/architecture.html
           done
           python3 scripts/check-css-coverage.py web/design.html web/architecture.html
+
+  e2e:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+      - name: Install frontend dependencies
+        run: cd web && npm ci --silent
+      - name: Install Chromium
+        run: cd web && npx playwright install --with-deps chromium
+      - name: Run console journeys
+        env:
+          PLAYWRIGHT_PORT_OFFSET: 210
+        run: cd web && npx playwright test --shard=${{ matrix.shard }}/4

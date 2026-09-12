@@ -12,7 +12,7 @@ export default defineConfig({
   testDir: "./e2e",
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
-  workers: 1,
+  workers: process.env.CI ? 2 : 1,
   reporter: "line",
   use: {
     browserName: "chromium",
