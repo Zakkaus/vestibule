@@ -7,7 +7,6 @@ import (
 	"html"
 	"log"
 	neturl "net/url"
-	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -65,12 +64,15 @@ type feedBot interface {
 }
 
 // Service polls current Bugzilla, news, and GitHub destinations and persists cursors.
+// pollFunc is one poll over the given destinations; tests substitute it.
+type pollFunc func(context.Context, *telego.Bot, []*settings.FeedConfig, map[int64]*feedState, string, time.Time, map[int64]time.Time)
+
 type Service struct {
 	bot      *telego.Bot
 	provider func() []settings.FeedConfig
 	stateDir string
 	// Lifecycle hooks default to the production poller and permission probe.
-	poll  func(context.Context, *telego.Bot, []*settings.FeedConfig, map[int64]*feedState, string, time.Time, map[int64]time.Time)
+	poll  pollFunc
 	probe func(context.Context, *telego.Bot, []*settings.FeedConfig)
 }
 
@@ -903,97 +905,5 @@ func feedPostBlocked(chatType string, m telego.ChatMember) string {
 		return "bot is banned from the chat"
 	default:
 		return "" // unknown member type — don't cry wolf
-	}
-}
-
-// Run polls current destinations on a fixed 60-second tick until ctx is canceled.
-func (s *Service) Run(ctx context.Context) {
-	states := map[int64]*feedState{}
-	nextDue := map[int64]time.Time{}
-	active := map[int64]*settings.FeedConfig{}
-	activeFeeds := []*settings.FeedConfig{}
-	doPoll := pollAll
-	if s.poll != nil {
-		doPoll = s.poll
-	}
-	doProbe := probeFeedPerms
-	if s.probe != nil {
-		doProbe = s.probe
-	}
-	reconcile := func() []*settings.FeedConfig {
-		current := make(map[int64]*settings.FeedConfig)
-		ordered := make([]*settings.FeedConfig, 0)
-		if s.provider != nil {
-			for _, value := range s.provider() {
-				if value.ChatID == 0 {
-					continue
-				}
-				f := value
-				current[f.ChatID] = &f
-				ordered = append(ordered, &f)
-			}
-		}
-		newFeeds := make([]*settings.FeedConfig, 0)
-		for chatID, f := range current {
-			if _, ok := states[chatID]; !ok {
-				st := loadFeedState(feedStatePath(s.stateDir, chatID))
-				states[chatID] = &st
-				nextDue[chatID] = time.Time{}
-			}
-			previous, wasActive := active[chatID]
-			if !wasActive {
-				newFeeds = append(newFeeds, f)
-				nextDue[chatID] = time.Time{}
-			} else if !reflect.DeepEqual(*previous, *f) {
-				nextDue[chatID] = time.Time{}
-			}
-		}
-		for chatID := range active {
-			if _, ok := current[chatID]; !ok {
-				saveFeedState(feedStatePath(s.stateDir, chatID), *states[chatID])
-				delete(nextDue, chatID)
-			}
-		}
-		activeFeeds = ordered
-		active = current
-		return newFeeds
-	}
-	asSlice := func() []*settings.FeedConfig {
-		return append([]*settings.FeedConfig(nil), activeFeeds...)
-	}
-	safePoll := func() {
-		feeds := asSlice()
-		if len(feeds) == 0 {
-			return
-		}
-		defer func() {
-			if r := recover(); r != nil {
-				log.Printf("feed: poll panicked (recovered, feeds continue): %v", r)
-			}
-		}()
-		doPoll(ctx, s.bot, feeds, states, s.stateDir, time.Now(), nextDue)
-	}
-	newFeeds := reconcile()
-	log.Printf("feed: fixed 60-second tick, %d active destination(s)", len(active))
-	if len(newFeeds) > 0 {
-		doProbe(ctx, s.bot, newFeeds)
-	}
-	safePoll()
-	t := time.NewTicker(feedPollTick)
-	defer t.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			for chatID, st := range states {
-				saveFeedState(feedStatePath(s.stateDir, chatID), *st)
-			}
-			return
-		case <-t.C:
-			newFeeds := reconcile()
-			if len(newFeeds) > 0 {
-				doProbe(ctx, s.bot, newFeeds)
-			}
-			safePoll()
-		}
 	}
 }

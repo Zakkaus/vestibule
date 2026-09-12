@@ -417,7 +417,6 @@
     "feed": {
       "title": "Цели доставки",
       "description": "Действующие настройки доставки Bugzilla, новостей и GitHub для выбранной группы.",
-      "itemTitle": "Цель {{number}}",
       "destination": "Группа или канал-получатель",
       "language": "Язык доставки",
       "interval": "Интервал опроса",
@@ -431,9 +430,7 @@
       "githubPulls": "Публикации PR",
       "followingDefault": "Отслеживается ветка по умолчанию",
       "allProducts": "Все продукты",
-      "allComponents": "Все компоненты",
-      "emptyTitle": "Цели доставки не настроены",
-      "emptyDescription": "Этот процесс не отправляет публикации Bugzilla, новости или сведения об активности GitHub ни в одну группу или канал."
+      "allComponents": "Все компоненты"
     },
     "newsURL": {
       "title": "URL источника новостей",
@@ -460,8 +457,6 @@
     "values": {
       "enabled": "Включено",
       "disabled": "Отключено",
-      "enabledByDefault": "Включено по умолчанию",
-      "disabledByDefault": "Отключено по умолчанию",
       "seconds_one": "{{count}} секунда",
       "seconds_other": "{{count}} секунды",
       "seconds_few": "{{count}} секунды",

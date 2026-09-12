@@ -182,13 +182,7 @@ func (s *Store) loadRepositorySettings() error {
 	return nil
 }
 func (s *Store) importLegacyFeeds(feeds []FeedConfig) error {
-	known := make(map[int64]struct{}, len(s.baseline.Groups)+len(s.state.RegisteredGroups))
-	for _, group := range s.baseline.Groups {
-		known[group.ID] = struct{}{}
-	}
-	for _, group := range s.state.RegisteredGroups {
-		known[group.ID] = struct{}{}
-	}
+	known := s.knownChatIDs()
 	unknown := make([]string, 0)
 	type pendingImport struct {
 		chatID   int64
@@ -211,25 +205,7 @@ func (s *Store) importLegacyFeeds(feeds []FeedConfig) error {
 		if record.Feed != nil {
 			continue
 		}
-		bugs, news := legacy.BugsOn(), legacy.NewsOn()
-		silent := legacy.SilentBugs != nil && *legacy.SilentBugs
-		interval := legacy.IntervalSeconds
-		if interval <= 0 {
-			interval = 300
-		}
-		if interval < 60 {
-			interval = 60
-		}
-		if interval > maxFeedIntervalSeconds {
-			interval = maxFeedIntervalSeconds
-		}
-		lang := legacy.Lang
-		repos := cloneGitHubRepos(legacy.GitHubRepos)
-		record.Feed = &FeedOverride{
-			Lang: &lang, IntervalSeconds: &interval, Bugs: &bugs, News: &news,
-			BugProduct: &legacy.BugProduct, BugComponent: &legacy.BugComponent,
-			SilentBugs: &silent, GitHubRepos: &repos,
-		}
+		record.Feed = feedOverrideFromLegacy(legacy)
 		next := cloneGroupOverrides(record.GroupOverrides)
 		next.Feed = cloneFeedOverride(record.Feed)
 		record.GroupOverrides = next
@@ -347,4 +323,36 @@ func (s *Store) migrateLegacyAntispamState(state settingsFile, legacy legacyAnti
 		apply(group.ID)
 	}
 	return migrated
+}
+
+// knownChatIDs is every chat the store manages: configured groups and registered ones.
+func (s *Store) knownChatIDs() map[int64]struct{} {
+	known := make(map[int64]struct{}, len(s.baseline.Groups)+len(s.state.RegisteredGroups))
+	for _, group := range s.baseline.Groups {
+		known[group.ID] = struct{}{}
+	}
+	for _, group := range s.state.RegisteredGroups {
+		known[group.ID] = struct{}{}
+	}
+	return known
+}
+
+// feedOverrideFromLegacy turns a config.json feed entry into the group override the
+// store keeps, clamping the interval to the range the store validates.
+func feedOverrideFromLegacy(legacy FeedConfig) *FeedOverride {
+	bugs, news := legacy.BugsOn(), legacy.NewsOn()
+	silent := legacy.SilentBugs != nil && *legacy.SilentBugs
+	interval := legacy.IntervalSeconds
+	if interval <= 0 {
+		interval = 300
+	}
+	interval = min(max(interval, 60), maxFeedIntervalSeconds)
+	lang := legacy.Lang
+	repos := cloneGitHubRepos(legacy.GitHubRepos)
+	product, component := legacy.BugProduct, legacy.BugComponent
+	return &FeedOverride{
+		Lang: &lang, IntervalSeconds: &interval, Bugs: &bugs, News: &news,
+		BugProduct: &product, BugComponent: &component,
+		SilentBugs: &silent, GitHubRepos: &repos,
+	}
 }

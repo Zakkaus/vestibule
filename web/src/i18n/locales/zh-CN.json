@@ -411,7 +411,6 @@
     "feed": {
       "title": "订阅目标",
       "description": "所选群当前生效的 Bugzilla、新闻与 GitHub 推送设置。",
-      "itemTitle": "目标 {{number}}",
       "destination": "接收群或频道",
       "language": "推送语言",
       "interval": "抓取间隔",
@@ -425,9 +424,7 @@
       "githubPulls": "PR 推送",
       "followingDefault": "跟随默认分支",
       "allProducts": "全部产品",
-      "allComponents": "全部组件",
-      "emptyTitle": "未配置订阅目标",
-      "emptyDescription": "机器人不会向任何群组或频道发送 Bugzilla、新闻或 GitHub 动态推送。feeds 未配置接收目标。"
+      "allComponents": "全部组件"
     },
     "newsURL": {
       "title": "新闻源地址",
@@ -454,8 +451,6 @@
     "values": {
       "enabled": "已开启",
       "disabled": "已关闭",
-      "enabledByDefault": "已开启（默认）",
-      "disabledByDefault": "已关闭（默认）",
       "seconds_other": "{{count}} 秒"
     },
     "errors": {

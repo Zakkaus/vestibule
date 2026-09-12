@@ -411,7 +411,6 @@
     "feed": {
       "title": "訂閱目標",
       "description": "所選群組目前生效的 Bugzilla、新聞與 GitHub 推送設定。",
-      "itemTitle": "目標 {{number}}",
       "destination": "接收目標群組或頻道",
       "language": "推送語言",
       "interval": "擷取間隔",
@@ -425,9 +424,7 @@
       "githubPulls": "PR 推送",
       "followingDefault": "跟隨預設分支",
       "allProducts": "所有產品",
-      "allComponents": "所有元件",
-      "emptyTitle": "未設定訂閱目標",
-      "emptyDescription": "機器人不會向任何群組或頻道傳送 Bugzilla、新聞或 GitHub 動態推送。feeds 未設定接收目標。"
+      "allComponents": "所有元件"
     },
     "newsURL": {
       "title": "新聞來源網址",
@@ -454,8 +451,6 @@
     "values": {
       "enabled": "啟用",
       "disabled": "停用",
-      "enabledByDefault": "啟用（預設）",
-      "disabledByDefault": "停用（預設）",
       "seconds_other": "{{count}} 秒"
     },
     "errors": {

@@ -26,6 +26,29 @@ func TestLegacyFeedsImportNilBugNewsEnabledAndIsOneTime(t *testing.T) {
 	if !feed.Bugs.Value || !feed.News.Value || feed.Bugs.Source != SourceChatOverride || feed.News.Source != SourceChatOverride {
 		t.Fatalf("legacy nil booleans = bugs:%v/%v news:%v/%v", feed.Bugs.Value, feed.Bugs.Source, feed.News.Value, feed.News.Source)
 	}
+	reloaded, err := NewStore(path, baseline, nil, []FeedConfig{legacy})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := reloaded.Settings(chatID); got.Revision() != 1 {
+		t.Fatalf("legacy feed imported more than once: revision=%d", got.Revision())
+	}
+}
+
+// What the store hands out is a copy: mutating an override or a current feed must not
+// reach the store.
+func TestFeedViewsAndCurrentFeedsDoNotAliasStoreState(t *testing.T) {
+	const chatID int64 = -1009000000701
+	baseline, err := LoadBaseline("", &Config{GroupIDs: []int64{chatID}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacy := FeedConfig{ChatID: chatID, IntervalSeconds: 60, GitHubRepos: []GitHubRepo{{Repo: "owner/repo", Issues: ptr(true)}}}
+	store, err := NewStore(t.TempDir()+"/settings.json", baseline, nil, []FeedConfig{legacy})
+	if err != nil {
+		t.Fatal(err)
+	}
+	view, _ := store.Settings(chatID)
 	detached := view.Overrides()
 	*detached.Feed.News = false
 	if current, _ := store.Settings(chatID); !current.Feed().News.Value || current.Revision() != 1 {
@@ -41,13 +64,6 @@ func TestLegacyFeedsImportNilBugNewsEnabledAndIsOneTime(t *testing.T) {
 	again := store.CurrentFeeds()
 	if !*again[0].Bugs || !again[0].GitHubRepos[0].IssuesOn() || again[0].GitHubRepos[0].Repo != "owner/repo" {
 		t.Fatalf("current feed provider aliases store state: %+v", again)
-	}
-	reloaded, err := NewStore(path, baseline, nil, []FeedConfig{legacy})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got, _ := reloaded.Settings(chatID); got.Revision() != 1 {
-		t.Fatalf("legacy feed imported more than once: revision=%d", got.Revision())
 	}
 }
 
@@ -152,6 +168,11 @@ func TestFeedOverrideKeepsNonFeedOverridesAndExplicitEmptyRepos(t *testing.T) {
 		compacted.GitHubRepos == nil {
 		t.Fatalf("compacted feed override = %+v", compacted)
 	}
+	assertExplicitEmptyReposSurviveReload(t, path, baseline, chatID)
+}
+
+func assertExplicitEmptyReposSurviveReload(t *testing.T, path string, baseline SettingsBaseline, chatID int64) {
+	t.Helper()
 	reloaded, err := NewStore(path, baseline, nil, nil)
 	if err != nil {
 		t.Fatal(err)

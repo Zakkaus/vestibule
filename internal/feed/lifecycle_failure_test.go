@@ -439,28 +439,7 @@ func TestServiceRunReconcilesDynamicDestinations(t *testing.T) {
 	polls := make(chan int, 4)
 	probes := make(chan int64, 4)
 	dir := t.TempDir()
-	service := New(nil, provider, dir)
-	service.probe = func(_ context.Context, _ *telego.Bot, feeds []*settings.FeedConfig) {
-		for _, feed := range feeds {
-			probes <- feed.ChatID
-		}
-	}
-	service.poll = func(
-		_ context.Context,
-		_ *telego.Bot,
-		feeds []*settings.FeedConfig,
-		states map[int64]*feedState,
-		_ string,
-		now time.Time,
-		nextDue map[int64]time.Time,
-	) {
-		if due := nextDue[chatID]; !due.IsZero() && now.Before(due) {
-			return
-		}
-		states[chatID].LastBugID++
-		nextDue[chatID] = now.Add(time.Hour)
-		polls <- len(feeds)
-	}
+	service := newRecordingFeedService(provider, dir, chatID, polls, probes)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
@@ -526,4 +505,33 @@ func waitFeedProviderCount(t *testing.T, values <-chan int, want int, label stri
 			t.Fatalf("timed out waiting for %s", label)
 		}
 	}
+}
+
+// newRecordingFeedService builds a Service whose probe and poll report through channels:
+// probes carries each newly probed destination, polls the destination count of each poll
+// that was due. A poll advances the destination's bug cursor and defers it by an hour.
+func newRecordingFeedService(provider func() []settings.FeedConfig, dir string, chatID int64, polls chan int, probes chan int64) *Service {
+	service := New(nil, provider, dir)
+	service.probe = func(_ context.Context, _ *telego.Bot, feeds []*settings.FeedConfig) {
+		for _, feed := range feeds {
+			probes <- feed.ChatID
+		}
+	}
+	service.poll = func(
+		_ context.Context,
+		_ *telego.Bot,
+		feeds []*settings.FeedConfig,
+		states map[int64]*feedState,
+		_ string,
+		now time.Time,
+		nextDue map[int64]time.Time,
+	) {
+		if due := nextDue[chatID]; !due.IsZero() && now.Before(due) {
+			return
+		}
+		states[chatID].LastBugID++
+		nextDue[chatID] = now.Add(time.Hour)
+		polls <- len(feeds)
+	}
+	return service
 }

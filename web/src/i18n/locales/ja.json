@@ -411,7 +411,6 @@
     "feed": {
       "title": "フィード先",
       "description": "選択したグループで現在有効な Bugzilla、ニュース、GitHub の配信設定です。",
-      "itemTitle": "送信先 {{number}}",
       "destination": "受信グループまたはチャンネル",
       "language": "フィード言語",
       "interval": "取得間隔",
@@ -425,9 +424,7 @@
       "githubPulls": "PR 通知",
       "followingDefault": "既定のブランチに従う",
       "allProducts": "すべての製品",
-      "allComponents": "すべてのコンポーネント",
-      "emptyTitle": "フィード先が設定されていません",
-      "emptyDescription": "現在のプロセスは、どのグループまたはチャンネルにも Bugzilla、ニュース、GitHub アクティビティの通知を送信しません。"
+      "allComponents": "すべてのコンポーネント"
     },
     "newsURL": {
       "title": "ニュースソース URL",
@@ -454,8 +451,6 @@
     "values": {
       "enabled": "有効",
       "disabled": "無効",
-      "enabledByDefault": "有効（既定）",
-      "disabledByDefault": "無効（既定）",
       "seconds_other": "{{count}} 秒"
     },
     "errors": {

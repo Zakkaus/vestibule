@@ -413,7 +413,6 @@
     "feed": {
       "title": "Delivery targets",
       "description": "The selected group's effective Bugzilla, news, and GitHub delivery values.",
-      "itemTitle": "Target {{number}}",
       "destination": "Receiving group or channel",
       "language": "Delivery language",
       "interval": "Polling interval",
@@ -427,9 +426,7 @@
       "githubPulls": "PR posts",
       "followingDefault": "Following the default branch",
       "allProducts": "All products",
-      "allComponents": "All components",
-      "emptyTitle": "No delivery targets configured",
-      "emptyDescription": "This process does not send Bugzilla, news, or GitHub activity posts to any group or channel."
+      "allComponents": "All components"
     },
     "newsURL": {
       "title": "News source URL",
@@ -456,8 +453,6 @@
     "values": {
       "enabled": "Enabled",
       "disabled": "Disabled",
-      "enabledByDefault": "Enabled by default",
-      "disabledByDefault": "Disabled by default",
       "seconds_one": "{{count}} second",
       "seconds_other": "{{count}} seconds"
     },
