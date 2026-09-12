@@ -8,7 +8,7 @@
 
 - [ ] `gofmt -l .` is clean
 - [ ] `go vet ./...` passes
-- [ ] `go test -race ./...` passes
+- [ ] `go test -race -shuffle=on ./...` passes
 - [ ] New/changed behaviour has tests where practical
 - [ ] User-facing strings are Simplified Chinese (per CONTRIBUTING)
 - [ ] CHANGELOG updated if user-visible
