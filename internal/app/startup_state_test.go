@@ -2,6 +2,14 @@ package app
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	consoleapi "github.com/Zakkaus/vestibule/internal/console/api"
+	"github.com/Zakkaus/vestibule/internal/database"
+	"github.com/Zakkaus/vestibule/internal/moderate"
+	"github.com/Zakkaus/vestibule/internal/rules"
+	"github.com/Zakkaus/vestibule/internal/settings"
+	"github.com/Zakkaus/vestibule/internal/verification"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -11,13 +19,6 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-
-	consoleapi "github.com/Zakkaus/vestibule/internal/console/api"
-	"github.com/Zakkaus/vestibule/internal/database"
-	"github.com/Zakkaus/vestibule/internal/moderate"
-	"github.com/Zakkaus/vestibule/internal/rules"
-	"github.com/Zakkaus/vestibule/internal/settings"
-	"github.com/Zakkaus/vestibule/internal/verification"
 )
 
 func TestNewServicesFailsWhenPendingStateCannotLoad(t *testing.T) {
@@ -102,6 +103,99 @@ func TestNewServicesAllowsAllOptionalModulesDisabled(t *testing.T) {
 	}
 	if runtime.cfg.ModuleEnabled(settings.ModuleGentoo) || runtime.cfg.ModuleEnabled(settings.ModuleLinux) {
 		t.Fatal("all-disabled configuration was not retained by the service graph")
+	}
+}
+func newCapabilityMenuServer(
+	t *testing.T,
+	groupID int64,
+	groupMenus *atomic.Int32,
+) *httptest.Server {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.HasSuffix(request.URL.Path, "/getMe"):
+			_, _ = io.WriteString(writer, `{"ok":true,"result":{"id":1,"is_bot":true,"first_name":"Test","username":"test_bot"}}`)
+		case strings.HasSuffix(request.URL.Path, "/getChatMember"):
+			_, _ = io.WriteString(writer, `{"ok":true,"result":{"status":"creator","user":{"id":9001,"is_bot":false,"first_name":"Owner"},"is_anonymous":false}}`)
+		case strings.HasSuffix(request.URL.Path, "/setMyCommands"):
+			var body struct {
+				Scope struct {
+					ChatID int64 `json:"chat_id"`
+				} `json:"scope"`
+			}
+			if err := json.NewDecoder(request.Body).Decode(&body); err == nil && body.Scope.ChatID == groupID {
+				groupMenus.Add(1)
+			}
+			_, _ = io.WriteString(writer, `{"ok":true,"result":true}`)
+		default:
+			http.Error(writer, `{"ok":false}`, http.StatusNotFound)
+		}
+	}))
+	t.Cleanup(server.Close)
+	return server
+}
+
+func patchGentooCapability(t *testing.T, runtime *startupTestServices, groupID int64) {
+	t.Helper()
+	now := time.Now()
+	nonce, _, err := runtime.settings.EnsureOwnerClaim(now, runtime.cfg.OwnerClaimLifetime())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := runtime.settings.ClaimOwner(9001, nonce, now); err != nil {
+		t.Fatal(err)
+	}
+	console := consoleapi.New(claimedConsoleConfig(runtime.services))
+	link, _, err := runtime.consoleAuth.IssueOperatorLink(9001)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry := httptest.NewRecorder()
+	console.Handler().ServeHTTP(entry, httptest.NewRequest(http.MethodGet, "/enter/"+link, nil))
+	if entry.Code != http.StatusSeeOther {
+		t.Fatalf("operator entry status = %d, want %d", entry.Code, http.StatusSeeOther)
+	}
+	request := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/chats/%d/settings", groupID),
+		strings.NewReader(`{"expected_revision":0,"changes":{"gentoo_lookups_enabled":true}}`))
+	for _, cookie := range entry.Result().Cookies() {
+		request.AddCookie(cookie)
+	}
+	grant, err := runtime.consoleAuth.GrantFromRequest(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-CSRF-Token", grant.CSRFToken)
+	response := httptest.NewRecorder()
+	console.Handler().ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("capability PATCH status = %d, want 200: %s", response.Code, response.Body.String())
+	}
+}
+
+func TestConsoleCapabilityPatchRefreshesOnlyTheTargetGroupMenu(t *testing.T) {
+	const groupID int64 = -1009000000613
+	stateDirectory := t.TempDir()
+	configPath := filepath.Join(stateDirectory, "config.json")
+	writeStartupConfig(t, configPath, fmt.Sprintf(
+		`{"modules":["gentoo","linux"],"groups":[{"id":%d,"verify_mode":"kernel"}]}`,
+		groupID,
+	))
+	var groupMenus atomic.Int32
+	telegramAPI := newCapabilityMenuServer(t, groupID, &groupMenus)
+	runtime := openStartupTestServices(t, Options{
+		ConfigPath: configPath, StateDirectory: stateDirectory,
+		Token: "1:" + strings.Repeat("a", 35), TelegramAPIURL: telegramAPI.URL,
+	})
+	runtime.updates.SetupCommands(context.Background(), runtime.bot)
+	before := groupMenus.Load()
+	if before != 2 {
+		t.Fatalf("initial group command menus = %d, want member and administrator scopes", before)
+	}
+	patchGentooCapability(t, runtime, groupID)
+	if got := groupMenus.Load(); got != before+2 {
+		t.Fatalf("capability PATCH refreshed group menus %d times, want one member/admin refresh (%d total)", got-before, before+2)
 	}
 }
 

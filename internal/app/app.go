@@ -45,6 +45,7 @@ type services struct {
 	cfg                  *settings.Config
 	database             *database.Database
 	settings             *settings.Store
+	settingsService      *capabilitySettings
 	bot                  *telego.Bot
 	connector            *telegram.Connector
 	heartbeatBot         *outageAwareBot
@@ -193,10 +194,14 @@ func closeRuntimeDatabase(runtime *services) {
 }
 
 func claimedConsoleConfig(runtime *services) api.Config {
+	var settingsService api.SettingsService = runtime.settingsService
+	if settingsService == nil {
+		settingsService = runtime.settings
+	}
 	return api.Config{
 		Authenticator:              runtime.consoleAuth,
 		Verification:               runtime.verification,
-		Settings:                   runtime.settings,
+		Settings:                   settingsService,
 		ChatTitleResolver:          runtime.connector,
 		ChatAdministratorsResolver: runtime.connector,
 		Rules:                      database.NewRuleStore(runtime.database),
@@ -335,6 +340,8 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 		return err
 	}
 	lookups := lookup.New(runtime.settings, connector, runtime.cfg, options.GitHubToken)
+	settingsService := newRuntimeCapabilitySettings(ctx, runtime, bot, lookups)
+	runtime.settingsService = settingsService
 	logRuntimeOptions(options)
 	alertPersistenceProblem(ctx, bot, runtime.cfg, runtime.settings)
 	verificationStore := database.NewVerificationStore(runtime.database)
@@ -368,7 +375,7 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 	}
 	daily := newDailyService(runtime, verificationService, verificationGateway, time.Now)
 	administration := panel.New(
-		runtime.settings, connector, runtime.cfg, &i18n.Messages,
+		settingsService, connector, runtime.cfg, &i18n.Messages,
 		verificationService, moderation, lookups, options.Version, startedAt,
 	)
 	modules, err := newRuntimeModules(
@@ -378,7 +385,7 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 		return err
 	}
 	administration.SetCommandModules(modules.commands)
-	updates := telegram.NewUpdates(runtime.cfg, runtime.settings, connector,
+	updates := telegram.NewUpdates(runtime.cfg, settingsService, connector,
 		telegramHandlers(verificationService, verificationGateway, administration, moderation, modules.commands, consoleHandler))
 	registration := newRegistration(ctx, bot, runtime.cfg, runtime.settings, identity, moderation, verificationService, updates)
 	runtime.bot = bot

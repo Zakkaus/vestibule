@@ -148,6 +148,40 @@ func invokePanelCallback(t *testing.T, panel *Panel, bot *telego.Bot, session *p
 	}})
 }
 
+func TestGroupHelpDefaultsToNoLookupCapabilities(t *testing.T) {
+	panel, _, caller, bot := newSettingsPanelTest(t, "")
+	member := i18n.Messages.Bot.Menu.Member
+	noop := panel.OnHelp
+	commands, err := telegram.NewCommandModules(
+		telegram.CommandModule{Name: "core", Commands: []telegram.CommandDefinition{{
+			Name: "help", Description: member.Help.For, Audience: telegram.CommandMember,
+			RouteName: "panel.help", Handler: noop,
+		}}},
+		telegram.CommandModule{Name: settings.ModuleGentoo, Capability: settings.ModuleGentoo, Commands: []telegram.CommandDefinition{{
+			Name: "pkg", Description: member.Pkg.For, Audience: telegram.CommandMember,
+			RouteName: "lookup.pkg", Handler: noop,
+		}}},
+		telegram.CommandModule{Name: settings.ModuleLinux, Capability: settings.ModuleLinux, Commands: []telegram.CommandDefinition{{
+			Name: "wiki", Description: member.Wiki.For, Audience: telegram.CommandMember,
+			RouteName: "lookup.wiki", Handler: noop,
+		}}},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	panel.SetCommandModules(commands)
+	runFakeHandler(t, bot, panel.OnHelp, telego.Update{Message: &telego.Message{
+		MessageID: 1,
+		Chat:      telego.Chat{ID: panelTestGroupA, Type: telego.ChatTypeSupergroup},
+		From:      &telego.User{ID: panelTestUser, LanguageCode: "en"},
+		Text:      "/help",
+	}})
+	for _, command := range []string{"/pkg", "/wiki"} {
+		if strings.Contains(caller.lastSendText, command) {
+			t.Errorf("default group help exposed disabled lookup command %s", command)
+		}
+	}
+}
 func TestSettingsLauncherOpensGroupPickerWithoutVerification(t *testing.T) {
 	panel, _, caller, bot := newSettingsPanelTest(t, "")
 	verifier := panel.verifier.(*panelVerifierStub)

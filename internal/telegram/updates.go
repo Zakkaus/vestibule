@@ -107,6 +107,14 @@ func NewBlockChannelHandler(service *moderate.Service) th.Handler {
 	}
 }
 
+// SettingsReader is the read-only settings surface required for command projection.
+type SettingsReader interface {
+	Settings(int64) (settings.GroupView, bool)
+	ChatIDs() []int64
+	Registrations() settings.RegistrationState
+	IsGroup(int64) bool
+}
+
 // HandlerSet is the protocol-facing call surface supplied by app assembly.
 type HandlerSet struct {
 	Verification VerificationHandlers
@@ -125,13 +133,13 @@ type handlerRoute struct {
 // Updates owns first-match routing, command menus, and bounded direct-message throttling.
 type Updates struct {
 	cfg      *settings.Config
-	settings *settings.Store
+	settings SettingsReader
 	handlers HandlerSet
 	dm       *dmHandler
 }
 
 // NewUpdates creates the Telegram update router without starting polling.
-func NewUpdates(cfg *settings.Config, settings *settings.Store, connector *Connector, handlers HandlerSet) *Updates {
+func NewUpdates(cfg *settings.Config, settings SettingsReader, connector *Connector, handlers HandlerSet) *Updates {
 	return &Updates{
 		cfg:      cfg,
 		settings: settings,
@@ -181,11 +189,46 @@ func (u *Updates) handlerRoutes() []handlerRoute {
 		{name: "bot.private_dm", handler: u.dm.onPrivateDM, predicates: []th.Predicate{privateDM}},
 	}
 	for _, command := range u.handlers.Commands.Routes() {
+		predicates := []th.Predicate{th.CommandEqual(command.Command)}
+		if command.Capability != "" {
+			predicates = []th.Predicate{th.And(
+				th.CommandEqual(command.Command),
+				u.capabilityPredicate(command.Capability),
+			)}
+		}
 		routes = append(routes, handlerRoute{
-			name: command.Name, handler: command.Handler, predicates: []th.Predicate{th.CommandEqual(command.Command)},
+			name: command.Name, handler: command.Handler, predicates: predicates,
 		})
 	}
 	return routes
+}
+
+func (u *Updates) capabilityPredicate(capability string) th.Predicate {
+	return func(_ context.Context, update telego.Update) bool {
+		message := update.Message
+		if message == nil {
+			return false
+		}
+		if message.Chat.Type == telego.ChatTypePrivate {
+			return true
+		}
+		capabilities := u.groupCapabilities(message.Chat.ID)
+		return commandAllowed(capability, &capabilities)
+	}
+}
+
+func (u *Updates) groupCapabilities(groupID int64) CommandCapabilities {
+	if u.settings == nil {
+		return CommandCapabilities{}
+	}
+	group, ok := u.settings.Settings(groupID)
+	if !ok {
+		return CommandCapabilities{}
+	}
+	return CommandCapabilities{
+		GentooLookups: group.GentooLookupsEnabled().Value,
+		LinuxLookups:  group.LinuxLookupsEnabled().Value,
+	}
 }
 
 // Polling owns one running telegohandler and its completion result.

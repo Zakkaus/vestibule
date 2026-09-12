@@ -364,8 +364,8 @@ func TestSetupCommandsUsesCurrentGroupLanguageOverride(t *testing.T) {
 	caller := &commandRecordingCaller{}
 	service := &Updates{cfg: cfg, settings: store, handlers: HandlerSet{Commands: testCommandModules(t)}}
 	service.SetupCommands(context.Background(), testBot(t, caller))
-	if len(caller.requests) != 10 {
-		t.Fatalf("English group command menu requests = %d, want ten default scopes", len(caller.requests))
+	if len(caller.requests) != 12 {
+		t.Fatalf("English group command menu requests = %d, want twelve scoped menus", len(caller.requests))
 	}
 	group, ok := store.Settings(groupID)
 	if !ok {
@@ -380,7 +380,7 @@ func TestSetupCommandsUsesCurrentGroupLanguageOverride(t *testing.T) {
 	service.SetupCommands(context.Background(), testBot(t, caller))
 
 	seen := map[string]bool{}
-	for _, request := range caller.requests[10:] {
+	for _, request := range caller.requests[12:] {
 		switch request.Scope.Type {
 		case "chat":
 			if string(request.Scope.ChatID) != fmt.Sprint(groupID) {

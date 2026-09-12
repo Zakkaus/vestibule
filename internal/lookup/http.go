@@ -70,6 +70,7 @@ type Service struct {
 	cfg       *settings.Config
 	mu        sync.Mutex
 	queryHits map[int64][]time.Time
+	warmOnce  sync.Once
 }
 
 // New constructs a lookup service from runtime settings, Telegram transport, configuration, and an optional GitHub token.
@@ -91,6 +92,14 @@ func New(store *settings.Store, telegram *telegram.Connector, cfg *settings.Conf
 // Warm refreshes the package-search cache unless it is already fresh or refreshing.
 func (s *Service) Warm(ctx context.Context) {
 	pkgC.refresh(ctx)
+}
+
+// DemandWarm performs the first Gentoo package-cache warm-up at the first allowed demand.
+func (s *Service) DemandWarm(ctx context.Context) {
+	if s == nil {
+		return
+	}
+	s.warmOnce.Do(func() { s.Warm(ctx) })
 }
 
 // AutoDelete returns the effective lookup cleanup duration and enabled state for one group.
