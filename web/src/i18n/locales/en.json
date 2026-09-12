@@ -386,32 +386,33 @@
   "feeds": {
     "navigation": "Feed delivery",
     "title": "Feed delivery",
-    "description": "View instance-wide RSS, Atom, JSON Feed, Bugzilla, and news-source configuration; only operators can change it.",
+    "description": "View the selected group's effective Bugzilla, news, and GitHub delivery settings; operators also see process-wide news and overlay resources.",
     "loading": {
       "title": "Loading feed delivery settings",
-      "description": "Reading the process-wide values and their sources…"
+      "description": "Reading group feed values and their sources…"
     },
     "accessDenied": {
-      "title": "You do not have permission to view process settings",
-      "description": "This screen is available only to operators. Group managers can view settings only for groups they manage; they cannot read process-wide feed settings."
+      "title": "You do not have permission to view this group's feed settings",
+      "description": "Select a group that you manage or ask an operator for access."
     },
     "unavailable": {
       "title": "Feed delivery settings cannot be loaded",
       "retry": "Try again"
     },
     "readOnly": {
-      "title": "Managed by configuration files",
+      "title": "Feed settings are read only",
       "badge": "Read only",
-      "description": "These values come from program defaults or startup configuration files. This screen has no write path; the console only displays the current values and sources returned by the API."
+      "description": "This screen displays the effective group values and sources returned by the API; it does not provide editing controls."
     },
     "source": {
       "value": "Source: {{source}}",
       "factoryDefault": "Factory default",
-      "userFile": "Managed by file"
+      "userFile": "Managed by file",
+      "chatOverride": "Group override"
     },
     "feed": {
       "title": "Delivery targets",
-      "description": "Each item identifies a group or channel that receives Bugzilla, news, or GitHub activity posts.",
+      "description": "The selected group's effective Bugzilla, news, and GitHub delivery values.",
       "itemTitle": "Target {{number}}",
       "destination": "Receiving group or channel",
       "language": "Delivery language",
@@ -445,7 +446,7 @@
       "emptyDescription": "This process has no overlay repository or branch configuration."
     },
     "languages": {
-      "default": "Simplified Chinese (default)",
+      "default": "Use group language",
       "zh": "Simplified Chinese",
       "zhHant": "Traditional Chinese",
       "en": "English",

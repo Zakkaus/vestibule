@@ -384,32 +384,33 @@
   "feeds": {
     "navigation": "订阅推送",
     "title": "订阅推送",
-    "description": "查看整个实例的 RSS、Atom、JSON Feed、Bugzilla 与新闻源配置；仅运维可修改。",
+    "description": "查看所选群的 Bugzilla、新闻与 GitHub 推送有效设置；运维人员还可查看进程级新闻源和 overlay 资源。",
     "loading": {
       "title": "正在载入订阅推送配置",
-      "description": "正在读取进程级配置及其来源…"
+      "description": "正在读取群级订阅有效值及其来源…"
     },
     "accessDenied": {
-      "title": "无权查看进程设置",
-      "description": "此页面仅供运维人员使用。群管理员只能查看所管理群的配置，不能读取整个进程的订阅设置。"
+      "title": "无权查看该群的订阅设置",
+      "description": "请选择由你管理的群，或向运维人员申请访问权限。"
     },
     "unavailable": {
       "title": "无法读取订阅推送配置",
       "retry": "重试"
     },
     "readOnly": {
-      "title": "由程序或配置文件管理",
+      "title": "订阅设置只读",
       "badge": "只读",
-      "description": "订阅设置无法在控制台修改。此处显示接口返回的生效值及其来源。设置来自程序默认值或 -config 指定的配置文件（默认文件名为 config.json）。"
+      "description": "此页面显示 API 返回的群级有效值及其来源，不提供修改控件。"
     },
     "source": {
       "value": "来源：{{source}}",
       "factoryDefault": "程序默认值",
-      "userFile": "配置文件"
+      "userFile": "配置文件",
+      "chatOverride": "群覆盖"
     },
     "feed": {
       "title": "订阅目标",
-      "description": "feeds 中的每条配置指定接收 Bugzilla、新闻或 GitHub 动态推送的群组或频道。",
+      "description": "所选群当前生效的 Bugzilla、新闻与 GitHub 推送设置。",
       "itemTitle": "目标 {{number}}",
       "destination": "接收群或频道",
       "language": "推送语言",
@@ -443,7 +444,7 @@
       "emptyDescription": "overlays 未配置任何仓库或分支。"
     },
     "languages": {
-      "default": "简体中文（默认）",
+      "default": "跟随群语言",
       "zh": "简体中文",
       "zhHant": "繁体中文",
       "en": "英语",
