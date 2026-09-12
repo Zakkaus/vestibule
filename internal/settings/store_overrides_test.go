@@ -112,6 +112,8 @@ func sparseOverrides() GroupOverrides {
 		VerifyMaxFails:          ptr(-1),
 		VerifyRetrySeconds:      ptr(-1),
 		AntispamEnabled:         ptr(true),
+		GentooLookupsEnabled:    ptr(true),
+		LinuxLookupsEnabled:     ptr(true),
 		ChannelWhitelist:        &emptyIDs,
 		TrustedMemberGroupIDs:   ptr([]int64{-1009999900012}),
 		KnownChatIDs:            &emptyIDs,
@@ -145,6 +147,8 @@ func TestSettingsSparseBaselineSources(t *testing.T) {
 	requireEqual(t, initial.Enabled(), Setting[bool]{Value: true, Source: SourceFactory}, "initial enabled")
 	requireEqual(t, initial.DeliveryMode(), Setting[string]{Value: DeliveryBoth, Source: SourceFactory}, "initial delivery mode")
 	requireEqual(t, initial.TimeoutSeconds(), Setting[int]{Value: 240, Source: SourceUserFile}, "initial timeout")
+	requireEqual(t, initial.GentooLookupsEnabled(), Setting[bool]{Value: false, Source: SourceFactory}, "initial Gentoo lookups")
+	requireEqual(t, initial.LinuxLookupsEnabled(), Setting[bool]{Value: false, Source: SourceFactory}, "initial Linux lookups")
 	requireEqual(t, initial.LookupAutoDeleteEnabled(), Setting[bool]{Value: true, Source: SourceFactory}, "initial lookup auto-delete")
 	requireEqual(t, initial.AntispamEnabled(), Setting[bool]{Value: false, Source: SourceUserFile}, "initial antispam")
 	requireEqual(t, initial.Lang(), Setting[string]{Value: "zh", Source: SourceFactory}, "initial language")
@@ -182,6 +186,8 @@ func TestSettingsSparseOverridesRoundTrip(t *testing.T) {
 	requireEmptyInt64Setting(t, group.ChannelWhitelist(), SourceChatOverride, "explicit empty channel whitelist")
 	requireEqual(t, group.LookupTTLSeconds(), Setting[int]{Value: 300, Source: SourceChatOverride}, "remembered lookup TTL")
 	requireEqual(t, group.LookupAutoDeleteEnabled(), Setting[bool]{Value: false, Source: SourceChatOverride}, "disabled lookup auto-delete")
+	requireEqual(t, group.GentooLookupsEnabled(), Setting[bool]{Value: true, Source: SourceChatOverride}, "enabled Gentoo lookups")
+	requireEqual(t, group.LinuxLookupsEnabled(), Setting[bool]{Value: true, Source: SourceChatOverride}, "enabled Linux lookups")
 	requireEqual(t, group.AntispamEnabled(), Setting[bool]{Value: true, Source: SourceChatOverride}, "enabled antispam")
 	requireEmptyInt64Setting(t, group.KnownChatIDs(), SourceChatOverride, "explicit empty known chats")
 	requireEmptyQuestionSetting(t, group.Questions(), SourceChatOverride, "explicit empty question bank")

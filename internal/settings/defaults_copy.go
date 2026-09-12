@@ -368,6 +368,22 @@ var groupUserValueRules = [...]groupUserValueRule{
 		},
 	},
 	{
+		key: "gentoo_lookups_enabled",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.GentooLookupsEnabled != nil {
+				group.GentooLookupsEnabled = userFileValue(*cfg.GentooLookupsEnabled)
+			}
+		},
+	},
+	{
+		key: "linux_lookups_enabled",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.LinuxLookupsEnabled != nil {
+				group.LinuxLookupsEnabled = userFileValue(*cfg.LinuxLookupsEnabled)
+			}
+		},
+	},
+	{
 		key: "channel_whitelist",
 		apply: func(group *GroupBaseline, cfg *GroupConfig) {
 			if cfg.ChannelWhitelist != nil {

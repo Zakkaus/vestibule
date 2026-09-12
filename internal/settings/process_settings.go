@@ -3,6 +3,7 @@ package settings
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 )
 
 type processSettingsSources struct {
@@ -16,6 +17,9 @@ func processSettingsSourcesFromConfig(data []byte) (processSettingsSources, erro
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(data, &fields); err != nil {
 		return processSettingsSources{}, err
+	}
+	if _, legacy := fields["disabled_modules"]; legacy {
+		return processSettingsSources{}, fmt.Errorf("disabled_modules is no longer supported; use modules to select enabled optional modules")
 	}
 	return processSettingsSources{
 		feeds:         processSettingPresent(fields, "feeds") || processSettingPresent(fields, "feed"),

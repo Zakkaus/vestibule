@@ -65,7 +65,7 @@ func TestNewServicesAllowsAllOptionalModulesDisabled(t *testing.T) {
 	ctx := context.Background()
 	stateDirectory := t.TempDir()
 	configPath := filepath.Join(stateDirectory, "config.json")
-	if err := os.WriteFile(configPath, []byte(`{"disabled_modules":["gentoo","linux"]}`), 0o600); err != nil {
+	if err := os.WriteFile(configPath, []byte(`{"modules":[]}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

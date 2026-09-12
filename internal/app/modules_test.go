@@ -3,13 +3,12 @@ package app
 import (
 	"context"
 	"encoding/json"
-	"strings"
-	"testing"
-
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/mymmrac/telego"
+	"strings"
+	"testing"
 )
 
 var optionalModuleCommands = map[string][]string{
@@ -17,8 +16,8 @@ var optionalModuleCommands = map[string][]string{
 	settings.ModuleLinux:  {"wiki", "bbs", "pkgs", "distro", "armpkgs", "kernel", "man", "cve", "repology"},
 }
 
-func TestDisabledModulesDisappearFromCommandSurface(t *testing.T) {
-	cfg := &settings.Config{DisabledModules: settings.OptionalModuleNames()}
+func TestEmptyModulesDisappearFromCommandSurface(t *testing.T) {
+	cfg := &settings.Config{Modules: []string{}}
 	modules, err := newRuntimeModules(cfg, nil, t.TempDir(), nil, nil, nil, false)
 	if err != nil {
 		t.Fatal(err)
@@ -47,8 +46,8 @@ func TestDisabledModulesDisappearFromCommandSurface(t *testing.T) {
 
 }
 
-func TestDisabledModulesDoNotReachTelegramMenus(t *testing.T) {
-	cfg := &settings.Config{DisabledModules: settings.OptionalModuleNames()}
+func TestEmptyModulesDoNotReachTelegramMenus(t *testing.T) {
+	cfg := &settings.Config{Modules: []string{}}
 	modules, err := newRuntimeModules(cfg, nil, t.TempDir(), nil, nil, nil, false)
 	if err != nil {
 		t.Fatal(err)
@@ -85,13 +84,18 @@ func TestDisabledModulesDoNotReachTelegramMenus(t *testing.T) {
 func TestRuntimeModuleSelectionMatchesConfiguration(t *testing.T) {
 	for _, disabled := range settings.OptionalModuleNames() {
 		t.Run(disabled, func(t *testing.T) {
-			modules, err := newRuntimeModules(&settings.Config{
-				DisabledModules: []string{disabled},
-			}, nil, t.TempDir(), nil, nil, nil, false)
+			modules := []string{settings.ModuleGentoo, settings.ModuleLinux}
+			if disabled == settings.ModuleGentoo {
+				modules = []string{settings.ModuleLinux}
+			} else {
+				modules = []string{settings.ModuleGentoo}
+			}
+			runtimeModules, err := newRuntimeModules(&settings.Config{Modules: modules},
+				nil, t.TempDir(), nil, nil, nil, false)
 			if err != nil {
 				t.Fatal(err)
 			}
-			active := routeCommandNames(modules.commands.Definitions())
+			active := routeCommandNames(runtimeModules.commands.Definitions())
 			for module, names := range optionalModuleCommands {
 				for _, name := range names {
 					if active[name] != (module != disabled) {
@@ -113,7 +117,7 @@ func TestRuntimeOwnerConsoleSurfaceMatchesAvailability(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			modules, err := newRuntimeModules(
-				&settings.Config{DisabledModules: settings.OptionalModuleNames()},
+				&settings.Config{Modules: []string{settings.ModuleGentoo, settings.ModuleLinux}},
 				nil, t.TempDir(), nil, nil, nil, tc.consoleAvailable,
 			)
 			if err != nil {

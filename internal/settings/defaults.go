@@ -46,6 +46,8 @@ type groupDefaults struct {
 	VerifyInvited           bool            `yaml:"verify_invited"`
 	WarnLimit               int             `yaml:"warn_limit"`
 	AntispamEnabled         bool            `yaml:"antispam_enabled"`
+	GentooLookupsEnabled    bool            `yaml:"gentoo_lookups_enabled"`
+	LinuxLookupsEnabled     bool            `yaml:"linux_lookups_enabled"`
 	ChannelWhitelist        []int64         `yaml:"channel_whitelist"`
 	TrustedMemberGroupIDs   []int64         `yaml:"trusted_member_group_ids"`
 	KnownChatIDs            []int64         `yaml:"known_chat_ids"`
@@ -110,6 +112,8 @@ func factoryBaseline() GroupBaseline {
 		VerifyInvited:           factoryValue(defaults.VerifyInvited),
 		WarnLimit:               factoryValue(defaults.WarnLimit),
 		AntispamEnabled:         factoryValue(defaults.AntispamEnabled),
+		GentooLookupsEnabled:    factoryValue(defaults.GentooLookupsEnabled),
+		LinuxLookupsEnabled:     factoryValue(defaults.LinuxLookupsEnabled),
 		ChannelWhitelist:        factoryValue(append([]int64(nil), defaults.ChannelWhitelist...)),
 		TrustedMemberGroupIDs:   factoryValue(append([]int64(nil), defaults.TrustedMemberGroupIDs...)),
 		KnownChatIDs:            factoryValue(append([]int64(nil), defaults.KnownChatIDs...)),
