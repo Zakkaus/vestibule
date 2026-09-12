@@ -798,11 +798,11 @@ RSS／Atom／JSON Feed 来源与富文本控制明确留待后续阶段。统计
 
 | 原读取位置 | 处置结果 |
 |---|---|
-| telegram 包的 edition 命令前缀适配层 | 删除适配层；`internal/telegram/commands.go` 只声明无前缀命令 |
+| telegram 包的 edition 命令前缀适配层 | 删除适配层；Gentoo 专用命令在 `internal/app/modules.go` 中显式声明 g 前缀，旧名只作过渡别名 |
 | `internal/lookup/packages.go` 的 `Name` 读取 | 保留单一 `edition.Name`，继续作为 User-Agent |
-| `internal/lookup/packages.go` 的 `CommandPrefix` 读取 | 提示文本固定使用 `/use` |
+| `internal/lookup/packages.go` 的 `CommandPrefix` 读取 | 提示文本固定使用 `/guse` |
 | `internal/verification/kernel.go` 的 `KernelExampleSuffix` 读取 | 占位示例固定为通用的 `X.Y.Z` |
-| `internal/i18n/catalog.go` 的 `CommandPrefix` 读取 | 删除运行时替换；三语目录直接保存无前缀命令 |
+| `internal/i18n/catalog.go` 的 `CommandPrefix` 读取 | 删除运行时替换；五语目录直接保存带 g 前缀的 Gentoo 命令 |
 | `internal/i18n/catalog.go` 的 `KernelExampleSuffix` 读取 | 删除运行时替换；三语目录直接保存通用示例 |
 | `internal/i18n/bot.go` 的 `IsGentoo` 读取 | 删除版本分支，只保留中性的 `Identity` 文案 |
 | verification 文案的 `IsGentoo` 读取 | 删除版本分支；fallback 题不再按构建标签选择，部署题库由 `internal/settings` 加载 |
@@ -832,7 +832,7 @@ RSS／Atom／JSON Feed 来源与富文本控制明确留待后续阶段。统计
 - bot 加入、移出、标题更新和同群串行保持幂等；加入后即创建该群可用的状态，移出后保留待清理标记。
 - 每群只继承出厂默认或本群 override，配置、队列、授权和规则互不串群；删除社区配置后产品仍可运行。
 - 每次敏感写入仍现查管理员；不保留全局 owner、enrollment、未知群延迟离开或 build edition 的特权路径。
-- 命令菜单保留语言 scope 与运行时群更新；私聊命令不被自动回复吞掉；版本元数据保留，社区身份、命令前缀和 edition fallback 题被移除。
+- 命令菜单保留语言 scope 与运行时群更新；私聊命令不被自动回复吞掉；版本元数据保留，社区身份、按 build edition 动态改写的命令前缀和 edition fallback 题被移除。
 - typed catalogue、占位符和三语一致性保持；fallback 使用部署题库或内置示例，不按 build tag 选择。
 
 **配置模型已于阶段四完成切换。** 因此，这 12 个来源在阶段八仅需复查，
