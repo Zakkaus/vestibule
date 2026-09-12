@@ -33,7 +33,7 @@ const (
 
 var optionalModules = [...]string{ModuleGentoo, ModuleLinux}
 
-// OptionalModuleNames returns every process-level module that may be disabled.
+// OptionalModuleNames returns every optional module supported by this instance.
 func OptionalModuleNames() []string {
 	return append([]string(nil), optionalModules[:]...)
 }
@@ -200,6 +200,8 @@ type GroupConfig struct {
 	VerifyInvited           *bool            `json:"verify_invited"`
 	WarnLimit               *int             `json:"warn_limit"`
 	AntispamEnabled         *bool            `json:"antispam_enabled"`
+	GentooLookupsEnabled    *bool            `json:"gentoo_lookups_enabled"`
+	LinuxLookupsEnabled     *bool            `json:"linux_lookups_enabled"`
 	ChannelWhitelist        *[]int64         `json:"channel_whitelist"`
 	TrustedMemberGroupIDs   []int64          `json:"trusted_member_group_ids"`
 	KnownChatIDs            *[]int64         `json:"known_chat_ids"`
@@ -281,8 +283,9 @@ func (f *FeedConfig) Interval() time.Duration {
 type Config struct {
 	// ObserveOnly records verification actions without changing Telegram state.
 	ObserveOnly bool `json:"observe_only"`
-	// DisabledModules turns off optional query and subscription modules for this bot instance.
-	DisabledModules []string `json:"disabled_modules"`
+	// Modules selects optional query and subscription modules for this bot instance.
+	// An empty list enables no optional modules.
+	Modules []string `json:"modules"`
 	// Groups is the canonical guarded-group list after legacy IDs are merged.
 	Groups []GroupConfig `json:"groups"`
 	// GroupIDs mirrors Groups and accepts the legacy group_ids key.
@@ -395,12 +398,12 @@ func (c *Config) OwnerClaimLifetime() time.Duration {
 
 // ModuleEnabled reports whether the named optional module is enabled for this bot instance.
 func (c *Config) ModuleEnabled(name string) bool {
-	for _, disabled := range c.DisabledModules {
-		if disabled == name {
-			return false
+	for _, module := range c.Modules {
+		if module == name {
+			return true
 		}
 	}
-	return true
+	return false
 }
 
 // IsGroup reports whether id is one of the guarded groups.

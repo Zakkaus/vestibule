@@ -126,7 +126,8 @@
     "data-console-header": "Header identity supports geometry checks; its Spectrum macro owns layout.",
     "data-home-state": "Home state metadata is consumed by the screen state, not CSS.",
     "data-home-trend-empty": "Home trend empty-state metadata is retained for tests and accessibility, not CSS.",
-    "data-mobile-navigation": "Mobile trigger identity supports focus checks; its Spectrum macro owns layout."
+    "data-mobile-navigation": "Mobile trigger identity supports focus checks; its Spectrum macro owns layout.",
+    "data-capabilities-preset": "Preset identity is consumed by the journeys that press a preset, not CSS."
   },
   "non_styling_classes": {
     "console-brand": "Brand identity is independent of its Spectrum Header layout.",

@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-// Twenty-eight rules carry a group's own configuration entry into that group's baseline.
-// Probing them one at a time found twenty-six that no test held: remove one and the entry an
+// Thirty rules carry a group's own configuration entry into that group's baseline.
+// Probing them one at a time found twenty-eight that no test held: remove one and the entry an
 // operator wrote under that group has no effect, with the group silently keeping whatever the
 // top level or the factory said.
 //
@@ -51,6 +51,10 @@ func TestGroupUserValuesReachThatGroupsBaseline(t *testing.T) {
 			func(b GroupBaseline) any { return b.WarnLimit.Value }, 9},
 		{"antispam_enabled", func(c *GroupConfig) { c.AntispamEnabled = &no },
 			func(b GroupBaseline) any { return b.AntispamEnabled.Value }, false},
+		{"gentoo_lookups_enabled", func(c *GroupConfig) { c.GentooLookupsEnabled = &yes },
+			func(b GroupBaseline) any { return b.GentooLookupsEnabled.Value }, true},
+		{"linux_lookups_enabled", func(c *GroupConfig) { c.LinuxLookupsEnabled = &no },
+			func(b GroupBaseline) any { return b.LinuxLookupsEnabled.Value }, false},
 		{"channel_whitelist", func(c *GroupConfig) { c.ChannelWhitelist = &[]int64{-1009000001401} },
 			func(b GroupBaseline) any { return b.ChannelWhitelist.Value }, []int64{-1009000001401}},
 		{"trusted_member_group_ids", func(c *GroupConfig) { c.TrustedMemberGroupIDs = []int64{-1009000001402} },

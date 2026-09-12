@@ -38,6 +38,8 @@ type settingsResponse struct {
 	VerifyInvited           settingResponse[bool]                     `json:"verify_invited"`
 	WarnLimit               settingResponse[int]                      `json:"warn_limit"`
 	AntispamEnabled         settingResponse[bool]                     `json:"antispam_enabled"`
+	GentooLookupsEnabled    settingResponse[bool]                     `json:"gentoo_lookups_enabled"`
+	LinuxLookupsEnabled     settingResponse[bool]                     `json:"linux_lookups_enabled"`
 	ChannelWhitelist        settingResponse[[]int64]                  `json:"channel_whitelist"`
 	TrustedMemberGroupIDs   settingResponse[[]int64]                  `json:"trusted_member_group_ids"`
 	KnownChatIDs            settingResponse[[]int64]                  `json:"known_chat_ids"`
@@ -64,7 +66,10 @@ func settingsView(group settings.GroupView) settingsResponse {
 		TimeoutSeconds:          settingView(group.TimeoutSeconds()), VerifyMaxFails: settingView(group.VerifyMaxFails()),
 		VerifyRetrySeconds: settingView(group.VerifyRetrySeconds()), MuteSeconds: settingView(group.MuteSeconds()),
 		VerifyInvited: settingView(group.VerifyInvited()), WarnLimit: settingView(group.WarnLimit()),
-		AntispamEnabled: settingView(group.AntispamEnabled()), ChannelWhitelist: settingView(group.ChannelWhitelist()),
+		AntispamEnabled:       settingView(group.AntispamEnabled()),
+		GentooLookupsEnabled:  settingView(group.GentooLookupsEnabled()),
+		LinuxLookupsEnabled:   settingView(group.LinuxLookupsEnabled()),
+		ChannelWhitelist:      settingView(group.ChannelWhitelist()),
 		TrustedMemberGroupIDs: settingView(group.TrustedMemberGroupIDs()), KnownChatIDs: settingView(group.KnownChatIDs()),
 		RequiredChannelID: settingView(group.RequiredChannelID()), ChannelDisplay: settingView(group.ChannelDisplay()),
 		ChannelInviteURL: settingView(group.ChannelInviteURL()), Questions: settingView(group.Questions()),
@@ -99,6 +104,8 @@ type settingsPatch struct {
 	VerifyInvited           *bool                     `json:"verify_invited"`
 	WarnLimit               *int                      `json:"warn_limit"`
 	AntispamEnabled         *bool                     `json:"antispam_enabled"`
+	GentooLookupsEnabled    *bool                     `json:"gentoo_lookups_enabled"`
+	LinuxLookupsEnabled     *bool                     `json:"linux_lookups_enabled"`
 	ChannelWhitelist        *[]int64                  `json:"channel_whitelist"`
 	TrustedMemberGroupIDs   *[]int64                  `json:"trusted_member_group_ids"`
 	KnownChatIDs            *[]int64                  `json:"known_chat_ids"`
@@ -164,6 +171,12 @@ func (p settingsPatch) applyModesAndTiming(next *settings.GroupOverrides) {
 	}
 	if p.has("lookup_auto_delete_enabled") {
 		next.LookupAutoDeleteEnabled = p.LookupAutoDeleteEnabled
+	}
+	if p.has("gentoo_lookups_enabled") {
+		next.GentooLookupsEnabled = p.GentooLookupsEnabled
+	}
+	if p.has("linux_lookups_enabled") {
+		next.LinuxLookupsEnabled = p.LinuxLookupsEnabled
 	}
 }
 

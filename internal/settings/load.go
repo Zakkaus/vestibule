@@ -53,6 +53,8 @@ mute_seconds:
 verify_invited:
 warn_limit:
 antispam_enabled:
+gentoo_lookups_enabled:
+linux_lookups_enabled:
 channel_whitelist:
 trusted_member_group_ids:
 known_chat_ids:
@@ -103,6 +105,8 @@ var groupCopyRules = []copyRule{
 	{configupgrade.Bool, []string{"verify_invited"}},
 	{configupgrade.Int, []string{"warn_limit"}},
 	{configupgrade.Bool, []string{"antispam_enabled"}},
+	{configupgrade.Bool, []string{"gentoo_lookups_enabled"}},
+	{configupgrade.Bool, []string{"linux_lookups_enabled"}},
 	{configupgrade.List, []string{"channel_whitelist"}},
 	{configupgrade.List, []string{"trusted_member_group_ids"}},
 	{configupgrade.List, []string{"known_chat_ids"}},

@@ -15,7 +15,7 @@ import (
 
 type dmHandler struct {
 	cfg            *settings.Config
-	settings       *settings.Store
+	settings       SettingsReader
 	telegram       *Connector
 	commands       map[string]bool
 	mu             sync.Mutex

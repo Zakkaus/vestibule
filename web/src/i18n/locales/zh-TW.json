@@ -1460,9 +1460,25 @@
       "disabled": "機器人不檢查頻道身分，相關訊息會繼續交由後續處理。",
       "details": "在管理與處罰中調整"
     },
+    "gentooLookups": {
+      "title": "Gentoo 查詢",
+      "summary": "決定是否允許在群組中使用 Gentoo 查詢指令。",
+      "enabled": "群組成員可以使用 Gentoo 查詢指令取得套件資訊。",
+      "disabled": "Gentoo 查詢指令無法使用，其他功能不受影響。"
+    },
+    "linuxLookups": {
+      "title": "Linux 查詢",
+      "summary": "決定是否允許在群組中使用 Linux 查詢指令。",
+      "enabled": "群組成員可以使用 Linux 查詢指令取得核心資訊。",
+      "disabled": "Linux 查詢指令無法使用，其他功能不受影響。"
+    },
+    "presets": {
+      "verificationOnly": "只啟用驗證",
+      "all": "全部啟用"
+    },
     "save": {
       "label": "儲存功能變更",
-      "unsaved": "自動入群驗證有尚未儲存的變更。"
+      "unsaved": "有尚未儲存的功能變更。"
     },
     "actions": {
       "retry": "重試",

@@ -170,7 +170,7 @@ func newBlockedDailyRuntime(t *testing.T, standby bool) blockedDailyRuntime {
 	t.Helper()
 	stateDirectory := t.TempDir()
 	configPath := filepath.Join(stateDirectory, "config.json")
-	if err := os.WriteFile(configPath, []byte(`{"lang":"en","stats_timezone":"UTC","groups":[],"disabled_modules":["gentoo","linux"]}`), 0o600); err != nil {
+	if err := os.WriteFile(configPath, []byte(`{"lang":"en","stats_timezone":"UTC","groups":[],"modules":[]}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	sendAttempt := make(chan struct{})
@@ -409,7 +409,7 @@ func TestDailyRuntimeObserveOnlyRecordsWithoutTelegramWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 	configPath := filepath.Join(stateDirectory, "config.json")
-	config := fmt.Sprintf(`{"lang":"en","stats_timezone":%q,"observe_only":true,"groups":[],"disabled_modules":["gentoo","linux"]}`, timezone)
+	config := fmt.Sprintf(`{"lang":"en","stats_timezone":%q,"observe_only":true,"groups":[],"modules":[]}`, timezone)
 	if err := os.WriteFile(configPath, []byte(config), 0o600); err != nil {
 		t.Fatal(err)
 	}

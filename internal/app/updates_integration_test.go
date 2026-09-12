@@ -173,6 +173,46 @@ func TestGlobalDispatchRunsOnlyTheIntendedHandler(t *testing.T) {
 	assertModerationStopsRoutes(t, fixture)
 }
 
+func TestLookupCommandsAreGroupGatedButRemainAdmittedInDMs(t *testing.T) {
+	fixture := newDispatchFixture(t, 0)
+	for _, tc := range []struct {
+		name  string
+		group string
+		dm    string
+		route string
+	}{
+		{name: "gentoo", group: "/pkg app-editors/vim", dm: "/pkg app-editors/vim", route: "lookup.pkg"},
+		{name: "linux", group: "/wiki kernel", dm: "/wiki kernel", route: "lookup.wiki"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			group, ok := fixture.settings.Settings(fixture.groupID)
+			if !ok {
+				t.Fatalf("fixture group %d missing settings", fixture.groupID)
+			}
+			disabled := group.Overrides()
+			value := false
+			if tc.name == "gentoo" {
+				disabled.GentooLookupsEnabled = &value
+			} else {
+				disabled.LinuxLookupsEnabled = &value
+			}
+			if _, err := fixture.settings.Update(fixture.groupID, group.Revision(), disabled); err != nil {
+				t.Fatal(err)
+			}
+			groupRoutes := dispatchRouteNames(t, fixture, groupCommand(fixture.groupID, 9001, tc.group))
+			for _, got := range groupRoutes {
+				if got == tc.route {
+					t.Fatalf("disabled group command %q reached handler %q", tc.group, tc.route)
+				}
+			}
+			dmRoutes := dispatchRouteNames(t, fixture, privateCommand(9002, tc.dm))
+			if len(dmRoutes) != 1 || dmRoutes[0] != tc.route {
+				t.Fatalf("direct-message command %q routes = %v, want [%q]", tc.dm, dmRoutes, tc.route)
+			}
+		})
+	}
+}
+
 func assertModerationStopsRoutes(t *testing.T, fixture *dispatchFixture) {
 	t.Helper()
 	beforeDelete := fixture.caller.methodCount("deleteMessage")

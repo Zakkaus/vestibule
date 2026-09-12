@@ -30,7 +30,7 @@ var configValidationRules = [...]configValidationRule{
 	{field: "lang", validate: validateConfigLanguage},
 	{field: "verify_mode", validate: validateConfigVerifyMode},
 	{field: "delivery_mode", validate: validateConfigDeliveryMode},
-	{field: "disabled_modules", validate: validateConfigDisabledModules},
+	{field: "modules", validate: validateConfigModules},
 	{field: "groups", validate: validateConfigGroups},
 	{field: "default runtime group", validate: validateDefaultRuntimeGroup},
 	{field: "durations", validate: validateConfigDurations},
@@ -299,14 +299,14 @@ func validateConfigDeliveryMode(c *Config) error {
 	return nil
 }
 
-func validateConfigDisabledModules(c *Config) error {
-	seen := make(map[string]bool, len(c.DisabledModules))
-	for _, module := range c.DisabledModules {
+func validateConfigModules(c *Config) error {
+	seen := make(map[string]bool, len(c.Modules))
+	for _, module := range c.Modules {
 		if !ValidOptionalModule(module) {
-			return fmt.Errorf("disabled_modules %q is not one of %q, %q", module, ModuleGentoo, ModuleLinux)
+			return fmt.Errorf("modules %q is not one of %q, %q", module, ModuleGentoo, ModuleLinux)
 		}
 		if seen[module] {
-			return fmt.Errorf("duplicate disabled module %q", module)
+			return fmt.Errorf("duplicate modules entry %q", module)
 		}
 		seen[module] = true
 	}

@@ -159,6 +159,8 @@ type PanelSettingsFieldCatalog struct {
 	Content                Text
 	ChangeGroup            Text
 	Verification           Text
+	GentooLookups          Text
+	LinuxLookups           Text
 	DeliveryGroup          Text
 	DeliveryDM             Text
 	DeliveryBoth           Text

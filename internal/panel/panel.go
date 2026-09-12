@@ -46,8 +46,18 @@ type Lookup interface {
 	AutoDelete(groupID int64) (time.Duration, bool)
 }
 
+// SettingsService is the narrow settings surface required by the Telegram panel.
+type SettingsService interface {
+	Settings(int64) (settings.GroupView, bool)
+	ChatIDs() []int64
+	IsGroup(int64) bool
+	Registrations() settings.RegistrationState
+	Persistence() settings.PersistenceStatus
+	Update(int64, uint64, settings.GroupOverrides) (settings.CommitResult, error)
+}
+
 type Panel struct {
-	settings   *settings.Store
+	settings   SettingsService
 	telegram   *telegram.Connector
 	cfg        *settings.Config
 	verifier   Verification
@@ -61,7 +71,7 @@ type Panel struct {
 
 // New constructs the existing administration surface from explicit dependencies.
 func New(
-	settings *settings.Store,
+	settings SettingsService,
 	telegram *telegram.Connector,
 	cfg *settings.Config,
 	_ *i18n.Catalog,
@@ -343,6 +353,19 @@ func (v *Panel) ownerHelpText(l i18n.Lang) string {
 	}
 	return v.commands.OwnerHelp(l)
 }
+func (v *Panel) groupCapabilities(groupID int64) telegram.CommandCapabilities {
+	if v.settings == nil {
+		return telegram.CommandCapabilities{}
+	}
+	group, ok := v.settings.Settings(groupID)
+	if !ok {
+		return telegram.CommandCapabilities{}
+	}
+	return telegram.CommandCapabilities{
+		GentooLookups: group.GentooLookupsEnabled().Value,
+		LinuxLookups:  group.LinuxLookupsEnabled().Value,
+	}
+}
 
 func (v *Panel) hasPrivateQueries() bool {
 	return !v.commands.HasCommands() || v.commands.HasPrivateQueries()
@@ -385,11 +408,18 @@ func (v *Panel) OnHelp(ctx *th.Context, update telego.Update) error {
 	inGroup := v.isGroup(chatID)
 	l := v.requesterLanguage(msg)
 	help := v.memberHelpText(l)
+	if inGroup && v.commands.HasCommands() {
+		help = v.commands.MemberHelpFor(l, v.groupCapabilities(chatID))
+	}
 	if inGroup {
 		help += "\n\n" + i18n.Messages.Panel.Help.GroupState.Render(l, v.stateText(l, chatID))
 	}
 	if inGroup && v.isGroupAdminCached(c, bot, chatID, msg.From.ID) {
-		help += "\n\n" + v.administratorHelpText(l)
+		adminHelp := v.administratorHelpText(l)
+		if v.commands.HasCommands() {
+			adminHelp = v.commands.AdministratorHelpFor(l, v.cfg.WarnLimit, v.groupCapabilities(chatID))
+		}
+		help += "\n\n" + adminHelp
 	}
 	if inGroup {
 		_ = bot.DeleteMessage(c, &telego.DeleteMessageParams{ChatID: tu.ID(chatID), MessageID: msg.MessageID})

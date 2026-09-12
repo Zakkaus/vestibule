@@ -108,6 +108,8 @@ func buildEffectiveGroup(
 		verifyInvited:           resolve(record.VerifyInvited, baseline.VerifyInvited),
 		warnLimit:               resolve(record.WarnLimit, baseline.WarnLimit),
 		antispamEnabled:         resolve(record.AntispamEnabled, baseline.AntispamEnabled),
+		gentooLookupsEnabled:    resolve(record.GentooLookupsEnabled, baseline.GentooLookupsEnabled),
+		linuxLookupsEnabled:     resolve(record.LinuxLookupsEnabled, baseline.LinuxLookupsEnabled),
 		channelWhitelist:        resolveSlice(record.ChannelWhitelist, baseline.ChannelWhitelist, cloneInt64s),
 		trustedMemberGroupIDs:   resolveSlice(record.TrustedMemberGroupIDs, baseline.TrustedMemberGroupIDs, cloneInt64s),
 		knownChatIDs:            resolveSlice(record.KnownChatIDs, baseline.KnownChatIDs, cloneInt64s),
@@ -175,19 +177,18 @@ func validateBaseline(baseline SettingsBaseline) error {
 	}
 	return nil
 }
-
 func validateBaselineSources(group GroupBaseline) error {
 	sources := []Source{
 		group.Enabled.Source, group.DeliveryMode.Source, group.VerifyMode.Source, group.NameSpoiler.Source,
 		group.BanSeconds.Source, group.LookupTTLSeconds.Source, group.LookupAutoDeleteEnabled.Source,
 		group.TimeoutSeconds.Source, group.VerifyMaxFails.Source, group.VerifyRetrySeconds.Source,
 		group.MuteSeconds.Source, group.WarnLimit.Source, group.VerifyInvited.Source,
-		group.AntispamEnabled.Source, group.ChannelWhitelist.Source,
-		group.TrustedMemberGroupIDs.Source, group.KnownChatIDs.Source, group.RequiredChannelID.Source,
-		group.ChannelDisplay.Source, group.ChannelInviteURL.Source, group.Questions.Source,
-		group.FallbackQuestions.Source, group.FallbackBuiltin.Source, group.Lang.Source,
-		group.RichMessages.Source, group.PrivateQueryPerMin.Source, group.AdminLogChatID.Source,
-		group.RequiredChannelFailOpen.Source,
+		group.AntispamEnabled.Source, group.GentooLookupsEnabled.Source, group.LinuxLookupsEnabled.Source,
+		group.ChannelWhitelist.Source, group.TrustedMemberGroupIDs.Source, group.KnownChatIDs.Source,
+		group.RequiredChannelID.Source, group.ChannelDisplay.Source, group.ChannelInviteURL.Source,
+		group.Questions.Source, group.FallbackQuestions.Source, group.FallbackBuiltin.Source,
+		group.Lang.Source, group.RichMessages.Source, group.PrivateQueryPerMin.Source,
+		group.AdminLogChatID.Source, group.RequiredChannelFailOpen.Source,
 	}
 	for _, source := range sources {
 		if source != SourceFactory && source != SourceUserFile {

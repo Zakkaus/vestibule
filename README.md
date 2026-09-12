@@ -49,7 +49,7 @@ Process configuration can send Bugzilla, news, and GitHub commit, issue, and pul
 ## What it has to become
 
 1. Anyone can add the bot to their own group and configure it themselves.
-2. The web console covers every group setting; process-level `disabled_modules` selects optional `gentoo` and `linux` bot modules.
+2. The web console covers every group setting; process-level `modules` explicitly enables optional `gentoo` and `linux` bot modules. An empty or absent list enables no optional module; the legacy `disabled_modules` key is rejected and must be migrated to `modules`.
 3. State lives in a database and survives concurrency and restarts without loss or double
    settlement.
 4. One command deploys it, and a failed upgrade rolls itself back.

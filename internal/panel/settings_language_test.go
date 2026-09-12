@@ -64,6 +64,7 @@ func TestPanelLanguageCallbacksPersistJapaneseAndRussian(t *testing.T) {
 func expectedRuntimeActions(groupID int64) []string {
 	return []string{
 		action(groupID, "en", "_"),
+		action(groupID, "gt", "_"), action(groupID, "lx", "_"),
 		action(groupID, "df", "g"), action(groupID, "df", "d"), action(groupID, "df", "b"),
 		action(groupID, "vm", "k"), action(groupID, "vm", "q"), action(groupID, "vm", "m"),
 		action(groupID, "ns", "_"), action(groupID, "bd", "_"), action(groupID, "ld", "_"),

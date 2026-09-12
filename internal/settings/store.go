@@ -65,6 +65,8 @@ type GroupBaseline struct {
 	VerifyInvited           BaselineValue[bool]
 	WarnLimit               BaselineValue[int]
 	AntispamEnabled         BaselineValue[bool]
+	GentooLookupsEnabled    BaselineValue[bool]
+	LinuxLookupsEnabled     BaselineValue[bool]
 	ChannelWhitelist        BaselineValue[[]int64]
 	TrustedMemberGroupIDs   BaselineValue[[]int64]
 	KnownChatIDs            BaselineValue[[]int64]
@@ -103,6 +105,8 @@ type GroupOverrides struct {
 	VerifyInvited           *bool            `json:"verify_invited,omitempty"`
 	WarnLimit               *int             `json:"warn_limit,omitempty"`
 	AntispamEnabled         *bool            `json:"antispam_enabled,omitempty"`
+	GentooLookupsEnabled    *bool            `json:"gentoo_lookups_enabled,omitempty"`
+	LinuxLookupsEnabled     *bool            `json:"linux_lookups_enabled,omitempty"`
 	ChannelWhitelist        *[]int64         `json:"channel_whitelist,omitempty"`
 	TrustedMemberGroupIDs   *[]int64         `json:"trusted_member_group_ids,omitempty"`
 	KnownChatIDs            *[]int64         `json:"known_chat_ids,omitempty"`
@@ -264,6 +268,8 @@ type effectiveGroup struct {
 	verifyInvited           Setting[bool]
 	warnLimit               Setting[int]
 	antispamEnabled         Setting[bool]
+	gentooLookupsEnabled    Setting[bool]
+	linuxLookupsEnabled     Setting[bool]
 	channelWhitelist        Setting[[]int64]
 	trustedMemberGroupIDs   Setting[[]int64]
 	knownChatIDs            Setting[[]int64]
@@ -466,13 +472,19 @@ func (v GroupView) LookupTTLSeconds() Setting[int] {
 func (v GroupView) LookupAutoDeleteEnabled() Setting[bool] {
 	return v.group.lookupAutoDeleteEnabled
 }
-func (v GroupView) TimeoutSeconds() Setting[int]      { return v.group.timeoutSeconds }
-func (v GroupView) VerifyMaxFails() Setting[int]      { return v.group.verifyMaxFails }
-func (v GroupView) VerifyRetrySeconds() Setting[int]  { return v.group.verifyRetrySeconds }
-func (v GroupView) MuteSeconds() Setting[int]         { return v.group.muteSeconds }
-func (v GroupView) VerifyInvited() Setting[bool]      { return v.group.verifyInvited }
-func (v GroupView) WarnLimit() Setting[int]           { return v.group.warnLimit }
-func (v GroupView) AntispamEnabled() Setting[bool]    { return v.group.antispamEnabled }
+func (v GroupView) TimeoutSeconds() Setting[int]     { return v.group.timeoutSeconds }
+func (v GroupView) VerifyMaxFails() Setting[int]     { return v.group.verifyMaxFails }
+func (v GroupView) VerifyRetrySeconds() Setting[int] { return v.group.verifyRetrySeconds }
+func (v GroupView) MuteSeconds() Setting[int]        { return v.group.muteSeconds }
+func (v GroupView) VerifyInvited() Setting[bool]     { return v.group.verifyInvited }
+func (v GroupView) WarnLimit() Setting[int]          { return v.group.warnLimit }
+func (v GroupView) AntispamEnabled() Setting[bool]   { return v.group.antispamEnabled }
+func (v GroupView) GentooLookupsEnabled() Setting[bool] {
+	return v.group.gentooLookupsEnabled
+}
+func (v GroupView) LinuxLookupsEnabled() Setting[bool] {
+	return v.group.linuxLookupsEnabled
+}
 func (v GroupView) ChannelDisplay() Setting[string]   { return v.group.channelDisplay }
 func (v GroupView) ChannelInviteURL() Setting[string] { return v.group.channelInviteURL }
 func (v GroupView) FallbackBuiltin() Setting[bool]    { return v.group.fallbackBuiltin }

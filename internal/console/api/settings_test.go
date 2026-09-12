@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -15,6 +17,8 @@ const apiSettingsGroupID int64 = -1009000000101
 
 type apiTestSettingsService struct {
 	store       *settings.Store
+	baseline    settings.SettingsBaseline
+	statePath   string
 	updateCalls int
 }
 
@@ -143,11 +147,12 @@ func apiSettingsTestServer(
 	if err != nil {
 		t.Fatal(err)
 	}
-	store, err := settings.NewStore("", baseline, nil)
+	statePath := filepath.Join(t.TempDir(), "settings.json")
+	store, err := settings.NewStore(statePath, baseline, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	service := &apiTestSettingsService{store: store}
+	service := &apiTestSettingsService{store: store, baseline: baseline, statePath: statePath}
 	checker := &apiTestAdminChecker{allowed: allowed}
 	groups := &apiTestQueueService{groups: []int64{apiSettingsGroupID}}
 	server, cookies, csrf := apiTestServer(t, checker, groups, nil, service)
@@ -183,4 +188,82 @@ func decodeSettings(t *testing.T, response *httptest.ResponseRecorder) settingsR
 		t.Fatal(err)
 	}
 	return body
+}
+
+func TestSettingsLookupCapabilitiesGETPATCHRestoreAndPersist(t *testing.T) {
+	server, cookies, csrf, service, _ := apiSettingsTestServer(t, true)
+
+	initial := getAuthenticatedPath(server, cookies, settingsPath(apiSettingsGroupID))
+	if initial.Code != http.StatusOK {
+		t.Fatalf("initial settings GET status = %d, want 200", initial.Code)
+	}
+	requireLookupResponse(t, initial, "gentoo_lookups_enabled", false, settings.SourceFactory.String())
+	requireLookupResponse(t, initial, "linux_lookups_enabled", false, settings.SourceFactory.String())
+
+	changed := patchGroupSettings(server, cookies, csrf, apiSettingsGroupID,
+		`{"expected_revision":0,"changes":{"gentoo_lookups_enabled":true,"linux_lookups_enabled":true}}`)
+	if changed.Code != http.StatusOK {
+		t.Fatalf("lookup capability PATCH status = %d, want 200; body=%s", changed.Code, changed.Body.String())
+	}
+	requireLookupResponse(t, changed, "gentoo_lookups_enabled", true, settings.SourceChatOverride.String())
+	requireLookupResponse(t, changed, "linux_lookups_enabled", true, settings.SourceChatOverride.String())
+
+	raw, err := os.ReadFile(service.statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var persisted struct {
+		Groups map[string]map[string]json.RawMessage `json:"groups"`
+	}
+	if err := json.Unmarshal(raw, &persisted); err != nil {
+		t.Fatalf("decode persisted settings.json: %v", err)
+	}
+	record := persisted.Groups[strconv.FormatInt(apiSettingsGroupID, 10)]
+	var gentoo, linux bool
+	if err := json.Unmarshal(record["gentoo_lookups_enabled"], &gentoo); err != nil {
+		t.Fatalf("reload gentoo_lookups_enabled: %v", err)
+	}
+	if err := json.Unmarshal(record["linux_lookups_enabled"], &linux); err != nil {
+		t.Fatalf("reload linux_lookups_enabled: %v", err)
+	}
+	if !gentoo || !linux {
+		t.Fatalf("reloaded lookup capabilities = gentoo:%v linux:%v, want gentoo:true linux:true", gentoo, linux)
+	}
+
+	restored := patchGroupSettings(server, cookies, csrf, apiSettingsGroupID,
+		`{"expected_revision":1,"changes":{"gentoo_lookups_enabled":null,"linux_lookups_enabled":null}}`)
+	if restored.Code != http.StatusOK {
+		t.Fatalf("lookup capability restore PATCH status = %d, want 200; body=%s", restored.Code, restored.Body.String())
+	}
+	requireLookupResponse(t, restored, "gentoo_lookups_enabled", false, settings.SourceFactory.String())
+	requireLookupResponse(t, restored, "linux_lookups_enabled", false, settings.SourceFactory.String())
+}
+
+func requireLookupResponse(
+	t *testing.T,
+	response *httptest.ResponseRecorder,
+	field string,
+	wantValue bool,
+	wantSource string,
+) {
+	t.Helper()
+	var body map[string]json.RawMessage
+	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode settings response: %v", err)
+	}
+	raw, ok := body[field]
+	if !ok {
+		t.Fatalf("settings response omits %q", field)
+	}
+	var setting struct {
+		Value  bool   `json:"value"`
+		Source string `json:"source"`
+	}
+	if err := json.Unmarshal(raw, &setting); err != nil {
+		t.Fatalf("decode %s setting: %v", field, err)
+	}
+	if setting.Value != wantValue || setting.Source != wantSource {
+		t.Fatalf("%s = value:%v source:%q, want value:%v source:%q",
+			field, setting.Value, setting.Source, wantValue, wantSource)
+	}
 }

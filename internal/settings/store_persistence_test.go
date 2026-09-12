@@ -19,6 +19,8 @@ func baselineEqualGroupOverrides(baseline GroupBaseline) GroupOverrides {
 		VerifyMaxFails:          ptr(baseline.VerifyMaxFails.Value),
 		VerifyRetrySeconds:      ptr(baseline.VerifyRetrySeconds.Value),
 		AntispamEnabled:         ptr(baseline.AntispamEnabled.Value),
+		GentooLookupsEnabled:    ptr(baseline.GentooLookupsEnabled.Value),
+		LinuxLookupsEnabled:     ptr(baseline.LinuxLookupsEnabled.Value),
 		ChannelWhitelist:        ptr(cloneInt64s(baseline.ChannelWhitelist.Value)),
 		TrustedMemberGroupIDs:   ptr(cloneInt64s(baseline.TrustedMemberGroupIDs.Value)),
 		KnownChatIDs:            ptr(cloneInt64s(baseline.KnownChatIDs.Value)),

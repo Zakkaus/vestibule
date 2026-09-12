@@ -138,6 +138,8 @@ func TestUpgradeKeepsEverySparseGroupOverride(t *testing.T) {
 			VerifyInvited:           ptr(false),
 			WarnLimit:               ptr(5),
 			AntispamEnabled:         ptr(false),
+			GentooLookupsEnabled:    ptr(true),
+			LinuxLookupsEnabled:     ptr(false),
 			ChannelWhitelist:        ptr([]int64{-1009000002222}),
 			TrustedMemberGroupIDs:   ptr([]int64{-1009000002223}),
 			KnownChatIDs:            ptr([]int64{-1009000002224}),

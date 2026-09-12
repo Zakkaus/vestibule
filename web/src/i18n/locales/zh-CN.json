@@ -1460,9 +1460,25 @@
       "disabled": "机器人不检查频道身份，相关消息继续由后续流程处理。",
       "details": "在管理与处罚中调整"
     },
+    "gentooLookups": {
+      "title": "Gentoo 查询",
+      "summary": "决定是否允许在群中使用 Gentoo 查询命令。",
+      "enabled": "群成员可以使用 Gentoo 查询命令获取软件包信息。",
+      "disabled": "Gentoo 查询命令不可用，其他功能不受影响。"
+    },
+    "linuxLookups": {
+      "title": "Linux 查询",
+      "summary": "决定是否允许在群中使用 Linux 查询命令。",
+      "enabled": "群成员可以使用 Linux 查询命令获取内核信息。",
+      "disabled": "Linux 查询命令不可用，其他功能不受影响。"
+    },
+    "presets": {
+      "verificationOnly": "只启用验证",
+      "all": "全部启用"
+    },
     "save": {
       "label": "保存功能更改",
-      "unsaved": "自动入群验证存在未保存的更改。"
+      "unsaved": "存在尚未保存的功能更改。"
     },
     "actions": {
       "retry": "重试",

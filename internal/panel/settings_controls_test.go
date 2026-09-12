@@ -37,7 +37,9 @@ func expectedRuntimeScreen(panel *Panel, group settings.GroupView, language i18n
 		panel.sourcedDeliveryMode(language, group.DeliveryMode()), panel.sourcedBool(language, group.NameSpoiler()),
 		panel.sourcedSeconds(language, group.BanSeconds(), true),
 		panel.sourcedBool(language, group.LookupAutoDeleteEnabled()), panel.sourcedSeconds(language, group.LookupTTLSeconds(), false),
-		panel.sourcedLanguage(language, group.Lang()))
+		panel.sourcedLanguage(language, group.Lang()),
+		panel.sourcedBool(language, group.GentooLookupsEnabled()),
+		panel.sourcedBool(language, group.LinuxLookupsEnabled()))
 }
 
 func expectedVerificationScreen(panel *Panel, _ *settings.Store, group settings.GroupView, language i18n.Lang) string {

@@ -59,7 +59,11 @@ factory:
   warn_limit: 3
   # Reject sender-chat posts unless allowlisted. Enabled by default.
   antispam_enabled: true
-  # Sender-chat IDs allowed to post in this chat.
+  # Enable Gentoo lookup and subscription commands for this chat.
+  gentoo_lookups_enabled: false
+  # Enable Linux lookup commands for this chat.
+  linux_lookups_enabled: false
+  # Sender-chat IDs allowed to post in guarded groups.
   channel_whitelist: []
   # Membership-source chats whose members bypass verification.
   trusted_member_group_ids: []
@@ -135,6 +139,8 @@ examples:
     verify_invited: true
     warn_limit: 3
     antispam_enabled: true
+    gentoo_lookups_enabled: false
+    linux_lookups_enabled: false
     channel_whitelist: []
     trusted_member_group_ids: []
     known_chat_ids: []

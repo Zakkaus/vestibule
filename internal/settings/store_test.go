@@ -29,6 +29,8 @@ func testSettingsBaseline() SettingsBaseline {
 		VerifyInvited:           BaselineValue[bool]{Value: true, Source: SourceFactory},
 		WarnLimit:               BaselineValue[int]{Value: 3, Source: SourceFactory},
 		AntispamEnabled:         BaselineValue[bool]{Value: false, Source: SourceUserFile},
+		GentooLookupsEnabled:    BaselineValue[bool]{Value: false, Source: SourceFactory},
+		LinuxLookupsEnabled:     BaselineValue[bool]{Value: false, Source: SourceFactory},
 		ChannelWhitelist:        BaselineValue[[]int64]{Value: []int64{-1009999900013}, Source: SourceUserFile},
 		TrustedMemberGroupIDs:   BaselineValue[[]int64]{Value: []int64{-1009999900011}, Source: SourceUserFile},
 		KnownChatIDs:            BaselineValue[[]int64]{Value: []int64{-1009999900010}, Source: SourceUserFile},

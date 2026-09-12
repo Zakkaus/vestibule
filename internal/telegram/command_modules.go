@@ -30,20 +30,29 @@ type CommandDefinition struct {
 	RouteName   string
 	Handler     th.Handler
 	External    bool
+	Capability  string
 }
 
 // CommandModule declares a coherent optional or core command surface.
 type CommandModule struct {
 	Name           string
+	Capability     string
 	PrivateQueries bool
 	Commands       []CommandDefinition
 }
 
 // CommandRoute is one command handler derived from a CommandDefinition.
 type CommandRoute struct {
-	Name    string
-	Command string
-	Handler th.Handler
+	Name       string
+	Command    string
+	Handler    th.Handler
+	Capability string
+}
+
+// CommandCapabilities is the group-local lookup surface projected into menus and help.
+type CommandCapabilities struct {
+	GentooLookups bool
+	LinuxLookups  bool
 }
 
 // CommandModules is the validated, active command surface for one bot instance.
@@ -57,7 +66,6 @@ func NewCommandModules(modules ...CommandModule) (CommandModules, error) {
 	if len(modules) == 0 {
 		return CommandModules{}, fmt.Errorf("no command modules declared")
 	}
-
 	moduleNames := make(map[string]bool, len(modules))
 	commandNames := make(map[string]bool)
 	routeNames := make(map[string]bool)
@@ -74,7 +82,14 @@ func NewCommandModules(modules ...CommandModule) (CommandModules, error) {
 		if len(module.Commands) == 0 {
 			return CommandModules{}, fmt.Errorf("command module %q has no command coverage", module.Name)
 		}
+		capability := module.Capability
+		if capability == "" && (module.Name == "gentoo" || module.Name == "linux") {
+			capability = module.Name
+		}
 		for _, command := range module.Commands {
+			if command.Capability == "" {
+				command.Capability = capability
+			}
 			if err := validateCommandDefinition(module.Name, command, commandNames, routeNames); err != nil {
 				return CommandModules{}, err
 			}
@@ -138,9 +153,19 @@ func (m CommandModules) MemberMenu(l i18n.Lang) []telego.BotCommand {
 	return m.menu(l, CommandMember)
 }
 
+// MemberMenuFor returns the member menu projected through group capabilities.
+func (m CommandModules) MemberMenuFor(l i18n.Lang, capabilities CommandCapabilities) []telego.BotCommand {
+	return m.menuFor(l, &capabilities, CommandMember)
+}
+
 // AdministratorMenu returns administrator commands followed by ordinary member commands.
 func (m CommandModules) AdministratorMenu(l i18n.Lang) []telego.BotCommand {
 	return m.menu(l, CommandAdministrator, CommandMember)
+}
+
+// AdministratorMenuFor returns the administrator menu projected through group capabilities.
+func (m CommandModules) AdministratorMenuFor(l i18n.Lang, capabilities CommandCapabilities) []telego.BotCommand {
+	return m.menuFor(l, &capabilities, CommandAdministrator, CommandMember)
 }
 
 // OwnerMenu returns owner commands followed by ordinary member commands.
@@ -149,16 +174,34 @@ func (m CommandModules) OwnerMenu(l i18n.Lang) []telego.BotCommand {
 }
 
 func (m CommandModules) menu(l i18n.Lang, audiences ...CommandAudience) []telego.BotCommand {
+	return m.menuFor(l, nil, audiences...)
+}
+
+func (m CommandModules) menuFor(l i18n.Lang, capabilities *CommandCapabilities, audiences ...CommandAudience) []telego.BotCommand {
 	out := make([]telego.BotCommand, 0, len(m.commands))
 	for _, audience := range audiences {
 		for _, command := range m.commands {
-			if command.Audience != audience {
+			if command.Audience != audience || !commandAllowed(command.Capability, capabilities) {
 				continue
 			}
 			out = append(out, telego.BotCommand{Command: command.Name, Description: command.Description(l)})
 		}
 	}
 	return out
+}
+
+func commandAllowed(capability string, capabilities *CommandCapabilities) bool {
+	if capability == "" || capabilities == nil {
+		return true
+	}
+	switch capability {
+	case "gentoo":
+		return capabilities.GentooLookups
+	case "linux":
+		return capabilities.LinuxLookups
+	default:
+		return false
+	}
 }
 
 // Routes returns all update routes declared by active modules.
@@ -169,7 +212,7 @@ func (m CommandModules) Routes() []CommandRoute {
 			continue
 		}
 		routes = append(routes, CommandRoute{
-			Name: command.RouteName, Command: command.Name, Handler: command.Handler,
+			Name: command.RouteName, Command: command.Name, Handler: command.Handler, Capability: command.Capability,
 		})
 	}
 	return routes
@@ -198,11 +241,36 @@ func (m CommandModules) OwnerHelp(l i18n.Lang) string {
 	return filterCommandHelp(i18n.Messages.Panel.Help.Owner.For(l), m.commandNames(CommandOwner))
 }
 
+// MemberHelpFor returns member help projected through group capabilities.
+func (m CommandModules) MemberHelpFor(l i18n.Lang, capabilities CommandCapabilities) string {
+	return filterCommandHelp(i18n.Messages.Panel.Help.Member.For(l), m.commandNamesFor(&capabilities, CommandMember))
+}
+
+// AdministratorHelpFor returns administrator help projected through group capabilities.
+func (m CommandModules) AdministratorHelpFor(l i18n.Lang, warnLimit int, capabilities CommandCapabilities) string {
+	return filterCommandHelp(
+		i18n.Messages.Panel.Help.Admin.Render(l, warnLimit),
+		m.commandNamesFor(&capabilities, CommandAdministrator, CommandMember),
+	)
+}
+
 func (m CommandModules) commandNames(audiences ...CommandAudience) map[string]bool {
 	names := make(map[string]bool, len(m.commands))
 	for _, audience := range audiences {
 		for _, command := range m.commands {
 			if command.Audience == audience {
+				names[command.Name] = true
+			}
+		}
+	}
+	return names
+}
+
+func (m CommandModules) commandNamesFor(capabilities *CommandCapabilities, audiences ...CommandAudience) map[string]bool {
+	names := make(map[string]bool, len(m.commands))
+	for _, audience := range audiences {
+		for _, command := range m.commands {
+			if command.Audience == audience && commandAllowed(command.Capability, capabilities) {
 				names[command.Name] = true
 			}
 		}

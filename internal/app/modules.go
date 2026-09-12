@@ -11,6 +11,7 @@ import (
 	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/telegram"
 	"github.com/mymmrac/telego"
+	th "github.com/mymmrac/telego/telegohandler"
 )
 
 type runtimeModule struct {
@@ -110,34 +111,31 @@ func gentooModule(
 		optionalName: settings.ModuleGentoo,
 		commands: telegram.CommandModule{
 			Name:           settings.ModuleGentoo,
+			Capability:     settings.ModuleGentoo,
 			PrivateQueries: true,
 			Commands: []telegram.CommandDefinition{
-				{Name: "pkg", Description: menu.Pkg.For, Audience: telegram.CommandMember, RouteName: "lookup.pkg", Handler: lookups.OnPkg},
-				{Name: "use", Description: menu.Use.For, Audience: telegram.CommandMember, RouteName: "lookup.use", Handler: lookups.OnUse},
-				{Name: "bug", Description: menu.Bug.For, Audience: telegram.CommandMember, RouteName: "lookup.bug", Handler: lookups.OnBug},
-				{Name: "news", Description: menu.News.For, Audience: telegram.CommandMember, RouteName: "lookup.news", Handler: lookups.OnNews},
-				{Name: "arm", Description: menu.Arm.For, Audience: telegram.CommandMember, RouteName: "lookup.arm", Handler: lookups.OnArm},
+				{Name: "pkg", Description: menu.Pkg.For, Audience: telegram.CommandMember, RouteName: "lookup.pkg", Handler: warmGentooHandler(lookups, lookups.OnPkg)},
+				{Name: "use", Description: menu.Use.For, Audience: telegram.CommandMember, RouteName: "lookup.use", Handler: warmGentooHandler(lookups, lookups.OnUse)},
+				{Name: "bug", Description: menu.Bug.For, Audience: telegram.CommandMember, RouteName: "lookup.bug", Handler: warmGentooHandler(lookups, lookups.OnBug)},
+				{Name: "news", Description: menu.News.For, Audience: telegram.CommandMember, RouteName: "lookup.news", Handler: warmGentooHandler(lookups, lookups.OnNews)},
+				{Name: "arm", Description: menu.Arm.For, Audience: telegram.CommandMember, RouteName: "lookup.arm", Handler: warmGentooHandler(lookups, lookups.OnArm)},
 			},
 		},
 		start: func(ctx context.Context) <-chan struct{} {
-			feedsDone := startFeeds(ctx, cfg, bot, stateDirectory)
-			// The warm-up is part of the module's lifetime: a Run that returns while it is
-			// still reading the overlay list races the next Run's configuration of it.
-			warmed := make(chan struct{})
-			go func() {
-				defer close(warmed)
-				lookups.Warm(ctx)
-			}()
-			done := make(chan struct{})
-			go func() {
-				defer close(done)
-				if feedsDone != nil {
-					<-feedsDone
-				}
-				<-warmed
-			}()
-			return done
+			return startFeeds(ctx, cfg, bot, stateDirectory)
 		},
+	}
+}
+
+func warmGentooHandler(lookups *lookup.Service, handler th.Handler) th.Handler {
+	return func(ctx *th.Context, update telego.Update) error {
+		if lookups != nil {
+			lookups.DemandWarm(context.WithoutCancel(ctx.Context()))
+		}
+		if handler == nil {
+			return nil
+		}
+		return handler(ctx, update)
 	}
 }
 
@@ -147,6 +145,7 @@ func linuxModule(lookups *lookup.Service) runtimeModule {
 		optionalName: settings.ModuleLinux,
 		commands: telegram.CommandModule{
 			Name:           settings.ModuleLinux,
+			Capability:     settings.ModuleLinux,
 			PrivateQueries: true,
 			Commands: []telegram.CommandDefinition{
 				{Name: "wiki", Description: menu.Wiki.For, Audience: telegram.CommandMember, RouteName: "lookup.wiki", Handler: lookups.OnWiki},
