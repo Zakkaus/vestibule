@@ -354,6 +354,7 @@ func newDispatchFixture(t *testing.T, requiredChannel int64) *dispatchFixture {
 		t.Fatal(err)
 	}
 	lookups := lookup.New(settings, connector, cfg, "")
+	t.Cleanup(func() { stopLookupsForTest(lookups) })
 	administration := panel.New(
 		settings, connector, cfg, &i18n.Messages, verification, moderation, lookups, "test", time.Now(),
 	)
@@ -454,4 +455,12 @@ func (f *dispatchFixture) preparePanelInput(t *testing.T, userID int64) telego.U
 			MessageID: promptID,
 		},
 	}}
+}
+
+// A warm-up left running past a fixture reads the lookup sources the next fixture's
+// New rewrites, which the race detector reports against whichever test comes next.
+func stopLookupsForTest(lookups *lookup.Service) {
+	stopCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	lookups.Shutdown(stopCtx)
 }
