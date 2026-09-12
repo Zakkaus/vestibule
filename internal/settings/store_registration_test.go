@@ -10,7 +10,7 @@ import (
 )
 
 func TestSettingsRejectsStaleGroupRevision(t *testing.T) {
-	settings, err := NewStore(filepath.Join(t.TempDir(), "settings.json"), testSettingsBaseline(), nil)
+	settings, err := NewStore(filepath.Join(t.TempDir(), "settings.json"), testSettingsBaseline(), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +36,7 @@ func TestSettingsRejectsStaleGroupRevision(t *testing.T) {
 
 func TestSettingsWriteFailurePublishesNothing(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "missing", "settings.json")
-	settings, err := NewStore(path, testSettingsBaseline(), nil)
+	settings, err := NewStore(path, testSettingsBaseline(), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func (r failingSettingsRepository) CompareAndSwapSettings(
 
 func TestUpdateWriteFailureKeepsSnapshot(t *testing.T) {
 	writeErr := errors.New("database write interrupted")
-	settings, err := NewStore("", testSettingsBaseline(), failingSettingsRepository{err: writeErr})
+	settings, err := NewStore("", testSettingsBaseline(), failingSettingsRepository{err: writeErr}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestSettingsUnknownVersionPreservesFile(t *testing.T) {
 	if err := os.WriteFile(path, before, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	settings, err := NewStore(path, testSettingsBaseline(), nil)
+	settings, err := NewStore(path, testSettingsBaseline(), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +129,7 @@ func TestSettingsUnknownVersionPreservesFile(t *testing.T) {
 func newOwnerClaimStore(t *testing.T) (*Store, string, time.Time) {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "settings.json")
-	settings, err := NewStore(path, testSettingsBaseline(), nil)
+	settings, err := NewStore(path, testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)
 	return settings, path, time.Unix(2_000_000_000, 0)
 }
@@ -186,7 +186,7 @@ func TestSettingsOwnerEnrollmentNoncePersists(t *testing.T) {
 	requireNoError(t, err)
 	requireEqual(t, issued.Nonce == "", false, "owner enrollment nonce empty")
 	requireEqual(t, issued.IssuedBy, int64(42), "owner enrollment nonce issuer")
-	reloaded, err := NewStore(path, testSettingsBaseline(), nil)
+	reloaded, err := NewStore(path, testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)
 	state := reloaded.Registrations()
 	requireEqual(t, state.OwnerID, int64(42), "registration owner after reload")
@@ -197,7 +197,7 @@ func TestSettingsOwnerEnrollmentNoncePersists(t *testing.T) {
 func newRegistrationFixture(t *testing.T) (*Store, string, CommitResult) {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "settings.json")
-	settings, err := NewStore(path, testSettingsBaseline(), nil)
+	settings, err := NewStore(path, testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)
 	registration := settings.Registrations()
 	registration.OwnerID = 42
@@ -220,7 +220,7 @@ func updateRegistrationRuntimeGroup(t *testing.T, settings *Store) {
 }
 
 func TestSettingsRuntimeOnlyCommitIsNotDurable(t *testing.T) {
-	runtimeOnly, err := NewStore("", testSettingsBaseline(), nil)
+	runtimeOnly, err := NewStore("", testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)
 	group := requireSettingsView(t, runtimeOnly, testGroupA)
 	overrides := group.Overrides()
@@ -231,7 +231,7 @@ func TestSettingsRuntimeOnlyCommitIsNotDurable(t *testing.T) {
 }
 
 func TestSettingsRuntimeOnlyRegistrationsRequireDurability(t *testing.T) {
-	runtimeOnly, err := NewStore("", testSettingsBaseline(), nil)
+	runtimeOnly, err := NewStore("", testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)
 	_, err = runtimeOnly.CommitRegistrations(0, runtimeOnly.Registrations())
 	requireErrorIs(t, err, ErrSettingsNotDurable, "runtime-only registration error")
@@ -253,7 +253,7 @@ func TestSettingsChatTitleReturnsRegisteredRuntimeMetadata(t *testing.T) {
 func TestSettingsRegistrationRoundTripPreservesMetadataAndOverrides(t *testing.T) {
 	settings, path, _ := newRegistrationFixture(t)
 	updateRegistrationRuntimeGroup(t, settings)
-	reloaded, err := NewStore(path, testSettingsBaseline(), nil)
+	reloaded, err := NewStore(path, testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)
 	requireDeepEqual(t, reloaded.ChatIDs(), []int64{testGroupA, testGroupB, -1009000000003}, "effective groups after reload")
 	metadata := reloaded.Registrations()
@@ -270,7 +270,7 @@ func TestSettingsRegistrationRoundTripPreservesMetadataAndOverrides(t *testing.T
 func TestSettingsRegistrationRejectsPendingAndUnknownSameGroup(t *testing.T) {
 	settings, path, _ := newRegistrationFixture(t)
 	updateRegistrationRuntimeGroup(t, settings)
-	reloaded, err := NewStore(path, testSettingsBaseline(), nil)
+	reloaded, err := NewStore(path, testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)
 	metadata := reloaded.Registrations()
 	invalid := metadata
@@ -283,7 +283,7 @@ func TestSettingsRegistrationRejectsPendingAndUnknownSameGroup(t *testing.T) {
 
 func TestSettingsEveryCommitPreservesRegistrationMetadata(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "settings.json")
-	settings, err := NewStore(path, testSettingsBaseline(), nil)
+	settings, err := NewStore(path, testSettingsBaseline(), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -315,7 +315,7 @@ func TestSettingsUnreadableExistingPathDisablesWrites(t *testing.T) {
 	if err := os.Mkdir(path, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	settings, err := NewStore(path, testSettingsBaseline(), nil)
+	settings, err := NewStore(path, testSettingsBaseline(), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1070,7 +1070,7 @@ migrations/01-settings.sql      settings_revision
 
 ### 声明式资源：可由文件管理的部分
 
-题库、自动回复、订阅源既可以在控制台里改，也可以放进 `provisioning/` 由文件管理，启动时应用。 这让自托管者能把这些内容纳入版本控制，也让一套配置可以复制到另一台。
+自动回复与题库可以在控制台里改，也可以放进 `provisioning/` 由文件管理， 启动时应用。订阅是群级运行期设置；配置文件中的 `feeds` 仅作为首次导入输入。
 
 当前部署题库由 `internal/settings` 在启动时读取 `factory_questions_file`，相对路径以配置文件所在目录为准。 文件复用 `questions` 与 `fallback_questions` 设置结构和校验； 指定的文件无效时拒绝启动，未指定时回落内置示例。 此入口不依赖下述通用导入功能，也不改变每群稀疏覆盖与还原协议。 出厂验证使用 `quiz`；`kernel` 保留为可选模式。
 
@@ -1128,7 +1128,7 @@ policr-mini 选了另一条：把 Telegram 的权限镜像进 `permissions` 表�
 | POST /api/chats/{id}/rules/test | 试答；从已保存设置读取 `questions` 或 `fallback_questions`，不读取编辑草稿。请求包含 `collection`、从零开始的 `question_index` 和 `expected_revision`；选择题传选项索引 `choice`，简答题传字符串 `answer`。返回布尔值 `correct`；版本冲突返回 409，题目不存在返回 404。调用线上同一份答案判定，不写入验证、审计或统计状态 |
 | GET /api/chats/{id}/audit | 操作记录 |
 | POST /api/chats/{id}/audit/{aid}/undo | 撤销一条。 只有可逆的才给这个入口，删掉的消息回不来 |
-| GET · PUT /api/chats/{id}/feeds | 订阅推送。PUT 整份替换用于导入 |
+| GET · PUT /api/chats/{id}/feeds | 群级订阅推送。PUT 整份替换；配置文件 `feeds` 仅首次导入 |
 | GET /api/chats/{id}/stats | 统计屏。区间与粒度由查询参数给，服务端聚合，不把明细发给前端 |
 | GET /api/chats/{id}/packages | 已装的配置包与可装的包 |
 | POST /api/chats/{id}/packages | 装一个包。先返回它将改动哪些项，确认后才落库 |
@@ -1136,7 +1136,7 @@ policr-mini 选了另一条：把 Telegram 的权限镜像进 `permissions` 表�
 | GET /api/status | 诊断屏与版本屏。健康、当前版本、设置持久化、Bot API 探测、回退条件读数和宿主替换状态。**只有运维可见** |
 | GET · PATCH /api/status/daily | 诊断屏的每日状态推送开关。仅运维可读写；PATCH 需要 CSRF，成功保存后返回 enabled、固定 time 与实际 timezone |
 | GET /api/status/release | 运维明确操作后，按需读取固定 GitHub 仓库的最新正式发布、变更说明与目标结构清单；失败不影响本地状态。同上，只有运维 |
-| GET /api/process/settings | 实例级设置的只读视图，每项带来源（出厂默认 / 用户文件 / 群覆盖）；`github_repos[]` 同时返回 issue 与 pull request 推送开关。**只有运维可见**，没有写入路由 |
+| GET /api/process/settings | 实例级设置的只读视图（新闻源地址、overlay 与时区），每项带来源。**只有运维可见**，没有写入路由 |
 | GET /api/owner/limits | 部署者设置屏。仅当前非零 OwnerID 可见，返回上限、独立版本号与既有超限群；不依赖所选群或运维角色 |
 | PATCH /api/owner/limits | 仅当前 OwnerID 可写，校验会话与 CSRF。带 expected_revision 和 changes，省略字段不改，null 还原为 0。先原子持久化再发布；降低上限只标出既有超限群，不截断或重写群设置 |
 | POST /api/status/upgrade | 发起升级，只写目标版本，执行在宿主侧。同上，只有运维 |

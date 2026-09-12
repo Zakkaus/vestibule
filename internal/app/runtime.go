@@ -57,20 +57,9 @@ func logPrivacyMode(me *telego.User) {
 	}
 }
 
-func startFeeds(ctx context.Context, cfg *settings.Config, bot *telego.Bot, stateDirectory string) <-chan struct{} {
-	var feeds []*settings.FeedConfig
-	for i := range cfg.Feeds {
-		if cfg.Feeds[i].ChatID != 0 {
-			feeds = append(feeds, &cfg.Feeds[i])
-		} else {
-			log.Printf("WARNING: a feed entry has chat_id=0 (missing/invalid) — it is disabled; set its chat_id to the target channel")
-		}
-	}
-	if len(feeds) == 0 {
-		return nil
-	}
+func startFeeds(ctx context.Context, bot *telego.Bot, stateDirectory string, settingsStore *settings.Store) <-chan struct{} {
 	done := make(chan struct{})
-	service := feed.New(bot, feeds, stateDirectory)
+	service := feed.New(bot, settingsStore.CurrentFeeds, stateDirectory)
 	go func() {
 		defer close(done)
 		service.Run(ctx)

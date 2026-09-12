@@ -208,7 +208,7 @@ func newStatsIntegrationService(t *testing.T) (*database.Database, *verification
 	if err != nil {
 		t.Fatal(err)
 	}
-	settingsStore, err := settings.NewStore("", baseline, nil)
+	settingsStore, err := settings.NewStore("", baseline, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

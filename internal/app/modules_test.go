@@ -23,7 +23,7 @@ var optionalModuleCommands = map[string][]string{
 
 func TestEmptyModulesDisappearFromCommandSurface(t *testing.T) {
 	cfg := &settings.Config{Modules: []string{}}
-	modules, err := newRuntimeModules(cfg, nil, t.TempDir(), nil, nil, nil, false)
+	modules, err := newRuntimeModules(cfg, nil, nil, t.TempDir(), nil, nil, nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestEmptyModulesDisappearFromCommandSurface(t *testing.T) {
 // process can still expose core administration commands, but an operator must
 // opt in to Gentoo and Linux lookup surfaces explicitly.
 func TestRuntimeModulesDefaultToNoOptionalModules(t *testing.T) {
-	modules, err := newRuntimeModules(&settings.Config{}, nil, t.TempDir(), nil, nil, nil, false)
+	modules, err := newRuntimeModules(&settings.Config{}, nil, nil, t.TempDir(), nil, nil, nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,11 @@ func TestEnabledGentooRuntimeDoesNotWarmLookupCacheAtStartup(t *testing.T) {
 		Overlays: []settings.OverlayCfg{{Name: settings.ModuleGentoo, Repo: "gentoo/gentoo", Branch: "master"}},
 	}
 	lookups := lookup.New(nil, nil, cfg, "")
-	modules, err := newRuntimeModules(cfg, nil, t.TempDir(), nil, nil, lookups, false)
+	store, err := settings.NewStore("", botTestSettingsBaseline(t, cfg), nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	modules, err := newRuntimeModules(cfg, store, nil, t.TempDir(), nil, nil, lookups, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,11 +135,11 @@ func TestGroupCommandMenusDefaultToNoLookupCapabilities(t *testing.T) {
 		Groups:   []settings.GroupConfig{{ID: groupA}, {ID: groupB}},
 		GroupIDs: []int64{groupA, groupB},
 	}
-	store, err := settings.NewStore("", botTestSettingsBaseline(t, cfg), nil)
+	store, err := settings.NewStore("", botTestSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	modules, err := newRuntimeModules(cfg, nil, t.TempDir(), nil, nil, nil, false)
+	modules, err := newRuntimeModules(cfg, store, nil, t.TempDir(), nil, nil, nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +190,7 @@ func TestGroupCommandMenusDefaultToNoLookupCapabilities(t *testing.T) {
 
 func TestEmptyModulesDoNotReachTelegramMenus(t *testing.T) {
 	cfg := &settings.Config{Modules: []string{}}
-	modules, err := newRuntimeModules(cfg, nil, t.TempDir(), nil, nil, nil, false)
+	modules, err := newRuntimeModules(cfg, nil, nil, t.TempDir(), nil, nil, nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -229,7 +233,7 @@ func TestRuntimeModuleSelectionMatchesConfiguration(t *testing.T) {
 				modules = []string{settings.ModuleGentoo}
 			}
 			runtimeModules, err := newRuntimeModules(&settings.Config{Modules: modules},
-				nil, t.TempDir(), nil, nil, nil, false)
+				nil, nil, t.TempDir(), nil, nil, nil, false)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -256,7 +260,7 @@ func TestRuntimeOwnerConsoleSurfaceMatchesAvailability(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			modules, err := newRuntimeModules(
 				&settings.Config{Modules: []string{settings.ModuleGentoo, settings.ModuleLinux}},
-				nil, t.TempDir(), nil, nil, nil, tc.consoleAvailable,
+				nil, nil, t.TempDir(), nil, nil, nil, tc.consoleAvailable,
 			)
 			if err != nil {
 				t.Fatal(err)

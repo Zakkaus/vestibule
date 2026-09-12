@@ -384,14 +384,14 @@
   "feeds": {
     "navigation": "訂閱推送",
     "title": "訂閱推送",
-    "description": "檢視整個實例的 RSS、Atom、JSON Feed、Bugzilla 與新聞源設定；僅維運人員可修改。",
+    "description": "檢視所選群組的 Bugzilla、新聞與 GitHub 推送生效設定；維運人員還可檢視處理程序層級的新聞來源與 overlay 資源。",
     "loading": {
       "title": "正在載入訂閱推送設定",
-      "description": "正在讀取處理程序層級設定及其來源…"
+      "description": "正在讀取群組層級的訂閱生效值及其來源…"
     },
     "accessDenied": {
-      "title": "沒有權限檢視處理程序設定",
-      "description": "此畫面僅供維運人員使用。群組管理員只能檢視所管理群組的設定，無法讀取整個處理程序的訂閱設定。"
+      "title": "沒有權限檢視此群組的訂閱設定",
+      "description": "請選擇由您管理的群組，或向維運人員申請存取權限。"
     },
     "unavailable": {
       "title": "無法讀取訂閱推送設定",
@@ -400,17 +400,17 @@
     "readOnly": {
       "title": "訂閱設定為唯讀",
       "badge": "唯讀",
-      "description": "訂閱設定無法在控制台修改。此處顯示 API 回傳的生效值與來源。設定來自程式預設值或 -config 指定的設定檔（預設檔名為 config.json）。"
+      "description": "此畫面顯示 API 回傳的群組生效值與來源，不提供修改控制項。"
     },
     "source": {
       "value": "來源：{{source}}",
       "factoryDefault": "程式預設",
-      "userFile": "設定檔提供"
+      "userFile": "設定檔提供",
+      "chatOverride": "群組覆寫"
     },
     "feed": {
       "title": "訂閱目標",
-      "description": "feeds 中的每筆設定指定一個接收 Bugzilla、新聞或 GitHub 動態推送的群組或頻道。",
-      "itemTitle": "目標 {{number}}",
+      "description": "所選群組目前生效的 Bugzilla、新聞與 GitHub 推送設定。",
       "destination": "接收目標群組或頻道",
       "language": "推送語言",
       "interval": "擷取間隔",
@@ -424,9 +424,7 @@
       "githubPulls": "PR 推送",
       "followingDefault": "跟隨預設分支",
       "allProducts": "所有產品",
-      "allComponents": "所有元件",
-      "emptyTitle": "未設定訂閱目標",
-      "emptyDescription": "機器人不會向任何群組或頻道傳送 Bugzilla、新聞或 GitHub 動態推送。feeds 未設定接收目標。"
+      "allComponents": "所有元件"
     },
     "newsURL": {
       "title": "新聞來源網址",
@@ -443,7 +441,7 @@
       "emptyDescription": "overlays 未設定任何儲存庫或分支。"
     },
     "languages": {
-      "default": "簡體中文（預設）",
+      "default": "跟隨群組語言",
       "zh": "簡體中文",
       "zhHant": "繁體中文",
       "en": "英文",
@@ -453,8 +451,6 @@
     "values": {
       "enabled": "啟用",
       "disabled": "停用",
-      "enabledByDefault": "啟用（預設）",
-      "disabledByDefault": "停用（預設）",
       "seconds_other": "{{count}} 秒"
     },
     "errors": {

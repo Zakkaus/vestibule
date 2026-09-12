@@ -58,8 +58,7 @@ func TestEffectiveValidatorsRefuseUnusableOverrides(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			store, err := NewStore(filepath.Join(t.TempDir(), "settings.json"),
-				testSettingsBaseline(), nil)
+			store, err := NewStore(filepath.Join(t.TempDir(), "settings.json"), testSettingsBaseline(), nil, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

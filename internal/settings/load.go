@@ -69,6 +69,7 @@ rich_messages:
 private_query_per_min:
 admin_log_chat_id:
 required_channel_fail_open:
+feed:
 `
 
 type copyRule struct {
@@ -121,6 +122,7 @@ var groupCopyRules = []copyRule{
 	{configupgrade.Int, []string{"private_query_per_min"}},
 	{configupgrade.Int, []string{"admin_log_chat_id"}},
 	{configupgrade.Bool, []string{"required_channel_fail_open"}},
+	{configupgrade.Map, []string{"feed"}},
 }
 
 func applyCopyRule(helper configupgrade.Helper, rule copyRule) {

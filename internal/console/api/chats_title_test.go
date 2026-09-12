@@ -124,7 +124,7 @@ func newChatTitleStore(t *testing.T, chatIDs ...int64) *settings.Store {
 	if err != nil {
 		t.Fatal(err)
 	}
-	store, err := settings.NewStore(filepath.Join(t.TempDir(), "settings.json"), baseline, nil)
+	store, err := settings.NewStore(filepath.Join(t.TempDir(), "settings.json"), baseline, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

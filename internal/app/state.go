@@ -34,7 +34,7 @@ func loadRuntimeState(configPath, stateDirectory string, repositories ...setting
 	if len(repositories) == 1 {
 		repository = repositories[0]
 	}
-	runtimeSettings, err := settings.NewStore(settingsPath, baseline, repository)
+	runtimeSettings, err := settings.NewStore(settingsPath, baseline, repository, cfg.Feeds)
 	if err != nil {
 		return nil, nil, fmt.Errorf("settings: %w", err)
 	}

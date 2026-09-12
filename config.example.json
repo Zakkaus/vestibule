@@ -7,28 +7,5 @@
     -1009000000001
   ],
   "github_atom_base": "",
-  "github_api_base": "",
-  "feeds": [
-    {
-      "chat_id": -1009000000001,
-      "lang": "en",
-      "interval_seconds": 300,
-      "bugs": false,
-      "news": false,
-      "bug_product": "",
-      "bug_component": "",
-      "silent_bugs": false,
-      "github_repos": [
-        {
-          "repo": "gentoo-zh/overlay",
-          "issues": true,
-          "pulls": true
-        },
-        {
-          "repo": "Zakkaus/vestibule",
-          "branch": "v5/next"
-        }
-      ]
-    }
-  ]
+  "github_api_base": ""
 }

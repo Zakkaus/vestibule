@@ -59,7 +59,7 @@ func testSettingsBaseline() SettingsBaseline {
 }
 
 func TestEmptyOverridesInheritFactoryDefault(t *testing.T) {
-	settings, err := NewStore("", testSettingsBaseline(), nil)
+	settings, err := NewStore("", testSettingsBaseline(), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestSettingsRejectsInvalidWholeRecord(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			settings, err := NewStore("", testSettingsBaseline(), nil)
+			settings, err := NewStore("", testSettingsBaseline(), nil, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -123,7 +123,7 @@ func TestSettingsRejectsInvalidWholeRecord(t *testing.T) {
 func TestGroupLanguageSettingSourceAndRevision(t *testing.T) {
 	baseline := testSettingsBaseline()
 	baseline.Groups[0].Lang = BaselineValue[string]{Value: "zh-Hant", Source: SourceUserFile}
-	settings, err := NewStore(filepath.Join(t.TempDir(), "settings.json"), baseline, nil)
+	settings, err := NewStore(filepath.Join(t.TempDir(), "settings.json"), baseline, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

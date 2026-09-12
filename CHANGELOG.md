@@ -7,6 +7,9 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 ### Added
+- Feed subscriptions are effective group settings with sourced reads and atomic full-replacement
+  writes. Legacy `config.json` feed entries are imported once for managed chats; runtime
+  polling follows subsequent store changes without restart. Bug and news factory defaults are off.
 - GitHub feed repositories can independently publish newly created issues and pull requests.
   Both event switches default to off, establish separate first-enable baselines, and share the
   existing per-destination delivery budget with commits. Comments, close, merge, reopen, and

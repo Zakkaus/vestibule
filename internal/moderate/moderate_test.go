@@ -266,7 +266,7 @@ func testSettings(t *testing.T, cfg *settings.Config) *settings.Store {
 	if err != nil {
 		t.Fatal(err)
 	}
-	store, err := settings.NewStore("", baseline, nil)
+	store, err := settings.NewStore("", baseline, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

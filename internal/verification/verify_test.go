@@ -28,7 +28,7 @@ func newTestService(cfg *settings.Config) *Service {
 	if err != nil {
 		panic(fmt.Sprintf("test settings baseline: %v", err))
 	}
-	settings, err := settings.NewStore("", baseline, nil)
+	settings, err := settings.NewStore("", baseline, nil, nil)
 	if err != nil {
 		panic(fmt.Sprintf("test settings: %v", err))
 	}

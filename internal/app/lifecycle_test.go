@@ -436,7 +436,7 @@ func (s *lifecycleShutdown) startFeedGate(t *testing.T, root context.Context) st
 	feedPath := filepath.Join(s.fixture.stateDirectory, fmt.Sprintf("feed-%d.json", feedChatID))
 	actualDone := make(chan struct{})
 	go func() {
-		feed.New(s.fixture.bot, []*settings.FeedConfig{feedConfig}, s.fixture.stateDirectory).Run(root)
+		feed.New(s.fixture.bot, func() []settings.FeedConfig { return []settings.FeedConfig{*feedConfig} }, s.fixture.stateDirectory).Run(root)
 		close(actualDone)
 	}()
 	waitForLifecycleFile(t, feedPath)

@@ -22,7 +22,7 @@ func newLookupCapabilitySettings(t *testing.T) (*Store, string, SettingsBaseline
 	baseline, err := LoadBaseline(configPath, config)
 	requireNoError(t, err)
 	statePath := filepath.Join(t.TempDir(), "settings.json")
-	store, err := NewStore(statePath, baseline, nil)
+	store, err := NewStore(statePath, baseline, nil, nil)
 	requireNoError(t, err)
 	return store, statePath, baseline
 }
@@ -68,7 +68,7 @@ func TestLookupCapabilitiesRoundTripThroughSettingsJSON(t *testing.T) {
 		t.Fatalf("lookup capability commit was not durable")
 	}
 
-	reloaded, err := NewStore(statePath, baseline, nil)
+	reloaded, err := NewStore(statePath, baseline, nil, nil)
 	requireNoError(t, err)
 	group = requireSettingsView(t, reloaded, testGroupA)
 	requireLookupCapability(t, "GentooLookupsEnabled", group.GentooLookupsEnabled(), false, SourceChatOverride)

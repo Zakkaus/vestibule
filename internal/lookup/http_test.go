@@ -49,7 +49,7 @@ func TestRuntimeRegisteredGroupUsesLiveMembership(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	store, err := settings.NewStore(filepath.Join(t.TempDir(), "settings.json"), baseline, nil)
+	store, err := settings.NewStore(filepath.Join(t.TempDir(), "settings.json"), baseline, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

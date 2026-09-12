@@ -81,6 +81,7 @@ type GroupBaseline struct {
 	PrivateQueryPerMin      BaselineValue[int]
 	AdminLogChatID          BaselineValue[int64]
 	RequiredChannelFailOpen BaselineValue[bool]
+	Feed                    FeedBaseline
 }
 
 // SettingsBaseline combines immutable factory defaults with per-chat user-file values.
@@ -121,6 +122,7 @@ type GroupOverrides struct {
 	PrivateQueryPerMin      *int             `json:"private_query_per_min,omitempty"`
 	AdminLogChatID          *int64           `json:"admin_log_chat_id,omitempty"`
 	RequiredChannelFailOpen *bool            `json:"required_channel_fail_open,omitempty"`
+	Feed                    *FeedOverride    `json:"feed,omitempty"`
 }
 
 // RegisteredGroup records an owner-authorized runtime group.
@@ -284,8 +286,8 @@ type effectiveGroup struct {
 	privateQueryPerMin      Setting[int]
 	adminLogChatID          Setting[int64]
 	requiredChannelFailOpen Setting[bool]
+	feed                    FeedView
 }
-
 type settingsSnapshot struct {
 	groups         map[int64]*effectiveGroup
 	groupIDs       []int64

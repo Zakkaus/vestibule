@@ -8,6 +8,7 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -256,7 +257,7 @@ func TestServiceRunPollsThenFlushesOnCancellation(t *testing.T) {
 	probeEntered := make(chan struct{})
 	releaseProbe := make(chan struct{})
 	pollCalls := 0
-	service := New(nil, []*settings.FeedConfig{feed}, dir)
+	service := New(nil, func() []settings.FeedConfig { return []settings.FeedConfig{*feed} }, dir)
 	service.probe = func(context.Context, *telego.Bot, []*settings.FeedConfig) {
 		close(probeEntered)
 		<-releaseProbe
@@ -328,7 +329,7 @@ func TestRuntimeStateSaveFailureKeepsOnlyVolatileProgress(t *testing.T) {
 	}
 
 	var reloaded feedState
-	restart := New(nil, []*settings.FeedConfig{feed}, dir)
+	restart := New(nil, func() []settings.FeedConfig { return []settings.FeedConfig{*feed} }, dir)
 	restart.probe = func(context.Context, *telego.Bot, []*settings.FeedConfig) {}
 	restart.poll = func(_ context.Context, _ *telego.Bot, _ []*settings.FeedConfig, states map[int64]*feedState, _ string, _ time.Time, _ map[int64]time.Time) {
 		reloaded = *states[feed.ChatID]
@@ -390,7 +391,7 @@ func TestSendBeforeSaveFailureResendsAfterRestart(t *testing.T) {
 
 	secondBot := &fakeFeedBot{}
 	var reloadedCursor int
-	restart := New(newAPITestBot(t, secondBot), []*settings.FeedConfig{feed}, dir)
+	restart := New(newAPITestBot(t, secondBot), func() []settings.FeedConfig { return []settings.FeedConfig{*feed} }, dir)
 	restart.probe = func(context.Context, *telego.Bot, []*settings.FeedConfig) {}
 	restart.poll = func(ctx context.Context, bot *telego.Bot, feeds []*settings.FeedConfig, states map[int64]*feedState, stateDir string, now time.Time, nextDue map[int64]time.Time) {
 		reloadedCursor = states[feed.ChatID].LastBugID
@@ -416,4 +417,121 @@ func TestSendBeforeSaveFailureResendsAfterRestart(t *testing.T) {
 	if firstBot.sends+secondBot.sends != 2 {
 		t.Errorf("send-before-save window deliveries = %d, want one original plus one resend", firstBot.sends+secondBot.sends)
 	}
+}
+
+func TestServiceRunReconcilesDynamicDestinations(t *testing.T) {
+	oldTick := feedPollTick
+	feedPollTick = 5 * time.Millisecond
+	t.Cleanup(func() { feedPollTick = oldTick })
+
+	const chatID int64 = -1009000000731
+	var configured atomic.Value
+	configured.Store([]settings.FeedConfig(nil))
+	providerCalls := make(chan int, 16)
+	provider := func() []settings.FeedConfig {
+		feeds := append([]settings.FeedConfig(nil), configured.Load().([]settings.FeedConfig)...)
+		select {
+		case providerCalls <- len(feeds):
+		default:
+		}
+		return feeds
+	}
+	polls := make(chan int, 4)
+	probes := make(chan int64, 4)
+	dir := t.TempDir()
+	service := newRecordingFeedService(provider, dir, chatID, polls, probes)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		service.Run(ctx)
+		close(done)
+	}()
+	waitFeedProviderCount(t, providerCalls, 0, "initial empty provider call")
+
+	bugs := true
+	configured.Store([]settings.FeedConfig{{ChatID: chatID, IntervalSeconds: 60, Bugs: &bugs}})
+	waitFeedSignal(t, probes, "new destination permission probe")
+	if got := waitFeedSignal(t, polls, "new destination poll"); got != 1 {
+		t.Fatalf("dynamic poll received %d destinations, want 1", got)
+	}
+	configured.Store([]settings.FeedConfig{{ChatID: chatID, IntervalSeconds: 120, Bugs: &bugs}})
+	if got := waitFeedSignal(t, polls, "changed destination immediate poll"); got != 1 {
+		t.Fatalf("changed destination poll received %d destinations, want 1", got)
+	}
+
+	configured.Store([]settings.FeedConfig(nil))
+	waitFeedProviderCount(t, providerCalls, 0, "destination removal")
+	waitFeedProviderCount(t, providerCalls, 0, "completed destination removal")
+	if got := loadFeedState(feedStatePath(dir, chatID)).LastBugID; got != 2 {
+		t.Fatalf("removed destination cursor = %d, want flushed cursor 2", got)
+	}
+
+	configured.Store([]settings.FeedConfig{{ChatID: chatID, IntervalSeconds: 60, Bugs: &bugs}})
+	waitFeedSignal(t, probes, "reappearing destination permission probe")
+	if got := waitFeedSignal(t, polls, "reappearing destination poll"); got != 1 {
+		t.Fatalf("reappearing poll received %d destinations, want 1", got)
+	}
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("dynamic feed service did not stop")
+	}
+}
+
+func waitFeedSignal[T any](t *testing.T, values <-chan T, label string) T {
+	t.Helper()
+	select {
+	case value := <-values:
+		return value
+	case <-time.After(time.Second):
+		t.Fatalf("timed out waiting for %s", label)
+		var zero T
+		return zero
+	}
+}
+
+func waitFeedProviderCount(t *testing.T, values <-chan int, want int, label string) {
+	t.Helper()
+	deadline := time.After(time.Second)
+	for {
+		select {
+		case value := <-values:
+			if value == want {
+				return
+			}
+		case <-deadline:
+			t.Fatalf("timed out waiting for %s", label)
+		}
+	}
+}
+
+// newRecordingFeedService builds a Service whose probe and poll report through channels:
+// probes carries each newly probed destination, polls the destination count of each poll
+// that was due. A poll advances the destination's bug cursor and defers it by an hour.
+func newRecordingFeedService(provider func() []settings.FeedConfig, dir string, chatID int64, polls chan int, probes chan int64) *Service {
+	service := New(nil, provider, dir)
+	service.probe = func(_ context.Context, _ *telego.Bot, feeds []*settings.FeedConfig) {
+		for _, feed := range feeds {
+			probes <- feed.ChatID
+		}
+	}
+	service.poll = func(
+		_ context.Context,
+		_ *telego.Bot,
+		feeds []*settings.FeedConfig,
+		states map[int64]*feedState,
+		_ string,
+		now time.Time,
+		nextDue map[int64]time.Time,
+	) {
+		if due := nextDue[chatID]; !due.IsZero() && now.Before(due) {
+			return
+		}
+		states[chatID].LastBugID++
+		nextDue[chatID] = now.Add(time.Hour)
+		polls <- len(feeds)
+	}
+	return service
 }

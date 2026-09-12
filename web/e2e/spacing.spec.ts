@@ -51,21 +51,23 @@ const settingsPayload = {
 } as const;
 
 const processSettings = {
-  feeds: sourced([
-    {
-      chat_id: -1009000000203,
-      lang: "en",
-      interval_seconds: 600,
-      bugs: false,
-      news: true,
-      bug_product: "Gentoo Linux",
-      bug_component: "Portage",
-      silent_bugs: true
-    }
-  ]),
   news_url: sourced("https://example.invalid/news-items.xml"),
   overlays: sourced([{ name: "gentoo", repo: "gentoo/gentoo", branch: "master" }]),
   stats_timezone: sourced("Asia/Shanghai")
+} as const;
+
+const groupFeeds = {
+  revision: 7,
+  feed: {
+    lang: sourced("en"),
+    interval_seconds: sourced(600),
+    bugs: sourced(false),
+    news: sourced(true),
+    bug_product: sourced("Gentoo Linux"),
+    bug_component: sourced("Portage"),
+    silent_bugs: sourced(true)
+  },
+  github_repos: sourced([])
 } as const;
 
 const statusPayload = {
@@ -179,6 +181,10 @@ async function mockSpacingTransport(page: Page): Promise<void> {
           definition: { match: ["matrix"], reply: { text: "Bridge address" } }
         }
       ]);
+      return;
+    }
+    if (path === `/api/chats/${selectedGroupID}/feeds` && request.method() === "GET") {
+      await fulfillJSON(route, groupFeeds);
       return;
     }
     if (path === "/api/process/settings" && request.method() === "GET") {

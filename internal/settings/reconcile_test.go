@@ -48,7 +48,7 @@ func baselineWithoutGroup(t *testing.T, groupID int64) SettingsBaseline {
 
 func TestConfiguredGroupPromotionKeepsRuntimeDecisions(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "settings.json")
-	first, err := NewStore(path, testSettingsBaseline(), nil)
+	first, err := NewStore(path, testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)
 	registerRuntimeTestGroup(t, first)
 	disableTestGroup(t, first, testRuntimeGroup)
@@ -57,7 +57,7 @@ func TestConfiguredGroupPromotionKeepsRuntimeDecisions(t *testing.T) {
 	promoted := cloneGroupBaseline(baseline.Factory)
 	promoted.ID = testRuntimeGroup
 	baseline.Groups = append(baseline.Groups, promoted)
-	second, err := NewStore(path, baseline, nil)
+	second, err := NewStore(path, baseline, nil, nil)
 	requireNoError(t, err)
 
 	group := requireSettingsView(t, second, testRuntimeGroup)
@@ -73,12 +73,12 @@ func TestConfiguredGroupPromotionKeepsRuntimeDecisions(t *testing.T) {
 
 func TestConfiguredGroupRetirementPreservesOverrideForReaddition(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "settings.json")
-	first, err := NewStore(path, testSettingsBaseline(), nil)
+	first, err := NewStore(path, testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)
 	registerRuntimeTestGroup(t, first)
 	disableTestGroup(t, first, testGroupB)
 
-	retired, err := NewStore(path, baselineWithoutGroup(t, testGroupB), nil)
+	retired, err := NewStore(path, baselineWithoutGroup(t, testGroupB), nil, nil)
 	requireNoError(t, err)
 	if _, ok := retired.Settings(testGroupB); ok {
 		t.Fatal("retired configured group remained active without runtime registration")
@@ -92,7 +92,7 @@ func TestConfiguredGroupRetirementPreservesOverrideForReaddition(t *testing.T) {
 		t.Errorf("runtime registrations after retirement = %#v, want group %d", registration.RegisteredGroups, testRuntimeGroup)
 	}
 
-	restored, err := NewStore(path, testSettingsBaseline(), nil)
+	restored, err := NewStore(path, testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)
 	group := requireSettingsView(t, restored, testGroupB)
 	requireEqual(t, group.Enabled(), Setting[bool]{Value: false, Source: SourceChatOverride},

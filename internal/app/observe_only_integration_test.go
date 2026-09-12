@@ -108,7 +108,7 @@ func newObservationDecisionService(t *testing.T, gateway verification.Gateway) *
 		TrustedMemberGroupIDs: []int64{observationDecisionTrusted},
 		VerifyMode:            settings.ModeKernel,
 	}
-	store, err := settings.NewStore("", botTestSettingsBaseline(t, cfg), nil)
+	store, err := settings.NewStore("", botTestSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

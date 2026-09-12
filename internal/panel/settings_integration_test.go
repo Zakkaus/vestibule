@@ -57,7 +57,7 @@ func TestStopCommandWritesInvokingGroup(t *testing.T) {
 		GroupIDs:         []int64{groupA, groupB},
 		NotifyTTLSeconds: -1,
 	}
-	settings, err := settings.NewStore("", testSettingsBaseline(t, cfg), nil)
+	settings, err := settings.NewStore("", testSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestStopCommandWritesInvokingGroup(t *testing.T) {
 func TestRuntimeRegisteredGroupUsesLiveCommandGuards(t *testing.T) {
 	const groupID int64 = -1009000000303
 	cfg := &settings.Config{Lang: "en", NotifyTTLSeconds: -1}
-	store, err := settings.NewStore(filepath.Join(t.TempDir(), "settings.json"), testSettingsBaseline(t, cfg), nil)
+	store, err := settings.NewStore(filepath.Join(t.TempDir(), "settings.json"), testSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,7 +140,7 @@ func TestRuntimeGroupsMutateOnlyTheirOwnSettings(t *testing.T) {
 		otherGroup = int64(-1009000000305)
 	)
 	cfg := &settings.Config{Lang: "en", NotifyTTLSeconds: -1}
-	store, err := settings.NewStore(filepath.Join(t.TempDir(), "settings.json"), testSettingsBaseline(t, cfg), nil)
+	store, err := settings.NewStore(filepath.Join(t.TempDir(), "settings.json"), testSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +175,7 @@ func TestRuntimeGroupsMutateOnlyTheirOwnSettings(t *testing.T) {
 func TestHelpUsesProcessPrivateQueryRate(t *testing.T) {
 	const rate = 3
 	cfg := &settings.Config{PrivateQueryPerMin: rate}
-	settings, err := settings.NewStore("", testSettingsBaseline(t, cfg), nil)
+	settings, err := settings.NewStore("", testSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,7 +197,7 @@ func TestHelpUsesProcessPrivateQueryRate(t *testing.T) {
 func TestPrivateHelpIncludesOwnerCommandsOnlyForOwner(t *testing.T) {
 	const ownerID int64 = 7
 	cfg := &settings.Config{}
-	store, err := settings.NewStore(filepath.Join(t.TempDir(), "settings.json"), testSettingsBaseline(t, cfg), nil)
+	store, err := settings.NewStore(filepath.Join(t.TempDir(), "settings.json"), testSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -253,7 +253,7 @@ func TestPrivateHelpIncludesOwnerCommandsOnlyForOwner(t *testing.T) {
 
 func TestHelpOmitsDisabledModuleCommands(t *testing.T) {
 	cfg := &settings.Config{PrivateQueryPerMin: 3}
-	store, err := settings.NewStore("", testSettingsBaseline(t, cfg), nil)
+	store, err := settings.NewStore("", testSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -291,7 +291,7 @@ func TestHelpOmitsDisabledModuleCommands(t *testing.T) {
 func TestSettingsCommandKeepsStateOnWriteFailure(t *testing.T) {
 	cfg := runtimeSettingsTestConfig()
 	cfg.NotifyTTLSeconds = -1
-	settings, err := settings.NewStore(t.TempDir(), testSettingsBaseline(t, cfg), nil)
+	settings, err := settings.NewStore(t.TempDir(), testSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -369,7 +369,7 @@ func TestRuntimeSettingsCommandHandlersPersistAndRespond(t *testing.T) {
 			groupID := cfg.GroupIDs[0]
 			baseline := testSettingsBaseline(t, cfg)
 			path := filepath.Join(t.TempDir(), "settings.json")
-			store, err := settings.NewStore(path, baseline, nil)
+			store, err := settings.NewStore(path, baseline, nil, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -391,7 +391,7 @@ func TestRuntimeSettingsCommandHandlersPersistAndRespond(t *testing.T) {
 			}
 			test.assertState(t, verification, groupID)
 
-			restoredSettings, err := settings.NewStore(path, baseline, nil)
+			restoredSettings, err := settings.NewStore(path, baseline, nil, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -406,7 +406,7 @@ func TestSettingsCommandUsesFreshAdminMembership(t *testing.T) {
 	cfg := runtimeSettingsTestConfig()
 	cfg.NotifyTTLSeconds = -1
 	groupID := cfg.GroupIDs[0]
-	settings, err := settings.NewStore("", testSettingsBaseline(t, cfg), nil)
+	settings, err := settings.NewStore("", testSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -455,7 +455,7 @@ func TestSettingsBaselineProvenance(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	store, err := settings.NewStore("", baseline, nil)
+	store, err := settings.NewStore("", baseline, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

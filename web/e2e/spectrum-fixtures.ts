@@ -78,6 +78,20 @@ const settingsPayload = {
   warn_limit: { value: 3, source: "factory default" }
 } as const;
 
+const feedsPayload = {
+  revision: 7,
+  feed: {
+    lang: { value: "zh", source: "factory default" },
+    interval_seconds: { value: 300, source: "factory default" },
+    bugs: { value: false, source: "factory default" },
+    news: { value: false, source: "factory default" },
+    bug_product: { value: "", source: "factory default" },
+    bug_component: { value: "", source: "factory default" },
+    silent_bugs: { value: false, source: "factory default" }
+  },
+  github_repos: { value: [], source: "factory default" }
+} as const;
+
 function outcome(challenges: number, passRate: number) {
   const approved = Math.floor(challenges * passRate);
   return {
@@ -227,9 +241,12 @@ export async function mockSpectrumTransport(page: Page, options: MockOptions = {
       await fulfillJSON(route, { bot_username: "example_bot" });
       return;
     }
+    if (path === `/api/chats/${selectedGroupID}/feeds` && request.method() === "GET") {
+      await fulfillJSON(route, feedsPayload);
+      return;
+    }
     if (path === "/api/process/settings" && request.method() === "GET") {
       await fulfillJSON(route, {
-        feeds: { value: [], source: "factory default" },
         news_url: { value: "https://example.invalid/news.xml", source: "factory default" },
         overlays: { value: [], source: "factory default" },
         stats_timezone: { value: "UTC", source: "factory default" }

@@ -27,6 +27,7 @@ type runtimeModules struct {
 
 func newRuntimeModules(
 	cfg *settings.Config,
+	settingsStore *settings.Store,
 	bot *telego.Bot,
 	stateDirectory string,
 	administration *panel.Panel,
@@ -39,7 +40,7 @@ func newRuntimeModules(
 	}
 	declared := []runtimeModule{
 		coreHelpModule(administration),
-		gentooModule(cfg, bot, stateDirectory, lookups),
+		gentooModule(cfg, settingsStore, bot, stateDirectory, lookups),
 		linuxModule(lookups),
 		coreStatusModule(administration),
 		coreAdministrationModule(cfg, administration, moderation),
@@ -99,9 +100,9 @@ func coreHelpModule(administration *panel.Panel) runtimeModule {
 		}},
 	}}
 }
-
 func gentooModule(
 	cfg *settings.Config,
+	settingsStore *settings.Store,
 	bot *telego.Bot,
 	stateDirectory string,
 	lookups *lookup.Service,
@@ -122,7 +123,7 @@ func gentooModule(
 			},
 		},
 		start: func(ctx context.Context) <-chan struct{} {
-			return startFeeds(ctx, cfg, bot, stateDirectory)
+			return startFeeds(ctx, bot, stateDirectory, settingsStore)
 		},
 	}
 }

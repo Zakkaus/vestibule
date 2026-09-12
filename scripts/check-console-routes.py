@@ -40,6 +40,7 @@ LIVE_ROUTES = {
     "POST /api/chats/{id}/rules/test": ("rules.go", "rulesRoute", ("request.Method == http.MethodPost", 'rest[0] == "test"')),
     "GET /api/chats/{id}/audit": ("server.go", "auditRoute", ("case http.MethodGet:",)),
     "POST /api/chats/{id}/audit/{aid}/undo": ("server.go", "auditRoute", ("case http.MethodPost:", 'rest[1] == "undo"')),
+    "GET · PUT /api/chats/{id}/feeds": ("feeds.go", "feedsRoute", ("case http.MethodGet:", "case http.MethodPut:")),
     "GET /api/chats/{id}/stats": ("stats.go", "statsRoute", ("request.Method == http.MethodGet",)),
     "GET /api/status": ("server.go", "statusRoute", ('request.URL.Path == "/api/status"',)),
     "GET · PATCH /api/status/daily": (
@@ -62,7 +63,6 @@ LIVE_ROUTES = {
 DEFERRED_ROWS = {
     "GET /api/chats/{id}/overview",
     "PATCH /api/chats/{id}",
-    "GET · PUT /api/chats/{id}/feeds",
     "GET /api/chats/{id}/packages",
     "POST /api/chats/{id}/packages",
     "GET · PATCH /api/me/preferences",

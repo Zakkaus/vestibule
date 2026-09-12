@@ -79,29 +79,29 @@ func TestGetProcessSettingsReturnsEmptyResourcesAsArrays(t *testing.T) {
 	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"feeds", "overlays"} {
+	if _, present := body["feeds"]; present {
+		t.Fatal("process settings response must not expose feeds")
+	}
+	for _, name := range []string{"overlays"} {
 		if string(body[name].Value) != "[]" {
-			t.Fatalf("%s value = %s, want []; the console parser rejects null where it needs an array",
-				name, body[name].Value)
+			t.Fatalf("%s value = %s, want []", name, body[name].Value)
 		}
 	}
 }
 
-func TestGetProcessSettingsReturnsGitHubEventSwitches(t *testing.T) {
+func TestGetProcessSettingsOmitsFeeds(t *testing.T) {
 	config := loadProcessSettingsConfig(t, map[string]any{
-		"feeds": []map[string]any{{
-			"chat_id": -1009000000205,
-			"github_repos": []map[string]any{{
-				"repo": "owner/repo", "issues": true, "pulls": false,
-			}},
-		}},
+		"feeds": []map[string]any{{"chat_id": -1009000000205, "github_repos": []map[string]any{{"repo": "owner/repo"}}}},
 	})
 	service := &apiTestProcessSettingsService{view: config.ProcessSettings()}
 	server, cookies := processSettingsTestServer(t, auth.RoleOperator, service)
-	body := decodeProcessSettings(t, processSettingsRequest(server, cookies, http.MethodGet))
-	repo := body.Feeds.Value[0].GitHubRepos[0]
-	if repo.Issues == nil || !*repo.Issues || repo.Pulls == nil || *repo.Pulls {
-		t.Fatalf("GitHub event switches = issues %v, pulls %v", repo.Issues, repo.Pulls)
+	var body map[string]json.RawMessage
+	response := processSettingsRequest(server, cookies, http.MethodGet)
+	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if _, present := body["feeds"]; present {
+		t.Fatal("process settings response must not expose feeds")
 	}
 }
 
@@ -114,28 +114,22 @@ func assertProcessSettingsResponse(
 ) {
 	t.Helper()
 	wantSource := source.String()
-	if response.Code != http.StatusOK || calls != 1 || body.Feeds.Source != wantSource ||
+	if response.Code != http.StatusOK || calls != 1 ||
 		body.NewsURL.Source != wantSource || body.Overlays.Source != wantSource || body.StatsTimezone.Source != wantSource {
-		t.Fatalf("status=%d calls=%d sources=%q/%q/%q/%q, want 200, 1, %q",
-			response.Code, calls, body.Feeds.Source, body.NewsURL.Source, body.Overlays.Source,
-			body.StatsTimezone.Source, wantSource)
+		t.Fatalf("status=%d calls=%d sources=%q/%q/%q, want 200, 1, %q",
+			response.Code, calls, body.NewsURL.Source, body.Overlays.Source, body.StatsTimezone.Source, wantSource)
 	}
 }
 
 func assertFactoryProcessSettings(t *testing.T, body processSettingsResponse) {
 	t.Helper()
-	if len(body.Feeds.Value) != 0 || body.NewsURL.Value != "" || len(body.Overlays.Value) != 0 ||
-		body.StatsTimezone.Value != "" {
+	if body.NewsURL.Value != "" || len(body.Overlays.Value) != 0 || body.StatsTimezone.Value != "" {
 		t.Fatalf("factory response = %+v", body)
 	}
 }
 
 func assertUserFileProcessSettings(t *testing.T, body processSettingsResponse) {
 	t.Helper()
-	if len(body.Feeds.Value) != 1 {
-		t.Fatalf("feeds = %+v, want one configured feed", body.Feeds.Value)
-	}
-	assertConfiguredFeed(t, body.Feeds.Value[0])
 	if body.NewsURL.Value != "https://example.invalid/news-items.xml" || len(body.Overlays.Value) != 1 ||
 		body.StatsTimezone.Value != "Asia/Shanghai" {
 		t.Fatalf("user-file response = %+v", body)
@@ -144,16 +138,6 @@ func assertUserFileProcessSettings(t *testing.T, body processSettingsResponse) {
 		t.Fatalf("overlay = %+v, want gentoo/overlay stable", overlay)
 	}
 }
-
-func assertConfiguredFeed(t *testing.T, feed settings.FeedConfig) {
-	t.Helper()
-	if feed.ChatID != -1009000000201 || feed.Lang != "en" || feed.IntervalSeconds != 600 ||
-		feed.Bugs == nil || *feed.Bugs || feed.News == nil || !*feed.News ||
-		feed.SilentBugs == nil || !*feed.SilentBugs {
-		t.Fatalf("feed = %+v, want configured feed", feed)
-	}
-}
-
 func TestGetProcessSettingsRejectsManager(t *testing.T) {
 	config := loadProcessSettingsConfig(t, map[string]any{})
 	service := &apiTestProcessSettingsService{view: config.ProcessSettings()}

@@ -8,7 +8,7 @@ func TestStoreKnownChatsIncludeEveryEffectiveReference(t *testing.T) {
 	baseline.Groups[0].AdminLogChatID = BaselineValue[int64]{Value: -1009000000202, Source: SourceUserFile}
 	baseline.Groups[0].KnownChatIDs = BaselineValue[[]int64]{Value: []int64{-1009000000203}, Source: SourceUserFile}
 	baseline.Groups[0].TrustedMemberGroupIDs = BaselineValue[[]int64]{Value: []int64{-1009000000204}, Source: SourceUserFile}
-	settings, err := NewStore("", baseline, nil)
+	settings, err := NewStore("", baseline, nil, nil)
 	requireNoError(t, err)
 
 	tests := []struct {

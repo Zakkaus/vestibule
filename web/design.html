@@ -1759,7 +1759,7 @@ li::marker { color: var(--border); }
         <tr><td>群与频道</td><td>机器人所在的群、哪些开验证、只发消息不验证的频道、实时 Telegram 群拥有者与管理员细分权限；不提供改绑</td></tr>
         <tr><td>管理与处罚</td><td>警告上限、<b>反频道马甲</b>、处罚记录发到哪个群、控制群</td></tr>
         <tr><td>消息与文案</td><td>自动回复规则、进出提示、验证全流程文案、显示名剧透、自动撤回</td></tr>
-        <tr><td>订阅推送</td><td>RSS 源、Bugzilla、新闻源、抓取间隔、富文本、静默、按仓库与分支过滤</td></tr>
+        <tr><td>订阅推送</td><td>Bugzilla、新闻源、GitHub 仓库与分支、抓取间隔、静默；RSS／Atom／JSON Feed 与富文本待后续实现</td></tr>
         <tr><td>统计</td><td>入群结果趋势、通过率、各验证方式拦截量、时区</td></tr>
         <tr><td>诊断</td><td>权限预检、Bot API 延迟、心跳、上次失败原因、查询缓存与限流、四条回退条件的读数、每日状态摘要开关</td></tr>
         <tr><td>功能</td><td>这个群开哪些能力，每项一句话说清带来什么</td></tr>
@@ -2779,9 +2779,9 @@ li::marker { color: var(--border); }
       欢迎语中的一个花括号错误，不应导致整个入群流程失败。</p>
 
     <h3>订阅推送</h3>
-    <p>填入网址后由机器人识别格式：依次尝试 RSS、Atom、JSON Feed，
-      识别成功即完成订阅，失败时说明在哪一步无法识别。
-      Bugzilla 与新闻源不是另一套机制，它们是预设好的几个源。</p>
+    <p>订阅推送按群设置 Bugzilla、新闻源与 GitHub 仓库。RSS、Atom、JSON Feed 来源识别及富文本控制尚未实现，列入后续计划。</p>
+    <p><b>本阶段控制台页面只读。</b>页面显示群级有效值及来源；写入契约由群级 API 提供。
+      下方编辑卡属于后续交互设计，不表示当前页面已提供表单。</p>
     <div class="card card-pad">
       <div class="setting">
         <span class="k"><svg class="i"><use href="#i-rss"/></svg>源地址</span>

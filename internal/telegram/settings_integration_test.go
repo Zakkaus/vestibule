@@ -76,7 +76,7 @@ func TestBuiltInPrivateReplyUsesCatalogue(t *testing.T) {
 func TestBuiltInPrivateReplyUsesProcessQueryRate(t *testing.T) {
 	const rate = 5
 	cfg := &settings.Config{PrivateQueryPerMin: rate}
-	settings, err := settings.NewStore("", botTestSettingsBaseline(t, cfg), nil)
+	settings, err := settings.NewStore("", botTestSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

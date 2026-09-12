@@ -3,7 +3,7 @@ package settings
 import "testing"
 
 func TestSettingsChatOverridesWinForVerificationAndSupportSettings(t *testing.T) {
-	settings, err := NewStore("", testSettingsBaseline(), nil)
+	settings, err := NewStore("", testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)
 
 	before := requireSettingsView(t, settings, testGroupA)

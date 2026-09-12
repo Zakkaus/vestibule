@@ -63,19 +63,22 @@ type feedBot interface {
 	EditMessageText(ctx context.Context, params *telego.EditMessageTextParams) (*telego.Message, error)
 }
 
-// Service polls configured Bugzilla and news feeds and persists their per-chat cursors.
+// Service polls current Bugzilla, news, and GitHub destinations and persists cursors.
+// pollFunc is one poll over the given destinations; tests substitute it.
+type pollFunc func(context.Context, *telego.Bot, []*settings.FeedConfig, map[int64]*feedState, string, time.Time, map[int64]time.Time)
+
 type Service struct {
 	bot      *telego.Bot
-	feeds    []*settings.FeedConfig
+	provider func() []settings.FeedConfig
 	stateDir string
 	// Lifecycle hooks default to the production poller and permission probe.
-	poll  func(context.Context, *telego.Bot, []*settings.FeedConfig, map[int64]*feedState, string, time.Time, map[int64]time.Time)
+	poll  pollFunc
 	probe func(context.Context, *telego.Bot, []*settings.FeedConfig)
 }
 
-// New constructs a feed service from its Telegram bot, destination configs, and state directory.
-func New(bot *telego.Bot, feeds []*settings.FeedConfig, stateDir string) *Service {
-	return &Service{bot: bot, feeds: feeds, stateDir: stateDir}
+// New constructs a feed service backed by a provider of current effective destinations.
+func New(bot *telego.Bot, provider func() []settings.FeedConfig, stateDir string) *Service {
+	return &Service{bot: bot, provider: provider, stateDir: stateDir}
 }
 
 // feedSendPause throttles bursts of feed sends (catch-up after downtime). Package variables let
@@ -85,6 +88,7 @@ var (
 	feedTelegramTimeout = 15 * time.Second
 	feedFetchTimeout    = 30 * time.Second
 	feedStateWrite      = store.Write
+	feedPollTick        = time.Minute
 )
 
 // feedState is the on-disk dedup cursor so a restart doesn't re-post or miss items. Tracked
@@ -901,56 +905,5 @@ func feedPostBlocked(chatType string, m telego.ChatMember) string {
 		return "bot is banned from the chat"
 	default:
 		return "" // unknown member type — don't cry wolf
-	}
-}
-
-// Run polls every configured feed until ctx is canceled, then flushes all feed state.
-func (s *Service) Run(ctx context.Context) {
-	tick := s.feeds[0].Interval()
-	for _, f := range s.feeds {
-		if d := f.Interval(); d < tick {
-			tick = d
-		}
-	}
-	states := map[int64]*feedState{}
-	for _, f := range s.feeds {
-		st := loadFeedState(feedStatePath(s.stateDir, f.ChatID))
-		states[f.ChatID] = &st
-	}
-	nextDue := map[int64]time.Time{} // zero => every feed is due on the first poll
-	doPoll := pollAll
-	if s.poll != nil {
-		doPoll = s.poll
-	}
-	doProbe := probeFeedPerms
-	if s.probe != nil {
-		doProbe = s.probe
-	}
-	safePoll := func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Printf("feed: poll panicked (recovered, feeds continue): %v", r)
-			}
-		}()
-		doPoll(ctx, s.bot, s.feeds, states, s.stateDir, time.Now(), nextDue)
-	}
-	log.Printf("feed: %d destination(s), tick %s, per-feed interval honoured (shared fetch)", len(s.feeds), tick)
-	doProbe(ctx, s.bot, s.feeds)
-	safePoll()
-	t := time.NewTicker(tick)
-	defer t.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			// Final flush so the latest cursor/tracking is persisted before exit (best-effort;
-			// store.Write is atomic and fsynced). Each cycle already saves, so this only captures
-			// state changed since the last save.
-			for _, f := range s.feeds {
-				saveFeedState(feedStatePath(s.stateDir, f.ChatID), *states[f.ChatID])
-			}
-			return
-		case <-t.C:
-			safePoll()
-		}
 	}
 }

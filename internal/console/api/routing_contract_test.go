@@ -139,7 +139,7 @@ func newRoutingContractServer(t *testing.T, now time.Time, manager *auth.Manager
 	if err != nil {
 		t.Fatal(err)
 	}
-	settingsStore, err := settings.NewStore("", baseline, nil)
+	settingsStore, err := settings.NewStore("", baseline, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,6 +182,8 @@ func routingContractRequests(h routingContractHarness) []routingRequest {
 		{name: "queue settlement", method: http.MethodPost, path: chatPath + "/queue/challenge", body: `{"expected":{"state":"pending"},"result":{"state":"approved"}}`, contentType: "application/json", cookies: h.managerCookies, csrf: h.managerGrant.CSRFToken, want: http.StatusOK},
 		{name: "settings read", method: http.MethodGet, path: chatPath + "/settings", cookies: h.managerCookies, want: http.StatusOK},
 		{name: "settings patch", method: http.MethodPatch, path: chatPath + "/settings", body: `{"expected_revision":0,"changes":{}}`, contentType: "application/json", cookies: h.managerCookies, csrf: h.managerGrant.CSRFToken, want: http.StatusOK},
+		{name: "feeds read", method: http.MethodGet, path: chatPath + "/feeds", cookies: h.managerCookies, want: http.StatusOK},
+		{name: "feeds replace", method: http.MethodPut, path: chatPath + "/feeds", body: `{"expected_revision":0,"lang":"","interval_seconds":300,"bugs":false,"news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[]}`, contentType: "application/json", cookies: h.managerCookies, csrf: h.managerGrant.CSRFToken, want: http.StatusOK},
 		{name: "rules read", method: http.MethodGet, path: chatPath + "/rules", cookies: h.managerCookies, want: http.StatusOK},
 		{name: "rules replace", method: http.MethodPut, path: chatPath + "/rules", body: `{"collection":"allowlist","expected":[],"items":[]}`, contentType: "application/json", cookies: h.managerCookies, csrf: h.managerGrant.CSRFToken, want: http.StatusOK},
 		{name: "rule update", method: http.MethodPut, path: chatPath + "/rules/rule-1", body: `{"expected":{"collection":"allowlist","ordinal":0,"enabled":true,"definition":{}},"item":{"collection":"allowlist","ordinal":0,"enabled":true,"definition":{}}}`, contentType: "application/json", cookies: h.managerCookies, csrf: h.managerGrant.CSRFToken, want: http.StatusOK},
@@ -191,7 +193,7 @@ func routingContractRequests(h routingContractHarness) []routingRequest {
 		{name: "diagnostics", method: http.MethodGet, path: "/api/status", cookies: h.operatorCookies, want: http.StatusOK},
 		{name: "release", method: http.MethodGet, path: "/api/status/release", cookies: h.operatorCookies, want: http.StatusOK},
 		{name: "process settings", method: http.MethodGet, path: "/api/process/settings", cookies: h.operatorCookies, want: http.StatusOK},
-		{name: "rule trial", method: http.MethodPost, path: chatPath + "/rules/test", body: `{"collection":"questions","question_index":0,"expected_revision":0,"choice":0}`, contentType: "application/json", cookies: h.managerCookies, csrf: h.managerGrant.CSRFToken, want: http.StatusOK},
+		{name: "rule trial", method: http.MethodPost, path: chatPath + "/rules/test", body: `{"collection":"questions","question_index":0,"expected_revision":1,"choice":0}`, contentType: "application/json", cookies: h.managerCookies, csrf: h.managerGrant.CSRFToken, want: http.StatusOK},
 		{name: "upgrade", method: http.MethodPost, path: "/api/status/upgrade", body: `{"version":"v5.4.0"}`, contentType: "application/json", cookies: h.operatorCookies, csrf: h.operatorGrant.CSRFToken, want: http.StatusAccepted},
 	}
 }

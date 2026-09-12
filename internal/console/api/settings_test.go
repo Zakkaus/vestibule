@@ -148,7 +148,7 @@ func apiSettingsTestServer(
 		t.Fatal(err)
 	}
 	statePath := filepath.Join(t.TempDir(), "settings.json")
-	store, err := settings.NewStore(statePath, baseline, nil)
+	store, err := settings.NewStore(statePath, baseline, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

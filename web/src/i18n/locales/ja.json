@@ -384,33 +384,33 @@
   "feeds": {
     "navigation": "フィード",
     "title": "フィード",
-    "description": "プロセス全体で使用するフィード先、ニュースソース、リポジトリとブランチの設定を確認します。これらの値は現在のグループによって変わりません。",
+    "description": "選択したグループで有効な Bugzilla、ニュース、GitHub の配信設定を確認します。運用担当者にはプロセス全体のニュースソースと overlay も表示されます。",
     "loading": {
       "title": "フィード設定を読み込んでいます",
-      "description": "プロセスレベルの設定とその設定元を読み込んでいます…"
+      "description": "グループのフィード設定値と設定元を読み込んでいます…"
     },
     "accessDenied": {
-      "title": "プロセス設定を表示する権限がありません",
-      "description": "このページは運用担当者専用です。グループ管理者は管理するグループの設定だけを表示でき、プロセス全体のフィード設定は読み取れません。"
+      "title": "このグループのフィード設定を表示する権限がありません",
+      "description": "管理しているグループを選択するか、運用担当者にアクセス権を依頼してください。"
     },
     "unavailable": {
       "title": "フィード設定を読み込めません",
       "retry": "再試行"
     },
     "readOnly": {
-      "title": "設定ファイルで管理",
+      "title": "フィード設定は読み取り専用です",
       "badge": "読み取り専用",
-      "description": "これらの値はプログラムの既定設定または起動時の設定ファイルから取得されます。このページには書き込み機能がありません。コンソールはインターフェースが返した現在の値と設定元だけを表示します。"
+      "description": "この画面は API が返したグループの有効値と設定元を表示します。編集機能はありません。"
     },
     "source": {
       "value": "設定元：{{source}}",
       "factoryDefault": "工場出荷時の既定値",
-      "userFile": "ファイル管理"
+      "userFile": "ファイル管理",
+      "chatOverride": "グループ上書き"
     },
     "feed": {
       "title": "フィード先",
-      "description": "各項目は、Bugzilla、ニュース、または GitHub アクティビティの通知を受け取るグループまたはチャンネルに対応します。",
-      "itemTitle": "送信先 {{number}}",
+      "description": "選択したグループで現在有効な Bugzilla、ニュース、GitHub の配信設定です。",
       "destination": "受信グループまたはチャンネル",
       "language": "フィード言語",
       "interval": "取得間隔",
@@ -424,9 +424,7 @@
       "githubPulls": "PR 通知",
       "followingDefault": "既定のブランチに従う",
       "allProducts": "すべての製品",
-      "allComponents": "すべてのコンポーネント",
-      "emptyTitle": "フィード先が設定されていません",
-      "emptyDescription": "現在のプロセスは、どのグループまたはチャンネルにも Bugzilla、ニュース、GitHub アクティビティの通知を送信しません。"
+      "allComponents": "すべてのコンポーネント"
     },
     "newsURL": {
       "title": "ニュースソース URL",
@@ -443,7 +441,7 @@
       "emptyDescription": "現在のプロセスには overlay リポジトリとブランチの設定がありません。"
     },
     "languages": {
-      "default": "簡体字中国語（既定）",
+      "default": "グループの言語を使用",
       "zh": "簡体字中国語",
       "zhHant": "繁体字中国語",
       "en": "英語",
@@ -453,8 +451,6 @@
     "values": {
       "enabled": "有効",
       "disabled": "無効",
-      "enabledByDefault": "有効（既定）",
-      "disabledByDefault": "無効（既定）",
       "seconds_other": "{{count}} 秒"
     },
     "errors": {

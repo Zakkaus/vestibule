@@ -19,11 +19,10 @@ const blockedRetryScreens = [
 ] as const;
 
 const groupRetryScreens = blockedRetryScreens.filter(
-  ([name]) => name !== "feeds" && name !== "diagnostics"
+  ([name]) => name !== "diagnostics"
 );
 
 const processRetryScreens = [
-  ["feeds", "/feeds", "/api/process/settings", "process_settings_unavailable"],
   ["diagnostics", "/diagnostics", "/api/status", "diagnostics_unavailable"]
 ] as const;
 

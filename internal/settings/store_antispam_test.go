@@ -34,7 +34,7 @@ func newLegacyAntispamMigration(t *testing.T) legacyAntispamMigration {
 	requireNoError(t, err)
 	settingsPath := filepath.Join(dir, "settings.json")
 	requireNoError(t, os.WriteFile(settingsPath, data, 0o600))
-	settings, err := NewStore(settingsPath, testSettingsBaseline(), nil)
+	settings, err := NewStore(settingsPath, testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)
 	return legacyAntispamMigration{
 		settings:     settings,
@@ -80,7 +80,7 @@ func TestSettingsAntispamMigrationDoesNotReapply(t *testing.T) {
 	override.ChannelWhitelist = &empty
 	_, err := migration.settings.Update(group.ID(), group.Revision(), override)
 	requireNoError(t, err)
-	reloaded, err := NewStore(migration.settingsPath, testSettingsBaseline(), nil)
+	reloaded, err := NewStore(migration.settingsPath, testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)
 	group = requireSettingsView(t, reloaded, testGroupA)
 	requireEqual(t, group.AntispamEnabled().Value, false, "legacy antispam after reload")

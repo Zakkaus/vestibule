@@ -14,8 +14,7 @@ import (
 func TestOperatorIsOwner(t *testing.T) {
 	const owner, stranger = int64(4242), int64(99)
 	cfg := &settings.Config{}
-	store, err := settings.NewStore(filepath.Join(t.TempDir(), "settings.json"),
-		botTestSettingsBaseline(t, cfg), nil)
+	store, err := settings.NewStore(filepath.Join(t.TempDir(), "settings.json"), botTestSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -7,7 +7,6 @@ import (
 )
 
 type processSettingsSources struct {
-	feeds         bool
 	newsURL       bool
 	overlays      bool
 	statsTimezone bool
@@ -22,7 +21,6 @@ func processSettingsSourcesFromConfig(data []byte) (processSettingsSources, erro
 		return processSettingsSources{}, fmt.Errorf("disabled_modules is no longer supported; use modules to select enabled optional modules")
 	}
 	return processSettingsSources{
-		feeds:         processSettingPresent(fields, "feeds") || processSettingPresent(fields, "feed"),
 		newsURL:       processSettingPresent(fields, "news_url"),
 		overlays:      processSettingPresent(fields, "overlays"),
 		statsTimezone: processSettingPresent(fields, "stats_timezone"),
@@ -44,10 +42,6 @@ func (c *Config) ProcessSettings() ProcessView {
 	return ProcessView{config: c}
 }
 
-func (v ProcessView) Feeds() Setting[[]FeedConfig] {
-	return processSetting(cloneFeedConfigs(v.config.Feeds), v.config.processSettingsSources.feeds)
-}
-
 func (v ProcessView) NewsURL() Setting[string] {
 	return processSetting(v.config.NewsURL, v.config.processSettingsSources.newsURL)
 }
@@ -66,29 +60,6 @@ func processSetting[T any](value T, managedByFile bool) Setting[T] {
 		source = SourceUserFile
 	}
 	return Setting[T]{Value: value, Source: source}
-}
-
-func cloneFeedConfigs(values []FeedConfig) []FeedConfig {
-	if values == nil {
-		return []FeedConfig{}
-	}
-	out := make([]FeedConfig, len(values))
-	for index := range values {
-		out[index] = cloneFeedGitHubRepos(values[index])
-		out[index].Bugs = clonePtr(values[index].Bugs)
-		out[index].News = clonePtr(values[index].News)
-		out[index].SilentBugs = clonePtr(values[index].SilentBugs)
-	}
-	return out
-}
-
-func cloneFeedGitHubRepos(value FeedConfig) FeedConfig {
-	value.GitHubRepos = append([]GitHubRepo(nil), value.GitHubRepos...)
-	for index := range value.GitHubRepos {
-		value.GitHubRepos[index].Issues = clonePtr(value.GitHubRepos[index].Issues)
-		value.GitHubRepos[index].Pulls = clonePtr(value.GitHubRepos[index].Pulls)
-	}
-	return value
 }
 
 func cloneOverlayConfigs(values []OverlayCfg) []OverlayCfg {

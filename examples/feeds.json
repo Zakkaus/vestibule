@@ -1,32 +1,24 @@
 {
-  "github_atom_base": "",
-  "feeds": [
+  "expected_revision": 0,
+  "lang": "en",
+  "interval_seconds": 300,
+  "bugs": false,
+  "news": false,
+  "bug_product": "",
+  "bug_component": "",
+  "silent_bugs": false,
+  "github_repos": [
     {
-      "chat_id": 0,
-      "lang": "en",
-      "interval_seconds": 300,
-      "bugs": true,
-      "news": true,
-      "bug_product": "",
-      "bug_component": "",
-      "silent_bugs": false,
-      "github_repos": []
+      "repo": "gentoo-zh/overlay",
+      "branch": "master",
+      "issues": true,
+      "pulls": true
     },
     {
-      "chat_id": 0,
-      "lang": "zh",
-      "interval_seconds": 300,
-      "bugs": false,
-      "news": false,
-      "github_repos": [
-        {
-          "repo": "gentoo-zh/overlay"
-        },
-        {
-          "repo": "Zakkaus/vestibule",
-          "branch": "v5/next"
-        }
-      ]
+      "repo": "Zakkaus/vestibule",
+      "branch": "v5/next",
+      "issues": false,
+      "pulls": false
     }
   ]
 }
