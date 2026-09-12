@@ -16,6 +16,7 @@ type panelAPICaller struct {
 	editErr              error
 	chatUsername         string
 	memberCalls          atomic.Int32
+	commandMenus         atomic.Int32
 	lastEditText         string
 	lastAnswerText       string
 	lastAnswerAlert      bool
@@ -52,6 +53,9 @@ func (c *panelAPICaller) Call(_ context.Context, endpoint string, data *ta.Reque
 			})
 		}
 		return panelAPIResponse(&telego.ChatMemberMember{Status: telego.MemberStatusMember})
+	case "setMyCommands":
+		c.commandMenus.Add(1)
+		return panelAPIResponse(true)
 	case "editMessageText":
 		return c.callEditMessageText(data)
 	case "answerCallbackQuery":

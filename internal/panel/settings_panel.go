@@ -325,6 +325,12 @@ func (v *Panel) dispatchRuntime(ctx context.Context, bot *telego.Bot, session *p
 	case "en":
 		value := !group.Enabled().Value
 		next.Enabled = &value
+	case "gt":
+		value := !group.GentooLookupsEnabled().Value
+		next.GentooLookupsEnabled = &value
+	case "lx":
+		value := !group.LinuxLookupsEnabled().Value
+		next.LinuxLookupsEnabled = &value
 	case "df":
 		value := map[string]string{"g": settings.DeliveryGroup, "d": settings.DeliveryDM, "b": settings.DeliveryBoth}[data.value]
 		next.DeliveryMode = &value
@@ -623,9 +629,13 @@ func (v *Panel) buildRuntime(session *panelSession, token string) (string, *tele
 		v.sourcedDeliveryMode(session.language, group.DeliveryMode()), v.sourcedBool(session.language, group.NameSpoiler()),
 		v.sourcedSeconds(session.language, group.BanSeconds(), true),
 		v.sourcedBool(session.language, group.LookupAutoDeleteEnabled()), v.sourcedSeconds(session.language, group.LookupTTLSeconds(), false),
-		v.sourcedLanguage(session.language, group.Lang()))
+		v.sourcedLanguage(session.language, group.Lang()),
+		v.sourcedBool(session.language, group.GentooLookupsEnabled()),
+		v.sourcedBool(session.language, group.LinuxLookupsEnabled()))
 	buttons := []panelButton{
 		{text: i18n.Messages.Panel.Settings.Field.Verification.For(session.language), field: "en", value: "_"},
+		{text: i18n.Messages.Panel.Settings.Field.GentooLookups.For(session.language), field: "gt", value: "_"},
+		{text: i18n.Messages.Panel.Settings.Field.LinuxLookups.For(session.language), field: "lx", value: "_"},
 		{text: i18n.Messages.Panel.Settings.Field.DeliveryGroup.For(session.language), field: "df", value: "g"},
 		{text: i18n.Messages.Panel.Settings.Field.DeliveryDM.For(session.language), field: "df", value: "d"},
 		{text: i18n.Messages.Panel.Settings.Field.DeliveryBoth.For(session.language), field: "df", value: "b"},
