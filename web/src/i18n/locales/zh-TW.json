@@ -384,7 +384,7 @@
   "feeds": {
     "navigation": "訂閱推送",
     "title": "訂閱推送",
-    "description": "檢視所選群組的 Bugzilla、新聞與 GitHub 推送生效設定；維運人員還可檢視處理程序層級的新聞來源與 overlay 資源。",
+    "description": "編輯所選群組的 Bugzilla、新聞與 GitHub 推送生效設定；維運人員還可檢視處理程序層級的新聞來源與 overlay 資源。",
     "loading": {
       "title": "正在載入訂閱推送設定",
       "description": "正在讀取群組層級的訂閱生效值及其來源…"
@@ -397,34 +397,59 @@
       "title": "無法讀取訂閱推送設定",
       "retry": "重試"
     },
-    "readOnly": {
-      "title": "訂閱設定為唯讀",
-      "badge": "唯讀",
-      "description": "此畫面顯示 API 回傳的群組生效值與來源，不提供修改控制項。"
-    },
     "source": {
       "value": "來源：{{source}}",
       "factoryDefault": "程式預設",
       "userFile": "設定檔提供",
       "chatOverride": "群組覆寫"
     },
-    "feed": {
-      "title": "訂閱目標",
-      "description": "所選群組目前生效的 Bugzilla、新聞與 GitHub 推送設定。",
-      "destination": "接收目標群組或頻道",
-      "language": "推送語言",
-      "interval": "擷取間隔",
-      "bugzilla": "Bugzilla 推送",
-      "news": "新聞推送",
-      "bugProduct": "Bugzilla 產品",
-      "bugComponent": "Bugzilla 元件",
-      "silentBugs": "Bugzilla 一律靜默推送",
-      "githubRepository": "GitHub 儲存庫",
-      "githubIssues": "Issue 推送",
-      "githubPulls": "PR 推送",
-      "followingDefault": "跟隨預設分支",
-      "allProducts": "所有產品",
-      "allComponents": "所有元件"
+    "form": {
+      "title": "群組訂閱設定",
+      "description": "儲存完整訂閱設定後，變更會套用至此群組。"
+    },
+    "fields": {
+      "language": {
+        "label": "推送語言",
+        "description": "選擇推送訊息的語言，或跟隨群組語言。"
+      },
+      "interval": {
+        "label": "擷取間隔",
+        "description": "設定訂閱檢查頻率，範圍為 60 至 86400 秒。"
+      },
+      "bugs": {
+        "label": "Bugzilla 推送",
+        "description": "為此群組啟用新的 Bugzilla 項目推送。"
+      },
+      "news": {
+        "label": "新聞推送",
+        "description": "為此群組啟用已設定新聞項目的推送。"
+      },
+      "bugProduct": {
+        "label": "Bugzilla 產品",
+        "description": "僅推送此產品的 Bugzilla 項目，留白則推送所有產品。"
+      },
+      "bugComponent": {
+        "label": "Bugzilla 元件",
+        "description": "僅推送此元件的 Bugzilla 項目，留白則推送所有元件。"
+      },
+      "silentBugs": {
+        "label": "Bugzilla 一律靜默推送",
+        "description": "讓此群組收到的所有 Bugzilla 推送都不發送通知。"
+      }
+    },
+    "repositories": {
+      "title": "GitHub 儲存庫",
+      "description": "選擇此群組接收的 GitHub 儲存庫與事件類型。",
+      "item": "儲存庫 {{number}}",
+      "itemDescription": "設定此列的儲存庫、可選分支與事件類型。",
+      "repository": "儲存庫",
+      "repositoryDescription": "輸入 owner/name 格式的 GitHub 儲存庫。",
+      "branch": "分支",
+      "branchDescription": "留白即可跟隨儲存庫的預設分支。",
+      "issues": "議題",
+      "issuesDescription": "推送此儲存庫中新建立的 Issue。",
+      "pulls": "提取要求",
+      "pullsDescription": "推送此儲存庫中新建立的 Pull request。"
     },
     "newsURL": {
       "title": "新聞來源網址",
@@ -449,17 +474,45 @@
       "ru": "俄文"
     },
     "values": {
-      "enabled": "啟用",
-      "disabled": "停用",
       "seconds_other": "{{count}} 秒"
+    },
+    "actions": {
+      "addRepository": "新增儲存庫",
+      "removeRepository": "移除儲存庫",
+      "restoreFactory": "還原程式預設值",
+      "save": "儲存訂閱設定",
+      "saving": "正在儲存訂閱設定…",
+      "reload": "重新載入設定"
+    },
+    "save": {
+      "label": "儲存群組訂閱設定",
+      "clean": "沒有未儲存的變更",
+      "dirty": "有未儲存的訂閱變更"
+    },
+    "feedback": {
+      "saved": "訂閱設定已儲存。",
+      "conflict": "其他管理員變更了這些設定。已載入最新值，請重新套用仍需保留的變更。"
+    },
+    "validation": {
+      "required": "此欄位為必填。",
+      "invalidInterval": "請輸入 60 至 86400 秒範圍內的整數。",
+      "invalidLanguage": "請選擇受支援的推送語言。",
+      "invalidRepository": "請輸入有效的 owner/name 格式 GitHub 儲存庫。",
+      "duplicateRepository": "儲存庫與分支的組合必須唯一。",
+      "invalidRevision": "設定已過期。請重新載入最新值後再儲存。"
     },
     "errors": {
       "authenticationExpired": "工作階段已過期。請從 Telegram 重新開啟控制台。",
       "authenticationInvalid": "無法驗證此控制台工作階段。請從 Telegram 重新開啟控制台。",
+      "accessDenied": "您已無法管理此群組。",
+      "csrfInvalid": "頁面安全權杖已過期。請重新整理頁面後重試。",
+      "invalidRequest": "訂閱設定遭拒。請檢查醒目顯示的欄位後重試。",
+      "reviewFields": "請檢查醒目顯示的訂閱欄位後重試。",
       "settingsUnavailable": "處理程序設定服務暫時無法使用。請重試。",
-      "loadUnavailable": "暫時無法讀取處理程序設定。請重試。",
-      "invalidResponse": "處理程序設定回應不完整，無法安全顯示。請重試。",
-      "network": "連線已中斷。重新讀取後再確認設定。"
+      "loadUnavailable": "暫時無法讀取訂閱設定。請重試。",
+      "saveUnavailable": "暫時無法儲存訂閱設定。請重試。",
+      "invalidResponse": "訂閱設定回應不完整，無法安全顯示。請重試。",
+      "network": "連線已中斷。請重新載入設定後再確認。"
     }
   },
   "bypass": {

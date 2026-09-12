@@ -1782,8 +1782,6 @@ body {
   gap: var(--sp-3);
 }
 
-[data-feeds-readonly],
-[data-feed-item],
 [data-overlay-item] {
   display: grid;
   gap: var(--sp-3);
@@ -1792,19 +1790,14 @@ body {
 
 [data-feeds-state-card] h2,
 [data-feeds-state-card] p,
-[data-feeds-readonly] h2,
-[data-feeds-readonly] p,
 [data-feeds-section-heading] h2,
 [data-feeds-section-heading] p,
-[data-feed-item] h3,
 [data-overlay-item] h3,
-[data-feeds-empty] p,
 [data-overlays-empty] p {
   margin: 0;
 }
 
 [data-feeds-state-card] h2,
-[data-feeds-readonly] h2,
 [data-feeds-section-heading] h2 {
   font-size: 1.0625rem;
   font-weight: 600;
@@ -1837,7 +1830,6 @@ body {
   line-height: 1.4;
 }
 
-[data-feed-item] h3,
 [data-overlay-item] h3 {
   font-size: 1rem;
   font-weight: 600;
@@ -1870,14 +1862,11 @@ body {
 }
 
 [data-feeds-state-card] p,
-[data-feeds-readonly] p,
 [data-feeds-section-heading] p,
-[data-feeds-empty] p,
 [data-overlays-empty] p {
   color: var(--foreground);
 }
 
-[data-feeds-readonly-heading],
 [data-feeds-section-heading] {
   display: flex;
   min-inline-size: 0;
@@ -1888,7 +1877,6 @@ body {
 }
 
 [data-feeds-section-copy],
-[data-feeds-empty],
 [data-overlays-empty] {
   display: grid;
   gap: var(--sp-1);
@@ -1898,23 +1886,17 @@ body {
   min-inline-size: 0;
 }
 
-[data-feed-list],
 [data-overlay-list] {
   display: grid;
   gap: var(--sp-3);
 }
 
-[data-feed-values],
 [data-overlay-values] {
   display: grid;
   gap: var(--sp-2);
   margin: 0;
 }
 
-/* A watched repository is one more value row; the attribute also carries the
-   repository name so a test can name the row it means. */
-[data-github-repo],
-[data-feed-value],
 [data-overlay-value] {
   display: grid;
   grid-template-columns: minmax(7rem, 2fr) minmax(0, 3fr);
@@ -1922,7 +1904,6 @@ body {
   gap: var(--sp-3);
 }
 
-[data-feed-value] dt,
 [data-overlay-value] dt {
   color: var(--muted-foreground);
   font-size: 0.8125rem;
@@ -1943,7 +1924,6 @@ body {
   font-size: 0.8125rem;
 }
 
-[data-feed-value] dd,
 [data-overlay-value] dd {
   min-inline-size: 0;
   margin: 0;
@@ -2328,13 +2308,11 @@ body {
 }
 
 @media (max-width: 48rem) {
-  [data-feed-value],
   [data-overlay-value] {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--sp-1);
   }
 
-  [data-feed-value] dd,
   [data-overlay-value] dd {
     text-align: start;
   }
@@ -2779,5 +2757,181 @@ body {
 [data-slot="option"][aria-selected="true"] {
   color: var(--foreground);
   font-weight: 600;
+}
+
+[data-feeds-form] {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+[data-feeds-form] [data-slot="setting"] {
+  align-items: start;
+  padding: 0;
+  border-block-end: 0;
+}
+
+[data-feed-repositories] {
+  display: grid;
+  gap: var(--sp-4);
+}
+
+[data-feed-repository],
+[data-feed-repository-heading] {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+[data-feed-repository] {
+  min-inline-size: 0;
+  padding: var(--sp-4);
+  border: var(--hairline) solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+}
+
+[data-feed-repository-heading] {
+  display: flex;
+  min-inline-size: 0;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+}
+
+[data-feed-repository-heading] h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+[data-feed-repository-fields] {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.5fr) repeat(2, minmax(7rem, 1fr));
+  align-items: start;
+  gap: var(--sp-3);
+}
+
+[data-feed-repository-fields] label,
+[data-feed-repository-switch] {
+  display: grid;
+  min-inline-size: 0;
+  align-content: start;
+  gap: var(--sp-1);
+}
+
+[data-feed-repository-fields] label > span {
+  font-weight: 600;
+}
+
+[data-feed-repository-fields] small {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+[data-feed-repository-fields] [data-slot="input"] {
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+[data-feed-repository-switch] {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+[data-feed-repository-switch] small,
+[data-feed-repository-switch] [data-slot="field-error"] {
+  grid-column: 1 / -1;
+}
+
+[data-feed-repository-source] {
+  min-inline-size: 0;
+}
+
+[data-feeds-savebar] {
+  position: sticky;
+  inset-block-end: var(--sp-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--card);
+  box-shadow: var(--elev-2);
+}
+
+[data-feeds-save-copy] {
+  display: grid;
+  min-inline-size: 0;
+  gap: var(--sp-1);
+}
+
+[data-feeds-save-copy] p {
+  margin: 0;
+  color: var(--status-error-fg);
+}
+
+[data-feeds-save-actions] {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+[data-feeds-feedback] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  overflow-wrap: anywhere;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+}
+
+[data-feeds-feedback][data-tone="ok"] {
+  border-color: var(--status-ok-fg);
+}
+
+[data-feeds-feedback][data-tone="error"] {
+  border-color: var(--status-error-fg);
+}
+
+[data-feeds-number] {
+  inline-size: min(100%, 14rem);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 48rem) {
+  [data-feeds-form] [data-slot="setting"] {
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+
+  [data-feed-repository-fields] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  [data-feed-repository-fields] > label:nth-child(-n + 2) {
+    grid-column: 1 / -1;
+  }
+
+  [data-feeds-savebar],
+  [data-feeds-feedback] {
+    position: static;
+    display: grid;
+  }
+
+  [data-feeds-save-actions] {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  [data-feeds-save-actions] [data-slot="button"],
+  [data-feeds-feedback] [data-slot="button"] {
+    inline-size: 100%;
+  }
 }
 }
