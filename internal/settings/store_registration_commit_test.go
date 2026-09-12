@@ -6,7 +6,7 @@ import (
 )
 
 func TestSettingsRegistrationCommitRefusesStaleRevisions(t *testing.T) {
-	settings, err := NewStore(filepath.Join(t.TempDir(), "settings.json"), testSettingsBaseline(), nil)
+	settings, err := NewStore(filepath.Join(t.TempDir(), "settings.json"), testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)
 
 	initial := settings.Registrations()

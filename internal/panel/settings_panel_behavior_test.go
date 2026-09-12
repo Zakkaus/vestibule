@@ -104,7 +104,7 @@ func newSettingsPanelTestWithCaller(t *testing.T, path string, caller ta.Caller)
 		TimeoutSeconds:   240,
 		NotifyTTLSeconds: -1,
 	}
-	settings, err := settings.NewStore(path, testSettingsBaseline(t, cfg), nil)
+	settings, err := settings.NewStore(path, testSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,7 +235,7 @@ func TestVerificationStartPayloadSelectsOnePendingGroupAndBarePayloadStillFansOu
 			VerifyMode:     settings.ModeQuiz,
 			TimeoutSeconds: 240,
 		}
-		settings, err := settings.NewStore("", testSettingsBaseline(t, cfg), nil)
+		settings, err := settings.NewStore("", testSettingsBaseline(t, cfg), nil, nil)
 		if err != nil {
 			t.Fatal(err)
 		}

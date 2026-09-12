@@ -94,7 +94,7 @@ func TestRegisteredGroupInheritsFactoryQuestionsAndDetachedData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	store, err := NewStore(filepath.Join(t.TempDir(), "settings.json"), baseline, nil)
+	store, err := NewStore(filepath.Join(t.TempDir(), "settings.json"), baseline, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,7 +139,7 @@ func TestFactoryQuestionChatOverrideAndNullRestoreKeepFileSource(t *testing.T) {
 	store, err := NewStore("", SettingsBaseline{
 		Factory: baseline.Factory,
 		Groups:  []GroupBaseline{groupBaseline},
-	}, nil)
+	}, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

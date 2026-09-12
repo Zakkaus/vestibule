@@ -104,7 +104,43 @@ func cloneGroupBaseline(value GroupBaseline) GroupBaseline {
 	out.KnownChatIDs.Value = cloneInt64s(value.KnownChatIDs.Value)
 	out.Questions.Value = cloneQuestions(value.Questions.Value)
 	out.FallbackQuestions.Value = cloneShortQuestions(value.FallbackQuestions.Value)
+	out.Feed = cloneFeedBaseline(value.Feed)
 	return out
+}
+
+func cloneFeedBaseline(value FeedBaseline) FeedBaseline {
+	out := value
+	out.GitHubRepos.Value = cloneGitHubRepos(value.GitHubRepos.Value)
+	return out
+}
+
+func cloneGitHubRepos(values []GitHubRepo) []GitHubRepo {
+	if values == nil {
+		return []GitHubRepo{}
+	}
+	out := make([]GitHubRepo, len(values))
+	for i := range values {
+		out[i] = values[i]
+		out[i].Issues = clonePtr(values[i].Issues)
+		out[i].Pulls = clonePtr(values[i].Pulls)
+	}
+	return out
+}
+
+func cloneFeedOverride(value *FeedOverride) *FeedOverride {
+	if value == nil {
+		return nil
+	}
+	out := *value
+	out.Lang = clonePtr(value.Lang)
+	out.IntervalSeconds = clonePtr(value.IntervalSeconds)
+	out.Bugs = clonePtr(value.Bugs)
+	out.News = clonePtr(value.News)
+	out.BugProduct = clonePtr(value.BugProduct)
+	out.BugComponent = clonePtr(value.BugComponent)
+	out.SilentBugs = clonePtr(value.SilentBugs)
+	out.GitHubRepos = cloneSlicePtr(value.GitHubRepos, cloneGitHubRepos)
+	return &out
 }
 
 func cloneSettingsFile(value settingsFile) settingsFile {
@@ -162,6 +198,7 @@ func cloneGroupOverrides(value GroupOverrides) GroupOverrides {
 	out.PrivateQueryPerMin = clonePtr(value.PrivateQueryPerMin)
 	out.AdminLogChatID = clonePtr(value.AdminLogChatID)
 	out.RequiredChannelFailOpen = clonePtr(value.RequiredChannelFailOpen)
+	out.Feed = cloneFeedOverride(value.Feed)
 	return out
 }
 
@@ -196,7 +233,28 @@ func compactGroupOverrides(value GroupOverrides, baseline GroupBaseline) GroupOv
 	value.PrivateQueryPerMin = omitBaseline(value.PrivateQueryPerMin, baseline.PrivateQueryPerMin.Value)
 	value.AdminLogChatID = omitBaseline(value.AdminLogChatID, baseline.AdminLogChatID.Value)
 	value.RequiredChannelFailOpen = omitBaseline(value.RequiredChannelFailOpen, baseline.RequiredChannelFailOpen.Value)
+	value.Feed = compactFeedOverride(value.Feed, baseline.Feed)
 	return value
+}
+
+func compactFeedOverride(value *FeedOverride, baseline FeedBaseline) *FeedOverride {
+	if value == nil {
+		return nil
+	}
+	out := cloneFeedOverride(value)
+	out.Lang = omitBaseline(out.Lang, baseline.Lang.Value)
+	out.IntervalSeconds = omitBaseline(out.IntervalSeconds, baseline.IntervalSeconds.Value)
+	out.Bugs = omitBaseline(out.Bugs, baseline.Bugs.Value)
+	out.News = omitBaseline(out.News, baseline.News.Value)
+	out.BugProduct = omitBaseline(out.BugProduct, baseline.BugProduct.Value)
+	out.BugComponent = omitBaseline(out.BugComponent, baseline.BugComponent.Value)
+	out.SilentBugs = omitBaseline(out.SilentBugs, baseline.SilentBugs.Value)
+	if out.Lang == nil && out.IntervalSeconds == nil && out.Bugs == nil &&
+		out.News == nil && out.BugProduct == nil && out.BugComponent == nil &&
+		out.SilentBugs == nil && out.GitHubRepos == nil {
+		return nil
+	}
+	return out
 }
 
 func omitBaseline[T any](value *T, baseline T) *T {

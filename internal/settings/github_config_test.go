@@ -1,17 +1,9 @@
 package settings
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 )
-
-type githubRepoProcessSettingsDTO struct {
-	Repo   string `json:"repo"`
-	Branch string `json:"branch"`
-	Issues bool   `json:"issues"`
-	Pulls  bool   `json:"pulls"`
-}
 
 func TestGitHubRepoEventSwitchesDefaultOff(t *testing.T) {
 	for _, repo := range []GitHubRepo{{}, {Issues: boolPointer(false), Pulls: boolPointer(false)}} {
@@ -81,62 +73,6 @@ func TestLoadConfigUsesFactoryGitHubAPIBase(t *testing.T) {
 	requireNoError(t, err)
 	if config.GitHubAPIBase != "https://api.factory.invalid/root" {
 		t.Fatalf("factory GitHub API base = %q", config.GitHubAPIBase)
-	}
-}
-
-func TestLoadConfigExampleEnablesGitHubIssuesAndPulls(t *testing.T) {
-	config, err := LoadConfig("../../config.example.json")
-	requireNoError(t, err)
-	found := false
-	for _, feed := range config.Feeds {
-		for _, repo := range feed.GitHubRepos {
-			found = found || repo.IssuesOn() && repo.PullsOn()
-		}
-	}
-	if !found {
-		t.Fatal("config.example.json has no GitHub repository with issues and pulls enabled")
-	}
-}
-
-type githubFeedProcessSettingsDTO struct {
-	ChatID      int64                          `json:"chat_id"`
-	GitHubRepos []githubRepoProcessSettingsDTO `json:"github_repos"`
-}
-
-func TestLoadConfigRetainsGitHubReposInProcessSettings(t *testing.T) {
-	config, err := LoadConfig(writeConfig(t, map[string]any{
-		"feeds": []map[string]any{{
-			"chat_id":       -1009000002301,
-			"bugs":          false,
-			"news":          false,
-			"bug_product":   "Gentoo",
-			"bug_component": "Distribution",
-			"silent_bugs":   true,
-			"github_repos": []map[string]any{
-				{"repo": "gentoo-zh/overlay"},
-				{"repo": "Zakkaus/vestibule", "branch": "feature/keep#x"},
-				{"repo": "example/repo", "branch": "a@b"},
-			},
-		}},
-	}))
-	requireNoError(t, err)
-
-	data, err := json.Marshal(config.ProcessSettings().Feeds().Value)
-	requireNoError(t, err)
-	var got []githubFeedProcessSettingsDTO
-	requireNoError(t, json.Unmarshal(data, &got))
-	if len(got) != 1 || got[0].ChatID != -1009000002301 || len(got[0].GitHubRepos) != 3 {
-		t.Fatalf("process settings feeds = %+v, want one destination with three GitHub repositories", got)
-	}
-	want := []githubRepoProcessSettingsDTO{
-		{Repo: "gentoo-zh/overlay"},
-		{Repo: "Zakkaus/vestibule", Branch: "feature/keep#x"},
-		{Repo: "example/repo", Branch: "a@b"},
-	}
-	for i := range want {
-		if got[0].GitHubRepos[i] != want[i] {
-			t.Fatalf("process settings github_repos[%d] = %+v, want %+v", i, got[0].GitHubRepos[i], want[i])
-		}
 	}
 }
 
@@ -278,22 +214,6 @@ func TestGitHubRepoEmptyFormsPreserveLegacyFeedSemantics(t *testing.T) {
 				t.Fatalf("legacy feed fields changed for github_repos=%s: %+v", test.name, got)
 			}
 		})
-	}
-}
-
-func TestGitHubFeedProcessSettingsSources(t *testing.T) {
-	factory, err := LoadConfig(writeConfig(t, map[string]any{}))
-	requireNoError(t, err)
-	if got := factory.ProcessSettings().Feeds().Source; got != SourceFactory {
-		t.Fatalf("factory feed source = %q, want %q", got, SourceFactory)
-	}
-
-	userFile, err := LoadConfig(writeConfig(t, map[string]any{
-		"feeds": []any{},
-	}))
-	requireNoError(t, err)
-	if got := userFile.ProcessSettings().Feeds().Source; got != SourceUserFile {
-		t.Fatalf("user-file feed source = %q, want %q", got, SourceUserFile)
 	}
 }
 

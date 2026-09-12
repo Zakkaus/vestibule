@@ -214,7 +214,7 @@ func TestSetupCommandsLanguageScopes(t *testing.T) {
 		GroupIDs:  []int64{groupID},
 		WarnLimit: 3,
 	}
-	settings, err := settings.NewStore("", botTestSettingsBaseline(t, cfg), nil)
+	settings, err := settings.NewStore("", botTestSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -274,7 +274,7 @@ func assertCommandRequest(t *testing.T, request commandRequest, warnLimit int) {
 func TestSetupCommandsRereadsRuntimeGroups(t *testing.T) {
 	const groupID int64 = -1009000000501
 	cfg := &settings.Config{Lang: "zh-Hant", WarnLimit: 3}
-	store, err := settings.NewStore(t.TempDir()+"/settings.json", botTestSettingsBaseline(t, cfg), nil)
+	store, err := settings.NewStore(t.TempDir()+"/settings.json", botTestSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -314,7 +314,7 @@ func TestSetupCommandsRereadsRuntimeGroups(t *testing.T) {
 func TestSetupCommandsAddsOwnerPrivateMenuFromRuntimeState(t *testing.T) {
 	const ownerID int64 = 42
 	cfg := &settings.Config{WarnLimit: 3}
-	settings, err := settings.NewStore(t.TempDir()+"/settings.json", botTestSettingsBaseline(t, cfg), nil)
+	settings, err := settings.NewStore(t.TempDir()+"/settings.json", botTestSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -357,7 +357,7 @@ func TestSetupCommandsUsesCurrentGroupLanguageOverride(t *testing.T) {
 		GroupIDs:  []int64{groupID},
 		WarnLimit: 3,
 	}
-	store, err := settings.NewStore(t.TempDir()+"/settings.json", botTestSettingsBaseline(t, cfg), nil)
+	store, err := settings.NewStore(t.TempDir()+"/settings.json", botTestSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -415,7 +415,7 @@ func TestSetupCommandsReportsRegistrationOutcomes(t *testing.T) {
 
 	for _, failures := range []int{0, 1, 10} {
 		t.Run(fmt.Sprintf("%d failures", failures), func(t *testing.T) {
-			store, err := settings.NewStore(t.TempDir()+"/settings.json", botTestSettingsBaseline(t, cfg), nil)
+			store, err := settings.NewStore(t.TempDir()+"/settings.json", botTestSettingsBaseline(t, cfg), nil, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

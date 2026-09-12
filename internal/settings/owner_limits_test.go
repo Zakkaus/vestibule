@@ -28,7 +28,7 @@ func ownerLimitsTestBaseline() SettingsBaseline {
 
 func ownerLimitsDurableStore(t *testing.T) *Store {
 	t.Helper()
-	store, err := NewStore(filepath.Join(t.TempDir(), "settings.json"), ownerLimitsTestBaseline(), nil)
+	store, err := NewStore(filepath.Join(t.TempDir(), "settings.json"), ownerLimitsTestBaseline(), nil, nil)
 	requireNoError(t, err)
 	return store
 }
@@ -130,7 +130,7 @@ func TestOwnerLimitsDetectEachEffectiveFieldAtCapBoundary(t *testing.T) {
 func TestOwnerLimitsPermanentBanAndDisabledNegativeValues(t *testing.T) {
 	baseline := ownerLimitsTestBaseline()
 	baseline.Groups[0].BanSeconds = BaselineValue[int]{Value: 0, Source: SourceUserFile}
-	store, err := NewStore(filepath.Join(t.TempDir(), "settings.json"), baseline, nil)
+	store, err := NewStore(filepath.Join(t.TempDir(), "settings.json"), baseline, nil, nil)
 	requireNoError(t, err)
 	finite := int64(30)
 	state, err := store.UpdateOwnerLimits(0, LimitChanges{"ban_seconds": &finite})
@@ -220,7 +220,7 @@ func TestOwnerLimitsSourcesLoweredCapAndTargetedGroupUpdates(t *testing.T) {
 
 func TestOwnerLimitsSparseMetadataReloadAndConflict(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "settings.json")
-	store, err := NewStore(path, ownerLimitsTestBaseline(), nil)
+	store, err := NewStore(path, ownerLimitsTestBaseline(), nil, nil)
 	requireNoError(t, err)
 	timeout, known := int64(300), int64(2)
 	before := store.OwnerLimits()
@@ -232,7 +232,7 @@ func TestOwnerLimitsSparseMetadataReloadAndConflict(t *testing.T) {
 	requireErrorIs(t, err, ErrSettingsConflict, "stale owner-limits revision")
 	requireDeepEqual(t, store.OwnerLimits(), updated, "CAS conflict state")
 
-	reloaded, err := NewStore(path, ownerLimitsTestBaseline(), nil)
+	reloaded, err := NewStore(path, ownerLimitsTestBaseline(), nil, nil)
 	requireNoError(t, err)
 	requireDeepEqual(t, reloaded.OwnerLimits(), updated, "sparse metadata reload")
 	requireEqual(t, reloaded.OwnerLimits().Limits.TimeoutSeconds, timeout, "reloaded timeout")
@@ -241,7 +241,7 @@ func TestOwnerLimitsSparseMetadataReloadAndConflict(t *testing.T) {
 }
 
 func TestOwnerLimitsFailedPersistencePublishesNothing(t *testing.T) {
-	runtime, err := NewStore("", ownerLimitsTestBaseline(), nil)
+	runtime, err := NewStore("", ownerLimitsTestBaseline(), nil, nil)
 	requireNoError(t, err)
 	before := runtime.OwnerLimits()
 	value := int64(300)
@@ -249,7 +249,7 @@ func TestOwnerLimitsFailedPersistencePublishesNothing(t *testing.T) {
 	requireErrorIs(t, err, ErrSettingsNotDurable, "runtime-only owner limit update")
 	requireDeepEqual(t, runtime.OwnerLimits(), before, "runtime-only snapshot")
 
-	broken, err := NewStore(filepath.Join(t.TempDir(), "missing", "settings.json"), ownerLimitsTestBaseline(), nil)
+	broken, err := NewStore(filepath.Join(t.TempDir(), "missing", "settings.json"), ownerLimitsTestBaseline(), nil, nil)
 	requireNoError(t, err)
 	before = broken.OwnerLimits()
 	_, err = broken.UpdateOwnerLimits(before.Revision, LimitChanges{"timeout_seconds": &value})
@@ -262,7 +262,7 @@ func TestOwnerLimitsFailedPersistencePublishesNothing(t *testing.T) {
 func TestOwnerLimitsInvalidPersistedCapMakesStoreReadOnly(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "settings.json")
 	requireNoError(t, os.WriteFile(path, []byte(`{"version":4,"limits":{"timeout_seconds":29},"groups":{}}`), 0o600))
-	store, err := NewStore(path, ownerLimitsTestBaseline(), nil)
+	store, err := NewStore(path, ownerLimitsTestBaseline(), nil, nil)
 	requireNoError(t, err)
 	if store.Persistence().Writable {
 		t.Fatal("invalid persisted cap left settings writable")
@@ -276,7 +276,7 @@ func TestOwnerLimitsViolationsUseNumericChatAndStableFieldOrder(t *testing.T) {
 	for index := range baseline.Groups {
 		baseline.Groups[index].WarnLimit = BaselineValue[int]{Value: 3, Source: SourceUserFile}
 	}
-	store, err := NewStore(filepath.Join(t.TempDir(), "settings.json"), baseline, nil)
+	store, err := NewStore(filepath.Join(t.TempDir(), "settings.json"), baseline, nil, nil)
 	requireNoError(t, err)
 	state, err := store.UpdateOwnerLimits(0, LimitChanges{
 		"timeout_seconds": ptr(int64(60)),

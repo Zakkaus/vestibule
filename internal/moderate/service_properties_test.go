@@ -58,7 +58,7 @@ func newRegisteredSetupService(t *testing.T, groupID, registrantID, adminLogID i
 	if err != nil {
 		t.Fatalf("load settings baseline: %v", err)
 	}
-	store, err := settings.NewStore(filepath.Join(directory, "settings.json"), baseline, nil)
+	store, err := settings.NewStore(filepath.Join(directory, "settings.json"), baseline, nil, nil)
 	if err != nil {
 		t.Fatalf("create settings store: %v", err)
 	}

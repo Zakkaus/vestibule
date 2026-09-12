@@ -200,7 +200,7 @@ func newOwnerLimitsTestStore(t *testing.T, ownerID int64) *settings.Store {
 	if err != nil {
 		t.Fatal(err)
 	}
-	store, err := settings.NewStore(path, baseline, nil)
+	store, err := settings.NewStore(path, baseline, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

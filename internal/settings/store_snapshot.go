@@ -21,6 +21,7 @@ var effectiveGroupValidators = [...]effectiveGroupValidator{
 	validateEffectiveRequiredChannel,
 	validateEffectiveQuestions,
 	validateEffectiveFallbackQuestions,
+	validateEffectiveFeed,
 }
 
 func (s *Store) buildSnapshot(state settingsFile) (*settingsSnapshot, error) {
@@ -68,7 +69,6 @@ func (s *Store) buildSnapshot(state settingsFile) (*settingsSnapshot, error) {
 		limits: state.Limits, limitsRevision: state.LimitsRevision,
 	}, nil
 }
-
 func buildEffectiveGroup(
 	baseline GroupBaseline,
 	record groupRecord,
@@ -124,6 +124,30 @@ func buildEffectiveGroup(
 		privateQueryPerMin:      resolve(record.PrivateQueryPerMin, baseline.PrivateQueryPerMin),
 		adminLogChatID:          resolve(record.AdminLogChatID, baseline.AdminLogChatID),
 		requiredChannelFailOpen: resolve(record.RequiredChannelFailOpen, baseline.RequiredChannelFailOpen),
+		feed:                    resolveFeed(record.Feed, baseline.Feed),
+	}
+}
+
+func resolveFeed(override *FeedOverride, baseline FeedBaseline) FeedView {
+	var repos Setting[[]GitHubRepo]
+	if override != nil && override.GitHubRepos != nil {
+		repos = Setting[[]GitHubRepo]{Value: cloneGitHubRepos(*override.GitHubRepos), Source: SourceChatOverride}
+	} else {
+		repos = Setting[[]GitHubRepo]{Value: cloneGitHubRepos(baseline.GitHubRepos.Value), Source: baseline.GitHubRepos.Source}
+	}
+	if override == nil {
+		return FeedView{
+			Lang: resolve(nil, baseline.Lang), IntervalSeconds: resolve(nil, baseline.IntervalSeconds),
+			Bugs: resolve(nil, baseline.Bugs), News: resolve(nil, baseline.News),
+			BugProduct: resolve(nil, baseline.BugProduct), BugComponent: resolve(nil, baseline.BugComponent),
+			SilentBugs: resolve(nil, baseline.SilentBugs), GitHubRepos: repos,
+		}
+	}
+	return FeedView{
+		Lang: resolve(override.Lang, baseline.Lang), IntervalSeconds: resolve(override.IntervalSeconds, baseline.IntervalSeconds),
+		Bugs: resolve(override.Bugs, baseline.Bugs), News: resolve(override.News, baseline.News),
+		BugProduct: resolve(override.BugProduct, baseline.BugProduct), BugComponent: resolve(override.BugComponent, baseline.BugComponent),
+		SilentBugs: resolve(override.SilentBugs, baseline.SilentBugs), GitHubRepos: repos,
 	}
 }
 
@@ -139,6 +163,26 @@ func resolveSlice[T any](override *[]T, baseline BaselineValue[[]T], clone func(
 		return Setting[[]T]{Value: clone(*override), Source: SourceChatOverride}
 	}
 	return Setting[[]T]{Value: clone(baseline.Value), Source: baseline.Source}
+}
+
+func normalizeBaselineFeeds(baseline *SettingsBaseline) {
+	if baseline.Factory.Feed.IntervalSeconds.Value <= 0 {
+		baseline.Factory.Feed = FeedBaseline{
+			Lang:            factoryValue(""),
+			IntervalSeconds: factoryValue(300),
+			Bugs:            factoryValue(false),
+			News:            factoryValue(false),
+			BugProduct:      factoryValue(""),
+			BugComponent:    factoryValue(""),
+			SilentBugs:      factoryValue(false),
+			GitHubRepos:     factoryValue([]GitHubRepo{}),
+		}
+	}
+	for i := range baseline.Groups {
+		if baseline.Groups[i].Feed.IntervalSeconds.Value <= 0 {
+			baseline.Groups[i].Feed = cloneFeedBaseline(baseline.Factory.Feed)
+		}
+	}
 }
 
 func normalizeBaselineLanguages(baseline *SettingsBaseline) {
@@ -167,7 +211,6 @@ func validateBaseline(baseline SettingsBaseline) error {
 		if seen[group.ID] {
 			return fmt.Errorf("duplicate settings baseline group %d", group.ID)
 		}
-		seen[group.ID] = true
 		if err := validateBaselineSources(group); err != nil {
 			return fmt.Errorf("group %d: %w", group.ID, err)
 		}
@@ -187,8 +230,10 @@ func validateBaselineSources(group GroupBaseline) error {
 		group.ChannelWhitelist.Source, group.TrustedMemberGroupIDs.Source, group.KnownChatIDs.Source,
 		group.RequiredChannelID.Source, group.ChannelDisplay.Source, group.ChannelInviteURL.Source,
 		group.Questions.Source, group.FallbackQuestions.Source, group.FallbackBuiltin.Source,
-		group.Lang.Source, group.RichMessages.Source, group.PrivateQueryPerMin.Source,
 		group.AdminLogChatID.Source, group.RequiredChannelFailOpen.Source,
+		group.Feed.Lang.Source, group.Feed.IntervalSeconds.Source, group.Feed.Bugs.Source,
+		group.Feed.News.Source, group.Feed.BugProduct.Source, group.Feed.BugComponent.Source,
+		group.Feed.SilentBugs.Source, group.Feed.GitHubRepos.Source,
 	}
 	for _, source := range sources {
 		if source != SourceFactory && source != SourceUserFile {
@@ -314,6 +359,32 @@ func validateEffectiveFallbackQuestions(group *effectiveGroup) error {
 		return nil
 	}
 	return validateFallbackQuestions(group.fallbackQuestions.Value)
+}
+
+func validateEffectiveFeed(group *effectiveGroup) error {
+	feed := group.feed
+	if feed.Lang.Value != "" && !ValidLanguage(feed.Lang.Value) {
+		return &FeedValidationError{Field: "lang", Code: "invalid_language", Message: "language is not supported"}
+	}
+	if feed.IntervalSeconds.Value < 60 || feed.IntervalSeconds.Value > maxFeedIntervalSeconds {
+		return &FeedValidationError{Field: "interval_seconds", Code: "invalid_interval", Message: "interval must be between 60 and 86400 seconds"}
+	}
+	if feed.GitHubRepos.Source == SourceChatOverride {
+		seen := make(map[string]struct{}, len(feed.GitHubRepos.Value))
+		for i, repo := range feed.GitHubRepos.Value {
+			parts := strings.SplitN(repo.Repo, "/", 2)
+			if !githubRepoPattern.MatchString(repo.Repo) || len(parts) != 2 ||
+				parts[0] == "." || parts[0] == ".." || parts[1] == "." || parts[1] == ".." {
+				return &FeedValidationError{Field: fmt.Sprintf("github_repos[%d].repo", i), Code: "invalid_repository", Message: "repository must use safe owner/name segments"}
+			}
+			key := repo.Repo + "\x00" + repo.Branch
+			if _, exists := seen[key]; exists {
+				return &FeedValidationError{Field: fmt.Sprintf("github_repos[%d]", i), Code: "duplicate_repository", Message: "repository and branch must be unique"}
+			}
+			seen[key] = struct{}{}
+		}
+	}
+	return nil
 }
 
 func validateQuestions(questions []Question) error {

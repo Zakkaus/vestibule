@@ -15,7 +15,7 @@ func TestRuntimeSettingsDirectSettersPersist(t *testing.T) {
 	cfg := runtimeSettingsTestConfig()
 	groupID := cfg.GroupIDs[0]
 	path := filepath.Join(t.TempDir(), "settings.json")
-	store, err := settings.NewStore(path, testSettingsBaselineFromConfig(t, cfg, settings.SourceFactory), nil)
+	store, err := settings.NewStore(path, testSettingsBaselineFromConfig(t, cfg, settings.SourceFactory), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func TestRuntimeSettingsDirectSettersPersist(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	reloaded, err := settings.NewStore(path, testSettingsBaselineFromConfig(t, cfg, settings.SourceFactory), nil)
+	reloaded, err := settings.NewStore(path, testSettingsBaselineFromConfig(t, cfg, settings.SourceFactory), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestRuntimeSettingsDirectSettersPersist(t *testing.T) {
 		t.Fatalf("reloaded group = enabled:%v spoiler:%v mode:%q", v2.IsEnabled(groupID), v2.NameSpoilerOn(groupID), v2.EffectiveMode(groupID))
 	}
 
-	runtimeOnly, err := settings.NewStore("", testSettingsBaselineFromConfig(t, cfg, settings.SourceFactory), nil)
+	runtimeOnly, err := settings.NewStore("", testSettingsBaselineFromConfig(t, cfg, settings.SourceFactory), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestUntouchedGroupUsesConfigAndDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 	baseline := testSettingsBaselineFromConfig(t, cfg, settings.SourceUserFile)
-	store, err := settings.NewStore("", baseline, nil)
+	store, err := settings.NewStore("", baseline, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +131,7 @@ func TestPerGroupRuntimeSettingsIsolation(t *testing.T) {
 		VerifyRetrySeconds: 180,
 		LookupTTLSeconds:   intPointer(180),
 	}
-	store, err := settings.NewStore("", testSettingsBaselineFromConfig(t, cfg, settings.SourceFactory), nil)
+	store, err := settings.NewStore("", testSettingsBaselineFromConfig(t, cfg, settings.SourceFactory), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,7 +235,7 @@ func TestRuntimeOnlyGroupPendingSurvivesRestartWithoutRebuiltConfig(t *testing.T
 	dir := t.TempDir()
 	settingsPath := filepath.Join(dir, "settings.json")
 	baseline := testSettingsBaselineFromConfig(t, cfg, settings.SourceFactory)
-	store, err := settings.NewStore(settingsPath, baseline, nil)
+	store, err := settings.NewStore(settingsPath, baseline, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -261,7 +261,7 @@ func TestRuntimeOnlyGroupPendingSurvivesRestartWithoutRebuiltConfig(t *testing.T
 	before.save()
 	before.stopForShutdown()
 
-	reloaded, err := settings.NewStore(settingsPath, baseline, nil)
+	reloaded, err := settings.NewStore(settingsPath, baseline, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

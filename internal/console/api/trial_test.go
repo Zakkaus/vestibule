@@ -59,7 +59,7 @@ func newTrialSettingsStoreForChat(t *testing.T, chatID int64, repository setting
 	if err != nil {
 		t.Fatal(err)
 	}
-	store, err := settings.NewStore("", baseline, repository)
+	store, err := settings.NewStore("", baseline, repository, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -485,7 +485,7 @@ func newTrialParityService(t *testing.T, gateway verification.Gateway) (*verific
 	if err != nil {
 		t.Fatal(err)
 	}
-	store, err := settings.NewStore("", baseline, nil)
+	store, err := settings.NewStore("", baseline, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -513,7 +513,7 @@ func newTrialKernelParityService(t *testing.T, gateway verification.Gateway) (*v
 	if err != nil {
 		t.Fatal(err)
 	}
-	store, err := settings.NewStore("", baseline, nil)
+	store, err := settings.NewStore("", baseline, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

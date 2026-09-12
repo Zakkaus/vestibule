@@ -25,7 +25,7 @@ func TestSettingsMigratesVersionOneLookupDisableWithoutSentinel(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	settings, err := NewStore(path, testSettingsBaseline(), nil)
+	settings, err := NewStore(path, testSettingsBaseline(), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestSettingsMigratesVersionTwoDMFirstOverrides(t *testing.T) {
 		group.ID = groupID
 		baseline.Groups = append(baseline.Groups, group)
 	}
-	settings, err := NewStore(path, baseline, nil)
+	settings, err := NewStore(path, baseline, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +115,7 @@ func newLegacyGoldenSettings(t *testing.T) (*Store, string) {
 	requireNoError(t, err)
 	path := filepath.Join(t.TempDir(), "settings.json")
 	requireNoError(t, os.WriteFile(path, fixture, 0o600))
-	settings, err := NewStore(path, testSettingsBaseline(), nil)
+	settings, err := NewStore(path, testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)
 	return settings, path
 }
@@ -159,7 +159,7 @@ func TestSettingsVersionZeroMigrationBacksUpOriginal(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	settings, err := NewStore(path, testSettingsBaseline(), nil)
+	settings, err := NewStore(path, testSettingsBaseline(), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -193,7 +193,7 @@ func TestSettingsVersionZeroBackupFailureDoesNotBlockMigration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	settings, err := NewStore(path, testSettingsBaseline(), nil)
+	settings, err := NewStore(path, testSettingsBaseline(), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +215,7 @@ func TestSettingsMalformedLegacyAntispamDisablesWritesWithoutChangingFile(t *tes
 		t.Fatal(err)
 	}
 	settingsPath := filepath.Join(dir, "settings.json")
-	settings, err := NewStore(settingsPath, testSettingsBaseline(), nil)
+	settings, err := NewStore(settingsPath, testSettingsBaseline(), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

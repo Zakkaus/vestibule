@@ -430,7 +430,7 @@ func loadRuntimeState(configPath, stateDirectory string) (*settings.Config, *set
 	if err != nil {
 		return nil, nil, fmt.Errorf("settings baseline: %w", err)
 	}
-	settings, err := settings.NewStore(settingsPath, baseline, nil)
+	settings, err := settings.NewStore(settingsPath, baseline, nil, nil)
 	if err != nil {
 		return nil, nil, fmt.Errorf("settings: %w", err)
 	}

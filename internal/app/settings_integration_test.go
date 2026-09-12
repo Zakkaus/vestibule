@@ -27,7 +27,7 @@ func newTestApplication(t *testing.T, ttl *int) *testLookupApplication {
 	cfg := &settings.Config{GroupIDs: []int64{testLookupGroup},
 		Questions:        []settings.Question{{Q: "x", Options: []string{"a", "b"}, Answer: 0}},
 		LookupTTLSeconds: ttl}
-	settings, err := settings.NewStore("", botTestSettingsBaseline(t, cfg), nil)
+	settings, err := settings.NewStore("", botTestSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		panic(err)
 	}

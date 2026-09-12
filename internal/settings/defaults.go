@@ -62,6 +62,18 @@ type groupDefaults struct {
 	PrivateQueryPerMin      int             `yaml:"private_query_per_min"`
 	AdminLogChatID          int64           `yaml:"admin_log_chat_id"`
 	RequiredChannelFailOpen bool            `yaml:"required_channel_fail_open"`
+	Feed                    feedDefaults    `yaml:"feed"`
+}
+
+type feedDefaults struct {
+	Lang            string       `yaml:"lang"`
+	IntervalSeconds int          `yaml:"interval_seconds"`
+	Bugs            bool         `yaml:"bugs"`
+	News            bool         `yaml:"news"`
+	BugProduct      string       `yaml:"bug_product"`
+	BugComponent    string       `yaml:"bug_component"`
+	SilentBugs      bool         `yaml:"silent_bugs"`
+	GitHubRepos     []GitHubRepo `yaml:"github_repos"`
 }
 
 var embeddedDefaults = mustParseDefaults()
@@ -128,6 +140,16 @@ func factoryBaseline() GroupBaseline {
 		PrivateQueryPerMin:      factoryValue(defaults.PrivateQueryPerMin),
 		AdminLogChatID:          factoryValue(defaults.AdminLogChatID),
 		RequiredChannelFailOpen: factoryValue(defaults.RequiredChannelFailOpen),
+		Feed: FeedBaseline{
+			Lang:            factoryValue(defaults.Feed.Lang),
+			IntervalSeconds: factoryValue(defaults.Feed.IntervalSeconds),
+			Bugs:            factoryValue(defaults.Feed.Bugs),
+			News:            factoryValue(defaults.Feed.News),
+			BugProduct:      factoryValue(defaults.Feed.BugProduct),
+			BugComponent:    factoryValue(defaults.Feed.BugComponent),
+			SilentBugs:      factoryValue(defaults.Feed.SilentBugs),
+			GitHubRepos:     factoryValue(cloneGitHubRepos(defaults.Feed.GitHubRepos)),
+		},
 	}
 }
 

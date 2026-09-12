@@ -17,7 +17,6 @@ process:
   # Reply to non-command direct messages; empty uses the translated built-in reply.
   private_reply: ""
 
-# Resource URLs and subscriptions are loaded at startup.
 resources:
   # Gentoo news index URL; empty disables the news lookup source.
   news_url: ""
@@ -27,7 +26,7 @@ resources:
   github_api_base: ""
   # GitHub overlays searched by package commands. See examples.overlay below.
   overlays: []
-  # Bug/news/GitHub destinations. See examples.feed below.
+  # Legacy Bug/news/GitHub destinations imported once into group settings at startup.
   feeds: []
 
 factory:
@@ -96,6 +95,16 @@ factory:
   admin_log_chat_id: 0
   # Admit applicants when the bot cannot read the required channel.
   required_channel_fail_open: true
+  # Factory subscription defaults; config.json feeds are migration inputs only.
+  feed:
+    lang: ""
+    interval_seconds: 300
+    bugs: false
+    news: false
+    bug_product: ""
+    bug_component: ""
+    silent_bugs: false
+    github_repos: []
 
 # Per-chat user-file values are migration inputs. Live administrator overrides are stored in
 # chat.settings; an empty object inherits factory values. See examples.chat below.

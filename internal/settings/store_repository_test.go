@@ -24,7 +24,7 @@ func (r scriptedSettingsRepository) CompareAndSwapSettings(
 }
 
 func TestSettingsRepositoryConflictDoesNotReportLostWriteAsSaved(t *testing.T) {
-	refused, err := NewStore("", testSettingsBaseline(), scriptedSettingsRepository{actual: 7})
+	refused, err := NewStore("", testSettingsBaseline(), scriptedSettingsRepository{actual: 7}, nil)
 	requireNoError(t, err)
 	before := requireSettingsView(t, refused, testGroupA)
 	next := before.Overrides()
@@ -35,7 +35,7 @@ func TestSettingsRepositoryConflictDoesNotReportLostWriteAsSaved(t *testing.T) {
 	requireEqual(t, after.Enabled(), before.Enabled(), "database refusal must keep the visible setting")
 	requireEqual(t, after.Revision(), before.Revision(), "database refusal must keep the visible revision")
 
-	accepted, err := NewStore("", testSettingsBaseline(), scriptedSettingsRepository{actual: 1, written: true})
+	accepted, err := NewStore("", testSettingsBaseline(), scriptedSettingsRepository{actual: 1, written: true}, nil)
 	requireNoError(t, err)
 	before = requireSettingsView(t, accepted, testGroupA)
 	next = before.Overrides()
@@ -49,7 +49,7 @@ func TestSettingsRepositoryWriteReportsDatabaseRevision(t *testing.T) {
 	const databaseRevision = uint64(7)
 	settings, err := NewStore("", testSettingsBaseline(), scriptedSettingsRepository{
 		actual: databaseRevision, written: true,
-	})
+	}, nil)
 	requireNoError(t, err)
 	before := requireSettingsView(t, settings, testGroupA)
 	next := before.Overrides()
@@ -78,7 +78,7 @@ func updateWithoutPanic(
 }
 
 func TestSettingsUpdateRefusesUnknownGroupsWithoutPanicking(t *testing.T) {
-	settings, err := NewStore("", testSettingsBaseline(), nil)
+	settings, err := NewStore("", testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)
 
 	_, err = updateWithoutPanic(t, settings, -1009000000501, 0, GroupOverrides{Enabled: ptr(false)})

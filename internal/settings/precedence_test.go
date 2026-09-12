@@ -50,7 +50,7 @@ func TestPerGroupQuestionPrecedenceDistinguishesOmittedAndEmpty(t *testing.T) {
 				Groups:    []GroupConfig{{ID: groupID, Questions: test.groupValue}},
 			}
 			baseline := settingsBaselineFromConfig(&cfg, configPresence{"questions": true})
-			store, err := NewStore("", baseline, nil)
+			store, err := NewStore("", baseline, nil, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

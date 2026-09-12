@@ -17,7 +17,8 @@ type legacyMigration struct {
 }
 
 // NewStore loads legacy state and owns the immutable settings snapshot.
-func NewStore(path string, baseline SettingsBaseline, repository Repository) (*Store, error) {
+// Legacy feeds are accepted only as one-time migration inputs.
+func NewStore(path string, baseline SettingsBaseline, repository Repository, legacyFeeds []FeedConfig) (*Store, error) {
 	s, err := initializeStore(path, baseline, repository)
 	if err != nil {
 		return nil, err
@@ -28,11 +29,15 @@ func NewStore(path string, baseline SettingsBaseline, repository Repository) (*S
 	if err := s.loadRepositorySettings(); err != nil {
 		return nil, err
 	}
+	if err := s.importLegacyFeeds(legacyFeeds); err != nil {
+		return nil, err
+	}
 	return s.initializeSnapshot()
 }
 
 func initializeStore(path string, baseline SettingsBaseline, repository Repository) (*Store, error) {
 	baseline = cloneSettingsBaseline(baseline)
+	normalizeBaselineFeeds(&baseline)
 	normalizeBaselineLanguages(&baseline)
 	if err := validateBaseline(baseline); err != nil {
 		return nil, err
@@ -169,9 +174,100 @@ func (s *Store) loadRepositorySettings() error {
 	if err != nil {
 		return fmt.Errorf("load settings repository: %w", err)
 	}
+
 	s.state.Groups = make(map[int64]groupRecord, len(records))
 	for _, record := range records {
 		s.state.Groups[record.ChatID] = groupRecord{Revision: record.Revision, GroupOverrides: record.Overrides}
+	}
+	return nil
+}
+func (s *Store) importLegacyFeeds(feeds []FeedConfig) error {
+	known := make(map[int64]struct{}, len(s.baseline.Groups)+len(s.state.RegisteredGroups))
+	for _, group := range s.baseline.Groups {
+		known[group.ID] = struct{}{}
+	}
+	for _, group := range s.state.RegisteredGroups {
+		known[group.ID] = struct{}{}
+	}
+	unknown := make([]string, 0)
+	type pendingImport struct {
+		chatID   int64
+		expected uint64
+		next     GroupOverrides
+	}
+	pending := make([]pendingImport, 0, len(feeds))
+	candidate := cloneSettingsFile(s.state)
+	seen := make(map[int64]struct{}, len(feeds))
+	for _, legacy := range feeds {
+		if _, ok := known[legacy.ChatID]; !ok {
+			unknown = append(unknown, fmt.Sprintf("%d", legacy.ChatID))
+			continue
+		}
+		if _, ok := seen[legacy.ChatID]; ok {
+			continue
+		}
+		seen[legacy.ChatID] = struct{}{}
+		record := candidate.Groups[legacy.ChatID]
+		if record.Feed != nil {
+			continue
+		}
+		bugs, news := legacy.BugsOn(), legacy.NewsOn()
+		silent := legacy.SilentBugs != nil && *legacy.SilentBugs
+		interval := legacy.IntervalSeconds
+		if interval <= 0 {
+			interval = 300
+		}
+		if interval < 60 {
+			interval = 60
+		}
+		if interval > maxFeedIntervalSeconds {
+			interval = maxFeedIntervalSeconds
+		}
+		lang := legacy.Lang
+		repos := cloneGitHubRepos(legacy.GitHubRepos)
+		record.Feed = &FeedOverride{
+			Lang: &lang, IntervalSeconds: &interval, Bugs: &bugs, News: &news,
+			BugProduct: &legacy.BugProduct, BugComponent: &legacy.BugComponent,
+			SilentBugs: &silent, GitHubRepos: &repos,
+		}
+		next := cloneGroupOverrides(record.GroupOverrides)
+		next.Feed = cloneFeedOverride(record.Feed)
+		record.GroupOverrides = next
+		record.Revision++
+		candidate.Groups[legacy.ChatID] = record
+		pending = append(pending, pendingImport{chatID: legacy.ChatID, expected: record.Revision - 1, next: next})
+	}
+	if len(unknown) > 0 {
+		return fmt.Errorf("legacy feed chat_id is not a configured or registered chat: %s", strings.Join(unknown, ", "))
+	}
+	if len(pending) == 0 {
+		return nil
+	}
+	if _, err := s.buildSnapshot(candidate); err != nil {
+		return fmt.Errorf("validate imported feeds: %w", err)
+	}
+	if s.repository != nil {
+		for _, item := range pending {
+			actual, written, err := s.repository.CompareAndSwapSettings(item.chatID, item.expected, item.next)
+			if err != nil {
+				return fmt.Errorf("import feed for chat %d: %w", item.chatID, err)
+			}
+			if !written {
+				return &ConflictError{GroupID: item.chatID, Expected: item.expected, Actual: actual}
+			}
+			record := candidate.Groups[item.chatID]
+			record.Revision = actual
+			candidate.Groups[item.chatID] = record
+		}
+		s.state = candidate
+	} else {
+		if err := s.writeState(&candidate); err != nil {
+			return fmt.Errorf("persist imported feeds: %w", err)
+		}
+		s.state = candidate
+	}
+	for _, item := range pending {
+		log.Printf("settings: imported legacy feed for chat %d into chat.settings", item.chatID)
 	}
 	return nil
 }

@@ -17,7 +17,7 @@ func newLayeredSettings(t *testing.T) *Store {
 	settings, err := NewStore("", SettingsBaseline{
 		Groups:  []GroupBaseline{fileChat, factoryChat},
 		Factory: factory,
-	}, nil)
+	}, nil, nil)
 	requireNoError(t, err)
 	return settings
 }
@@ -91,7 +91,7 @@ func TestSettingsEmptyOverrideKeepsUserFileTimeout(t *testing.T) {
 func newSparseSettings(t *testing.T) (*Store, string, GroupView) {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "settings.json")
-	settings, err := NewStore(path, testSettingsBaseline(), nil)
+	settings, err := NewStore(path, testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)
 	return settings, path, requireSettingsView(t, settings, testGroupA)
 }
@@ -136,7 +136,7 @@ func reloadSparseOverrides(t *testing.T) (*Store, string, GroupView, []ShortQues
 	requireNoError(t, err)
 	requireEqual(t, result.Revision, uint64(1), "sparse override revision")
 	requireEqual(t, result.Durable, true, "sparse override durability")
-	reloaded, err := NewStore(path, testSettingsBaseline(), nil)
+	reloaded, err := NewStore(path, testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)
 	fallback := []ShortQuestion{{Q: "Package manager?", Answers: []string{"portage", "emerge"}}}
 	return reloaded, path, requireSettingsView(t, reloaded, testGroupA), fallback
@@ -223,7 +223,7 @@ func TestSettingsSparseRestoreDropsEnabledOverride(t *testing.T) {
 
 func disableLookupAutoDelete(t *testing.T) (*Store, CommitResult) {
 	t.Helper()
-	settings, err := NewStore("", testSettingsBaseline(), nil)
+	settings, err := NewStore("", testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)
 	group := requireSettingsView(t, settings, testGroupA)
 	enabled := group.Overrides()

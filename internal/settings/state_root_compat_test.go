@@ -42,7 +42,7 @@ func TestStateCompatAntispamMigration(t *testing.T) {
 			if err := os.WriteFile(legacyPath, tt.data, 0o600); err != nil {
 				t.Fatal(err)
 			}
-			settings, err := NewStore(filepath.Join(dir, "settings.json"), settingsBaselineFromConfig(stateCompatConfig(), configPresence{}), nil)
+			settings, err := NewStore(filepath.Join(dir, "settings.json"), settingsBaselineFromConfig(stateCompatConfig(), configPresence{}), nil, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -65,7 +65,7 @@ func TestStateCompatAntispamMigration(t *testing.T) {
 func newStateCompatSettings(t *testing.T, data []byte) (*Store, string) {
 	t.Helper()
 	path := stateCompatTempFile(t, "settings.json", data)
-	settings, err := NewStore(path, settingsBaselineFromConfig(stateCompatConfig(), configPresence{}), nil)
+	settings, err := NewStore(path, settingsBaselineFromConfig(stateCompatConfig(), configPresence{}), nil, nil)
 	requireNoError(t, err)
 	return settings, path
 }
