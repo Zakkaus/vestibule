@@ -446,9 +446,9 @@
       "repositoryDescription": "输入 owner/name 格式的 GitHub 仓库。",
       "branch": "分支",
       "branchDescription": "留空则跟随仓库的默认分支。",
-      "issues": "Issue",
+      "issues": "议题",
       "issuesDescription": "推送此仓库中新建的 Issue。",
-      "pulls": "Pull request",
+      "pulls": "拉取请求",
       "pullsDescription": "推送此仓库中新建的 Pull request。"
     },
     "newsURL": {
@@ -474,8 +474,6 @@
       "ru": "俄语"
     },
     "values": {
-      "enabled": "已开启",
-      "disabled": "已关闭",
       "seconds_other": "{{count}} 秒"
     },
     "actions": {

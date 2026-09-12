@@ -47,7 +47,7 @@ const sourceMessageKeys: Readonly<Record<FeedSettingSource, string>> = {
   "chat override": "feeds.source.chatOverride"
 };
 
-const loadErrorMessageKeys: Readonly<Record<string, string>> = {
+const errorMessageKeys: Readonly<Record<string, string>> = {
   authentication_expired: "feeds.errors.authenticationExpired",
   authentication_invalid: "feeds.errors.authenticationInvalid",
   chat_access_denied: "feeds.errors.accessDenied",
@@ -64,7 +64,7 @@ const accessRevocationCodes: Readonly<Record<string, true>> = {
   chat_not_found: true
 };
 
-const baseFieldErrorKeys: Readonly<Record<string, string>> = {
+const fieldMessageKeys: Readonly<Record<string, string>> = {
   required_field: "feeds.validation.required",
   invalid_interval: "feeds.validation.invalidInterval",
   invalid_language: "feeds.validation.invalidLanguage",
@@ -75,12 +75,12 @@ const baseFieldErrorKeys: Readonly<Record<string, string>> = {
 
 function errorMessageKey(error: ApiRequestError, fallback = "feeds.errors.loadUnavailable"): string {
   if (error.kind === "network") return "feeds.errors.network";
-  if (error.kind === "api") return loadErrorMessageKeys[error.code] ?? fallback;
+  if (error.kind === "api") return errorMessageKeys[error.code] ?? fallback;
   return "feeds.errors.invalidResponse";
 }
 
 function serverFieldMessageKey(name: string, code: string): string | undefined {
-  const messageKey = baseFieldErrorKeys[code];
+  const messageKey = fieldMessageKeys[code];
   if (!messageKey) return undefined;
   if (name === "expected_revision") return code === "invalid_revision" ? messageKey : undefined;
   if (name === "lang") return code === "invalid_language" || code === "required_field" ? messageKey : undefined;

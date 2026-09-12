@@ -328,6 +328,10 @@ export function FeedSettingsForm({
     value: value as FeedLanguage,
     label: t(languageMessageKeys[value as FeedLanguage])
   }));
+  const intervalCount = Number(draft.interval_seconds);
+  const intervalValueText = draft.interval_seconds.trim() === "" || !Number.isFinite(intervalCount)
+    ? undefined
+    : t("feeds.values.seconds", { count: intervalCount });
   const update = <K extends keyof FeedDraft>(field: K, value: FeedDraft[K]) => {
     onDraftChange({ ...draft, [field]: value });
   };
@@ -390,6 +394,7 @@ export function FeedSettingsForm({
               readOnly={saving}
               aria-invalid={errors.interval_seconds ? "true" : undefined}
               aria-describedby={describedBy}
+              aria-valuetext={intervalValueText}
               onChange={(event) => update("interval_seconds", event.currentTarget.value)}
             />
           )}

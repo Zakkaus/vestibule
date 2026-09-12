@@ -446,9 +446,9 @@
       "repositoryDescription": "輸入 owner/name 格式的 GitHub 儲存庫。",
       "branch": "分支",
       "branchDescription": "留白即可跟隨儲存庫的預設分支。",
-      "issues": "Issue",
+      "issues": "議題",
       "issuesDescription": "推送此儲存庫中新建立的 Issue。",
-      "pulls": "Pull request",
+      "pulls": "提取要求",
       "pullsDescription": "推送此儲存庫中新建立的 Pull request。"
     },
     "newsURL": {
@@ -474,8 +474,6 @@
       "ru": "俄文"
     },
     "values": {
-      "enabled": "啟用",
-      "disabled": "停用",
       "seconds_other": "{{count}} 秒"
     },
     "actions": {

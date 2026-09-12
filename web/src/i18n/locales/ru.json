@@ -452,9 +452,9 @@
       "repositoryDescription": "Введите репозиторий GitHub в формате owner/name.",
       "branch": "Ветка",
       "branchDescription": "Оставьте поле пустым, чтобы использовать ветку по умолчанию.",
-      "issues": "Issue",
+      "issues": "Задачи",
       "issuesDescription": "Доставлять новые issue из этого репозитория.",
-      "pulls": "Pull request",
+      "pulls": "Запросы на слияние",
       "pullsDescription": "Доставлять новые pull request из этого репозитория."
     },
     "newsURL": {
@@ -480,8 +480,6 @@
       "ru": "Русский"
     },
     "values": {
-      "enabled": "Включено",
-      "disabled": "Отключено",
       "seconds_one": "{{count}} секунда",
       "seconds_other": "{{count}} секунды",
       "seconds_few": "{{count}} секунды",

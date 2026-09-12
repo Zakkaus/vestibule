@@ -476,8 +476,6 @@
       "ru": "Russian"
     },
     "values": {
-      "enabled": "Enabled",
-      "disabled": "Disabled",
       "seconds_one": "{{count}} second",
       "seconds_other": "{{count}} seconds"
     },

@@ -446,7 +446,7 @@
       "repositoryDescription": "owner/name 形式の GitHub リポジトリを入力します。",
       "branch": "ブランチ",
       "branchDescription": "リポジトリの既定ブランチに従う場合は空欄にします。",
-      "issues": "Issue",
+      "issues": "課題",
       "issuesDescription": "このリポジトリで新しく開かれた Issue を配信します。",
       "pulls": "プルリクエスト",
       "pullsDescription": "このリポジトリで新しく開かれたプルリクエストを配信します。"
@@ -474,8 +474,6 @@
       "ru": "ロシア語"
     },
     "values": {
-      "enabled": "有効",
-      "disabled": "無効",
       "seconds_other": "{{count}} 秒"
     },
     "actions": {
