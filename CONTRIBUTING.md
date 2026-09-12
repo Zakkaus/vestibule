@@ -141,7 +141,8 @@ covered; an empty scan is not a pass.
 
 ## The gate is enforced, not remembered
 
-`main` requires the `build` and `docs` checks to pass before a merge. It did not
+`main` requires the `go-done`, `static`, `docs`, and `e2e-done` checks to
+pass before a merge. It did not
 until a PR was merged while its prose check was still failing, leaving `main` red
 for a round — the rule was in this document and nothing was holding anyone to it.
 
