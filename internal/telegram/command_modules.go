@@ -22,7 +22,7 @@ const (
 	CommandOwner
 )
 
-// CommandDefinition declares one menu entry and, unless External is true, its update route.
+// CommandDefinition declares an update route and its optional Telegram menu entry.
 type CommandDefinition struct {
 	Name        string
 	Description func(i18n.Lang) string
@@ -31,6 +31,7 @@ type CommandDefinition struct {
 	Handler     th.Handler
 	External    bool
 	Capability  string
+	RenamedTo   string
 }
 
 // CommandModule declares a coherent optional or core command surface.
@@ -117,6 +118,9 @@ func validateCommandDefinition(
 	if command.Audience > CommandOwner {
 		return fmt.Errorf("command %q has unknown menu audience %d", command.Name, command.Audience)
 	}
+	if command.RenamedTo != "" && command.External {
+		return fmt.Errorf("renamed command %q cannot be external", command.Name)
+	}
 	if command.External {
 		if command.RouteName != "" || command.Handler != nil {
 			return fmt.Errorf("external command %q declares an update route", command.Name)
@@ -181,7 +185,7 @@ func (m CommandModules) menuFor(l i18n.Lang, capabilities *CommandCapabilities, 
 	out := make([]telego.BotCommand, 0, len(m.commands))
 	for _, audience := range audiences {
 		for _, command := range m.commands {
-			if command.Audience != audience || !commandAllowed(command.Capability, capabilities) {
+			if command.RenamedTo != "" || command.Audience != audience || !commandAllowed(command.Capability, capabilities) {
 				continue
 			}
 			out = append(out, telego.BotCommand{Command: command.Name, Description: command.Description(l)})
@@ -220,7 +224,13 @@ func (m CommandModules) Routes() []CommandRoute {
 
 // MemberCommandNames returns a set suitable for direct-message command admission.
 func (m CommandModules) MemberCommandNames() map[string]bool {
-	return m.commandNames(CommandMember)
+	names := make(map[string]bool, len(m.commands))
+	for _, command := range m.commands {
+		if command.Audience == CommandMember {
+			names[command.Name] = true
+		}
+	}
+	return names
 }
 
 // MemberHelp returns the member help body without commands from disabled modules.
@@ -258,9 +268,10 @@ func (m CommandModules) commandNames(audiences ...CommandAudience) map[string]bo
 	names := make(map[string]bool, len(m.commands))
 	for _, audience := range audiences {
 		for _, command := range m.commands {
-			if command.Audience == audience {
-				names[command.Name] = true
+			if command.RenamedTo != "" || command.Audience != audience {
+				continue
 			}
+			names[command.Name] = true
 		}
 	}
 	return names
@@ -270,9 +281,10 @@ func (m CommandModules) commandNamesFor(capabilities *CommandCapabilities, audie
 	names := make(map[string]bool, len(m.commands))
 	for _, audience := range audiences {
 		for _, command := range m.commands {
-			if command.Audience == audience && commandAllowed(command.Capability, capabilities) {
-				names[command.Name] = true
+			if command.RenamedTo != "" || command.Audience != audience || !commandAllowed(command.Capability, capabilities) {
+				continue
 			}
+			names[command.Name] = true
 		}
 	}
 	return names
