@@ -311,6 +311,8 @@ func (s *Server) chatRoute(writer http.ResponseWriter, request *http.Request) {
 		s.auditRoute(writer, request, chatID, parts[2:])
 	case "stats":
 		s.statsRoute(writer, request, chatID, parts[2:])
+	case "feeds":
+		s.feedsRoute(writer, request, chatID, parts[2:])
 	case "settings":
 		s.settingsRoute(writer, request, chatID, parts[2:])
 	case "rules":

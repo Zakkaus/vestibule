@@ -13,7 +13,6 @@ type ProcessSettingsService interface {
 }
 
 type processSettingsResponse struct {
-	Feeds         settingResponse[[]settings.FeedConfig] `json:"feeds"`
 	NewsURL       settingResponse[string]                `json:"news_url"`
 	Overlays      settingResponse[[]settings.OverlayCfg] `json:"overlays"`
 	StatsTimezone settingResponse[string]                `json:"stats_timezone"`
@@ -21,7 +20,6 @@ type processSettingsResponse struct {
 
 func processSettingsView(view settings.ProcessView) processSettingsResponse {
 	return processSettingsResponse{
-		Feeds:         settingView(view.Feeds()),
 		NewsURL:       settingView(view.NewsURL()),
 		Overlays:      settingView(view.Overlays()),
 		StatsTimezone: settingView(view.StatsTimezone()),
