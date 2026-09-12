@@ -265,6 +265,7 @@ function StatsFilters({
           <Button
             type="submit"
             variant="accent"
+            size="L"
             data-slot="button"
             aria-disabled={loading ? "true" : undefined}
           >

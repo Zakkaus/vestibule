@@ -59,6 +59,7 @@ function FallbackAnswerRow({
       </div>
       <Button
         type="button"
+        size="L"
         variant="secondary"
         data-slot="button"
         aria-disabled={readOnly ? "true" : undefined}
@@ -106,6 +107,7 @@ function FallbackQuestionItem({
         </h3>
         <Button
           type="button"
+          size="L"
           variant="negative"
           data-slot="button"
           aria-disabled={readOnly ? "true" : undefined}
@@ -161,6 +163,7 @@ function FallbackQuestionItem({
         ) : null}
         <Button
           type="button"
+          size="L"
           variant="secondary"
           data-slot="button"
           aria-disabled={readOnly ? "true" : undefined}
