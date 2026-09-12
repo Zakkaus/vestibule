@@ -26,6 +26,7 @@ export function HomeScreen() {
     >
       <Header data-page-heading data-home-heading styles={style({ display: "grid", gap: 16 })}>
         <Heading level={1} id="home-title" styles={style({ margin: 0 })}>{t("home.title")}</Heading>
+        <p>{t("home.description")}</p>
       </Header>
       <HomeStateContent
         state={controller.state}

@@ -490,6 +490,7 @@ export function QueueScreen() {
           <Icon name="inbox" />
           <Text>{t("queue.title")}</Text>
         </Heading>
+        <Text>{t("queue.description")}</Text>
       </Header>
 
       <Content data-queue-results styles={queueResultsStyles}>

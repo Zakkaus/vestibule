@@ -112,7 +112,7 @@
   },
   "groups": {
     "title": "群組與頻道",
-    "description": "此處只列出目前帳號有權管理的群組。選擇群組後，檢視其等待佇列。",
+    "description": "檢視目前帳號在 Telegram 中可管理的群組與頻道，以及各群的即時管理員權限。選擇一個群組後，其餘各屏都作用於該群組。",
     "managedCount_other": "可管理的群組：{{count}} 個",
     "authorized": "已授權",
     "liveGroupNote": "選擇此群組後，後續操作僅適用於此群組。",
@@ -296,11 +296,12 @@
       "currentCondition": "目前條件：群組為 {{group}}，結果為 {{result}}。",
       "queryCondition": "目前篩選：{{query}}。",
       "clear": "清除篩選"
-    }
+    },
+    "description": "檢視所選群組目前等待處理的申請；獲授權的群組管理員可放行、拒絕或封鎖申請。"
   },
   "preferences": {
     "title": "偏好",
-    "description": "這些選項僅影響目前瀏覽器。",
+    "description": "設定目前瀏覽器的標記、名稱、強調色、標題圖示、儲存方式與介面語言；僅影響本人。",
     "interface": {
       "title": "介面",
       "description": "佈景主題與語言儲存在目前裝置，不會變更群組設定。"
@@ -309,7 +310,7 @@
   "moderation": {
     "navigation": "管理與處罰",
     "title": "管理與處罰",
-    "description": "調整目前群組的警告上限、頻道身分冒充防護及處罰記錄目的地。",
+    "description": "設定目前群組的警告上限、反頻道馬甲、處罰記錄群組與控制群組；群組管理員可修改。",
     "loading": {
       "title": "正在載入管理與處罰設定",
       "description": "正在讀取目前群組的有效設定及設定來源…"
@@ -383,7 +384,7 @@
   "feeds": {
     "navigation": "訂閱推送",
     "title": "訂閱推送",
-    "description": "檢視整個處理程序使用的訂閱目標、新聞來源、儲存庫及分支設定。這些值不會隨目前群組變更。",
+    "description": "檢視整個實例的 RSS、Atom、JSON Feed、Bugzilla 與新聞源設定；僅維運人員可修改。",
     "loading": {
       "title": "正在載入訂閱推送設定",
       "description": "正在讀取處理程序層級設定及其來源…"
@@ -468,7 +469,7 @@
   "bypass": {
     "navigation": "免驗證來源",
     "title": "免驗證來源",
-    "description": "管理目前群組的信任群組、必須加入的頻道及頻道身分允許清單。",
+    "description": "設定目前群組的信任群組、必須加入的頻道、頻道白名單與成員白名單；群組管理員可修改。",
     "loading": {
       "title": "正在載入免驗證來源設定",
       "description": "正在讀取目前群組的有效設定及設定來源…"
@@ -634,12 +635,13 @@
     "empty": {
       "title": "尚無已結算的判定",
       "description": "驗證判定結算後會顯示在此處，並保留原始歷史。"
-    }
+    },
+    "description": "檢視所選群組誰修改了什麼，以及每次驗證判定的原因；獲授權的管理員可撤銷封鎖。"
   },
   "verification": {
     "navigation": "驗證方式",
     "title": "驗證方式",
-    "description": "這些設定僅影響目前群組。儲存時會檢查版本，避免覆蓋其他管理員的變更。",
+    "description": "設定目前群組的驗證投遞管道、挑戰順序、逾時、失敗次數與處罰時長；群組管理員可修改。",
     "loading": {
       "title": "正在載入驗證設定",
       "description": "正在讀取此群組目前的驗證設定…"
@@ -754,7 +756,7 @@
   "questions": {
     "navigation": "題庫",
     "title": "題庫",
-    "description": "管理目前群組的選擇題、備用填空題及答題語言。",
+    "description": "管理目前群組的規則題、內建範本、試答與答題語言；群組管理員可修改。",
     "trial": {
       "title": "試答已儲存題目",
       "description": "檢查作答結果，不會產生驗證記錄或統計。",
@@ -914,7 +916,7 @@
   "diagnostics": {
     "navigation": "診斷",
     "title": "診斷",
-    "description": "檢視此執行個體的執行狀態、Bot API 探測及設定持久化狀態。",
+    "description": "檢視整個實例的權限預檢、Telegram Bot API 延遲、心跳、回退讀數與每日摘要；僅維運人員可檢視。",
     "daily": {
       "title": "每日狀態報告",
       "description": "每天透過私人訊息將狀態摘要傳送給執行個體擁有者。",
@@ -1064,7 +1066,7 @@
   "version": {
     "navigation": "版本",
     "title": "版本",
-    "description": "檢視正在執行的版本，必要時檢查已發布版本，並在升級前確認回退相容性。",
+    "description": "檢視整個實例的執行版本、可用更新、回退原因與升級命令；僅維運人員可見。",
     "actions": {
       "retry": "重試",
       "cancel": "取消"
@@ -1175,7 +1177,7 @@
   "stats": {
     "navigation": "統計",
     "title": "統計",
-    "description": "檢視目前群組的加入結果趨勢、通過率及各驗證方式的攔截量。",
+    "description": "檢視目前群組的入群結果趨勢、通過率、驗證方式攔截量與時區；群組管理員可檢視。",
     "loading": {
       "title": "正在載入統計",
       "description": "正在依所選日期及時區彙總加入結果…"
@@ -1262,7 +1264,7 @@
   "messages": {
     "navigation": "訊息與文案",
     "title": "訊息與文案",
-    "description": "管理目前群組的自動回覆規則、訊息顯示及查詢自動撤回。",
+    "description": "設定目前群組的自動回覆、進出提示、驗證文案、顯示名稱劇透與自動撤回；群組管理員可修改。",
     "loading": {
       "title": "正在載入訊息與文案",
       "description": "正在確認目前群組並讀取可用的訊息設定…"
@@ -1410,7 +1412,7 @@
   "capabilities": {
     "navigation": "功能",
     "title": "功能",
-    "description": "檢視目前群組的功能及啟用或停用後的影響。詳細控制仍保留在各功能頁面，確保每項設定只有一個儲存入口。",
+    "description": "檢視目前群組啟用的功能及其影響；群組管理員可修改群組層級功能。",
     "loading": {
       "title": "正在載入功能",
       "description": "正在讀取目前群組的功能狀態…"
@@ -1493,7 +1495,7 @@
   "owner": {
     "navigation": "部署者設定",
     "title": "執行個體上限",
-    "description": "儲存群組設定時會檢查上限。0 表示不另設上限，原有欄位限制仍然有效。降低上限不會更改既有設定。封禁時長上限為正數時，不允許永久封禁。",
+    "description": "在 /owner 設定整個實例的群組設定數值與條數上限；僅目前 OwnerID 可修改。",
     "loading": {
       "title": "正在載入執行個體上限",
       "description": "正在讀取上限及超過上限的群組…"
@@ -1662,6 +1664,7 @@
         "title": "管理與處罰",
         "antispam": "反垃圾訊息"
       }
-    }
+    },
+    "description": "檢視所選群組的概況、需要注意的事項、趨勢與常用設定入口；獲授權的群組管理員可修改群組設定。"
   }
 }

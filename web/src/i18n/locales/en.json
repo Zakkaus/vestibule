@@ -112,7 +112,7 @@
   },
   "groups": {
     "title": "Groups and channels",
-    "description": "Only groups this account may manage appear here. Select a group to continue to its waiting queue.",
+    "description": "View the groups and channels this Telegram account can manage, with each group’s live administrator permissions. Pick a group and the other screens apply to it.",
     "managedCount_one": "{{count}} manageable group",
     "managedCount_other": "{{count}} manageable groups",
     "authorized": "Authorized",
@@ -297,11 +297,12 @@
       "currentCondition": "Current filters: group {{group}}, result {{result}}.",
       "queryCondition": "Current filter: {{query}}.",
       "clear": "Clear filters"
-    }
+    },
+    "description": "Review applications currently waiting in the selected group; authorized group administrators can release, reject, or ban them."
   },
   "preferences": {
     "title": "Preferences",
-    "description": "These options affect only this browser.",
+    "description": "Set this browser’s marker, name, accent color, title icon, save method, and interface language; these preferences affect only this browser.",
     "interface": {
       "title": "Interface",
       "description": "Theme and language are stored on this device and do not change group configuration."
@@ -310,7 +311,7 @@
   "moderation": {
     "navigation": "Moderation",
     "title": "Moderation",
-    "description": "Set the warning limit, sender-channel protection, and moderation log destination for this group.",
+    "description": "Configure the current group’s warning limit, anti-channel-impersonation protection, penalty log group, and control group; group administrators can change them.",
     "loading": {
       "title": "Loading moderation settings",
       "description": "Reading this group's effective values and their sources…"
@@ -385,7 +386,7 @@
   "feeds": {
     "navigation": "Feed delivery",
     "title": "Feed delivery",
-    "description": "View the process-wide delivery targets, news source, and repository and branch configuration. These values do not change with the selected group.",
+    "description": "View instance-wide RSS, Atom, JSON Feed, Bugzilla, and news-source configuration; only operators can change it.",
     "loading": {
       "title": "Loading feed delivery settings",
       "description": "Reading the process-wide values and their sources…"
@@ -471,7 +472,7 @@
   "bypass": {
     "navigation": "Bypass sources",
     "title": "Verification bypass sources",
-    "description": "Manage trusted groups, the required channel, and sender-channel allowlist for this group.",
+    "description": "Configure trusted groups, required channels, channel allowlists, and member allowlists for the current group; group administrators can change them.",
     "loading": {
       "title": "Loading verification bypass sources",
       "description": "Reading this group's effective values and their sources…"
@@ -638,12 +639,13 @@
     "empty": {
       "title": "No settled decisions yet",
       "description": "Settled challenge decisions appear here without changing their original history."
-    }
+    },
+    "description": "Review who changed what and why each verification decision was made for the selected group; authorized administrators can undo bans."
   },
   "verification": {
     "navigation": "Verification methods",
     "title": "Verification methods",
-    "description": "These settings affect only the current group. Saving checks the revision so another administrator's changes are not overwritten.",
+    "description": "Configure the current group’s delivery channels, challenge order, timeouts, failure limits, and penalty durations; group administrators can change these settings.",
     "loading": {
       "title": "Loading verification settings",
       "description": "Reading the current settings for this group…"
@@ -758,7 +760,7 @@
   "questions": {
     "navigation": "Question bank",
     "title": "Question bank",
-    "description": "Manage this group's multiple-choice questions, fallback text questions, and challenge language.",
+    "description": "Manage rule questions, built-in templates, trials, and answer languages for the current group; group administrators can change them.",
     "trial": {
       "title": "Try a saved question",
       "description": "Check an answer without creating verification records or statistics.",
@@ -921,7 +923,7 @@
   "diagnostics": {
     "navigation": "Diagnostics",
     "title": "Diagnostics",
-    "description": "View this instance's runtime status, Bot API probes, and settings persistence.",
+    "description": "View instance-wide permission preflight, Telegram Bot API latency, heartbeat, fallback readings, and the daily status summary; operators only.",
     "daily": {
       "title": "Daily status report",
       "description": "Send the instance owner one private status summary each day.",
@@ -1071,7 +1073,7 @@
   "version": {
     "navigation": "Version",
     "title": "Version",
-    "description": "View the running version, check published releases on demand, and verify rollback compatibility before upgrading.",
+    "description": "View the running instance version, available updates, fallback reasons, and upgrade commands; operators only.",
     "actions": {
       "retry": "Retry",
       "cancel": "Cancel"
@@ -1182,7 +1184,7 @@
   "stats": {
     "navigation": "Statistics",
     "title": "Statistics",
-    "description": "Review this group's join outcome trend, pass rate, and interceptions by verification method.",
+    "description": "View the current group’s join-result trends, pass rate, interception counts by verification method, and timezone.",
     "loading": {
       "title": "Loading statistics",
       "description": "Aggregating join outcomes for the selected dates and time zone…"
@@ -1269,7 +1271,7 @@
   "messages": {
     "navigation": "Messages and copy",
     "title": "Messages and copy",
-    "description": "Manage this group's stored reply rules, message presentation, and lookup auto-delete.",
+    "description": "Configure automatic replies, join and leave notices, verification copy, name spoilers, and automatic deletion for the current group; group administrators can change them.",
     "loading": {
       "title": "Loading messages and copy",
       "description": "Confirming the current group and reading available message settings…"
@@ -1417,7 +1419,7 @@
   "capabilities": {
     "navigation": "Capabilities",
     "title": "Capabilities",
-    "description": "Review each group-wide capability and the consequences of turning it on or off. Detailed controls remain on their owning screens, so each setting has one save path.",
+    "description": "View enabled capabilities and their effects for the current group; group administrators can change group-level capabilities.",
     "loading": {
       "title": "Loading capabilities",
       "description": "Reading the capability states for this group…"
@@ -1500,7 +1502,7 @@
   "owner": {
     "navigation": "Owner limits",
     "title": "Instance owner limits",
-    "description": "Caps apply when group settings are saved. Zero adds no cap; existing field restrictions still apply. Lowering a cap does not change existing settings. A positive ban-duration cap rejects permanent bans.",
+    "description": "Set instance-wide numeric and count limits for group settings at /owner; only the current OwnerID can change them.",
     "loading": {
       "title": "Loading owner limits",
       "description": "Reading the current instance caps and affected groups…"
@@ -1671,6 +1673,7 @@
         "title": "Moderation and penalties",
         "antispam": "Anti-spam"
       }
-    }
+    },
+    "description": "Review the selected group’s status, attention items, trends, and links to frequently used settings; authorized group administrators can change group settings."
   }
 }
