@@ -225,6 +225,20 @@ func (s *Service) requesterLanguage(msg *telego.Message) i18n.Lang {
 	return i18n.FromRequester(msg.From.LanguageCode, fallback)
 }
 
+// RenamedHandler returns a route handler that directs users to a canonical command.
+func (s *Service) RenamedHandler(canonical string) th.Handler {
+	return func(ctx *th.Context, update telego.Update) error {
+		message := update.Message
+		if message == nil || message.From == nil {
+			return nil
+		}
+		language := s.requesterLanguage(message)
+		s.replyLookupPlain(ctx.Context(), ctx.Bot(), message.Chat.ID, message.MessageID,
+			i18n.Messages.Bot.RenamedCommand.Render(language, canonical))
+		return nil
+	}
+}
+
 // Sliding-window limits apply only to private-chat lookups.
 func (s *Service) queryRateOK(userID int64) bool {
 	s.mu.Lock()

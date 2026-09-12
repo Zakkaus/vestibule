@@ -10,15 +10,58 @@ import (
 	"github.com/mymmrac/telego"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 )
 
+var gentooCommandNames = []struct {
+	old       string
+	canonical string
+}{
+	{old: "pkg", canonical: "gpkg"},
+	{old: "use", canonical: "guse"},
+	{old: "arm", canonical: "garm"},
+	{old: "bug", canonical: "gbug"},
+	{old: "news", canonical: "gnews"},
+	{old: "bbs", canonical: "gbbs"},
+}
+
 var optionalModuleCommands = map[string][]string{
-	settings.ModuleGentoo: {"pkg", "use", "bug", "news", "arm"},
-	settings.ModuleLinux:  {"wiki", "bbs", "pkgs", "distro", "armpkgs", "kernel", "man", "cve", "repology"},
+	settings.ModuleGentoo: {"gpkg", "guse", "garm", "gbug", "gnews", "gbbs", "pkg", "use", "arm", "bug", "news", "bbs"},
+	settings.ModuleLinux:  {"wiki", "pkgs", "distro", "armpkgs", "kernel", "man", "cve", "repology"},
+}
+
+func TestRenamedCommandsStayOutOfMenusAndHelp(t *testing.T) {
+	cfg := &settings.Config{Modules: []string{settings.ModuleGentoo}}
+	modules, err := newRuntimeModules(cfg, nil, nil, t.TempDir(), nil, nil, lookup.New(nil, nil, cfg, ""), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var menuCommands strings.Builder
+	capabilities := telegram.CommandCapabilities{GentooLookups: true, LinuxLookups: true}
+	for _, menu := range [][]telego.BotCommand{
+		modules.commands.MemberMenu(i18n.LangEN), modules.commands.MemberMenuFor(i18n.LangEN, capabilities),
+		modules.commands.AdministratorMenu(i18n.LangEN), modules.commands.AdministratorMenuFor(i18n.LangEN, capabilities),
+		modules.commands.OwnerMenu(i18n.LangEN),
+	} {
+		for _, command := range menu {
+			menuCommands.WriteString("/" + command.Command + "\n")
+		}
+	}
+	help := strings.Join([]string{
+		modules.commands.MemberHelp(i18n.LangEN), modules.commands.MemberHelpFor(i18n.LangEN, capabilities),
+		modules.commands.AdministratorHelp(i18n.LangEN, 3), modules.commands.AdministratorHelpFor(i18n.LangEN, 3, capabilities),
+		modules.commands.OwnerHelp(i18n.LangEN),
+	}, "\n")
+	for _, alias := range gentooCommandNames {
+		if strings.Contains(menuCommands.String(), "/"+alias.old+"\n") ||
+			regexp.MustCompile(`/`+regexp.QuoteMeta(alias.old)+`\b`).MatchString(help) {
+			t.Errorf("renamed /%s alias remains in a menu or command help", alias.old)
+		}
+	}
 }
 
 func TestEmptyModulesDisappearFromCommandSurface(t *testing.T) {

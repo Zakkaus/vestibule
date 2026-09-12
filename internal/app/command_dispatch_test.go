@@ -10,7 +10,7 @@ import (
 func TestCanonicalCommandsReachTheirHandlers(t *testing.T) {
 	fixture := newDispatchFixture(t, 0)
 	for _, command := range []string{
-		"/pkg", "/use", "/bug", "/news", "/bbs", "/arm",
+		"/gpkg", "/guse", "/gbug", "/gnews", "/gbbs", "/garm",
 		"/pkgs", "/distro", "/armpkgs", "/wiki", "/kernel",
 	} {
 		t.Run(command, func(t *testing.T) {

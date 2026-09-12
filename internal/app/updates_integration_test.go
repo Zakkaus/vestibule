@@ -3,7 +3,9 @@ package app
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/Zakkaus/vestibule/internal/i18n"
@@ -93,7 +95,53 @@ func dispatchRouteNames(t *testing.T, fixture *dispatchFixture, update telego.Up
 	if err := handler.BaseGroup().HandleUpdate(context.Background(), fixture.bot, update); err != nil {
 		t.Fatal(err)
 	}
+
 	return handled
+}
+
+type lookupRequestCounter struct{ hits *atomic.Int32 }
+
+func (t lookupRequestCounter) RoundTrip(*http.Request) (*http.Response, error) {
+	t.hits.Add(1)
+	return nil, fmt.Errorf("unexpected lookup HTTP request")
+}
+
+func TestRenamedGentooAliasesReplyWithoutLookup(t *testing.T) {
+	var requests atomic.Int32
+	originalTransport := http.DefaultTransport
+	http.DefaultTransport = lookupRequestCounter{hits: &requests}
+	t.Cleanup(func() { http.DefaultTransport = originalTransport })
+	fixture := newDispatchFixture(t, 0)
+	handler, err := th.NewBotHandler(fixture.bot, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture.application.Register(handler)
+	for aliasIndex, alias := range gentooCommandNames {
+		for languageIndex, language := range []struct{ code, format string }{
+			{"zh", "此命令已改名为 /%s，请改用新名。"},
+			{"zh-Hant", "此指令已改名為 /%s，請改用新名稱。"},
+			{"en", "This command has been renamed to /%s; please use the new name."},
+			{"ja", "このコマンドは /%s に変更されたため、新しい名前を使用してください。"},
+			{"ru", "Команда переименована в /%s; используйте новое имя."},
+		} {
+			userID := int64(9100 + aliasIndex*10 + languageIndex)
+			update := privateCommand(userID, "/"+alias.old+" app-editors/vim")
+			update.Message.From.LanguageCode = language.code
+			before := len(fixture.caller.sentTexts())
+			if err := handler.BaseGroup().HandleUpdate(context.Background(), fixture.bot, update); err != nil {
+				t.Fatal(err)
+			}
+			messages := fixture.caller.sentTexts()[before:]
+			want := fmt.Sprintf(language.format, alias.canonical)
+			if len(messages) != 1 || messages[0] != want {
+				t.Fatalf("alias /%s in %s sent %v, want [%q]", alias.old, language.code, messages, want)
+			}
+		}
+	}
+	if got := requests.Load(); got != 0 {
+		t.Fatalf("renamed aliases issued %d lookup HTTP requests", got)
+	}
 }
 
 type dispatchCase struct {
@@ -145,7 +193,7 @@ func globalDispatchCases(
 			update: groupCommand(
 				fixture.groupID,
 				panelUser,
-				"/pkg sys-apps/portage",
+				"/gpkg sys-apps/portage",
 			),
 			want: "lookup.pkg",
 		},
@@ -181,8 +229,14 @@ func TestLookupCommandsAreGroupGatedButRemainAdmittedInDMs(t *testing.T) {
 		dm    string
 		route string
 	}{
-		{name: "gentoo", group: "/pkg app-editors/vim", dm: "/pkg app-editors/vim", route: "lookup.pkg"},
+		{name: "gentoo", group: "/gpkg app-editors/vim", dm: "/gpkg app-editors/vim", route: "lookup.pkg"},
 		{name: "linux", group: "/wiki kernel", dm: "/wiki kernel", route: "lookup.wiki"},
+		{name: "gentoo alias pkg", group: "/pkg app-editors/vim", dm: "/pkg app-editors/vim", route: "lookup.pkg.alias"},
+		{name: "gentoo alias use", group: "/use app-editors/vim", dm: "/use app-editors/vim", route: "lookup.use.alias"},
+		{name: "gentoo alias arm", group: "/arm app-editors/vim", dm: "/arm app-editors/vim", route: "lookup.arm.alias"},
+		{name: "gentoo alias bug", group: "/bug 1", dm: "/bug 1", route: "lookup.bug.alias"},
+		{name: "gentoo alias news", group: "/news", dm: "/news", route: "lookup.news.alias"},
+		{name: "gentoo alias bbs", group: "/bbs portage", dm: "/bbs portage", route: "lookup.bbs.alias"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			group, ok := fixture.settings.Settings(fixture.groupID)
@@ -191,7 +245,7 @@ func TestLookupCommandsAreGroupGatedButRemainAdmittedInDMs(t *testing.T) {
 			}
 			disabled := group.Overrides()
 			value := false
-			if tc.name == "gentoo" {
+			if strings.HasPrefix(tc.name, "gentoo") {
 				disabled.GentooLookupsEnabled = &value
 			} else {
 				disabled.LinuxLookupsEnabled = &value
