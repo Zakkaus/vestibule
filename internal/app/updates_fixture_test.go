@@ -321,11 +321,11 @@ func newDispatchFixture(t *testing.T, requiredChannel int64) *dispatchFixture {
 	cfg := &settings.Config{
 		Modules: []string{settings.ModuleGentoo, settings.ModuleLinux},
 		Groups: []settings.GroupConfig{{
-			ID:                  groupID,
-			Lang:                "en",
-			VerifyMode:          settings.ModeKernel,
-			RequiredChannelID:   channelID,
-			ChannelDisplay:      "@required",
+			ID:                   groupID,
+			Lang:                 "en",
+			VerifyMode:           settings.ModeKernel,
+			RequiredChannelID:    channelID,
+			ChannelDisplay:       "@required",
 			GentooLookupsEnabled: boolPtr(true),
 			LinuxLookupsEnabled:  boolPtr(true),
 		}},

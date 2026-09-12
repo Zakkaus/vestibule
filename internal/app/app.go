@@ -194,8 +194,10 @@ func closeRuntimeDatabase(runtime *services) {
 }
 
 func claimedConsoleConfig(runtime *services) api.Config {
-	var settingsService api.SettingsService = runtime.settingsService
-	if settingsService == nil {
+	var settingsService api.SettingsService
+	if runtime.settingsService != nil {
+		settingsService = runtime.settingsService
+	} else {
 		settingsService = runtime.settings
 	}
 	return api.Config{

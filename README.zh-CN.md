@@ -44,7 +44,7 @@ python3 -m http.server 8787 --bind 127.0.0.1 --directory web
 ## 目标
 
 1. 任何人均可将机器人添加到自己的群组，并由该群组的 Telegram 管理员自行配置。
-2. Web 控制台覆盖每项群组设置；进程级配置中的 `disabled_modules` 用于选择可选的 `gentoo` 与 `linux` 机器人模块。
+2. Web 控制台覆盖每项群组设置；进程级配置中的 `modules` 明确启用可选的 `gentoo` 与 `linux` 机器人模块。省略或留空时不启用任何可选模块；旧版 `disabled_modules` 键会被拒绝，必须迁移为 `modules`。
 3. 状态存储在数据库中，并发和重启时不会丢失或重复结算。
 4. 可通过一条命令完成部署，升级失败时自动回滚。
 

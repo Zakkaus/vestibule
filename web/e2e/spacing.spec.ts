@@ -16,6 +16,8 @@ const settingsPayload = {
   revision: 7,
   enabled: sourced(true),
   antispam_enabled: sourced(true, "user file"),
+  gentoo_lookups_enabled: sourced(false),
+  linux_lookups_enabled: sourced(false),
   warn_limit: sourced(3),
   admin_log_chat_id: sourced(0),
   delivery_mode: sourced("both"),

@@ -222,7 +222,7 @@ func TestEmptyModulesDoNotReachTelegramMenus(t *testing.T) {
 func TestRuntimeModuleSelectionMatchesConfiguration(t *testing.T) {
 	for _, disabled := range settings.OptionalModuleNames() {
 		t.Run(disabled, func(t *testing.T) {
-			modules := []string{settings.ModuleGentoo, settings.ModuleLinux}
+			var modules []string
 			if disabled == settings.ModuleGentoo {
 				modules = []string{settings.ModuleLinux}
 			} else {

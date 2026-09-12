@@ -1,5 +1,6 @@
 {
   "observe_only": false,
+  "modules": ["gentoo"],
   "verify_mode": "quiz",
   "factory_questions_file": "",
   "group_ids": [
