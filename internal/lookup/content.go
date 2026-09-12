@@ -689,7 +689,7 @@ func (v *Service) OnBbs(ctx *th.Context, update telego.Update) error {
 		WithReplyParameters(ids.ReplyParameters(msg.MessageID)))
 	if err != nil {
 		// Preserve inline results when Telegram rejects the buttons.
-		log.Printf("/bbs send with buttons failed (%v) — retrying text-only", err)
+		log.Printf("/gbbs send with buttons failed (%v) — retrying text-only", err)
 		sent, _ = bot.SendMessage(c, tgfmt.HTMLMessage(msg.Chat.ID, b.String()).WithReplyParameters(ids.ReplyParameters(msg.MessageID)))
 	}
 	v.scheduleLookupCleanup(bot, msg.Chat.ID, msg.MessageID, ids.MessageID(sent))

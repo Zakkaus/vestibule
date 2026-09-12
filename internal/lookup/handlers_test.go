@@ -170,15 +170,15 @@ func TestAllLookupCommandHandlersSendCatalogueAnswers(t *testing.T) {
 		want      string
 		parseMode string
 	}{
-		{name: "pkg", text: "/pkg", handler: func(service *Service) th.Handler { return service.OnPkg }, want: i18n.Messages.LookupPackages.Pkg.Usage.For(i18n.LangEN)},
-		{name: "use", text: "/use", handler: func(service *Service) th.Handler { return service.OnUse }, want: i18n.Messages.LookupPackages.Use.Usage.For(i18n.LangEN)},
-		{name: "bug", text: "/bug", handler: func(service *Service) th.Handler { return service.OnBug }, want: i18n.Messages.LookupContent.Bug.Usage.For(i18n.LangEN)},
-		{name: "news", text: "/news", handler: func(service *Service) th.Handler { return service.OnNews }, want: renderNews(i18n.LangEN, "", newsItems, true), parseMode: telego.ModeHTML},
+		{name: "pkg", text: "/gpkg", handler: func(service *Service) th.Handler { return service.OnPkg }, want: i18n.Messages.LookupPackages.Pkg.Usage.For(i18n.LangEN)},
+		{name: "use", text: "/guse", handler: func(service *Service) th.Handler { return service.OnUse }, want: i18n.Messages.LookupPackages.Use.Usage.For(i18n.LangEN)},
+		{name: "bug", text: "/gbug", handler: func(service *Service) th.Handler { return service.OnBug }, want: i18n.Messages.LookupContent.Bug.Usage.For(i18n.LangEN)},
+		{name: "news", text: "/gnews", handler: func(service *Service) th.Handler { return service.OnNews }, want: renderNews(i18n.LangEN, "", newsItems, true), parseMode: telego.ModeHTML},
 		{name: "wiki", text: "/wiki", handler: func(service *Service) th.Handler { return service.OnWiki }, want: i18n.Messages.LookupContent.Wiki.Usage.For(i18n.LangEN)},
-		{name: "bbs", text: "/bbs", handler: func(service *Service) th.Handler { return service.OnBbs }, want: i18n.Messages.LookupContent.BBS.Usage.For(i18n.LangEN)},
+		{name: "bbs", text: "/gbbs", handler: func(service *Service) th.Handler { return service.OnBbs }, want: i18n.Messages.LookupContent.BBS.Usage.For(i18n.LangEN)},
 		{name: "pkgs", text: "/pkgs", handler: func(service *Service) th.Handler { return service.OnPkgs }, want: i18n.Messages.LookupDistros.Pkgs.Usage.For(i18n.LangEN)},
 		{name: "distro alias", text: "/distro", handler: func(service *Service) th.Handler { return service.OnPkgs }, want: i18n.Messages.LookupDistros.Pkgs.Usage.For(i18n.LangEN)},
-		{name: "arm", text: "/arm", handler: func(service *Service) th.Handler { return service.OnArm }, want: i18n.Messages.LookupPackages.Arm.Usage.For(i18n.LangEN)},
+		{name: "arm", text: "/garm", handler: func(service *Service) th.Handler { return service.OnArm }, want: i18n.Messages.LookupPackages.Arm.Usage.For(i18n.LangEN)},
 		{name: "armpkgs", text: "/armpkgs", handler: func(service *Service) th.Handler { return service.OnArmpkgs }, want: i18n.Messages.LookupDistros.Armpkgs.Usage.For(i18n.LangEN)},
 	}
 	for _, tt := range tests {
@@ -302,7 +302,7 @@ func TestLookupHandlerArgumentsAndTelegramFallbacks(t *testing.T) {
 		bot := newLookupTestBot(t, caller)
 		service := New(nil, telegram.NewConnector(bot), &settings.Config{}, "")
 		runLookupHandler(t, bot, service.OnPkg, telego.Update{})
-		withoutSender := lookupMessage("/pkg vim", 77, 77, telego.ChatTypePrivate)
+		withoutSender := lookupMessage("/gpkg vim", 77, 77, telego.ChatTypePrivate)
 		withoutSender.Message.From = nil
 		runLookupHandler(t, bot, service.OnPkg, withoutSender)
 		if got := len(caller.methodCalls("sendMessage")); got != 0 {
@@ -314,7 +314,7 @@ func TestLookupHandlerArgumentsAndTelegramFallbacks(t *testing.T) {
 		caller := &lookupTelegramCaller{}
 		bot := newLookupTestBot(t, caller)
 		service := New(nil, telegram.NewConnector(bot), &settings.Config{}, "")
-		runLookupHandler(t, bot, service.OnBug, lookupMessage("/bug 123 extra", 77, 77, telego.ChatTypePrivate))
+		runLookupHandler(t, bot, service.OnBug, lookupMessage("/gbug 123 extra", 77, 77, telego.ChatTypePrivate))
 		want := i18n.Messages.LookupContent.Bug.Usage.For(i18n.LangEN)
 		if got := sentLookupMessage(t, caller, 0).Text; got != want {
 			t.Fatalf("extra-argument answer = %q, want catalogue usage %q", got, want)
@@ -328,7 +328,7 @@ func TestLookupHandlerArgumentsAndTelegramFallbacks(t *testing.T) {
 		bot := newLookupTestBot(t, caller)
 		service := New(nil, telegram.NewConnector(bot), &settings.Config{}, "")
 		const arg = `"kernel update"`
-		runLookupHandler(t, bot, service.OnNews, lookupMessage("/news "+arg, 77, 77, telego.ChatTypePrivate))
+		runLookupHandler(t, bot, service.OnNews, lookupMessage("/gnews "+arg, 77, 77, telego.ChatTypePrivate))
 		want := renderNews(i18n.LangEN, arg, items, true)
 		if got := sentLookupMessage(t, caller, 0); got.Text != want || got.ParseMode != telego.ModeHTML {
 			t.Fatalf("quoted-query answer = text %q parse_mode %q, want catalogue rendering %q in HTML", got.Text, got.ParseMode, want)
@@ -362,7 +362,7 @@ func TestLookupHandlerArgumentsAndTelegramFallbacks(t *testing.T) {
 				RichMessages: true,
 				Overlays:     []settings.OverlayCfg{{Name: "test", Repo: "test/repo"}},
 			}, "")
-			runLookupHandler(t, bot, service.OnPkg, lookupMessage("/pkg "+tt.query, 77, 77, telego.ChatTypePrivate))
+			runLookupHandler(t, bot, service.OnPkg, lookupMessage("/gpkg "+tt.query, 77, 77, telego.ChatTypePrivate))
 			if got := len(caller.methodCalls("sendRichMessage")); got != 1 {
 				t.Fatalf("sendRichMessage calls = %d, want 1", got)
 			}
@@ -390,7 +390,7 @@ func TestLookupHandlerArgumentsAndTelegramFallbacks(t *testing.T) {
 			bot := newLookupTestBot(t, caller)
 			service := New(nil, telegram.NewConnector(bot), &settings.Config{}, "")
 			const query = "kernel modules"
-			runLookupHandler(t, bot, service.OnBbs, lookupMessage("/bbs "+query, 77, 77, telego.ChatTypePrivate))
+			runLookupHandler(t, bot, service.OnBbs, lookupMessage("/gbbs "+query, 77, 77, telego.ChatTypePrivate))
 			calls := caller.methodCalls("sendMessage")
 			if len(calls) != 2 {
 				t.Fatalf("sendMessage calls = %d, want button send and text-only fallback", len(calls))
