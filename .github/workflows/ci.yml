@@ -238,3 +238,12 @@ jobs:
         env:
           PLAYWRIGHT_PORT_OFFSET: 210
         run: cd web && npx playwright test --shard=${{ matrix.shard }}/4
+      - name: Upload Playwright diagnostics
+        if: failure()
+        uses: actions/upload-artifact@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          name: playwright-shard-${{ matrix.shard }}
+          path: |
+            web/test-results/
+            web/playwright-report/
+          retention-days: 7

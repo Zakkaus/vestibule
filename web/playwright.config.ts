@@ -13,7 +13,13 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
   workers: process.env.CI ? 2 : 1,
-  reporter: "line",
+  reporter: process.env.CI
+    ? [
+        ["line"],
+        ["github"],
+        ["html", { open: "never", outputFolder: "playwright-report" }]
+      ]
+    : "line",
   use: {
     browserName: "chromium",
     locale: "zh-CN",
@@ -24,7 +30,8 @@ export default defineConfig({
             process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ??
             "/usr/bin/google-chrome-stable"
         },
-    trace: "retain-on-failure"
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
   },
   projects: [
     {
