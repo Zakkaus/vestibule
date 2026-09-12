@@ -296,7 +296,8 @@
       "currentCondition": "筛选条件：群为 {{group}}，结果为 {{result}}。",
       "queryCondition": "筛选条件：{{query}}。",
       "clear": "清除筛选"
-    }
+    },
+    "description": "查看所选群当前等待处理的申请；获授权的群管理员可放行、拒绝或封禁申请。"
   },
   "preferences": {
     "title": "偏好",
@@ -634,7 +635,8 @@
     "empty": {
       "title": "尚无已结算的验证判定",
       "description": "验证判定结算后，记录会显示在此处并保留原始历史。"
-    }
+    },
+    "description": "查看所选群谁修改了什么以及每次验证判定的原因；获授权的管理员可撤销封禁。"
   },
   "verification": {
     "navigation": "验证方式",
@@ -1662,6 +1664,7 @@
         "title": "管理与处罚",
         "antispam": "频道身份防护"
       }
-    }
+    },
+    "description": "查看所选群的概况、需要注意的事项、趋势和常用配置入口；获授权的群管理员可修改群设置。"
   }
 }

@@ -297,7 +297,8 @@
       "currentCondition": "Current filters: group {{group}}, result {{result}}.",
       "queryCondition": "Current filter: {{query}}.",
       "clear": "Clear filters"
-    }
+    },
+    "description": "Review applications currently waiting in the selected group; authorized group administrators can release, reject, or ban them."
   },
   "preferences": {
     "title": "Preferences",
@@ -638,7 +639,8 @@
     "empty": {
       "title": "No settled decisions yet",
       "description": "Settled challenge decisions appear here without changing their original history."
-    }
+    },
+    "description": "Review who changed what and why each verification decision was made for the selected group; authorized administrators can undo bans."
   },
   "verification": {
     "navigation": "Verification methods",
@@ -1671,6 +1673,7 @@
         "title": "Moderation and penalties",
         "antispam": "Anti-spam"
       }
-    }
+    },
+    "description": "Review the selected group’s status, attention items, trends, and links to frequently used settings; authorized group administrators can change group settings."
   }
 }

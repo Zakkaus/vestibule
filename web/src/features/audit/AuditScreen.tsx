@@ -418,6 +418,7 @@ export function AuditScreen() {
     >
       <header data-page-heading>
         <h1 id="audit-title">{t("audit.title")}</h1>
+        <p>{t("audit.description")}</p>
       </header>
 
       {auditState.kind === "loading" ? (

@@ -296,7 +296,8 @@
       "currentCondition": "目前條件：群組為 {{group}}，結果為 {{result}}。",
       "queryCondition": "目前篩選：{{query}}。",
       "clear": "清除篩選"
-    }
+    },
+    "description": "檢視所選群組目前等待處理的申請；獲授權的群組管理員可放行、拒絕或封鎖申請。"
   },
   "preferences": {
     "title": "偏好",
@@ -634,7 +635,8 @@
     "empty": {
       "title": "尚無已結算的判定",
       "description": "驗證判定結算後會顯示在此處，並保留原始歷史。"
-    }
+    },
+    "description": "檢視所選群組誰修改了什麼，以及每次驗證判定的原因；獲授權的管理員可撤銷封鎖。"
   },
   "verification": {
     "navigation": "驗證方式",
@@ -1662,6 +1664,7 @@
         "title": "管理與處罰",
         "antispam": "反垃圾訊息"
       }
-    }
+    },
+    "description": "檢視所選群組的概況、需要注意的事項、趨勢與常用設定入口；獲授權的群組管理員可修改群組設定。"
   }
 }
