@@ -285,10 +285,6 @@ func deliverGitHubRepo(ctx context.Context, bot feedBot, f *settings.FeedConfig,
 	return githubRepoComplete
 }
 
-func pollGitHub(ctx context.Context, bot feedBot, f *settings.FeedConfig, st *feedState, edits *int) githubRepoResult {
-	return pollGitHubWithEditBudget(ctx, bot, f, st, edits, lookup.RecentCommits, lookup.RecentGitHubItems)
-}
-
 func pollGitHubWithFetcher(ctx context.Context, bot feedBot, f *settings.FeedConfig, st *feedState, fetch func(context.Context, string, string) ([]lookup.Commit, error)) {
 	edits := 0
 	pollGitHubWithEditBudget(ctx, bot, f, st, &edits, fetch, lookup.RecentGitHubItems)
