@@ -25,6 +25,17 @@ type stateCompatTrackedWant struct {
 	status       string
 }
 
+type stateCompatGitHubTrackedWant struct {
+	msgID     int
+	state     string
+	editFails int
+}
+
+type stateCompatGitHubWant struct {
+	lastID  string
+	tracked map[int]stateCompatGitHubTrackedWant
+}
+
 type stateCompatLegacyFeedState struct {
 	LastBugID   int                                 `json:"last_bug_id"`
 	LastNewsURL string                              `json:"last_news_url"`
@@ -55,6 +66,12 @@ func TestStateCompatGenerateFeedFixtures(t *testing.T) {
 			"980003": {MsgID: 6003, State: "RESOLVED|FIXED", Misses: 4, EditFails: 5, ConfirmTries: 6},
 			"980004": {MsgID: 6004, State: "RESOLVED|INVALID"},
 		},
+		GitHub: &githubState{Repos: map[string]githubRepoState{
+			"o/r@": {LastID: "cursor", Tracked: map[int]trackedGitHubItem{
+				7: {MsgID: 7007, State: githubItemMerged, EditFails: 3},
+				8: {MsgID: 7008, State: githubItemOpen},
+			}},
+		}},
 	})
 	if err := store.Write(filepath.Join(dir, "feed-legacy-status.json"), stateCompatLegacyFeedState{
 		LastBugID:   880002,
@@ -77,6 +94,15 @@ func TestStateCompatFeed(t *testing.T) {
 		"980003": {msgID: 6003, state: "RESOLVED|FIXED", misses: 4, editFails: 5, confirmTries: 6},
 		"980004": {msgID: 6004, state: "RESOLVED|INVALID"},
 	}
+	currentGitHub := map[string]stateCompatGitHubWant{
+		"o/r@": {
+			lastID: "cursor",
+			tracked: map[int]stateCompatGitHubTrackedWant{
+				7: {msgID: 7007, state: githubItemMerged, editFails: 3},
+				8: {msgID: 7008, state: githubItemOpen},
+			},
+		},
+	}
 	legacy := stateCompatFeedFixtureBytes(t, "feed-legacy-status.json")
 	legacyTracked := map[string]stateCompatTrackedWant{
 		"880001": {msgID: 4001, state: "UNCONFIRMED|"},
@@ -88,18 +114,19 @@ func TestStateCompatFeed(t *testing.T) {
 		lastBugID   int
 		lastNewsURL string
 		tracked     map[string]stateCompatTrackedWant
+		github      map[string]stateCompatGitHubWant
 		roundTrip   bool
 		legacy      bool
 	}{
 		{
 			name: "current", data: fixture, lastBugID: 980004,
 			lastNewsURL: "https://www.gentoo.org/support/news-items/2026-08-24-state-compat.html",
-			tracked:     currentTracked, roundTrip: true,
+			tracked:     currentTracked, github: currentGitHub, roundTrip: true,
 		},
 		{
 			name: "unknown top-level key", data: stateCompatFeedWithUnknown(t, fixture), lastBugID: 980004,
 			lastNewsURL: "https://www.gentoo.org/support/news-items/2026-08-24-state-compat.html",
-			tracked:     currentTracked,
+			tracked:     currentTracked, github: currentGitHub,
 		},
 		{
 			name: "legacy tracked status", data: legacy, lastBugID: 880002,
@@ -112,6 +139,7 @@ func TestStateCompatFeed(t *testing.T) {
 			path := stateCompatFeedTempFile(t, stateCompatFeedFixture, tt.data)
 			got := loadFeedState(path)
 			stateCompatAssertFeed(t, got, tt.lastBugID, tt.lastNewsURL, tt.tracked)
+			stateCompatAssertGitHub(t, got.GitHub, tt.github)
 			if tt.roundTrip {
 				out := filepath.Join(t.TempDir(), stateCompatFeedFixture)
 				saveFeedState(out, got)
@@ -151,6 +179,35 @@ func stateCompatAssertFeed(t *testing.T, got feedState, lastBugID int, lastNewsU
 		if rec.MsgID != expected.msgID || rec.State != expected.state || rec.Misses != expected.misses ||
 			rec.EditFails != expected.editFails || rec.ConfirmTries != expected.confirmTries || rec.Status != expected.status {
 			t.Errorf("loaded tracked feed bug %s = %+v, want %+v", id, rec, expected)
+		}
+	}
+}
+
+func stateCompatAssertGitHub(t *testing.T, got *githubState, want map[string]stateCompatGitHubWant) {
+	t.Helper()
+	if want == nil {
+		if got != nil {
+			t.Errorf("loaded unexpected GitHub state: %+v", got)
+		}
+		return
+	}
+	if got == nil || len(got.Repos) != len(want) {
+		t.Fatalf("loaded GitHub state = %+v, want %d repositories", got, len(want))
+	}
+	for key, expected := range want {
+		repo, ok := got.Repos[key]
+		if !ok {
+			t.Errorf("missing GitHub repository state %q", key)
+			continue
+		}
+		if repo.LastID != expected.lastID || len(repo.Tracked) != len(expected.tracked) {
+			t.Errorf("GitHub repository %q = %+v, want last_id=%q tracked=%d", key, repo, expected.lastID, len(expected.tracked))
+		}
+		for number, trackedWant := range expected.tracked {
+			tracked := repo.Tracked[number]
+			if tracked.MsgID != trackedWant.msgID || tracked.State != trackedWant.state || tracked.EditFails != trackedWant.editFails {
+				t.Errorf("GitHub item #%d = %+v, want %+v", number, tracked, trackedWant)
+			}
 		}
 	}
 }
