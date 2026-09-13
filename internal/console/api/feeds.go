@@ -35,6 +35,7 @@ type feedsView struct {
 	Lang            settingResponse[string] `json:"lang"`
 	IntervalSeconds settingResponse[int]    `json:"interval_seconds"`
 	Bugs            settingResponse[bool]   `json:"bugs"`
+	BugzillaBase    settingResponse[string] `json:"bugzilla_base"`
 	News            settingResponse[bool]   `json:"news"`
 	BugProduct      settingResponse[string] `json:"bug_product"`
 	BugComponent    settingResponse[string] `json:"bug_component"`
@@ -48,9 +49,9 @@ func feedsViewForGroup(group settings.GroupView) feedsResponse {
 		GitHubRepos: feedsGitHubReposView(feed.GitHubRepos),
 		Feed: feedsView{
 			Lang: settingView(feed.Lang), IntervalSeconds: settingView(feed.IntervalSeconds),
-			Bugs: settingView(feed.Bugs), News: settingView(feed.News),
-			BugProduct: settingView(feed.BugProduct), BugComponent: settingView(feed.BugComponent),
-			SilentBugs: settingView(feed.SilentBugs),
+			Bugs: settingView(feed.Bugs), BugzillaBase: settingView(feed.BugzillaBase),
+			News: settingView(feed.News), BugProduct: settingView(feed.BugProduct),
+			BugComponent: settingView(feed.BugComponent), SilentBugs: settingView(feed.SilentBugs),
 		},
 	}
 }
@@ -71,6 +72,7 @@ type feedsUpdateRequest struct {
 	Lang             *string                   `json:"lang"`
 	IntervalSeconds  *int                      `json:"interval_seconds"`
 	Bugs             *bool                     `json:"bugs"`
+	BugzillaBase     *string                   `json:"bugzilla_base"`
 	News             *bool                     `json:"news"`
 	BugProduct       *string                   `json:"bug_product"`
 	BugComponent     *string                   `json:"bug_component"`
@@ -134,6 +136,11 @@ func (s *Server) putFeeds(writer http.ResponseWriter, request *http.Request, cha
 		writeFeedsInvalid(writer, fields)
 		return
 	}
+	base, err := settings.NormalizeBugzillaBase(*input.BugzillaBase)
+	if err != nil {
+		writeFeedsInvalid(writer, []*settings.FeedValidationError{{Field: "bugzilla_base", Code: "invalid_url"}})
+		return
+	}
 	repositories := make([]settings.GitHubRepo, len(*input.GitHubRepos))
 	for i, repository := range *input.GitHubRepos {
 		repositories[i] = settings.GitHubRepo{
@@ -143,9 +150,9 @@ func (s *Server) putFeeds(writer http.ResponseWriter, request *http.Request, cha
 	}
 	next := group.Overrides()
 	next.Feed = &settings.FeedOverride{
-		Lang: input.Lang, IntervalSeconds: input.IntervalSeconds, Bugs: input.Bugs, News: input.News,
-		BugProduct: input.BugProduct, BugComponent: input.BugComponent, SilentBugs: input.SilentBugs,
-		GitHubRepos: &repositories,
+		Lang: input.Lang, IntervalSeconds: input.IntervalSeconds, Bugs: input.Bugs,
+		BugzillaBase: &base, News: input.News, BugProduct: input.BugProduct,
+		BugComponent: input.BugComponent, SilentBugs: input.SilentBugs, GitHubRepos: &repositories,
 	}
 	if _, err := s.settings.Update(chatID, expected, next); err != nil {
 		writeFeedsError(writer, err)
@@ -159,7 +166,7 @@ func (s *Server) putFeeds(writer http.ResponseWriter, request *http.Request, cha
 }
 
 func missingFeedsUpdateFields(input feedsUpdateRequest) []*settings.FeedValidationError {
-	fields := make([]*settings.FeedValidationError, 0, 8)
+	fields := make([]*settings.FeedValidationError, 0, 9)
 	appendMissing := func(missing bool, name string) {
 		if missing {
 			fields = append(fields, &settings.FeedValidationError{Field: name, Code: "required_field"})
@@ -168,6 +175,7 @@ func missingFeedsUpdateFields(input feedsUpdateRequest) []*settings.FeedValidati
 	appendMissing(input.Lang == nil, "lang")
 	appendMissing(input.IntervalSeconds == nil, "interval_seconds")
 	appendMissing(input.Bugs == nil, "bugs")
+	appendMissing(input.BugzillaBase == nil, "bugzilla_base")
 	appendMissing(input.News == nil, "news")
 	appendMissing(input.BugProduct == nil, "bug_product")
 	appendMissing(input.BugComponent == nil, "bug_component")

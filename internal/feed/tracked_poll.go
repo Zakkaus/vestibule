@@ -8,33 +8,52 @@ import (
 	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
-func collectTrackedBugIDs(due []*settings.FeedConfig, states map[int64]*feedState) map[int]bool {
-	trackedSet := map[int]bool{}
+func collectTrackedBugIDs(due []*settings.FeedConfig, states map[int64]*feedState) map[string]map[int]bool {
+	byBase := map[string]map[int]bool{}
 	for _, f := range due {
-		for k := range states[f.ChatID].Tracked {
-			if id, err := strconv.Atoi(k); err == nil {
+		trackedSet := byBase[f.BugzillaBase]
+		if trackedSet == nil {
+			trackedSet = map[int]bool{}
+			byBase[f.BugzillaBase] = trackedSet
+		}
+		for key := range states[f.ChatID].Tracked {
+			if id, err := strconv.Atoi(key); err == nil {
 				trackedSet[id] = true
 			}
 		}
 	}
-	return trackedSet
+	return byBase
 }
 
-func fetchTrackedBugs(ctx context.Context, trackedSet map[int]bool, fetch func(context.Context, []int) ([]recentBug, bool)) (map[int]recentBug, bool) {
-	var byID map[int]recentBug
-	fetchOK := false
-	if len(trackedSet) > 0 {
+func fetchTrackedBugs(
+	ctx context.Context,
+	trackedByBase map[string]map[int]bool,
+	fetch func(context.Context, string, []int) ([]recentBug, bool),
+) (map[string]map[int]recentBug, map[string]bool) {
+	bugsByBase := map[string]map[int]recentBug{}
+	fetchOKByBase := map[string]bool{}
+	bases := make([]string, 0, len(trackedByBase))
+	for base := range trackedByBase {
+		bases = append(bases, base)
+	}
+	sort.Strings(bases)
+	for _, base := range bases {
+		trackedSet := trackedByBase[base]
+		if len(trackedSet) == 0 {
+			continue
+		}
 		ids := make([]int, 0, len(trackedSet))
 		for id := range trackedSet {
 			ids = append(ids, id)
 		}
 		sort.Ints(ids)
-		byID = map[int]recentBug{}
-		fetched, ok := fetch(ctx, ids)
+		fetched, ok := fetch(ctx, base, ids)
+		byID := make(map[int]recentBug, len(fetched))
 		for _, b := range fetched {
 			byID[b.ID] = b
 		}
-		fetchOK = ok
+		bugsByBase[base] = byID
+		fetchOKByBase[base] = ok
 	}
-	return byID, fetchOK
+	return bugsByBase, fetchOKByBase
 }

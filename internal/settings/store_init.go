@@ -341,17 +341,21 @@ func (s *Store) knownChatIDs() map[int64]struct{} {
 // store keeps, clamping the interval to the range the store validates.
 func feedOverrideFromLegacy(legacy FeedConfig) *FeedOverride {
 	bugs, news := legacy.BugsOn(), legacy.NewsOn()
+	if bugs && legacy.BugzillaBase == "" {
+		log.Printf("settings: legacy feed for chat %d has no bugzilla_base; Bugzilla posts disabled", legacy.ChatID)
+		bugs = false
+	}
 	silent := legacy.SilentBugs != nil && *legacy.SilentBugs
 	interval := legacy.IntervalSeconds
 	if interval <= 0 {
 		interval = 300
 	}
 	interval = min(max(interval, 60), maxFeedIntervalSeconds)
-	lang := legacy.Lang
+	lang, base := legacy.Lang, legacy.BugzillaBase
 	repos := cloneGitHubRepos(legacy.GitHubRepos)
 	product, component := legacy.BugProduct, legacy.BugComponent
 	return &FeedOverride{
-		Lang: &lang, IntervalSeconds: &interval, Bugs: &bugs, News: &news,
+		Lang: &lang, IntervalSeconds: &interval, Bugs: &bugs, BugzillaBase: &base, News: &news,
 		BugProduct: &product, BugComponent: &component,
 		SilentBugs: &silent, GitHubRepos: &repos,
 	}

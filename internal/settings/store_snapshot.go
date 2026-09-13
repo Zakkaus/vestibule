@@ -138,16 +138,18 @@ func resolveFeed(override *FeedOverride, baseline FeedBaseline) FeedView {
 	if override == nil {
 		return FeedView{
 			Lang: resolve(nil, baseline.Lang), IntervalSeconds: resolve(nil, baseline.IntervalSeconds),
-			Bugs: resolve(nil, baseline.Bugs), News: resolve(nil, baseline.News),
-			BugProduct: resolve(nil, baseline.BugProduct), BugComponent: resolve(nil, baseline.BugComponent),
-			SilentBugs: resolve(nil, baseline.SilentBugs), GitHubRepos: repos,
+			Bugs: resolve(nil, baseline.Bugs), BugzillaBase: resolve(nil, baseline.BugzillaBase),
+			News: resolve(nil, baseline.News), BugProduct: resolve(nil, baseline.BugProduct),
+			BugComponent: resolve(nil, baseline.BugComponent), SilentBugs: resolve(nil, baseline.SilentBugs),
+			GitHubRepos: repos,
 		}
 	}
 	return FeedView{
 		Lang: resolve(override.Lang, baseline.Lang), IntervalSeconds: resolve(override.IntervalSeconds, baseline.IntervalSeconds),
-		Bugs: resolve(override.Bugs, baseline.Bugs), News: resolve(override.News, baseline.News),
-		BugProduct: resolve(override.BugProduct, baseline.BugProduct), BugComponent: resolve(override.BugComponent, baseline.BugComponent),
-		SilentBugs: resolve(override.SilentBugs, baseline.SilentBugs), GitHubRepos: repos,
+		Bugs: resolve(override.Bugs, baseline.Bugs), BugzillaBase: resolve(override.BugzillaBase, baseline.BugzillaBase),
+		News: resolve(override.News, baseline.News), BugProduct: resolve(override.BugProduct, baseline.BugProduct),
+		BugComponent: resolve(override.BugComponent, baseline.BugComponent),
+		SilentBugs:   resolve(override.SilentBugs, baseline.SilentBugs), GitHubRepos: repos,
 	}
 }
 
@@ -171,6 +173,7 @@ func normalizeBaselineFeeds(baseline *SettingsBaseline) {
 			Lang:            factoryValue(""),
 			IntervalSeconds: factoryValue(300),
 			Bugs:            factoryValue(false),
+			BugzillaBase:    factoryValue(""),
 			News:            factoryValue(false),
 			BugProduct:      factoryValue(""),
 			BugComponent:    factoryValue(""),
@@ -232,8 +235,8 @@ func validateBaselineSources(group GroupBaseline) error {
 		group.Questions.Source, group.FallbackQuestions.Source, group.FallbackBuiltin.Source,
 		group.AdminLogChatID.Source, group.RequiredChannelFailOpen.Source,
 		group.Feed.Lang.Source, group.Feed.IntervalSeconds.Source, group.Feed.Bugs.Source,
-		group.Feed.News.Source, group.Feed.BugProduct.Source, group.Feed.BugComponent.Source,
-		group.Feed.SilentBugs.Source, group.Feed.GitHubRepos.Source,
+		group.Feed.BugzillaBase.Source, group.Feed.News.Source, group.Feed.BugProduct.Source,
+		group.Feed.BugComponent.Source, group.Feed.SilentBugs.Source, group.Feed.GitHubRepos.Source,
 	}
 	for _, source := range sources {
 		if source != SourceFactory && source != SourceUserFile {
@@ -369,6 +372,9 @@ func validateEffectiveFeed(group *effectiveGroup) error {
 	if feed.IntervalSeconds.Value < 60 || feed.IntervalSeconds.Value > maxFeedIntervalSeconds {
 		return &FeedValidationError{Field: "interval_seconds", Code: "invalid_interval", Message: "interval must be between 60 and 86400 seconds"}
 	}
+	if err := validateFeedBugzillaBase(feed); err != nil {
+		return err
+	}
 	if feed.GitHubRepos.Source == SourceChatOverride {
 		seen := make(map[string]struct{}, len(feed.GitHubRepos.Value))
 		for i, repo := range feed.GitHubRepos.Value {
@@ -383,6 +389,16 @@ func validateEffectiveFeed(group *effectiveGroup) error {
 			}
 			seen[key] = struct{}{}
 		}
+	}
+	return nil
+}
+
+func validateFeedBugzillaBase(feed FeedView) error {
+	if _, err := NormalizeBugzillaBase(feed.BugzillaBase.Value); err != nil {
+		return &FeedValidationError{Field: "bugzilla_base", Code: "invalid_url", Message: "Bugzilla base URL is invalid"}
+	}
+	if feed.Bugs.Value && feed.BugzillaBase.Value == "" {
+		return &FeedValidationError{Field: "bugzilla_base", Code: "required_field", Message: "Bugzilla base URL is required when Bugzilla posts are enabled"}
 	}
 	return nil
 }

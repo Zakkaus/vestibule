@@ -277,7 +277,7 @@ func TestFetchRecentBugsUsesCursorBoundedQuery(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var query neturl.Values
-			got, ok := fetchRecentBugsWith(context.Background(), tt.afterID, func(_ context.Context, rawURL string, dst any) error {
+			got, ok := fetchRecentBugsWith(context.Background(), "https://bugzilla.example.test", tt.afterID, func(_ context.Context, rawURL string, dst any) error {
 				u, err := neturl.Parse(rawURL)
 				if err != nil {
 					return err
@@ -485,7 +485,7 @@ func TestTrackedBugChunksGetIndependentDeadlines(t *testing.T) {
 			for i := range ids {
 				ids[i] = i + 1
 			}
-			bugs, ok := fetchBugsByIDWith(context.Background(), ids, getJSON)
+			bugs, ok := fetchBugsByIDWith(context.Background(), "https://bugzilla.example.test", ids, getJSON)
 			if ok {
 				t.Fatal("timed-out chunks must make the aggregate fetch incomplete")
 			}
@@ -521,7 +521,7 @@ func TestTrackedBugSchemaValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			setFeedTestTiming(t, time.Second, time.Second)
-			bugs, ok := fetchBugsByIDWith(context.Background(), []int{77}, func(_ context.Context, _ string, dst any) error {
+			bugs, ok := fetchBugsByIDWith(context.Background(), "https://bugzilla.example.test", []int{77}, func(_ context.Context, _ string, dst any) error {
 				return json.Unmarshal([]byte(tt.body), dst)
 			})
 			if ok != tt.wantOK {

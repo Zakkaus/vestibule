@@ -45,7 +45,7 @@ func TestFormatBugCatalogueLabels(t *testing.T) {
 
 	for _, lang := range i18n.Languages() {
 		t.Run(lang.String(), func(t *testing.T) {
-			got := formatBug(bug, lang)
+			got := formatBug("https://bugzilla.example.test", bug, lang)
 			labels := i18n.Messages.Feed.Bug
 			for _, label := range []i18n.Text{
 				labels.Status,
@@ -102,15 +102,15 @@ func TestBugSilent(t *testing.T) {
 // sees it (filed + closed within one poll, e.g. RESOLVED/INVALID) must render ✅ (not 🐞) and be
 // posted silently; an open bug keeps 🐞 and the caller's status-aware silence.
 func TestFormatNewBug(t *testing.T) {
-	text, silent := formatNewBug(recentBug{ID: 1, Summary: "x", Status: "CONFIRMED"}, feedLanguage("en"), false)
+	text, silent := formatNewBug("https://bugzilla.example.test", recentBug{ID: 1, Summary: "x", Status: "CONFIRMED"}, feedLanguage("en"), false)
 	if !strings.Contains(text, "🐞") || silent {
 		t.Errorf("an open new bug should be 🐞 and not forced silent (silent=%v)", silent)
 	}
-	text, silent = formatNewBug(recentBug{ID: 2, Summary: "x", Status: "RESOLVED", Resolution: "INVALID"}, feedLanguage("en"), false)
+	text, silent = formatNewBug("https://bugzilla.example.test", recentBug{ID: 2, Summary: "x", Status: "RESOLVED", Resolution: "INVALID"}, feedLanguage("en"), false)
 	if strings.Contains(text, "🐞") || !strings.Contains(text, "❌") || !silent {
 		t.Errorf("a born-resolved INVALID (误报) bug should be ❌ and silent (silent=%v)", silent)
 	}
-	text, silent = formatNewBug(recentBug{ID: 3, Summary: "x", Status: "RESOLVED", Resolution: "FIXED"}, feedLanguage("en"), false)
+	text, silent = formatNewBug("https://bugzilla.example.test", recentBug{ID: 3, Summary: "x", Status: "RESOLVED", Resolution: "FIXED"}, feedLanguage("en"), false)
 	if !strings.Contains(text, "✅") || strings.Contains(text, "🐞") || !silent {
 		t.Errorf("a born-resolved FIXED bug should be ✅ and silent (silent=%v)", silent)
 	}
@@ -184,7 +184,7 @@ func TestBugCursorForwardOnly(t *testing.T) {
 	feedSendPause = 0
 	t.Cleanup(func() { feedSendPause = oldPause })
 	bugsOn, newsOff := true, false
-	feed := &settings.FeedConfig{ChatID: -100, Lang: "en", Bugs: &bugsOn, News: &newsOff}
+	feed := &settings.FeedConfig{ChatID: -100, Lang: "en", Bugs: &bugsOn, BugzillaBase: "https://bugzilla.example.test", News: &newsOff}
 	tests := []struct {
 		name       string
 		bugs       []recentBug
@@ -223,7 +223,7 @@ func TestBugCursorForwardOnly(t *testing.T) {
 				t.Fatalf("sent items = %d, want %d", len(fake.sentText), len(tt.wantIDs))
 			}
 			for i, wantID := range tt.wantIDs {
-				wantURL := "https://bugs.gentoo.org/" + strconv.Itoa(wantID)
+				wantURL := "https://bugzilla.example.test/" + strconv.Itoa(wantID)
 				if !strings.Contains(fake.sentText[i], wantURL) {
 					t.Errorf("sent item %d = %q, want bug %d", i, fake.sentText[i], wantID)
 				}
@@ -269,7 +269,7 @@ func TestBugTracking(t *testing.T) {
 		t.Error("resolved-first eviction: the open bug (100) must survive while a resolved one remains to evict")
 	}
 
-	got := formatBugResolved(recentBug{ID: 7, Summary: "x", Status: "RESOLVED", Resolution: "FIXED"}, feedLanguage("en"))
+	got := formatBugResolved("https://bugzilla.example.test", recentBug{ID: 7, Summary: "x", Status: "RESOLVED", Resolution: "FIXED"}, feedLanguage("en"))
 	if !strings.HasPrefix(got, "✅") || strings.Contains(got, "🐞") {
 		t.Errorf("formatBugResolved should render ✅, got prefix %q", got[:12])
 	}
@@ -842,17 +842,17 @@ func TestRefreshTrackedConfirmRetry(t *testing.T) {
 // (localized in zh, raw in en), never always "confirmed", and falls back to the raw status for an
 // unmapped value.
 func TestConfirmNotice(t *testing.T) {
-	if got := confirmNotice(recentBug{ID: 5, Status: "IN_PROGRESS"}, feedLanguage("en")); !strings.Contains(got, "IN_PROGRESS") {
+	if got := confirmNotice("https://bugzilla.example.test", recentBug{ID: 5, Status: "IN_PROGRESS"}, feedLanguage("en")); !strings.Contains(got, "IN_PROGRESS") {
 		t.Errorf("en IN_PROGRESS notice should name the status, got %q", got)
 	}
 	want := lookup.TranslateBugValue(i18n.LangZH, "IN_PROGRESS")
-	if got := confirmNotice(recentBug{ID: 5, Status: "IN_PROGRESS"}, feedLanguage("zh")); !strings.Contains(got, want) {
+	if got := confirmNotice("https://bugzilla.example.test", recentBug{ID: 5, Status: "IN_PROGRESS"}, feedLanguage("zh")); !strings.Contains(got, want) {
 		t.Errorf("zh IN_PROGRESS notice should contain catalogue status %q, got %q", want, got)
 	}
-	if got := confirmNotice(recentBug{ID: 5, Status: "CONFIRMED"}, feedLanguage("en")); !strings.Contains(got, "CONFIRMED") {
+	if got := confirmNotice("https://bugzilla.example.test", recentBug{ID: 5, Status: "CONFIRMED"}, feedLanguage("en")); !strings.Contains(got, "CONFIRMED") {
 		t.Errorf("en CONFIRMED notice should name the status, got %q", got)
 	}
-	if got := confirmNotice(recentBug{ID: 5, Status: "WEIRD_STATE"}, feedLanguage("en")); !strings.Contains(got, "WEIRD_STATE") {
+	if got := confirmNotice("https://bugzilla.example.test", recentBug{ID: 5, Status: "WEIRD_STATE"}, feedLanguage("en")); !strings.Contains(got, "WEIRD_STATE") {
 		t.Errorf("an unmapped status should fall back to the raw value, got %q", got)
 	}
 }

@@ -2,12 +2,16 @@ package feed
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 
+	"github.com/Zakkaus/vestibule/internal/lookup"
+	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/store"
 )
 
@@ -162,6 +166,65 @@ func TestStateCompatFeed(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestFeedStateResetsForDifferentBugzillaBase(t *testing.T) {
+	const oldBase = "https://bugs.old.example"
+	const currentBase = "https://bugs.current.example"
+	path := stateCompatFeedTempFile(t, "feed-base-change.json", []byte(
+		`{"last_bug_id":41,"bugzilla_base":"`+oldBase+`","tracked":{"41":{"msg_id":9,"state":"CONFIRMED|"}}}`))
+	var feedConfig settings.FeedConfig
+	if err := json.Unmarshal([]byte(
+		`{"chat_id":-1009876543210,"bugs":true,"news":false,"bugzilla_base":"`+currentBase+`"}`), &feedConfig); err != nil {
+		t.Fatal(err)
+	}
+	state := loadFeedState(path)
+	now := time.Date(2026, time.September, 14, 0, 0, 0, 0, time.UTC)
+	pollAllWithSources(context.Background(), &fakeFeedBot{}, []*settings.FeedConfig{&feedConfig},
+		map[int64]*feedState{feedConfig.ChatID: &state}, "", now, map[int64]time.Time{}, feedSources{
+			recent: func(_ context.Context, after int) ([]recentBug, bool) {
+				if after != 0 {
+					t.Fatalf("changed Bugzilla base fetched after %d, want reset cursor 0", after)
+				}
+				return nil, true
+			},
+			news:    func(context.Context) ([]lookup.NewsItem, error) { return nil, nil },
+			tracked: func(context.Context, []int) ([]recentBug, bool) { return nil, true },
+		})
+	if state.LastBugID != 0 || len(state.Tracked) != 0 {
+		t.Fatalf("changed Bugzilla base retained cursor state: %+v", state)
+	}
+}
+
+func TestFeedStateWithoutBugzillaBaseKeepsCursor(t *testing.T) {
+	const currentBase = "https://bugs.current.example"
+	path := stateCompatFeedTempFile(t, "feed-legacy-base.json", []byte(
+		`{"last_bug_id":41,"tracked":{"41":{"msg_id":9,"state":"CONFIRMED|"}}}`))
+	var feedConfig settings.FeedConfig
+	if err := json.Unmarshal([]byte(
+		`{"chat_id":-1009876543210,"bugs":true,"news":false,"bugzilla_base":"`+currentBase+`"}`), &feedConfig); err != nil {
+		t.Fatal(err)
+	}
+	state := loadFeedState(path)
+	pollAllWithSources(context.Background(), &fakeFeedBot{}, []*settings.FeedConfig{&feedConfig},
+		map[int64]*feedState{feedConfig.ChatID: &state}, "", time.Now(), map[int64]time.Time{}, feedSources{
+			recent: func(_ context.Context, after int) ([]recentBug, bool) {
+				if after != 41 {
+					t.Fatalf("legacy Bugzilla state fetched after %d, want 41", after)
+				}
+				return nil, true
+			},
+			news: func(context.Context) ([]lookup.NewsItem, error) { return nil, nil },
+			tracked: func(context.Context, []int) ([]recentBug, bool) {
+				return []recentBug{{ID: 41, Status: "CONFIRMED"}}, true
+			},
+		})
+	if state.LastBugID != 41 || len(state.Tracked) != 1 {
+		t.Fatalf("legacy Bugzilla state was cleared: %+v", state)
+	}
+	if state.BugzillaBase == nil || *state.BugzillaBase != currentBase {
+		t.Fatalf("legacy Bugzilla state did not adopt current base: %+v", state)
 	}
 }
 

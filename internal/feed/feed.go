@@ -97,6 +97,7 @@ var (
 type feedState struct {
 	LastBugID     int                    `json:"last_bug_id"`
 	LastNewsURL   string                 `json:"last_news_url"`
+	BugzillaBase  *string                `json:"bugzilla_base,omitempty"`
 	Tracked       map[string]*trackedBug `json:"tracked,omitempty"` // bug id (as string for JSON) -> posted message
 	GitHub        *githubState           `json:"github,omitempty"`
 	writeDisabled bool                   `json:"-"`
@@ -194,10 +195,10 @@ func (u bugUser) display() string {
 	return u.Name
 }
 
-// link renders the user as an <a> to their Gentoo Bugzilla bug list in the given role
+// link renders the user as an <a> to their Bugzilla bug list in the given role
 // ("assigned_to" or "reporter"). Falls back to plain escaped text when there's no email,
 // and to "" when there's no name at all.
-func (u bugUser) link(role string) string {
+func (u bugUser) link(base, role string) string {
 	disp := u.display()
 	if disp == "" {
 		return ""
@@ -207,7 +208,7 @@ func (u bugUser) link(role string) string {
 	}
 	// Bugzilla redacts emails for anonymous API access (Name is just the local part,
 	// no @domain), so match by substring rather than equals.
-	href := "https://bugs.gentoo.org/buglist.cgi?query_format=advanced&emailtype1=substring&email1=" +
+	href := base + "/buglist.cgi?query_format=advanced&emailtype1=substring&email1=" +
 		neturl.QueryEscape(u.Name) + "&email" + role + "1=1"
 	return fmt.Sprintf("<a href=\"%s\">%s</a>", html.EscapeString(href), html.EscapeString(disp))
 }
@@ -238,15 +239,15 @@ type recentBugBatchFetcher func(context.Context, int) ([]recentBug, error)
 
 type feedJSONFetcher func(context.Context, string, any) error
 
-func fetchRecentBugs(ctx context.Context, afterID int) ([]recentBug, bool) {
-	return fetchRecentBugsWith(ctx, afterID, func(ctx context.Context, url string, dst any) error {
+func fetchRecentBugs(ctx context.Context, base string, afterID int) ([]recentBug, bool) {
+	return fetchRecentBugsWith(ctx, base, afterID, func(ctx context.Context, url string, dst any) error {
 		return lookup.GetJSON(ctx, url, nil, dst)
 	})
 }
 
-func fetchRecentBugsWith(ctx context.Context, afterID int, getJSON feedJSONFetcher) ([]recentBug, bool) {
+func fetchRecentBugsWith(ctx context.Context, base string, afterID int, getJSON feedJSONFetcher) ([]recentBug, bool) {
 	return collectRecentBugs(ctx, afterID, func(ctx context.Context, afterID int) ([]recentBug, error) {
-		u := "https://bugs.gentoo.org/rest/bug?include_fields=" + bugFields
+		u := base + "/rest/bug?include_fields=" + bugFields
 		if afterID == 0 {
 			u += "&order=bug_id%20DESC&limit=1"
 		} else {
@@ -299,13 +300,13 @@ func collectRecentBugs(ctx context.Context, afterID int, fetch recentBugBatchFet
 // fetchBugsByID fetches the current state of specific bugs (to detect when a posted bug has been
 // resolved/reopened, so its message can be edited). Each chunk gets a fresh deadline, so one hung
 // Bugzilla request cannot consume the budget of every chunk that follows.
-func fetchBugsByID(ctx context.Context, ids []int) (bugs []recentBug, allOK bool) {
-	return fetchBugsByIDWith(ctx, ids, func(ctx context.Context, url string, dst any) error {
+func fetchBugsByID(ctx context.Context, base string, ids []int) (bugs []recentBug, allOK bool) {
+	return fetchBugsByIDWith(ctx, base, ids, func(ctx context.Context, url string, dst any) error {
 		return lookup.GetJSON(ctx, url, nil, dst)
 	})
 }
 
-func fetchBugsByIDWith(ctx context.Context, ids []int, getJSON feedJSONFetcher) (bugs []recentBug, allOK bool) {
+func fetchBugsByIDWith(ctx context.Context, base string, ids []int, getJSON feedJSONFetcher) (bugs []recentBug, allOK bool) {
 	const chunkSize = 50
 	allOK = true
 	for i := 0; i < len(ids); i += chunkSize {
@@ -320,7 +321,7 @@ func fetchBugsByIDWith(ctx context.Context, ids []int, getJSON feedJSONFetcher) 
 		for j, id := range ids[i:end] {
 			parts[j] = strconv.Itoa(id)
 		}
-		u := "https://bugs.gentoo.org/rest/bug?include_fields=" + bugFields + "&id=" + strings.Join(parts, ",")
+		u := base + "/rest/bug?include_fields=" + bugFields + "&id=" + strings.Join(parts, ",")
 		var br struct {
 			Bugs *[]recentBug `json:"bugs"`
 		}
@@ -371,6 +372,20 @@ func migrateFeedState(st *feedState) {
 		}
 		tb.Status = "" // drop the legacy field so it isn't re-serialized
 	}
+}
+
+func syncBugzillaState(st *feedState, base string) {
+	if st.BugzillaBase == nil {
+		st.BugzillaBase = &base
+		return
+	}
+	if *st.BugzillaBase == base {
+		return
+	}
+	log.Printf("feed: reset Bugzilla cursor for changed base %q -> %q", *st.BugzillaBase, base)
+	st.LastBugID = 0
+	st.Tracked = nil
+	st.BugzillaBase = &base
 }
 
 func saveFeedState(path string, st feedState) {
@@ -436,21 +451,21 @@ func feedLanguage(tag string) i18n.Lang {
 }
 
 // formatBug renders a Bugzilla bug for the feed behind the default open marker (🐞).
-func formatBug(b recentBug, l i18n.Lang) string {
-	return formatBugMarked(b, l, "🐞")
+func formatBug(base string, b recentBug, l i18n.Lang) string {
+	return formatBugMarked(base, b, l, "🐞")
 }
 
 // formatBugMarked renders a Bugzilla bug for the feed behind the given leading marker (🐞 open,
 // ✅/❌ resolved — passed in rather than string-replaced, so a 🐞 inside a summary can't be hit and
 // every configured feed locale uses its catalogue field labels.
-func formatBugMarked(b recentBug, l i18n.Lang, marker string) string {
+func formatBugMarked(base string, b recentBug, l i18n.Lang, marker string) string {
 	labels := i18n.Messages.Feed.Bug
 	sep := labels.FieldSeparator.For(l)
 	esc := html.EscapeString
 	var sb strings.Builder
 	// Cap the free-text summary by rune (Bugzilla summaries are short, but the field is
 	// free-form) so a pathological bug can't push the message past Telegram's 4096-char limit.
-	fmt.Fprintf(&sb, "%s <a href=\"https://bugs.gentoo.org/%d\"><b>Bug %d</b></a>\n%s", marker, b.ID, b.ID, esc(capRunes(b.Summary, 600)))
+	fmt.Fprintf(&sb, "%s <a href=\"%s/%d\"><b>Bug %d</b></a>\n%s", marker, base, b.ID, b.ID, esc(capRunes(b.Summary, 600)))
 	line := func(label, val string) {
 		if val != "" {
 			fmt.Fprintf(&sb, "\n<b>%s</b>%s%s", label, sep, esc(val))
@@ -477,10 +492,10 @@ func formatBugMarked(b recentBug, l i18n.Lang, marker string) string {
 		line(labels.Packages.For(l), atoms)
 	}
 
-	if a := b.AssignedTo.link("assigned_to"); a != "" {
+	if a := b.AssignedTo.link(base, "assigned_to"); a != "" {
 		fmt.Fprintf(&sb, "\n<b>%s</b>%s%s", labels.Assignee.For(l), sep, a)
 	}
-	if c := b.Creator.link("reporter"); c != "" {
+	if c := b.Creator.link(base, "reporter"); c != "" {
 		fmt.Fprintf(&sb, "\n<b>%s</b>%s%s", labels.Reporter.For(l), sep, c)
 	}
 	if d := dateOnly(b.CreationTime); d != "" {
@@ -502,8 +517,8 @@ func resolvedMark(b recentBug) string {
 // formatBugResolved re-renders a now-closed bug for the edited message: the status line shows the
 // resolution, and the leading marker is ✅ (FIXED) or ❌ (closed without a fix) so the outcome is
 // obvious at a glance.
-func formatBugResolved(b recentBug, l i18n.Lang) string {
-	return formatBugMarked(b, l, resolvedMark(b))
+func formatBugResolved(base string, b recentBug, l i18n.Lang) string {
+	return formatBugMarked(base, b, l, resolvedMark(b))
 }
 
 // formatNewBug renders a freshly-seen bug for the feed and whether to post it silently. A bug that
@@ -511,11 +526,11 @@ func formatBugResolved(b recentBug, l i18n.Lang) string {
 // resolved INVALID) gets the resolved marker (✅ fixed / ❌ not), not 🐞, and is posted silently: it
 // is not an actionable new open bug, so it shouldn't look open or ping. An open bug keeps 🐞 and the
 // status-aware silence.
-func formatNewBug(b recentBug, l i18n.Lang, baseSilent bool) (text string, silent bool) {
+func formatNewBug(base string, b recentBug, l i18n.Lang, baseSilent bool) (text string, silent bool) {
 	if bugResolved(b) {
-		return formatBugResolved(b, l), true
+		return formatBugResolved(base, b, l), true
 	}
-	return formatBug(b, l), baseSilent
+	return formatBug(base, b, l), baseSilent
 }
 
 // refreshTracked edits the feed message of any tracked bug whose displayed state changed since it
@@ -568,9 +583,9 @@ func refreshTrackedWithEditBudget(ctx context.Context, bot feedBot, f *settings.
 }
 
 func editTrackedBug(ctx context.Context, bot feedBot, f *settings.FeedConfig, l i18n.Lang, st *feedState, idStr string, id int, tb *trackedBug, b recentBug, cur string, edits *int) bool {
-	text := formatBug(b, l)
+	text := formatBug(f.BugzillaBase, b, l)
 	if bugResolved(b) {
-		text = formatBugResolved(b, l)
+		text = formatBugResolved(f.BugzillaBase, b, l)
 	}
 	edit := tgfmt.HTMLMessage(f.ChatID, text)
 	opCtx, cancel := context.WithTimeout(ctx, feedTelegramTimeout)
@@ -623,7 +638,7 @@ func needsConfirmPing(tb *trackedBug, b recentBug, f *settings.FeedConfig) bool 
 }
 
 func refreshTrackedConfirmation(ctx context.Context, bot feedBot, f *settings.FeedConfig, l i18n.Lang, id int, tb *trackedBug, b recentBug, cur string) bool {
-	_, ok, rateLimited, permanent := postFeed(ctx, bot, f.ChatID, confirmNotice(b, l), false, tb.MsgID)
+	_, ok, rateLimited, permanent := postFeed(ctx, bot, f.ChatID, confirmNotice(f.BugzillaBase, b, l), false, tb.MsgID)
 	if ok || permanent {
 		if permanent {
 			log.Printf("feed: skip permanently rejected confirm ping for bug %d in %d", id, f.ChatID)
@@ -657,10 +672,10 @@ func formatNews(_ i18n.Lang, n lookup.NewsItem) string {
 // names the bug's ACTUAL new status (CONFIRMED, IN_PROGRESS, …), localized by lookup.TranslateBugValue, rather than
 // always "confirmed", since the trigger is any move out of UNCONFIRMED. 🔔 (not ✅, which marks
 // resolution) signals a live status update; rendered in the feed's own language.
-func confirmNotice(b recentBug, l i18n.Lang) string {
+func confirmNotice(base string, b recentBug, l i18n.Lang) string {
 	status := lookup.TranslateBugValue(l, b.Status)
-	return fmt.Sprintf("🔔 <a href=\"https://bugs.gentoo.org/%d\"><b>Bug %d</b></a> → %s\n%s",
-		b.ID, b.ID, html.EscapeString(status), html.EscapeString(capRunes(b.Summary, 600)))
+	return fmt.Sprintf("🔔 <a href=\"%s/%d\"><b>Bug %d</b></a> → %s\n%s",
+		base, b.ID, b.ID, html.EscapeString(status), html.EscapeString(capRunes(b.Summary, 600)))
 }
 
 // bugSilent reports whether a feed bug should be posted WITHOUT a notification:
@@ -718,7 +733,7 @@ func postFeedItems(ctx context.Context, bot feedBot, f *settings.FeedConfig, l i
 					processed++
 					continue
 				}
-				text, silent := formatNewBug(b, l, bugSilent(f, b))
+				text, silent := formatNewBug(f.BugzillaBase, b, l, bugSilent(f, b))
 				mid, ok, _, permanent := postFeed(ctx, bot, f.ChatID, text, silent, 0)
 				if !ok {
 					if permanent {
@@ -775,24 +790,41 @@ func postFeedItems(ctx context.Context, bot feedBot, f *settings.FeedConfig, l i
 
 // feedSources keeps poll orchestration testable without replacing process-wide network globals.
 type feedSources struct {
-	recent        func(context.Context, int) ([]recentBug, bool)
-	news          func(context.Context) ([]lookup.NewsItem, error)
-	tracked       func(context.Context, []int) ([]recentBug, bool)
-	githubCommits func(context.Context, string, string) ([]lookup.Commit, error)
-	githubItems   githubItemsFetcher
+	recent         func(context.Context, int) ([]recentBug, bool)
+	recentForBase  func(context.Context, string, int) ([]recentBug, bool)
+	news           func(context.Context) ([]lookup.NewsItem, error)
+	tracked        func(context.Context, []int) ([]recentBug, bool)
+	trackedForBase func(context.Context, string, []int) ([]recentBug, bool)
+	githubCommits  func(context.Context, string, string) ([]lookup.Commit, error)
+	githubItems    githubItemsFetcher
+}
+
+func (s feedSources) fetchRecent(ctx context.Context, base string, afterID int) ([]recentBug, bool) {
+	if s.recentForBase != nil {
+		return s.recentForBase(ctx, base, afterID)
+	}
+	return s.recent(ctx, afterID)
+}
+
+func (s feedSources) fetchTracked(ctx context.Context, base string, ids []int) ([]recentBug, bool) {
+	if s.trackedForBase != nil {
+		return s.trackedForBase(ctx, base, ids)
+	}
+	return s.tracked(ctx, ids)
 }
 
 var defaultFeedSources = feedSources{
-	recent:        fetchRecentBugs,
-	news:          lookup.FetchNews,
-	tracked:       fetchBugsByID,
-	githubCommits: lookup.RecentCommits,
-	githubItems:   lookup.RecentGitHubItems,
+	recentForBase:  fetchRecentBugs,
+	news:           lookup.FetchNews,
+	trackedForBase: fetchBugsByID,
+	githubCommits:  lookup.RecentCommits,
+	githubItems:    lookup.RecentGitHubItems,
 }
 
-// pollAll processes the feeds due at now. Destinations sharing a bug cursor reuse one bounded
-// upstream slice; different cursors get independent slices so neither catch-up nor baselining skips.
-// News gets its own deadline, and fetchBugsByID gives each tracked chunk its own.
+// pollAll processes the feeds due at now. Destinations sharing a Bugzilla base and cursor reuse
+// one bounded upstream slice; different bases or cursors get independent slices so neither
+// catch-up nor baselining skips. News gets its own deadline, and fetchBugsByID gives each tracked
+// chunk its own.
 func pollAll(ctx context.Context, bot *telego.Bot, feeds []*settings.FeedConfig, states map[int64]*feedState, stateDir string, now time.Time, nextDue map[int64]time.Time) {
 	pollAllWithSources(ctx, bot, feeds, states, stateDir, now, nextDue, defaultFeedSources)
 }
@@ -809,28 +841,37 @@ func pollAllWithSources(ctx context.Context, bot feedBot, feeds []*settings.Feed
 	}
 
 	needNews := false
-	bugCursorSet := map[int]bool{}
+	type bugCursorKey struct {
+		base   string
+		cursor int
+	}
+	bugCursorSet := map[bugCursorKey]bool{}
 	for _, f := range due {
+		syncBugzillaState(states[f.ChatID], f.BugzillaBase)
 		needNews = needNews || f.NewsOn()
 		if f.BugsOn() {
-			bugCursorSet[states[f.ChatID].LastBugID] = true
+			bugCursorSet[bugCursorKey{base: f.BugzillaBase, cursor: states[f.ChatID].LastBugID}] = true
 		}
 	}
 
-	trackedSet := collectTrackedBugIDs(due, states)
-
-	bugsByCursor := make(map[int][]recentBug, len(bugCursorSet))
-	bugCursors := make([]int, 0, len(bugCursorSet))
-	for cursor := range bugCursorSet {
-		bugCursors = append(bugCursors, cursor)
+	trackedSets := collectTrackedBugIDs(due, states)
+	bugsByCursor := make(map[bugCursorKey][]recentBug, len(bugCursorSet))
+	bugCursors := make([]bugCursorKey, 0, len(bugCursorSet))
+	for key := range bugCursorSet {
+		bugCursors = append(bugCursors, key)
 	}
-	sort.Ints(bugCursors)
-	for _, cursor := range bugCursors {
+	sort.Slice(bugCursors, func(i, j int) bool {
+		if bugCursors[i].base == bugCursors[j].base {
+			return bugCursors[i].cursor < bugCursors[j].cursor
+		}
+		return bugCursors[i].base < bugCursors[j].base
+	})
+	for _, key := range bugCursors {
 		fctx, cancel := context.WithTimeout(ctx, feedFetchTimeout)
-		bugs, ok := sources.recent(fctx, cursor)
+		bugs, ok := sources.fetchRecent(fctx, key.base, key.cursor)
 		cancel()
 		if ok {
-			bugsByCursor[cursor] = bugs
+			bugsByCursor[key] = bugs
 		}
 	}
 
@@ -846,17 +887,16 @@ func pollAllWithSources(ctx context.Context, bot feedBot, feeds []*settings.Feed
 		}
 	}
 
-	byID, fetchOK := fetchTrackedBugs(ctx, trackedSet, sources.tracked)
-
+	bugsByBase, fetchOKByBase := fetchTrackedBugs(ctx, trackedSets, sources.fetchTracked)
 	for _, f := range due {
 		l := feedLanguage(f.Lang)
 		st := states[f.ChatID]
-		cursor := st.LastBugID
-		postFeedItems(ctx, bot, f, l, st, bugsByCursor[cursor], news)
+		key := bugCursorKey{base: f.BugzillaBase, cursor: st.LastBugID}
+		postFeedItems(ctx, bot, f, l, st, bugsByCursor[key], news)
 		edits := 0
 		githubResult := pollGitHubWithEditBudget(ctx, bot, f, st, &edits, sources.githubCommits, sources.githubItems)
 		if githubResult != githubRepoRateLimited && len(st.Tracked) > 0 {
-			refreshTrackedWithEditBudget(ctx, bot, f, l, st, byID, fetchOK, &edits)
+			refreshTrackedWithEditBudget(ctx, bot, f, l, st, bugsByBase[f.BugzillaBase], fetchOKByBase[f.BugzillaBase], &edits)
 		}
 		saveFeedState(feedStatePath(stateDir, f.ChatID), *st)
 		nextDue[f.ChatID] = now.Add(f.Interval())

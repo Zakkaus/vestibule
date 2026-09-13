@@ -15,24 +15,41 @@ func TestGetFeedsReturnsEffectiveValuesAndSources(t *testing.T) {
 	server, cookies, _, service, _ := apiSettingsTestServer(t, true)
 	group, _ := service.store.Settings(apiSettingsGroupID)
 	lang := "zh-Hant"
+	bugzillaBase := "https://bugs.example.test"
 	news := true
 	repos := []settings.GitHubRepo{{Repo: "owner/repo", Branch: "main"}}
 	next := group.Overrides()
-	next.Feed = &settings.FeedOverride{Lang: &lang, News: &news, GitHubRepos: &repos}
+	next.Feed = &settings.FeedOverride{Lang: &lang, BugzillaBase: &bugzillaBase, News: &news, GitHubRepos: &repos}
 	if _, err := service.store.Update(apiSettingsGroupID, group.Revision(), next); err != nil {
 		t.Fatal(err)
 	}
 
 	response := feedsRequest(server, cookies, "", http.MethodGet, nil)
 	body := decodeFeeds(t, response)
-	if response.Code != http.StatusOK || body.Revision != 1 ||
-		body.Feed.Lang.Value != lang || body.Feed.Lang.Source != settings.SourceChatOverride.String() ||
-		!body.Feed.News.Value || body.Feed.Bugs.Value ||
-		body.Feed.IntervalSeconds.Value != 300 ||
-		body.Feed.IntervalSeconds.Source != settings.SourceFactory.String() ||
-		len(body.GitHubRepos.Value) != 1 || body.GitHubRepos.Value[0].Repo != "owner/repo" ||
-		body.GitHubRepos.Value[0].Branch != "main" || body.GitHubRepos.Value[0].Issues || body.GitHubRepos.Value[0].Pulls {
+	if response.Code != http.StatusOK {
 		t.Fatalf("GET feeds status=%d body=%+v", response.Code, body)
+	}
+	if body.Revision != 1 {
+		t.Fatalf("GET feeds revision=%d", body.Revision)
+	}
+	if body.Feed.Lang != (settingResponse[string]{Value: lang, Source: settings.SourceChatOverride.String()}) {
+		t.Fatalf("GET feed language=%+v", body.Feed.Lang)
+	}
+	if body.Feed.BugzillaBase != (settingResponse[string]{Value: bugzillaBase, Source: settings.SourceChatOverride.String()}) {
+		t.Fatalf("GET Bugzilla base=%+v", body.Feed.BugzillaBase)
+	}
+	if body.Feed.News != (settingResponse[bool]{Value: true, Source: settings.SourceChatOverride.String()}) ||
+		body.Feed.Bugs != (settingResponse[bool]{Value: false, Source: settings.SourceFactory.String()}) {
+		t.Fatalf("GET feed switches=%+v", body.Feed)
+	}
+	if body.Feed.IntervalSeconds != (settingResponse[int]{Value: 300, Source: settings.SourceFactory.String()}) {
+		t.Fatalf("GET feed interval=%+v", body.Feed.IntervalSeconds)
+	}
+	if body.GitHubRepos.Source != settings.SourceChatOverride.String() || len(body.GitHubRepos.Value) != 1 {
+		t.Fatalf("GET GitHub repositories=%+v", body.GitHubRepos)
+	}
+	if body.GitHubRepos.Value[0] != (feedsGitHubRepoResponse{Repo: "owner/repo", Branch: "main"}) {
+		t.Fatalf("GET GitHub repository=%+v", body.GitHubRepos.Value[0])
 	}
 }
 
@@ -49,10 +66,11 @@ func TestPutFeedsReplacesOnlyFeedOverride(t *testing.T) {
 	}
 
 	response := feedsRequest(server, cookies, csrf, http.MethodPut, strings.NewReader(
-		`{"expected_revision":1,"lang":"","interval_seconds":300,"bugs":true,"news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[]}`))
+		`{"expected_revision":1,"lang":"","interval_seconds":300,"bugs":true,"bugzilla_base":"https://bugzilla.example.org","news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[]}`))
 	body := decodeFeeds(t, response)
 	group, _ = service.store.Settings(apiSettingsGroupID)
-	if response.Code != http.StatusOK || body.Revision != 2 || !body.Feed.Bugs.Value || body.Feed.News.Value ||
+	if response.Code != http.StatusOK || body.Revision != 2 || !body.Feed.Bugs.Value ||
+		body.Feed.BugzillaBase.Value != "https://bugzilla.example.org" || body.Feed.News.Value ||
 		body.GitHubRepos.Source != settings.SourceChatOverride.String() || body.GitHubRepos.Value == nil ||
 		group.Enabled().Value || group.Enabled().Source != settings.SourceChatOverride || service.updateCalls != 1 {
 		t.Fatalf("PUT feeds status=%d body=%+v enabled=%+v updates=%d",
@@ -70,11 +88,11 @@ func TestPutFeedsRejectsConflictAndCSRF(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	conflict := feedsRequest(server, cookies, csrf, http.MethodPut, strings.NewReader(`{"expected_revision":0,"lang":"","interval_seconds":300,"bugs":false,"news":true,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[]}`))
+	conflict := feedsRequest(server, cookies, csrf, http.MethodPut, strings.NewReader(`{"expected_revision":0,"lang":"","interval_seconds":300,"bugs":false,"bugzilla_base":"","news":true,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[]}`))
 	if conflict.Code != http.StatusConflict || decodeError(conflict) != "settings_conflict" {
 		t.Fatalf("conflict status=%d code=%q", conflict.Code, decodeError(conflict))
 	}
-	csrfFailure := feedsRequest(server, cookies, "", http.MethodPut, strings.NewReader(`{"expected_revision":1,"lang":"","interval_seconds":300,"bugs":false,"news":true,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[]}`))
+	csrfFailure := feedsRequest(server, cookies, "", http.MethodPut, strings.NewReader(`{"expected_revision":1,"lang":"","interval_seconds":300,"bugs":false,"bugzilla_base":"","news":true,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[]}`))
 	if csrfFailure.Code != http.StatusForbidden || decodeError(csrfFailure) != "csrf_invalid" {
 		t.Fatalf("CSRF status=%d code=%q", csrfFailure.Code, decodeError(csrfFailure))
 	}
@@ -114,14 +132,15 @@ func TestPutFeedsValidatesCompleteRequestSchema(t *testing.T) {
 		{name: "null revision", body: `{"expected_revision":null}`, field: "expected_revision", fieldCode: "invalid_revision"},
 		{name: "unsafe revision", body: `{"expected_revision":9007199254740992}`, field: "expected_revision", fieldCode: "invalid_revision"},
 		{name: "fractional revision", body: `{"expected_revision":0.5}`, field: "expected_revision", fieldCode: "invalid_revision"},
-		{name: "missing language", body: `{"expected_revision":0,"interval_seconds":300,"bugs":false,"news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[]}`, field: "lang", fieldCode: "required_field"},
-		{name: "null repositories", body: `{"expected_revision":0,"lang":"","interval_seconds":300,"bugs":false,"news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":null}`, field: "github_repos", fieldCode: "required_field"},
-		{name: "short interval", body: `{"expected_revision":0,"lang":"","interval_seconds":59,"bugs":false,"news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[]}`, field: "interval_seconds", fieldCode: "invalid_interval"},
-		{name: "missing issue switch", body: `{"expected_revision":0,"lang":"","interval_seconds":300,"bugs":false,"news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[{"repo":"owner/repo","pulls":false}]}`, field: "github_repos[0].issues", fieldCode: "required_field"},
-		{name: "null pull switch", body: `{"expected_revision":0,"lang":"","interval_seconds":300,"bugs":false,"news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[{"repo":"owner/repo","issues":false,"pulls":null}]}`, field: "github_repos[0].pulls", fieldCode: "required_field"},
-		{name: "invalid repository", body: `{"expected_revision":0,"lang":"","interval_seconds":300,"bugs":false,"news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[{"repo":"owner","issues":false,"pulls":false}]}`, field: "github_repos[0].repo", fieldCode: "invalid_repository"},
-		{name: "dot repository segment", body: `{"expected_revision":0,"lang":"","interval_seconds":300,"bugs":false,"news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[{"repo":"owner/..","issues":false,"pulls":false}]}`, field: "github_repos[0].repo", fieldCode: "invalid_repository"},
-		{name: "duplicate repository", body: `{"expected_revision":0,"lang":"","interval_seconds":300,"bugs":false,"news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[{"repo":"owner/repo","branch":"main","issues":false,"pulls":false},{"repo":"owner/repo","branch":"main","issues":true,"pulls":true}]}`, field: "github_repos[1]", fieldCode: "duplicate_repository"},
+		{name: "missing language", body: `{"expected_revision":0,"interval_seconds":300,"bugs":false,"bugzilla_base":"","news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[]}`, field: "lang", fieldCode: "required_field"},
+		{name: "invalid Bugzilla base", body: `{"expected_revision":0,"lang":"","interval_seconds":300,"bugs":false,"bugzilla_base":"https://user:secret@bugzilla.example.org","news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[]}`, field: "bugzilla_base", fieldCode: "invalid_url"},
+		{name: "null repositories", body: `{"expected_revision":0,"lang":"","interval_seconds":300,"bugs":false,"bugzilla_base":"","news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":null}`, field: "github_repos", fieldCode: "required_field"},
+		{name: "short interval", body: `{"expected_revision":0,"lang":"","interval_seconds":59,"bugs":false,"bugzilla_base":"","news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[]}`, field: "interval_seconds", fieldCode: "invalid_interval"},
+		{name: "missing issue switch", body: `{"expected_revision":0,"lang":"","interval_seconds":300,"bugs":false,"bugzilla_base":"","news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[{"repo":"owner/repo","pulls":false}]}`, field: "github_repos[0].issues", fieldCode: "required_field"},
+		{name: "null pull switch", body: `{"expected_revision":0,"lang":"","interval_seconds":300,"bugs":false,"bugzilla_base":"","news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[{"repo":"owner/repo","issues":false,"pulls":null}]}`, field: "github_repos[0].pulls", fieldCode: "required_field"},
+		{name: "invalid repository", body: `{"expected_revision":0,"lang":"","interval_seconds":300,"bugs":false,"bugzilla_base":"","news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[{"repo":"owner","issues":false,"pulls":false}]}`, field: "github_repos[0].repo", fieldCode: "invalid_repository"},
+		{name: "dot repository segment", body: `{"expected_revision":0,"lang":"","interval_seconds":300,"bugs":false,"bugzilla_base":"","news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[{"repo":"owner/..","issues":false,"pulls":false}]}`, field: "github_repos[0].repo", fieldCode: "invalid_repository"},
+		{name: "duplicate repository", body: `{"expected_revision":0,"lang":"","interval_seconds":300,"bugs":false,"bugzilla_base":"","news":false,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[{"repo":"owner/repo","branch":"main","issues":false,"pulls":false},{"repo":"owner/repo","branch":"main","issues":true,"pulls":true}]}`, field: "github_repos[1]", fieldCode: "duplicate_repository"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -142,6 +161,22 @@ func TestPutFeedsValidatesCompleteRequestSchema(t *testing.T) {
 	unknown := feedsRequest(server, cookies, csrf, http.MethodPut, strings.NewReader(`{"expected_revision":0,"unknown":true}`))
 	if unknown.Code != http.StatusBadRequest || decodeError(unknown) != "invalid_json" || service.updateCalls != 0 {
 		t.Fatalf("unknown field status=%d code=%q updates=%d", unknown.Code, decodeError(unknown), service.updateCalls)
+	}
+}
+
+func TestPutFeedsRequiresBugzillaBaseForEnabledBugs(t *testing.T) {
+	server, cookies, csrf, service, _ := apiSettingsTestServer(t, true)
+	response := feedsRequest(server, cookies, csrf, http.MethodPut, strings.NewReader(
+		`{"expected_revision":0,"lang":"","interval_seconds":300,"bugs":true,"news":false,"bugzilla_base":"","bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[]}`))
+	var body feedsInvalidResponse
+	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	group, _ := service.store.Settings(apiSettingsGroupID)
+	if response.Code != http.StatusBadRequest || body.Error.Code != "invalid_request" ||
+		len(body.Fields) != 1 || body.Fields[0].Name != "bugzilla_base" ||
+		body.Fields[0].Code != "required_field" || group.Revision() != 0 || group.Feed().Bugs.Value {
+		t.Fatalf("status=%d body=%+v revision=%d feed=%+v", response.Code, body, group.Revision(), group.Feed())
 	}
 }
 

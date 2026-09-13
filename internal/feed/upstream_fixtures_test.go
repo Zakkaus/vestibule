@@ -29,7 +29,7 @@ func TestBugzillaUserFieldsLiveFixture(t *testing.T) {
 		}
 	}
 
-	bugs, ok := fetchRecentBugsWith(context.Background(), 0, func(_ context.Context, u string, dst any) error {
+	bugs, ok := fetchRecentBugsWith(context.Background(), "https://bugzilla.example.test", 0, func(_ context.Context, u string, dst any) error {
 		if !strings.Contains(u, "&order=bug_id%20DESC&limit=1") {
 			return fmt.Errorf("unexpected newest-bug URL: %s", u)
 		}
@@ -45,7 +45,7 @@ func TestBugzillaUserFieldsLiveFixture(t *testing.T) {
 }
 
 func TestBugzillaPaginationLiveFixture(t *testing.T) {
-	bugs, ok := fetchRecentBugsWith(context.Background(), 981278, func(_ context.Context, u string, dst any) error {
+	bugs, ok := fetchRecentBugsWith(context.Background(), "https://bugzilla.example.test", 981278, func(_ context.Context, u string, dst any) error {
 		if !strings.Contains(u, "&f1=bug_id&o1=greaterthan&v1=981278&order=bug_id%20ASC&limit=100") {
 			return fmt.Errorf("unexpected catch-up URL: %s", u)
 		}
@@ -63,7 +63,7 @@ func TestBugzillaPaginationLiveFixture(t *testing.T) {
 }
 
 func TestBugzillaAuthoritativeEmptyLiveFixture(t *testing.T) {
-	bugs, ok := fetchRecentBugsWith(context.Background(), 999999999, func(_ context.Context, u string, dst any) error {
+	bugs, ok := fetchRecentBugsWith(context.Background(), "https://bugzilla.example.test", 999999999, func(_ context.Context, u string, dst any) error {
 		if !strings.Contains(u, "&f1=bug_id&o1=greaterthan&v1=999999999&order=bug_id%20ASC&limit=100") {
 			return fmt.Errorf("unexpected empty-batch URL: %s", u)
 		}
@@ -75,7 +75,7 @@ func TestBugzillaAuthoritativeEmptyLiveFixture(t *testing.T) {
 }
 
 func TestBugzillaTrackedQueryLiveFixture(t *testing.T) {
-	bugs, ok := fetchBugsByIDWith(context.Background(), []int{981377, 981378}, func(_ context.Context, u string, dst any) error {
+	bugs, ok := fetchBugsByIDWith(context.Background(), "https://bugzilla.example.test", []int{981377, 981378}, func(_ context.Context, u string, dst any) error {
 		if !strings.HasSuffix(u, "&id=981377,981378") {
 			return fmt.Errorf("unexpected tracked-bug URL: %s", u)
 		}

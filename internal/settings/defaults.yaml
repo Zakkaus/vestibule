@@ -100,6 +100,7 @@ factory:
     lang: ""
     interval_seconds: 300
     bugs: false
+    bugzilla_base: ""
     news: false
     bug_product: ""
     bug_component: ""
@@ -113,18 +114,24 @@ chats: []
 # Non-active examples keep every nested struct field discoverable without enabling a resource.
 examples:
   overlay:
-    name: gentoo
-    repo: gentoo/gentoo
-    branch: master
+    name: example
+    repo: example/repository
+    branch: main
   feed:
     chat_id: -1009000000001
-    lang: zh
+    lang: en
     interval_seconds: 300
     bugs: true
+    bugzilla_base: https://bugzilla.example.org
     news: true
-    bug_product: Gentoo Linux
+    bug_product: ""
     bug_component: ""
     silent_bugs: false
+    github_repos:
+      - repo: example/repository
+        branch: main
+        issues: true
+        pulls: true
   question:
     q: "2 + 2 = ?"
     options: ["4", "5"]

@@ -7,6 +7,7 @@ type FeedBaseline struct {
 	Lang            BaselineValue[string]
 	IntervalSeconds BaselineValue[int]
 	Bugs            BaselineValue[bool]
+	BugzillaBase    BaselineValue[string]
 	News            BaselineValue[bool]
 	BugProduct      BaselineValue[string]
 	BugComponent    BaselineValue[string]
@@ -19,6 +20,7 @@ type FeedOverride struct {
 	Lang            *string       `json:"lang,omitempty"`
 	IntervalSeconds *int          `json:"interval_seconds,omitempty"`
 	Bugs            *bool         `json:"bugs,omitempty"`
+	BugzillaBase    *string       `json:"bugzilla_base,omitempty"`
 	News            *bool         `json:"news,omitempty"`
 	BugProduct      *string       `json:"bug_product,omitempty"`
 	BugComponent    *string       `json:"bug_component,omitempty"`
@@ -31,6 +33,7 @@ type FeedView struct {
 	Lang            Setting[string]
 	IntervalSeconds Setting[int]
 	Bugs            Setting[bool]
+	BugzillaBase    Setting[string]
 	News            Setting[bool]
 	BugProduct      Setting[string]
 	BugComponent    Setting[string]
@@ -70,8 +73,9 @@ func (s *Store) CurrentFeeds() []FeedConfig {
 		bugs, news, silent := view.Bugs.Value, view.News.Value, view.SilentBugs.Value
 		feeds = append(feeds, FeedConfig{
 			ChatID: chatID, Lang: lang, IntervalSeconds: view.IntervalSeconds.Value,
-			Bugs: &bugs, News: &news, BugProduct: view.BugProduct.Value,
-			BugComponent: view.BugComponent.Value, SilentBugs: &silent, GitHubRepos: repos,
+			Bugs: &bugs, BugzillaBase: view.BugzillaBase.Value, News: &news,
+			BugProduct: view.BugProduct.Value, BugComponent: view.BugComponent.Value,
+			SilentBugs: &silent, GitHubRepos: repos,
 		})
 	}
 	return feeds
