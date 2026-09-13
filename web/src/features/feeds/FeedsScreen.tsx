@@ -68,6 +68,7 @@ const fieldMessageKeys: Readonly<Record<string, string>> = {
   required_field: "feeds.validation.required",
   invalid_interval: "feeds.validation.invalidInterval",
   invalid_language: "feeds.validation.invalidLanguage",
+  invalid_url: "feeds.validation.invalidURL",
   invalid_repository: "feeds.validation.invalidRepository",
   duplicate_repository: "feeds.validation.duplicateRepository",
   invalid_revision: "feeds.validation.invalidRevision"
@@ -85,6 +86,7 @@ function serverFieldMessageKey(name: string, code: string): string | undefined {
   if (name === "expected_revision") return code === "invalid_revision" ? messageKey : undefined;
   if (name === "lang") return code === "invalid_language" || code === "required_field" ? messageKey : undefined;
   if (name === "interval_seconds") return code === "invalid_interval" || code === "required_field" ? messageKey : undefined;
+  if (name === "bugzilla_base") return code === "required_field" || code === "invalid_url" ? messageKey : undefined;
   if (name === "bugs" || name === "news" || name === "bug_product" || name === "bug_component" || name === "silent_bugs") {
     return code === "required_field" ? messageKey : undefined;
   }

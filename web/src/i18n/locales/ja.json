@@ -420,6 +420,10 @@
         "label": "Bugzilla 通知",
         "description": "このグループへの新しい Bugzilla 項目の配信を有効にします。"
       },
+      "bugzillaBase": {
+        "label": "Bugzilla ベース URL",
+        "description": "このグループの Bugzilla サイトのベース URL を入力します。Bugzilla 通知を有効にする場合は必須です。"
+      },
       "news": {
         "label": "ニュース通知",
         "description": "このグループへの設定済みニュース項目の配信を有効にします。"
@@ -497,6 +501,7 @@
       "required": "この項目は必須です。",
       "invalidInterval": "60 秒から 86400 秒までの整数を入力してください。",
       "invalidLanguage": "対応しているフィード言語を選んでください。",
+      "invalidURL": "有効な Bugzilla ベース URL を入力してください。",
       "invalidRepository": "owner/name 形式の有効な GitHub リポジトリを入力してください。",
       "duplicateRepository": "リポジトリとブランチの組み合わせは重複できません。",
       "invalidRevision": "設定が古くなっています。最新の値を再読み込みしてから保存してください。"

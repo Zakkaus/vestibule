@@ -57,6 +57,48 @@ func TestLoadConfigNormalizesGitHubAPIBase(t *testing.T) {
 	}
 }
 
+func TestNormalizeBugzillaBase(t *testing.T) {
+	for _, test := range []struct {
+		name, raw, want string
+	}{
+		{name: "empty", want: ""},
+		{name: "trailing slashes", raw: "https://bugzilla.example.org/root///", want: "https://bugzilla.example.org/root"},
+		{name: "local HTTP", raw: "http://127.0.0.1:1234/", want: "http://127.0.0.1:1234"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			got, err := NormalizeBugzillaBase(test.raw)
+			requireNoError(t, err)
+			if got != test.want {
+				t.Fatalf("bugzilla_base = %q, want %q", got, test.want)
+			}
+		})
+	}
+	for _, raw := range []string{
+		"bugzilla.example.org",
+		"ftp://bugzilla.example.org",
+		"https:///bugzilla",
+		"https://user:secret@bugzilla.example.org",
+		"https://bugzilla.example.org?query=1",
+		"https://bugzilla.example.org#fragment",
+	} {
+		t.Run("reject "+raw, func(t *testing.T) {
+			if _, err := NormalizeBugzillaBase(raw); err == nil {
+				t.Fatalf("invalid bugzilla_base %q was accepted", raw)
+			}
+		})
+	}
+}
+
+func TestLoadConfigNormalizesFeedBugzillaBase(t *testing.T) {
+	config, err := LoadConfig(writeConfig(t, map[string]any{"feeds": []map[string]any{{
+		"chat_id": -1009000002301, "bugs": false, "bugzilla_base": "https://bugzilla.example.org/root///",
+	}}}))
+	requireNoError(t, err)
+	if got := config.Feeds[0].BugzillaBase; got != "https://bugzilla.example.org/root" {
+		t.Fatalf("feed bugzilla_base = %q", got)
+	}
+}
+
 func TestLoadConfigDoesNotLeakGitHubAPICredentials(t *testing.T) {
 	const password = "api-password-that-must-not-leak"
 	_, err := LoadConfig(writeConfig(t, map[string]any{"github_api_base": "https://user:" + password + "@api.example.com"}))

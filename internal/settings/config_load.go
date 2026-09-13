@@ -413,13 +413,12 @@ func applyConfigDefaults(c *Config) {
 	if c.OwnerClaimLifetimeSeconds == 0 {
 		c.OwnerClaimLifetimeSeconds = 10 * 60
 	}
-	if c.TimeoutSeconds <= 0 {
+	switch {
+	case c.TimeoutSeconds <= 0:
 		c.TimeoutSeconds = 240
-	}
-	if c.TimeoutSeconds < 30 {
+	case c.TimeoutSeconds < 30:
 		c.TimeoutSeconds = 30
-	}
-	if c.TimeoutSeconds > 1800 {
+	case c.TimeoutSeconds > 1800:
 		c.TimeoutSeconds = 1800
 	}
 	if c.NotifyTTLSeconds == 0 {
@@ -456,6 +455,10 @@ func normalizeGitHubAPIBase(c *Config) error {
 	return err
 }
 
+// NormalizeBugzillaBase validates and removes trailing slashes from one destination's Bugzilla base URL.
+func NormalizeBugzillaBase(base string) (string, error) {
+	return normalizeGitHubBase("bugzilla_base", base, "")
+}
 func normalizeGitHubBase(field, base, defaultBase string) (string, error) {
 	if base == "" {
 		return defaultBase, nil
@@ -520,6 +523,11 @@ func normalizeConfigFeeds(c *Config) error {
 		if !ValidLanguage(c.Feeds[i].Lang) {
 			return fmt.Errorf("feed %d: lang %q is not one of %q, %q, %q, %q, %q", i, c.Feeds[i].Lang, "zh", "zh-Hant", "en", "ja", "ru")
 		}
+		base, err := NormalizeBugzillaBase(c.Feeds[i].BugzillaBase)
+		if err != nil {
+			return fmt.Errorf("feed %d: %w", i, err)
+		}
+		c.Feeds[i].BugzillaBase = base
 	}
 	seenFeed := map[int64]bool{}
 	deduped := c.Feeds[:0]

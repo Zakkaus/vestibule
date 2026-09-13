@@ -45,8 +45,8 @@ func TestPollAllFirstRunBaselinesEachDestination(t *testing.T) {
 	setFeedTestTiming(t, time.Second, time.Second)
 	bugsOn, newsOn := true, true
 	feeds := []*settings.FeedConfig{
-		{ChatID: -100101, Lang: "en", Bugs: &bugsOn, News: &newsOn, BugProduct: "Gentoo Linux", BugComponent: "Kernel"},
-		{ChatID: -100202, Lang: "en", Bugs: &bugsOn, News: &newsOn},
+		{ChatID: -100101, Lang: "en", Bugs: &bugsOn, BugzillaBase: "https://bugzilla.example.test", News: &newsOn, BugProduct: "Gentoo Linux", BugComponent: "Kernel"},
+		{ChatID: -100202, Lang: "en", Bugs: &bugsOn, BugzillaBase: "https://bugzilla.example.test", News: &newsOn},
 	}
 	dir := t.TempDir()
 	states := map[int64]*feedState{}
@@ -99,6 +99,7 @@ func TestPollAllFiltersConfiguredProductAndComponent(t *testing.T) {
 		ChatID:       -100303,
 		Lang:         "en",
 		Bugs:         &bugsOn,
+		BugzillaBase: "https://bugzilla.example.test",
 		News:         &newsOff,
 		BugProduct:   "Gentoo Linux",
 		BugComponent: "Kernel",
@@ -124,7 +125,7 @@ func TestPollAllFiltersConfiguredProductAndComponent(t *testing.T) {
 	if len(bot.sentText) != 1 {
 		t.Fatalf("filtered destination sent %d item(s), want exactly the matching item", len(bot.sentText))
 	}
-	if !strings.Contains(bot.sentText[0], "https://bugs.gentoo.org/103") {
+	if !strings.Contains(bot.sentText[0], "https://bugzilla.example.test/103") {
 		t.Errorf("filtered destination rendered unexpected item %q", bot.sentText[0])
 	}
 }

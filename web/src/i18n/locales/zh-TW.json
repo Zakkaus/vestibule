@@ -420,6 +420,10 @@
         "label": "Bugzilla 推送",
         "description": "為此群組啟用新的 Bugzilla 項目推送。"
       },
+      "bugzillaBase": {
+        "label": "Bugzilla 基礎網址",
+        "description": "填寫此群組 Bugzilla 網站的基礎網址；啟用 Bugzilla 推送時必填。"
+      },
       "news": {
         "label": "新聞推送",
         "description": "為此群組啟用已設定新聞項目的推送。"
@@ -497,6 +501,7 @@
       "required": "此欄位為必填。",
       "invalidInterval": "請輸入 60 至 86400 秒範圍內的整數。",
       "invalidLanguage": "請選擇受支援的推送語言。",
+      "invalidURL": "請輸入有效的 Bugzilla 基礎網址。",
       "invalidRepository": "請輸入有效的 owner/name 格式 GitHub 儲存庫。",
       "duplicateRepository": "儲存庫與分支的組合必須唯一。",
       "invalidRevision": "設定已過期。請重新載入最新值後再儲存。"

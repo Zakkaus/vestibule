@@ -1,12 +1,12 @@
 {
   "questions": [
     {
-      "q": "Gentoo 中文社区的 overlay 叫什么名字?",
+      "q": "Gentoo 官方的用户贡献 overlay 叫什么名字?",
       "options": [
-        "gentoo-zh",
         "guru",
         "pacman",
-        "gentoo-us"
+        "gentoo-us",
+        "homebrew"
       ],
       "answer": 0
     },

@@ -16,6 +16,7 @@ type FeedValues = Readonly<{
   lang: FeedLanguage;
   interval_seconds: number;
   bugs: boolean;
+  bugzilla_base: string;
   news: boolean;
   bug_product: string;
   bug_component: string;
@@ -35,6 +36,7 @@ type FeedResponse = Readonly<{
     lang: SourcedSetting<FeedLanguage>;
     interval_seconds: SourcedSetting<number>;
     bugs: SourcedSetting<boolean>;
+    bugzilla_base: SourcedSetting<string>;
     news: SourcedSetting<boolean>;
     bug_product: SourcedSetting<string>;
     bug_component: SourcedSetting<string>;
@@ -76,6 +78,7 @@ const defaultFeedValues: FeedValues = {
   lang: "zh",
   interval_seconds: 600,
   bugs: false,
+  bugzilla_base: "",
   news: false,
   bug_product: "",
   bug_component: "",
@@ -108,6 +111,7 @@ function feedResponse(options: FeedResponseOptions = {}): FeedResponse {
       lang: sourced(values.lang, source),
       interval_seconds: sourced(values.interval_seconds, source),
       bugs: sourced(values.bugs, source),
+      bugzilla_base: sourced(values.bugzilla_base, source),
       news: sourced(values.news, source),
       bug_product: sourced(values.bug_product, source),
       bug_component: sourced(values.bug_component, source),
@@ -261,6 +265,7 @@ test("feeds saves edited settings through the shared CSRF transport", async ({ p
     lang: "en",
     interval_seconds: 900,
     bugs: true,
+    bugzilla_base: "https://bugzilla.example.test",
     news: true,
     bug_product: "Gentoo Linux",
     bug_component: "Portage",
@@ -295,6 +300,7 @@ test("feeds saves edited settings through the shared CSRF transport", async ({ p
   await selectAppOption(page.locator("#feeds-language"), "en");
   await page.locator("#feeds-interval-seconds").fill("900");
   await feedSetting(page, "bugs").getByRole("switch").click();
+  await page.locator("#feeds-bugzilla-base").fill(editedValues.bugzilla_base);
   await feedSetting(page, "news").getByRole("switch").click();
   await feedSetting(page, "silent_bugs").getByRole("switch").click();
   await feedSetting(page, "bug_product").getByRole("textbox").fill("Gentoo Linux");
@@ -331,6 +337,7 @@ test("feeds reloads the newer revision after a settings conflict", async ({ page
     lang: "ja",
     interval_seconds: 120,
     bugs: true,
+    bugzilla_base: "https://bugzilla.example.test",
     news: false,
     bug_product: "Gentoo",
     bug_component: "Portage",
@@ -369,6 +376,7 @@ test("feeds restores factory settings with an empty repository list", async ({ p
     lang: "en",
     interval_seconds: 1800,
     bugs: true,
+    bugzilla_base: "https://bugzilla.example.test",
     news: true,
     bug_product: "Gentoo",
     bug_component: "Portage",
@@ -378,6 +386,7 @@ test("feeds restores factory settings with an empty repository list", async ({ p
     lang: "",
     interval_seconds: 300,
     bugs: false,
+    bugzilla_base: "",
     news: false,
     bug_product: "",
     bug_component: "",
@@ -442,6 +451,7 @@ test("feeds maps every backend validation code to its field or save bar", async 
     error: { code: "invalid_request" },
     fields: [
       { name: "bug_product", code: "required_field" },
+      { name: "bugzilla_base", code: "invalid_url" },
       { name: "interval_seconds", code: "invalid_interval" },
       { name: "lang", code: "invalid_language" },
       { name: "github_repos[0].repo", code: "invalid_repository" },
@@ -474,6 +484,11 @@ test("feeds maps every backend validation code to its field or save bar", async 
     settingControl(page, "bug_product")
   );
   await expect(feedSetting(page, "bug_product").getByRole("alert")).toContainText("此字段为必填项");
+  await expectLinkedFieldError(
+    feedSetting(page, "bugzilla_base"),
+    settingControl(page, "bugzilla_base")
+  );
+  await expect(feedSetting(page, "bugzilla_base").getByRole("alert")).toContainText("有效的 Bugzilla 基地址");
   await expectLinkedFieldError(
     feedSetting(page, "interval_seconds"),
     settingControl(page, "interval_seconds")

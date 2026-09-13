@@ -45,6 +45,22 @@ func TestNewConfiguresGitHubRequests(t *testing.T) {
 	}
 }
 
+func TestNewWithoutOverlaysUsesOfficialPackagesOnly(t *testing.T) {
+	oldUserAgent, oldOverlays := userAgent, overlays
+	oldNewsURL, oldNewsBase := newsURL, newsBase
+	oldGitHubToken, oldGitHubAtomBase, oldGitHubAPIBase := githubToken, githubAtomBase, githubAPIBase
+	t.Cleanup(func() {
+		userAgent, overlays = oldUserAgent, oldOverlays
+		newsURL, newsBase = oldNewsURL, oldNewsBase
+		githubToken, githubAtomBase, githubAPIBase = oldGitHubToken, oldGitHubAtomBase, oldGitHubAPIBase
+	})
+
+	New(nil, nil, &settings.Config{}, "")
+	if overlays != nil {
+		t.Fatalf("default package overlays = %#v, want none", overlays)
+	}
+}
+
 // serveConfiguredGitHubRequest answers the Atom and REST paths the configured lookup
 // must reach, checking the headers each carries.
 func serveConfiguredGitHubRequest(t *testing.T, w http.ResponseWriter, r *http.Request) {

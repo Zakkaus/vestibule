@@ -1,10 +1,10 @@
 {
   "fallback_questions": [
     {
-      "q": "Gentoo 中文社区官方网站的域名是什么?",
+      "q": "Gentoo 的包管理器叫什么名字?",
       "answers": [
-        "gentoozh.org",
-        "gentoozh"
+        "Portage",
+        "portage"
       ]
     },
     {

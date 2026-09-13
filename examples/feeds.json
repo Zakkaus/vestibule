@@ -2,23 +2,18 @@
   "expected_revision": 0,
   "lang": "en",
   "interval_seconds": 300,
-  "bugs": false,
+  "bugs": true,
+  "bugzilla_base": "https://bugzilla.example.org",
   "news": false,
   "bug_product": "",
   "bug_component": "",
   "silent_bugs": false,
   "github_repos": [
     {
-      "repo": "gentoo-zh/overlay",
-      "branch": "master",
+      "repo": "example/repository",
+      "branch": "main",
       "issues": true,
       "pulls": true
-    },
-    {
-      "repo": "Zakkaus/vestibule",
-      "branch": "v5/next",
-      "issues": false,
-      "pulls": false
     }
   ]
 }

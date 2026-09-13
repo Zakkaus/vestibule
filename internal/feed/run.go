@@ -73,6 +73,7 @@ func (s *Service) reconcile(rs *runState) []*settings.FeedConfig {
 			st := loadFeedState(feedStatePath(s.stateDir, chatID))
 			rs.states[chatID] = &st
 		}
+		syncBugzillaState(rs.states[chatID], f.BugzillaBase)
 		previous, wasActive := rs.active[chatID]
 		switch {
 		case !wasActive:

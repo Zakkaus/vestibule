@@ -105,7 +105,7 @@ func TestAClosedBugsMessageIsRewrittenWithItsResolutionMarker(t *testing.T) {
 // neighbouring chat and every gate would still be green.
 func TestATrackedEditIsAddressedToItsOwnChatAndMessage(t *testing.T) {
 	setFeedTestTiming(t, time.Second, time.Second)
-	feed := &settings.FeedConfig{ChatID: editFeedChat, Lang: "en"}
+	feed := &settings.FeedConfig{ChatID: editFeedChat, Lang: "en", BugzillaBase: "https://bugzilla.example.test"}
 	const msgID = 4242
 	bug := recentBug{ID: 820, Summary: "kernel oops on resume", Status: "IN_PROGRESS"}
 	st := &feedState{Tracked: map[string]*trackedBug{"820": {MsgID: msgID, State: "CONFIRMED|"}}}
@@ -125,7 +125,7 @@ func TestATrackedEditIsAddressedToItsOwnChatAndMessage(t *testing.T) {
 		t.Errorf("the edit was addressed to message %d, not the tracked message %d: an edit aimed at another message destroys an unrelated post",
 			p.MessageID, msgID)
 	}
-	if !strings.Contains(p.Text, bug.Summary) || !strings.Contains(p.Text, "bugs.gentoo.org/820") {
+	if !strings.Contains(p.Text, bug.Summary) || !strings.Contains(p.Text, "bugzilla.example.test/820") {
 		t.Errorf("the edit rewrote message %d as %q, which is not bug %d's rendering: the reader's post is replaced by text belonging to something else",
 			msgID, firstLine(p.Text), bug.ID)
 	}
@@ -150,7 +150,7 @@ func TestWithNoStateDirectoryTheFeedNeverWritesToDisk(t *testing.T) {
 	t.Cleanup(func() { feedStateWrite = original })
 
 	bugsOn, newsOff := true, false
-	feed := &settings.FeedConfig{ChatID: stateFeedChat, Lang: "en", Bugs: &bugsOn, News: &newsOff}
+	feed := &settings.FeedConfig{ChatID: stateFeedChat, Lang: "en", Bugs: &bugsOn, BugzillaBase: "https://bugzilla.example.test", News: &newsOff}
 	states := map[int64]*feedState{feed.ChatID: {LastBugID: 100}}
 	sources := feedSources{
 		recent: func(context.Context, int) ([]recentBug, bool) {

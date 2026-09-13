@@ -246,6 +246,8 @@ type FeedConfig struct {
 	IntervalSeconds int `json:"interval_seconds"`
 	// Bugs enables Bugzilla posts and defaults to true.
 	Bugs *bool `json:"bugs"`
+	// BugzillaBase is the Bugzilla site base URL for this destination.
+	BugzillaBase string `json:"bugzilla_base"`
 	// News enables news posts and defaults to true.
 	News *bool `json:"news"`
 	// BugProduct filters bugs by product when non-empty.

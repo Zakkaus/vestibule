@@ -28,6 +28,7 @@ export type FeedWriteValues = Readonly<{
   lang: FeedLanguage;
   interval_seconds: number;
   bugs: boolean;
+  bugzilla_base: string;
   news: boolean;
   bug_product: string;
   bug_component: string;
@@ -39,6 +40,7 @@ export type FeedView = Readonly<{
   lang: Setting<FeedLanguage>;
   intervalSeconds: Setting<number>;
   bugs: Setting<boolean>;
+  bugzillaBase: Setting<string>;
   news: Setting<boolean>;
   bugProduct: Setting<string>;
   bugComponent: Setting<string>;
@@ -125,12 +127,13 @@ function feedFromPayload(payload: unknown): FeedView | undefined {
   );
   const intervalSeconds = settingFromPayload(feed.interval_seconds, integerFromPayload, feedSettingSources);
   const bugs = settingFromPayload(feed.bugs, booleanFromPayload, feedSettingSources);
+  const bugzillaBase = settingFromPayload(feed.bugzilla_base, stringFromPayload, feedSettingSources);
   const news = settingFromPayload(feed.news, booleanFromPayload, feedSettingSources);
   const bugProduct = settingFromPayload(feed.bug_product, stringFromPayload, feedSettingSources);
   const bugComponent = settingFromPayload(feed.bug_component, stringFromPayload, feedSettingSources);
   const silentBugs = settingFromPayload(feed.silent_bugs, booleanFromPayload, feedSettingSources);
-  return lang && intervalSeconds && bugs && news && bugProduct && bugComponent && silentBugs
-    ? { lang, intervalSeconds, bugs, news, bugProduct, bugComponent, silentBugs }
+  return lang && intervalSeconds && bugs && bugzillaBase && news && bugProduct && bugComponent && silentBugs
+    ? { lang, intervalSeconds, bugs, bugzillaBase, news, bugProduct, bugComponent, silentBugs }
     : undefined;
 }
 

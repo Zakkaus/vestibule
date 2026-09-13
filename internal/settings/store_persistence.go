@@ -135,6 +135,7 @@ func cloneFeedOverride(value *FeedOverride) *FeedOverride {
 	out.Lang = clonePtr(value.Lang)
 	out.IntervalSeconds = clonePtr(value.IntervalSeconds)
 	out.Bugs = clonePtr(value.Bugs)
+	out.BugzillaBase = clonePtr(value.BugzillaBase)
 	out.News = clonePtr(value.News)
 	out.BugProduct = clonePtr(value.BugProduct)
 	out.BugComponent = clonePtr(value.BugComponent)
@@ -245,12 +246,13 @@ func compactFeedOverride(value *FeedOverride, baseline FeedBaseline) *FeedOverri
 	out.Lang = omitBaseline(out.Lang, baseline.Lang.Value)
 	out.IntervalSeconds = omitBaseline(out.IntervalSeconds, baseline.IntervalSeconds.Value)
 	out.Bugs = omitBaseline(out.Bugs, baseline.Bugs.Value)
+	out.BugzillaBase = omitBaseline(out.BugzillaBase, baseline.BugzillaBase.Value)
 	out.News = omitBaseline(out.News, baseline.News.Value)
 	out.BugProduct = omitBaseline(out.BugProduct, baseline.BugProduct.Value)
 	out.BugComponent = omitBaseline(out.BugComponent, baseline.BugComponent.Value)
 	out.SilentBugs = omitBaseline(out.SilentBugs, baseline.SilentBugs.Value)
 	if out.Lang == nil && out.IntervalSeconds == nil && out.Bugs == nil &&
-		out.News == nil && out.BugProduct == nil && out.BugComponent == nil &&
+		out.BugzillaBase == nil && out.News == nil && out.BugProduct == nil && out.BugComponent == nil &&
 		out.SilentBugs == nil && out.GitHubRepos == nil {
 		return nil
 	}

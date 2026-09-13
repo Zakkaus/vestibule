@@ -69,6 +69,7 @@ type feedDefaults struct {
 	Lang            string       `yaml:"lang"`
 	IntervalSeconds int          `yaml:"interval_seconds"`
 	Bugs            bool         `yaml:"bugs"`
+	BugzillaBase    string       `yaml:"bugzilla_base"`
 	News            bool         `yaml:"news"`
 	BugProduct      string       `yaml:"bug_product"`
 	BugComponent    string       `yaml:"bug_component"`
@@ -144,6 +145,7 @@ func factoryBaseline() GroupBaseline {
 			Lang:            factoryValue(defaults.Feed.Lang),
 			IntervalSeconds: factoryValue(defaults.Feed.IntervalSeconds),
 			Bugs:            factoryValue(defaults.Feed.Bugs),
+			BugzillaBase:    factoryValue(defaults.Feed.BugzillaBase),
 			News:            factoryValue(defaults.Feed.News),
 			BugProduct:      factoryValue(defaults.Feed.BugProduct),
 			BugComponent:    factoryValue(defaults.Feed.BugComponent),

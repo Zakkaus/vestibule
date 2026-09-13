@@ -2779,7 +2779,7 @@ li::marker { color: var(--border); }
       欢迎语中的一个花括号错误，不应导致整个入群流程失败。</p>
 
     <h3>订阅推送</h3>
-    <p>订阅推送按群设置 Bugzilla、新闻源与 GitHub 仓库。RSS、Atom、JSON Feed 来源识别及富文本控制尚未实现，列入后续计划。</p>
+    <p>订阅推送按群设置 Bugzilla、新闻源与 GitHub 仓库。Bugzilla 启用时为该群填写站点基地址，例如 <code>https://bugzilla.example.org</code>；GitHub 仓库示例使用 <code>example/repository</code>。RSS、Atom、JSON Feed 来源识别及富文本控制尚未实现，列入后续计划。</p>
     <p><b>本阶段控制台页面只读。</b>页面显示群级有效值及来源；写入契约由群级 API 提供。
       下方编辑卡属于后续交互设计，不表示当前页面已提供表单。</p>
     <div class="card card-pad">
@@ -2787,7 +2787,7 @@ li::marker { color: var(--border); }
         <span class="k"><svg class="i"><use href="#i-rss"/></svg>源地址</span>
         <span class="d">填入订阅地址即可。也可填入网站首页，由机器人查找其订阅地址。</span>
         <span class="c"><span class="row" style="flex:none;gap: var(--sp-2);">
-          <input class="field mono" type="text" value="https://planet.gentoo.org/rss20.xml" aria-label="源地址" style="inline-size:min(100%,20rem);font-size:0.8125rem;">
+          <input class="field mono" type="text" value="https://feeds.example.org/updates.xml" aria-label="源地址" style="inline-size:min(100%,20rem);font-size:0.8125rem;">
           <span class="badge ok"><span class="dot"></span>RSS 2.0</span>
         </span></span>
       </div>

@@ -1488,6 +1488,39 @@ func (s *Server) exportAudit(writer http.ResponseWriter, request *http.Request, 
             ),
         )
 
+    def test_repository_identity_cannot_ship_in_active_examples(self) -> None:
+        cases = (
+            (
+                "config.example.json",
+                '  "observe_only": false,',
+                '  "observe_only": false,\n  "identity_probe": "gentoo-zh/overlay",',
+                "repository identity gentoo-zh/",
+            ),
+            (
+                "examples/feeds.json",
+                '  "expected_revision": 0,',
+                '  "expected_revision": 0,\n  "identity_probe": "Zakkaus/vestibule/releases",',
+                "repository identity Zakkaus/vestibule/releases",
+            ),
+            (
+                "docs/GITHUB-FEEDS.md",
+                "# GitHub 提交、issue 与 pull request 订阅配置",
+                "# GitHub 提交、issue 与 pull request 订阅配置\nhttps://github.com/Zakkaus/example",
+                "repository identity github.com/Zakkaus/",
+            ),
+        )
+        for relative, old, new, finding in cases:
+            tree = self.temporary_tree()
+            self.assert_mutation_is_rejected(
+                tree,
+                "scripts/check-no-baked-identity.py",
+                "an active example names this repository's deployment identity",
+                (finding, relative),
+                lambda relative=relative, old=old, new=new: self.replace_text(
+                    tree, relative, old, new
+                ),
+            )
+
     def test_synthetic_ids_and_upstream_module_domains_remain_allowed(self) -> None:
         tree = self.temporary_tree()
         self.assert_gate_passes(tree, "scripts/check-no-baked-identity.py")
