@@ -11,6 +11,7 @@ export type FeedDraft = Readonly<{
   lang: FeedLanguage;
   interval_seconds: string;
   bugs: boolean;
+  bugzilla_base: string;
   news: boolean;
   bug_product: string;
   bug_component: string;
@@ -22,6 +23,7 @@ export type FeedField =
   | "lang"
   | "interval_seconds"
   | "bugs"
+  | "bugzilla_base"
   | "news"
   | "bug_product"
   | "bug_component"
@@ -41,6 +43,7 @@ const factoryValues: FeedWriteValues = {
   lang: "",
   interval_seconds: 300,
   bugs: false,
+  bugzilla_base: "",
   news: false,
   bug_product: "",
   bug_component: "",
@@ -53,6 +56,7 @@ export function settingsDraft(settings: FeedSettings): FeedDraft {
     lang: settings.feed.lang.value,
     interval_seconds: String(settings.feed.intervalSeconds.value),
     bugs: settings.feed.bugs.value,
+    bugzilla_base: settings.feed.bugzillaBase.value,
     news: settings.feed.news.value,
     bug_product: settings.feed.bugProduct.value,
     bug_component: settings.feed.bugComponent.value,
@@ -66,6 +70,7 @@ export function factoryDraft(): FeedDraft {
     lang: factoryValues.lang,
     interval_seconds: String(factoryValues.interval_seconds),
     bugs: factoryValues.bugs,
+    bugzilla_base: factoryValues.bugzilla_base,
     news: factoryValues.news,
     bug_product: factoryValues.bug_product,
     bug_component: factoryValues.bug_component,
@@ -86,6 +91,9 @@ export function validateDraft(draft: FeedDraft): FeedValidation {
   if (intervalSeconds === undefined || intervalSeconds < FEED_MIN_INTERVAL_SECONDS || intervalSeconds > FEED_MAX_INTERVAL_SECONDS) {
     errors.interval_seconds = "feeds.validation.invalidInterval";
   }
+  if (draft.bugs && draft.bugzilla_base.trim() === "") {
+    errors.bugzilla_base = "feeds.validation.required";
+  }
   if (Object.keys(errors).length > 0 || intervalSeconds === undefined) {
     return { errors };
   }
@@ -95,6 +103,7 @@ export function validateDraft(draft: FeedDraft): FeedValidation {
       lang: draft.lang,
       interval_seconds: intervalSeconds,
       bugs: draft.bugs,
+      bugzilla_base: draft.bugzilla_base.trim(),
       news: draft.news,
       bug_product: draft.bug_product,
       bug_component: draft.bug_component,
@@ -110,6 +119,7 @@ export function hasDraftChanges(settings: FeedSettings, draft: FeedDraft): boole
     draft.lang !== current.lang ||
     draft.interval_seconds !== current.interval_seconds ||
     draft.bugs !== current.bugs ||
+    draft.bugzilla_base !== current.bugzilla_base ||
     draft.news !== current.news ||
     draft.bug_product !== current.bug_product ||
     draft.bug_component !== current.bug_component ||

@@ -422,6 +422,10 @@
         "label": "Bugzilla posts",
         "description": "Enable delivery of new Bugzilla entries for this group."
       },
+      "bugzillaBase": {
+        "label": "Bugzilla base URL",
+        "description": "Enter this group's Bugzilla site base URL. Required when Bugzilla posts are enabled."
+      },
       "news": {
         "label": "News posts",
         "description": "Enable delivery of configured news entries for this group."
@@ -500,6 +504,7 @@
       "required": "This field is required.",
       "invalidInterval": "Enter an integer from 60 through 86400 seconds.",
       "invalidLanguage": "Choose a supported feed language.",
+      "invalidURL": "Enter a valid Bugzilla base URL.",
       "invalidRepository": "Enter a valid owner/name GitHub repository.",
       "duplicateRepository": "Each repository and branch pair must be unique.",
       "invalidRevision": "These settings are out of date. Reload the latest values before saving."

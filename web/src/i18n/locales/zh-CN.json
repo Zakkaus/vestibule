@@ -420,6 +420,10 @@
         "label": "Bugzilla 推送",
         "description": "为此群开启新的 Bugzilla 条目推送。"
       },
+      "bugzillaBase": {
+        "label": "Bugzilla 基地址",
+        "description": "填写此群 Bugzilla 站点的基地址；开启 Bugzilla 推送时必填。"
+      },
       "news": {
         "label": "新闻推送",
         "description": "为此群开启已配置新闻条目的推送。"
@@ -497,6 +501,7 @@
       "required": "此字段为必填项。",
       "invalidInterval": "请输入 60 至 86400 秒范围内的整数。",
       "invalidLanguage": "请选择受支持的推送语言。",
+      "invalidURL": "请输入有效的 Bugzilla 基地址。",
       "invalidRepository": "请输入有效的 owner/name 格式 GitHub 仓库。",
       "duplicateRepository": "仓库与分支的组合必须唯一。",
       "invalidRevision": "设置已过期。请重新载入最新值后再保存。"
