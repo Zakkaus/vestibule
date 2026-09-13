@@ -1,6 +1,6 @@
 # GitHub 提交、issue 与 pull request 订阅配置
 
-GitHub 提交订阅使用 Atom 源，issue 与 pull request 订阅使用 REST API。订阅是群级运行期设置；控制台页面只读，群级 API 可读取并保存。配置文件中的 `feeds` 只在启动时作为一次性导入输入，之后不再作为运行期来源。GitHub 订阅仍属于 Gentoo 模块，因此禁用 `gentoo` 模块时不会启动这些来源。
+GitHub 提交订阅使用 Atom 源，issue 与 pull request 订阅使用 REST API。订阅是群级运行期设置；控制台页面可编辑群级设置，群级 API 可读取并保存。配置文件中的 `feeds` 只在启动时作为一次性导入输入，之后不再作为运行期来源。GitHub 订阅仍属于 Gentoo 模块，因此禁用 `gentoo` 模块时不会启动这些来源。
 
 ## 运行期设置与首次导入
 

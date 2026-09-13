@@ -386,7 +386,7 @@
   "feeds": {
     "navigation": "Feed delivery",
     "title": "Feed delivery",
-    "description": "View the selected group's effective Bugzilla, news, and GitHub delivery settings; operators also see process-wide news and overlay resources.",
+    "description": "Edit the selected group's effective Bugzilla, news, and GitHub delivery settings; operators can also view process-wide news and overlay resources.",
     "loading": {
       "title": "Loading feed delivery settings",
       "description": "Reading group feed values and their sources…"
@@ -399,34 +399,59 @@
       "title": "Feed delivery settings cannot be loaded",
       "retry": "Try again"
     },
-    "readOnly": {
-      "title": "Feed settings are read only",
-      "badge": "Read only",
-      "description": "This screen displays the effective group values and sources returned by the API; it does not provide editing controls."
-    },
     "source": {
       "value": "Source: {{source}}",
       "factoryDefault": "Factory default",
       "userFile": "Managed by file",
       "chatOverride": "Group override"
     },
-    "feed": {
-      "title": "Delivery targets",
-      "description": "The selected group's effective Bugzilla, news, and GitHub delivery values.",
-      "destination": "Receiving group or channel",
-      "language": "Delivery language",
-      "interval": "Polling interval",
-      "bugzilla": "Bugzilla posts",
-      "news": "News posts",
-      "bugProduct": "Bugzilla product",
-      "bugComponent": "Bugzilla component",
-      "silentBugs": "Always-silent Bugzilla posts",
-      "githubRepository": "GitHub repository",
-      "githubIssues": "Issue posts",
-      "githubPulls": "PR posts",
-      "followingDefault": "Following the default branch",
-      "allProducts": "All products",
-      "allComponents": "All components"
+    "form": {
+      "title": "Group feed settings",
+      "description": "Changes apply to this group after you save the complete feed configuration."
+    },
+    "fields": {
+      "language": {
+        "label": "Delivery language",
+        "description": "Choose the language used for feed messages, or follow the group's language."
+      },
+      "interval": {
+        "label": "Polling interval",
+        "description": "Set how often feeds are checked, from 60 to 86400 seconds."
+      },
+      "bugs": {
+        "label": "Bugzilla posts",
+        "description": "Enable delivery of new Bugzilla entries for this group."
+      },
+      "news": {
+        "label": "News posts",
+        "description": "Enable delivery of configured news entries for this group."
+      },
+      "bugProduct": {
+        "label": "Bugzilla product",
+        "description": "Limit Bugzilla posts to this product, or leave blank for all products."
+      },
+      "bugComponent": {
+        "label": "Bugzilla component",
+        "description": "Limit Bugzilla posts to this component, or leave blank for all components."
+      },
+      "silentBugs": {
+        "label": "Always-silent Bugzilla posts",
+        "description": "Suppress notifications for every Bugzilla post delivered to this group."
+      }
+    },
+    "repositories": {
+      "title": "GitHub repositories",
+      "description": "Choose repositories and event types for this group's GitHub feed.",
+      "item": "Repository {{number}}",
+      "itemDescription": "Configure the repository identity, optional branch, and event types for this row.",
+      "repository": "Repository",
+      "repositoryDescription": "Enter an owner/name GitHub repository.",
+      "branch": "Branch",
+      "branchDescription": "Leave blank to follow the repository's default branch.",
+      "issues": "Issues",
+      "issuesDescription": "Deliver newly opened issues from this repository.",
+      "pulls": "Pull requests",
+      "pullsDescription": "Deliver newly opened pull requests from this repository."
     },
     "newsURL": {
       "title": "News source URL",
@@ -451,17 +476,45 @@
       "ru": "Russian"
     },
     "values": {
-      "enabled": "Enabled",
-      "disabled": "Disabled",
       "seconds_one": "{{count}} second",
       "seconds_other": "{{count}} seconds"
+    },
+    "actions": {
+      "addRepository": "Add repository",
+      "removeRepository": "Remove repository",
+      "restoreFactory": "Restore factory defaults",
+      "save": "Save feed settings",
+      "saving": "Saving feed settings…",
+      "reload": "Reload settings"
+    },
+    "save": {
+      "label": "Save group feed settings",
+      "clean": "No unsaved changes",
+      "dirty": "Unsaved feed changes"
+    },
+    "feedback": {
+      "saved": "Feed settings saved.",
+      "conflict": "An administrator changed these settings. The latest values were reloaded; apply the changes you still need."
+    },
+    "validation": {
+      "required": "This field is required.",
+      "invalidInterval": "Enter an integer from 60 through 86400 seconds.",
+      "invalidLanguage": "Choose a supported feed language.",
+      "invalidRepository": "Enter a valid owner/name GitHub repository.",
+      "duplicateRepository": "Each repository and branch pair must be unique.",
+      "invalidRevision": "These settings are out of date. Reload the latest values before saving."
     },
     "errors": {
       "authenticationExpired": "The session has expired. Reopen the console from Telegram.",
       "authenticationInvalid": "This console session cannot be verified. Reopen the console from Telegram.",
+      "accessDenied": "You no longer administer this group.",
+      "csrfInvalid": "This page's security token has expired. Refresh the page and try again.",
+      "invalidRequest": "The feed settings were rejected. Review the highlighted fields and try again.",
+      "reviewFields": "Review the highlighted feed fields and try again.",
       "settingsUnavailable": "The process settings service is unavailable. Try again.",
-      "loadUnavailable": "Process settings cannot be read right now. Try again.",
-      "invalidResponse": "The process settings response is incomplete and cannot be displayed safely. Try again.",
+      "loadUnavailable": "Feed settings cannot be read right now. Try again.",
+      "saveUnavailable": "Feed settings cannot be saved right now. Try again.",
+      "invalidResponse": "The feed settings response is incomplete and cannot be displayed safely. Try again.",
       "network": "The connection was interrupted. Reload the settings before relying on them."
     }
   },

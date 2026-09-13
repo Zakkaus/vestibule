@@ -10,6 +10,7 @@ type AppSelectProps<Value extends string> = Readonly<{
   "aria-busy"?: boolean;
   "aria-disabled"?: boolean | "true" | "false";
   "aria-describedby"?: string;
+  "aria-invalid"?: boolean | "true" | "false";
   "aria-label"?: string;
   "aria-labelledby"?: string;
   disabled?: boolean;
@@ -34,6 +35,7 @@ export function AppSelect<Value extends string>({
   "aria-busy": ariaBusy,
   "aria-disabled": ariaDisabled,
   "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
   disabled = false,
@@ -221,6 +223,7 @@ export function AppSelect<Value extends string>({
         ref={triggerRef}
         aria-busy={ariaBusy}
         aria-disabled={ariaDisabled}
+        aria-invalid={ariaInvalid}
         aria-controls={listboxId}
         aria-describedby={ariaDescribedBy}
         aria-expanded={open}

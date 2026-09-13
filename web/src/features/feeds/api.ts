@@ -24,6 +24,17 @@ export type GitHubRepo = Readonly<{
   pulls: boolean;
 }>;
 
+export type FeedWriteValues = Readonly<{
+  lang: FeedLanguage;
+  interval_seconds: number;
+  bugs: boolean;
+  news: boolean;
+  bug_product: string;
+  bug_component: string;
+  silent_bugs: boolean;
+  github_repos: readonly GitHubRepo[];
+}>;
+
 export type FeedView = Readonly<{
   lang: Setting<FeedLanguage>;
   intervalSeconds: Setting<number>;
@@ -164,6 +175,19 @@ export function loadFeedSettings(
   chatID: string
 ): Promise<ApiResult<FeedSettings>> {
   return transport.request(`/api/chats/${encodeURIComponent(chatID)}/feeds`, { parse: feedSettingsFromPayload });
+}
+
+export function saveFeedSettings(
+  transport: ApiTransport,
+  chatID: string,
+  expectedRevision: number,
+  values: FeedWriteValues
+): Promise<ApiResult<FeedSettings>> {
+  return transport.request(`/api/chats/${encodeURIComponent(chatID)}/feeds`, {
+    method: "PUT",
+    body: { expected_revision: expectedRevision, ...values },
+    parse: feedSettingsFromPayload
+  });
 }
 
 export function loadProcessSettings(transport: ApiTransport): Promise<ApiResult<ProcessSettings>> {
