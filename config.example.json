@@ -7,5 +7,26 @@
     -1009000000001
   ],
   "github_atom_base": "",
-  "github_api_base": ""
+  "github_api_base": "",
+  "feeds": [
+    {
+      "chat_id": -1009000000001,
+      "lang": "en",
+      "interval_seconds": 300,
+      "bugs": true,
+      "bugzilla_base": "https://bugzilla.example.org",
+      "news": false,
+      "bug_product": "",
+      "bug_component": "",
+      "silent_bugs": false,
+      "github_repos": [
+        {
+          "repo": "example/repository",
+          "branch": "main",
+          "issues": true,
+          "pulls": true
+        }
+      ]
+    }
+  ]
 }

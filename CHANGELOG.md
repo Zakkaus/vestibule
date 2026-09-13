@@ -14,6 +14,11 @@ All notable changes to this project are documented here. The format is based on
   Both event switches default to off, establish separate first-enable baselines, and share the
   existing per-destination delivery budget with commits. Successfully published items now update
   their original message when closed, merged, or reopened; comments and reviews are not published.
+- Bugzilla feed destinations now require their own validated base URL when enabled. Changing
+  that URL resets Bugzilla-specific cursors and tracked messages; legacy entries without one
+  import with Bugzilla posting disabled. Package lookup defaults now use official packages only;
+  deployments opt into overlay repositories explicitly.
+>>>>>>> 19c119e (Ship neutral examples and no implicit overlays)
 - The question bank can try saved multiple-choice and short-answer questions through
   `POST /api/chats/{id}/rules/test`. Trials share the live answer predicates, reject stale
   settings revisions, and create no verification records, audit entries, or statistics.

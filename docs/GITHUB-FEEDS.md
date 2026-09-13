@@ -4,22 +4,23 @@ GitHub 提交订阅使用 Atom 源，issue 与 pull request 订阅使用 REST AP
 
 ## 运行期设置与首次导入
 
-群级订阅的出厂默认值为：`interval_seconds=300`，`bugs=false`、`news=false`，其余字符串与 `github_repos` 为空。`GET /api/chats/{id}/feeds` 返回有效值、每项来源与群设置版本号。`PUT /api/chats/{id}/feeds` 要求运维会话、CSRF 令牌和完整请求体；它以 `expected_revision` 做条件更新，并整份替换该群的订阅覆盖：
+群级订阅的出厂默认值为：`interval_seconds=300`，`bugs=false`、`news=false`、`bugzilla_base=""`，其余字符串与 `github_repos` 为空。`GET /api/chats/{id}/feeds` 返回有效值、每项来源与群设置版本号。`PUT /api/chats/{id}/feeds` 要求运维会话、CSRF 令牌和完整请求体；它以 `expected_revision` 做条件更新，并整份替换该群的订阅覆盖：
 
 ```json
 {
   "expected_revision": 0,
   "lang": "en",
   "interval_seconds": 300,
-  "bugs": false,
+  "bugs": true,
+  "bugzilla_base": "https://bugzilla.example.org",
   "news": false,
   "bug_product": "",
   "bug_component": "",
   "silent_bugs": false,
   "github_repos": [
     {
-      "repo": "gentoo-zh/overlay",
-      "branch": "master",
+      "repo": "example/repository",
+      "branch": "main",
       "issues": true,
       "pulls": true
     }
@@ -29,7 +30,7 @@ GitHub 提交订阅使用 Atom 源，issue 与 pull request 订阅使用 REST AP
 
 [`examples/feeds.json`](../examples/feeds.json) 是可提交到该 PUT 路由的请求体。所有字段均为必填；用空字符串或空数组显式清除对应覆盖。版本冲突返回 `409 settings_conflict`，校验失败返回字段错误且不改变版本号。
 
-旧 `config.json` 的 `feeds` 与单数 `feed` 只作启动迁移输入。Store 仅为已管理、尚无订阅覆盖的群导入一次；文件状态使用原子替换，数据库状态使用版本比较交换。任一未管理群 ID、持久化错误或比较交换冲突都会终止启动，不会发布半完成快照。导入成功后应从配置文件删除这些条目，后续修改通过群设置接口持久化。为保持旧版行为，迁移条目中缺失或为 `null` 的 `bugs`、`news` 会导入为 `true`；运行期 PUT 不接受缺失或 `null` 的布尔值。
+旧 `config.json` 的 `feeds` 与单数 `feed` 只作启动迁移输入。Store 仅为已管理、尚无订阅覆盖的群导入一次；文件状态使用原子替换，数据库状态使用版本比较交换。任一未管理群 ID、持久化错误或比较交换冲突都会终止启动，不会发布半完成快照。导入成功后应从配置文件删除这些条目，后续修改通过群设置接口持久化。为保持旧版行为，迁移条目中缺失或为 `null` 的 `bugs`、`news` 会导入为 `true`；若因此启用了 Bugzilla 但旧条目没有 `bugzilla_base`，Store 会记录迁移日志并禁用该群的 Bugzilla 推送，不会使配置加载失败。运行期 PUT 不接受缺失或 `null` 的布尔值。
 
 `issues` 和 `pulls` 分别控制新建 issue 与新建 pull request 推送。运行期请求必须显式传布尔值；首次导入时，省略、设为 `null` 或设为 `false` 均表示关闭。提交推送继续随仓库配置启用，不受这两个开关影响。
 
@@ -38,6 +39,12 @@ GitHub 提交订阅使用 Atom 源，issue 与 pull request 订阅使用 REST AP
 加载配置时不会验证 `branch` 是否是 Git ref。`branch` 可以包含 `/`、`@`、`#` 等字符；非法或不存在的分支由上游请求失败处理。`url.PathEscape` 只负责把分支分段编码进请求路径，不是分支合法性校验。
 
 空 `github_repos` 表示该群不订阅 GitHub。`silent_bugs: true` 强制所有 Bugzilla 消息静默；设为 `false` 时，仍按缺陷状态决定是否静默，例如 `UNCONFIRMED` 和首次观察时已解决的缺陷仍不发通知。该字段不影响 GitHub 提交消息，产品与组件过滤也只作用于 Bugzilla。
+
+## Bugzilla 基地址
+
+`bugzilla_base` 是每个群独立的 Bugzilla 站点基地址。`bugs=true` 时它不能为空；`bugs=false` 时可为空。非空值必须是带 host 的 `http://` 或 `https://` 地址，不能包含 userinfo、query 或 fragment。保存和配置加载都会移除尾部 `/`，保留路径前缀。
+
+轮询状态也记录该地址。地址改变后，会清除该群的 Bug 游标与已发布 Bug 的跟踪记录，避免把一个站点的编号或消息编辑状态用于另一个站点。旧状态文件没有该字段时，系统将其视为当前地址，不清除原有游标与跟踪记录。
 
 ## GitHub 基地址
 

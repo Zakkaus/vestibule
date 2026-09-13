@@ -36,10 +36,7 @@ func configurePkg(cfg *settings.Config) {
 		userAgent = cfg.UserAgent
 	}
 	if len(cfg.Overlays) == 0 {
-		overlays = []overlay{
-			{name: "gentoo-zh", repo: "gentoo-zh/overlay", branch: "master"},
-			{name: "guru", repo: "gentoo/guru", branch: "master"},
-		}
+		overlays = nil
 		return
 	}
 	overlays = nil
