@@ -374,20 +374,6 @@ func migrateFeedState(st *feedState) {
 	}
 }
 
-func syncBugzillaState(st *feedState, base string) {
-	if st.BugzillaBase == nil {
-		st.BugzillaBase = &base
-		return
-	}
-	if *st.BugzillaBase == base {
-		return
-	}
-	log.Printf("feed: reset Bugzilla cursor for changed base %q -> %q", *st.BugzillaBase, base)
-	st.LastBugID = 0
-	st.Tracked = nil
-	st.BugzillaBase = &base
-}
-
 func saveFeedState(path string, st feedState) {
 	if path == "" || st.writeDisabled {
 		return
@@ -841,10 +827,6 @@ func pollAllWithSources(ctx context.Context, bot feedBot, feeds []*settings.Feed
 	}
 
 	needNews := false
-	type bugCursorKey struct {
-		base   string
-		cursor int
-	}
 	bugCursorSet := map[bugCursorKey]bool{}
 	for _, f := range due {
 		syncBugzillaState(states[f.ChatID], f.BugzillaBase)
@@ -855,25 +837,7 @@ func pollAllWithSources(ctx context.Context, bot feedBot, feeds []*settings.Feed
 	}
 
 	trackedSets := collectTrackedBugIDs(due, states)
-	bugsByCursor := make(map[bugCursorKey][]recentBug, len(bugCursorSet))
-	bugCursors := make([]bugCursorKey, 0, len(bugCursorSet))
-	for key := range bugCursorSet {
-		bugCursors = append(bugCursors, key)
-	}
-	sort.Slice(bugCursors, func(i, j int) bool {
-		if bugCursors[i].base == bugCursors[j].base {
-			return bugCursors[i].cursor < bugCursors[j].cursor
-		}
-		return bugCursors[i].base < bugCursors[j].base
-	})
-	for _, key := range bugCursors {
-		fctx, cancel := context.WithTimeout(ctx, feedFetchTimeout)
-		bugs, ok := sources.fetchRecent(fctx, key.base, key.cursor)
-		cancel()
-		if ok {
-			bugsByCursor[key] = bugs
-		}
-	}
+	bugsByCursor := fetchRecentBugsByCursor(ctx, bugCursorSet, sources)
 
 	var news []lookup.NewsItem
 	if needNews {
