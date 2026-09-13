@@ -4,11 +4,11 @@ package i18n
 type LookupPackagesCatalog struct {
 	// Source contains labels shared by package data sources.
 	Source LookupPackageSourceCatalog
-	// Pkg contains /pkg command text.
+	// Pkg contains /gpkg command text.
 	Pkg LookupPkgCatalog
-	// Use contains /use command text.
+	// Use contains /guse command text.
 	Use LookupUseCatalog
-	// Arm contains /arm command text.
+	// Arm contains /garm command text.
 	Arm LookupArmCatalog
 }
 
@@ -24,9 +24,9 @@ type LookupPackageSourceCatalog struct {
 	PartialResults Format
 }
 
-// LookupPkgCatalog contains /pkg command text.
+// LookupPkgCatalog contains /gpkg command text.
 type LookupPkgCatalog struct {
-	// Usage explains the accepted /pkg arguments.
+	// Usage explains the accepted /gpkg arguments.
 	Usage Text
 	// ResultsHeading formats the package search heading.
 	ResultsHeading Format
@@ -42,9 +42,9 @@ type LookupPkgCatalog struct {
 	KeywordLegend Text
 }
 
-// LookupUseCatalog contains /use command text.
+// LookupUseCatalog contains /guse command text.
 type LookupUseCatalog struct {
-	// Usage explains the accepted /use arguments.
+	// Usage explains the accepted /guse arguments.
 	Usage Text
 	// LocalFlags labels package-local USE flags.
 	LocalFlags Text
@@ -86,9 +86,9 @@ type LookupUseCatalog struct {
 	InfoUnavailable Format
 }
 
-// LookupArmCatalog contains /arm command text.
+// LookupArmCatalog contains /garm command text.
 type LookupArmCatalog struct {
-	// Usage explains the accepted /arm arguments.
+	// Usage explains the accepted /garm arguments.
 	Usage Text
 	// OfficialUnavailable reports an official-tree outage.
 	OfficialUnavailable Text

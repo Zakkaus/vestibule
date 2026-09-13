@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-var prefixedProductCommand = regexp.MustCompile(`(?:^|[^\w./])/(g(?:pkg|use|bug|news|bbs|arm))(?:[^a-z]|$)`)
+var legacyProductCommand = regexp.MustCompile(`(?:^|[^\w./])/(pkg|use|arm|bug|news|bbs)(?:[^a-z]|$)`)
 
 func TestCatalogueUsesCanonicalCommandNames(t *testing.T) {
 	for _, definition := range localeDefinitions {
@@ -28,8 +28,8 @@ func TestCatalogueUsesCanonicalCommandNames(t *testing.T) {
 							definition.tag, subsystem, path, token, value)
 					}
 				}
-				for _, match := range prefixedProductCommand.FindAllStringSubmatch(value, -1) {
-					t.Errorf("%s/%s: %s names removed command /%s instead of its canonical name: %q",
+				for _, match := range legacyProductCommand.FindAllStringSubmatch(value, -1) {
+					t.Errorf("%s/%s: %s retains legacy command /%s instead of its canonical name: %q",
 						definition.tag, subsystem, path, match[1], value)
 				}
 			})

@@ -131,6 +131,7 @@ func renderArguments(t *testing.T, contract string) ([]any, []string) {
 const renderArgumentContracts = `
 bot.direct_message.auto_reply=1:d,2:s
 bot.error_page.step_manager=1:s
+bot.renamed_command=1:s
 bot.daily.report=1:s,2:s,3:s,4:s,5:s,6:d
 bot.lifecycle.unauthorized_chat=1:s,2:d,3:s
 bot.menu.admin.warn=1:d

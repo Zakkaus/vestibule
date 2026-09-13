@@ -29,7 +29,7 @@
       "warn": "【管理】回覆並警告（滿 %[1]d 次移出群組）",
       "clear_warn": "【管理】回覆並清除警告",
       "channel": "【管理】管理頻道身分發言",
-      "rich_text": "【管理】切換 /pkg、/use 富文字",
+      "rich_text": "【管理】切換 /gpkg、/guse 富文字",
       "name_spoiler": "【管理】切換新成員姓名遮蔽",
       "verification_mode": "【管理】切換驗證方式",
       "auto_delete": "【管理】切換自動刪除查詢結果",
@@ -45,6 +45,7 @@
       "console_local": "控制台監聽 loopback 介面；該地址僅可從執行控制台的機器開啟。其他機器須先設定連接埠轉送。"
     }
   },
+  "renamed_command": "此指令已改名為 /%[1]s，請改用新名稱。",
   "lifecycle": {
     "unauthorized_chat": "🚪 已自動退出未授權聊天：%[1]s（ID：%[2]d，類型：%[3]s）。"
   },

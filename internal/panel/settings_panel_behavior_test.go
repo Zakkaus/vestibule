@@ -176,7 +176,7 @@ func TestGroupHelpDefaultsToNoLookupCapabilities(t *testing.T) {
 		From:      &telego.User{ID: panelTestUser, LanguageCode: "en"},
 		Text:      "/help",
 	}})
-	for _, command := range []string{"/pkg", "/wiki"} {
+	for _, command := range []string{"/gpkg", "/wiki"} {
 		if strings.Contains(caller.lastSendText, command) {
 			t.Errorf("default group help exposed disabled lookup command %s", command)
 		}

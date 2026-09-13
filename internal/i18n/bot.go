@@ -4,6 +4,8 @@ package i18n
 type BotCatalog struct {
 	// Menu contains Telegram command-menu descriptions.
 	Menu BotMenuCatalog
+	// RenamedCommand formats a notice for a command that has been renamed.
+	RenamedCommand Format
 	// Lifecycle contains process-level bot alerts.
 	Lifecycle BotLifecycleCatalog
 	// Daily contains owner daily status report text.
