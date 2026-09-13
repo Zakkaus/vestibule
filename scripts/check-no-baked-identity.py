@@ -3,8 +3,8 @@
 
 This repository is a general-purpose deployment: every instance runs its own
 bot, in its own groups, for its own community. A handle, supergroup ID,
-deployment domain, or known community name written into the bundle names somebody else's deployment,
-and it does so in the copy a visitor reads before anything else exists.
+deployment domain, known community name, or repository identity written into
+the bundle names somebody else's deployment, including in shipped examples.
 
 Test files are excluded. UI fixture modules enter the production bundle, so
 they must also avoid deployment identities. Upstream service and optional-module
@@ -34,11 +34,20 @@ RESERVED_SYNTHETIC_PREFIX = "-1009"
 # This was the old public deployment's domain. It appears in compatibility
 # fixtures, but it is not an upstream dependency or a required service.
 DEPLOYMENT_DOMAINS = {"gentoozh.org"}
+REPOSITORY_IDENTITIES = ("gentoo-zh/", "github.com/Zakkaus/", "Zakkaus/vestibule/releases")
+REPOSITORY_IDENTITY_EXEMPT_FILES = {
+    "internal/status/release.go",
+    "web/src/features/version/api.ts",
+    "web/src/features/version/VersionScreen.tsx",
+}
+GO_PACKAGE_IMPORT = re.compile(r'\s*(?:[A-Za-z_][A-Za-z0-9_]*\s+)?"github\.com/Zakkaus/vestibule/[A-Za-z0-9_./-]+"\s*')
 SEARCHED = (
     ("web/src", (".ts", ".tsx", ".json")),
     ("internal", (".go", ".json", ".yaml")),
     ("cmd", (".go",)),
+    ("examples", (".json",)),
 )
+EXTRA_SEARCHED_FILES = ("config.example.json", "docs/GITHUB-FEEDS.md")
 EXEMPT_SUFFIXES = (".spec.ts", "_test.go", ".test.ts", ".test.tsx")
 
 
@@ -55,6 +64,12 @@ def searched_files(root: pathlib.Path) -> list[pathlib.Path]:
             if path.name.endswith(EXEMPT_SUFFIXES):
                 continue
             found.append(path)
+    for relative in EXTRA_SEARCHED_FILES:
+        path = root / relative
+        if not path.is_file():
+            print(f"FAIL check-no-baked-identity: {relative} is missing")
+            raise SystemExit(1)
+        found.append(path)
     design = root / "web/design.html"
     if not design.is_file():
         print("FAIL check-no-baked-identity: web/design.html is missing")
@@ -69,6 +84,12 @@ def is_deployment_domain(domain: str) -> bool:
         candidate == deployed or candidate.endswith("." + deployed)
         for deployed in DEPLOYMENT_DOMAINS
     )
+
+
+def repository_identity_allowed(path: pathlib.Path, identity: str, line: str) -> bool:
+    if path.as_posix() in REPOSITORY_IDENTITY_EXEMPT_FILES:
+        return True
+    return identity == "github.com/Zakkaus/" and path.suffix == ".go" and GO_PACKAGE_IMPORT.fullmatch(line) is not None
 
 
 def scan_line(path: pathlib.Path, number: int, line: str) -> list[str]:
@@ -104,6 +125,13 @@ def scan_line(path: pathlib.Path, number: int, line: str) -> list[str]:
             f"{path}:{number} names known deployment community {match.group()}; "
             "the community name has to come from the instance rather than from the build"
         )
+    for identity in REPOSITORY_IDENTITIES:
+        if identity in line and not repository_identity_allowed(path, identity, line):
+            findings.append(
+                f"{path}:{number} names repository identity {identity}; every instance chooses "
+                "its own repositories, so this identity has to come from configuration rather "
+                "than from the build"
+            )
     return findings
 
 
@@ -126,7 +154,8 @@ def main() -> int:
         return 1
     print(
         f"check-no-baked-identity: passed; {len(files)} code and design files, no deployment "
-        "bot handle, deployed supergroup ID, or known deployment domain/community name"
+        "bot handle, deployed supergroup ID, known deployment domain/community name, or "
+        "repository identity"
     )
     return 0
 

@@ -18,7 +18,6 @@ All notable changes to this project are documented here. The format is based on
   that URL resets Bugzilla-specific cursors and tracked messages; legacy entries without one
   import with Bugzilla posting disabled. Package lookup defaults now use official packages only;
   deployments opt into overlay repositories explicitly.
->>>>>>> 19c119e (Ship neutral examples and no implicit overlays)
 - The question bank can try saved multiple-choice and short-answer questions through
   `POST /api/chats/{id}/rules/test`. Trials share the live answer predicates, reject stale
   settings revisions, and create no verification records, audit entries, or statistics.
