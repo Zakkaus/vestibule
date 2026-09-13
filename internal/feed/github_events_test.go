@@ -18,8 +18,10 @@ import (
 
 type githubEventBot struct {
 	fakeFeedBot
-	texts []string
-	errs  []error
+	texts      []string
+	errs       []error
+	editTexts  []string
+	editErrors []error
 }
 
 func (bot *githubEventBot) SendMessage(_ context.Context, params *telego.SendMessageParams) (*telego.Message, error) {
@@ -29,6 +31,15 @@ func (bot *githubEventBot) SendMessage(_ context.Context, params *telego.SendMes
 		return nil, bot.errs[bot.sends-1]
 	}
 	return &telego.Message{MessageID: bot.sends}, nil
+}
+
+func (bot *githubEventBot) EditMessageText(_ context.Context, params *telego.EditMessageTextParams) (*telego.Message, error) {
+	bot.edits++
+	bot.editTexts = append(bot.editTexts, params.Text)
+	if len(bot.editErrors) >= bot.edits && bot.editErrors[bot.edits-1] != nil {
+		return nil, bot.editErrors[bot.edits-1]
+	}
+	return &telego.Message{MessageID: params.MessageID}, nil
 }
 
 func githubTestItem(number int, pull bool) lookup.GitHubItem {
@@ -432,7 +443,7 @@ func TestRenderGitHubOpenedEventsEscapesFields(t *testing.T) {
 		}
 	}
 	item.IsPull = true
-	if pull := renderGitHubItem(item, "o/r", feedLanguage("en")); !strings.Contains(pull, "Pull request") {
+	if pull := renderGitHubItem(item, "o/r", feedLanguage("en")); !strings.Contains(pull, "Opened") {
 		t.Fatalf("rendered pull request = %q", pull)
 	}
 }

@@ -16,9 +16,17 @@
     "commit": "<a href=\"%[1]s\"><b>%[2]s</b></a> · <code>%[3]s</code>\n%[4]s%[5]s%[6]s",
     "branch": "\n<b>ブランチ</b>: %[1]s",
     "author": "\n<b>作成者</b>: %[1]s",
-    "issue_opened": "<a href=\"%[1]s\"><b>%[2]s</b></a> · <code>#%[3]d</code> · Issue 作成\n%[4]s\n<b>作成者</b>: %[5]s",
-    "pull_opened": "<a href=\"%[1]s\"><b>%[2]s</b></a> · <code>#%[3]d</code> · pull request 作成\n%[4]s\n<b>作成者</b>: %[5]s"
+    "item": "%[1]s <a href=\"%[2]s\"><b>%[3]s</b></a> · <code>#%[4]d</code> · %[5]s · %[6]s\n%[7]s\n<b>作成者</b>: %[8]s",
+    "state": {
+      "open": "新規",
+      "reopened": "再開",
+      "merged": "マージ済み",
+      "closed": "クローズ済み"
+    },
+    "kind": {
+      "issue": "issue",
+      "pull": "pull request"
+    }
   },
-  "config": {
-  }
+  "config": {}
 }

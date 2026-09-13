@@ -13,17 +13,36 @@ import (
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/lookup"
 	"github.com/Zakkaus/vestibule/internal/settings"
+	"github.com/Zakkaus/vestibule/internal/telegram/queue"
+	"github.com/Zakkaus/vestibule/internal/telegram/tgfmt"
+	"github.com/mymmrac/telego"
+	tu "github.com/mymmrac/telego/telegoutil"
 )
 
-const maxCommitsPerCycle = 10
+const (
+	maxCommitsPerCycle = 10
+	maxGitHubTracked   = 100
+
+	githubItemOpen     = "open"
+	githubItemReopened = "reopened"
+	githubItemMerged   = "merged"
+	githubItemClosed   = "closed"
+)
+
+type trackedGitHubItem struct {
+	MsgID     int    `json:"msg_id"`
+	State     string `json:"state"`
+	EditFails int    `json:"edit_fails,omitempty"`
+}
 
 type githubRepoState struct {
-	LastID                string `json:"last_id"`
-	CommitBaselinePending bool   `json:"commit_baseline_pending,omitempty"`
-	LastIssue             int    `json:"last_issue,omitempty"`
-	IssuesInitialized     bool   `json:"issues_initialized,omitempty"`
-	LastPull              int    `json:"last_pull,omitempty"`
-	PullsInitialized      bool   `json:"pulls_initialized,omitempty"`
+	LastID                string                    `json:"last_id"`
+	CommitBaselinePending bool                      `json:"commit_baseline_pending,omitempty"`
+	LastIssue             int                       `json:"last_issue,omitempty"`
+	IssuesInitialized     bool                      `json:"issues_initialized,omitempty"`
+	LastPull              int                       `json:"last_pull,omitempty"`
+	PullsInitialized      bool                      `json:"pulls_initialized,omitempty"`
+	Tracked               map[int]trackedGitHubItem `json:"tracked,omitempty"`
 }
 
 type githubState struct {
@@ -114,6 +133,47 @@ func normalizeGitHubIndex(index, count int) int {
 	return index
 }
 
+func githubItemState(item lookup.GitHubItem) string {
+	if item.IsPull && item.MergedAt != nil {
+		return githubItemMerged
+	}
+	if item.State == githubItemClosed {
+		return githubItemClosed
+	}
+	return githubItemOpen
+}
+
+func (state *githubRepoState) trackGitHubItem(item lookup.GitHubItem, messageID int) {
+	if messageID == 0 {
+		return
+	}
+	if state.Tracked == nil {
+		state.Tracked = make(map[int]trackedGitHubItem)
+	}
+	if _, exists := state.Tracked[item.Number]; !exists {
+		for len(state.Tracked) >= maxGitHubTracked {
+			state.evictTrackedGitHubItem()
+		}
+	}
+	state.Tracked[item.Number] = trackedGitHubItem{MsgID: messageID, State: githubItemState(item)}
+}
+
+func (state *githubRepoState) evictTrackedGitHubItem() {
+	candidate, terminal := 0, 0
+	for number, tracked := range state.Tracked {
+		if candidate == 0 || number < candidate {
+			candidate = number
+		}
+		if tracked.State != githubItemOpen && (terminal == 0 || number < terminal) {
+			terminal = number
+		}
+	}
+	if terminal != 0 {
+		candidate = terminal
+	}
+	delete(state.Tracked, candidate)
+}
+
 func renderGitHubCommit(c lookup.Commit, repo, branch string, l i18n.Lang) string {
 	catalog := i18n.Messages.Feed.GitHub
 	branchText := ""
@@ -135,14 +195,31 @@ func renderGitHubCommit(c lookup.Commit, repo, branch string, l i18n.Lang) strin
 }
 
 func renderGitHubItem(item lookup.GitHubItem, repo string, l i18n.Lang) string {
-	template := i18n.Messages.Feed.GitHub.IssueOpened
-	if item.IsPull {
-		template = i18n.Messages.Feed.GitHub.PullOpened
+	return renderGitHubItemState(item, repo, l, githubItemState(item))
+}
+
+func renderGitHubItemState(item lookup.GitHubItem, repo string, l i18n.Lang, state string) string {
+	catalog := i18n.Messages.Feed.GitHub
+	marker, status := "🟢", catalog.State.Open
+	switch state {
+	case githubItemReopened:
+		status = catalog.State.Reopened
+	case githubItemMerged:
+		marker, status = "🟣", catalog.State.Merged
+	case githubItemClosed:
+		marker, status = "🔴", catalog.State.Closed
 	}
-	return template.Render(l,
+	kind := catalog.Kind.Issue
+	if item.IsPull {
+		kind = catalog.Kind.Pull
+	}
+	return catalog.Item.Render(l,
+		marker,
 		html.EscapeString(item.URL),
 		html.EscapeString(repo),
 		item.Number,
+		kind.For(l),
+		status.For(l),
 		html.EscapeString(item.Title),
 		html.EscapeString(item.Author),
 	)
@@ -208,59 +285,60 @@ func deliverGitHubRepo(ctx context.Context, bot feedBot, f *settings.FeedConfig,
 	return githubRepoComplete
 }
 
-func pollGitHub(ctx context.Context, bot feedBot, f *settings.FeedConfig, st *feedState) {
-	pollGitHubWithFetchers(ctx, bot, f, st, lookup.RecentCommits, lookup.RecentGitHubItems)
-}
-
 func pollGitHubWithFetcher(ctx context.Context, bot feedBot, f *settings.FeedConfig, st *feedState, fetch func(context.Context, string, string) ([]lookup.Commit, error)) {
-	pollGitHubWithFetchers(ctx, bot, f, st, fetch, lookup.RecentGitHubItems)
+	edits := 0
+	pollGitHubWithEditBudget(ctx, bot, f, st, &edits, fetch, lookup.RecentGitHubItems)
 }
 
 type githubItemsFetcher func(context.Context, string) ([]lookup.GitHubItem, bool, error)
 
 func pollGitHubWithFetchers(ctx context.Context, bot feedBot, f *settings.FeedConfig, st *feedState, commitFetch func(context.Context, string, string) ([]lookup.Commit, error), itemFetch githubItemsFetcher) {
+	edits := 0
+	pollGitHubWithEditBudget(ctx, bot, f, st, &edits, commitFetch, itemFetch)
+}
+
+func pollGitHubWithEditBudget(ctx context.Context, bot feedBot, f *settings.FeedConfig, st *feedState, edits *int, commitFetch func(context.Context, string, string) ([]lookup.Commit, error), itemFetch githubItemsFetcher) githubRepoResult {
 	if len(f.GitHubRepos) == 0 {
 		if st.GitHub == nil {
-			return
+			return githubRepoComplete
 		}
 		normalizeGitHubState(st.GitHub, f)
 		if len(st.GitHub.Repos) == 0 {
 			st.GitHub = nil
 		}
-		return
+		return githubRepoComplete
 	}
 	gs := st.GitHub
 	if gs == nil {
 		gs = &githubState{Repos: map[string]githubRepoState{}}
 	}
 	normalizeGitHubState(gs, f)
-	budget := 0
+	budget, result := 0, githubRepoComplete
 	start := gs.NextRepo
 	for visited := 0; visited < len(f.GitHubRepos) && budget < maxCommitsPerCycle; visited++ {
 		if ctx.Err() != nil {
+			result = githubRepoCanceled
 			break
 		}
 		index := (start + visited) % len(f.GitHubRepos)
-		result := pollGitHubRepo(ctx, bot, f, gs, f.GitHubRepos[index], &budget, commitFetch, itemFetch)
-		if result == githubRepoRateLimited {
+		result = pollGitHubRepo(ctx, bot, f, gs, f.GitHubRepos[index], &budget, edits, commitFetch, itemFetch)
+		if result == githubRepoRateLimited || result == githubRepoCanceled {
 			gs.NextRepo = index
-			break
-		}
-		if result == githubRepoCanceled {
 			break
 		}
 		gs.NextRepo = (index + 1) % len(f.GitHubRepos)
 	}
 	if len(gs.Repos) == 0 {
 		st.GitHub = nil
-		return
+	} else {
+		st.GitHub = gs
 	}
-	st.GitHub = gs
+	return result
 }
 
 // pollGitHubRepo fetches one repository's commits and, when enabled, its issues and
-// pull requests, delivers what the budget allows, and stores the repository state.
-func pollGitHubRepo(ctx context.Context, bot feedBot, f *settings.FeedConfig, gs *githubState, repo settings.GitHubRepo, budget *int, commitFetch func(context.Context, string, string) ([]lookup.Commit, error), itemFetch githubItemsFetcher) githubRepoResult {
+// pull requests, refreshes tracked messages, delivers what the budget allows, and stores state.
+func pollGitHubRepo(ctx context.Context, bot feedBot, f *settings.FeedConfig, gs *githubState, repo settings.GitHubRepo, budget, edits *int, commitFetch func(context.Context, string, string) ([]lookup.Commit, error), itemFetch githubItemsFetcher) githubRepoResult {
 	key := githubRepoKey(repo.Repo, repo.Branch)
 	repoState, initialized := gs.Repos[key]
 	commits, commitErr := commitFetch(ctx, repo.Repo, repo.Branch)
@@ -276,7 +354,10 @@ func pollGitHubRepo(ctx context.Context, bot feedBot, f *settings.FeedConfig, gs
 	}
 	saveState := initialized || result == githubRepoComplete
 	if result != githubRepoRateLimited && result != githubRepoCanceled && itemsOK {
-		result = deliverGitHubEvents(ctx, bot, f, repo, &repoState, feedLanguage(f.Lang), budget, items, full)
+		result = refreshTrackedGitHubItems(ctx, bot, f, repo.Repo, &repoState, feedLanguage(f.Lang), items, edits)
+		if result == githubRepoComplete {
+			result = deliverGitHubEvents(ctx, bot, f, repo, &repoState, feedLanguage(f.Lang), budget, items, full)
+		}
 		if !initialized && commitErr != nil {
 			repoState.CommitBaselinePending = true
 		}
@@ -309,6 +390,63 @@ func deliverGitHubEvents(ctx context.Context, bot feedBot, f *settings.FeedConfi
 		return result
 	}
 	return deliverGitHubCategory(ctx, bot, f, repo, state, l, budget, items, full, pageLow, pageHigh, true)
+}
+
+func refreshTrackedGitHubItems(ctx context.Context, bot feedBot, f *settings.FeedConfig, repo string, state *githubRepoState, l i18n.Lang, items []lookup.GitHubItem, edits *int) githubRepoResult {
+	for _, item := range items {
+		tracked, ok := state.Tracked[item.Number]
+		if !ok || tracked.State == githubItemState(item) {
+			continue
+		}
+		if *edits >= maxEditsPerCycle {
+			return githubRepoComplete
+		}
+		current := githubItemState(item)
+		display := current
+		if current == githubItemOpen && tracked.State != githubItemOpen {
+			display = githubItemReopened
+		}
+		edit := tgfmt.HTMLMessage(f.ChatID, renderGitHubItemState(item, repo, l, display))
+		opCtx, cancel := context.WithTimeout(ctx, feedTelegramTimeout)
+		_, err := bot.EditMessageText(opCtx, &telego.EditMessageTextParams{
+			ChatID:             tu.ID(f.ChatID),
+			MessageID:          tracked.MsgID,
+			Text:               edit.Text,
+			ParseMode:          edit.ParseMode,
+			LinkPreviewOptions: edit.LinkPreviewOptions,
+		})
+		cancel()
+		(*edits)++
+		switch {
+		case err == nil || queue.IsNotModified(err):
+			tracked.EditFails = 0
+			tracked.State = current
+			state.Tracked[item.Number] = tracked
+		case queue.IsRateLimited(err):
+			log.Printf("feed: edit tracked GitHub item %s #%d in %d rate-limited (%v) — pausing edits this cycle", repo, item.Number, f.ChatID, err)
+			return githubRepoRateLimited
+		case queue.PermanentEditError(err):
+			log.Printf("feed: drop tracked GitHub item %s #%d in %d (uneditable): %v", repo, item.Number, f.ChatID, err)
+			delete(state.Tracked, item.Number)
+		case queue.CountablePermanentEditError(err):
+			tracked.EditFails++
+			log.Printf("feed: edit tracked GitHub item %s #%d in %d (deterministic 400 %d/%d): %v", repo, item.Number, f.ChatID, tracked.EditFails, maxEditFails, err)
+			if tracked.EditFails >= maxEditFails {
+				log.Printf("feed: drop tracked GitHub item %s #%d in %d after %d deterministic edit rejections", repo, item.Number, f.ChatID, maxEditFails)
+				delete(state.Tracked, item.Number)
+			} else {
+				state.Tracked[item.Number] = tracked
+			}
+		default:
+			tracked.EditFails = 0
+			state.Tracked[item.Number] = tracked
+			log.Printf("feed: edit tracked GitHub item %s #%d in %d (transient, tracking retained): %v", repo, item.Number, f.ChatID, err)
+		}
+		if !queue.Pace(ctx, feedSendPause) {
+			return githubRepoCanceled
+		}
+	}
+	return githubRepoComplete
 }
 
 // githubCategory is one kind of item (issue or pull request) with its own cursor and
@@ -375,7 +513,7 @@ func deliverGitHubCategory(ctx context.Context, bot feedBot, f *settings.FeedCon
 		if ctx.Err() != nil {
 			return githubRepoCanceled
 		}
-		_, ok, rateLimited, permanent := postFeed(ctx, bot, f.ChatID, renderGitHubItem(item, repo.Repo, l), false, 0)
+		messageID, ok, rateLimited, permanent := postFeed(ctx, bot, f.ChatID, renderGitHubItem(item, repo.Repo, l), false, 0)
 		if rateLimited {
 			return githubRepoRateLimited
 		}
@@ -386,6 +524,9 @@ func deliverGitHubCategory(ctx context.Context, bot feedBot, f *settings.FeedCon
 			log.Printf("feed: skip permanently rejected GitHub %s #%d in %d", category.kind, item.Number, f.ChatID)
 		}
 		*category.cursor = item.Number
+		if ok {
+			state.trackGitHubItem(item, messageID)
+		}
 		(*budget)++
 	}
 	return githubRepoComplete

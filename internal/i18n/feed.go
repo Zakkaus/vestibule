@@ -18,10 +18,32 @@ type FeedGitHubCatalog struct {
 	Branch Format
 	// Author labels a commit author when present.
 	Author Format
-	// IssueOpened is the complete issue creation message template.
-	IssueOpened Format
-	// PullOpened is the complete pull-request creation message template.
-	PullOpened Format
+	// Item is the complete issue or pull-request message template.
+	Item Format
+	// Kind names the item type rendered in each GitHub item message.
+	Kind FeedGitHubKindCatalog
+	// State contains the status word rendered in each GitHub item message.
+	State FeedGitHubStateCatalog
+}
+
+// FeedGitHubKindCatalog names the two GitHub item types.
+type FeedGitHubKindCatalog struct {
+	// Issue names an issue.
+	Issue Text
+	// Pull names a pull request.
+	Pull Text
+}
+
+// FeedGitHubStateCatalog contains GitHub item state indicators.
+type FeedGitHubStateCatalog struct {
+	// Open identifies a newly opened item.
+	Open Text
+	// Reopened identifies an item reopened after closure.
+	Reopened Text
+	// Merged identifies a merged pull request.
+	Merged Text
+	// Closed identifies an item closed without merging.
+	Closed Text
 }
 
 // FeedBugCatalog contains Bugzilla feed field labels and separators.

@@ -35,8 +35,8 @@ const recentBugsLimit = 100
 
 const maxBugCatchUpPerCycle = recentBugsLimit
 
-// maxEditsPerCycle caps how many tracked-bug edits one refresh does, so a large backlog (e.g. after
-// downtime, or a mass re-mark) drains over several cycles instead of bursting past Telegram's
+// maxEditsPerCycle caps tracked-item edits per destination and cycle. GitHub and Bugzilla share
+// this count, so a large backlog drains over several cycles instead of bursting past Telegram's
 // per-chat edit rate limit. The remainder stays tracked and is picked up next cycle.
 const maxEditsPerCycle = 20
 
@@ -522,15 +522,17 @@ func formatNewBug(b recentBug, l i18n.Lang, baseSilent bool) (text string, silen
 // was last rendered — a status transition (UNCONFIRMED -> CONFIRMED/IN_PROGRESS), a resolution
 // (🐞 -> ✅/❌), or a reopen/re-resolution. Runs per feed, in the feed's own language.
 //
-// Bounded + best-effort: at most maxEditsPerCycle edits per call (a large backlog drains over
-// several cycles instead of bursting past Telegram's per-chat edit limit), each paced by
-// feedSendPause; a 429 stops the cycle early and retries next time. A bug that vanishes from the
-// refetch for maxTrackMisses cycles, repeatedly receives a deterministic Telegram 400, or gets a
-// known permanent edit error is dropped so it cannot wedge a tracking slot. Transport, context,
-// and 5xx failures never age tracking out.
+// Bounded + best-effort: GitHub and Bugzilla share maxEditsPerCycle per destination. Each edit is
+// paced by feedSendPause; a 429 stops the cycle early and retries next time. A bug that vanishes
+// from the refetch for maxTrackMisses cycles, repeatedly receives a deterministic Telegram 400, or
+// gets a known permanent edit error is dropped so it cannot wedge a tracking slot. Transport,
+// context, and 5xx failures never age tracking out.
 func refreshTracked(ctx context.Context, bot feedBot, f *settings.FeedConfig, l i18n.Lang, st *feedState, byID map[int]recentBug, fetchOK bool) {
 	edits := 0
-refresh:
+	refreshTrackedWithEditBudget(ctx, bot, f, l, st, byID, fetchOK, &edits)
+}
+
+func refreshTrackedWithEditBudget(ctx context.Context, bot feedBot, f *settings.FeedConfig, l i18n.Lang, st *feedState, byID map[int]recentBug, fetchOK bool, edits *int) {
 	for idStr, tb := range st.Tracked {
 		id, err := strconv.Atoi(idStr)
 		if err != nil || tb == nil { // bad id or a null entry (e.g. hand-edited state) — drop it
@@ -539,9 +541,8 @@ refresh:
 		}
 		b, ok := byID[id]
 		if !ok {
-			// Absent from the refetch. Only treat it as "vanished from Bugzilla" when the WHOLE
-			// fetch succeeded; if a chunk failed this cycle the bug may simply have been in it, so
-			// leave it untouched (no miss) and retry next cycle — a partial fetch can't drop a live bug.
+			// Absent from the refetch. Only count it as "vanished from Bugzilla" when the WHOLE
+			// fetch succeeded; a partial fetch can't drop a live bug.
 			if !fetchOK {
 				continue
 			}
@@ -552,82 +553,97 @@ refresh:
 			}
 			continue
 		}
-		tb.Misses = 0 // present again
+		tb.Misses = 0
 		cur := bugStateKey(b)
 		if cur == tb.State {
 			continue // nothing visible changed
 		}
-		if edits >= maxEditsPerCycle {
-			break // backlog cap — the rest keep their old state and are picked up next cycle
+		if *edits >= maxEditsPerCycle {
+			return // backlog cap — the rest keep their old state and are picked up next cycle
 		}
-		wasUnconfirmed := strings.EqualFold(statusOf(tb.State), "UNCONFIRMED")
-		text := formatBug(b, l)
-		if bugResolved(b) {
-			text = formatBugResolved(b, l) // 🐞 -> ✅/❌
-		}
-		edit := tgfmt.HTMLMessage(f.ChatID, text)
-		opCtx, cancel := context.WithTimeout(ctx, feedTelegramTimeout)
-		_, eerr := bot.EditMessageText(opCtx, &telego.EditMessageTextParams{
-			ChatID:             tu.ID(f.ChatID),
-			MessageID:          tb.MsgID,
-			Text:               edit.Text,
-			ParseMode:          edit.ParseMode,
-			LinkPreviewOptions: edit.LinkPreviewOptions,
-		})
-		cancel()
-		edits++
-		switch {
-		case eerr == nil || queue.IsNotModified(eerr): // edited (or already current) — sync our state
-			tb.EditFails = 0
-			if wasUnconfirmed && !bugResolved(b) && !strings.EqualFold(b.Status, "UNCONFIRMED") && !bugSilent(f, b) {
-				// The silent UNCONFIRMED post moved OUT of UNCONFIRMED (but not straight to resolved) —
-				// owe the non-silent notice the silent original never gave. The edit already landed.
-				// Abandon a permanently rejected notice immediately; retry other failures over a
-				// bounded number of cycles so an outage cannot pin this bug into an endless loop.
-				if _, ok, rl, permanent := postFeed(ctx, bot, f.ChatID, confirmNotice(b, l), false, tb.MsgID); ok {
-					tb.ConfirmTries = 0
-					tb.State = cur
-				} else if permanent {
-					log.Printf("feed: skip permanently rejected confirm ping for bug %d in %d", id, f.ChatID)
-					tb.ConfirmTries = 0
-					tb.State = cur
-				} else {
-					tb.ConfirmTries++
-					if tb.ConfirmTries >= maxConfirmTries {
-						log.Printf("feed: giving up confirm ping for bug %d in %d after %d tries", id, f.ChatID, tb.ConfirmTries)
-						tb.State = cur // abandon the ping; advance so the bug isn't re-edited forever
-					} else if rl {
-						break refresh // rate-limited send: retry next cycle, stop hammering (state un-advanced, the re-edit is a harmless no-op)
-					}
-					// else (transient non-429, under budget): leave state un-advanced to retry next cycle
-				}
-			} else {
-				// Resolved bugs are KEPT (not deleted) so a later reopen/re-resolution is detected;
-				// evictOne ages them out under the cap.
-				tb.State = cur
-			}
-		case queue.IsRateLimited(eerr):
-			log.Printf("feed: edit tracked bug %d in %d rate-limited (%v) — pausing edits this cycle", id, f.ChatID, eerr)
-			break refresh
-		case queue.PermanentEditError(eerr):
-			log.Printf("feed: drop tracked bug %d in %d (uneditable): %v", id, f.ChatID, eerr)
-			delete(st.Tracked, idStr)
-		case queue.CountablePermanentEditError(eerr):
-			tb.EditFails++
-			log.Printf("feed: edit tracked bug %d in %d (deterministic 400 %d/%d): %v", id, f.ChatID, tb.EditFails, maxEditFails, eerr)
-			if tb.EditFails >= maxEditFails {
-				log.Printf("feed: drop tracked bug %d in %d after %d deterministic edit rejections", id, f.ChatID, maxEditFails)
-				delete(st.Tracked, idStr)
-			}
-		default:
-			tb.EditFails = 0
-			log.Printf("feed: edit tracked bug %d in %d (transient, tracking retained): %v", id, f.ChatID, eerr)
-		}
-		if !queue.Pace(ctx, feedSendPause) {
-			return // shutdown mid-refresh: stop editing; pollAll still persists the advanced cursor
+		if !editTrackedBug(ctx, bot, f, l, st, idStr, id, tb, b, cur, edits) {
+			return // rate-limited or shutdown mid-refresh; pollAll still persists the advanced cursor
 		}
 	}
 }
+
+func editTrackedBug(ctx context.Context, bot feedBot, f *settings.FeedConfig, l i18n.Lang, st *feedState, idStr string, id int, tb *trackedBug, b recentBug, cur string, edits *int) bool {
+	text := formatBug(b, l)
+	if bugResolved(b) {
+		text = formatBugResolved(b, l)
+	}
+	edit := tgfmt.HTMLMessage(f.ChatID, text)
+	opCtx, cancel := context.WithTimeout(ctx, feedTelegramTimeout)
+	_, err := bot.EditMessageText(opCtx, &telego.EditMessageTextParams{
+		ChatID:             tu.ID(f.ChatID),
+		MessageID:          tb.MsgID,
+		Text:               edit.Text,
+		ParseMode:          edit.ParseMode,
+		LinkPreviewOptions: edit.LinkPreviewOptions,
+	})
+	cancel()
+	(*edits)++
+	switch {
+	case err == nil || queue.IsNotModified(err):
+		tb.EditFails = 0
+		if needsConfirmPing(tb, b, f) {
+			return refreshTrackedConfirmation(ctx, bot, f, l, id, tb, b, cur)
+		}
+		// Resolved bugs are KEPT (not deleted) so a later reopen/re-resolution is detected;
+		// evictOne ages them out under the cap.
+		tb.State = cur
+	case queue.IsRateLimited(err):
+		log.Printf("feed: edit tracked bug %d in %d rate-limited (%v) — pausing edits this cycle", id, f.ChatID, err)
+		return false
+	case queue.PermanentEditError(err):
+		log.Printf("feed: drop tracked bug %d in %d (uneditable): %v", id, f.ChatID, err)
+		delete(st.Tracked, idStr)
+	case queue.CountablePermanentEditError(err):
+		tb.EditFails++
+		log.Printf("feed: edit tracked bug %d in %d (deterministic 400 %d/%d): %v", id, f.ChatID, tb.EditFails, maxEditFails, err)
+		if tb.EditFails >= maxEditFails {
+			log.Printf("feed: drop tracked bug %d in %d after %d deterministic edit rejections", id, f.ChatID, maxEditFails)
+			delete(st.Tracked, idStr)
+		}
+	default:
+		tb.EditFails = 0
+		log.Printf("feed: edit tracked bug %d in %d (transient, tracking retained): %v", id, f.ChatID, err)
+	}
+	return queue.Pace(ctx, feedSendPause)
+}
+
+func needsConfirmPing(tb *trackedBug, b recentBug, f *settings.FeedConfig) bool {
+	if !strings.EqualFold(statusOf(tb.State), "UNCONFIRMED") || bugResolved(b) {
+		return false
+	}
+	if strings.EqualFold(b.Status, "UNCONFIRMED") {
+		return false
+	}
+	return !bugSilent(f, b)
+}
+
+func refreshTrackedConfirmation(ctx context.Context, bot feedBot, f *settings.FeedConfig, l i18n.Lang, id int, tb *trackedBug, b recentBug, cur string) bool {
+	_, ok, rateLimited, permanent := postFeed(ctx, bot, f.ChatID, confirmNotice(b, l), false, tb.MsgID)
+	if ok || permanent {
+		if permanent {
+			log.Printf("feed: skip permanently rejected confirm ping for bug %d in %d", id, f.ChatID)
+		}
+		tb.ConfirmTries = 0
+		tb.State = cur
+		return queue.Pace(ctx, feedSendPause)
+	}
+	tb.ConfirmTries++
+	if tb.ConfirmTries >= maxConfirmTries {
+		log.Printf("feed: giving up confirm ping for bug %d in %d after %d tries", id, f.ChatID, tb.ConfirmTries)
+		tb.State = cur
+		return queue.Pace(ctx, feedSendPause)
+	}
+	if rateLimited {
+		return false
+	}
+	return queue.Pace(ctx, feedSendPause)
+}
+
 func formatNews(_ i18n.Lang, n lookup.NewsItem) string {
 	const prefix = "📰 "
 	label := n.Date + " — " + html.UnescapeString(n.Title)
@@ -759,15 +775,19 @@ func postFeedItems(ctx context.Context, bot feedBot, f *settings.FeedConfig, l i
 
 // feedSources keeps poll orchestration testable without replacing process-wide network globals.
 type feedSources struct {
-	recent  func(context.Context, int) ([]recentBug, bool)
-	news    func(context.Context) ([]lookup.NewsItem, error)
-	tracked func(context.Context, []int) ([]recentBug, bool)
+	recent        func(context.Context, int) ([]recentBug, bool)
+	news          func(context.Context) ([]lookup.NewsItem, error)
+	tracked       func(context.Context, []int) ([]recentBug, bool)
+	githubCommits func(context.Context, string, string) ([]lookup.Commit, error)
+	githubItems   githubItemsFetcher
 }
 
 var defaultFeedSources = feedSources{
-	recent:  fetchRecentBugs,
-	news:    lookup.FetchNews,
-	tracked: fetchBugsByID,
+	recent:        fetchRecentBugs,
+	news:          lookup.FetchNews,
+	tracked:       fetchBugsByID,
+	githubCommits: lookup.RecentCommits,
+	githubItems:   lookup.RecentGitHubItems,
 }
 
 // pollAll processes the feeds due at now. Destinations sharing a bug cursor reuse one bounded
@@ -833,9 +853,10 @@ func pollAllWithSources(ctx context.Context, bot feedBot, feeds []*settings.Feed
 		st := states[f.ChatID]
 		cursor := st.LastBugID
 		postFeedItems(ctx, bot, f, l, st, bugsByCursor[cursor], news)
-		pollGitHub(ctx, bot, f, st)
-		if len(st.Tracked) > 0 {
-			refreshTracked(ctx, bot, f, l, st, byID, fetchOK)
+		edits := 0
+		githubResult := pollGitHubWithEditBudget(ctx, bot, f, st, &edits, sources.githubCommits, sources.githubItems)
+		if githubResult != githubRepoRateLimited && len(st.Tracked) > 0 {
+			refreshTrackedWithEditBudget(ctx, bot, f, l, st, byID, fetchOK, &edits)
 		}
 		saveFeedState(feedStatePath(stateDir, f.ChatID), *st)
 		nextDue[f.ChatID] = now.Add(f.Interval())
