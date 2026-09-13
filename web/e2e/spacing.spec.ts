@@ -62,6 +62,7 @@ const groupFeeds = {
     lang: sourced("en"),
     interval_seconds: sourced(600),
     bugs: sourced(false),
+    bugzilla_base: sourced(""),
     news: sourced(true),
     bug_product: sourced("Gentoo Linux"),
     bug_component: sourced("Portage"),

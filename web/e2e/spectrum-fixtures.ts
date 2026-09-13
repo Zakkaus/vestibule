@@ -84,6 +84,7 @@ const feedsPayload = {
     lang: { value: "zh", source: "factory default" },
     interval_seconds: { value: 300, source: "factory default" },
     bugs: { value: false, source: "factory default" },
+    bugzilla_base: { value: "", source: "factory default" },
     news: { value: false, source: "factory default" },
     bug_product: { value: "", source: "factory default" },
     bug_component: { value: "", source: "factory default" },
