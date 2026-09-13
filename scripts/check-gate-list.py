@@ -15,8 +15,9 @@ It compares invocations, not command lines. CI legitimately passes different
 flags — a base SHA where the document says origin/main, --silent where a person
 wants output — and a checker demanding equal text would be switched off inside a
 week. Every repository script, npm script, Go check, and analysis tool must appear
-in both CI and the documented gate block. Go checks retain their race detector,
-build tags, and tool versions. Third-party CI actions must also be documented.
+in both CI and the documented gate block. Go checks retain their matrix variants,
+race detector, shuffle mode, build tags, and tool versions. Third-party CI actions
+must also be documented.
 """
 import re
 import shlex
@@ -152,7 +153,15 @@ def go_invocations(text: str) -> set:
         if tool == "gofmt":
             found.add("gofmt")
             continue
-        if tool not in {"vet", "build", "test", "run"}:
+        if tool not in {"mod", "vet", "build", "test", "run"}:
+            continue
+        if tool == "mod":
+            subcommand = arguments[0] if arguments else ""
+            if subcommand == "tidy":
+                diff = " -diff" if "-diff" in arguments[1:] else ""
+                found.add("go mod tidy" + diff)
+            elif subcommand == "verify":
+                found.add("go mod verify")
             continue
         if tool == "vet":
             found.add("go vet")
@@ -164,11 +173,27 @@ def go_invocations(text: str) -> set:
             continue
         if tool == "test":
             race = " -race" if any(argument == "-race" for argument in arguments) else ""
-            found.add("go test" + race + tag_suffix)
+            shuffle_value = _go_flag_value(arguments, "-shuffle")
+            shuffle = " -shuffle=" + shuffle_value if shuffle_value else ""
+            found.add("go test" + race + shuffle + tag_suffix)
             continue
         module = arguments[0] if arguments else ""
         found.add("go run " + (module or "(unversioned)"))
     return found
+
+
+def go_matrix_tags(text: str) -> set[str]:
+    job = re.search(
+        r"(?ms)^  go:\n(?P<body>.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+        text,
+    )
+    if job is None:
+        return set()
+    matrix = re.search(r"(?m)^        tags:\s*\[(?P<values>[^\]]*)\]\s*$", job.group("body"))
+    if matrix is None:
+        return set()
+    quoted = re.findall(r'"([^"]*)"|\'([^\']*)\'', matrix.group("values"))
+    return {double if double != "" else single for double, single in quoted}
 
 
 def _workflow_run_text(text: str) -> str:
@@ -249,6 +274,18 @@ def main() -> int:
 
     contributing = CONTRIBUTING.read_text(encoding="utf-8")
     workflow = WORKFLOW.read_text(encoding="utf-8")
+
+    matrix_tags = go_matrix_tags(workflow)
+    missing_matrix_entries = []
+    if "" not in matrix_tags:
+        missing_matrix_entries.append("default Go matrix entry")
+    if "gentoo" not in matrix_tags:
+        missing_matrix_entries.append("gentoo Go matrix entry")
+    if missing_matrix_entries:
+        print("FAIL check-gate-list: the Go matrix lost required compatibility entries")
+        for item in missing_matrix_entries:
+            print("  " + item)
+        return 1
 
     block = gate_block(contributing)
     if not block.strip():

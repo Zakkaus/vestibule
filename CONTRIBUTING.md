@@ -141,7 +141,8 @@ covered; an empty scan is not a pass.
 
 ## The gate is enforced, not remembered
 
-`main` requires the `build` and `docs` checks to pass before a merge. It did not
+`main` requires the `go-done`, `static`, `docs`, and `e2e-done` checks to
+pass before a merge. It did not
 until a PR was merged while its prose check was still failing, leaving `main` red
 for a round — the rule was in this document and nothing was holding anyone to it.
 
@@ -195,6 +196,8 @@ project references and theme scope. Standalone pages use their own CSS without V
 
 ```sh
 gofmt -l .                       # must print nothing
+go mod tidy -diff                # must print nothing
+go mod verify
 scripts/lint.sh                  # package boundaries, file and function length, complexity
 python3 scripts/check-test-chat-ids.py internal cmd testdata  # test topology stays synthetic
 python3 scripts/check-baseline-ratchet.py origin/main   # a held violation may not grow
@@ -202,7 +205,7 @@ python3 scripts/test-gate-self-coverage.py  # every static gate rejects its reco
 python3 scripts/check-third-party-licenses.py  # notices match the pinned shipped sources (requires network)
 go vet ./...
 go build ./... && go build -tags gentoo ./...
-go test -race ./... && go test -race -tags gentoo ./...
+go test -race -shuffle=on ./... && go test -race -shuffle=on -tags gentoo ./...
 scripts/test-static-sqlite.sh    # the release build configuration, run rather than compiled
 scripts/test-install.sh           # isolated install, upgrade, rollback, status, and uninstall
 scripts/test-replacement.sh       # isolated host-unit request validation, rollback, and Docker-socket boundary
@@ -300,7 +303,12 @@ for c in html-structure coverage-floor style-rules shadowed undefined-var theme-
   python3 "scripts/design-checks/$c.py" web/design.html web/architecture.html; done
 python3 scripts/check-css-coverage.py web/design.html web/architecture.html
 cd web && npm run e2e && cd ..  # PR gate: measure all five locales, render the widest
+cd web && npm run e2e -- --shard=1/4 && cd ..  # reproduce one CI shard
 ```
+
+CI runs the gate set as `go`, `static`, `docs`, and four `e2e` shards. The
+matrix jobs report through `go-done` and `e2e-done`; only an entirely successful
+matrix satisfies either required check.
 
 The `gentoo` tag remains only as a compatibility regression: default and tagged commands must
 select the same product behavior. It no longer selects an edition.

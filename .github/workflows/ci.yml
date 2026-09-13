@@ -5,9 +5,94 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  build:
+  go:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        tags: ["", "gentoo"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: go.mod and go.sum are tidy
+        if: matrix.tags == ''
+        run: go mod tidy -diff
+      - name: Downloaded modules match go.sum
+        if: matrix.tags == ''
+        run: go mod verify
+      - name: gofmt
+        if: matrix.tags == ''
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "These files are not gofmt-clean:"; echo "$unformatted"; exit 1
+          fi
+      - name: lint
+        if: matrix.tags == ''
+        run: scripts/lint.sh
+      - name: go vet
+        if: matrix.tags == ''
+        run: go vet ./...
+      - name: staticcheck
+        if: matrix.tags == ''
+        run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
+      - name: build
+        if: matrix.tags == ''
+        run: go build ./...
+      - name: build (gentoo compatibility tag; behavior must stay identical)
+        if: matrix.tags == 'gentoo'
+        run: go build -tags gentoo ./...
+      - name: test
+        if: matrix.tags == ''
+        run: go test -race -shuffle=on ./...
+      - name: test (gentoo compatibility tag; behavior must stay identical)
+        if: matrix.tags == 'gentoo'
+        run: go test -race -shuffle=on -tags gentoo ./...
+      - name: static SQLite release-runtime gate
+        if: matrix.tags == ''
+        run: scripts/test-static-sqlite.sh
+      - name: Native installer lifecycle works without root, network, or systemd
+        if: matrix.tags == ''
+        run: scripts/test-install.sh
+      - name: Host replacement unit lifecycle works without root, Docker, or systemd
+        if: matrix.tags == ''
+        run: scripts/test-replacement.sh
+      - name: Phase nine acceptance remains explicit about incomplete host paths
+        if: matrix.tags == ''
+        run: scripts/accept-phase9.sh
+      - name: govulncheck
+        if: matrix.tags == ''
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
+      - name: gosec
+        if: matrix.tags == ''
+        # Triaged-accepted under the private systemd StateDirectory= deployment: G304/G703
+        # (operator-controlled config / STATE_DIRECTORY paths) and G706 (log taint on operator /
+        # Telegram-supplied values, consumed by journald). The gate fails on any OTHER finding.
+        run: go run github.com/securego/gosec/v2/cmd/gosec@v2.28.0 -exclude=G304,G703,G706 ./...
+
+  go-done:
+    needs: go
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every Go matrix entry to succeed
+        run: test "${{ needs.go.result }}" = success
+
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -17,14 +102,6 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-      - name: gofmt
-        run: |
-          unformatted="$(gofmt -l .)"
-          if [ -n "$unformatted" ]; then
-            echo "These files are not gofmt-clean:"; echo "$unformatted"; exit 1
-          fi
-      - name: lint
-        run: scripts/lint.sh
       - name: Test chat identifiers stay in the synthetic range
         run: python3 scripts/check-test-chat-ids.py internal cmd testdata
       - name: A held violation may not grow
@@ -36,40 +113,16 @@ jobs:
       - name: Dependency notices match the shipped sources
         run: python3 scripts/check-third-party-licenses.py
 
-
-      - name: go vet
-        run: go vet ./...
-      - name: staticcheck
-        run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...
-      - name: build
-        run: go build ./...
-      - name: build (gentoo compatibility tag; behavior must stay identical)
-        run: go build -tags gentoo ./...
-      - name: test
-        run: go test -race ./...
-      - name: test (gentoo compatibility tag; behavior must stay identical)
-        run: go test -race -tags gentoo ./...
-      - name: static SQLite release-runtime gate
-        run: scripts/test-static-sqlite.sh
-      - name: Native installer lifecycle works without root, network, or systemd
-        run: scripts/test-install.sh
-      - name: Host replacement unit lifecycle works without root, Docker, or systemd
-        run: scripts/test-replacement.sh
-      - name: Phase nine acceptance remains explicit about incomplete host paths
-        run: scripts/accept-phase9.sh
-
-      - name: govulncheck
-        run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
-      - name: gosec
-        # Triaged-accepted under the private systemd StateDirectory= deployment: G304/G703
-        # (operator-controlled config / STATE_DIRECTORY paths) and G706 (log taint on operator /
-        # Telegram-supplied values, consumed by journald). The gate fails on any OTHER finding.
-        run: go run github.com/securego/gosec/v2/cmd/gosec@v2.28.0 -exclude=G304,G703,G706 ./...
-
   docs:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
       - name: ARCHITECTURE.md is generated, not hand-edited
         run: python3 scripts/gen-arch-md.py --check
       - name: Documents agree with themselves
@@ -211,11 +264,6 @@ jobs:
               || echo "::warning::web/src/styles/$f.css differs from the shared design system"
           done
 
-      - name: Console session-to-release journey and render gate work in Chromium
-        run: |
-          cd web
-          npx playwright install --with-deps chromium
-          PLAYWRIGHT_PORT_OFFSET=210 npm run e2e
 
       - name: Structure, style rules and coverage of the reference pages
         run: |
@@ -223,3 +271,58 @@ jobs:
             python3 "scripts/design-checks/$c.py" web/design.html web/architecture.html
           done
           python3 scripts/check-css-coverage.py web/design.html web/architecture.html
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install frontend dependencies
+        run: cd web && npm ci --silent
+      - name: Read Playwright version
+        id: playwright-version
+        run: |
+          echo "version=$(node -p "require('./web/package-lock.json').packages['node_modules/@playwright/test'].version")" >> "$GITHUB_OUTPUT"
+      - name: Cache Chromium
+        id: playwright-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+      - name: Install Chromium system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: cd web && npx playwright install-deps chromium
+      - name: Install Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: cd web && npx playwright install --with-deps chromium
+      - name: Run console journeys
+        env:
+          PLAYWRIGHT_PORT_OFFSET: 210
+        run: cd web && npm run e2e -- --shard=${{ matrix.shard }}/4
+      - name: Upload Playwright diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-shard-${{ matrix.shard }}
+          path: |
+            web/test-results/
+            web/playwright-report/
+          retention-days: 7
+
+  e2e-done:
+    needs: e2e
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every Playwright shard to succeed
+        run: test "${{ needs.e2e.result }}" = success

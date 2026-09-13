@@ -93,6 +93,7 @@ class GateSelfCoverageTest(SpectrumGateCases, unittest.TestCase):
         path.write_text(original.replace(old, new, 1), encoding="utf-8")
         return lambda: path.write_text(original, encoding="utf-8")
 
+
     def assert_mutation_is_rejected(
         self,
         tree: Path,
@@ -432,6 +433,8 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
         tree = self.temporary_tree()
         ci_cases = (
             ('        unformatted="$(gofmt -l .)"\n', "gofmt"),
+            ("        run: go mod tidy -diff\n", "go mod tidy -diff"),
+            ("        run: go mod verify\n", "go mod verify"),
             ("        run: go vet ./...\n", "go vet"),
             ("        run: go build ./...\n", "go build"),
             ("        run: go build -tags gentoo ./...\n", "go build -tags gentoo"),
@@ -450,10 +453,10 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
                 "go build -tags gentoo",
                 '        run: go build -tags "gentoo,integration" ./...\n',
             ),
-            ("        run: go test -race ./...\n", "go test -race"),
+            ("        run: go test -race -shuffle=on ./...\n", "go test -race -shuffle=on"),
             (
-                "        run: go test -race -tags gentoo ./...\n",
-                "go test -race -tags gentoo",
+                "        run: go test -race -shuffle=on -tags gentoo ./...\n",
+                "go test -race -shuffle=on -tags gentoo",
             ),
             (
                 "        run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...\n",
@@ -484,6 +487,8 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
 
         document_cases = (
             ("gofmt -l .                       # must print nothing\n", "gofmt"),
+            ("go mod tidy -diff                # must print nothing\n", "go mod tidy -diff"),
+            ("go mod verify\n", "go mod verify"),
             ("go vet ./...\n", "go vet"),
             (
                 "go build ./... && go build -tags gentoo ./...\n",
@@ -511,14 +516,16 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
                 'go build ./... && go build -tags "gentoo,integration" ./...\n',
             ),
             (
-                "go test -race ./... && go test -race -tags gentoo ./...\n",
-                "go test -race",
-                "go test -race -tags gentoo ./...\n",
+                "go test -race -shuffle=on ./... && "
+                "go test -race -shuffle=on -tags gentoo ./...\n",
+                "go test -race -shuffle=on",
+                "go test -race -shuffle=on -tags gentoo ./...\n",
             ),
             (
-                "go test -race ./... && go test -race -tags gentoo ./...\n",
-                "go test -race -tags gentoo",
-                "go test -race ./...\n",
+                "go test -race -shuffle=on ./... && "
+                "go test -race -shuffle=on -tags gentoo ./...\n",
+                "go test -race -shuffle=on -tags gentoo",
+                "go test -race -shuffle=on ./...\n",
             ),
             (
                 "go run honnef.co/go/tools/cmd/staticcheck@v0.8.1 ./...\n",
@@ -547,6 +554,67 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
                 ),
             )
 
+    def test_gate_list_rejects_lost_default_go_matrix_entry(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-gate-list.py",
+            "the default Go matrix entry disappeared",
+            ("default Go matrix entry",),
+            lambda: self.replace_text(
+                tree,
+                ".github/workflows/ci.yml",
+                '        tags: ["", "gentoo"]\n',
+                '        tags: ["gentoo"]\n',
+            ),
+        )
+
+    def test_gate_list_rejects_lost_gentoo_go_matrix_entry(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-gate-list.py",
+            "the gentoo Go matrix entry disappeared",
+            ("gentoo Go matrix entry",),
+            lambda: self.replace_text(
+                tree,
+                ".github/workflows/ci.yml",
+                '        tags: ["", "gentoo"]\n',
+                '        tags: [""]\n',
+            ),
+        )
+
+    def test_release_gate_rejects_lost_go_mod_tidy(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-release-gate.py",
+            "the release stopped checking module tidiness",
+            ("go mod tidy -diff",),
+            lambda: self.replace_text(
+                tree,
+                ".github/workflows/release.yml",
+                "          go mod tidy -diff\n",
+                "",
+            ),
+        )
+
+    def test_release_gate_rejects_lost_go_mod_verify(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-release-gate.py",
+            "the release stopped verifying downloaded modules",
+            ("go mod verify",),
+            lambda: self.replace_text(
+                tree,
+                ".github/workflows/release.yml",
+                "          go mod verify\n",
+                "",
+            ),
+        )
+
+
     def test_gate_list_rejects_lost_go_test_race(self) -> None:
         tree = self.temporary_tree()
         self.assert_mutation_is_rejected(
@@ -557,8 +625,53 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
             lambda: self.replace_text(
                 tree,
                 ".github/workflows/ci.yml",
+                "        run: go test -race -shuffle=on ./...\n",
+                "        run: go test -shuffle=on ./...\n",
+            ),
+        )
+
+    def test_gate_list_rejects_lost_go_test_shuffle(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-gate-list.py",
+            "the default Go test lost order shuffling",
+            ("go test -race -shuffle=on",),
+            lambda: self.replace_text(
+                tree,
+                ".github/workflows/ci.yml",
+                "        run: go test -race -shuffle=on ./...\n",
                 "        run: go test -race ./...\n",
-                "        run: go test ./...\n",
+            ),
+        )
+
+    def test_release_gate_rejects_lost_go_test_race(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-release-gate.py",
+            "the release Go test lost its race detector",
+            ("go test -race -shuffle=on",),
+            lambda: self.replace_text(
+                tree,
+                ".github/workflows/release.yml",
+                "          go test -race -shuffle=on ./...\n",
+                "          go test -shuffle=on ./...\n",
+            ),
+        )
+
+    def test_release_gate_rejects_lost_go_test_shuffle(self) -> None:
+        tree = self.temporary_tree()
+        self.assert_mutation_is_rejected(
+            tree,
+            "scripts/check-release-gate.py",
+            "the release Go test lost order shuffling",
+            ("go test -race -shuffle=on",),
+            lambda: self.replace_text(
+                tree,
+                ".github/workflows/release.yml",
+                "          go test -race -shuffle=on ./...\n",
+                "          go test -race ./...\n",
             ),
         )
 
