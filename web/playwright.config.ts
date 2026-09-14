@@ -12,7 +12,9 @@ export default defineConfig({
   testDir: "./e2e",
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
-  workers: 1,
+  // Two workers on the four-core CI runner; journeys are isolated by page.route and per-test
+  // temp state, files still run serially within themselves (fullyParallel stays off).
+  workers: process.env.CI ? 2 : 1,
   reporter: process.env.CI
     ? [
         ["line"],

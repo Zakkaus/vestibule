@@ -453,9 +453,12 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
                 "go build -tags gentoo",
                 '        run: go build -tags "gentoo,integration" ./...\n',
             ),
-            ("        run: go test -race -shuffle=on ./...\n", "go test -race -shuffle=on"),
             (
-                "        run: go test -race -shuffle=on -tags gentoo ./...\n",
+                "          go test -race -shuffle=on ./... 2>&1 | tee go-test.log\n",
+                "go test -race -shuffle=on",
+            ),
+            (
+                "          go test -race -shuffle=on -tags gentoo ./... 2>&1 | tee go-test.log\n",
                 "go test -race -shuffle=on -tags gentoo",
             ),
             (
@@ -625,8 +628,8 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
             lambda: self.replace_text(
                 tree,
                 ".github/workflows/ci.yml",
-                "        run: go test -race -shuffle=on ./...\n",
-                "        run: go test -shuffle=on ./...\n",
+                "          go test -race -shuffle=on ./... 2>&1 | tee go-test.log\n",
+                "          go test -shuffle=on ./... 2>&1 | tee go-test.log\n",
             ),
         )
 
@@ -640,8 +643,8 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
             lambda: self.replace_text(
                 tree,
                 ".github/workflows/ci.yml",
-                "        run: go test -race -shuffle=on ./...\n",
-                "        run: go test -race ./...\n",
+                "          go test -race -shuffle=on ./... 2>&1 | tee go-test.log\n",
+                "          go test -race ./... 2>&1 | tee go-test.log\n",
             ),
         )
 

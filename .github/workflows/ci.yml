@@ -55,10 +55,25 @@ jobs:
         run: go build -tags gentoo ./...
       - name: test
         if: matrix.tags == ''
-        run: go test -race -shuffle=on ./...
+        run: |
+          go test -race -shuffle=on ./... 2>&1 | tee go-test.log
+          test "${PIPESTATUS[0]}" = 0
       - name: test (gentoo compatibility tag; behavior must stay identical)
         if: matrix.tags == 'gentoo'
-        run: go test -race -shuffle=on -tags gentoo ./...
+        run: |
+          go test -race -shuffle=on -tags gentoo ./... 2>&1 | tee go-test.log
+          test "${PIPESTATUS[0]}" = 0
+      - name: Record the shuffle seeds
+        # A failure under -shuffle=on is reproduced with the seed the package printed;
+        # keep them where a reader finds them without opening the log.
+        if: always()
+        run: |
+          {
+            echo "### go test${{ matrix.tags && ' -tags ' }}${{ matrix.tags }}"
+            echo '```'
+            grep -E '^-test.shuffle |^(ok|FAIL|---)' go-test.log | head -80 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: static SQLite release-runtime gate
         if: matrix.tags == ''
         run: scripts/test-static-sqlite.sh
@@ -277,8 +292,18 @@ jobs:
     timeout-minutes: 25
     strategy:
       fail-fast: false
+      # The render gate is one spec that takes as long as a third of the journeys, so it
+      # gets a runner of its own instead of landing in whichever shard --shard hands it to.
       matrix:
-        shard: [1, 2, 3, 4]
+        include:
+          - name: journeys-1
+            args: --project journeys-dev --project questions-trial-real --shard=1/3
+          - name: journeys-2
+            args: --project journeys-dev --project questions-trial-real --shard=2/3
+          - name: journeys-3
+            args: --project journeys-dev --project questions-trial-real --shard=3/3
+          - name: render-gate
+            args: --project render-gate-preview
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -307,12 +332,24 @@ jobs:
       - name: Run console journeys
         env:
           PLAYWRIGHT_PORT_OFFSET: 210
-        run: cd web && npm run e2e -- --shard=${{ matrix.shard }}/4
+        run: |
+          cd web
+          npm run e2e -- ${{ matrix.args }} 2>&1 | tee playwright.log
+          test "${PIPESTATUS[0]}" = 0
+      - name: Summarise the run
+        if: always()
+        run: |
+          {
+            echo "### e2e ${{ matrix.name }}"
+            echo '```'
+            grep -E '^ +[0-9]+ (passed|failed|flaky|skipped)|^\[render-gate\]' web/playwright.log || echo "no summary line (run aborted)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Upload Playwright diagnostics
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: playwright-shard-${{ matrix.shard }}
+          name: playwright-${{ matrix.name }}
           path: |
             web/test-results/
             web/playwright-report/

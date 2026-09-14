@@ -303,12 +303,17 @@ for c in html-structure coverage-floor style-rules shadowed undefined-var theme-
   python3 "scripts/design-checks/$c.py" web/design.html web/architecture.html; done
 python3 scripts/check-css-coverage.py web/design.html web/architecture.html
 cd web && npm run e2e && cd ..  # PR gate: measure all five locales, render the widest
-cd web && npm run e2e -- --shard=1/4 && cd ..  # reproduce one CI shard
+cd web && npm run e2e -- --project journeys-dev --project questions-trial-real --shard=1/3 && cd ..  # one CI journeys shard
+cd web && npm run e2e -- --project render-gate-preview && cd ..  # the CI render-gate job
 ```
 
-CI runs the gate set as `go`, `static`, `docs`, and four `e2e` shards. The
-matrix jobs report through `go-done` and `e2e-done`; only an entirely successful
-matrix satisfies either required check.
+CI runs the gate set as `go`, `static`, `docs`, and four `e2e` runners: three
+journeys shards plus the render gate on its own, since that one spec runs as long
+as a third of the journeys. In CI Playwright uses two workers; locally it stays at
+one. The matrix jobs report through `go-done` and `e2e-done`; only an entirely
+successful matrix satisfies either required check. Each job appends its key lines
+to the run summary: the Go jobs record the `-shuffle` seeds a failure is replayed
+with, the e2e jobs their pass/fail line.
 
 The `gentoo` tag remains only as a compatibility regression: default and tagged commands must
 select the same product behavior. It no longer selects an edition.
