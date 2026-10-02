@@ -59,6 +59,11 @@ func (s *VerificationStore) transitionChallenge(ctx context.Context, transition 
 				return fmt.Errorf("enqueue %s for challenge %s: %w", action.Kind, challengeID(transition.Expected), err)
 			}
 		}
+		if transition.To == verification.ChallengeSuperseded {
+			if err := s.enqueueCancellationActions(ctx, transition.Record, transition.SettledAt); err != nil {
+				return err
+			}
+		}
 		return nil
 	})
 	if err != nil {
@@ -224,20 +229,13 @@ func (s *VerificationStore) CompleteAction(
 			return err
 		}
 		for _, action := range followups {
-			result, err = s.db.Exec(ctx, `
+			_, err = s.db.Exec(ctx, `
 				INSERT INTO pending_action (id, challenge_id, kind, payload, next_try_at)
 				SELECT $1, challenge_id, $2, $3, $4
-				  FROM pending_action WHERE id=$5`,
+				  FROM pending_action WHERE id=$5 ON CONFLICT (id) DO NOTHING`,
 				action.ID, action.Kind, action.Payload, action.NextTryAt, id)
 			if err != nil {
 				return fmt.Errorf("enqueue follow-up %s after action %s: %w", action.Kind, id, err)
-			}
-			inserted, err := changedRow(result)
-			if err != nil {
-				return err
-			}
-			if !inserted {
-				return fmt.Errorf("action %s disappeared while completing it", id)
 			}
 		}
 		return nil

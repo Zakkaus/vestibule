@@ -1,4 +1,4 @@
-package database
+package verification_test
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Zakkaus/vestibule/internal/database"
 	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/verification"
 )
@@ -69,7 +70,7 @@ func TestReviewRestartThenStopReleasesQueuedApprovalHold(t *testing.T) {
 	bot.deleted = nil
 	service.Shutdown()
 	restarted := newLogicService(t, db, bot, settings.DeliveryBoth)
-	records, err := NewVerificationStore(db).LoadPending("")
+	records, err := database.NewVerificationStore(db).LoadPending("")
 	if err != nil || len(records) != 0 {
 		t.Fatalf("approved challenge restored as pending: %+v, error %v", records, err)
 	}
@@ -91,21 +92,21 @@ func TestReviewRestartThenStopReleasesQueuedApprovalHold(t *testing.T) {
 	}
 }
 
-func logicPending(t *testing.T, db *Database) verification.PendingRecord {
+func logicPending(t *testing.T, db *database.Database) verification.PendingRecord {
 	t.Helper()
-	records, err := NewVerificationStore(db).LoadPending("")
+	records, err := database.NewVerificationStore(db).LoadPending("")
 	if err != nil || len(records) != 1 {
 		t.Fatalf("pending = %+v, error %v", records, err)
 	}
 	return records[0]
 }
 
-func logicExpire(t *testing.T, db *Database) {
+func logicExpire(t *testing.T, db *database.Database) {
 	t.Helper()
 	record := logicPending(t, db)
 	expected := record.Ref()
 	record.Deadline = time.Now().Add(-time.Second).Unix()
-	if changed, err := NewVerificationStore(db).UpdatePending("", expected, record); err != nil || !changed {
+	if changed, err := database.NewVerificationStore(db).UpdatePending("", expected, record); err != nil || !changed {
 		t.Fatalf("advance deadline: %t %v", changed, err)
 	}
 }
@@ -118,7 +119,7 @@ func TestReviewRestoredExpiryRemainsStrikeFree(t *testing.T) {
 				logicJoin(t, service, bot)
 				logicExpire(t, db)
 				if cause == "recovered" {
-					if err := NewVerificationStore(db).SaveHeartbeat("", verification.HeartbeatRecord{
+					if err := database.NewVerificationStore(db).SaveHeartbeat("", verification.HeartbeatRecord{
 						LastOnline: time.Now().Add(-time.Hour).Unix(),
 					}); err != nil {
 						t.Fatal(err)
@@ -126,7 +127,7 @@ func TestReviewRestoredExpiryRemainsStrikeFree(t *testing.T) {
 				}
 				// The first restart records the lapsed cause; its service is not used again.
 				_ = newLogicService(t, db, bot, settings.DeliveryBoth)
-				if err := NewVerificationStore(db).SaveHeartbeat("", verification.HeartbeatRecord{LastOnline: time.Now().Unix()}); err != nil {
+				if err := database.NewVerificationStore(db).SaveHeartbeat("", verification.HeartbeatRecord{LastOnline: time.Now().Unix()}); err != nil {
 					t.Fatal(err)
 				}
 				// Restart again within the replacement window: its cause must survive too.

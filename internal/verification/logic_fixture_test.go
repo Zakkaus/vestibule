@@ -1,4 +1,4 @@
-package database
+package verification_test
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Zakkaus/vestibule/internal/database"
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/verification"
@@ -70,7 +71,7 @@ func (*logicGateway) FreshAdmin(context.Context, int64, int64) (bool, error)    
 func (*logicGateway) AckFast(context.Context, string) error                           { return nil }
 func (*logicGateway) AckResult(context.Context, string, verification.AckResult) error { return nil }
 
-func newLogicService(t *testing.T, db *Database, bot *logicGateway, delivery string) *verification.Service {
+func newLogicService(t *testing.T, db *database.Database, bot *logicGateway, delivery string) *verification.Service {
 	t.Helper()
 	cfg := &settings.Config{GroupIDs: []int64{logicChatID}, VerifyMode: settings.ModeQuiz,
 		DeliveryMode: delivery, TimeoutSeconds: 30, VerifyMaxFails: 2, VerifyRetrySeconds: 180}
@@ -82,7 +83,7 @@ func newLogicService(t *testing.T, db *Database, bot *logicGateway, delivery str
 	if err != nil {
 		t.Fatal(err)
 	}
-	service, err := verification.New(groups, bot, NewVerificationStore(db), cfg, &i18n.Messages, nil,
+	service, err := verification.New(groups, bot, database.NewVerificationStore(db), cfg, &i18n.Messages, nil,
 		verification.Identity{ID: 999, Username: "logic_bot"}, filepath.Join(t.TempDir(), "state"), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -90,9 +91,11 @@ func newLogicService(t *testing.T, db *Database, bot *logicGateway, delivery str
 	return service
 }
 
-func logicFixture(t *testing.T, delivery string) (*Database, *logicGateway, *verification.Service) {
+func logicFixture(t *testing.T, delivery string) (*database.Database, *logicGateway, *verification.Service) {
 	t.Helper()
-	db, err := Open(context.Background(), testDatabaseConfig(t))
+	db, err := database.Open(context.Background(), database.TestConfig(t, database.Config{
+		Type: "sqlite3-fk-wal", URI: "file:" + filepath.Join(t.TempDir(), "vestibule.db") + "?_txlock=immediate",
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,9 +115,9 @@ func logicJoin(t *testing.T, service *verification.Service, bot *logicGateway) {
 	}
 }
 
-func logicAnswer(t *testing.T, db *Database, service *verification.Service, bot *logicGateway, correct bool) {
+func logicAnswer(t *testing.T, db *database.Database, service *verification.Service, bot *logicGateway, correct bool) {
 	t.Helper()
-	records, err := NewVerificationStore(db).LoadPending("")
+	records, err := database.NewVerificationStore(db).LoadPending("")
 	if err != nil || len(records) != 1 {
 		t.Fatalf("pending challenge = %+v, error %v", records, err)
 	}
@@ -144,7 +147,7 @@ func logicAnswer(t *testing.T, db *Database, service *verification.Service, bot 
 	}
 }
 
-func logicMakeRetryDue(t *testing.T, db *Database) {
+func logicMakeRetryDue(t *testing.T, db *database.Database) {
 	t.Helper()
 	// Advance only the scheduler boundary, not the challenge identity or settlement state.
 	if _, err := db.Exec(context.Background(), "UPDATE pending_action SET next_try_at=0, claim_until=NULL WHERE state='pending'"); err != nil {
@@ -152,9 +155,9 @@ func logicMakeRetryDue(t *testing.T, db *Database) {
 	}
 }
 
-func logicFailures(t *testing.T, db *Database) []verification.FailureRecord {
+func logicFailures(t *testing.T, db *database.Database) []verification.FailureRecord {
 	t.Helper()
-	records, err := NewVerificationStore(db).LoadFailures("")
+	records, err := database.NewVerificationStore(db).LoadFailures("")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,7 +195,7 @@ func TestLogicDeliveredChallengeTimeoutStrikes(t *testing.T) {
 		t.Run(delivery, func(t *testing.T) {
 			db, bot, service := logicFixture(t, delivery)
 			logicJoin(t, service, bot)
-			state := NewVerificationStore(db)
+			state := database.NewVerificationStore(db)
 			records, err := state.LoadPending("")
 			if err != nil || len(records) != 1 {
 				t.Fatalf("pending = %+v, error %v", records, err)
@@ -245,7 +248,7 @@ func TestLogicRestartPreservesConfirmedRecentPass(t *testing.T) {
 	}
 	restarted := newLogicService(t, db, bot, settings.DeliveryBoth)
 	logicMembership(t, restarted, bot)
-	records, err := NewVerificationStore(db).LoadPending("")
+	records, err := database.NewVerificationStore(db).LoadPending("")
 	if err != nil {
 		t.Fatal(err)
 	}

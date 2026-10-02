@@ -54,6 +54,10 @@ func (v *Service) restorePendingRecord(bot Gateway, record PendingRecord, now ti
 	if !v.installRestoredPending(bot, record, p, delay, reason) {
 		return renotifyItem{}, false
 	}
+	if p.gate == gateMute && p.held && p.holdUntil < p.deadline.Unix()+muteGraceSeconds &&
+		v.holdStillOurs(context.Background(), bot, gid, uid, p) {
+		v.holdMember(context.Background(), bot, gid, uid, true, p)
+	}
 	item := renotifyItem{gid: gid, uid: uid, name: record.Name, oldMessages: p.messages(), p: p}
 	return item, restoredChallengeNeedsRenotify(true, renotify)
 }

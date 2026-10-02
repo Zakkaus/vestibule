@@ -339,21 +339,13 @@ func (v *Service) SetEnabled(groupID int64, enabled bool) error {
 // cancelGroupVerifications abandons every verification in one group without settling or striking
 // it, and lifts the holds it placed. Nobody is punished for a rule that was withdrawn.
 func (v *Service) cancelGroupVerifications(groupID int64) {
-	type releaseTarget struct {
-		uid      int64
-		messages challengeMessages
-		held     bool
-	}
-	var targets []releaseTarget
+	var targets []PendingRecord
 	v.mu.Lock()
 	for _, record := range v.supersedeGroupSettlementsLocked(groupID) {
 		if p := v.pend[pkey{groupID, record.UserID}]; p != nil && p.nonce == record.Nonce {
 			continue
 		}
-		targets = append(targets, releaseTarget{
-			uid: record.UserID, messages: challengeMessages{record.GroupMsgID, record.PrivateMsgID},
-			held: record.Gate == gateMute && record.Held,
-		})
+		targets = append(targets, record)
 	}
 	for key, p := range v.pend {
 		if key.gid != groupID {
@@ -363,7 +355,7 @@ func (v *Service) cancelGroupVerifications(groupID int64) {
 			delete(v.pend, key)
 			continue
 		}
-		targets = append(targets, releaseTarget{uid: key.uid, messages: p.messages(), held: p.gate == gateMute && p.held})
+		targets = append(targets, pendingRecord(key, p))
 		p.removed = true
 		v.supersedePendingLocked(key, p)
 	}
@@ -379,12 +371,7 @@ func (v *Service) cancelGroupVerifications(groupID int64) {
 	ctx, cancel := context.WithTimeout(context.Background(), cancelCleanupTimeout)
 	defer cancel()
 	for _, target := range targets {
-		v.deleteChallenges(ctx, bot, groupID, target.uid, target.messages)
-		if target.held {
-			if err := v.releaseMember(ctx, bot, groupID, target.uid, nil); err != nil {
-				log.Printf("verification disabled for %d: could not lift the hold on %d: %v", groupID, target.uid, err)
-			}
-		}
+		v.cleanupCanceledChallenge(ctx, bot, target)
 	}
 	log.Printf("verification disabled for %d: cancelled %d verification(s) without settling them", groupID, len(targets))
 }
@@ -527,8 +514,17 @@ func (v *Service) holdMember(ctx context.Context, bot Gateway, groupID, userID i
 	if !supergroup {
 		return
 	}
-	seconds := int(v.gateTimeout(groupID, gateMute)/time.Second) + muteGraceSeconds
-	until := v.wallNow().Add(time.Duration(seconds) * time.Second).Unix()
+	now := v.wallNow()
+	window := v.gateTimeout(groupID, gateMute)
+	if p != nil {
+		v.mu.Lock()
+		if !p.deadline.IsZero() {
+			window = max(p.deadline.Sub(now), 0)
+		}
+		v.mu.Unlock()
+	}
+	seconds := int((window+time.Second-1)/time.Second) + muteGraceSeconds
+	until := now.Add(time.Duration(seconds) * time.Second).Unix()
 	if err := v.gatewayFor(bot).Mute(ctx, groupID, userID, seconds); err != nil {
 		log.Printf("post-join verify: cannot mute %d in %d (%v); the challenge continues unheld", userID, groupID, err)
 		return
@@ -974,7 +970,7 @@ func (v *Service) deliverPendingChallenge(
 			result.modeLabel = "group-private-uncertain"
 		case privateGone:
 			result.active = false
-			v.deleteChallenges(c, bot, gid, uid, result.messages)
+			v.deleteChallenges(c, bot, gid, uid, owner, result.messages)
 		}
 	case settings.DeliveryDM:
 		outcome := v.attemptPrivateChallenge(c, bot, gid, uid, owner)
@@ -1054,7 +1050,7 @@ func (v *Service) OnJoinRequest(ctx *HandlerContext, update Update) error {
 		log.Printf("join %d in group %d: terminal action still in flight; deferred re-application", uid, gid)
 		return nil
 	}
-	v.deleteChallenges(c, bot, gid, uid, oldMessages)
+	v.deleteChallenges(c, bot, gid, uid, p, oldMessages)
 
 	delivery := v.deliverPendingChallenge(c, bot, gid, uid, name, p)
 	if !delivery.active {
@@ -1062,7 +1058,7 @@ func (v *Service) OnJoinRequest(ctx *HandlerContext, update Update) error {
 		return nil
 	}
 	if !v.finishPendingChallenge(bot, gid, uid, p, delivery.messages, delivery.delivered) {
-		v.deleteChallenges(c, bot, gid, uid, delivery.messages)
+		v.deleteChallenges(c, bot, gid, uid, p, delivery.messages)
 		return nil // another action handled or replaced this request while delivery was in flight
 	}
 	log.Printf("join %d (@%s) in group %d: pending (%s challenge), delivery=%s, group message=%d, private message=%d",
@@ -1200,7 +1196,7 @@ func (v *Service) OnMemberJoined(ctx *HandlerContext, update Update) error {
 	if !started {
 		return nil
 	}
-	v.deleteChallenges(c, bot, gid, uid, oldMessages)
+	v.deleteChallenges(c, bot, gid, uid, p, oldMessages)
 	// startPending committed the record before this externally visible hold.
 	v.holdMember(c, bot, gid, uid, supergroup, p)
 
@@ -1210,7 +1206,7 @@ func (v *Service) OnMemberJoined(ctx *HandlerContext, update Update) error {
 		return nil
 	}
 	if !v.finishPendingChallenge(bot, gid, uid, p, delivery.messages, delivery.delivered) {
-		v.deleteChallenges(c, bot, gid, uid, delivery.messages)
+		v.deleteChallenges(c, bot, gid, uid, p, delivery.messages)
 		return nil
 	}
 	log.Printf("post-join verify: %d (@%s) joined %d: pending (%s challenge), held=%v, delivery=%s",
@@ -1801,18 +1797,6 @@ func (v *Service) Shutdown() {
 	v.saveHeartbeat()
 }
 
-func (v *Service) deleteChallenge(c context.Context, bot Gateway, gid int64, msgID int) {
-	if err := v.gatewayFor(bot).Delete(c, gid, msgID); err != nil && !gatewayFailureHas(err, FailureMessageGone) {
-		log.Printf("verification: delete message %d in %d: %v", msgID, gid, err)
-	}
-}
-
-// Verification cleanup never deletes an applicant's private conversation. Group messages are
-// public challenge evidence; their durable cleanup action owns retries after settlement.
-func (v *Service) deleteChallenges(c context.Context, bot Gateway, gid, _ int64, messages challengeMessages) {
-	v.deleteChallenge(c, bot, gid, messages.groupMsgID)
-}
-
 func (v *Service) adminLogChatID(groupID int64) int64 {
 	if group, ok := v.groupSettings(groupID); ok {
 		return group.AdminLogChatID().Value
@@ -1916,9 +1900,11 @@ func (v *Service) executeApprove(c context.Context, bot Gateway, gid, uid int64,
 		log.Printf("approve %d in %d: join request is already gone: %v", uid, gid, err)
 		member, known := v.chatMemberState(c, bot, gid, uid)
 		if known && member {
-			v.notePassed(gid, uid)
+			if !v.cleanupChallenge(c, bot, pendingRecord(pkey{gid, uid}, p), false) {
+				return approveFailed // The owned settlement remains retryable after its lease expires.
+			}
+			v.failPendingAction(PendingAction{ActionIntent: ActionIntent{ID: p.actionID}}, p.actionOwner, err)
 			v.finishTerminal(gid, uid, p)
-			v.cleanupSettledChallenge(c, bot, gid, uid, p)
 			v.clearVerifyFails(gid, uid)
 			v.recordDecision(true)
 			return approveConfirmed
@@ -1994,18 +1980,12 @@ func (v *Service) adoptAsHeld(gid, uid int64, p *pending) {
 	}
 }
 
-// abandonSettlement drops a pending the bot can never settle. The join request stays with
-// Telegram for an administrator, so abandoning it admits nobody.
+// abandonSettlement drops a challenge the bot can no longer settle and retains cleanup.
+// Requests stay with Telegram; held members are released or removed without an admission.
 func (v *Service) abandonSettlement(c context.Context, bot Gateway, gid, uid int64, p *pending, reason string, err error) {
 	log.Printf("WARNING: cannot settle verification for %d in %d (%s): %v; "+
-		"the join request stays with Telegram for an administrator", uid, gid, reason, err)
-	if p.gate == gateMute && p.held {
-		// Dropping the verification must not leave somebody silenced with nothing left to lift
-		// it. The restriction carries its own expiry, so a failure here only delays them.
-		if releaseErr := v.releaseMember(c, bot, gid, uid, p); releaseErr != nil {
-			log.Printf("post-join verify: giving up on %d in %d but could not lift the hold: %v", uid, gid, releaseErr)
-		}
-	}
+		"canceling the challenge and attempting cleanup", uid, gid, reason, err)
+	v.cleanupCanceledChallenge(c, bot, pendingRecord(pkey{gid, uid}, p))
 	v.discardPending(gid, uid, p)
 }
 
@@ -2311,7 +2291,9 @@ func (v *Service) executeRelease(c context.Context, bot Gateway, gid, uid int64,
 			return approveFailed
 		}
 	}
-	v.notePassed(gid, uid)
+	if p.held {
+		v.notePassed(gid, uid)
+	}
 	v.finishTerminal(gid, uid, p)
 	v.clearVerifyFails(gid, uid)
 	v.cleanupSettledChallenge(c, bot, gid, uid, p)

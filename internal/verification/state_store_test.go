@@ -94,6 +94,14 @@ func (testVerificationStore) ClaimActions(string, string, int64, int64, int) ([]
 	return nil, nil
 }
 
+func (testVerificationStore) EnqueueActions(_ string, _ PendingRef, intents []ActionIntent) ([]PendingAction, error) {
+	actions := make([]PendingAction, 0, len(intents))
+	for _, intent := range intents {
+		actions = append(actions, PendingAction{ActionIntent: intent})
+	}
+	return actions, nil
+}
+
 func (testVerificationStore) CompleteAction(string, string, string, int64, []ActionIntent) (bool, error) {
 	return true, nil
 }

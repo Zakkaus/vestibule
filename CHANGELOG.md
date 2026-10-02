@@ -66,6 +66,13 @@ All notable changes to this project are documented here. The format is based on
   while rejecting uncalled helpers, comment-only references, and test-only callers.
   The package-boundary ratchet self-test uses an isolated lint-clean fixture, and
   the license mutation fixture supplies a valid VCS root for dependency discovery.
+- Verification cancellation, recovery, and failed settlements retain durable group-question
+  cleanup and hold-release actions, including questions posted while cancellation is in flight.
+  Failed hold releases remove the member when Telegram cannot lift the restriction and queue
+  a durable undo if the removal's unban fails. Cleanup persistence failures leave settlements
+  retryable; transient cleanup failures use the existing retry backoff. Recovery renews holds
+  through the extended challenge deadline. Approving an unheld member or discovering an
+  earlier external approval no longer renews recent-admission suppression.
 - The Compose database volume now mounts at `/var/lib/postgresql` as PostgreSQL 18 requires.
   Native installs record their deployment type so host replacement works, and `import-state`
   rejects a missing or invalid `-pending` before touching the database.

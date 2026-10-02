@@ -198,7 +198,7 @@ func (s *VerificationJSONStore) CompleteAction(
 	}
 	for _, intent := range followups {
 		if _, exists := s.actions[intent.ID]; exists {
-			return false, fmt.Errorf("duplicate legacy action id %q", intent.ID)
+			continue
 		}
 		s.actions[intent.ID] = jsonPendingAction{PendingAction: verification.PendingAction{
 			ActionIntent: intent, ChallengeID: action.ChallengeID,
