@@ -45,6 +45,9 @@ All notable changes to this project are documented here. The format is based on
   falling back to the group when no log chat is set. `/autodel` status and enable replies
   preserve second-based retention settings with localized durations. English duration
   units use singular forms for a count of one in cleanup and moderation replies.
+- Desktop audit columns keep handles, actors, verdicts, and timestamps on one line;
+  long identities show an ellipsis with the full value in a title, and reasons use
+  the remaining width without leaving a gap before undo actions.
 - The Compose database volume now mounts at `/var/lib/postgresql` as PostgreSQL 18 requires.
   Native installs record their deployment type so host replacement works, and `import-state`
   rejects a missing or invalid `-pending` before touching the database.

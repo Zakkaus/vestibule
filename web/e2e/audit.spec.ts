@@ -104,6 +104,9 @@ async function openLiveAudit(
     "data-audit-state",
     "populated"
   );
+  const groupSwitcher = page.locator("[data-group-switcher]").getByRole("button");
+  await expect(groupSwitcher).toBeEnabled();
+  await expect(groupSwitcher).toContainText("Gentoo-zh Community");
 }
 
 test("audit renders settled history and waits for confirmed undo", async ({ page }) => {
@@ -544,14 +547,79 @@ test("a failed lazy audit download keeps navigation and offers localized reload"
   await expect(error.getByRole("heading", { name: "无法打开此页面" })).toBeVisible();
   const navigation = page.getByRole("treegrid", { name: "控制台导航" });
   await expect(navigation).toBeVisible();
+  const groupSwitcher = page.locator("[data-group-switcher]").getByRole("button");
+  await expect(groupSwitcher).toBeEnabled();
+  await expect(groupSwitcher).toContainText("Gentoo-zh Community");
+  const auditLink = navigation.getByRole("link", { name: "验证判定记录", exact: true });
+  const preferencesLink = navigation.getByRole("link", { name: "偏好", exact: true });
+  await expect(auditLink).toHaveAttribute("aria-current", "page");
   await expect(page.getByText("Unexpected Application Error!", { exact: true })).toHaveCount(0);
-  await navigation.getByRole("link", { name: "偏好", exact: true }).press("Enter");
+  await page.locator(".console-brand a").focus();
+  await page.keyboard.press("Tab");
+  await expect(auditLink).toBeFocused();
+  await preferencesLink.focus();
+  await expect(preferencesLink).toBeFocused();
+  await expect(navigation.getByRole("row", { name: "偏好", exact: true })).toHaveAttribute("data-focus-visible", "true");
+  await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/preferences\?group=/);
   await expect(error).toHaveCount(0);
-  await navigation.getByRole("link", { name: "验证判定记录", exact: true }).press("Enter");
+  await expect(page.locator("[data-preferences-page]")).toBeVisible();
+  await auditLink.focus();
+  await expect(auditLink).toBeFocused();
+  await expect(navigation.getByRole("row", { name: "验证判定记录", exact: true })).toHaveAttribute("data-focus-visible", "true");
+  await page.keyboard.press("Enter");
   await expect(error).toBeVisible();
   await page.unroute(modulePattern);
   await error.getByRole("button", { name: "重新加载页面" }).click();
   await expect(page.locator("[data-audit-page]")).toHaveAttribute("data-audit-state", "populated");
   await expect(error).toHaveCount(0);
 });
+
+for (const locale of ["en", "zh-CN"]) {
+  test.describe(`audit desktop layout in ${locale}`, () => {
+    test.use({ locale, viewport: { width: 1280, height: 900 } });
+    test("all columns and the undo action fit without horizontal scrolling", async ({ page }) => {
+      await openLiveAudit(page, async (route) => { await route.fulfill({ json: completedAuditEntry }); });
+      const geometry = await page.locator("[data-audit-table-scroll]").evaluate((scrollport) => {
+        const bounds = scrollport.getBoundingClientRect();
+        const inside = (element: Element) => {
+          const rect = element.getBoundingClientRect();
+          return rect.left >= bounds.left - 1 && rect.right <= bounds.right + 1;
+        };
+        const action = scrollport.querySelector("[data-audit-action]");
+        const textBounds = (element: Element) => {
+          const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+          const rectangles: DOMRect[] = [];
+          while (walker.nextNode()) {
+            if (!walker.currentNode.textContent?.trim()) continue;
+            const range = document.createRange();
+            range.selectNodeContents(walker.currentNode);
+            rectangles.push(...Array.from(range.getClientRects()));
+          }
+          return {
+            height: Math.max(...rectangles.map((rect) => rect.bottom)) - Math.min(...rectangles.map((rect) => rect.top)),
+            right: Math.max(...rectangles.map((rect) => rect.right))
+          };
+        };
+        const singleLine = Array.from(scrollport.querySelectorAll(
+          "td[data-record-user], td[data-record-actor], td[data-record-result], td[data-record-time]"
+        )).every((cell) => textBounds(cell).height <= parseFloat(getComputedStyle(cell).lineHeight) + 1);
+        const time = action?.closest("tr")?.querySelector("[data-record-time]");
+        return {
+          overflow: scrollport.scrollWidth - scrollport.clientWidth,
+          columnsVisible: Array.from(scrollport.querySelectorAll("th, td")).every(inside),
+          actionVisible: !!action && inside(action) && action.scrollWidth <= action.clientWidth + 1,
+          singleLine,
+          actionGap: action && time ? action.getBoundingClientRect().left - textBounds(time).right : Infinity
+        };
+      });
+      expect(geometry.overflow).toBe(0);
+      expect(geometry.columnsVisible).toBe(true);
+      expect(geometry.actionVisible).toBe(true);
+      expect(geometry.singleLine).toBe(true);
+      expect(geometry.actionGap).toBeGreaterThanOrEqual(0);
+      expect(geometry.actionGap).toBeLessThan(48);
+      await expect(page.locator("td[data-record-user] span", { hasText: "@other_actor_target" })).toHaveAttribute("title", "@other_actor_target");
+    });
+  });
+}

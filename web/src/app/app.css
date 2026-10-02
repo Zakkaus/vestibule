@@ -827,23 +827,53 @@ body {
 }
 
 [data-audit-table] {
-  min-inline-size: 56rem;
+  min-inline-size: 0;
 }
 
 [data-audit-table] th,
 [data-audit-table] td {
-  padding-inline: var(--sp-3);
+  padding-inline: var(--sp-2);
 }
 
-[data-audit-table] [data-record-user] {
-  min-inline-size: 15rem;
-  overflow-wrap: anywhere;
-  white-space: normal;
+[data-audit-table] :is(th, td):nth-child(1) {
+  inline-size: 7.5rem;
 }
 
-[data-audit-table] [data-record-group],
-[data-audit-table] [data-record-reason] {
-  min-inline-size: calc(9rem - var(--sp-3));
+[data-audit-table] :is(th, td):nth-child(2) {
+  inline-size: 6rem;
+  min-inline-size: 6rem;
+  overflow-wrap: normal;
+}
+
+[data-audit-table] :is(th, td):nth-child(4) {
+  inline-size: 100%;
+  min-inline-size: 0;
+  overflow-wrap: normal;
+}
+
+[data-audit-table] :is(th, td):nth-child(5) {
+  inline-size: 5.5rem;
+}
+
+[data-audit-table] [data-record-user] > span,
+[data-audit-table] [data-record-actor] > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-audit-table] [data-record-user] > span {
+  inline-size: 7.5rem;
+}
+
+[data-audit-table] [data-record-actor] > span {
+  inline-size: 5.5rem;
+}
+
+[data-audit-table] :is(th, td):is(:nth-child(3), :nth-child(6), :nth-child(7)) {
+  inline-size: 1%;
+  white-space: nowrap;
 }
 
 [data-record-result] {
