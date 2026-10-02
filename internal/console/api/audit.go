@@ -49,18 +49,38 @@ func (s *Server) audit(writer http.ResponseWriter, request *http.Request, chatID
 	if !ok {
 		return
 	}
+	page := verification.AuditPageRequest{Cursor: request.URL.Query().Get("cursor")}
+	if raw := request.URL.Query().Get("limit"); raw != "" {
+		limit, err := strconv.Atoi(raw)
+		if err != nil || limit < 1 {
+			writeError(writer, http.StatusBadRequest, "invalid_audit")
+			return
+		}
+		page.Limit = limit
+	}
+	limit, _, _, err := page.Boundary(chatID)
+	if err != nil {
+		writeAuditError(writer, err)
+		return
+	}
 	entries, err := s.verification.ConsoleAudit(
-		request.Context(), chatID, session.Principal.TelegramID,
+		request.Context(), chatID, session.Principal.TelegramID, page,
 	)
 	if err != nil {
-		writeError(writer, http.StatusServiceUnavailable, "audit_unavailable")
+		writeAuditError(writer, err)
 		return
+	}
+	var nextCursor *string
+	if len(entries) > limit {
+		cursor := verification.AuditNextCursor(chatID, entries[limit-1])
+		nextCursor = &cursor
+		entries = entries[:limit]
 	}
 	items := make([]auditResponse, 0, len(entries))
 	for _, entry := range entries {
 		items = append(items, auditView(entry))
 	}
-	writeJSON(writer, http.StatusOK, map[string]any{"items": items})
+	writeJSON(writer, http.StatusOK, map[string]any{"items": items, "next_cursor": nextCursor})
 }
 
 func (s *Server) undoAudit(

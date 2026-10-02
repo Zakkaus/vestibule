@@ -25,13 +25,16 @@ type ChallengeAuditRecord struct {
 	SettledBy        int64
 	SettlementAction ChallengeActionState
 	UndoAction       ChallengeActionState
+	Latest           bool
 }
 
 // challengeAuditStore keeps audit reads and undo insertion at the database boundary.
 // EnqueueChallengeUndo must compare every identity and settlement field in expected,
 // reject a superseded decision, and insert the action at most once.
 type challengeAuditStore interface {
-	LoadChallengeAudit(context.Context, int64) ([]ChallengeAuditRecord, error)
+	// LoadChallengeAudit returns at most Limit+1 rows; the extra row indicates another page.
+	LoadChallengeAudit(context.Context, int64, AuditPageRequest) ([]ChallengeAuditRecord, error)
+	LoadChallengeAuditByID(context.Context, int64, string) (ChallengeAuditRecord, bool, error)
 	EnqueueChallengeUndo(context.Context, ChallengeAuditRecord, ActionIntent) (bool, error)
 }
 

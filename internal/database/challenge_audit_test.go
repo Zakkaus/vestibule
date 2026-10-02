@@ -34,7 +34,7 @@ func TestChallengeAuditLoadsTerminalHistoryAndPersistsOneUndo(t *testing.T) {
 	}
 	requirePendingInsert(t, state, pending)
 
-	records, err := state.LoadChallengeAudit(context.Background(), -100)
+	records, err := state.LoadChallengeAudit(context.Background(), -100, verification.AuditPageRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func TestChallengeAuditLoadsTerminalHistoryAndPersistsOneUndo(t *testing.T) {
 	requireChallengeUndo(t, state, wrongActor, wrongUndo, false)
 	requireChallengeUndo(t, state, expected, undo, true)
 	requireChallengeUndo(t, state, expected, undo, false)
-	records, err = state.LoadChallengeAudit(context.Background(), -100)
+	records, err = state.LoadChallengeAudit(context.Background(), -100, verification.AuditPageRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func TestChallengeAuditRejectsUndoAfterNewerDecision(t *testing.T) {
 	requireAuditTransition(t, state, old, verification.ChallengeBanned, "", 100, 9)
 	current := verification.PendingRecord{GroupID: -100, UserID: 42, Nonce: "current", Deadline: 190, Epoch: 2}
 	requireAuditTransition(t, state, current, verification.ChallengeApproved, "", 200, 9)
-	records, err := state.LoadChallengeAudit(context.Background(), -100)
+	records, err := state.LoadChallengeAudit(context.Background(), -100, verification.AuditPageRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +119,7 @@ func TestChallengeUndoWaitsForTheBanActionToFinish(t *testing.T) {
 		ClaimOwner: "settler", ClaimUntil: 130,
 	}
 	requireAuditTransition(t, state, banned, verification.ChallengeBanned, "", 100, 9, settlement)
-	records, err := state.LoadChallengeAudit(context.Background(), chatID)
+	records, err := state.LoadChallengeAudit(context.Background(), chatID, verification.AuditPageRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}

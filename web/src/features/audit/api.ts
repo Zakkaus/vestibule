@@ -31,6 +31,11 @@ export type AuditRecord = Readonly<{
   undoState: AuditUndoState;
 }>;
 
+export type AuditPage = Readonly<{
+  records: readonly AuditRecord[];
+  nextCursor: string | null;
+}>;
+
 function auditRecordFromPayload(payload: unknown): AuditRecord | undefined {
   const item = objectFromPayload(payload);
   if (!item || item.kind !== "challenge") {
@@ -70,9 +75,10 @@ function auditRecordFromPayload(payload: unknown): AuditRecord | undefined {
   };
 }
 
-function auditRecordsFromPayload(payload: unknown): readonly AuditRecord[] | undefined {
+function auditRecordsFromPayload(payload: unknown): AuditPage | undefined {
   const response = objectFromPayload(payload);
-  if (!response || !Array.isArray(response.items)) {
+  if (!response || !Array.isArray(response.items) ||
+      (response.next_cursor !== null && !nonEmptyStringFromPayload(response.next_cursor))) {
     return undefined;
   }
 
@@ -84,14 +90,16 @@ function auditRecordsFromPayload(payload: unknown): readonly AuditRecord[] | und
     }
     records.push(record);
   }
-  return records;
+  return { records, nextCursor: response.next_cursor as string | null };
 }
 
 export function loadAuditRecords(
   transport: ApiTransport,
-  chatID: string
-): Promise<ApiResult<readonly AuditRecord[]>> {
-  return transport.request(`/api/chats/${encodeURIComponent(chatID)}/audit`, {
+  chatID: string,
+  cursor?: string
+): Promise<ApiResult<AuditPage>> {
+  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
+  return transport.request(`/api/chats/${encodeURIComponent(chatID)}/audit${query}`, {
     parse: auditRecordsFromPayload
   });
 }

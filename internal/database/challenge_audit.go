@@ -4,35 +4,52 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/Zakkaus/vestibule/internal/verification"
 )
 
-// LoadChallengeAudit returns terminal challenges newest first. It does not project pending rows
-// into history before their compare-and-set settlement has completed.
-func (s *VerificationStore) LoadChallengeAudit(ctx context.Context, chatID int64) ([]verification.ChallengeAuditRecord, error) {
-	if chatID == 0 {
-		return nil, fmt.Errorf("audit chat ID is required")
+const challengeAuditSelect = `
+	SELECT challenge.id, challenge.chat_id, challenge.user_id, challenge.payload,
+	       challenge.state, challenge.reason, challenge.settled_at, challenge.settled_by,
+	       COALESCE(settlement.state, ''), COALESCE(undo.state, ''),
+	       NOT EXISTS (
+	           SELECT 1 FROM challenge AS newer
+	            WHERE newer.chat_id=challenge.chat_id AND newer.user_id=challenge.user_id
+	              AND (newer.settled_at, newer.id)>(challenge.settled_at, challenge.id)
+	       )
+	  FROM challenge
+	  LEFT JOIN pending_action AS settlement
+	    ON settlement.challenge_id=challenge.id
+	   AND settlement.kind IN ('settle_approve', 'settle_decline', 'settle_ban')
+	  LEFT JOIN pending_action AS undo
+	    ON undo.challenge_id=challenge.id AND undo.kind='undo_ban'
+	 WHERE challenge.chat_id=$1 AND challenge.state<>'pending' AND challenge.settled_at IS NOT NULL`
+
+// LoadChallengeAudit reads one bounded page of terminal challenges, newest first.
+func (s *VerificationStore) LoadChallengeAudit(
+	ctx context.Context, chatID int64, page verification.AuditPageRequest,
+) ([]verification.ChallengeAuditRecord, error) {
+	limit, at, id, err := page.Boundary(chatID)
+	if err != nil {
+		return nil, err
 	}
-	rows, err := s.db.Query(ctx, `
-		SELECT challenge.id, challenge.chat_id, challenge.user_id, challenge.payload,
-		       challenge.state, challenge.reason, challenge.settled_at, challenge.settled_by,
-		       COALESCE(settlement.state, ''), COALESCE(undo.state, '')
-		  FROM challenge
-		  LEFT JOIN pending_action AS settlement
-		    ON settlement.challenge_id=challenge.id
-		   AND settlement.kind IN ('settle_approve', 'settle_decline', 'settle_ban')
-		  LEFT JOIN pending_action AS undo
-		    ON undo.challenge_id=challenge.id AND undo.kind='undo_ban'
-		 WHERE challenge.chat_id=$1 AND challenge.state<>'pending' AND challenge.settled_at IS NOT NULL
-		 ORDER BY challenge.settled_at DESC, challenge.id DESC`, chatID)
+	query := challengeAuditSelect
+	args := []any{chatID}
+	if at != 0 {
+		query += ` AND (challenge.settled_at, challenge.id)<($2, $3)`
+		args = append(args, at, id)
+	}
+	args = append(args, limit+1)
+	query += fmt.Sprintf(` ORDER BY challenge.settled_at DESC, challenge.id DESC LIMIT $%d`, len(args))
+	rows, err := s.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("load challenge audit for chat %d: %w", chatID, err)
 	}
 	defer rows.Close()
 
-	var records []verification.ChallengeAuditRecord
+	records := make([]verification.ChallengeAuditRecord, 0, limit+1)
 	for rows.Next() {
 		record, scanErr := scanChallengeAudit(rows)
 		if scanErr != nil {
@@ -44,6 +61,17 @@ func (s *VerificationStore) LoadChallengeAudit(ctx context.Context, chatID int64
 		return nil, fmt.Errorf("iterate challenge audit for chat %d: %w", chatID, err)
 	}
 	return records, nil
+}
+
+// LoadChallengeAuditByID reads an undo target independently of the visible page.
+func (s *VerificationStore) LoadChallengeAuditByID(
+	ctx context.Context, chatID int64, id string,
+) (verification.ChallengeAuditRecord, bool, error) {
+	record, err := scanChallengeAudit(s.db.QueryRow(ctx, challengeAuditSelect+` AND challenge.id=$2`, chatID, id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return verification.ChallengeAuditRecord{}, false, nil
+	}
+	return record, err == nil, err
 }
 
 func scanChallengeAudit(row interface{ Scan(...any) error }) (verification.ChallengeAuditRecord, error) {
@@ -58,7 +86,7 @@ func scanChallengeAudit(row interface{ Scan(...any) error }) (verification.Chall
 	)
 	if err := row.Scan(
 		&record.ID, &record.Record.GroupID, &record.Record.UserID, &payload,
-		&state, &reason, &record.SettledAt, &settledBy, &settlementAction, &undoAction,
+		&state, &reason, &record.SettledAt, &settledBy, &settlementAction, &undoAction, &record.Latest,
 	); err != nil {
 		return record, fmt.Errorf("scan challenge audit: %w", err)
 	}
@@ -145,8 +173,7 @@ func (s *VerificationStore) EnqueueChallengeUndo(
 		   AND NOT EXISTS (
 		       SELECT 1 FROM challenge AS newer
 		        WHERE newer.chat_id=challenge.chat_id AND newer.user_id=challenge.user_id
-		          AND newer.id<>challenge.id AND newer.settled_at IS NOT NULL
-		          AND newer.settled_at>=challenge.settled_at
+		          AND (newer.settled_at, newer.id)>(challenge.settled_at, challenge.id)
 		   )
 		   AND NOT EXISTS (
 		       SELECT 1 FROM pending_action AS settlement

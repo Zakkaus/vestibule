@@ -20,8 +20,17 @@ type consoleAuditContractStore struct {
 	allowUndo bool
 }
 
-func (s *consoleAuditContractStore) LoadChallengeAudit(context.Context, int64) ([]ChallengeAuditRecord, error) {
-	return append([]ChallengeAuditRecord(nil), s.records...), nil
+func (s *consoleAuditContractStore) LoadChallengeAudit(_ context.Context, _ int64, page AuditPageRequest) ([]ChallengeAuditRecord, error) {
+	return auditTestPage(s.records, page), nil
+}
+
+func (s *consoleAuditContractStore) LoadChallengeAuditByID(_ context.Context, _ int64, id string) (ChallengeAuditRecord, bool, error) {
+	for _, record := range auditTestPage(s.records, AuditPageRequest{}) {
+		if record.ID == id {
+			return record, true, nil
+		}
+	}
+	return ChallengeAuditRecord{}, false, nil
 }
 
 func (s *consoleAuditContractStore) EnqueueChallengeUndo(
@@ -66,7 +75,7 @@ func TestUndoConsoleAuditConflictsWhenStoreRejectsUndo(t *testing.T) {
 
 	t.Run("compare-and-swap conflict does not unban", func(t *testing.T) {
 		service, gateway := newConsoleAuditContractService([]ChallengeAuditRecord{record}, false)
-		entries, err := service.ConsoleAudit(context.Background(), undo.GroupID, undo.ActorID)
+		entries, err := service.ConsoleAudit(context.Background(), undo.GroupID, undo.ActorID, AuditPageRequest{})
 		if err != nil || len(entries) != 1 || entries[0].UndoState != ConsoleUndoAvailable {
 			t.Fatalf("undoable ban audit entries=%#v error=%v", entries, err)
 		}
@@ -96,7 +105,7 @@ func TestConsoleAuditRejectsCrossGroupRecords(t *testing.T) {
 
 	t.Run("cross-group audit disclosure", func(t *testing.T) {
 		service, _ := newConsoleAuditContractService([]ChallengeAuditRecord{crossGroupRecord}, false)
-		entries, err := service.ConsoleAudit(context.Background(), requestedGroupID, consoleAuditContractActorID)
+		entries, err := service.ConsoleAudit(context.Background(), requestedGroupID, consoleAuditContractActorID, AuditPageRequest{})
 		if !errors.Is(err, ErrConsoleAuditUnavailable) || entries != nil {
 			t.Fatalf("cross-group audit disclosure error=%v entries=%#v", err, entries)
 		}
@@ -108,7 +117,7 @@ func TestConsoleAuditRejectsCrossGroupRecords(t *testing.T) {
 		sameGroupRecord.Record.GroupID = requestedGroupID
 		service, _ := newConsoleAuditContractService([]ChallengeAuditRecord{sameGroupRecord}, false)
 
-		entries, err := service.ConsoleAudit(context.Background(), requestedGroupID, consoleAuditContractActorID)
+		entries, err := service.ConsoleAudit(context.Background(), requestedGroupID, consoleAuditContractActorID, AuditPageRequest{})
 		if err != nil || len(entries) != 1 || entries[0].GroupID != requestedGroupID {
 			t.Fatalf("same-group audit response entries=%#v error=%v", entries, err)
 		}
@@ -130,7 +139,7 @@ func TestConsoleAuditUndoState(t *testing.T) {
 	records[7].UndoAction = ChallengeActionFailed
 	service, _ := newConsoleAuditContractService(records, false)
 
-	entries, err := service.ConsoleAudit(context.Background(), consoleAuditContractGroupID, consoleAuditContractActorID)
+	entries, err := service.ConsoleAudit(context.Background(), consoleAuditContractGroupID, consoleAuditContractActorID, AuditPageRequest{})
 	if err != nil || len(entries) != len(records) {
 		t.Fatalf("undo state audit entries=%#v error=%v", entries, err)
 	}

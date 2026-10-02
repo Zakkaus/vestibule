@@ -37,6 +37,11 @@
     "groupSwitcher": "Current group",
     "allGroups": "All manageable groups"
   },
+  "routeError": {
+    "title": "Unable to open this screen",
+    "description": "Reload the page to try again, or use the navigation to open another screen.",
+    "reload": "Reload page"
+  },
   "entry": {
     "nextSteps": "Next steps",
     "thisBot": "this instance's bot",
@@ -658,6 +663,7 @@
       "retry": "Try again"
     },
     "actions": {
+      "loadMore": "Load more",
       "undo": "Undo ban",
       "undoFor": "Undo the ban for {{user}}",
       "undoing": "Undoing…",

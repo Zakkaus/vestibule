@@ -37,6 +37,11 @@
     "groupSwitcher": "当前群组",
     "allGroups": "全部可管理的群"
   },
+  "routeError": {
+    "title": "无法打开此页面",
+    "description": "重新加载页面以重试，或通过导航打开其他页面。",
+    "reload": "重新加载页面"
+  },
   "entry": {
     "nextSteps": "下一步",
     "thisBot": "当前实例的机器人",
@@ -654,6 +659,7 @@
       "retry": "重试"
     },
     "actions": {
+      "loadMore": "加载更多",
       "undo": "撤销封禁",
       "undoFor": "撤销对 {{user}} 的封禁",
       "undoing": "正在撤销…",

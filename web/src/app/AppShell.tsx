@@ -8,7 +8,7 @@ import { Outlet, useLocation, useMatches } from "react-router-dom";
 
 import { UtilityControls } from "../components/UtilityControls";
 import { ConsoleProvider, useConsoleSize } from "../components/ConsoleProvider";
-import { GroupSwitcher } from "../features/groups";
+import { GroupSwitcher } from "../features/groups/GroupSwitcher";
 import { Icon } from "../icons";
 import {
   canViewInstanceStatus,

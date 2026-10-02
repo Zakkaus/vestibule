@@ -31,7 +31,7 @@ type ConsoleService interface {
 	ConsoleGroups() []int64
 	ConsoleQueue(context.Context, int64) ([]verification.ConsoleQueueEntry, error)
 	SettleConsole(context.Context, verification.ConsoleSettlement) (verification.ConsoleQueueEntry, error)
-	ConsoleAudit(context.Context, int64, int64) ([]verification.ConsoleAuditEntry, error)
+	ConsoleAudit(context.Context, int64, int64, verification.AuditPageRequest) ([]verification.ConsoleAuditEntry, error)
 	UndoConsoleAudit(context.Context, verification.ConsoleAuditUndo) (verification.ConsoleAuditEntry, error)
 	ConsoleStats(context.Context, verification.ConsoleStatsRequest) (verification.ConsoleStatsReport, error)
 }

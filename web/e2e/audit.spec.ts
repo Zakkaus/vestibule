@@ -78,7 +78,7 @@ async function mockAuditTransport(
       return;
     }
     if (
-      path === `/api/chats/${selectedGroupID}/audit/${availableAuditEntry.id}/undo` &&
+      path.startsWith(`/api/chats/${selectedGroupID}/audit/`) && path.endsWith("/undo") &&
       request.method() === "POST"
     ) {
       await undoAudit(route);
@@ -94,9 +94,7 @@ async function openLiveAudit(
   readAudit: AuditReadHandler = async (route) => {
     await route.fulfill({
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        items: [availableAuditEntry, otherActorAuditEntry, declinedAuditEntry]
-      })
+      body: JSON.stringify({ items: [availableAuditEntry, otherActorAuditEntry, declinedAuditEntry], next_cursor: null })
     });
   }
 ): Promise<void> {
@@ -173,7 +171,7 @@ test("audit loading does not masquerade as an empty history", async ({ page }) =
       await readResponse;
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: [] })
+        body: JSON.stringify({ items: [], next_cursor: null })
       });
     },
     async () => {
@@ -216,13 +214,13 @@ test("audit discards group A's delayed read after the visible group switcher sel
         await aReadResponse;
         await route.fulfill({
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ items: [availableAuditEntry] })
+          body: JSON.stringify({ items: [availableAuditEntry], next_cursor: null })
         });
         return;
       }
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: [groupBAuditEntry] })
+        body: JSON.stringify({ items: [groupBAuditEntry], next_cursor: null })
       });
     },
     async () => {
@@ -277,9 +275,7 @@ test("audit discards group A's delayed undo after the visible group switcher sel
     async (route, chatID) => {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: [chatID === selectedGroupID ? availableAuditEntry : groupBAuditEntry]
-        })
+        body: JSON.stringify({ items: [chatID === selectedGroupID ? availableAuditEntry : groupBAuditEntry], next_cursor: null })
       });
     },
     async (route) => {
@@ -345,7 +341,7 @@ test("audit sends one undo for a forced second click and shows the confirmed res
     async (route) => {
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: [availableAuditEntry] })
+        body: JSON.stringify({ items: [availableAuditEntry], next_cursor: null })
       });
     },
     async (route) => {
@@ -418,7 +414,7 @@ test("an interrupted undo provides the activity-log reload it names", async ({ p
       auditReads += 1;
       await route.fulfill({
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: [availableAuditEntry] })
+        body: JSON.stringify({ items: [availableAuditEntry], next_cursor: null })
       });
     }
   );
@@ -429,4 +425,133 @@ test("an interrupted undo provides the activity-log reload it names", async ({ p
   await feedback.getByRole("button", { name: "重新读取" }).click();
   await expect.poll(() => auditReads).toBe(2);
   await expect(feedback).toHaveCount(0);
+});
+
+test("audit loads older pages on demand, retries that page, and undoes its ban", async ({ page }) => {
+  let reads = 0;
+  let olderReads = 0;
+  await openLiveAudit(page, async (route) => {
+    expect(route.request().headers()["x-csrf-token"]).toBe("audit-csrf");
+    await route.fulfill({ json: completedAuditEntry });
+  }, async (route) => {
+    reads++;
+    const cursor = new URL(route.request().url()).searchParams.get("cursor");
+    if (!cursor) {
+      await route.fulfill({ json: { items: [declinedAuditEntry], next_cursor: "opaque/older+page" } });
+      return;
+    }
+    expect(cursor).toBe("opaque/older+page");
+    if (++olderReads === 1) {
+      await route.abort("failed");
+      return;
+    }
+    await route.fulfill({ json: { items: [availableAuditEntry], next_cursor: null } });
+  });
+  const older = page.getByRole("button", { name: "加载更多" });
+  await expect(older).toBeVisible();
+  expect(reads).toBe(1);
+  await expect(page.locator("[data-audit-row]", { hasText: "@undo_target" })).toHaveCount(0);
+  await older.click();
+  await expect(page.getByRole("alert")).toContainText("连接已中断");
+  await expect(page.locator("[data-audit-row]", { hasText: "@wrong_answer" })).toBeVisible();
+  await older.click();
+  const ban = page.locator("[data-audit-row]", { hasText: "@undo_target" });
+  await expect(ban).toBeVisible();
+  await expect(older).toHaveCount(0);
+  await expect(page.locator("[data-audit-row]", { hasText: "@wrong_answer" })).toBeVisible();
+  await ban.getByRole("button", { name: "撤销对 @undo_target 的封禁" }).click();
+  await expect(ban).toHaveAttribute("data-undo-state", "completed");
+});
+
+test("audit ignores an older page after switching groups", async ({ page }) => {
+  let release!: () => void;
+  let requested!: () => void;
+  const delayed = new Promise<void>((resolve) => { release = resolve; });
+  const started = new Promise<void>((resolve) => { requested = resolve; });
+  await openLiveAudit(page, async () => { throw new Error("Unexpected undo"); }, async (route, chatID) => {
+    if (chatID === otherGroupID) {
+      await route.fulfill({ json: { items: [], next_cursor: null } });
+    } else if (new URL(route.request().url()).searchParams.has("cursor")) {
+      requested();
+      await delayed;
+      await route.fulfill({ json: { items: [availableAuditEntry], next_cursor: null } });
+    } else {
+      await route.fulfill({ json: { items: [declinedAuditEntry], next_cursor: "older" } });
+    }
+  });
+  await page.getByRole("button", { name: "加载更多" }).click();
+  await started;
+  await selectAppOption(page.getByRole("button", { name: "当前群组" }), otherGroupID);
+  await expect(page.locator("[data-audit-page]")).toHaveAttribute("data-audit-state", "empty");
+  const response = page.waitForResponse((item) => new URL(item.url()).searchParams.get("cursor") === "older");
+  release();
+  await response;
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+  await expect(page.locator("[data-audit-row]")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "加载更多" })).toHaveCount(0);
+});
+
+test("a same-group conflict reload clears other pending undo bookkeeping", async ({ page }) => {
+  const second = { ...availableAuditEntry, id: `${selectedGroupID}:528106777:second-ban`, user: "@reload_target" };
+  let releaseConflict!: () => void;
+  let releaseOldUndo!: () => void;
+  let markOldUndoStarted!: () => void;
+  const conflict = new Promise<void>((resolve) => { releaseConflict = resolve; });
+  const oldUndo = new Promise<void>((resolve) => { releaseOldUndo = resolve; });
+  const oldUndoStarted = new Promise<void>((resolve) => { markOldUndoStarted = resolve; });
+  let reads = 0;
+  let secondUndos = 0;
+  await openLiveAudit(page, async (route) => {
+    const path = decodeURIComponent(new URL(route.request().url()).pathname);
+    if (path.includes(availableAuditEntry.id)) {
+      await conflict;
+      await route.fulfill({ status: 409, json: { error: { code: "audit_conflict" } } });
+    } else if (++secondUndos === 1) {
+      markOldUndoStarted();
+      await oldUndo;
+      await route.abort("failed");
+    } else {
+      await route.fulfill({ json: { ...second, undo_state: "completed" } });
+    }
+  }, async (route) => {
+    await route.fulfill({ json: { items: ++reads === 1 ? [availableAuditEntry, second] : [second], next_cursor: null } });
+  });
+  const row = page.locator("[data-audit-row]", { hasText: second.user });
+  await page.locator("[data-audit-row]", { hasText: availableAuditEntry.user }).getByRole("button").click();
+  await row.getByRole("button").click();
+  await oldUndoStarted;
+  await expect(row).toHaveAttribute("data-undo-state", "submitting");
+  releaseConflict();
+  await expect.poll(() => reads).toBe(2);
+  await expect(row).toHaveAttribute("data-undo-state", "available");
+  const staleResponse = page.waitForEvent("requestfailed", { predicate: (request) => request.url().includes(encodeURIComponent(second.id)) });
+  releaseOldUndo();
+  await staleResponse;
+  await expect(row).toHaveAttribute("data-undo-state", "available");
+  await expect(page.locator("[data-audit-feedback]")).toHaveCount(0);
+  await row.getByRole("button").click();
+  await expect(row).toHaveAttribute("data-undo-state", "completed");
+});
+
+test("a failed lazy audit download keeps navigation and offers localized reload", async ({ page }) => {
+  await mockAuditTransport(page, async (route) => {
+    await route.fulfill({ json: { items: [availableAuditEntry], next_cursor: null } });
+  }, async () => { throw new Error("Unexpected undo"); });
+  const modulePattern = "**/src/features/audit/index.ts";
+  await page.route(modulePattern, (route) => route.abort("failed"));
+  await page.goto(`/audit?group=${selectedGroupID}`);
+  const error = page.locator("[data-route-error]");
+  await expect(error.getByRole("heading", { name: "无法打开此页面" })).toBeVisible();
+  const navigation = page.getByRole("treegrid", { name: "控制台导航" });
+  await expect(navigation).toBeVisible();
+  await expect(page.getByText("Unexpected Application Error!", { exact: true })).toHaveCount(0);
+  await navigation.getByRole("link", { name: "偏好", exact: true }).press("Enter");
+  await expect(page).toHaveURL(/\/preferences\?group=/);
+  await expect(error).toHaveCount(0);
+  await navigation.getByRole("link", { name: "验证判定记录", exact: true }).press("Enter");
+  await expect(error).toBeVisible();
+  await page.unroute(modulePattern);
+  await error.getByRole("button", { name: "重新加载页面" }).click();
+  await expect(page.locator("[data-audit-page]")).toHaveAttribute("data-audit-state", "populated");
+  await expect(error).toHaveCount(0);
 });

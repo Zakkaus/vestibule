@@ -140,6 +140,7 @@ func (s *apiTestQueueService) ConsoleAudit(
 	context.Context,
 	int64,
 	int64,
+	verification.AuditPageRequest,
 ) ([]verification.ConsoleAuditEntry, error) {
 	s.auditCalls++
 	return append([]verification.ConsoleAuditEntry(nil), s.auditEntries...), s.auditErr

@@ -1,23 +1,29 @@
+import { lazy, Suspense } from "react";
+import { Button, Text } from "@react-spectrum/s2/Button";
+import { useTranslation } from "react-i18next";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
-import { AuditScreen } from "../features/audit";
-import { BypassScreen } from "../features/bypass";
-import { CapabilitiesScreen } from "../features/capabilities";
-import { DiagnosticsScreen } from "../features/diagnostics";
 import { EntryScreen } from "../features/entry";
-import { FeedsScreen } from "../features/feeds";
-import { GroupListScreen } from "../features/groups";
-import { HomeLanding, HomeScreen } from "../features/home";
-import { ModerationScreen } from "../features/moderation";
-import { MessagesScreen } from "../features/messages";
-import { OwnerLimitsScreen } from "../features/owner";
-import { QueueScreen } from "../features/queue";
-import { PreferencesScreen } from "../features/preferences";
-import { VerificationScreen } from "../features/verification";
-import { QuestionsScreen } from "../features/questions";
-import { StatsScreen } from "../features/stats";
-import { VersionScreen } from "../features/version";
+import { HomeLanding } from "../features/home/HomeLanding";
+import { Icon } from "../icons";
 import { AppShell } from "./AppShell";
+
+const AuditScreen = lazy(() => import("../features/audit").then((module) => ({ default: module.AuditScreen })));
+const BypassScreen = lazy(() => import("../features/bypass").then((module) => ({ default: module.BypassScreen })));
+const CapabilitiesScreen = lazy(() => import("../features/capabilities").then((module) => ({ default: module.CapabilitiesScreen })));
+const DiagnosticsScreen = lazy(() => import("../features/diagnostics").then((module) => ({ default: module.DiagnosticsScreen })));
+const FeedsScreen = lazy(() => import("../features/feeds").then((module) => ({ default: module.FeedsScreen })));
+const GroupListScreen = lazy(() => import("../features/groups/GroupListScreen").then((module) => ({ default: module.GroupListScreen })));
+const HomeScreen = lazy(() => import("../features/home").then((module) => ({ default: module.HomeScreen })));
+const ModerationScreen = lazy(() => import("../features/moderation").then((module) => ({ default: module.ModerationScreen })));
+const MessagesScreen = lazy(() => import("../features/messages").then((module) => ({ default: module.MessagesScreen })));
+const OwnerLimitsScreen = lazy(() => import("../features/owner").then((module) => ({ default: module.OwnerLimitsScreen })));
+const QueueScreen = lazy(() => import("../features/queue").then((module) => ({ default: module.QueueScreen })));
+const PreferencesScreen = lazy(() => import("../features/preferences").then((module) => ({ default: module.PreferencesScreen })));
+const VerificationScreen = lazy(() => import("../features/verification").then((module) => ({ default: module.VerificationScreen })));
+const QuestionsScreen = lazy(() => import("../features/questions").then((module) => ({ default: module.QuestionsScreen })));
+const StatsScreen = lazy(() => import("../features/stats").then((module) => ({ default: module.StatsScreen })));
+const VersionScreen = lazy(() => import("../features/version").then((module) => ({ default: module.VersionScreen })));
 
 const entryHandle = {
   shell: "entry"
@@ -122,10 +128,40 @@ const router = createBrowserRouter([
         element: <EntryScreen />,
         handle: entryHandle
       }
-    ]
+    ].map((route) => ({ ...route, errorElement: <RouteError /> }))
   }
 ]);
 
+function RouteLoading() {
+  const { t } = useTranslation();
+  return (
+    <section data-entry-page data-entry-state="loading" aria-busy="true" aria-labelledby="route-loading-title">
+      <div data-slot="card">
+        <h1 id="route-loading-title">
+          <span data-state-heading><Icon name="loaderCircle" />{t("entry.loading.title")}</span>
+        </h1>
+        <p data-entry-copy aria-live="polite">{t("entry.loading.description")}</p>
+      </div>
+    </section>
+  );
+}
+
+function RouteError() {
+  const { t } = useTranslation();
+  return (
+    <section data-slot="card" data-route-error role="alert" aria-labelledby="route-error-title">
+      <h1 id="route-error-title">
+        <span data-state-heading><Icon name="circleAlert" />{t("routeError.title")}</span>
+      </h1>
+      <p>{t("routeError.description")}</p>
+      <Button variant="primary" onPress={() => window.location.reload()}>
+        <Icon name="refreshCw" />
+        <Text>{t("routeError.reload")}</Text>
+      </Button>
+    </section>
+  );
+}
+
 export function App() {
-  return <RouterProvider router={router} />;
+  return <Suspense fallback={<RouteLoading />}><RouterProvider router={router} /></Suspense>;
 }
