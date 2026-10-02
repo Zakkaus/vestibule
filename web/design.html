@@ -935,7 +935,7 @@ li::marker { color: var(--border); }
         <tr><td>背景分层</td><td>Provider 的 <code>background</code> 与 style 宏的 layer token</td><td><code>@react-spectrum/s2@1.7.1</code> 中，Provider 保留 <code>base</code>，控制台外层使用 <code>layer-1</code>；顶栏和侧栏沿用外层背景，移除分隔边框。内容面板使用 <code>layer-2</code>；原生 Card 的 primary 变体同样使用 <code>layer-2</code> 并保留库的阴影。未迁移页面的背景变量继续通过公开 style 宏绑定 layer token，跟随浅色、深色和系统主题，不复制颜色常量。</td></tr>
         <tr><td>导航</td><td>Spectrum Accordion、Disclosure、Popover 与 React Aria Button、Link</td><td>保留六组和全部授权入口，一次展开一组；路由改变时同步展开目标组。React Aria 原语沿用库的展开、链接和键盘行为，外观使用 S2 的公开样式宏。当前项只用粗体和文字颜色区分，底色透明、圆角为零，不显示左轨，也不改变图标描边。字重从 400 变为 700，作为非颜色差异单独验证。字号、行高、项间距、分组间距和宽度取库中最接近 docs 实测值的尺度；保留悬停和键盘焦点提示。1280×720 下逐组展开后检查滚动边界，不允许只露出半个导航项。</td></tr>
         <tr><td>等待队列</td><td>TableView、TableHeader、Column、TableBody、Row、Cell</td><td>库提供多行选择、排序提示和空态容器。Tab 进入表格后，以方向键移动焦点；窄屏保留同一表格并横向滚动。行内放行沿用原有权限与请求流程。切换群后清空选择，排序保持选中项；空队列和筛选无结果使用不同提示。</td></tr>
-        <tr><td>图表</td><td>Adobe 的 <code>@spectrum-charts/react-spectrum-charts-s2</code>、Vega-Lite 与统计 API</td><td>请求数柱与通过率线叠在一张双轴图中：左轴计数，右轴固定为 0–100%。保留刻度和每日数值，去掉竖排轴标题，由横排图例说明系列及对应轴。只画接口返回的日期；仅在缺数据时提示缺少的天数，不补零。</td></tr>
+        <tr><td>图表</td><td>Adobe 的 <code>@spectrum-charts/react-spectrum-charts-s2</code> 与统计 API</td><td>请求数柱与通过率线叠在一张双轴图中：左轴计数，右轴固定为 0–100%。保留刻度与每日请求数标签，通过率通过悬停提示和日期读数区读取；去掉竖排轴标题，由横排图例说明系列及对应轴。只画接口返回的日期；仅在缺数据时提示缺少的天数，不补零。</td></tr>
         <tr><td>图标</td><td>Lucide Static 1.39.0 清单及 Spectrum 内部图标</td><td>侧栏保留图标。概况依次使用 chartColumn、circleCheck、inbox、shieldOff；待办、异常、正常分别使用 inbox、circleAlert、circleCheck。验证、题库、频道、反垃圾入口分别使用 shieldCheck、bookOpen、usersRound、shieldAlert。图例使用 chartColumn 与 chartLine，趋势空状态使用 chartNoAxesCombined，无群状态使用 usersRound。旁边已有文字时，图标不重复朗读。新增图标从清单声明的同版包原样复制，更新 SHA-256 与来源路径；Spectrum 内部图标仍由锁定版本的依赖持有。</td></tr>
         <tr><td>交互反馈</td><td>Spectrum 的悬停、按下、焦点与等待状态</td><td>图表悬停使用库的提示层；键盘通过 S2 Picker 选择日期，在读数区读取完整数值。图表不启用动画；请求减弱动态效果时，仍禁用控件通过内联样式写入的按压缩放。</td></tr>
       </tbody>
@@ -949,12 +949,11 @@ li::marker { color: var(--border); }
       不覆写依赖源码，也不为此保留另一套表格或卡片。</p>
     <p>S2 不提供图表组件。Adobe 在独立的 <a href="https://github.com/adobe/react-spectrum-charts">React Spectrum Charts 仓库</a>提供 S2 实现；
       首页固定使用 <code>@spectrum-charts/react-spectrum-charts-s2@0.8.0</code>，该版本仍以 alpha 标签发布。
-      它的 Line 组件未正确处理空值，最近点计算也会对空值生成非法路径，因此通过公开的 <code>UNSAFE_vegaSpec</code> 入口接收 Vega-Lite 编译结果。
-      日期域只包含实际读数；宽度只由 Chart 的容器测量决定，不再启动 Vega-Lite 的另一套宽度计算。
-      高度由采用 Spectrum 尺度的块容器提供，Chart 使用 <code>height="100%"</code>，Vega 的 <code>autosize</code> 将坐标轴计入绘图高度。图例与日期读数由 Spectrum 布局组件安排在绘图区下方，同属图表区域；测试检查图形高度及全部图表内容的边界，避免纵向溢出。
-      Chart 的 <code>padding</code> 显式采用主题的轴标签间距，避免默认零内边距裁切文字。每日两项数值放在柱体上方，文字对比度检查同时考虑页面背景和可能重叠的柱体。
-      坐标、文字、描边与点由库生成，视觉样式来自 <code>getSpectrum2VegaConfig</code> 与 <code>getS2ColorValue</code>；栅格线沿用默认实线。横排图例使用与系列对应的 Lucide 柱图、折线图图标，颜色与图中系列一致。
-      背景、文字颜色与绘图区边线在 Vega-Lite 编译前传入主题值，避免编译器的白底黑字默认值覆盖暗色主题。
+      首页使用库的 <code>Chart</code>、<code>Bar</code>、<code>Line</code> 与 <code>Axis</code> 组件，不自行编译 Vega-Lite 规格。
+      日期域只包含实际读数；宽度由 Chart 的容器测量决定。
+      高度由采用 Spectrum 尺度的块容器提供，Chart 使用 <code>height="100%"</code>。图例与日期读数由 Spectrum 布局组件安排在绘图区下方，同属图表区域；测试检查图形高度及全部图表内容的边界，避免纵向溢出。
+      Chart 显式设置 <code>padding</code>，避免默认零内边距裁切文字。<code>BarDirectLabel</code> 将每日请求数放在柱体上方；折线不显示逐点标签，因为库会隐藏无法放置的标签。<code>ChartInspect</code> 提供悬停读数，Picker 与读数区提供按日期读取的请求数和通过率。
+      坐标、文字、描边与点由库生成，Chart 的 <code>colorScheme</code> 跟随浅色、深色和系统主题；系列采用 Spectrum 色阶，栅格线沿用默认实线。横排图例使用与系列对应的 Lucide 柱图、折线图图标，颜色与图中系列一致。
       图表外部的宽度、高度与间距通过 S2 的 <code>size()</code> 比例函数声明；日期轴采用数字月日，完整日期保留在下拉和读数中。超出七天的日期域使用较宽的库尺度。
       <code>HomeTrend.tsx</code> 不得包含颜色字面量或未缩放的视觉尺寸。</p>
     <p>图表库没有键盘逐点读数接口，因此使用同一日期域驱动 Picker 和读数区；这不是依赖原生 SVG 焦点的另一套图表。
