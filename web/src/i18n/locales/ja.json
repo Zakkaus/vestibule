@@ -164,7 +164,7 @@
       },
       "initDataReplayed": {
         "title": "このオープン要求は使用済みです",
-        "description": "現在のページを閉じ、Telegram のボットメニューからコンソールを開き直してください。"
+        "description": "現在のページを閉じ、Telegram のボットとの個別チャットにある設定メッセージのボタンからコンソールを開き直してください。インスタンス所有者は /console も使用できます。"
       },
       "authenticationUnavailable": {
         "title": "認証サービスを一時的に利用できません",

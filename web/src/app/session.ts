@@ -356,6 +356,10 @@ export function canViewOwner(state: ConsoleSessionState): boolean {
   return "session" in state && state.session.isOwner;
 }
 
+export function isTelegramLaunchReplayed(state: ConsoleSessionState): boolean {
+  return state.state === "blocked" && state.error.kind === "api" && state.error.code === "init_data_replayed";
+}
+
 export function retryConsoleGroups(): Promise<void> {
   return consoleSessionStore.retryGroups();
 }

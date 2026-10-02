@@ -472,8 +472,9 @@ func (v *Panel) renderSession(ctx context.Context, bot *telego.Bot, session *pan
 	if err != nil {
 		return err
 	}
+	keyboard = v.settingsStartKeyboard(keyboard, session)
 	if session.messageID == 0 {
-		message, err := bot.SendMessage(ctx, tu.Message(tu.ID(session.chatID), text).WithReplyMarkup(v.settingsStartKeyboard(keyboard, session)))
+		message, err := bot.SendMessage(ctx, tu.Message(tu.ID(session.chatID), text).WithReplyMarkup(keyboard))
 		if err != nil {
 			return err
 		}

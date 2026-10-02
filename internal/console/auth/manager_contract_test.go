@@ -29,6 +29,7 @@ type authContractCookieState struct {
 	secure      bool
 	httpOnly    bool
 	sameSite    http.SameSite
+	partitioned bool
 }
 
 func TestMiniAppIdentityRequiresSingularBoundedFields(t *testing.T) {
@@ -194,41 +195,116 @@ func TestManagerRefusesConfigurationWithoutABotToken(t *testing.T) {
 func TestSessionCookiesShareTheSessionLifetimeAndDeletionScope(t *testing.T) {
 	now := time.Unix(1_800_000_000, 0)
 	manager, err := New(Config{
-		BotToken:   authContractBotToken,
-		Now:        func() time.Time { return now },
-		SessionTTL: 90 * time.Minute,
+		BotToken: authContractBotToken, Now: func() time.Time { return now },
+		SessionTTL: 90 * time.Minute, OperatorAllowed: func(id int64) bool { return id == 42 },
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	grant := issueAuthContractSession(t, manager, now, 41, "cookie")
-	if want := now.Add(90 * time.Minute); !grant.Session.ExpiresAt.Equal(want) {
-		t.Fatalf("issued session lost the configured lifetime: expiry=%v want=%v", grant.Session.ExpiresAt, want)
+	for _, role := range []Role{RoleManager, RoleOperator} {
+		t.Run(string(role), func(t *testing.T) {
+			var grant Grant
+			if role == RoleManager {
+				grant = issueAuthContractSession(t, manager, now, 41, "cookie")
+			} else {
+				link, _, issueErr := manager.IssueOperatorLink(42)
+				if issueErr != nil {
+					t.Fatal(issueErr)
+				}
+				grant, err = manager.RedeemOperatorLink(link)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			if want := now.Add(90 * time.Minute); !grant.Session.ExpiresAt.Equal(want) {
+				t.Fatalf("session expiry=%v want=%v", grant.Session.ExpiresAt, want)
+			}
+			writer := httptest.NewRecorder()
+			manager.SetCookies(writer, grant)
+			wantCookie := authContractCookieState{
+				name: sessionCookieName, value: grant.Session.token, path: "/",
+				expiresNano: grant.Session.ExpiresAt.UnixNano(),
+				secure:      true, httpOnly: true, sameSite: http.SameSiteLaxMode,
+			}
+			if role == RoleManager {
+				wantCookie.sameSite, wantCookie.partitioned = http.SameSiteNoneMode, true
+			}
+			if got := authContractCookieStateOf(authContractCookie(t, writer)); got != wantCookie {
+				t.Fatalf("session cookie protections: got=%+v want=%+v", got, wantCookie)
+			}
+			if _, err = manager.GrantFromRequest(authContractRequest(grant)); err != nil {
+				t.Fatalf("the matching session cookie was refused: %v", err)
+			}
+		})
 	}
-	writer := httptest.NewRecorder()
-	manager.SetCookies(writer, grant)
-	cookie := authContractCookie(t, writer)
-	wantCookie := authContractCookieState{
-		name: sessionCookieName, value: grant.Session.token, path: "/",
-		expiresNano: grant.Session.ExpiresAt.UnixNano(),
-		secure:      true, httpOnly: true, sameSite: http.SameSiteLaxMode,
-	}
-	if got := authContractCookieStateOf(cookie); got != wantCookie {
-		t.Fatalf("session cookie did not carry the session lifetime and browser protections: got=%+v want=%+v", got, wantCookie)
-	}
-	if _, err = manager.GrantFromRequest(authContractRequest(grant)); err != nil {
-		t.Fatalf("the matching session cookie was refused: %v", err)
-	}
-
 	clearWriter := httptest.NewRecorder()
 	manager.ClearCookies(clearWriter)
-	cleared := authContractCookie(t, clearWriter)
-	wantCleared := authContractCookieState{
-		name: sessionCookieName, path: "/", expiresNano: time.Unix(1, 0).UnixNano(), maxAge: -1,
-		secure: true, httpOnly: true, sameSite: http.SameSiteLaxMode,
+	cleared := clearWriter.Result().Cookies()
+	if len(cleared) != 2 {
+		t.Fatalf("cookie deletion must cover both browser partitions: got %d cookies", len(cleared))
 	}
-	if got := authContractCookieStateOf(cleared); got != wantCleared {
-		t.Fatalf("cookie deletion did not cover the protected session cookie: got=%+v want=%+v", got, wantCleared)
+	for index, sameSite := range []http.SameSite{http.SameSiteLaxMode, http.SameSiteNoneMode} {
+		wantCleared := authContractCookieState{
+			name: sessionCookieName, path: "/", expiresNano: time.Unix(1, 0).UnixNano(), maxAge: -1,
+			secure: true, httpOnly: true, sameSite: sameSite, partitioned: index == 1,
+		}
+		if got := authContractCookieStateOf(cleared[index]); got != wantCleared {
+			t.Fatalf("cookie deletion protections: got=%+v want=%+v", got, wantCleared)
+		}
+	}
+}
+
+func TestSessionIssuanceReplacesBothCookieScopes(t *testing.T) {
+	for _, role := range []Role{RoleOperator, RoleManager} {
+		t.Run(string(role), func(t *testing.T) {
+			now := time.Unix(1_800_000_000, 0)
+			manager, err := New(Config{
+				BotToken: authContractBotToken, Now: func() time.Time { return now },
+				OperatorAllowed: func(id int64) bool { return id == 42 },
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			miniApp := issueAuthContractSession(t, manager, now, 42, "original")
+			link, _, err := manager.IssueOperatorLink(42)
+			if err != nil {
+				t.Fatal(err)
+			}
+			operator, err := manager.RedeemOperatorLink(link)
+			if err != nil {
+				t.Fatal(err)
+			}
+			browserCookies := map[bool]*http.Cookie{
+				true:  {Name: sessionCookieName, Value: miniApp.Session.token, Path: "/", Partitioned: true},
+				false: {Name: sessionCookieName, Value: operator.Session.token, Path: "/"},
+			}
+			next := operator
+			if role == RoleManager {
+				next = issueAuthContractSession(t, manager, now, 42, "replacement")
+			}
+			writer := httptest.NewRecorder()
+			manager.SetCookies(writer, next)
+			for _, cookie := range writer.Result().Cookies() {
+				if cookie.MaxAge < 0 {
+					delete(browserCookies, cookie.Partitioned)
+				} else {
+					browserCookies[cookie.Partitioned] = cookie
+				}
+			}
+			request := httptest.NewRequest(http.MethodGet, "/api/session", nil)
+			for _, scope := range []bool{true, false} {
+				if cookie := browserCookies[scope]; cookie != nil {
+					request.AddCookie(cookie)
+				}
+			}
+			if len(request.Cookies()) != 1 {
+				t.Fatalf("session switch left ambiguous browser cookies: %d", len(request.Cookies()))
+			}
+			resolved, err := manager.GrantFromRequest(request)
+			if err != nil || resolved.Session.Principal.Role != role || resolved.CSRFToken != next.CSRFToken {
+				t.Fatalf("replacement session lost: role=%s error=%v", resolved.Session.Principal.Role, err)
+			}
+		})
 	}
 }
 
@@ -359,10 +435,20 @@ func authContractRequest(grant Grant) *http.Request {
 func authContractCookie(t *testing.T, writer *httptest.ResponseRecorder) *http.Cookie {
 	t.Helper()
 	cookies := writer.Result().Cookies()
-	if len(cookies) != 1 {
-		t.Fatalf("Set-Cookie count=%d, want 1", len(cookies))
+	if len(cookies) != 2 {
+		t.Fatalf("Set-Cookie count=%d, want opposite-scope deletion and session issuance", len(cookies))
 	}
-	return cookies[0]
+	wantCleared := authContractCookieState{
+		name: sessionCookieName, path: "/", expiresNano: time.Unix(1, 0).UnixNano(), maxAge: -1,
+		secure: true, httpOnly: true, sameSite: http.SameSiteNoneMode, partitioned: true,
+	}
+	if cookies[1].Partitioned {
+		wantCleared.sameSite, wantCleared.partitioned = http.SameSiteLaxMode, false
+	}
+	if got := authContractCookieStateOf(cookies[0]); got != wantCleared {
+		t.Fatalf("opposite-scope cookie must expire first: got=%+v want=%+v", got, wantCleared)
+	}
+	return cookies[1]
 }
 
 func authContractCookieStateOf(cookie *http.Cookie) authContractCookieState {
@@ -375,5 +461,6 @@ func authContractCookieStateOf(cookie *http.Cookie) authContractCookieState {
 		secure:      cookie.Secure,
 		httpOnly:    cookie.HttpOnly,
 		sameSite:    cookie.SameSite,
+		partitioned: cookie.Partitioned,
 	}
 }

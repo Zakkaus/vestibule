@@ -12,7 +12,7 @@ async function fulfillJSON(route: Route, body: unknown, status = 200): Promise<v
   });
 }
 
-async function mockLaunchSession(page: Page, sessionBodies: unknown[]): Promise<void> {
+async function mockLaunchSession(page: Page, sessionBodies: unknown[], sessionError?: string): Promise<void> {
   await page.route("**/api/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
@@ -20,6 +20,10 @@ async function mockLaunchSession(page: Page, sessionBodies: unknown[]): Promise<
       await fulfillJSON(route, { error: { code: "authentication_expired" } }, 401);
     } else if (path === "/api/session" && request.method() === "POST") {
       sessionBodies.push(request.postDataJSON());
+      if (sessionError) {
+        await fulfillJSON(route, { error: { code: sessionError } }, 409);
+        return;
+      }
       await fulfillJSON(route, {
         subject: { telegram_id: "9000000901", role: "manager" },
         expires_at: "2030-09-04T12:00:00Z",
@@ -75,5 +79,20 @@ for (const source of ["fragment", "query", "fragment over query", "WebApp global
     expect(cleaned.searchParams.get("keep")).toBe("query value");
     expect(new URLSearchParams(cleaned.hash.slice(1)).get("keep")).toBe("fragment value");
     expect(cleaned.search + cleaned.hash).not.toContain("tgWebApp");
+  });
+}
+
+for (const path of [`/groups?group=${groupID}`, "/missing"]) {
+  test(`a replayed Mini App launch at ${path} requires reopening from Telegram`, async ({ page }) => {
+    const sessionBodies: unknown[] = [];
+    await mockLaunchSession(page, sessionBodies, "init_data_replayed");
+    await page.goto(`${path}#${new URLSearchParams({ tgWebAppData: initData }).toString()}`);
+    const entry = page.locator("[data-entry-page]");
+    await expect(entry).toHaveAttribute("data-entry-state", "init-data-replayed");
+    await expect(entry.getByRole("alert")).toContainText("Telegram");
+    await expect(entry.getByRole("button")).toHaveCount(0);
+    await expect(page.locator("[data-app-shell]")).toHaveAttribute("data-shell-variant", "entry");
+    expect(sessionBodies).toEqual([{ init_data: initData }]);
+    expect(new URL(page.url()).hash).not.toContain("tgWebAppData");
   });
 }

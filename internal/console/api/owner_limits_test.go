@@ -240,7 +240,7 @@ func ownerLimitsServer(t *testing.T, manager *auth.Manager, grant auth.Grant, st
 	return New(Config{
 		Authenticator: manager,
 		Settings:      store,
-	}), cookies.Result().Cookies()
+	}), browserResponseCookies(cookies)
 }
 
 func ownerLimitsRequest(server *Server, method, path string, cookies []*http.Cookie, csrf, body string) *httptest.ResponseRecorder {

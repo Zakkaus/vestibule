@@ -58,6 +58,13 @@ All notable changes to this project are documented here. The format is based on
   when Telegram reports that the join request is gone and confirms the applicant is outside the group.
 - The console captures Telegram Mini App launch data before routing and removes launch
   parameters from its address without loading external scripts.
+- Telegram Mini App sessions use partitioned cookies for embedded consoles.
+  Replayed launches use the shared error copy and require reopening from Telegram
+  instead of retrying. Settings buttons open the root group route; panel URL
+  configuration warns about unusable URLs without logging their values.
+- Switching between Mini App and operator sessions expires the other cookie scope
+  before issuing the new cookie. Refreshing private group lists retains the Mini
+  App button.
 - Owner private help lists active owner commands. The owner menu and help omit
   `/console` when its link handler is disabled.
 - Production entry pages ignore preview query parameters and retain the authenticated

@@ -23,6 +23,7 @@ type panelAPICaller struct {
 	lastSendText         string
 	lastURL              string
 	lastInlineKeyboard   [][]telego.InlineKeyboardButton
+	lastEditKeyboard     [][]telego.InlineKeyboardButton
 	sendChats            []int64
 	sendTexts            []string
 	messageID            int
@@ -85,12 +86,14 @@ func (c *panelAPICaller) Call(_ context.Context, endpoint string, data *ta.Reque
 
 func (c *panelAPICaller) callEditMessageText(data *ta.RequestData) (*ta.Response, error) {
 	var request struct {
-		Text string `json:"text"`
+		Text        string                      `json:"text"`
+		ReplyMarkup telego.InlineKeyboardMarkup `json:"reply_markup"`
 	}
 	if err := json.Unmarshal(data.BodyRaw, &request); err != nil {
 		return nil, err
 	}
 	c.lastEditText = request.Text
+	c.lastEditKeyboard = request.ReplyMarkup.InlineKeyboard
 	if c.editErr != nil {
 		return nil, c.editErr
 	}

@@ -164,7 +164,7 @@
       },
       "initDataReplayed": {
         "title": "此次打开请求已使用",
-        "description": "请关闭当前页面，然后从 Telegram 机器人菜单重新打开控制台。"
+        "description": "请关闭当前页面，再通过 Telegram 机器人私聊中的设置消息按钮重新打开控制台。如为实例部署者，也可使用 /console。"
       },
       "authenticationUnavailable": {
         "title": "认证服务暂时不可用",

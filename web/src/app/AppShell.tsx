@@ -9,10 +9,12 @@ import { Outlet, useLocation, useMatches } from "react-router-dom";
 import { UtilityControls } from "../components/UtilityControls";
 import { ConsoleProvider, useConsoleSize } from "../components/ConsoleProvider";
 import { GroupSwitcher } from "../features/groups";
+import { EntryScreen } from "../features/entry";
 import { Icon } from "../icons";
 import {
   canViewInstanceStatus,
   canViewOwner,
+  isTelegramLaunchReplayed,
   useConsoleSession,
   type ConsoleSessionState
 } from "./session";
@@ -188,7 +190,7 @@ function ShellContent() {
   const currentNavigationItem = visibleNavigationItems.find((item) => item.path === location.pathname);
   const matches = useMatches();
   const routeHandle = matches.at(-1)?.handle as RouteHandle | undefined;
-  const shellVariant = routeHandle?.shell ?? "entry";
+  const shellVariant = isTelegramLaunchReplayed(session) ? "entry" : routeHandle?.shell ?? "entry";
 
   document.title = t("app.title");
 
@@ -199,7 +201,7 @@ function ShellContent() {
           <UtilityControls variant="chrome" />
         </Header>
         <main data-entry-main>
-          <Outlet />
+          {isTelegramLaunchReplayed(session) ? <EntryScreen /> : <Outlet />}
         </main>
       </Content>
     );

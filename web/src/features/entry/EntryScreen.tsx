@@ -2,7 +2,7 @@ import { Button, Text } from "@react-spectrum/s2/Button";
 import { useTranslation } from "react-i18next";
 import { Navigate, useSearchParams } from "react-router-dom";
 
-import { retryConsoleSession, useConsoleSession } from "../../app/session";
+import { isTelegramLaunchReplayed, retryConsoleSession, useConsoleSession } from "../../app/session";
 import type { ApiRequestError } from "../../lib/api";
 import { Icon } from "../../icons";
 import {
@@ -86,13 +86,13 @@ function EntryLoading() {
   );
 }
 
-function EntryUnavailable({ error }: Readonly<{ error: ApiRequestError }>) {
+function EntryUnavailable({ error, replayed = false }: Readonly<{ error: ApiRequestError; replayed?: boolean }>) {
   const { t } = useTranslation();
 
   return (
     <section
       data-entry-page
-      data-entry-state="unavailable"
+      data-entry-state={replayed ? "init-data-replayed" : "unavailable"}
       data-entry-transport-failure={error.kind}
       aria-labelledby="entry-title"
     >
@@ -100,23 +100,25 @@ function EntryUnavailable({ error }: Readonly<{ error: ApiRequestError }>) {
         <h1 id="entry-title">
           <span data-state-heading>
             <Icon name="circleAlert" />
-            {t("entry.unavailable.title")}
+            {t(replayed ? "groups.error.initDataReplayed.title" : "entry.unavailable.title")}
           </span>
         </h1>
         <p data-entry-copy role="alert">
-          {t("entry.unavailable.description")}
+          {t(replayed ? "groups.error.initDataReplayed.description" : "entry.unavailable.description")}
         </p>
-        <Button
-          type="button"
-          variant="primary"
-          data-slot="button"
-          onPress={() => {
-            void retryConsoleSession();
-          }}
-        >
-          <Icon name="refreshCw" />
-          <Text>{t("entry.unavailable.retry")}</Text>
-        </Button>
+        {!replayed && (
+          <Button
+            type="button"
+            variant="primary"
+            data-slot="button"
+            onPress={() => {
+              void retryConsoleSession();
+            }}
+          >
+            <Icon name="refreshCw" />
+            <Text>{t("entry.unavailable.retry")}</Text>
+          </Button>
+        )}
       </div>
     </section>
   );
@@ -144,7 +146,6 @@ function fixtureForBlockedSession(
   switch (error.code) {
     case "authentication_expired":
     case "authentication_invalid":
-    case "init_data_replayed":
       return entryFixtureFor(null);
     default:
       return undefined;
@@ -155,6 +156,10 @@ export function EntryScreen() {
   const [searchParams] = useSearchParams();
   const session = useConsoleSession();
   const botUsername = useInstanceBot();
+
+  if (session.state === "blocked" && isTelegramLaunchReplayed(session)) {
+    return <EntryUnavailable error={session.error} replayed />;
+  }
 
   // The instance response can predate a successful claim and session exchange.
   if (

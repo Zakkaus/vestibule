@@ -302,7 +302,7 @@ func diagnosticsTestServerWithMode(
 		Replacement:          replacement,
 		Version:              "v5.1.0",
 		ObserveOnly:          observeOnly,
-	}), cookies.Result().Cookies()
+	}), browserResponseCookies(cookies)
 }
 
 func diagnosticsRequest(server *Server, cookies []*http.Cookie, method string) *httptest.ResponseRecorder {

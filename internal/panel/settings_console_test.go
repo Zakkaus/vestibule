@@ -12,7 +12,9 @@ func TestSettingsStartConsoleWebApp(t *testing.T) {
 		name, base, entry string
 	}{
 		{"https", "https://console.example.test", "https://console.example.test/groups?group=-1009000000502"},
-		{"https path", "https://console.example.test/panel/?group=old#entry", "https://console.example.test/panel/groups?group=-1009000000502"},
+		{"https path", "https://console.example.test/panel/?group=old#entry", "https://console.example.test/groups?group=-1009000000502"},
+		{"https group route", "https://console.example.test/groups", "https://console.example.test/groups?group=-1009000000502"},
+		{"https origin", "https://user:password@console.example.test:8443/other", "https://console.example.test:8443/groups?group=-1009000000502"},
 		{"http", "http://localhost:8080", ""},
 		{"empty", "", ""},
 		{"malformed", "https://console.example.test/%zz", ""},
@@ -40,6 +42,8 @@ func TestSettingsStartConsoleWebApp(t *testing.T) {
 				From: &telego.User{ID: panelTestUser, LanguageCode: "en"}, Text: "/start panel_" + session.token,
 			}})
 			assertSettingsStartKeyboard(t, caller.lastInlineKeyboard, test.entry)
+			invokePanelCallback(t, panel, bot, session, session.groupID, "rf", "_")
+			assertSettingsStartKeyboard(t, caller.lastEditKeyboard, test.entry)
 		})
 	}
 }
