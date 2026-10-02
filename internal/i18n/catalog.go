@@ -125,14 +125,24 @@ func (s localized) value(l Lang) string {
 type Text struct{ localized }
 
 // Format is a localized value with an indexed formatting contract.
-type Format struct{ localized }
+// English one/other forms select by the first integer argument.
+type Format struct {
+	localized
+	one string
+}
 
 // For returns the text for l.
 func (t Text) For(l Lang) string { return t.value(l) }
 
 // Render formats the value for l with its indexed arguments.
 func (f Format) Render(l Lang, args ...any) string {
-	return fmt.Sprintf(f.value(l), args...)
+	pattern := f.value(l)
+	if l == LangEN && f.one != "" && len(args) > 0 {
+		if count, ok := args[0].(int); ok && count == 1 {
+			pattern = f.one
+		}
+	}
+	return fmt.Sprintf(pattern, args...)
 }
 
 // Catalog contains every localized subsystem.
@@ -204,12 +214,7 @@ func loadLocaleValue(destination reflect.Value, raw json.RawMessage, language La
 		destination.Addr().Interface().(*Text).localized[language] = value
 		return nil
 	case catalogFormatType:
-		var value string
-		if err := json.Unmarshal(raw, &value); err != nil {
-			return fmt.Errorf("%s: expected string: %w", path, err)
-		}
-		destination.Addr().Interface().(*Format).localized[language] = value
-		return nil
+		return destination.Addr().Interface().(*Format).load(raw, language, path)
 	case catalogStringListType:
 		var values []string
 		if err := json.Unmarshal(raw, &values); err != nil {

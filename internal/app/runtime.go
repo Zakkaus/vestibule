@@ -16,7 +16,6 @@ import (
 func newOutageAwareBot(
 	ctx context.Context,
 	bot *telego.Bot,
-	cfg *settings.Config,
 	settings *settings.Store,
 	stateStore verification.Store,
 	health *status.Health,
@@ -30,7 +29,7 @@ func newOutageAwareBot(
 		},
 	}
 	observer.alert = func(outageDuration time.Duration) {
-		alertRetentionOutage(ctx, bot, cfg, settings.ChatIDs(), outageDuration)
+		alertRetentionOutage(ctx, bot, settings, outageDuration)
 	}
 	return &outageAwareBot{Bot: bot, observer: observer, health: health}
 }

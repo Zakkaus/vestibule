@@ -29,10 +29,10 @@
     "usage": "用法：/vmode kernel|quiz|mixed|auto。不帶參數可查看目前設定。"
   },
   "auto_delete": {
-    "current_enabled": "查詢結果自動刪除已開啟。查詢結果與原提問將在 %[1]d 分鐘後刪除。\n用法：/autodel off 關閉；/autodel <分鐘> 調整時間。",
+    "current_enabled": "查詢結果自動刪除已開啟。查詢結果與原提問將在 %[1]s後刪除。\n用法：/autodel off 關閉；/autodel <分鐘> 調整時間。",
     "current_disabled": "查詢結果自動刪除已關閉。\n用法：/autodel on 開啟；/autodel <分鐘> 設定時間並開啟。",
     "disabled": "查詢結果自動刪除已關閉。查詢回覆與原提問將一直保留。",
-    "enabled": "查詢結果自動刪除已開啟。查詢結果與原提問的保留時間為 %[1]d 分鐘。",
+    "enabled": "查詢結果自動刪除已開啟。查詢結果與原提問的保留時間為 %[1]s。",
     "set": "查詢結果與原提問的保留時間已設定為 %[1]d 分鐘。",
     "usage": "用法：/autodel on|off 或 /autodel <分鐘數>（1–1440）。"
   },

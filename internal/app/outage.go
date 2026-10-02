@@ -95,19 +95,22 @@ func (b *outageAwareBot) Probe(ctx context.Context) error {
 func alertRetentionOutage(
 	ctx context.Context,
 	bot *telego.Bot,
-	cfg *settings.Config,
-	groupIDs []int64,
+	store *settings.Store,
 	outage time.Duration,
 ) {
 	log.Printf("recovery: Telegram outage exceeded update retention (~%s); alerting group administrators", outage.Round(time.Hour))
 	sendCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	for _, groupID := range groupIDs {
-		target := groupID
-		if cfg.AdminLogChatID != 0 {
-			target = cfg.AdminLogChatID
+	for _, groupID := range store.ChatIDs() {
+		group, ok := store.Settings(groupID)
+		if !ok {
+			continue
 		}
-		language := i18n.FromStored(cfg.LangForGroup(groupID))
+		target := group.AdminLogChatID().Value
+		if target == 0 {
+			target = groupID
+		}
+		language := i18n.FromStored(group.Lang().Value)
 		text := i18n.Messages.Verification.Admin.OutageBacklog.Render(language, groupID)
 		if _, err := bot.SendMessage(sendCtx, tu.Message(tu.ID(target), text)); err != nil && ctx.Err() == nil {
 			log.Printf("recovery: retention alert for group %d failed: %v", groupID, err)

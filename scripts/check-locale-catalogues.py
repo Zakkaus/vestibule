@@ -196,6 +196,29 @@ def backend_strings(value, prefix=""):
         yield prefix, value
 
 
+def backend_count_forms(value, locale, filename, prefix=""):
+    if isinstance(value, dict):
+        if "one" in value or "other" in value:
+            location = f"{locale}/{filename} {prefix}"
+            if (locale != "en" or set(value) != {"one", "other"}
+                    or any(not isinstance(text, str) or not text.strip() for text in value.values())):
+                failures.append(f"{location} requires non-empty English one and other forms")
+                return value
+            if set(PRINTF.findall(value["one"])) != set(PRINTF.findall(value["other"])):
+                failures.append(f"{location} changes printf placeholders between count forms")
+            return value["other"]
+        return {
+            key: backend_count_forms(item, locale, filename, f"{prefix}.{key}" if prefix else key)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [
+            backend_count_forms(item, locale, filename, f"{prefix}[{index}]")
+            for index, item in enumerate(value)
+        ]
+    return value
+
+
 def check_backend_catalogues() -> None:
     root = ROOT / "internal/i18n/locales"
     if not root.is_dir():
@@ -224,7 +247,7 @@ def check_backend_catalogues() -> None:
             if not isinstance(catalogue, dict):
                 failures.append("%s/%s must contain a JSON object" % (name, filename))
                 continue
-            loaded[(name, filename)] = catalogue
+            loaded[(name, filename)] = backend_count_forms(catalogue, name, filename)
     for filename in BACKEND_FILES:
         source = loaded.get(("en", filename))
         if source is None:

@@ -29,10 +29,10 @@
     "usage": "使い方：/vmode kernel|quiz|mixed|auto。引数を省略すると現在の設定を表示します。"
   },
   "auto_delete": {
-    "current_enabled": "検索結果の自動削除は有効です。結果と元のクエリは %[1]d 分後に削除されます。\n使い方：/autodel off で無効化、/autodel <minutes> で遅延を変更します。",
+    "current_enabled": "検索結果の自動削除は有効です。結果と元のクエリは %[1]s 後に削除されます。\n使い方：/autodel off で無効化、/autodel <minutes> で遅延を変更します。",
     "current_disabled": "検索結果の自動削除は無効です。\n使い方：/autodel on で有効化、/autodel <minutes> で遅延を設定して有効化します。",
     "disabled": "検索結果の自動削除は無効です。返信と元のクエリは保持されます。",
-    "enabled": "検索結果の自動削除は有効です。結果と元のクエリは %[1]d 分間保持されます。",
+    "enabled": "検索結果の自動削除は有効です。結果と元のクエリの保持期間は %[1]s です。",
     "set": "結果と元のクエリの削除遅延を %[1]d 分に設定しました。",
     "usage": "使い方：/autodel on|off または /autodel <minutes>（1–1440）。"
   },
