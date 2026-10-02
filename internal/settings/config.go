@@ -215,6 +215,7 @@ type GroupConfig struct {
 	RichMessages            *bool            `json:"rich_messages"`
 	PrivateQueryPerMin      *int             `json:"private_query_per_min"`
 	AdminLogChatID          *int64           `json:"admin_log_chat_id"`
+	ControlChatID           *int64           `json:"control_chat_id"`
 	RequiredChannelFailOpen *bool            `json:"required_channel_fail_open"`
 }
 
@@ -544,6 +545,9 @@ func containsChatID(chatIDs []int64, id int64) bool {
 func (c *Config) groupReferencesKnownChat(id int64) bool {
 	for i := range c.Groups {
 		group := &c.Groups[i]
+		if group.ControlChatID != nil && *group.ControlChatID != 0 && *group.ControlChatID == id {
+			return true
+		}
 		if group.RequiredChannelID != nil && *group.RequiredChannelID == id {
 			return true
 		}

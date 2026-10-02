@@ -151,7 +151,7 @@ func TestFactoryQuestionChatOverrideAndNullRestoreKeepFileSource(t *testing.T) {
 	overrides.FallbackQuestions = &overrideFallback
 	builtin := false
 	overrides.FallbackBuiltin = &builtin
-	if _, err := store.Update(group.ID(), group.Revision(), overrides); err != nil {
+	if _, err := store.Update(group.ID(), group.Revision(), overrides, 7); err != nil {
 		t.Fatal(err)
 	}
 	group, _ = store.Settings(factoryQuestionsTestGroup)
@@ -162,7 +162,7 @@ func TestFactoryQuestionChatOverrideAndNullRestoreKeepFileSource(t *testing.T) {
 	restore.Questions = nil
 	restore.FallbackQuestions = nil
 	restore.FallbackBuiltin = nil
-	if _, err := store.Update(group.ID(), group.Revision(), restore); err != nil {
+	if _, err := store.Update(group.ID(), group.Revision(), restore, 7); err != nil {
 		t.Fatal(err)
 	}
 	group, _ = store.Settings(factoryQuestionsTestGroup)

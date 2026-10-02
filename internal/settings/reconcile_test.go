@@ -3,6 +3,8 @@ package settings
 import (
 	"path/filepath"
 	"testing"
+
+	statefile "github.com/Zakkaus/vestibule/internal/store"
 )
 
 const testRuntimeGroup int64 = -1009000000009
@@ -23,7 +25,7 @@ func disableTestGroup(t *testing.T, store *Store, groupID int64) {
 	group := requireSettingsView(t, store, groupID)
 	overrides := group.Overrides()
 	overrides.Enabled = ptr(false)
-	_, err := store.Update(groupID, group.Revision(), overrides)
+	_, err := store.Update(groupID, group.Revision(), overrides, 7)
 	requireNoError(t, err)
 }
 
@@ -69,6 +71,51 @@ func TestConfiguredGroupPromotionKeepsRuntimeDecisions(t *testing.T) {
 	if second.Persistence().Writable {
 		t.Error("promotion reconciliation remained writable without operator acknowledgement")
 	}
+}
+
+func TestConfiguredGroupPromotionKeepsSavedControlChat(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "config.json")
+	config := map[string]any{"groups": []map[string]any{{"id": testGroupA}}}
+	requireNoError(t, statefile.Write(configPath, config))
+	cfg, err := LoadConfig(configPath)
+	requireNoError(t, err)
+	baseline, err := LoadBaseline(configPath, cfg)
+	requireNoError(t, err)
+	path := filepath.Join(dir, "settings.json")
+	first, err := NewStore(path, baseline, nil, nil)
+	requireNoError(t, err)
+	registerRuntimeTestGroup(t, first)
+	first.SetControlChatMembership(func(int64, int64) error { return nil })
+	group := requireSettingsView(t, first, testRuntimeGroup)
+	next := group.Overrides()
+	next.ControlChatID = ptr(controlTestChat)
+	next.MuteSeconds = ptr(900)
+	saved, err := first.Update(group.ID(), group.Revision(), next, 42)
+	requireNoError(t, err)
+
+	config["groups"] = []map[string]any{{"id": testGroupA}, {"id": testRuntimeGroup}}
+	requireNoError(t, statefile.Write(configPath, config))
+	cfg, err = LoadConfig(configPath)
+	requireNoError(t, err)
+	baseline, err = LoadBaseline(configPath, cfg)
+	requireNoError(t, err)
+	restarted, err := NewStore(path, baseline, nil, nil)
+	requireNoError(t, err)
+
+	group = requireSettingsView(t, restarted, testRuntimeGroup)
+	requireEqual(t, group.ControlChatID(), Setting[int64]{Value: controlTestChat, Source: SourceChatOverride},
+		"promoted group's saved control chat")
+	requireEqual(t, group.Revision(), saved.Revision, "promoted group's settings revision")
+	requireEqual(t, group.MuteSeconds().Value, 900, "promoted group's other saved settings")
+	target, ok := restarted.ControlGroup(controlTestChat)
+	if !ok {
+		t.Fatal("promoted group's control chat lost its reverse lookup")
+	}
+	requireEqual(t, target.ID(), testRuntimeGroup, "promoted control chat target")
+	registration := restarted.Registrations()
+	requireEqual(t, registration.OwnerID, int64(42), "owner after configured-group promotion")
+	requireEqual(t, len(registration.RegisteredGroups), 0, "runtime registrations after promotion")
 }
 
 func TestConfiguredGroupRetirementPreservesOverrideForReaddition(t *testing.T) {

@@ -51,7 +51,7 @@ func TestPendingWriteFailureStopsBeforeDelivery(t *testing.T) {
 	overrides := group.Overrides()
 	deliveryMode := settings.DeliveryGroup
 	overrides.DeliveryMode = &deliveryMode
-	if _, err := v.settings.Update(gid, group.Revision(), overrides); err != nil {
+	if _, err := v.settings.Update(gid, group.Revision(), overrides, 7); err != nil {
 		t.Fatal(err)
 	}
 	path := failedStateWritePath(t, "pending.json")

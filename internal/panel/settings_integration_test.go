@@ -97,7 +97,7 @@ func TestRuntimeRegisteredGroupUsesLiveCommandGuards(t *testing.T) {
 	overrides := group.Overrides()
 	language := "en"
 	overrides.Lang = &language
-	if _, err := store.Update(groupID, group.Revision(), overrides); err != nil {
+	if _, err := store.Update(groupID, group.Revision(), overrides, 7); err != nil {
 		t.Fatal(err)
 	}
 	message := &telego.Message{

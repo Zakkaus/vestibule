@@ -311,7 +311,7 @@ func newUnregisterFixture(t *testing.T) *unregisterFixture {
 	overrides := group.Overrides()
 	disabled := false
 	overrides.Enabled = &disabled
-	if _, err := store.Update(groupID, group.Revision(), overrides); err != nil {
+	if _, err := store.Update(groupID, group.Revision(), overrides, 7); err != nil {
 		t.Fatal(err)
 	}
 	releaseLeave := make(chan struct{}, 1)

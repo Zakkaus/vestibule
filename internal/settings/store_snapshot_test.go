@@ -15,7 +15,7 @@ func TestSettingsChatOverridesWinForVerificationAndSupportSettings(t *testing.T)
 	next.TrustedMemberGroupIDs = &trustedGroups
 	next.AdminLogChatID = ptr(int64(-1009000000102))
 	next.RequiredChannelFailOpen = ptr(false)
-	_, err = settings.Update(before.ID(), before.Revision(), next)
+	_, err = settings.Update(before.ID(), before.Revision(), next, 7)
 	requireNoError(t, err)
 
 	after := requireSettingsView(t, settings, testGroupA)

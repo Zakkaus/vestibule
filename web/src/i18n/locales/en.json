@@ -348,6 +348,10 @@
       "label": "Moderation log group",
       "description": "Leaving this blank is group ID 0: moderation records are not sent to a separate group, while failed-action alerts still go to the affected group."
     },
+    "controlChat": {
+      "label": "Control chat",
+      "description": "Leave blank to disable. Use another group where you are an administrator and the bot is a member. This group's administrators can use /ban, /mute, /unmute and /warn with a user ID there."
+    },
     "validation": {
       "warnLimit": "The warning limit must be a whole number greater than 0.",
       "adminLog": "Enter an integer group ID, or leave this blank to use group ID 0."
@@ -377,6 +381,8 @@
       "accessUnavailable": "Your administration access cannot be verified right now. Try again.",
       "chatNotFound": "This group can no longer be managed in the console.",
       "invalidSettings": "These settings did not pass validation. Review the changes and try again.",
+      "controlChatInvalid": "The control chat must be another group, with the bot present and you confirmed as an administrator.",
+      "controlChatConflict": "This chat is already another group's control chat. Choose a different chat.",
       "settingsLimitExceeded": "This change would exceed an instance owner limit. Reduce the value or ask the owner to raise the limit.",
       "settingsUnavailable": "The settings service is unavailable. Try again.",
       "loadUnavailable": "Moderation settings are unavailable.",

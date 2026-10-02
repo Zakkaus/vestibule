@@ -29,6 +29,8 @@ const errorMessageKeys: Readonly<Record<string, string>> = {
   chat_not_found: "moderation.errors.chatNotFound",
   csrf_invalid: "moderation.errors.csrfInvalid",
   invalid_settings: "moderation.errors.invalidSettings",
+  control_chat_invalid: "moderation.errors.controlChatInvalid",
+  control_chat_conflict: "moderation.errors.controlChatConflict",
   settings_limit_exceeded: "moderation.errors.settingsLimitExceeded",
   settings_unavailable: "moderation.errors.settingsUnavailable"
 };
@@ -127,7 +129,7 @@ function SettingMeta({
 }
 
 type NumericSettingProps = Readonly<{
-  field: "warnLimit" | "adminLogChatID";
+  field: "warnLimit" | "adminLogChatID" | "controlChatID";
   setting: SettingValue<number>;
   value: string;
   pending: boolean;
@@ -155,10 +157,12 @@ function NumericSetting({
   const descriptionID = `moderation-${field}-description`;
   const errorID = `moderation-${field}-error`;
   const readOnly = setting.source === "user file" || restoring || saving;
-  const labelKey = isWarnLimit ? "moderation.warnLimit.label" : "moderation.adminLog.label";
+  const labelKey = isWarnLimit
+    ? "moderation.warnLimit.label"
+    : field === "controlChatID" ? "moderation.controlChat.label" : "moderation.adminLog.label";
   const descriptionKey = isWarnLimit
     ? "moderation.warnLimit.description"
-    : "moderation.adminLog.description";
+    : field === "controlChatID" ? "moderation.controlChat.description" : "moderation.adminLog.description";
   const validationKey = isWarnLimit
     ? "moderation.validation.warnLimit"
     : "moderation.validation.adminLog";
@@ -398,6 +402,20 @@ function ModerationFormView({ controller }: Readonly<{ controller: ModerationCon
           saving={state.saving}
           invalid={evaluation.errors.adminLogChatID === true}
           onChange={controller.editAdminLogChatID}
+          onSetRestoring={controller.setRestoring}
+        />
+        <NumericSetting
+          field="controlChatID"
+          setting={state.settings.controlChatID}
+          value={state.form.controlChatID}
+          pending={
+            evaluation.changes.control_chat_id !== undefined ||
+            evaluation.errors.controlChatID === true
+          }
+          restoring={state.restoring.controlChatID === true}
+          saving={state.saving}
+          invalid={evaluation.errors.controlChatID === true}
+          onChange={controller.editControlChatID}
           onSetRestoring={controller.setRestoring}
         />
       </section>

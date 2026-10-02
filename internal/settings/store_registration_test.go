@@ -18,12 +18,12 @@ func TestSettingsRejectsStaleGroupRevision(t *testing.T) {
 	secondView, _ := settings.Settings(testGroupA)
 	first := firstView.Overrides()
 	first.Enabled = ptr(false)
-	if _, err := settings.Update(testGroupA, firstView.Revision(), first); err != nil {
+	if _, err := settings.Update(testGroupA, firstView.Revision(), first, 7); err != nil {
 		t.Fatalf("first writer: %v", err)
 	}
 	second := secondView.Overrides()
 	second.NameSpoiler = ptr(false)
-	_, err = settings.Update(testGroupA, secondView.Revision(), second)
+	_, err = settings.Update(testGroupA, secondView.Revision(), second, 7)
 	if !errors.Is(err, ErrSettingsConflict) {
 		t.Fatalf("second writer error = %v, want ErrSettingsConflict", err)
 	}
@@ -43,7 +43,7 @@ func TestSettingsWriteFailurePublishesNothing(t *testing.T) {
 	group, _ := settings.Settings(testGroupA)
 	next := group.Overrides()
 	next.Enabled = ptr(false)
-	if _, err := settings.Update(testGroupA, group.Revision(), next); err == nil {
+	if _, err := settings.Update(testGroupA, group.Revision(), next, 7); err == nil {
 		t.Fatal("commit unexpectedly succeeded")
 	}
 	group, _ = settings.Settings(testGroupA)
@@ -82,7 +82,7 @@ func TestUpdateWriteFailureKeepsSnapshot(t *testing.T) {
 	next := before.Overrides()
 	next.Enabled = ptr(false)
 
-	if _, err = settings.Update(testGroupA, before.Revision(), next); !errors.Is(err, writeErr) {
+	if _, err = settings.Update(testGroupA, before.Revision(), next, 7); !errors.Is(err, writeErr) {
 		t.Fatalf("Update error = %v, want %v", err, writeErr)
 	}
 	after, _ := settings.Settings(testGroupA)
@@ -114,7 +114,7 @@ func TestSettingsUnknownVersionPreservesFile(t *testing.T) {
 	group, _ := settings.Settings(testGroupA)
 	next := group.Overrides()
 	next.Enabled = ptr(false)
-	if _, err := settings.Update(testGroupA, group.Revision(), next); !errors.Is(err, ErrSettingsUnavailable) {
+	if _, err := settings.Update(testGroupA, group.Revision(), next, 7); !errors.Is(err, ErrSettingsUnavailable) {
 		t.Fatalf("future-version commit error = %v", err)
 	}
 	after, err := os.ReadFile(path)
@@ -215,7 +215,7 @@ func updateRegistrationRuntimeGroup(t *testing.T, settings *Store) {
 	runtimeGroup := requireSettingsView(t, settings, -1009000000003)
 	overrides := runtimeGroup.Overrides()
 	overrides.TimeoutSeconds = ptr(900)
-	_, err := settings.Update(runtimeGroup.ID(), runtimeGroup.Revision(), overrides)
+	_, err := settings.Update(runtimeGroup.ID(), runtimeGroup.Revision(), overrides, 7)
 	requireNoError(t, err)
 }
 
@@ -225,7 +225,7 @@ func TestSettingsRuntimeOnlyCommitIsNotDurable(t *testing.T) {
 	group := requireSettingsView(t, runtimeOnly, testGroupA)
 	overrides := group.Overrides()
 	overrides.Enabled = ptr(false)
-	result, err := runtimeOnly.Update(testGroupA, group.Revision(), overrides)
+	result, err := runtimeOnly.Update(testGroupA, group.Revision(), overrides, 7)
 	requireNoError(t, err)
 	requireEqual(t, result.Durable, false, "runtime-only commit durability")
 }
@@ -296,7 +296,7 @@ func TestSettingsEveryCommitPreservesRegistrationMetadata(t *testing.T) {
 	overrides := group.Overrides()
 	overrides.NameSpoiler = ptr(false)
 	overrides.RichMessages = ptr(true)
-	if _, err := settings.Update(testGroupA, group.Revision(), overrides); err != nil {
+	if _, err := settings.Update(testGroupA, group.Revision(), overrides, 7); err != nil {
 		t.Fatal(err)
 	}
 	var state settingsFile
@@ -325,7 +325,7 @@ func TestSettingsUnreadableExistingPathDisablesWrites(t *testing.T) {
 	group, _ := settings.Settings(testGroupA)
 	overrides := group.Overrides()
 	overrides.Enabled = ptr(false)
-	if _, err := settings.Update(testGroupA, group.Revision(), overrides); !errors.Is(err, ErrSettingsUnavailable) {
+	if _, err := settings.Update(testGroupA, group.Revision(), overrides, 7); !errors.Is(err, ErrSettingsUnavailable) {
 		t.Fatalf("commit error = %v, want ErrSettingsUnavailable", err)
 	}
 	info, err := os.Stat(path)

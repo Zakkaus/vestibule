@@ -18,6 +18,7 @@ export type ModerationSettings = Readonly<{
   warnLimit: SettingValue<number>;
   antispamEnabled: SettingValue<boolean>;
   adminLogChatID: SettingValue<number>;
+  controlChatID: SettingValue<number>;
 }>;
 
 export type ModerationSettingsChanges = Readonly<
@@ -25,6 +26,7 @@ export type ModerationSettingsChanges = Readonly<
     warn_limit: number | null;
     antispam_enabled: boolean | null;
     admin_log_chat_id: number | null;
+    control_chat_id: number | null;
   }>
 >;
 
@@ -67,17 +69,19 @@ function moderationSettingsFromPayload(payload: unknown): ModerationSettings | u
     (value) => (typeof value === "boolean" ? value : undefined)
   );
   const adminLogChatID = settingFromPayload(response.admin_log_chat_id, safeIntegerFromPayload);
+  const controlChatID = settingFromPayload(response.control_chat_id, safeIntegerFromPayload);
   if (
     revision === undefined ||
     revision < 0 ||
     !warnLimit ||
     !antispamEnabled ||
-    !adminLogChatID
+    !adminLogChatID ||
+    !controlChatID
   ) {
     return undefined;
   }
 
-  return { revision, warnLimit, antispamEnabled, adminLogChatID };
+  return { revision, warnLimit, antispamEnabled, adminLogChatID, controlChatID };
 }
 
 export function loadModerationSettings(

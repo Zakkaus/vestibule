@@ -56,7 +56,7 @@ export type ModerationScreenState =
 type EditAction =
   | Readonly<{ type: "edit"; field: "warnLimit"; value: string }>
   | Readonly<{ type: "edit"; field: "antispamEnabled"; value: boolean }>
-  | Readonly<{ type: "edit"; field: "adminLogChatID"; value: string }>;
+  | Readonly<{ type: "edit"; field: "adminLogChatID" | "controlChatID"; value: string }>;
 
 type ModerationAction =
   | Readonly<{ type: "replace"; state: ModerationScreenState }>
@@ -73,6 +73,7 @@ export type ModerationController = Readonly<{
   editWarnLimit: (value: string) => void;
   editAntispamEnabled: (value: boolean) => void;
   editAdminLogChatID: (value: string) => void;
+  editControlChatID: (value: string) => void;
   setRestoring: (field: ModerationField, enabled: boolean) => void;
   discard: () => void;
   save: () => void;
@@ -302,6 +303,8 @@ export function useModerationSettings(): ModerationController {
       dispatch({ type: "edit", field: "antispamEnabled", value }),
     editAdminLogChatID: (value) =>
       dispatch({ type: "edit", field: "adminLogChatID", value }),
+    editControlChatID: (value) =>
+      dispatch({ type: "edit", field: "controlChatID", value }),
     setRestoring: (field, enabled) => dispatch({ type: "restore", field, enabled }),
     discard: () => dispatch({ type: "discard" }),
     save,

@@ -63,7 +63,7 @@ func TestRuntimeRegisteredGroupUsesLiveMembership(t *testing.T) {
 	overrides := group.Overrides()
 	language := "zh-Hant"
 	overrides.Lang = &language
-	if _, err := store.Update(groupID, group.Revision(), overrides); err != nil {
+	if _, err := store.Update(groupID, group.Revision(), overrides, 7); err != nil {
 		t.Fatal(err)
 	}
 	msg := &telego.Message{

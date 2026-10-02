@@ -347,6 +347,10 @@
       "label": "處罰記錄群組",
       "description": "留白等同群組 ID 0：不另行傳送處罰記錄；處罰失敗通知仍傳送至目前群組。"
     },
+    "controlChat": {
+      "label": "控制群組",
+      "description": "留白即可停用。設定者須是所選群組的管理員，機器人也須已加入。僅限其他群組。本群組管理員可在其中傳送附有使用者 ID 的 /ban、/mute、/unmute 和 /warn。"
+    },
     "validation": {
       "warnLimit": "警告上限必須是大於 0 的整數。",
       "adminLog": "請輸入整數群組 ID，或留白以使用群組 ID 0。"
@@ -375,6 +379,8 @@
       "accessUnavailable": "暫時無法確認目前帳號對此群組的管理權限。請重試。",
       "chatNotFound": "此群組已無法在控制台中管理。",
       "invalidSettings": "管理與處罰設定未通過驗證。檢查變更後重試。",
+      "controlChatInvalid": "控制群組須為其他群組，機器人須已加入，且設定者須是該群組的管理員。",
+      "controlChatConflict": "此群組已用作其他群組的控制群組。請選擇其他群組。",
       "settingsLimitExceeded": "這項變更會超過執行個體擁有者設定的上限。請降低數值，或請擁有者提高上限。",
       "settingsUnavailable": "設定服務暫時無法使用。請重試。",
       "loadUnavailable": "暫時無法讀取管理與處罰設定。請重試。",

@@ -280,7 +280,7 @@ func TestPanelContentBanksNavigateAndPageThroughEveryQuestion(t *testing.T) {
 	custom := false
 	next := group.Overrides()
 	next.Questions, next.FallbackQuestions, next.FallbackBuiltin = &questions, &fallback, &custom
-	if _, err := store.Update(panelTestGroupA, group.Revision(), next); err != nil {
+	if _, err := store.Update(panelTestGroupA, group.Revision(), next, 7); err != nil {
 		t.Fatal(err)
 	}
 	for _, screen := range []string{"qb", "fb"} {

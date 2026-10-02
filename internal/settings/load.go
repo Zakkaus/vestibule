@@ -68,6 +68,7 @@ lang:
 rich_messages:
 private_query_per_min:
 admin_log_chat_id:
+control_chat_id:
 required_channel_fail_open:
 feed:
 `
@@ -121,6 +122,7 @@ var groupCopyRules = []copyRule{
 	{configupgrade.Bool, []string{"rich_messages"}},
 	{configupgrade.Int, []string{"private_query_per_min"}},
 	{configupgrade.Int, []string{"admin_log_chat_id"}},
+	{configupgrade.Int, []string{"control_chat_id"}},
 	{configupgrade.Bool, []string{"required_channel_fail_open"}},
 	{configupgrade.Map, []string{"feed"}},
 }

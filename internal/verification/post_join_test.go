@@ -299,7 +299,7 @@ func TestPostJoinWindowDefaultsLonger(t *testing.T) {
 	overrides := group.Overrides()
 	seconds := 300
 	overrides.TimeoutSeconds = &seconds
-	if _, err := chosen.settings.Update(-100, group.Revision(), overrides); err != nil {
+	if _, err := chosen.settings.Update(-100, group.Revision(), overrides, 7); err != nil {
 		t.Fatal(err)
 	}
 	for _, gate := range []string{gateRequest, gateMute} {

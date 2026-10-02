@@ -154,7 +154,7 @@ func (s *Server) putFeeds(writer http.ResponseWriter, request *http.Request, cha
 		BugzillaBase: &base, News: input.News, BugProduct: input.BugProduct,
 		BugComponent: input.BugComponent, SilentBugs: input.SilentBugs, GitHubRepos: &repositories,
 	}
-	if _, err := s.settings.Update(chatID, expected, next); err != nil {
+	if _, err := s.settings.Update(chatID, expected, next, session.Principal.TelegramID); err != nil {
 		writeFeedsError(writer, err)
 		return
 	}

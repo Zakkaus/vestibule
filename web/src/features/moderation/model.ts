@@ -5,12 +5,13 @@ import type {
   SettingValue
 } from "./api";
 
-export type ModerationField = "warnLimit" | "antispamEnabled" | "adminLogChatID";
+export type ModerationField = "warnLimit" | "antispamEnabled" | "adminLogChatID" | "controlChatID";
 
 export type ModerationForm = Readonly<{
   warnLimit: string;
   antispamEnabled: boolean;
   adminLogChatID: string;
+  controlChatID: string;
 }>;
 
 export type RestoringFields = Readonly<Partial<Record<ModerationField, true>>>;
@@ -18,6 +19,7 @@ export type RestoringFields = Readonly<Partial<Record<ModerationField, true>>>;
 export type ModerationValidationErrors = Readonly<{
   warnLimit?: true;
   adminLogChatID?: true;
+  controlChatID?: true;
 }>;
 
 export type ModerationEvaluation = Readonly<{
@@ -31,7 +33,8 @@ export function formFromSettings(settings: ModerationSettings): ModerationForm {
   return {
     warnLimit: String(settings.warnLimit.value),
     antispamEnabled: settings.antispamEnabled.value,
-    adminLogChatID: settings.adminLogChatID.value === 0 ? "" : String(settings.adminLogChatID.value)
+    adminLogChatID: settings.adminLogChatID.value === 0 ? "" : String(settings.adminLogChatID.value),
+    controlChatID: settings.controlChatID.value === 0 ? "" : String(settings.controlChatID.value)
   };
 }
 
@@ -46,6 +49,8 @@ export function settingForField(
       return settings.antispamEnabled;
     case "adminLogChatID":
       return settings.adminLogChatID;
+    case "controlChatID":
+      return settings.controlChatID;
   }
 }
 
@@ -74,8 +79,9 @@ export function evaluateModerationForm(
     warn_limit?: number | null;
     antispam_enabled?: boolean | null;
     admin_log_chat_id?: number | null;
+    control_chat_id?: number | null;
   } = {};
-  const errors: { warnLimit?: true; adminLogChatID?: true } = {};
+  const errors: { warnLimit?: true; adminLogChatID?: true; controlChatID?: true } = {};
 
   if (restoring.warnLimit) {
     changes.warn_limit = null;
@@ -94,15 +100,20 @@ export function evaluateModerationForm(
     changes.antispam_enabled = form.antispamEnabled;
   }
 
-  if (restoring.adminLogChatID) {
-    changes.admin_log_chat_id = null;
-  } else {
-    const rawAdminLogChatID = form.adminLogChatID.trim();
-    const adminLogChatID = rawAdminLogChatID === "" ? 0 : parsedInteger(rawAdminLogChatID);
-    if (adminLogChatID === undefined) {
-      errors.adminLogChatID = true;
-    } else if (adminLogChatID !== settings.adminLogChatID.value) {
-      changes.admin_log_chat_id = adminLogChatID;
+  for (const [field, key] of [
+    ["adminLogChatID", "admin_log_chat_id"],
+    ["controlChatID", "control_chat_id"]
+  ] as const) {
+    if (restoring[field]) {
+      changes[key] = null;
+      continue;
+    }
+    const raw = form[field].trim();
+    const value = raw === "" ? 0 : parsedInteger(raw);
+    if (value === undefined) {
+      errors[field] = true;
+    } else if (value !== settings[field].value) {
+      changes[key] = value;
     }
   }
 

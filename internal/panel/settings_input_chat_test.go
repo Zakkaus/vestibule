@@ -360,7 +360,7 @@ func assertPanelDuplicateKnownChat(t *testing.T, chatID int64) {
 	known := []int64{chatID}
 	next := group.Overrides()
 	next.KnownChatIDs = &known
-	result, err := store.Update(panelTestGroupA, group.Revision(), next)
+	result, err := store.Update(panelTestGroupA, group.Revision(), next, 7)
 	if err != nil {
 		t.Fatal(err)
 	}

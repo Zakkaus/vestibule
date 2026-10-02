@@ -29,7 +29,7 @@ func TestSettingsRepositoryConflictDoesNotReportLostWriteAsSaved(t *testing.T) {
 	before := requireSettingsView(t, refused, testGroupA)
 	next := before.Overrides()
 	next.Enabled = ptr(false)
-	_, err = refused.Update(before.ID(), before.Revision(), next)
+	_, err = refused.Update(before.ID(), before.Revision(), next, 7)
 	requireErrorIs(t, err, ErrSettingsConflict, "database refusal must not be reported as a saved setting")
 	after := requireSettingsView(t, refused, testGroupA)
 	requireEqual(t, after.Enabled(), before.Enabled(), "database refusal must keep the visible setting")
@@ -40,7 +40,7 @@ func TestSettingsRepositoryConflictDoesNotReportLostWriteAsSaved(t *testing.T) {
 	before = requireSettingsView(t, accepted, testGroupA)
 	next = before.Overrides()
 	next.Enabled = ptr(false)
-	result, err := accepted.Update(before.ID(), before.Revision(), next)
+	result, err := accepted.Update(before.ID(), before.Revision(), next, 7)
 	requireNoError(t, err)
 	requireEqual(t, result.Revision, uint64(1), "valid database write revision")
 }
@@ -55,7 +55,7 @@ func TestSettingsRepositoryWriteReportsDatabaseRevision(t *testing.T) {
 	next := before.Overrides()
 	next.Enabled = ptr(false)
 
-	result, err := settings.Update(before.ID(), before.Revision(), next)
+	result, err := settings.Update(before.ID(), before.Revision(), next, 7)
 	requireNoError(t, err)
 	requireEqual(t, result.Revision, databaseRevision,
 		"successful repository write must report the database revision")
@@ -74,7 +74,7 @@ func updateWithoutPanic(
 			t.Fatalf("updating an unknown group panicked instead of refusing it: %v", recovered)
 		}
 	}()
-	return settings.Update(groupID, revision, next)
+	return settings.Update(groupID, revision, next, 7)
 }
 
 func TestSettingsUpdateRefusesUnknownGroupsWithoutPanicking(t *testing.T) {
@@ -87,6 +87,6 @@ func TestSettingsUpdateRefusesUnknownGroupsWithoutPanicking(t *testing.T) {
 	known := requireSettingsView(t, settings, testGroupA)
 	next := known.Overrides()
 	next.Enabled = ptr(false)
-	_, err = settings.Update(known.ID(), known.Revision(), next)
+	_, err = settings.Update(known.ID(), known.Revision(), next, 7)
 	requireNoError(t, err)
 }

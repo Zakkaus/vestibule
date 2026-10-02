@@ -488,6 +488,14 @@ var groupUserValueRules = [...]groupUserValueRule{
 		},
 	},
 	{
+		key: "control_chat_id",
+		apply: func(group *GroupBaseline, cfg *GroupConfig) {
+			if cfg.ControlChatID != nil {
+				group.ControlChatID = userFileValue(*cfg.ControlChatID)
+			}
+		},
+	},
+	{
 		key: "required_channel_fail_open",
 		apply: func(group *GroupBaseline, cfg *GroupConfig) {
 			if cfg.RequiredChannelFailOpen != nil {

@@ -14,7 +14,7 @@ import (
 type SettingsService interface {
 	Settings(int64) (settings.GroupView, bool)
 	RegisteredGroupTitle(int64) (string, bool)
-	Update(int64, uint64, settings.GroupOverrides) (settings.CommitResult, error)
+	Update(int64, uint64, settings.GroupOverrides, int64) (settings.CommitResult, error)
 }
 
 type settingResponse[T any] struct {
@@ -53,6 +53,7 @@ type settingsResponse struct {
 	RichMessages            settingResponse[bool]                     `json:"rich_messages"`
 	PrivateQueryPerMin      settingResponse[int]                      `json:"private_query_per_min"`
 	AdminLogChatID          settingResponse[int64]                    `json:"admin_log_chat_id"`
+	ControlChatID           settingResponse[int64]                    `json:"control_chat_id"`
 	RequiredChannelFailOpen settingResponse[bool]                     `json:"required_channel_fail_open"`
 }
 
@@ -76,6 +77,7 @@ func settingsView(group settings.GroupView) settingsResponse {
 		FallbackQuestions: settingView(group.FallbackQuestions()), FallbackBuiltin: settingView(group.FallbackBuiltin()),
 		Lang: settingView(group.Lang()), RichMessages: settingView(group.RichMessages()),
 		PrivateQueryPerMin: settingView(group.PrivateQueryPerMin()), AdminLogChatID: settingView(group.AdminLogChatID()),
+		ControlChatID:           settingView(group.ControlChatID()),
 		RequiredChannelFailOpen: settingView(group.RequiredChannelFailOpen()),
 	}
 }
@@ -119,6 +121,7 @@ type settingsPatch struct {
 	RichMessages            *bool                     `json:"rich_messages"`
 	PrivateQueryPerMin      *int                      `json:"private_query_per_min"`
 	AdminLogChatID          *int64                    `json:"admin_log_chat_id"`
+	ControlChatID           *int64                    `json:"control_chat_id"`
 	RequiredChannelFailOpen *bool                     `json:"required_channel_fail_open"`
 	present                 map[string]struct{}
 }
@@ -201,6 +204,9 @@ func (p settingsPatch) applyModeration(next *settings.GroupOverrides) {
 	}
 	if p.has("antispam_enabled") {
 		next.AntispamEnabled = p.AntispamEnabled
+	}
+	if p.has("control_chat_id") {
+		next.ControlChatID = p.ControlChatID
 	}
 }
 
@@ -306,7 +312,7 @@ func (s *Server) patchSettings(writer http.ResponseWriter, request *http.Request
 	}
 	next := group.Overrides()
 	input.Changes.apply(&next)
-	if _, err := s.settings.Update(chatID, *input.ExpectedRevision, next); err != nil {
+	if _, err := s.settings.Update(chatID, *input.ExpectedRevision, next, session.Principal.TelegramID); err != nil {
 		writeSettingsError(writer, err)
 		return
 	}
@@ -347,6 +353,8 @@ func writeSettingsLimitExceeded(writer http.ResponseWriter, exceeded *settings.O
 
 func writeSettingsError(writer http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, settings.ErrControlChatConflict):
+		writeError(writer, http.StatusConflict, "control_chat_conflict")
 	case errors.Is(err, settings.ErrOwnerLimitsExceeded):
 		var exceeded *settings.OwnerLimitsExceededError
 		if errors.As(err, &exceeded) {
@@ -356,6 +364,8 @@ func writeSettingsError(writer http.ResponseWriter, err error) {
 		writeError(writer, http.StatusBadRequest, "settings_limit_exceeded")
 	case errors.Is(err, settings.ErrSettingsConflict):
 		writeError(writer, http.StatusConflict, "settings_conflict")
+	case errors.Is(err, settings.ErrControlChatInvalid):
+		writeError(writer, http.StatusBadRequest, "control_chat_invalid")
 	case errors.Is(err, settings.ErrUnknownGroup):
 		writeError(writer, http.StatusNotFound, "chat_not_found")
 	default:

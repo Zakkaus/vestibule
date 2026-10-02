@@ -198,6 +198,7 @@ func cloneGroupOverrides(value GroupOverrides) GroupOverrides {
 	out.RichMessages = clonePtr(value.RichMessages)
 	out.PrivateQueryPerMin = clonePtr(value.PrivateQueryPerMin)
 	out.AdminLogChatID = clonePtr(value.AdminLogChatID)
+	out.ControlChatID = clonePtr(value.ControlChatID)
 	out.RequiredChannelFailOpen = clonePtr(value.RequiredChannelFailOpen)
 	out.Feed = cloneFeedOverride(value.Feed)
 	return out
@@ -233,6 +234,7 @@ func compactGroupOverrides(value GroupOverrides, baseline GroupBaseline) GroupOv
 	value.RichMessages = omitBaseline(value.RichMessages, baseline.RichMessages.Value)
 	value.PrivateQueryPerMin = omitBaseline(value.PrivateQueryPerMin, baseline.PrivateQueryPerMin.Value)
 	value.AdminLogChatID = omitBaseline(value.AdminLogChatID, baseline.AdminLogChatID.Value)
+	value.ControlChatID = omitBaseline(value.ControlChatID, baseline.ControlChatID.Value)
 	value.RequiredChannelFailOpen = omitBaseline(value.RequiredChannelFailOpen, baseline.RequiredChannelFailOpen.Value)
 	value.Feed = compactFeedOverride(value.Feed, baseline.Feed)
 	return value

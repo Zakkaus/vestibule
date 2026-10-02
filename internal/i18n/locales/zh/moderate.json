@@ -29,6 +29,8 @@
   "common": {
     "command_admin_only": "%[1]s 仅限群组管理员使用。",
     "reply_usage": "用法：请回复目标用户的消息，再发送 %[1]s。",
+    "control_usage": "用法：%[1]s <user_id>。user_id 必须是正整数用户 ID。",
+    "control_mute_usage": "用法：%[1]s <user_id> [duration]。user_id 必须是正整数用户 ID。duration 可填写秒数，或使用 s/m/h/d 后缀。",
     "settings_save_failed": "无法保存设置。请稍后重试。",
     "target_admin_check_failed": "无法确认目标用户是否为管理员，本次未执行操作。请确认机器人可读取成员信息后重试。",
     "target_is_admin": "目标用户是管理员，未执行操作。请回复非管理员用户的消息后重试。",

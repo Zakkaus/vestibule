@@ -61,6 +61,7 @@ type groupDefaults struct {
 	RichMessages            bool            `yaml:"rich_messages"`
 	PrivateQueryPerMin      int             `yaml:"private_query_per_min"`
 	AdminLogChatID          int64           `yaml:"admin_log_chat_id"`
+	ControlChatID           int64           `yaml:"control_chat_id"`
 	RequiredChannelFailOpen bool            `yaml:"required_channel_fail_open"`
 	Feed                    feedDefaults    `yaml:"feed"`
 }
@@ -140,6 +141,7 @@ func factoryBaseline() GroupBaseline {
 		RichMessages:            factoryValue(defaults.RichMessages),
 		PrivateQueryPerMin:      factoryValue(defaults.PrivateQueryPerMin),
 		AdminLogChatID:          factoryValue(defaults.AdminLogChatID),
+		ControlChatID:           factoryValue(defaults.ControlChatID),
 		RequiredChannelFailOpen: factoryValue(defaults.RequiredChannelFailOpen),
 		Feed: FeedBaseline{
 			Lang:            factoryValue(defaults.Feed.Lang),

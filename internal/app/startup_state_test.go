@@ -253,7 +253,7 @@ func TestRemovingConfiguredGroupRetainsTenantRows(t *testing.T) {
 	disabled := false
 	overrides := removed.Overrides()
 	overrides.Enabled = &disabled
-	if _, err := initial.settings.Update(removedGroup, removed.Revision(), overrides); err != nil {
+	if _, err := initial.settings.Update(removedGroup, removed.Revision(), overrides, 7); err != nil {
 		t.Fatal(err)
 	}
 	initial.stopVerification()

@@ -20,6 +20,7 @@ const settingsPayload = {
   linux_lookups_enabled: sourced(false),
   warn_limit: sourced(3),
   admin_log_chat_id: sourced(0),
+  control_chat_id: sourced(0),
   delivery_mode: sourced("both"),
   verify_mode: sourced("kernel"),
   timeout_seconds: sourced(240, "user file"),

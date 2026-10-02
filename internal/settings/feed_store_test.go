@@ -164,7 +164,7 @@ func TestFeedOverrideKeepsNonFeedOverridesAndExplicitEmptyRepos(t *testing.T) {
 		Lang: &lang, IntervalSeconds: &interval, Bugs: &bugs, BugzillaBase: &bugzillaBase,
 		GitHubRepos: &[]GitHubRepo{},
 	}
-	if _, err := store.Update(chatID, view.Revision(), next); err != nil {
+	if _, err := store.Update(chatID, view.Revision(), next, 7); err != nil {
 		t.Fatal(err)
 	}
 	view, _ = store.Settings(chatID)

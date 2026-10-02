@@ -70,7 +70,7 @@ func TestJoinResolvesApplicantAndGroupLanguagesSeparately(t *testing.T) {
 	overrides := group.Overrides()
 	deliveryMode := settings.DeliveryGroup
 	overrides.DeliveryMode = &deliveryMode
-	if _, err := v.settings.Update(groupID, group.Revision(), overrides); err != nil {
+	if _, err := v.settings.Update(groupID, group.Revision(), overrides, 7); err != nil {
 		t.Fatal(err)
 	}
 	bot := newFakeVerifyBot()
@@ -431,7 +431,7 @@ func TestJoinRequestDMModeDeliversPrivatelyOrFallsBackToScopedGroupLink(t *testi
 		overrides := group.Overrides()
 		deliveryMode := settings.DeliveryGroup
 		overrides.DeliveryMode = &deliveryMode
-		if _, err := service.settings.Update(groupID, group.Revision(), overrides); err != nil {
+		if _, err := service.settings.Update(groupID, group.Revision(), overrides, 7); err != nil {
 			t.Fatal(err)
 		}
 		caller := newFakeVerifyBot()
@@ -1564,7 +1564,7 @@ func TestFailAlertUsesPerChatDestination(t *testing.T) {
 	group, _ := v.settings.Settings(groupID)
 	overrides := group.Overrides()
 	overrides.AdminLogChatID = &target
-	if _, err := v.settings.Update(groupID, group.Revision(), overrides); err != nil {
+	if _, err := v.settings.Update(groupID, group.Revision(), overrides, 7); err != nil {
 		t.Fatal(err)
 	}
 	v.failAlert(context.Background(), fb, groupID, "y")

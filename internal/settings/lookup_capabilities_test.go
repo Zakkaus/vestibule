@@ -43,14 +43,14 @@ func TestLookupCapabilityChatOverrideRestoresUserFileBaseline(t *testing.T) {
 	group := requireSettingsView(t, store, testGroupA)
 	overrides := group.Overrides()
 	overrides.GentooLookupsEnabled = ptr(false)
-	_, err := store.Update(group.ID(), group.Revision(), overrides)
+	_, err := store.Update(group.ID(), group.Revision(), overrides, 7)
 	requireNoError(t, err)
 
 	group = requireSettingsView(t, store, testGroupA)
 	requireLookupCapability(t, "GentooLookupsEnabled", group.GentooLookupsEnabled(), false, SourceChatOverride)
 
 	overrides.GentooLookupsEnabled = nil
-	_, err = store.Update(group.ID(), group.Revision(), overrides)
+	_, err = store.Update(group.ID(), group.Revision(), overrides, 7)
 	requireNoError(t, err)
 	group = requireSettingsView(t, store, testGroupA)
 	requireLookupCapability(t, "GentooLookupsEnabled", group.GentooLookupsEnabled(), true, SourceUserFile)
@@ -62,7 +62,7 @@ func TestLookupCapabilitiesRoundTripThroughSettingsJSON(t *testing.T) {
 	overrides := group.Overrides()
 	overrides.GentooLookupsEnabled = ptr(false)
 	overrides.LinuxLookupsEnabled = ptr(true)
-	result, err := store.Update(group.ID(), group.Revision(), overrides)
+	result, err := store.Update(group.ID(), group.Revision(), overrides, 7)
 	requireNoError(t, err)
 	if !result.Durable {
 		t.Fatalf("lookup capability commit was not durable")

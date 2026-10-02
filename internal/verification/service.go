@@ -282,7 +282,7 @@ func (v *Service) updateGroupSettings(groupID int64, update func(settings.GroupV
 	}
 	overrides := group.Overrides()
 	update(group, &overrides)
-	_, err := v.settings.Update(groupID, group.Revision(), overrides)
+	_, err := v.settings.Update(groupID, group.Revision(), overrides, 0)
 	return err
 }
 

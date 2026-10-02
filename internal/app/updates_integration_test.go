@@ -250,7 +250,7 @@ func TestLookupCommandsAreGroupGatedButRemainAdmittedInDMs(t *testing.T) {
 			} else {
 				disabled.LinuxLookupsEnabled = &value
 			}
-			if _, err := fixture.settings.Update(fixture.groupID, group.Revision(), disabled); err != nil {
+			if _, err := fixture.settings.Update(fixture.groupID, group.Revision(), disabled, 7); err != nil {
 				t.Fatal(err)
 			}
 			groupRoutes := dispatchRouteNames(t, fixture, groupCommand(fixture.groupID, 9001, tc.group))

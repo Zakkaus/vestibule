@@ -64,6 +64,9 @@ func (s *Store) buildSnapshot(state settingsFile) (*settingsSnapshot, error) {
 		groups[baseline.ID] = group
 		order = append(order, baseline.ID)
 	}
+	if err := validateControlChats(groups, order); err != nil {
+		return nil, err
+	}
 	return &settingsSnapshot{
 		groups: groups, groupIDs: order, registration: registration,
 		limits: state.Limits, limitsRevision: state.LimitsRevision,
@@ -123,6 +126,7 @@ func buildEffectiveGroup(
 		richMessages:            resolve(record.RichMessages, baseline.RichMessages),
 		privateQueryPerMin:      resolve(record.PrivateQueryPerMin, baseline.PrivateQueryPerMin),
 		adminLogChatID:          resolve(record.AdminLogChatID, baseline.AdminLogChatID),
+		controlChatID:           resolve(record.ControlChatID, baseline.ControlChatID),
 		requiredChannelFailOpen: resolve(record.RequiredChannelFailOpen, baseline.RequiredChannelFailOpen),
 		feed:                    resolveFeed(record.Feed, baseline.Feed),
 	}
@@ -233,7 +237,7 @@ func validateBaselineSources(group GroupBaseline) error {
 		group.ChannelWhitelist.Source, group.TrustedMemberGroupIDs.Source, group.KnownChatIDs.Source,
 		group.RequiredChannelID.Source, group.ChannelDisplay.Source, group.ChannelInviteURL.Source,
 		group.Questions.Source, group.FallbackQuestions.Source, group.FallbackBuiltin.Source,
-		group.AdminLogChatID.Source, group.RequiredChannelFailOpen.Source,
+		group.AdminLogChatID.Source, group.ControlChatID.Source, group.RequiredChannelFailOpen.Source,
 		group.Feed.Lang.Source, group.Feed.IntervalSeconds.Source, group.Feed.Bugs.Source,
 		group.Feed.BugzillaBase.Source, group.Feed.News.Source, group.Feed.BugProduct.Source,
 		group.Feed.BugComponent.Source, group.Feed.SilentBugs.Source, group.Feed.GitHubRepos.Source,

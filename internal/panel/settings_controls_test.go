@@ -115,7 +115,7 @@ func bumpPanelGroupRevision(t *testing.T, settings *settings.Store) settings.Gro
 	next := group.Overrides()
 	value := !group.Enabled().Value
 	next.Enabled = &value
-	if _, err := settings.Update(group.ID(), group.Revision(), next); err != nil {
+	if _, err := settings.Update(group.ID(), group.Revision(), next, 7); err != nil {
 		t.Fatal(err)
 	}
 	return next
@@ -165,7 +165,7 @@ func testSettingsScreenContracts(t *testing.T) {
 	next.RequiredChannelID = &channelID
 	next.ChannelDisplay = &channelDisplay
 	next.ChannelInviteURL = &channelInvite
-	if _, err := settings.Update(group.ID(), group.Revision(), next); err != nil {
+	if _, err := settings.Update(group.ID(), group.Revision(), next, 7); err != nil {
 		t.Fatal(err)
 	}
 	group = panelTestGroup(t, settings)
@@ -397,7 +397,7 @@ func TestPanelRuntimeControlsMutateOnlyTargetRenderAndRejectStale(t *testing.T) 
 				next := group.Overrides()
 				value := settings.ModeQuiz
 				next.VerifyMode = &value
-				if _, err := store.Update(group.ID(), group.Revision(), next); err != nil {
+				if _, err := store.Update(group.ID(), group.Revision(), next, 7); err != nil {
 					t.Fatal(err)
 				}
 			},
@@ -465,7 +465,7 @@ func TestPanelRuntimeControlsMutateOnlyTargetRenderAndRejectStale(t *testing.T) 
 				next := group.Overrides()
 				value := "en"
 				next.Lang = &value
-				if _, err := settings.Update(group.ID(), group.Revision(), next); err != nil {
+				if _, err := settings.Update(group.ID(), group.Revision(), next, 7); err != nil {
 					t.Fatal(err)
 				}
 			},
@@ -654,7 +654,7 @@ func seedPanelChannel(t *testing.T, settings *settings.Store, channelID int64, d
 	next.RequiredChannelID = &channelID
 	next.ChannelDisplay = &display
 	next.ChannelInviteURL = &invite
-	if _, err := settings.Update(group.ID(), group.Revision(), next); err != nil {
+	if _, err := settings.Update(group.ID(), group.Revision(), next, 7); err != nil {
 		t.Fatal(err)
 	}
 	return panelTestGroup(t, settings).Overrides()
@@ -669,7 +669,7 @@ func seedPanelBanks(t *testing.T, store *settings.Store) settings.GroupOverrides
 	next.Questions = &questions
 	next.FallbackQuestions = &fallbackQuestions
 	next.FallbackBuiltin = &custom
-	if _, err := store.Update(group.ID(), group.Revision(), next); err != nil {
+	if _, err := store.Update(group.ID(), group.Revision(), next, 7); err != nil {
 		t.Fatal(err)
 	}
 	return panelTestGroup(t, store).Overrides()
@@ -717,7 +717,7 @@ func TestPanelTrustedGroupAndChannelControlsMutateOnlyTargetRenderAndRejectStale
 			seeded := group.Overrides()
 			values := []int64{trustedID}
 			seeded.TrustedMemberGroupIDs = &values
-			if _, err := settings.Update(group.ID(), group.Revision(), seeded); err != nil {
+			if _, err := settings.Update(group.ID(), group.Revision(), seeded, 7); err != nil {
 				t.Fatal(err)
 			}
 			session := addPanelSession(t, panel, settings, panelTestGroupA, "li")
