@@ -7,6 +7,10 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 ### Added
+- Pure structural-signal scoring with configurable weights, per-signal counts and points,
+  entity-based link and mention detection (private invites as `t.me/+`, `telegram.me`, `telegram.dog`,
+  `joinchat/` and `tg://join?invite=`, excluding `t.me/+<phone>` contact links), emoji-aware
+  hidden-character counting, and sample fixtures.
 - Feed subscriptions are effective group settings with sourced reads and atomic full-replacement
   writes. Legacy `config.json` feed entries are imported once for managed chats; runtime
   polling follows subsequent store changes without restart. Bug and news factory defaults are off.

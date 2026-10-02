@@ -21,3 +21,21 @@
 | emoji 夹杂 | — | 不影响结构信号计数 |
 | 多条私有邀请链接 | — | 链接计数达到阈值 |
 | 多个用户名提及 | — | 提及计数达到阈值 |
+
+## Structural-signal fixtures
+
+These fixtures are synthetic, not collected messages. Tests supply entity kinds and
+URL targets explicitly; the scorer never discovers entities by scanning the text.
+
+| File | Input shape | Expected default score |
+|---|---|---|
+| `emoji-sequences.txt` | Family, heart, keycaps, England flag, qualified emoji joiners | 0 |
+| `private-invites.txt` | One URL and one text-link entity, both private invites; unknown join time | 8 |
+| `mentions.txt` | Two mention entities and one text-mention entity | 3 |
+| `combined-signals.txt` | Two hidden characters, two private invites, two mentions; joined one hour ago | 18 |
+
+Default weights are 2 per hidden character, 3 per private invite, 1 per mention,
+1 per link and 4 for a known member who joined less than 24 hours ago and posts a link.
+At an illustrative threshold of 10, one ordinary link from a long-standing member
+scores 1; a new member posting two private invites with one hidden character scores 14.
+The pure scorer does not choose a threshold or disposition.

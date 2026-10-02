@@ -2016,8 +2016,8 @@ Sender {
     <div class="tw"><table class="spec-table">
       <thead><tr><th>信号</th><th>取自</th><th>说明</th></tr></thead>
       <tbody>
-        <tr><td>词中间的不可见字符</td><td>归一化前后的差异</td>
-            <td>归一化删掉了字符即说明原文嵌了隐藏字符。<b>正常输入不产生这种差异</b></td></tr>
+        <tr><td>词中间的不可见字符</td><td>归一化使用的字符删除判定</td>
+            <td>按原文中的 rune 计数，复用归一化的删除判定；正常 emoji 序列中的连接符、呈现选择符和旗帜标签不计分</td></tr>
         <tr><td>私有邀请链接数量</td><td>Telegram 消息实体</td>
             <td>从平台解析好的实体读取，不使用自写的正则扫描全文</td></tr>
         <tr><td>提及的用户名数量</td><td>Telegram 消息实体</td><td>同上</td></tr>
@@ -2027,6 +2027,10 @@ Sender {
     </table></div>
     <p style="font-size:0.875rem;">实体由平台解析，不受显示层的字符插入影响，
       因此比自写的全文扫描可靠。</p>
+    <p>正常 emoji 序列中的 U+200D 连接两个 Extended_Pictographic 字符，左侧可包含呈现选择符或肤色修饰符。
+      紧接 Extended_Pictographic 字符或键帽基字符 <code>0-9#*</code> 的 U+FE0E、U+FE0F 不计分；
+      旗帜标签序列中的 U+E0020 至 U+E007F 也不计分。
+      普通文字中插入的零宽字符仍计分。此裁定仅用于结构信号，不改变归一化或现有条件的行为。</p>
     <p>处置分四档：仅记录、删除、删除并禁言、删除并移出。每次自动处置写入操作记录且可撤销。
       <b>默认最低档</b>，先观察命中情况再提档。</p>
     <p style="font-size:0.875rem;">线上样本进 <code>testdata/</code> 作测试用例，不进出厂默认规则：
