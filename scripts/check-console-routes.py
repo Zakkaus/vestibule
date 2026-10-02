@@ -61,11 +61,7 @@ LIVE_ROUTES = {
 # These table rows are intentionally ahead of the implementation. Keep this list
 # explicit: a new undocumented row must fail rather than quietly become exempt.
 DEFERRED_ROWS = {
-    "GET /api/chats/{id}/overview",
     "PATCH /api/chats/{id}",
-    "GET /api/chats/{id}/packages",
-    "POST /api/chats/{id}/packages",
-    "GET · PATCH /api/me/preferences",
     "GET /verify/{token}",
 }
 
