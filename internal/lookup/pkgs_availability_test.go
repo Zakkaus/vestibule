@@ -5,7 +5,7 @@ import (
 )
 
 func TestUnrecordedOverlayAvailabilityFollowsCachedPackageMap(t *testing.T) {
-	source := overlay{name: "cached-overlay"}
+	source := overlay{Name: "cached-overlay"}
 	tests := []struct {
 		name string
 		pkgs map[string]map[string]string
@@ -27,7 +27,7 @@ func TestUnrecordedOverlayAvailabilityFollowsCachedPackageMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pc := &pkgCache{pkgs: tt.pkgs, available: map[string]bool{}}
-			if got := pc.availability([]overlay{source})[source.name]; got != tt.want {
+			if got := pc.availability([]overlay{source})[source.Name]; got != tt.want {
 				t.Errorf("unrecorded overlay availability = %v, want %v; /pkg must distinguish a cached index from one not loaded", got, tt.want)
 			}
 		})

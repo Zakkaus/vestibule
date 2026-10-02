@@ -34,14 +34,15 @@ func newRuntimeModules(
 	moderation *moderate.Service,
 	lookups *lookup.Service,
 	consoleAvailable bool,
-) (*runtimeModules, error) {
+	connector *telegram.Connector) (*runtimeModules, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("command modules require config")
 	}
+	handlers := telegram.NewLookupHandlers(lookups, connector)
 	declared := []runtimeModule{
 		coreHelpModule(administration),
-		gentooModule(cfg, settingsStore, bot, stateDirectory, lookups),
-		linuxModule(lookups),
+		gentooModule(cfg, settingsStore, bot, stateDirectory, handlers),
+		linuxModule(handlers),
 		coreStatusModule(administration),
 		coreAdministrationModule(cfg, administration, moderation),
 		coreOwnerModule(consoleAvailable),
@@ -100,12 +101,13 @@ func coreHelpModule(administration *panel.Panel) runtimeModule {
 		}},
 	}}
 }
+
 func gentooModule(
 	cfg *settings.Config,
 	settingsStore *settings.Store,
 	bot *telego.Bot,
 	stateDirectory string,
-	lookups *lookup.Service,
+	lookups *telegram.LookupHandlers,
 ) runtimeModule {
 	menu := i18n.Messages.Bot.Menu.Member
 	return runtimeModule{
@@ -115,11 +117,11 @@ func gentooModule(
 			Capability:     settings.ModuleGentoo,
 			PrivateQueries: true,
 			Commands: []telegram.CommandDefinition{
-				{Name: "gpkg", Description: menu.Pkg.For, Audience: telegram.CommandMember, RouteName: "lookup.pkg", Handler: warmGentooHandler(lookups, lookups.OnPkg)},
-				{Name: "guse", Description: menu.Use.For, Audience: telegram.CommandMember, RouteName: "lookup.use", Handler: warmGentooHandler(lookups, lookups.OnUse)},
-				{Name: "garm", Description: menu.Arm.For, Audience: telegram.CommandMember, RouteName: "lookup.arm", Handler: warmGentooHandler(lookups, lookups.OnArm)},
-				{Name: "gbug", Description: menu.Bug.For, Audience: telegram.CommandMember, RouteName: "lookup.bug", Handler: warmGentooHandler(lookups, lookups.OnBug)},
-				{Name: "gnews", Description: menu.News.For, Audience: telegram.CommandMember, RouteName: "lookup.news", Handler: warmGentooHandler(lookups, lookups.OnNews)},
+				{Name: "gpkg", Description: menu.Pkg.For, Audience: telegram.CommandMember, RouteName: "lookup.pkg", Handler: warmGentooHandler(lookups.Service, lookups.OnPkg)},
+				{Name: "guse", Description: menu.Use.For, Audience: telegram.CommandMember, RouteName: "lookup.use", Handler: warmGentooHandler(lookups.Service, lookups.OnUse)},
+				{Name: "garm", Description: menu.Arm.For, Audience: telegram.CommandMember, RouteName: "lookup.arm", Handler: warmGentooHandler(lookups.Service, lookups.OnArm)},
+				{Name: "gbug", Description: menu.Bug.For, Audience: telegram.CommandMember, RouteName: "lookup.bug", Handler: warmGentooHandler(lookups.Service, lookups.OnBug)},
+				{Name: "gnews", Description: menu.News.For, Audience: telegram.CommandMember, RouteName: "lookup.news", Handler: warmGentooHandler(lookups.Service, lookups.OnNews)},
 				{Name: "gbbs", Description: menu.BBS.For, Audience: telegram.CommandMember, RouteName: "lookup.bbs", Handler: lookups.OnBbs},
 				{Name: "pkg", Description: menu.Pkg.For, Audience: telegram.CommandMember, RouteName: "lookup.pkg.alias", Handler: lookups.RenamedHandler("gpkg"), RenamedTo: "gpkg"},
 				{Name: "use", Description: menu.Use.For, Audience: telegram.CommandMember, RouteName: "lookup.use.alias", Handler: lookups.RenamedHandler("guse"), RenamedTo: "guse"},
@@ -147,7 +149,7 @@ func warmGentooHandler(lookups *lookup.Service, handler th.Handler) th.Handler {
 	}
 }
 
-func linuxModule(lookups *lookup.Service) runtimeModule {
+func linuxModule(lookups *telegram.LookupHandlers) runtimeModule {
 	menu := i18n.Messages.Bot.Menu.Member
 	return runtimeModule{
 		optionalName: settings.ModuleLinux,

@@ -19,6 +19,7 @@ type capabilitySettings struct {
 func newCapabilitySettings(store *settings.Store, onChange func(groupID int64, before, after settings.GroupView)) *capabilitySettings {
 	return &capabilitySettings{Store: store, onCapabilityChange: onChange}
 }
+
 func newRuntimeCapabilitySettings(
 	runtime *services,
 	bot *telego.Bot,

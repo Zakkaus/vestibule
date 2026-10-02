@@ -136,15 +136,7 @@ func IsRateLimited(err error) bool {
 
 // PermanentPostError reports deterministic item rejection without treating destination failures as permanent.
 func PermanentPostError(err error) bool {
-	if err == nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-		return false
-	}
-	if destinationError(err) {
-		return false
-	}
-	message := strings.ToLower(err.Error())
-	code := ErrorCode(err)
-	return code == 400 || code == 0 && strings.Contains(message, "bad request")
+	return CountablePermanentEditError(err)
 }
 
 // Pace waits for a per-chat send pause or returns false when ctx is cancelled first.

@@ -21,7 +21,7 @@ func TestKernelReleasesParsing(t *testing.T) {
 		{"moniker":"longterm","version":"5.15.999","iseol":true,"released":{"isodate":"2025-01-01"}}]}`
 	withFixtureBody(t, kernelReleasesURL, body, func() {
 		kernelCacheReset()
-		releases, ok := fetchKernelReleases(context.Background())
+		releases, ok := FetchKernelReleases(context.Background())
 		if !ok {
 			t.Fatal("a well-formed listing must parse")
 		}
@@ -42,7 +42,7 @@ func TestKernelReleasesRefusesJunk(t *testing.T) {
 	for _, body := range []string{"", "null", "{}", `{"releases":[]}`, "<html>"} {
 		withFixtureBody(t, kernelReleasesURL, body, func() {
 			kernelCacheReset()
-			if _, ok := fetchKernelReleases(context.Background()); ok {
+			if _, ok := FetchKernelReleases(context.Background()); ok {
 				t.Errorf("%q must not be accepted as a release listing", body)
 			}
 		})
@@ -57,7 +57,7 @@ func TestKernelReleasesAreCached(t *testing.T) {
 		&calls, func() {
 			kernelCacheReset()
 			for range 3 {
-				if _, ok := fetchKernelReleases(context.Background()); !ok {
+				if _, ok := FetchKernelReleases(context.Background()); !ok {
 					t.Fatal("fetch failed")
 				}
 			}

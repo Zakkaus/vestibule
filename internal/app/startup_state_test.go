@@ -111,6 +111,7 @@ func TestNewServicesAllowsAllOptionalModulesDisabled(t *testing.T) {
 		t.Fatal("all-disabled configuration was not retained by the service graph")
 	}
 }
+
 func newCapabilityMenuServer(
 	t *testing.T,
 	groupID int64,

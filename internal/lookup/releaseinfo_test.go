@@ -5,22 +5,20 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-
-	"github.com/Zakkaus/vestibule/internal/i18n"
 )
 
 func TestEnsureReleaseInfoEmptyDoesNotOverwrite(t *testing.T) {
-	relInfo.mu.Lock()
-	relInfo.debian = map[string]string{"13": "stable"}
-	relInfo.debianSer = map[string]bool{"trixie": true}
+	relInfo.Mu.Lock()
+	relInfo.Debian = map[string]string{"13": "stable"}
+	relInfo.DebianSer = map[string]bool{"trixie": true}
 	relInfo.ubuntu = map[string]bool{"24.04": true}
-	relInfo.fetched, relInfo.refreshing = time.Time{}, false // stale => ensureReleaseInfo will refetch
-	relInfo.mu.Unlock()
+	relInfo.Fetched, relInfo.Refreshing = time.Time{}, false // stale => ensureReleaseInfo will refetch
+	relInfo.Mu.Unlock()
 	t.Cleanup(func() {
-		relInfo.mu.Lock()
-		relInfo.debian, relInfo.debianSer, relInfo.ubuntu, relInfo.ubuntuRel, relInfo.ubuntuEOL, relInfo.ubuntuSer = nil, nil, nil, nil, nil, nil
-		relInfo.fetched, relInfo.refreshing = time.Time{}, false
-		relInfo.mu.Unlock()
+		relInfo.Mu.Lock()
+		relInfo.Debian, relInfo.DebianSer, relInfo.ubuntu, relInfo.ubuntuRel, relInfo.ubuntuEOL, relInfo.UbuntuSer = nil, nil, nil, nil, nil, nil
+		relInfo.Fetched, relInfo.Refreshing = time.Time{}, false
+		relInfo.Mu.Unlock()
 	})
 
 	od, ou := fetchDebianStatusFn, fetchUbuntuFn
@@ -31,14 +29,14 @@ func TestEnsureReleaseInfoEmptyDoesNotOverwrite(t *testing.T) {
 	t.Cleanup(func() { fetchDebianStatusFn, fetchUbuntuFn = od, ou })
 
 	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
-	ensureReleaseInfo(context.Background(), now)
+	EnsureReleaseInfo(context.Background(), now)
 
-	relInfo.mu.Lock()
-	defer relInfo.mu.Unlock()
-	if relInfo.debian["13"] != "stable" || !relInfo.debianSer["trixie"] || !relInfo.ubuntu["24.04"] {
+	relInfo.Mu.Lock()
+	defer relInfo.Mu.Unlock()
+	if relInfo.Debian["13"] != "stable" || !relInfo.DebianSer["trixie"] || !relInfo.ubuntu["24.04"] {
 		t.Error("an empty (malformed-200) fetch must NOT overwrite previously-good cached release data")
 	}
-	if relInfo.fetched.Equal(now) {
+	if relInfo.Fetched.Equal(now) {
 		t.Error("an empty fetch must take the short retry window (fetched != now), not full-TTL freshness")
 	}
 }
@@ -50,8 +48,8 @@ func TestReleaseMetadataDoesNotRefreshBeforeItsDailyTTLExpires(t *testing.T) {
 	fetchDebianStatusFn = func(context.Context, time.Time) debianReleaseData {
 		debianFetches++
 		return debianReleaseData{
-			roles:  map[string]string{"13": "stable"},
-			series: map[string]bool{"trixie": true},
+			Roles:  map[string]string{"13": "stable"},
+			Series: map[string]bool{"trixie": true},
 		}
 	}
 	fetchUbuntuFn = func(context.Context, time.Time) (map[string]bool, map[string]bool, map[string]bool, map[string]bool) {
@@ -60,13 +58,13 @@ func TestReleaseMetadataDoesNotRefreshBeforeItsDailyTTLExpires(t *testing.T) {
 	}
 
 	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
-	ensureReleaseInfo(context.Background(), now)
-	ensureReleaseInfo(context.Background(), now.Add(relInfoTTL-time.Second))
+	EnsureReleaseInfo(context.Background(), now)
+	EnsureReleaseInfo(context.Background(), now.Add(relInfoTTL-time.Second))
 	if debianFetches != 1 || ubuntuFetches != 1 {
 		t.Fatalf("release metadata refreshed before its daily TTL expired: Debian=%d Ubuntu=%d, want one fetch each", debianFetches, ubuntuFetches)
 	}
 
-	ensureReleaseInfo(context.Background(), now.Add(relInfoTTL))
+	EnsureReleaseInfo(context.Background(), now.Add(relInfoTTL))
 	if debianFetches != 2 || ubuntuFetches != 2 {
 		t.Errorf("release metadata was not refetched once the daily TTL expired: Debian=%d Ubuntu=%d, want two fetches each", debianFetches, ubuntuFetches)
 	}
@@ -101,8 +99,8 @@ func TestConcurrentColdReleaseMetadataLookupsShareOneRefresh(t *testing.T) {
 			<-release
 		}
 		return debianReleaseData{
-			roles:  map[string]string{"13": "stable"},
-			series: map[string]bool{"trixie": true},
+			Roles:  map[string]string{"13": "stable"},
+			Series: map[string]bool{"trixie": true},
 		}
 	}
 	fetchUbuntuFn = func(context.Context, time.Time) (map[string]bool, map[string]bool, map[string]bool, map[string]bool) {
@@ -112,7 +110,7 @@ func TestConcurrentColdReleaseMetadataLookupsShareOneRefresh(t *testing.T) {
 
 	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
 	go func() {
-		ensureReleaseInfo(context.Background(), now)
+		EnsureReleaseInfo(context.Background(), now)
 		close(firstDone)
 	}()
 	select {
@@ -123,7 +121,7 @@ func TestConcurrentColdReleaseMetadataLookupsShareOneRefresh(t *testing.T) {
 
 	secondDone := make(chan struct{})
 	go func() {
-		ensureReleaseInfo(context.Background(), now)
+		EnsureReleaseInfo(context.Background(), now)
 		close(secondDone)
 	}()
 	select {
@@ -160,15 +158,15 @@ func TestFailedColdReleaseMetadataRefreshIsMarkedAttempted(t *testing.T) {
 	}
 
 	now := time.Date(2026, 6, 21, 12, 0, 0, 0, time.UTC)
-	ensureReleaseInfo(context.Background(), now)
-	relInfo.mu.Lock()
-	attempted := relInfo.debian != nil
-	relInfo.mu.Unlock()
+	EnsureReleaseInfo(context.Background(), now)
+	relInfo.Mu.Lock()
+	attempted := relInfo.Debian != nil
+	relInfo.Mu.Unlock()
 	if !attempted {
 		t.Fatal("a failed cold refresh left release metadata unmarked, so every lookup retries upstream")
 	}
 
-	ensureReleaseInfo(context.Background(), now.Add(relInfoRetryTTL-time.Second))
+	EnsureReleaseInfo(context.Background(), now.Add(relInfoRetryTTL-time.Second))
 	if debianFetches != 1 || ubuntuFetches != 1 {
 		t.Errorf("a failed refresh retried before its short retry window expired: Debian=%d Ubuntu=%d, want one fetch each", debianFetches, ubuntuFetches)
 	}
@@ -176,21 +174,21 @@ func TestFailedColdReleaseMetadataRefreshIsMarkedAttempted(t *testing.T) {
 
 func resetReleaseInfoForTest(t *testing.T) {
 	t.Helper()
-	relInfo.mu.Lock()
-	oldDebian, oldDebianSer := relInfo.debian, relInfo.debianSer
-	oldUbuntu, oldUbuntuRel, oldUbuntuEOL, oldUbuntuSer := relInfo.ubuntu, relInfo.ubuntuRel, relInfo.ubuntuEOL, relInfo.ubuntuSer
-	oldFetched, oldRefreshing := relInfo.fetched, relInfo.refreshing
-	relInfo.debian, relInfo.debianSer, relInfo.ubuntu, relInfo.ubuntuRel, relInfo.ubuntuEOL, relInfo.ubuntuSer = nil, nil, nil, nil, nil, nil
-	relInfo.fetched, relInfo.refreshing = time.Time{}, false
-	relInfo.mu.Unlock()
+	relInfo.Mu.Lock()
+	oldDebian, oldDebianSer := relInfo.Debian, relInfo.DebianSer
+	oldUbuntu, oldUbuntuRel, oldUbuntuEOL, oldUbuntuSer := relInfo.ubuntu, relInfo.ubuntuRel, relInfo.ubuntuEOL, relInfo.UbuntuSer
+	oldFetched, oldRefreshing := relInfo.Fetched, relInfo.Refreshing
+	relInfo.Debian, relInfo.DebianSer, relInfo.ubuntu, relInfo.ubuntuRel, relInfo.ubuntuEOL, relInfo.UbuntuSer = nil, nil, nil, nil, nil, nil
+	relInfo.Fetched, relInfo.Refreshing = time.Time{}, false
+	relInfo.Mu.Unlock()
 
 	oldDebianFetch, oldUbuntuFetch := fetchDebianStatusFn, fetchUbuntuFn
 	t.Cleanup(func() {
-		relInfo.mu.Lock()
-		relInfo.debian, relInfo.debianSer = oldDebian, oldDebianSer
-		relInfo.ubuntu, relInfo.ubuntuRel, relInfo.ubuntuEOL, relInfo.ubuntuSer = oldUbuntu, oldUbuntuRel, oldUbuntuEOL, oldUbuntuSer
-		relInfo.fetched, relInfo.refreshing = oldFetched, oldRefreshing
-		relInfo.mu.Unlock()
+		relInfo.Mu.Lock()
+		relInfo.Debian, relInfo.DebianSer = oldDebian, oldDebianSer
+		relInfo.ubuntu, relInfo.ubuntuRel, relInfo.ubuntuEOL, relInfo.UbuntuSer = oldUbuntu, oldUbuntuRel, oldUbuntuEOL, oldUbuntuSer
+		relInfo.Fetched, relInfo.Refreshing = oldFetched, oldRefreshing
+		relInfo.Mu.Unlock()
 		fetchDebianStatusFn, fetchUbuntuFn = oldDebianFetch, oldUbuntuFetch
 	})
 }
@@ -210,7 +208,7 @@ func TestDeriveDebianStatus(t *testing.T) {
 			t.Errorf("now=2026: status[%s] = %q, want %q", ver, got[ver], want)
 		}
 	}
-	series := deriveDebianReleaseData(csv, now).series
+	series := deriveDebianReleaseData(csv, now).Series
 	if !series["trixie"] || series["forky"] || series["sid"] {
 		t.Errorf("now=2026: Debian series release state = %v", series)
 	}
@@ -230,14 +228,14 @@ func TestDeriveDebianStatus(t *testing.T) {
 }
 
 func TestUbuntuExcluded(t *testing.T) {
-	relInfo.mu.Lock()
+	relInfo.Mu.Lock()
 	relInfo.ubuntuRel = map[string]bool{"18.04": true, "20.04": true, "24.04": true, "26.04": true, "26.10": false}
 	relInfo.ubuntuEOL = map[string]bool{"18.04": true, "20.04": true}
-	relInfo.mu.Unlock()
+	relInfo.Mu.Unlock()
 	defer func() {
-		relInfo.mu.Lock()
+		relInfo.Mu.Lock()
 		relInfo.ubuntuRel, relInfo.ubuntuEOL = nil, nil
-		relInfo.mu.Unlock()
+		relInfo.Mu.Unlock()
 	}()
 
 	for label, want := range map[string]bool{
@@ -245,7 +243,7 @@ func TestUbuntuExcluded(t *testing.T) {
 		"26.10.proposed": true, "24.04.backports": true, "99.99": false,
 		"18.04": true, "20.04": true, // past standard end-of-life
 	} {
-		if got := ubuntuExcluded(label); got != want {
+		if got := UbuntuExcluded(label); got != want {
 			t.Errorf("ubuntuExcluded(%q) = %v, want %v", label, got, want)
 		}
 	}
@@ -283,36 +281,16 @@ func TestRelInfoNextFetched(t *testing.T) {
 	}
 }
 
-func TestUbuntuRelabelStandardSupportEnd(t *testing.T) {
-	relInfo.mu.Lock()
+func withUbuntuSupportEnd(t *testing.T) {
+	relInfo.Mu.Lock()
 	oldLTS, oldEOL := relInfo.ubuntu, relInfo.ubuntuEOL
 	relInfo.ubuntu = map[string]bool{"18.04": true, "24.04": true}
 	relInfo.ubuntuEOL = map[string]bool{"18.04": true, "22.10": true}
-	relInfo.mu.Unlock()
+	relInfo.Mu.Unlock()
 	t.Cleanup(func() {
-		relInfo.mu.Lock()
+		relInfo.Mu.Lock()
 		relInfo.ubuntu, relInfo.ubuntuEOL = oldLTS, oldEOL
-		relInfo.mu.Unlock()
+		relInfo.Mu.Unlock()
 	})
 
-	tests := []struct {
-		raw, officialSuffix  string
-		standardSupportEnded bool
-	}{
-		{raw: "18.04", officialSuffix: " LTS", standardSupportEnded: true},
-		{raw: "22.10", standardSupportEnded: true},
-		{raw: "24.04", officialSuffix: " LTS"},
-		{raw: "99.99"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.raw, func(t *testing.T) {
-			want := tt.raw + tt.officialSuffix
-			if tt.standardSupportEnded {
-				want += i18n.Messages.LookupDistros.Release.StandardSupportEnded.For(i18n.LangZH)
-			}
-			if got := ubuntuRelabel(i18n.LangZH, tt.raw); got != want {
-				t.Errorf("ubuntuRelabel(%q) = %q, want catalogue rendering %q", tt.raw, got, want)
-			}
-		})
-	}
 }

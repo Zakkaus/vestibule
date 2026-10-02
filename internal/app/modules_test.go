@@ -36,7 +36,7 @@ var optionalModuleCommands = map[string][]string{
 
 func TestRenamedCommandsStayOutOfMenusAndHelp(t *testing.T) {
 	cfg := &settings.Config{Modules: []string{settings.ModuleGentoo}}
-	modules, err := newRuntimeModules(cfg, nil, nil, t.TempDir(), nil, nil, lookup.New(nil, nil, cfg, ""), false)
+	modules, err := newRuntimeModules(cfg, nil, nil, t.TempDir(), nil, nil, lookup.New(nil, cfg, ""), false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func TestRenamedCommandsStayOutOfMenusAndHelp(t *testing.T) {
 
 func TestEmptyModulesDisappearFromCommandSurface(t *testing.T) {
 	cfg := &settings.Config{Modules: []string{}}
-	modules, err := newRuntimeModules(cfg, nil, nil, t.TempDir(), nil, nil, nil, false)
+	modules, err := newRuntimeModules(cfg, nil, nil, t.TempDir(), nil, nil, nil, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,7 +98,7 @@ func TestEmptyModulesDisappearFromCommandSurface(t *testing.T) {
 // process can still expose core administration commands, but an operator must
 // opt in to Gentoo and Linux lookup surfaces explicitly.
 func TestRuntimeModulesDefaultToNoOptionalModules(t *testing.T) {
-	modules, err := newRuntimeModules(&settings.Config{}, nil, nil, t.TempDir(), nil, nil, nil, false)
+	modules, err := newRuntimeModules(&settings.Config{}, nil, nil, t.TempDir(), nil, nil, nil, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,12 +146,12 @@ func TestEnabledGentooRuntimeDoesNotWarmLookupCacheAtStartup(t *testing.T) {
 		Modules:  []string{settings.ModuleGentoo},
 		Overlays: []settings.OverlayCfg{{Name: settings.ModuleGentoo, Repo: "gentoo/gentoo", Branch: "master"}},
 	}
-	lookups := lookup.New(nil, nil, cfg, "")
+	lookups := lookup.New(nil, cfg, "")
 	store, err := settings.NewStore("", botTestSettingsBaseline(t, cfg), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	modules, err := newRuntimeModules(cfg, store, nil, t.TempDir(), nil, nil, lookups, false)
+	modules, err := newRuntimeModules(cfg, store, nil, t.TempDir(), nil, nil, lookups, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,6 +169,7 @@ func TestEnabledGentooRuntimeDoesNotWarmLookupCacheAtStartup(t *testing.T) {
 		t.Fatalf("Gentoo startup issued %d lookup-cache requests before any group or command enabled it", got)
 	}
 }
+
 func TestGroupCommandMenusDefaultToNoLookupCapabilities(t *testing.T) {
 	const (
 		groupA int64 = -1009000000611
@@ -182,7 +183,7 @@ func TestGroupCommandMenusDefaultToNoLookupCapabilities(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	modules, err := newRuntimeModules(cfg, store, nil, t.TempDir(), nil, nil, nil, false)
+	modules, err := newRuntimeModules(cfg, store, nil, t.TempDir(), nil, nil, nil, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,7 +234,7 @@ func TestGroupCommandMenusDefaultToNoLookupCapabilities(t *testing.T) {
 
 func TestEmptyModulesDoNotReachTelegramMenus(t *testing.T) {
 	cfg := &settings.Config{Modules: []string{}}
-	modules, err := newRuntimeModules(cfg, nil, nil, t.TempDir(), nil, nil, nil, false)
+	modules, err := newRuntimeModules(cfg, nil, nil, t.TempDir(), nil, nil, nil, false, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -276,7 +277,7 @@ func TestRuntimeModuleSelectionMatchesConfiguration(t *testing.T) {
 				modules = []string{settings.ModuleGentoo}
 			}
 			runtimeModules, err := newRuntimeModules(&settings.Config{Modules: modules},
-				nil, nil, t.TempDir(), nil, nil, nil, false)
+				nil, nil, t.TempDir(), nil, nil, nil, false, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -291,6 +292,7 @@ func TestRuntimeModuleSelectionMatchesConfiguration(t *testing.T) {
 		})
 	}
 }
+
 func TestRuntimeOwnerConsoleSurfaceMatchesAvailability(t *testing.T) {
 	for _, tc := range []struct {
 		name             string
@@ -304,7 +306,7 @@ func TestRuntimeOwnerConsoleSurfaceMatchesAvailability(t *testing.T) {
 			modules, err := newRuntimeModules(
 				&settings.Config{Modules: []string{settings.ModuleGentoo, settings.ModuleLinux}},
 				nil, nil, t.TempDir(), nil, nil, nil, tc.consoleAvailable,
-			)
+				nil)
 			if err != nil {
 				t.Fatal(err)
 			}

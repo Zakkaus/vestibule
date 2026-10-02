@@ -822,8 +822,78 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
             lambda: self.replace_text(tree, "internal/i18n/bot.go", old, new),
         )
 
-    def test_a_new_package_boundary_violation_cannot_join_the_baseline(self) -> None:
+    def test_uncalled_catalogue_helper_is_not_a_reader(self) -> None:
         tree = self.temporary_tree()
+        path = tree / "internal/i18n/bot.go"
+        old = "\tBanTime Text\n"
+        new = "\tBanTime Text\n\tUnreadHelperMessage Text\n"
+
+        def add_uncalled_helper() -> Callable[[], None]:
+            restore = self.replace_text(tree, "internal/i18n/bot.go", old, new)
+            with path.open("a", encoding="utf-8") as output:
+                output.write("\nfunc UncalledCatalogueProbe() Text {\n"
+                             "\treturn Messages.Bot.Menu.Admin.UnreadHelperMessage\n}\n")
+            probe = tree / "internal/rules/catalogue_probe.go"
+            probe.write_text('package rules\n\n// i18n.UncalledCatalogueProbe()\n'
+                             'var unusedHelperMention = "i18n.UncalledCatalogueProbe()"\n',
+                             encoding="utf-8")
+
+            def restore_all() -> None:
+                restore()
+                probe.unlink()
+            return restore_all
+
+        self.assert_mutation_is_rejected(
+            tree, "scripts/check-message-fields-are-read.py",
+            "an uncalled catalogue helper cannot make an unused translation readable",
+            ("declares UnreadHelperMessage", "no catalogue reader outside internal/i18n"),
+            add_uncalled_helper,
+        )
+
+    def test_catalogue_helpers_require_a_production_caller(self) -> None:
+        tree = self.temporary_tree()
+        paths = tuple((tree / "internal").rglob("*.go"))
+
+        def remove_production_calls() -> Callable[[], None]:
+            originals = {}
+            for path in paths:
+                if path.is_relative_to(tree / "internal/i18n") or path.name.endswith("_test.go"):
+                    continue
+                text = path.read_text(encoding="utf-8")
+                if "i18n.TranslateBugValue(" in text:
+                    originals[path] = text
+                    path.write_text(text.replace("i18n.TranslateBugValue(", "unreadBugValue("),
+                                    encoding="utf-8")
+
+            def restore() -> None:
+                for path, text in originals.items():
+                    path.write_text(text, encoding="utf-8")
+            return restore
+
+        self.assert_mutation_is_rejected(
+            tree, "scripts/check-message-fields-are-read.py",
+            "test-only helper calls cannot hide the removal of every production reader",
+            ("declares Confirmed", "no catalogue reader outside internal/i18n"),
+            remove_production_calls,
+        )
+
+    def test_a_new_package_boundary_violation_cannot_join_the_baseline(self) -> None:
+        directory = tempfile.TemporaryDirectory(prefix="vestibule-boundary-gate-")
+        self.addCleanup(directory.cleanup)
+        tree = Path(directory.name)
+        (tree / "scripts").mkdir()
+        (tree / "internal/rules").mkdir(parents=True)
+        for relative in (
+            "go.mod", "scripts/lint.sh", "scripts/lint.go",
+            "scripts/boundaries.txt", "scripts/check-baseline-ratchet.py",
+        ):
+            shutil.copy2(ROOT / relative, tree / relative)
+        # This control owns only a boundary finding, not unrelated file-size debt.
+        (tree / "scripts/baseline.txt").write_text("", encoding="utf-8")
+        self.assertEqual(
+            self.command(tree, "bash", "scripts/lint.sh").returncode, 0,
+            "the isolated boundary fixture must start lint-clean",
+        )
         initialized = self.command(tree, "git", "init", "--quiet")
         self.assertEqual(initialized.returncode, 0, self.output(initialized))
         committed = self.command(
@@ -1564,6 +1634,9 @@ func (s *Server) exportAudit(writer http.ResponseWriter, request *http.Request, 
 
     def test_altered_dependency_license_cannot_ship(self) -> None:
         tree = self.temporary_tree()
+        # Give Go dependency discovery a valid VCS root in the copied source tree.
+        initialized = self.command(tree, "git", "init", "--quiet")
+        self.assertEqual(initialized.returncode, 0, self.output(initialized))
 
         def mutate() -> Callable[[], None]:
             path = tree / "THIRD-PARTY-LICENSES"

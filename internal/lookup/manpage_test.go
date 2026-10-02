@@ -85,12 +85,12 @@ func TestManPageWithoutNameUsesPageIDAsTitle(t *testing.T) {
 	withFixtureBody(t, url, `SYNOPSIS
        int printf(const char *format, ...);
 `, func() {
-		page, found, failed := fetchManPage(context.Background(), "printf", "3")
+		page, found, failed := FetchManPage(context.Background(), "printf", "3")
 		if !found || failed {
 			t.Fatal("a reachable manual page without NAME must still resolve")
 		}
-		if page.title != "printf.3" {
-			t.Errorf("title = %q, want %q: without the fallback, the reply link has an empty anchor", page.title, "printf.3")
+		if page.Title != "printf.3" {
+			t.Errorf("title = %q, want %q: without the fallback, the reply link has an empty anchor", page.Title, "printf.3")
 		}
 	})
 }
@@ -102,12 +102,12 @@ func TestManNameAccepts(t *testing.T) {
 	// the name; it simply will not be found.
 	for _, name := range []string{"ls", "fstab.5", "ssh_config", "git-rebase", "a.out", "open.2",
 		"systemd.service", "tmpfiles.d", "ls.99"} {
-		if !manNameRe.MatchString(name) {
+		if !ManNameRe.MatchString(name) {
 			t.Errorf("%q is a legitimate page name", name)
 		}
 	}
 	for _, name := range []string{"", "../etc/passwd", "ls;rm", "a b", "http://x", "ls\nrm", strings.Repeat("x", 90)} {
-		if manNameRe.MatchString(name) {
+		if ManNameRe.MatchString(name) {
 			t.Errorf("%q must not reach the network", name)
 		}
 	}
@@ -116,7 +116,7 @@ func TestManNameAccepts(t *testing.T) {
 // A section that has no page is not an outage; only an unreachable site is.
 func TestManMissingPageIsNotAnOutage(t *testing.T) {
 	withStatusFixture(t, 404, func() {
-		_, found, failed := fetchManPage(context.Background(), "nosuchpage", "1")
+		_, found, failed := FetchManPage(context.Background(), "nosuchpage", "1")
 		if found {
 			t.Error("a 404 means the page does not exist")
 		}
@@ -163,15 +163,15 @@ func TestANamedSectionIsTheOnlyOneProbed(t *testing.T) {
 	var requested []string
 	withManSectionFixture(t, printfManPages, &requested)
 
-	page, found, failed := fetchManPage(context.Background(), "printf", "3")
+	page, found, failed := FetchManPage(context.Background(), "printf", "3")
 	if !found || failed {
 		t.Fatalf("fetchManPage(printf, 3) = found %v failed %v, want a page", found, failed)
 	}
-	if page.title != "printf - formatted output conversion" {
-		t.Errorf("title = %q, want the section 3 page: the asker named a section and got another one", page.title)
+	if page.Title != "printf - formatted output conversion" {
+		t.Errorf("title = %q, want the section 3 page: the asker named a section and got another one", page.Title)
 	}
-	if !strings.HasSuffix(page.url, "/printf.3") {
-		t.Errorf("url = %q, want the section 3 page", page.url)
+	if !strings.HasSuffix(page.Url, "/printf.3") {
+		t.Errorf("url = %q, want the section 3 page", page.Url)
 	}
 	if len(requested) != 1 || requested[0] != "3" {
 		t.Errorf("probed sections = %v, want only [3]", requested)
@@ -179,8 +179,8 @@ func TestANamedSectionIsTheOnlyOneProbed(t *testing.T) {
 
 	// Positive control: a bare name still walks the default order and lands on section 1.
 	requested = nil
-	page, found, failed = fetchManPage(context.Background(), "printf", "")
-	if !found || failed || !strings.HasSuffix(page.url, "/printf.1") {
+	page, found, failed = FetchManPage(context.Background(), "printf", "")
+	if !found || failed || !strings.HasSuffix(page.Url, "/printf.1") {
 		t.Fatalf("fetchManPage(printf, \"\") = %+v found %v failed %v, want the section 1 page", page, found, failed)
 	}
 }

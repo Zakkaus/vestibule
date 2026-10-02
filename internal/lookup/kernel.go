@@ -3,15 +3,8 @@ package lookup
 import (
 	"context"
 	"encoding/json"
-	"html"
-	"strings"
 	"sync"
 	"time"
-
-	"github.com/mymmrac/telego"
-	th "github.com/mymmrac/telego/telegohandler"
-
-	"github.com/Zakkaus/vestibule/internal/i18n"
 )
 
 // kernelReleasesURL is the machine-readable listing kernel.org publishes for its front page.
@@ -24,7 +17,7 @@ const kernelReleasesLimit = 256 * 1024
 // cache spares kernel.org a request per query without ever showing a stale week.
 const kernelReleaseTTL = 30 * time.Minute
 
-type kernelRelease struct {
+type KernelRelease struct {
 	Moniker  string `json:"moniker"`
 	Version  string `json:"version"`
 	IsEOL    bool   `json:"iseol"`
@@ -34,43 +27,10 @@ type kernelRelease struct {
 }
 
 type kernelReleases struct {
-	Releases []kernelRelease `json:"releases"`
+	Releases []KernelRelease `json:"releases"`
 }
 
-// OnKernel lists the kernel versions kernel.org currently publishes. Every Linux community asks
-// this, and here it also answers the question the verification challenge raises.
-func (v *Service) OnKernel(ctx *th.Context, update telego.Update) error {
-	msg := update.Message
-	if msg == nil || msg.From == nil {
-		return nil
-	}
-	l := v.requesterLanguage(msg)
-	if !v.queryAllowed(ctx, msg, l) {
-		return nil
-	}
-	bot := ctx.Bot()
-	c := ctx.Context()
-	kernel := &i18n.Messages.LookupDistros.Kernel
-
-	releases, ok := fetchKernelReleases(c)
-	if !ok {
-		v.replyLookupPlain(c, bot, msg.Chat.ID, msg.MessageID, kernel.Unavailable.For(l))
-		return nil
-	}
-	lines := []string{kernel.Heading.For(l)}
-	for _, r := range releases {
-		note := r.Released.ISODate
-		if r.IsEOL {
-			note = kernel.EOL.For(l)
-		}
-		lines = append(lines, kernel.Row.Render(l, html.EscapeString(r.Moniker), html.EscapeString(r.Version), html.EscapeString(note)))
-	}
-	lines = append(lines, "", kernel.Footer.For(l))
-	v.replyLookupHTML(c, bot, msg.Chat.ID, msg.MessageID, strings.Join(lines, "\n"))
-	return nil
-}
-
-func fetchKernelReleases(ctx context.Context) ([]kernelRelease, bool) {
+func FetchKernelReleases(ctx context.Context) ([]KernelRelease, bool) {
 	if cached, ok := kernelCacheGet(); ok {
 		return cached, true
 	}
@@ -92,10 +52,10 @@ func fetchKernelReleases(ctx context.Context) ([]kernelRelease, bool) {
 var (
 	kernelCacheMu   sync.Mutex
 	kernelCacheAt   time.Time
-	kernelCacheData []kernelRelease
+	kernelCacheData []KernelRelease
 )
 
-func kernelCacheGet() ([]kernelRelease, bool) {
+func kernelCacheGet() ([]KernelRelease, bool) {
 	kernelCacheMu.Lock()
 	defer kernelCacheMu.Unlock()
 	if kernelCacheData == nil || time.Since(kernelCacheAt) > kernelReleaseTTL {
@@ -104,7 +64,7 @@ func kernelCacheGet() ([]kernelRelease, bool) {
 	return kernelCacheData, true
 }
 
-func kernelCachePut(releases []kernelRelease) {
+func kernelCachePut(releases []KernelRelease) {
 	kernelCacheMu.Lock()
 	defer kernelCacheMu.Unlock()
 	kernelCacheData = releases

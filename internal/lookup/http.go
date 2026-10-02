@@ -12,48 +12,46 @@ import (
 
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/settings"
-	"github.com/Zakkaus/vestibule/internal/telegram"
-	"github.com/mymmrac/telego"
-	th "github.com/mymmrac/telego/telegohandler"
-	tu "github.com/mymmrac/telego/telegoutil"
 )
 
 // httpStatusError preserves authoritative statuses such as 404 across the shared transport.
 type httpStatusError struct {
-	url  string
-	code int
+	Url  string
+	Code int
 }
 
-// Error describes the authoritative HTTP status.
-func (e *httpStatusError) Error() string { return fmt.Sprintf("GET %s: HTTP %d", e.url, e.code) }
+// Error describes a response that exceeded its parser limit.
+func (e *httpStatusError) Error() string {
+	return fmt.Sprintf("GET %s: HTTP %d", e.Url, e.Code)
+}
 
 // httpBusyError marks local saturation as a temporary lookup failure.
 type httpBusyError struct {
-	url  string
-	wait time.Duration
+	Url  string
+	Wait time.Duration
 }
 
-// Error describes local outbound saturation.
+// Error describes a response that exceeded its parser limit.
 func (e *httpBusyError) Error() string {
-	return fmt.Sprintf("GET %s: outbound HTTP limit busy for %s", e.url, e.wait)
+	return fmt.Sprintf("GET %s: outbound HTTP limit busy for %s", e.Url, e.Wait)
 }
 
 // httpBodyTooLargeError prevents parsers from treating a valid-looking prefix as a complete reply.
 type httpBodyTooLargeError struct {
-	url   string
-	limit int64
+	Url   string
+	Limit int64
 }
 
 // Error describes a response that exceeded its parser limit.
 func (e *httpBodyTooLargeError) Error() string {
-	return fmt.Sprintf("GET %s: response body exceeds %d bytes", e.url, e.limit)
+	return fmt.Sprintf("GET %s: response body exceeds %d bytes", e.Url, e.Limit)
 }
 
 // httpStatusCode returns zero for failures without an HTTP response.
 func httpStatusCode(err error) int {
 	var se *httpStatusError
 	if errors.As(err, &se) {
-		return se.code
+		return se.Code
 	}
 	return 0
 }
@@ -65,8 +63,8 @@ var githubToken string
 
 // Service owns lookup handlers and their private-query rate state.
 type Service struct {
-	settings  *settings.Store
-	telegram  *telegram.Connector
+	settings *settings.Store
+
 	cfg       *settings.Config
 	mu        sync.Mutex
 	queryHits map[int64][]time.Time
@@ -77,7 +75,7 @@ type Service struct {
 }
 
 // New constructs a lookup service from runtime settings, Telegram transport, configuration, and an optional GitHub token.
-func New(store *settings.Store, telegram *telegram.Connector, cfg *settings.Config, githubAPIToken string) *Service {
+func New(store *settings.Store, cfg *settings.Config, githubAPIToken string) *Service {
 	if cfg == nil {
 		cfg = &settings.Config{}
 	}
@@ -86,8 +84,8 @@ func New(store *settings.Store, telegram *telegram.Connector, cfg *settings.Conf
 	githubToken = githubAPIToken
 	warmCtx, warmStop := context.WithCancel(context.Background())
 	return &Service{
-		settings:  store,
-		telegram:  telegram,
+		settings: store,
+
 		cfg:       cfg,
 		queryHits: map[int64][]time.Time{},
 		warmCtx:   warmCtx,
@@ -98,7 +96,7 @@ func New(store *settings.Store, telegram *telegram.Connector, cfg *settings.Conf
 
 // Warm refreshes the package-search cache unless it is already fresh or refreshing.
 func (s *Service) Warm(ctx context.Context) {
-	pkgC.refresh(ctx)
+	PkgC.Refresh(ctx)
 }
 
 // DemandWarm starts the Gentoo package-cache warm-up on the first demand and is a no-op
@@ -148,7 +146,7 @@ func (s *Service) AutoDelete(groupID int64) (time.Duration, bool) {
 	return duration, seconds > 0 && valid
 }
 
-func (s *Service) isGroup(groupID int64) bool {
+func (s *Service) IsGroup(groupID int64) bool {
 	if s.settings != nil {
 		return s.settings.IsGroup(groupID)
 	}
@@ -162,7 +160,7 @@ func (s *Service) lookupSettingsGroupID(chatID int64) int64 {
 	return 0
 }
 
-func (s *Service) cleanupAfter(chatID int64) time.Duration {
+func (s *Service) CleanupAfter(chatID int64) time.Duration {
 	ttl, on := s.AutoDelete(s.lookupSettingsGroupID(chatID))
 	if !on {
 		return 0
@@ -170,37 +168,18 @@ func (s *Service) cleanupAfter(chatID int64) time.Duration {
 	return ttl
 }
 
-// Delete group lookup commands and answers together using a fresh timer context.
-func (s *Service) scheduleLookupCleanup(_ *telego.Bot, chatID int64, cmdMsgID, respMsgID int) {
-	s.telegram.ScheduleCleanup(chatID, cmdMsgID, respMsgID, s.cleanupAfter(chatID))
-}
-
-// Plain text preserves angle-bracket placeholders and still follows reply/cleanup semantics.
-func (s *Service) replyLookupPlain(c context.Context, _ *telego.Bot, chatID int64, replyTo int, text string) {
-	s.telegram.ReplyPlain(c, chatID, replyTo, text, s.cleanupAfter(chatID))
-}
-
-// HTML lookup replies require callers to escape dynamic content.
-func (s *Service) replyLookupHTML(c context.Context, _ *telego.Bot, chatID int64, replyTo int, htmlText string) *telego.Message {
-	return s.telegram.ReplyHTML(c, chatID, replyTo, htmlText, s.cleanupAfter(chatID))
-}
-
-// Bot API rich messages fall back to HTML on server rejection.
-func (s *Service) sendRichOrHTML(c context.Context, _ *telego.Bot, chatID int64, replyTo int, richHTML, plainHTML string) {
-	s.telegram.SendRichOrHTML(c, chatID, replyTo, richHTML, plainHTML, s.richEnabled(chatID), s.cleanupAfter(chatID))
-}
-
 const privateQueryWindow = time.Minute
+
 const privateQueryMapMax = 10000
 
-func (s *Service) privateQueryPerMin() int {
+func (s *Service) PrivateQueryPerMin() int {
 	if s.cfg.PrivateQueryPerMin > 0 {
 		return s.cfg.PrivateQueryPerMin
 	}
 	return 3
 }
 
-func (s *Service) richEnabled(chatID int64) bool {
+func (s *Service) RichEnabled(chatID int64) bool {
 	if s.settings != nil {
 		if group, ok := s.settings.Settings(chatID); ok {
 			return group.RichMessages().Value
@@ -208,7 +187,8 @@ func (s *Service) richEnabled(chatID int64) bool {
 	}
 	return s.cfg.RichMessages
 }
-func (s *Service) groupLanguage(groupID int64) i18n.Lang {
+
+func (s *Service) GroupLanguage(groupID int64) i18n.Lang {
 	if s.settings != nil {
 		if group, ok := s.settings.Settings(groupID); ok {
 			return i18n.FromStored(group.Lang().Value)
@@ -217,30 +197,8 @@ func (s *Service) groupLanguage(groupID int64) i18n.Lang {
 	return i18n.FromStored(s.cfg.LangForGroup(groupID))
 }
 
-func (s *Service) requesterLanguage(msg *telego.Message) i18n.Lang {
-	fallback := i18n.LangEN
-	if s.isGroup(msg.Chat.ID) {
-		fallback = s.groupLanguage(msg.Chat.ID)
-	}
-	return i18n.FromRequester(msg.From.LanguageCode, fallback)
-}
-
-// RenamedHandler returns a route handler that directs users to a canonical command.
-func (s *Service) RenamedHandler(canonical string) th.Handler {
-	return func(ctx *th.Context, update telego.Update) error {
-		message := update.Message
-		if message == nil || message.From == nil {
-			return nil
-		}
-		language := s.requesterLanguage(message)
-		s.replyLookupPlain(ctx.Context(), ctx.Bot(), message.Chat.ID, message.MessageID,
-			i18n.Messages.Bot.RenamedCommand.Render(language, canonical))
-		return nil
-	}
-}
-
 // Sliding-window limits apply only to private-chat lookups.
-func (s *Service) queryRateOK(userID int64) bool {
+func (s *Service) QueryRateOK(userID int64) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	now := time.Now()
@@ -251,7 +209,7 @@ func (s *Service) queryRateOK(userID int64) bool {
 			kept = append(kept, hit)
 		}
 	}
-	if len(kept) >= s.privateQueryPerMin() {
+	if len(kept) >= s.PrivateQueryPerMin() {
 		s.queryHits[userID] = kept
 		return false
 	}
@@ -267,22 +225,6 @@ func (s *Service) queryRateOK(userID int64) bool {
 		}
 	}
 	return true
-}
-
-// External lookups are unlimited in guarded groups and rate-limited per user in private chats.
-func (s *Service) queryAllowed(ctx *th.Context, msg *telego.Message, l i18n.Lang) bool {
-	if s.isGroup(msg.Chat.ID) {
-		return true
-	}
-	if msg.Chat.Type == "private" && msg.From != nil {
-		if s.queryRateOK(msg.From.ID) {
-			return true
-		}
-		_, _ = ctx.Bot().SendMessage(ctx.Context(), tu.Message(tu.ID(msg.Chat.ID),
-			i18n.Messages.LookupContent.Transport.PrivateRateLimited.Render(l, s.privateQueryPerMin())))
-		return false
-	}
-	return false
 }
 
 // Bound JSON memory while accommodating recursive GitHub trees.
@@ -328,7 +270,7 @@ func acquireHTTPSlot(ctx context.Context, url string, sem chan struct{}, wait ti
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-timer.C:
-		return &httpBusyError{url: url, wait: wait}
+		return &httpBusyError{Url: url, Wait: wait}
 	}
 }
 
@@ -355,7 +297,7 @@ func httpGet(ctx context.Context, url string, hdr http.Header) (*http.Response, 
 	if resp.StatusCode != http.StatusOK {
 		_ = resp.Body.Close() // discarding a non-200 body; close error is irrelevant (slot freed below)
 		<-httpSem
-		return nil, &httpStatusError{url: url, code: resp.StatusCode}
+		return nil, &httpStatusError{Url: url, Code: resp.StatusCode}
 	}
 	resp.Body = &semReleaseCloser{ReadCloser: resp.Body} // slot released when the caller closes the body
 	return resp, nil
@@ -383,7 +325,7 @@ func httpGetBody(ctx context.Context, url string, limit int64) ([]byte, error) {
 		return nil, err
 	}
 	if int64(len(body)) > limit {
-		return nil, &httpBodyTooLargeError{url: url, limit: limit}
+		return nil, &httpBodyTooLargeError{Url: url, Limit: limit}
 	}
 	return body, nil
 }

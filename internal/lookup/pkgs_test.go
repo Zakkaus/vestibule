@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"strings"
 	"testing"
-
-	"github.com/Zakkaus/vestibule/internal/i18n"
 )
 
 type pkgRoundTripper func(*http.Request) (*http.Response, error)
@@ -24,7 +22,7 @@ func TestFamilyChannels(t *testing.T) {
 	debTesting := func(lbl string) bool { return lbl == "14" }
 
 	// firefox-like: sid newest; 11/12/13 share the stable version; 14 (testing) is excluded.
-	got := familyChannels([]repologyPkg{
+	got := familyChannels([]RepologyPkg{
 		{"debian_unstable", "152.0.1"},
 		{"debian_12", "140.12.0"}, {"debian_13", "140.12.0"}, {"debian_14", "140.11.0"},
 	}, deb, debTesting)
@@ -33,57 +31,57 @@ func TestFamilyChannels(t *testing.T) {
 		t.Errorf("firefox-like = %v, want %v", got, want)
 	}
 	// nano-like: testing(14) ties with sid at 9.0 but real stable(13) is older -> 2 lines.
-	if g := familyChannels([]repologyPkg{
+	if g := familyChannels([]RepologyPkg{
 		{"debian_unstable", "9.0"}, {"debian_14", "9.0"}, {"debian_13", "8.4"},
 	}, deb, debTesting); len(g) != 2 || g[1] != (channelLine{"8.4", "13"}) {
 		t.Errorf("nano-like = %v, want sid 9.0 + stable {8.4,13}", g)
 	}
 	// Fedora-like: rawhide newest, but stable(44) carries a different version -> 2 lines; when
 	// rawhide == stable, a single line labelled by the stable release (not "rawhide").
-	if g := familyChannels([]repologyPkg{
+	if g := familyChannels([]RepologyPkg{
 		{"fedora_rawhide", "9.0"}, {"fedora_44", "8.7"}, {"fedora_43", "8.5"},
 	}, []string{"fedora_"}, nil); len(g) != 2 || g[1] != (channelLine{"8.7", "44"}) {
 		t.Errorf("fedora-like = %v, want rawhide 9.0 + {8.7,44}", g)
 	}
-	if g := familyChannels([]repologyPkg{
+	if g := familyChannels([]RepologyPkg{
 		{"fedora_rawhide", "152.0"}, {"fedora_44", "152.0"},
 	}, []string{"fedora_"}, nil); len(g) != 1 || g[0] != (channelLine{"152.0", "44"}) {
 		t.Errorf("fedora-coincide = %v, want one line {152.0,44} (not rawhide)", g)
 	}
 	// pure rolling (Arch) -> one line, rolling label.
-	if g := familyChannels([]repologyPkg{{"arch", "153.0b2"}}, []string{"arch"}, nil); len(g) != 1 || g[0].label != "" {
+	if g := familyChannels([]RepologyPkg{{"arch", "153.0b2"}}, []string{"arch"}, nil); len(g) != 1 || g[0].Label != "" {
 		t.Errorf("arch-like = %v, want one rolling line", g)
 	}
 }
 
 func TestFamilyChannelsSkipsExcludedRollingLabels(t *testing.T) {
-	got := familyChannels([]repologyPkg{
+	got := familyChannels([]RepologyPkg{
 		{Repo: "debian_unstable", Version: "9.0"},
 		{Repo: "debian_13", Version: "8.0"},
 	}, []string{"debian_"}, func(label string) bool { return label == "unstable" })
-	want := []channelLine{{ver: "8.0", label: "13"}}
+	want := []channelLine{{Ver: "8.0", Label: "13"}}
 	if len(got) != len(want) || got[0] != want[0] {
 		t.Fatalf("excluded rolling channel was shown as current: got %v, want %v", got, want)
 	}
 }
 
 func TestFamilyChannelsKeepsTheBetterVersionWithinARelease(t *testing.T) {
-	got := familyChannels([]repologyPkg{
+	got := familyChannels([]RepologyPkg{
 		{Repo: "ubuntu_24_04", Version: "1.0"},
 		{Repo: "ubuntu_24_04", Version: "2.0"},
 	}, []string{"ubuntu_"}, nil)
-	want := []channelLine{{ver: "2.0", label: "24.04"}}
+	want := []channelLine{{Ver: "2.0", Label: "24.04"}}
 	if len(got) != len(want) || got[0] != want[0] {
 		t.Fatalf("single release kept an inferior package version: got %v, want %v", got, want)
 	}
 }
 
 func TestFamilyChannelsFallsBackWhenEveryLabelIsExcluded(t *testing.T) {
-	got := familyChannels([]repologyPkg{
+	got := familyChannels([]RepologyPkg{
 		{Repo: "ubuntu_20_04", Version: "2.0"},
 		{Repo: "ubuntu_22_04", Version: "1.0"},
 	}, []string{"ubuntu_"}, func(string) bool { return true })
-	want := []channelLine{{ver: "2.0", label: "20.04"}}
+	want := []channelLine{{Ver: "2.0", Label: "20.04"}}
 	if len(got) != len(want) || got[0] != want[0] {
 		t.Fatalf("all-excluded family lost its raw newest fallback: got %v, want %v", got, want)
 	}
@@ -144,23 +142,23 @@ func TestReleaseLabel(t *testing.T) {
 		{"arch", "", []string{"arch"}},                               // rolling, exact prefix -> no label
 		{"opensuse_tumbleweed", "", []string{"opensuse_tumbleweed"}}, // rolling
 	} {
-		if got := releaseLabel(c.repo, c.prefixes); got != c.want {
+		if got := ReleaseLabel(c.repo, c.prefixes); got != c.want {
 			t.Errorf("releaseLabel(%q) = %q, want %q", c.repo, got, c.want)
 		}
 	}
 }
 
 func TestReleaseLabelStripsTheStableNixChannelPrefix(t *testing.T) {
-	if got, want := releaseLabel("nix_stable_25_11", []string{"nix_"}), "25.11"; got != want {
+	if got, want := ReleaseLabel("nix_stable_25_11", []string{"nix_"}), "25.11"; got != want {
 		t.Fatalf("stable Nix channel label = %q, want %q", got, want)
 	}
 }
 
 func TestReleaseLabelRejectsRepositoriesOutsideTheFamily(t *testing.T) {
-	if got := releaseLabel("freebsd", []string{"debian_"}); got != "" {
+	if got := ReleaseLabel("freebsd", []string{"debian_"}); got != "" {
 		t.Fatalf("unmatched repository leaked raw label %q, want empty", got)
 	}
-	if got, want := releaseLabel("debian_13", []string{"debian_"}), "13"; got != want {
+	if got, want := ReleaseLabel("debian_13", []string{"debian_"}), "13"; got != want {
 		t.Fatalf("matching repository label = %q, want %q", got, want)
 	}
 }
@@ -181,17 +179,17 @@ func TestFamOf(t *testing.T) {
 		{"opensuse_tumbleweed", "openSUSE Tumbleweed"},
 		{"freebsd", ""}, // not a family we surface
 	} {
-		if got := famOf(c.repo); got != c.want {
+		if got := FamOf(c.repo); got != c.want {
 			t.Errorf("famOf(%q) = %q, want %q", c.repo, got, c.want)
 		}
 	}
 }
 
 func TestArchFamilyPrefixRequiresAnUnderscoreBoundary(t *testing.T) {
-	if got := famOf("archpower_2026"); got != "" {
+	if got := FamOf("archpower_2026"); got != "" {
 		t.Fatalf("archpower repository was labeled %q; PowerPC packages must not appear as Arch", got)
 	}
-	if got := famOf("arch_extra"); got != "Arch" {
+	if got := FamOf("arch_extra"); got != "Arch" {
 		t.Fatalf("an Arch repository with an underscore boundary was labeled %q, want Arch", got)
 	}
 }
@@ -211,12 +209,12 @@ func TestBareDateSnapshot(t *testing.T) {
 		t.Error("snapshot 20250315 must not beat real 14.2.0")
 	}
 	// gcc-like Debian rows: real versions must win, snapshots excluded from the output.
-	rows := []repologyPkg{
+	rows := []RepologyPkg{
 		{"debian_unstable", "16.1.0"}, {"debian_unstable", "20260327"},
 		{"debian_13", "14.2.0"}, {"debian_13", "20250315"},
 	}
 	for _, ch := range familyChannels(rows, []string{"debian_"}, func(string) bool { return false }) {
-		if ch.ver == "20260327" || ch.ver == "20250315" {
+		if ch.Ver == "20260327" || ch.Ver == "20250315" {
 			t.Errorf("snapshot leaked into /pkgs output: %+v", ch)
 		}
 	}
@@ -234,15 +232,15 @@ func TestSnapVersionAndUbuntuChannels(t *testing.T) {
 		if snapVersion(v) {
 			t.Errorf("%q must NOT be flagged as a Snap transitional", v)
 		}
-		if displayVer(v) != v {
-			t.Errorf("displayVer(%q) must be unchanged, got %q", v, displayVer(v))
+		if DisplayVer(v) != v {
+			t.Errorf("displayVer(%q) must be unchanged, got %q", v, DisplayVer(v))
 		}
 	}
 	if verTier("17.0.0.snapshot20260614") != 0 {
 		t.Errorf("a real snapshot version must be a tier-0 real release, got %d", verTier("17.0.0.snapshot20260614"))
 	}
-	if displayVer("1snap1") != "snap" {
-		t.Errorf("displayVer(1snap1) = %q, want snap", displayVer("1snap1"))
+	if DisplayVer("1snap1") != "snap" {
+		t.Errorf("displayVer(1snap1) = %q, want snap", DisplayVer("1snap1"))
 	}
 
 	// EOL series (18.04/20.04) and the unreleased 26.10 are excluded; current releases ship only
@@ -254,17 +252,17 @@ func TestSnapVersionAndUbuntuChannels(t *testing.T) {
 		}
 		return false
 	}
-	chromium := []repologyPkg{
+	chromium := []RepologyPkg{
 		{"ubuntu_18_04", "112.0.5615.49"}, {"ubuntu_20_04", "85.0.4183.83"},
 		{"ubuntu_22_04", "1snap1"}, {"ubuntu_24_04", "1snap1"},
 		{"ubuntu_26_04", "1snap1"}, {"ubuntu_26_10", "1snap1"},
 	}
-	if g := familyChannels(chromium, []string{"ubuntu_"}, excl); len(g) != 1 || g[0].label != "26.04" || displayVer(g[0].ver) != "snap" {
+	if g := familyChannels(chromium, []string{"ubuntu_"}, excl); len(g) != 1 || g[0].Label != "26.04" || DisplayVer(g[0].Ver) != "snap" {
 		t.Errorf("chromium-like Ubuntu = %v, want one line snap@26.04", g)
 	}
 
 	// vim-like: a real deb in the newest supported release shows normally (not snap, not EOL).
-	vim := []repologyPkg{
+	vim := []RepologyPkg{
 		{"ubuntu_20_04", "8.1.2269"}, {"ubuntu_22_04", "9.0.1"},
 		{"ubuntu_24_04", "9.1.0"}, {"ubuntu_26_04", "9.1.2141"},
 	}
@@ -275,17 +273,17 @@ func TestSnapVersionAndUbuntuChannels(t *testing.T) {
 	// real chromium data: 22.04 (still supported) carries an ANCIENT real deb (85) while 24.04+
 	// moved to Snap. The NEWEST supported release (26.04, Snap) must win — the stale 22.04 deb must
 	// NOT mask it (the v3.6.6 newest-release fix; the old "highest version" logic showed 85@22.04).
-	chromiumReal := []repologyPkg{
+	chromiumReal := []RepologyPkg{
 		{"ubuntu_18_04", "112.0.5615.49"}, {"ubuntu_20_04", "85.0.4183.83"},
 		{"ubuntu_22_04", "85.0.4183.83"}, {"ubuntu_24_04", "1snap1"},
 		{"ubuntu_25_04", "1snap1"}, {"ubuntu_26_04", "1snap1"}, {"ubuntu_26_10", "1snap1"},
 	}
-	if g := familyChannels(chromiumReal, []string{"ubuntu_"}, excl); len(g) != 1 || g[0].label != "26.04" || displayVer(g[0].ver) != "snap" {
+	if g := familyChannels(chromiumReal, []string{"ubuntu_"}, excl); len(g) != 1 || g[0].Label != "26.04" || DisplayVer(g[0].Ver) != "snap" {
 		t.Errorf("real chromium Ubuntu (stale 22.04 deb) = %v, want snap@26.04", g)
 	}
 
 	// openSUSE Leap: the newest release wins even when an older one carries a higher version.
-	leap := []repologyPkg{
+	leap := []RepologyPkg{
 		{"opensuse_leap_15_5", "144.0"}, {"opensuse_leap_15_6", "144.0"}, {"opensuse_leap_16_0", "143.0"},
 	}
 	if g := familyChannels(leap, []string{"opensuse_leap"}, nil); len(g) != 1 || g[0] != (channelLine{"143.0", "16.0"}) {
@@ -297,26 +295,26 @@ func TestGentooDistroLines(t *testing.T) {
 	const u = "https://packages.gentoo.org/packages/net-misc/openssh"
 
 	// openssh: newest (10.3_p1) is stable amd64 -> single stable line, no tilde.
-	if g := gentooDistroLines("10.3_p1", "10.3_p1", u); len(g) != 1 ||
-		g[0].label != "Gentoo amd64" || g[0].ver != "10.3_p1" {
+	if g := GentooDistroLines("10.3_p1", "10.3_p1", u); len(g) != 1 ||
+		g[0].Label != "Gentoo amd64" || g[0].Ver != "10.3_p1" {
 		t.Errorf("stable==latest should be one 'Gentoo amd64' line, got %v", g)
 	}
 
 	// a ~amd64 testing version above the newest stable -> two lines (stable, then ~amd64).
-	g := gentooDistroLines("1.2.0", "1.3.0", u)
-	if len(g) != 2 || g[0] != (distroLine{"Gentoo amd64", "1.2.0", "", u}) ||
-		g[1] != (distroLine{"Gentoo ~amd64", "1.3.0", "", u}) {
+	g := GentooDistroLines("1.2.0", "1.3.0", u)
+	if len(g) != 2 || g[0] != (DistroLine{"Gentoo amd64", "1.2.0", "", u}) ||
+		g[1] != (DistroLine{"Gentoo ~amd64", "1.3.0", "", u}) {
 		t.Errorf("stable<latest should be amd64 + ~amd64, got %v", g)
 	}
 
 	// testing-only package (no amd64-stable at all) -> single ~amd64 line.
-	if g := gentooDistroLines("", "9999_pre1", u); len(g) != 1 ||
-		g[0].label != "Gentoo ~amd64" || g[0].ver != "9999_pre1" {
+	if g := GentooDistroLines("", "9999_pre1", u); len(g) != 1 ||
+		g[0].Label != "Gentoo ~amd64" || g[0].Ver != "9999_pre1" {
 		t.Errorf("no stable should be one 'Gentoo ~amd64' line, got %v", g)
 	}
 
 	// nothing found -> no line.
-	if g := gentooDistroLines("", "", u); g != nil {
+	if g := GentooDistroLines("", "", u); g != nil {
 		t.Errorf("empty should yield no lines, got %v", g)
 	}
 }
@@ -356,101 +354,9 @@ func TestRepologyQuery(t *testing.T) {
 		{"app-editors/vim", "vim"},
 		{"not-a-pkg/path/extra", "not-a-pkg/path/extra"}, // not a valid atom -> unchanged
 	} {
-		if got := repologyQuery(c.in); got != c.want {
+		if got := RepologyQuery(c.in); got != c.want {
 			t.Errorf("repologyQuery(%q) = %q, want %q", c.in, got, c.want)
 		}
-	}
-}
-
-func TestFetchRepologyAvailability(t *testing.T) {
-	const lookupName = "vim"
-	messages := i18n.Messages.LookupDistros.Pkgs
-	notFound := messages.RepologyNotFound.Render(i18n.LangZH, lookupName)
-	unavailable := messages.RepologyUnavailable.Render(i18n.LangZH, lookupName)
-	for _, tc := range []struct {
-		name       string
-		exactRows  []repologyPkg
-		exactErr   error
-		searchRows map[string][]repologyPkg
-		searchErr  error
-		available  bool
-		wantPkgs   int
-		wantText   string
-		notWant    string
-	}{
-		{
-			name:      "exact result",
-			exactRows: []repologyPkg{{Repo: "gentoo", Version: "9.1"}},
-			available: true,
-			wantPkgs:  1,
-		},
-		{
-			name:      "answered miss",
-			exactErr:  &httpStatusError{url: "u", code: 404},
-			available: true,
-			wantText:  notFound,
-			notWant:   unavailable,
-		},
-		{
-			name:     "rate limited",
-			exactErr: &httpStatusError{url: "u", code: 429},
-			wantText: unavailable,
-			notWant:  notFound,
-		},
-		{
-			name:     "server failure",
-			exactErr: &httpStatusError{url: "u", code: 503},
-			wantText: unavailable,
-			notWant:  notFound,
-		},
-		{
-			name:     "network failure",
-			exactErr: errors.New("connection reset"),
-			wantText: unavailable,
-			notWant:  notFound,
-		},
-		{
-			name:     "outbound busy",
-			exactErr: &httpBusyError{url: "u"},
-			wantText: unavailable,
-			notWant:  notFound,
-		},
-		{
-			name:       "search failure",
-			exactErr:   &httpStatusError{url: "u", code: 404},
-			searchErr:  &httpStatusError{url: "u", code: 503},
-			wantText:   unavailable,
-			notWant:    notFound,
-			searchRows: map[string][]repologyPkg{},
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			_, gotPkgs, _, _, available := fetchRepologyWith(
-				context.Background(),
-				lookupName,
-				func(_ context.Context, url string, dst any) error {
-					if strings.Contains(url, "/project/") {
-						*dst.(*[]repologyPkg) = tc.exactRows
-						return tc.exactErr
-					}
-					*dst.(*map[string][]repologyPkg) = tc.searchRows
-					return tc.searchErr
-				},
-			)
-			if available != tc.available || len(gotPkgs) != tc.wantPkgs {
-				t.Errorf("fetchRepologyWith() returned len=%d available=%v, want len=%d available=%v",
-					len(gotPkgs), available, tc.wantPkgs, tc.available)
-			}
-			if tc.wantText != "" {
-				got := renderRepologyLookupMiss(i18n.LangZH, lookupName, available)
-				if got != tc.wantText {
-					t.Errorf("renderRepologyLookupMiss() = %q, want %q", got, tc.wantText)
-				}
-				if strings.Contains(got, tc.notWant) {
-					t.Errorf("renderRepologyLookupMiss() = %q, unwanted substring %q", got, tc.notWant)
-				}
-			}
-		})
 	}
 }
 
@@ -472,7 +378,7 @@ func TestFetchOverlayRejectsTruncatedTree(t *testing.T) {
 			})}
 			t.Cleanup(func() { httpClient = oldClient })
 
-			got, err := fetchOverlay(context.Background(), overlay{name: "test", repo: "owner/repo", branch: "main"})
+			got, err := fetchOverlay(context.Background(), overlay{Name: "test", repo: "owner/repo", branch: "main"})
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("fetchOverlay() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -508,7 +414,7 @@ func TestOverlayTreesKeepRepositoryPathsOutOfPackageAtoms(t *testing.T) {
 	})}
 	t.Cleanup(func() { httpClient = oldClient })
 
-	pkgs, err := fetchOverlay(context.Background(), overlay{name: "test", repo: "owner/repo", branch: "main"})
+	pkgs, err := fetchOverlay(context.Background(), overlay{Name: "test", repo: "owner/repo", branch: "main"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -537,7 +443,7 @@ func TestPkgCacheFailedRefreshKeepsPreviousOverlay(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			source := overlay{name: "test", repo: "owner/repo", branch: "main"}
+			source := overlay{Name: "test", repo: "owner/repo", branch: "main"}
 			pc := &pkgCache{
 				pkgs:      map[string]map[string]string{"test": {"app-editors/demo": "1.0"}},
 				available: map[string]bool{"test": true},
@@ -569,7 +475,7 @@ func TestAFamilyPrefixMatchesOnlyOnAnUnderscoreBoundary(t *testing.T) {
 		{"debian_13", "Debian"},   // positive control: a prefixed release repo
 		{"alpine_3_21", "Alpine"}, //
 	} {
-		if got := famOf(c.repo); got != c.want {
+		if got := FamOf(c.repo); got != c.want {
 			t.Errorf("famOf(%q) = %q, want %q: a version from another distribution would be shown under the %q row",
 				c.repo, got, c.want, got)
 		}

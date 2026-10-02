@@ -3,11 +3,8 @@ package lookup
 import (
 	"context"
 	"errors"
-	"strings"
 	"testing"
 	"time"
-
-	"github.com/Zakkaus/vestibule/internal/i18n"
 )
 
 func TestVerLess(t *testing.T) {
@@ -102,7 +99,7 @@ func TestCommandArg(t *testing.T) {
 		{"/pkg  a  b", "a b"},
 		{"  /pkg  vim  ", "vim"},
 	} {
-		if got := commandArg(c.in); got != c.want {
+		if got := CommandArg(c.in); got != c.want {
 			t.Errorf("commandArg(%q) = %q, want %q", c.in, got, c.want)
 		}
 	}
@@ -137,9 +134,9 @@ func TestSearchMainTreeAvailability(t *testing.T) {
 		{name: "answered empty", body: []byte("<html></html>"), wantOK: true},
 		{name: "answered with match", body: []byte(`<a href="/packages/app-editors/vim">vim</a>`), wantOK: true, wantLen: 1},
 		{name: "network failure", err: errors.New("connection reset")},
-		{name: "server failure", err: &httpStatusError{url: "u", code: 503}},
-		{name: "outbound busy", err: &httpBusyError{url: "u", wait: time.Millisecond}},
-		{name: "body too large", err: &httpBodyTooLargeError{url: "u", limit: 3}},
+		{name: "server failure", err: &httpStatusError{Url: "u", Code: 503}},
+		{name: "outbound busy", err: &httpBusyError{Url: "u", Wait: time.Millisecond}},
+		{name: "body too large", err: &httpBodyTooLargeError{Url: "u", Limit: 3}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got, ok := searchMainTreeWith(
@@ -190,10 +187,10 @@ func TestSearchMainTreeExactAvailability(t *testing.T) {
 }
 
 func TestPkgCacheRefreshAvailability(t *testing.T) {
-	sources := []overlay{{name: "answered"}, {name: "failed"}}
+	sources := []overlay{{Name: "answered"}, {Name: "failed"}}
 	pc := &pkgCache{pkgs: map[string]map[string]string{}, available: map[string]bool{}}
 	status := pc.refreshWith(context.Background(), sources, func(_ context.Context, source overlay) (map[string]string, error) {
-		if source.name == "failed" {
+		if source.Name == "failed" {
 			return nil, errors.New("upstream unavailable")
 		}
 		return map[string]string{"app-editors/vim": "9.1"}, nil
@@ -203,81 +200,6 @@ func TestPkgCacheRefreshAvailability(t *testing.T) {
 	}
 	if got := pc.pkgs["answered"]["app-editors/vim"]; got != "9.1" {
 		t.Errorf("successful overlay result = %q, want 9.1", got)
-	}
-}
-
-func TestRenderPkgAvailability(t *testing.T) {
-	renderers := []struct {
-		name string
-		fn   func(i18n.Lang, []string, pkgLookupAvailability) string
-	}{
-		{
-			name: "plain",
-			fn: func(l i18n.Lang, main []string, availability pkgLookupAvailability) string {
-				return renderPkg(l, "vim", main, map[string][2]string{}, nil, availability)
-			},
-		},
-		{
-			name: "rich",
-			fn: func(l i18n.Lang, main []string, availability pkgLookupAvailability) string {
-				return renderPkgRich(l, "vim", main, map[string][2]string{}, nil, availability)
-			},
-		},
-	}
-	cases := []struct {
-		name         string
-		main         []string
-		availability pkgLookupAvailability
-		want         func(i18n.Lang, pkgLookupAvailability) string
-		notWant      func(i18n.Lang, pkgLookupAvailability) string
-	}{
-		{
-			name:         "complete miss",
-			availability: pkgLookupAvailability{official: true, overlays: map[string]bool{"guru": true}},
-			want: func(l i18n.Lang, _ pkgLookupAvailability) string {
-				return i18n.Messages.LookupPackages.Pkg.NotFound.For(l)
-			},
-			notWant: func(l i18n.Lang, availability pkgLookupAvailability) string {
-				return i18n.Messages.LookupPackages.Pkg.Unavailable.Render(l, availability.unavailableSources(l))
-			},
-		},
-		{
-			name:         "lookup unavailable",
-			availability: pkgLookupAvailability{overlays: map[string]bool{"guru": true}},
-			want: func(l i18n.Lang, availability pkgLookupAvailability) string {
-				return i18n.Messages.LookupPackages.Pkg.Unavailable.Render(l, availability.unavailableSources(l))
-			},
-			notWant: func(l i18n.Lang, _ pkgLookupAvailability) string {
-				return i18n.Messages.LookupPackages.Pkg.NotFound.For(l)
-			},
-		},
-		{
-			name:         "partial hit",
-			main:         []string{"app-editors/vim"},
-			availability: pkgLookupAvailability{official: true, overlays: map[string]bool{"guru": false}},
-			want: func(l i18n.Lang, availability pkgLookupAvailability) string {
-				return i18n.Messages.LookupPackages.Source.PartialResults.Render(l, availability.unavailableSources(l))
-			},
-		},
-	}
-	for _, l := range i18n.Languages() {
-		for _, renderer := range renderers {
-			for _, tc := range cases {
-				t.Run(l.String()+"/"+renderer.name+"/"+tc.name, func(t *testing.T) {
-					got := renderer.fn(l, tc.main, tc.availability)
-					want := tc.want(l, tc.availability)
-					if !strings.Contains(got, want) {
-						t.Errorf("rendered result %q does not contain %q", got, want)
-					}
-					if tc.notWant != nil {
-						notWant := tc.notWant(l, tc.availability)
-						if strings.Contains(got, notWant) {
-							t.Errorf("rendered result %q unexpectedly contains %q", got, notWant)
-						}
-					}
-				})
-			}
-		}
 	}
 }
 

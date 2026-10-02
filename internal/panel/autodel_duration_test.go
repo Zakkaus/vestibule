@@ -39,7 +39,7 @@ func TestAutoDelReportsEffectiveSeconds(t *testing.T) {
 				bot := newAPITestBot(t, fake)
 				panel, verifier := newAdminTestApplication(t, cfg, store, bot)
 				t.Cleanup(verifier.Shutdown)
-				panel.lookups = lookup.New(store, nil, cfg, "")
+				panel.lookups = lookup.New(store, cfg, "")
 				wantDuration := tgfmt.ModerationBanDurationText(language, seconds)
 				if seconds == 90 {
 					wantDuration = tgfmt.ModerationBanDurationText(language, 60) + " " + tgfmt.ModerationBanDurationText(language, 30)

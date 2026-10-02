@@ -353,12 +353,12 @@ func newDispatchFixture(t *testing.T, requiredChannel int64) *dispatchFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	lookups := lookup.New(settings, connector, cfg, "")
+	lookups := lookup.New(settings, cfg, "")
 	t.Cleanup(func() { stopLookupsForTest(lookups) })
 	administration := panel.New(
 		settings, connector, cfg, &i18n.Messages, verification, moderation, lookups, "test", time.Now(),
 	)
-	modules, err := newRuntimeModules(cfg, settings, telegramBot, stateDirectory, administration, moderation, lookups, false)
+	modules, err := newRuntimeModules(cfg, settings, telegramBot, stateDirectory, administration, moderation, lookups, false, connector)
 	if err != nil {
 		t.Fatal(err)
 	}
