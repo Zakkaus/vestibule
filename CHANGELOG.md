@@ -78,6 +78,9 @@ All notable changes to this project are documented here. The format is based on
   default tier.
 
 ### Changed
+- CI selects Go, static, and browser jobs from changed paths while always running
+  document gates. The Gentoo compatibility leg runs on ARM, and Playwright uses
+  four workers on CI runners with two journeys shards and a separate render gate.
 - Gentoo lookups now use `/gpkg`, `/guse`, `/garm`, `/gbug`, `/gnews`, and `/gbbs`.
   The `/pkg`, `/use`, `/arm`, `/bug`, `/news`, and `/bbs` aliases only return rename notices,
   stay hidden from menus and `/help`, and will be removed in v5.1.0.

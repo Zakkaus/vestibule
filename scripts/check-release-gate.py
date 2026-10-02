@@ -24,6 +24,8 @@ RELEASE = ROOT / ".github" / "workflows" / "release.yml"
 
 # Gates CI runs that a tag deliberately does not, each with the reason it cannot run here.
 EXCLUDED = {
+    "scripts/ci-scope.py":
+        "it selects pull-request jobs; tag releases always run their full gate set",
     "scripts/check-baseline-ratchet.py":
         "it compares this commit's baseline against the pull request's base branch, and a tag has "
         "no base to compare against",

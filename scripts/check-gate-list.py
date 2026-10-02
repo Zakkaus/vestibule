@@ -189,11 +189,11 @@ def go_matrix_tags(text: str) -> set[str]:
     )
     if job is None:
         return set()
-    matrix = re.search(r"(?m)^        tags:\s*\[(?P<values>[^\]]*)\]\s*$", job.group("body"))
-    if matrix is None:
-        return set()
-    quoted = re.findall(r'"([^"]*)"|\'([^\']*)\'', matrix.group("values"))
-    return {double if double != "" else single for double, single in quoted}
+    entries = re.findall(
+        r'(?m)^          - tags:\s*(?:"([^"]*)"|\'([^\']*)\'|([A-Za-z0-9_-]+))\s*$',
+        job.group("body"),
+    )
+    return {double or single or bare for double, single, bare in entries}
 
 
 def _workflow_run_text(text: str) -> str:
