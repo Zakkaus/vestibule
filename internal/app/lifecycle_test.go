@@ -353,8 +353,7 @@ func assertRetentionOutageAlert(t *testing.T, fixture *lifecycleVerificationFixt
 		alertRetentionOutage(
 			context.Background(),
 			fixture.bot,
-			fixture.cfg,
-			fixture.settings.ChatIDs(),
+			fixture.settings,
 			outage,
 		)
 		alerted <- outage

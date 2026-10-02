@@ -349,7 +349,7 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 	logRuntimeOptions(options)
 	alertPersistenceProblem(ctx, bot, runtime.cfg, runtime.settings)
 	verificationStore := database.NewVerificationStore(runtime.database)
-	heartbeatBot := newOutageAwareBot(ctx, bot, runtime.cfg, runtime.settings, verificationStore, runtime.health)
+	heartbeatBot := newOutageAwareBot(ctx, bot, runtime.settings, verificationStore, runtime.health)
 	// Count uptime before GetMe so operator-visible uptime includes its latency.
 	startedAt := time.Now()
 	me, err := heartbeatBot.GetMe(ctx)

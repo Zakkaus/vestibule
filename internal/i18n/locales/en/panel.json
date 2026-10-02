@@ -29,10 +29,10 @@
     "usage": "Usage: /vmode kernel|quiz|mixed|auto. Omit the argument to view the current setting."
   },
   "auto_delete": {
-    "current_enabled": "🧹 Automatic deletion of lookup results is enabled. The result and original query will be deleted after %[1]d minutes.\nUsage: /autodel off disables it; /autodel <minutes> changes the delay.",
+    "current_enabled": "🧹 Automatic deletion of lookup results is enabled. The result and original query will be deleted after %[1]s.\nUsage: /autodel off disables it; /autodel <minutes> changes the delay.",
     "current_disabled": "Automatic deletion of lookup results is disabled.\nUsage: /autodel on enables it; /autodel <minutes> sets the delay and enables it.",
     "disabled": "Automatic deletion of lookup results is disabled. Replies and the original queries will be kept.",
-    "enabled": "🧹 Automatic deletion of lookup results is enabled. Results and original queries are retained for %[1]d minutes.",
+    "enabled": "🧹 Automatic deletion of lookup results is enabled. Results and original queries are retained for %[1]s.",
     "set": "🧹 The deletion delay is set to %[1]d minutes for results and original queries.",
     "usage": "Usage: /autodel on|off or /autodel <minutes> (1–1440)."
   },

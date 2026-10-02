@@ -35,13 +35,13 @@
     "caller_admin_check_failed": "⚠️ Could not confirm whether you are an administrator, so nothing was done. Try again once the bot can read member information."
   },
   "duration": {
-    "days": "%[1]d days",
-    "hours": "%[1]d hours",
-    "minutes": "%[1]d minutes",
+    "days": {"one": "%[1]d day", "other": "%[1]d days"},
+    "hours": {"one": "%[1]d hour", "other": "%[1]d hours"},
+    "minutes": {"one": "%[1]d minute", "other": "%[1]d minutes"},
     "permanent": "permanent",
     "permanent_effect": "does not lift automatically",
     "permanent_input": "permanent",
-    "seconds": "%[1]d seconds",
+    "seconds": {"one": "%[1]d second", "other": "%[1]d seconds"},
     "status": "%[1]s; %[2]s",
     "temporary_effect": "lifts automatically when the duration ends"
   },

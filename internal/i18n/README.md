@@ -31,6 +31,12 @@ invocations validate only the registered keys present in that fixture.
 
 Keep the object nesting and key spelling identical across locales. JSON does not support comments. Preserve HTML, commands, URLs, line breaks, and indexed placeholders exactly unless the translated sentence requires a different word order. Reordering indexed placeholders is allowed; changing their index or formatting verb is not.
 
+English count-sensitive `Format` values may use an object with `one` and `other`
+string keys instead of a string. `Render` selects `one` when its first argument
+is the integer 1; all other counts select `other`. Both forms must be non-empty
+and preserve the same indexed placeholders. Other locales retain a single string
+at the same logical key.
+
 ## Add a locale
 
 Adding files and registering the catalogue is necessary but does not make a locale selectable.

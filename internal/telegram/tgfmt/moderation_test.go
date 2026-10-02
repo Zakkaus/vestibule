@@ -20,3 +20,20 @@ func TestModerationBanDurationText(t *testing.T) {
 		}
 	}
 }
+
+func TestEnglishModerationDurationCounts(t *testing.T) {
+	for seconds, want := range map[int]string{
+		1:      "1 second",
+		2:      "2 seconds",
+		60:     "1 minute",
+		120:    "2 minutes",
+		3600:   "1 hour",
+		7200:   "2 hours",
+		86400:  "1 day",
+		172800: "2 days",
+	} {
+		if got := ModerationBanDurationText(i18n.LangEN, seconds); got != want {
+			t.Errorf("English duration for %d seconds = %q, want %q", seconds, got, want)
+		}
+	}
+}

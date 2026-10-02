@@ -41,6 +41,10 @@ All notable changes to this project are documented here. The format is based on
 - A scheduled render gate covering every console locale, route, width, and theme.
 
 ### Fixed
+- Recovery alerts use each group's effective language and administrator-log destination,
+  falling back to the group when no log chat is set. `/autodel` status and enable replies
+  preserve second-based retention settings with localized durations. English duration
+  units use singular forms for a count of one in cleanup and moderation replies.
 - The Compose database volume now mounts at `/var/lib/postgresql` as PostgreSQL 18 requires.
   Native installs record their deployment type so host replacement works, and `import-state`
   rejects a missing or invalid `-pending` before touching the database.

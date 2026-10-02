@@ -297,22 +297,34 @@ func (v *Panel) OnAutoDel(ctx *th.Context, update telego.Update) error {
 	return v.settingsAdminCmd(ctx, update, func(groupID int64, l i18n.Lang) (string, error) {
 		action, ttl := parseAutoDelArg(strings.ToLower(strings.TrimSpace(adminCommandArg(update.Message.Text))))
 		switch action {
-		case "show":
-			if current, enabled := v.lookups.AutoDelete(groupID); enabled {
-				return i18n.Messages.Panel.AutoDelete.CurrentEnabled.Render(l, int(current/time.Minute)), nil
+		case "show", "on":
+			if action == "on" {
+				if err := v.verifier.SetAutoDelete(groupID, 0, true); err != nil {
+					return "", err
+				}
 			}
-			return i18n.Messages.Panel.AutoDelete.CurrentDisabled.For(l), nil
+			current, enabled := v.lookups.AutoDelete(groupID)
+			if !enabled {
+				return i18n.Messages.Panel.AutoDelete.CurrentDisabled.For(l), nil
+			}
+			seconds := int(current / time.Second)
+			var duration string
+			if remainder := seconds % 60; seconds > 60 && remainder != 0 {
+				duration = tgfmt.ModerationBanDurationText(l, seconds-remainder) + " " +
+					tgfmt.ModerationBanDurationText(l, remainder)
+			} else {
+				duration = tgfmt.ModerationBanDurationText(l, seconds)
+			}
+			response := i18n.Messages.Panel.AutoDelete.CurrentEnabled
+			if action == "on" {
+				response = i18n.Messages.Panel.AutoDelete.Enabled
+			}
+			return response.Render(l, duration), nil
 		case "off":
 			if err := v.verifier.SetAutoDelete(groupID, 0, false); err != nil {
 				return "", err
 			}
 			return i18n.Messages.Panel.AutoDelete.Disabled.For(l), nil
-		case "on":
-			if err := v.verifier.SetAutoDelete(groupID, 0, true); err != nil {
-				return "", err
-			}
-			current, _ := v.lookups.AutoDelete(groupID)
-			return i18n.Messages.Panel.AutoDelete.Enabled.Render(l, int(current/time.Minute)), nil
 		case "set":
 			if err := v.verifier.SetAutoDelete(groupID, ttl, true); err != nil {
 				return "", err

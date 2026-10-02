@@ -24,6 +24,12 @@ func TestCatalogueFormatsAcceptTheirRenderArguments(t *testing.T) {
 		}
 		seen[contractKey] = true
 		format := value.Interface().(Format)
+		if format.one != "" {
+			got, err := formatArgumentContract(format.one)
+			if err != nil || got != want {
+				t.Errorf("%s one form Render arguments = %q, %v; want %q", catalogEntry(path, LangEN), got, err, want)
+			}
+		}
 		for _, locale := range Languages() {
 			location := catalogEntry(path, locale)
 			got, err := formatArgumentContract(format.value(locale))
@@ -237,8 +243,8 @@ moderate.warning.issued=1:s,2:d,3:d,4:d,5:s
 moderate.warning.kick_alert=1:d,2:d,3:s,4:s
 moderate.warning.limit_kick_alert=1:s,2:d,3:s
 moderate.warning.limit_reached=1:s,2:d,3:s,4:s
-panel.auto_delete.current_enabled=1:d
-panel.auto_delete.enabled=1:d
+panel.auto_delete.current_enabled=1:s
+panel.auto_delete.enabled=1:s
 panel.auto_delete.set=1:d
 panel.help.admin=1:d
 panel.help.direct_message_note=1:d
