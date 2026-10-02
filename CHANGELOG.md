@@ -44,8 +44,7 @@ All notable changes to this project are documented here. The format is based on
 - Verification settings and question-bank drafts now guard navigation and scope reloads.
   Verification conflicts retain local changes for explicit discard or reapplication against
   the latest revision. Shared Spectrum save controls, confirmations, and notifications
-  distinguish confirmed results from unknown write outcomes. Phone save actions stack
-  at full width without splitting their labels.
+  distinguish confirmed results from unknown write outcomes.
 - Owner private help lists active owner commands. The owner menu and help omit
   `/console` when its link handler is disabled.
 - Production entry pages ignore preview query parameters and retain the authenticated
@@ -83,6 +82,10 @@ All notable changes to this project are documented here. The format is based on
   default tier.
 
 ### Changed
+- The console uses four navigation hubs, a single-row phone header, and a safe-area-aware
+  bottom hub bar. Verification settings provide the shared top-labelled field-grid template
+  with Spectrum M controls, intrinsic-width Save and Discard actions, and inline save failures.
+  Narrow audit cards wrap user and actor values within their available width.
 - Gentoo lookups now use `/gpkg`, `/guse`, `/garm`, `/gbug`, `/gnews`, and `/gbbs`.
   The `/pkg`, `/use`, `/arm`, `/bug`, `/news`, and `/bbs` aliases only return rename notices,
   stay hidden from menus and `/help`, and will be removed in v5.1.0.

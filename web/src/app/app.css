@@ -977,6 +977,7 @@ body {
 
   [data-record-card-header] [data-record-user] {
     min-inline-size: 0;
+    white-space: normal;
     overflow-wrap: anywhere;
   }
 
@@ -1005,6 +1006,7 @@ body {
     overflow-wrap: anywhere;
   }
 
+  [data-record-card-details] [data-record-actor],
   [data-record-card-details] [data-record-time] {
     white-space: normal;
   }
@@ -1087,70 +1089,6 @@ body {
 
 
 
-[data-verification-section] > [data-slot="setting"] {
-  padding: 0;
-  border-block-end: 0;
-}
-
-
-
-[data-verification-setting-copy] {
-  display: grid;
-  gap: var(--sp-1);
-}
-
-[data-verification-setting-copy] > label {
-  font-weight: 600;
-}
-
-[data-verification-setting-copy] [data-slot="badge"] {
-  justify-self: start;
-}
-
-[data-verification-setting-copy] [data-slot="field-error"] {
-  color: var(--destructive);
-}
-
-[data-verification-setting-control] {
-  display: flex;
-  flex-wrap: wrap;
-  min-inline-size: 0;
-  align-items: center;
-  justify-content: end;
-  gap: var(--sp-2);
-}
-
-[data-verification-setting-control] [data-slot="select"] {
-  inline-size: var(--field-w);
-  max-inline-size: 100%;
-}
-
-[data-verification-number] {
-  inline-size: calc(var(--field-w) - var(--sp-5));
-  max-inline-size: 100%;
-  font-variant-numeric: tabular-nums;
-}
-
-
-
-@media (max-width: 48rem) {
-  [data-verification-setting] {
-    align-items: stretch;
-    flex-direction: column;
-    gap: var(--sp-2);
-  }
-
-  [data-verification-setting-control] {
-    inline-size: 100%;
-    justify-content: start;
-  }
-
-  [data-verification-setting-control] select,
-  [data-verification-number] {
-    inline-size: 100%;
-  }
-
-}
 
 
 [data-bypass-state-card] {
@@ -2773,4 +2711,76 @@ body {
     inline-size: 100%;
   }
 }
+}
+
+/* Console geometry follows the hub dock; Spectrum retains control ownership. */
+body:has([data-shell-variant="console"]) {
+  --console-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --console-safe-top: env(safe-area-inset-top, 0px);
+  --dock: 0px;
+}
+.console-header {
+  padding-block-start: var(--console-safe-top);
+  min-block-size: calc(64px + var(--console-safe-top));
+  padding-inline-start: max(env(safe-area-inset-left, 0px), 24px);
+  padding-inline-end: max(env(safe-area-inset-right, 0px), 24px);
+}
+.console-sidebar {
+  block-size: calc(100dvh - 64px - var(--console-safe-top));
+}
+.console-content {
+  padding-block-end: calc(48px + var(--dock) + var(--console-safe-bottom));
+}
+[data-console-toasts] {
+  bottom: calc(16px + var(--dock, 0px) + var(--console-safe-bottom, env(safe-area-inset-bottom, 0px)));
+}
+[data-hub-bar] {
+  padding-block-end: var(--console-safe-bottom);
+}
+[data-shell-variant="console"] [data-page-heading] h1 {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 36px;
+  overflow-wrap: normal;
+}
+[data-verification-page],
+[data-verification-form] {
+  display: grid;
+  gap: 24px;
+}
+[data-verification-setting] {
+  overflow-wrap: normal;
+}
+[data-verification-savebar] {
+  padding: 0;
+}
+@media (max-width: 1023px) {
+  body:has([data-shell-variant="console"]) {
+    --dock: 64px;
+  }
+}
+@media (max-width: 600px) {
+  .console-content {
+    padding-block-end: calc(40px + var(--dock) + var(--console-safe-bottom));
+  }
+}
+@media (max-width: 399px) {
+  .console-header {
+    padding-inline-start: max(env(safe-area-inset-left, 0px), 12px);
+    padding-inline-end: max(env(safe-area-inset-right, 0px), 12px);
+  }
+}
+@media (max-width: 1023px) and (max-height: 500px) {
+  .console-header {
+    position: static;
+  }
+}
+
+@layer legacy {
+  [data-console-header] :is(button, input),
+  [data-group-switcher] button,
+  [data-verification-form] :is(button, input) {
+    min-block-size: 0;
+    min-inline-size: 0;
+  }
 }

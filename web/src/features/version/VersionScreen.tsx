@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/PageHeader";
 import { Feedback, writeOutcomeUnknown } from "../../components/feedback";
 import { useMemo, type ReactNode } from "react";
 import { Button } from "@react-spectrum/s2/Button";
@@ -480,10 +481,8 @@ function OperatorVersionScreen() {
       aria-busy={baseState.kind === "loading" || undefined}
       aria-labelledby="version-title"
     >
-      <header data-page-heading>
-        <h1 id="version-title">{t("version.title")}</h1>
-        <p>{t("version.description")}</p>
-      </header>
+      <PageHeader ><h1 id="version-title">{t("version.title")}</h1>
+      <p>{t("version.description")}</p></PageHeader>
       {baseState.kind === "loading" ? (
         <VersionStateCard id="loading" titleKey="version.loading.title" descriptionKey="version.loading.description" icon="loaderCircle" role="status" />
       ) : null}

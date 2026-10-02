@@ -5,7 +5,6 @@ import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import { useConsoleSession } from "../../app/session";
-import { useConsoleSize } from "../../components/ConsoleProvider";
 import { groupName } from "../../lib/chatNames";
 import {
   allGroupsSelection,
@@ -14,18 +13,14 @@ import {
   resolveGroupSelection
 } from "./fixtures";
 const groupSwitcherLayout = style({
-  width: {
-    default: 240,
-    "@media (max-width: 48rem)": "full"
-  },
+  width: "full",
   minWidth: 0
 });
 
-export function GroupSwitcher() {
+export function GroupSwitcher({ compact = false }: Readonly<{ compact?: boolean }>) {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const session = useConsoleSession();
-  const size = useConsoleSize("L");
   const fixtureFallback = isGroupFixtureFallback(session);
   const options =
     session.state === "ready"
@@ -68,18 +63,19 @@ export function GroupSwitcher() {
   }
 
   return (
-    <Content data-group-switcher styles={style({ minWidth: 0, gridColumn: { default: "auto", "@media (max-width: 48rem)": "1 / -1" } })}>
+    <Content data-group-switcher styles={style({ minWidth: 0, width: "full" })}>
       <Picker
         aria-label={t("shell.groupSwitcher")}
+        label={compact ? undefined : t("shell.groupSwitcher")}
         isDisabled={options.length === 0}
         loadingState={isLoading ? "loading" : "idle"}
         selectedKey={selectedGroupId}
         onSelectionChange={(key) => { if (key !== null) changeSelectedGroup(String(key)); }}
         items={selectionOptions}
-        size={size}
+        size="M"
         styles={groupSwitcherLayout}
         data-console-control
-        data-control-size={size}
+        data-control-size="M"
       >
         {(option) => <PickerItem id={option.value}>{option.label}</PickerItem>}
       </Picker>

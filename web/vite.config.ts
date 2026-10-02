@@ -1,4 +1,5 @@
-import { isAbsolute, relative } from "node:path";
+import { isAbsolute, relative, resolve } from "node:path";
+import { realpathSync } from "node:fs";
 import { defineConfig, type Plugin } from "vite";
 import macros from "unplugin-parcel-macros";
 import { removeRemoteFonts } from "./build/remove-remote-fonts.ts";
@@ -20,12 +21,15 @@ function cssProvenance(): Plugin {
         this.error(`Expected one complete CSS bundle, received ${css.length}`);
       }
       const modules = [...this.getModuleIds()];
+      const dependencyRoot = realpathSync(resolve(root, "node_modules"));
       const macroModules = new Set(modules.filter((id) => /^macro-[a-f0-9]+\.css$/.test(id)));
       const stylesheets = new Set([...modules, ...cssSources]
         .map((id) => id.split("?")[0]!)
         .filter((id) => isAbsolute(id) && id.endsWith(".css") && !macroModules.has(relative(root, id))));
       const origins = [...stylesheets].map((id) => {
-        const path = relative(root, id).replaceAll("\\", "/");
+        const vendorPath = relative(dependencyRoot, id).replaceAll("\\", "/");
+        const path = vendorPath.startsWith("../") || isAbsolute(vendorPath)
+          ? relative(root, id).replaceAll("\\", "/") : `node_modules/${vendorPath}`;
         return { path, kind: path.startsWith("node_modules/") ? "vendor" : "project" };
       });
       const macroSources = new Set([...macroModules]
@@ -50,6 +54,7 @@ const remoteFonts = removeRemoteFonts();
 
 export default defineConfig({
   plugins: [macros.vite(), remoteFonts, cssProvenance()],
+  server: { fs: { allow: [import.meta.dirname, realpathSync(resolve(import.meta.dirname, "node_modules"))] } },
   optimizeDeps: {
     // The Node-only macro runs in the build plugin, not the browser dependency graph.
     exclude: ["@react-spectrum/s2/style"],

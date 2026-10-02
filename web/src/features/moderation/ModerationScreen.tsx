@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/PageHeader";
 import { Feedback, writeOutcomeUnknown } from "../../components/feedback";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -477,13 +478,11 @@ export function ModerationScreen() {
       aria-busy={state.kind === "loading" || (state.kind === "ready" && state.saving) || undefined}
       aria-labelledby="moderation-title"
     >
-      <header data-page-heading>
-        <h1 id="moderation-title">
-          <Icon name="shieldAlert" />
-          {t("moderation.title")}
-        </h1>
-        <p>{t("moderation.description")}</p>
-      </header>
+      <PageHeader ><h1 id="moderation-title">
+        <Icon name="shieldAlert" />
+        {t("moderation.title")}
+      </h1>
+      <p>{t("moderation.description")}</p></PageHeader>
       <ModerationStateContent controller={controller} />
     </section>
   );

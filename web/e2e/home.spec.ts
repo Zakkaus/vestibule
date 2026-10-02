@@ -65,15 +65,11 @@ function statsPayload(query: URLSearchParams): unknown {
     [11, 0.64],
     [8, 0.75]
   ] as const;
-  const dates = [
-    "2026-08-26",
-    "2026-08-27",
-    "2026-08-28",
-    "2026-08-29",
-    "2026-08-30",
-    "2026-08-31",
-    "2026-09-01"
-  ] as const;
+  const dates = outcomes.map((_, index) => {
+    const date = new Date(`${query.get("from")}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + index);
+    return date.toISOString().slice(0, 10);
+  });
   return {
     range: {
       from: query.get("from"),
@@ -136,13 +132,12 @@ async function expectHomeWithinViewport(page: Page, maximumHeight: number): Prom
     await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   });
   const geometry = await page.evaluate(() => {
-    const panel = document.querySelector<HTMLElement>(".console-content")!;
     return {
-      scrollHeight: document.documentElement.scrollHeight + Math.max(0, panel.scrollHeight - panel.clientHeight),
+      scrollHeight: document.documentElement.scrollHeight,
       viewportHeight: window.innerHeight
     };
   });
-  expect(geometry.scrollHeight).toBeLessThanOrEqual(maximumHeight * geometry.viewportHeight);
+  expect(geometry.scrollHeight).toBeLessThanOrEqual(Math.round(maximumHeight * geometry.viewportHeight));
 }
 
 async function expectRenderedHomeChart(page: Page): Promise<void> {

@@ -39,20 +39,18 @@
   },
   "navigation": {
     "label": "Навигация по консоли",
-    "sections": {
-      "daily": "Ежедневные задачи",
+    "hubs": {
+      "daily": "Обзор",
       "verification": "Проверка",
-      "group": "Группы",
-      "content": "Контент",
-      "observe": "Мониторинг",
-      "console": "Эта консоль"
+      "group": "Группа",
+      "console": "Консоль"
     },
     "queue": "Очередь ожидания",
     "groups": "Группы и каналы",
     "preferences": "Настройки"
   },
   "shell": {
-    "mobileNavigation": "Открыть навигацию",
+    "more": "Ещё",
     "groupSwitcher": "Текущая группа",
     "allGroups": "Все доступные для управления группы"
   },

@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/PageHeader";
 import { Feedback, writeOutcomeUnknown } from "../../components/feedback";
 import { Button, Text } from "@react-spectrum/s2/Button";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -341,7 +342,7 @@ export function FeedsScreen() {
 
   return (
     <section data-feeds-page data-feeds-state={screenState.kind} aria-busy={screenState.kind === "loading" || saving || undefined} aria-labelledby="feeds-title">
-      <header data-page-heading><h1 id="feeds-title"><Icon name="rss" />{t("feeds.title")}</h1><p>{t("feeds.description")}</p></header>
+      <PageHeader ><h1 id="feeds-title"><Icon name="rss" />{t("feeds.title")}</h1><p>{t("feeds.description")}</p></PageHeader>
       {screenState.kind === "loading" ? <StateCard id="loading" titleKey="feeds.loading.title" descriptionKey="feeds.loading.description" live="polite" iconName="loaderCircle" /> : null}
       {screenState.kind === "access-denied" ? <StateCard id="access-denied" titleKey="feeds.accessDenied.title" descriptionKey="feeds.accessDenied.description" role="alert" iconName="circleAlert" /> : null}
       {screenState.kind === "unavailable" ? (

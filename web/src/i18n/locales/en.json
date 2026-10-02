@@ -39,20 +39,18 @@
   },
   "navigation": {
     "label": "Console navigation",
-    "sections": {
+    "hubs": {
       "daily": "Daily",
       "verification": "Verification",
-      "group": "Groups",
-      "content": "Content",
-      "observe": "Observability",
-      "console": "This console"
+      "group": "Group",
+      "console": "Console"
     },
     "queue": "Waiting queue",
     "groups": "Groups and channels",
     "preferences": "Preferences"
   },
   "shell": {
-    "mobileNavigation": "Open navigation",
+    "more": "More",
     "groupSwitcher": "Current group",
     "allGroups": "All manageable groups"
   },

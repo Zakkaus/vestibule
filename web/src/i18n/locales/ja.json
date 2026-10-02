@@ -39,20 +39,18 @@
   },
   "navigation": {
     "label": "コンソールナビゲーション",
-    "sections": {
+    "hubs": {
       "daily": "日常",
       "verification": "認証",
       "group": "グループ",
-      "content": "コンテンツ",
-      "observe": "監視",
-      "console": "このコンソール"
+      "console": "コンソール"
     },
     "queue": "待機キュー",
     "groups": "グループとチャンネル",
     "preferences": "環境設定"
   },
   "shell": {
-    "mobileNavigation": "ナビゲーションを開く",
+    "more": "その他",
     "groupSwitcher": "現在のグループ",
     "allGroups": "管理可能なすべてのグループ"
   },

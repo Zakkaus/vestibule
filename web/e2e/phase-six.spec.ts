@@ -757,7 +757,7 @@ test("widest locale keeps group controls inside the desktop header", async ({ pa
 
   const bounds = await page.evaluate(() => {
     const header = document.querySelector("[data-console-header]");
-    const controls = document.querySelector(".console-controls");
+    const controls = document.querySelector('[data-console-utilities="desktop"]');
     if (!(header instanceof HTMLElement) || !(controls instanceof HTMLElement)) {
       throw new Error("Group header geometry targets are missing");
     }

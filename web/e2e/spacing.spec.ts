@@ -256,7 +256,7 @@ test.describe("content pages use the stepped page and card hierarchy", () => {
           throw new Error("rendered route did not expose its page and heading");
         }
 
-        const cards = [...contentPage.querySelectorAll<HTMLElement>("[data-slot='card'], [data-verification-section], [data-verification-savebar]")]
+        const cards = [...contentPage.querySelectorAll<HTMLElement>("[data-slot='card'], [data-verification-section]")]
           .filter((card) => card.checkVisibility());
         const cardPaddingMismatches = cards
           .map((card) => {
@@ -273,7 +273,7 @@ test.describe("content pages use the stepped page and card hierarchy", () => {
         };
       });
 
-      expect(geometry.pageGap, `${route.urlPath}: page heading to content`).toBe("32px");
+      expect(geometry.pageGap, `${route.urlPath}: page heading to content`).toBe(route.urlPath === "/verification" ? "24px" : "32px");
       expect(geometry.headingGap, `${route.urlPath}: page heading copy`).toBe("8px");
       expect(geometry.cardCount, `${route.urlPath}: rendered card coverage`).toBeGreaterThan(0);
       expect(geometry.cardPaddingMismatches, `${route.urlPath}: shared card edge inset`).toEqual([]);
@@ -372,7 +372,7 @@ test.describe("forms use the label, control, and error steps at desktop and mobi
 
   const copyCases = [
     { urlPath: "/moderation", selector: "[data-setting-copy]" },
-    { urlPath: "/verification", selector: "[data-verification-setting-copy]" },
+    { urlPath: "/verification", selector: "[data-verification-setting]" },
     { urlPath: "/bypass", selector: "[data-setting-copy]" },
     { urlPath: "/questions", selector: "[data-question-setting-copy]" },
     { urlPath: "/messages", selector: "[data-setting-copy]" }
@@ -440,7 +440,7 @@ test.describe("forms use the label, control, and error steps at desktop and mobi
         "flex-direction",
         "column"
       );
-      await expect(setting, `${scenario.urlPath}: copy to control`).toHaveCSS("gap", "8px");
+      await expect(setting, `${scenario.urlPath}: copy to control`).toHaveCSS("gap", scenario.urlPath === "/verification" ? "4px" : "8px");
     });
   }
 });

@@ -77,13 +77,20 @@ test("mocked daily save errors keep the prior value and show no false success", 
 test("daily status rereads after SPA navigation while a save is pending", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("verify-console-locale", "en"));
   let backingEnabled = true;
+  let dailyReads = 0;
+  let saveStarted = false;
   const patchStarted = Promise.withResolvers<void>();
   const patchReleased = Promise.withResolvers<void>();
   await mockDiagnosticsTransport(page, "operator", async (route) => fulfillJSON(route, unmeasuredDiagnostics), async (route) => {
     if (route.request().method() === "PATCH") {
+      saveStarted = true;
       patchStarted.resolve();
       await patchReleased.promise;
       backingEnabled = route.request().postDataJSON().enabled;
+    }
+    if (route.request().method() === "GET") {
+      dailyReads++;
+      if (saveStarted) await patchReleased.promise;
     }
     await fulfillJSON(route, { enabled: backingEnabled, time: "09:00", timezone: "Asia/Shanghai" });
   });
@@ -95,6 +102,7 @@ test("daily status rereads after SPA navigation while a save is pending", async 
   await expect(toggle).toHaveAttribute("aria-checked", "true");
   await toggle.click();
   await patchStarted.promise;
+  const readsBeforeNavigation = dailyReads;
   await clickSidebarLink(page, "/groups");
   await expect(page).toHaveURL(/\/groups(?:\?|$)/);
   await expect(page.locator("[data-groups-page]")).toBeVisible();
@@ -104,6 +112,7 @@ test("daily status rereads after SPA navigation while a save is pending", async 
 
   patchReleased.resolve();
   await expect(remountedScreen.locator("[data-diagnostics-daily-toggle]")).toHaveAttribute("aria-checked", "false");
+  expect(dailyReads).toBeGreaterThan(readsBeforeNavigation);
   await remountedScreen.locator("[data-diagnostics-daily-toggle]").click();
   await expect(remountedScreen.locator("[data-diagnostics-daily-toggle]")).toHaveAttribute("aria-checked", "true");
 });

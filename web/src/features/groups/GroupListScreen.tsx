@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/PageHeader";
 import { type ReactNode, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
@@ -42,17 +43,15 @@ function GroupsPage({ state, source, count, children }: GroupsPageProps) {
       aria-busy={state === "loading" ? "true" : undefined}
       aria-labelledby="groups-title"
     >
-      <header data-page-heading>
-        <div data-group-heading>
-          <h1 id="groups-title">{t("groups.title")}</h1>
-          {count === undefined ? null : (
-            <StatusBadge tone="neutral">
-              {t("groups.managedCount", { count })}
-            </StatusBadge>
-          )}
-        </div>
-        <p>{t("groups.description")}</p>
-      </header>
+      <PageHeader ><div data-group-heading>
+        <h1 id="groups-title">{t("groups.title")}</h1>
+        {count === undefined ? null : (
+          <StatusBadge tone="neutral">
+            {t("groups.managedCount", { count })}
+          </StatusBadge>
+        )}
+      </div>
+      <p>{t("groups.description")}</p></PageHeader>
       <div data-group-list>{children}</div>
     </section>
   );

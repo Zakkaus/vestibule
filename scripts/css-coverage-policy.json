@@ -126,7 +126,6 @@
     "data-console-header": "Header identity supports geometry checks; its Spectrum macro owns layout.",
     "data-home-state": "Home state metadata is consumed by the screen state, not CSS.",
     "data-home-trend-empty": "Home trend empty-state metadata is retained for tests and accessibility, not CSS.",
-    "data-mobile-navigation": "Mobile trigger identity supports focus checks; its Spectrum macro owns layout.",
     "data-capabilities-preset": "Preset identity is consumed by the journeys that press a preset, not CSS.",
     "data-feed-setting-source": "Feed source metadata is consumed by the journeys that read a setting's provenance, not CSS.",
     "data-feed-setting": "Feed field identity is consumed by validation journeys; the shared setting slot owns layout.",
@@ -140,18 +139,18 @@
     "data-verification-feedback": "Feedback identity for tests; the shared feedback component owns its styling.",
     "data-feedback-level": "Feedback level metadata for tests; the S2 InlineAlert variant carries the styling.",
     "data-verification-conflict": "Conflict panel identity for tests; Spectrum components own its layout.",
-    "data-verification-savebar": "Save footer identity for geometry tests; SettingsSaveFooter owns its layout."
+    "data-verification-savebar": "Save footer identity for geometry tests; SettingsSaveFooter owns its layout.",
+    "data-console-utilities": "Responsive preference-menu identity for journeys; ConsoleUtilityMenus macros own layout.",
+    "data-hub": "Hub identity for remembered-route journeys; the Link macro owns presentation.",
+    "data-hub-pages": "Current-hub page-list identity for navigation journeys; HubPages macros own layout.",
+    "data-preference": "Language and appearance action identity for menu journeys; Spectrum owns each menu item.",
+    "data-settings-field-grid": "Field-grid identity for geometry checks; SettingsSection owns its macro layout.",
+    "data-verification-number": "Textual numeric-field identity for validation checks; Spectrum owns the input presentation."
   },
   "non_styling_classes": {
-    "console-brand": "Brand identity is independent of its Spectrum Header layout.",
     "console-content": "Panel identity supports bounds and scrolling checks; its Spectrum macro owns the surface and overflow.",
-    "console-controls": "Control-row identity supports geometry checks; its Spectrum macro owns layout.",
     "console-header": "Header identity supports spacing checks; its Spectrum macro owns layout.",
-    "console-header-title": "Route title identity is independent of its Spectrum Text styling.",
     "console-inner": "Route container identity supports content checks; its Spectrum macro owns layout.",
-    "console-main": "Main-column identity is independent of its Spectrum macro layout.",
-    "console-mobile-navigation": "Trigger host identity is independent of its Spectrum responsive layout.",
-    "console-mobile-panel": "Mobile panel identity supports focus and bounds checks; Spectrum Popover owns layout.",
     "console-navigation": "Navigation scrollport identity supports boundary checks; its Spectrum macro owns overflow.",
     "console-shell": "Shell identity is independent of its Spectrum macro grid.",
     "console-sidebar": "Sidebar identity supports clipping and seam checks; its Spectrum macro owns layout."

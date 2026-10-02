@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/PageHeader";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@react-spectrum/s2/Button";
@@ -302,10 +303,8 @@ export function DiagnosticsScreen() {
       aria-busy={screenState.kind === "loading" || undefined}
       aria-labelledby="diagnostics-title"
     >
-      <header data-page-heading>
-        <h1 id="diagnostics-title">{t("diagnostics.title")}</h1>
-        <p>{t("diagnostics.description")}</p>
-      </header>
+      <PageHeader ><h1 id="diagnostics-title">{t("diagnostics.title")}</h1>
+      <p>{t("diagnostics.description")}</p></PageHeader>
       {screenState.kind === "loading" ? (
         <StateCard
           id="loading"

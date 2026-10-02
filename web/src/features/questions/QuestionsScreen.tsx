@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/PageHeader";
 import { Feedback, writeOutcomeUnknown } from "../../components/feedback";
 import { type FormEvent, type ReactNode } from "react";
 import { Button } from "@react-spectrum/s2/Button";
@@ -192,10 +193,8 @@ export function QuestionsScreen() {
       aria-busy={controller.state.kind === "loading" || controller.saving ? true : undefined}
       aria-labelledby="questions-title"
     >
-      <header data-page-heading>
-        <h1 id="questions-title">{t("questions.title")}</h1>
-        <p>{t("questions.description")}</p>
-      </header>
+      <PageHeader ><h1 id="questions-title">{t("questions.title")}</h1>
+      <p>{t("questions.description")}</p></PageHeader>
       <QuestionsStateContent controller={controller} />
       {controller.feedback ? (
         <QuestionsFeedbackNotice feedback={controller.feedback} onReload={controller.reload} />

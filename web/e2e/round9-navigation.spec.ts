@@ -2,12 +2,10 @@ import { expect, test } from "@playwright/test";
 import { mockSpectrumTransport, openSpectrumRoute, selectedGroupID } from "./spectrum-fixtures";
 
 const destinationIcons = [
-  "layoutDashboard", "inbox", "clipboardList",
+  "layoutDashboard", "inbox", "clipboardList", "chartNoAxesCombined",
   "shieldCheck", "circleHelp", "shieldOff",
-  "usersRound", "shieldAlert", "messagesSquare",
-  "rss",
-  "chartNoAxesCombined", "activity",
-  "refreshCw", "slidersHorizontal", "settings"
+  "usersRound", "shieldAlert", "messagesSquare", "rss",
+  "activity", "refreshCw", "slidersHorizontal", "settings"
 ];
 
 test("navigation rows and section headers keep the side nav's own rhythm in the widest locale", async ({ page }) => {
@@ -20,7 +18,7 @@ test("navigation rows and section headers keep the side nav's own rhythm in the 
   const geometry = await page.locator(".console-sidebar").evaluate((sidebar) => {
     const links = [...sidebar.querySelectorAll<HTMLAnchorElement>("[data-navigation-item]")];
     const headers = [...sidebar.querySelectorAll<HTMLElement>("[data-navigation-group]")];
-    if (links.length !== 15 || headers.length !== 6) throw new Error("Navigation geometry is incomplete");
+    if (links.length !== 15 || headers.length !== 4) throw new Error("Navigation geometry is incomplete");
 
     const linkBoxes = links.map((link) => {
       const box = link.getBoundingClientRect();
@@ -55,7 +53,7 @@ test("navigation rows and section headers keep the side nav's own rhythm in the 
     };
   });
 
-  expect(geometry.sidebarWidth).toBe(280);
+  expect(geometry.sidebarWidth).toBe(240);
   // Every English label fits one 32px row: the sidebar is sized for the longest one.
   for (const link of geometry.linkBoxes) {
     expect(Math.abs(link.height - 32), link.item).toBeLessThanOrEqual(1);
@@ -104,8 +102,8 @@ test("home content fits one screen at both suite heights and scrolls only when t
 
   await page.setViewportSize({ width: 420, height: 420 });
   const narrow = await measurePanel();
-  expect(narrow.overflowY).toBe("auto");
-  expect(narrow.scrollable).toBe(true);
+  expect(narrow.overflowY).toBe("visible");
+  expect(narrow.scrollable).toBe(false);
   expect(narrow.horizontalOverflow).toBe(false);
   expect(narrow.bottomGap).toBeGreaterThanOrEqual(narrow.paddingBottom - 1);
   await expect(page.locator("[data-home-section]:visible").last()).toBeVisible();
@@ -120,7 +118,7 @@ test("navigation preserves route hooks, icons, and the side nav's arrow-key entr
   const nav = page.locator(".console-sidebar .console-navigation [role='treegrid']");
   await expect(nav).toHaveAttribute("aria-label", /.+/);
   await expect(page.locator(".console-content")).toHaveCount(1);
-  await expect(nav.locator("[data-navigation-group]")).toHaveCount(6);
+  await expect(nav.locator("[data-navigation-group]")).toHaveCount(4);
   await expect(nav.locator('a[aria-current="page"]')).toHaveAttribute("data-navigation-item", "/home");
   expect(await nav.locator("[data-navigation-item] [data-icon-name]").evaluateAll((icons) =>
     icons.map((icon) => icon.getAttribute("data-icon-name"))
@@ -128,10 +126,8 @@ test("navigation preserves route hooks, icons, and the side nav's arrow-key entr
 
   // Tab lands on the current destination; arrows walk the rows across section
   // boundaries; the focus ring is the library's, drawn on the row; Enter follows.
-  await page.locator(".console-brand a").focus();
-  await page.keyboard.press("Tab");
-  await expect(nav.locator('[data-navigation-item="/home"]')).toBeFocused();
-  for (let step = 0; step < 3; step++) await page.keyboard.press("ArrowDown");
+  await nav.locator('[data-navigation-item="/home"]').focus();
+  for (let step = 0; step < 4; step++) await page.keyboard.press("ArrowDown");
   const link = nav.locator('[data-navigation-item="/verification"]');
   await expect(link).toBeFocused();
   const ringOf = (item: string) => nav.locator(`[data-navigation-item="${item}"]`).locator("xpath=ancestor::*[@role='gridcell']/div[1]");

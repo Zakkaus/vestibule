@@ -150,14 +150,13 @@ test.describe("phone draft guard", () => {
     await page.goto(`/verification?group=${selectedGroupID}`);
     const timeout = page.locator("#verification-timeout-seconds");
     await timeout.fill("360");
-    await page.locator("[data-mobile-navigation] button").tap();
     await page.locator('[data-navigation-item="/questions"]').filter({ visible: true }).tap();
     await expect(page.getByRole("alertdialog")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("alertdialog")).toHaveCount(0);
     await timeout.tap();
     await timeout.fill("420");
-    await page.getByRole("button", { name: "Discard my changes" }).tap();
+    await page.locator("[data-verification-savebar]").getByRole("button", { name: "Discard", exact: true }).tap();
     await expect(timeout).toHaveValue("300");
     await expect(page.getByRole("button", { name: "Save changes", exact: true })).toBeDisabled();
   });

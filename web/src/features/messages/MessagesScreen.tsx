@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/PageHeader";
 import { Feedback, writeOutcomeUnknown } from "../../components/feedback";
 import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -299,13 +300,11 @@ export function MessagesScreen() {
       aria-busy={pageBusy || undefined}
       aria-labelledby="messages-title"
     >
-      <header data-page-heading>
-        <h1 id="messages-title">
-          <Icon name="messagesSquare" />
-          {t("messages.title")}
-        </h1>
-        <p>{t("messages.description")}</p>
-      </header>
+      <PageHeader ><h1 id="messages-title">
+        <Icon name="messagesSquare" />
+        {t("messages.title")}
+      </h1>
+      <p>{t("messages.description")}</p></PageHeader>
       {content}
     </section>
   );

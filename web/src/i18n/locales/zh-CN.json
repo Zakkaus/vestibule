@@ -39,20 +39,18 @@
   },
   "navigation": {
     "label": "控制台导航",
-    "sections": {
-      "daily": "日常管理",
+    "hubs": {
+      "daily": "日常",
       "verification": "验证",
       "group": "群组",
-      "content": "内容",
-      "observe": "状态",
-      "console": "当前控制台"
+      "console": "控制台"
     },
     "queue": "等待队列",
     "groups": "群与频道",
     "preferences": "偏好"
   },
   "shell": {
-    "mobileNavigation": "打开导航",
+    "more": "更多",
     "groupSwitcher": "当前群组",
     "allGroups": "全部可管理的群"
   },

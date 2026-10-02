@@ -9,20 +9,14 @@ import {
   SideNavSection,
   type SideNavItemLinkProps
 } from "@react-spectrum/s2/SideNav";
-import { size, style } from "@react-spectrum/s2/style" with { type: "macro" };
+import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import { Icon, type IconName } from "../icons";
 export type NavigationCapability = "instance-status" | "owner";
 
-export type NavigationGroupID =
-  | "daily"
-  | "verification"
-  | "group"
-  | "content"
-  | "observe"
-  | "console";
+export type NavigationGroupID = "daily" | "verification" | "group" | "console";
 
 type NavigationGroup = Readonly<{
   id: NavigationGroupID;
@@ -43,12 +37,10 @@ export type NavigationSection = Readonly<{
 }>;
 
 const navigationGroups: readonly NavigationGroup[] = [
-  { id: "daily", labelKey: "navigation.sections.daily" },
-  { id: "verification", labelKey: "navigation.sections.verification" },
-  { id: "group", labelKey: "navigation.sections.group" },
-  { id: "content", labelKey: "navigation.sections.content" },
-  { id: "observe", labelKey: "navigation.sections.observe" },
-  { id: "console", labelKey: "navigation.sections.console" }
+  { id: "daily", labelKey: "navigation.hubs.daily" },
+  { id: "verification", labelKey: "navigation.hubs.verification" },
+  { id: "group", labelKey: "navigation.hubs.group" },
+  { id: "console", labelKey: "navigation.hubs.console" }
 ];
 
 export const navigationItems: readonly NavigationItem[] = [
@@ -61,9 +53,9 @@ export const navigationItems: readonly NavigationItem[] = [
   { path: "/groups", labelKey: "navigation.groups", icon: "usersRound", group: "group" },
   { path: "/moderation", labelKey: "moderation.navigation", icon: "shieldAlert", group: "group" },
   { path: "/messages", labelKey: "messages.navigation", icon: "messagesSquare", group: "group" },
-  { path: "/feeds", labelKey: "feeds.navigation", icon: "rss", group: "content" },
-  { path: "/stats", labelKey: "stats.navigation", icon: "chartNoAxesCombined", group: "observe" },
-  { path: "/diagnostics", labelKey: "diagnostics.navigation", icon: "activity", group: "observe" },
+  { path: "/feeds", labelKey: "feeds.navigation", icon: "rss", group: "group" },
+  { path: "/stats", labelKey: "stats.navigation", icon: "chartNoAxesCombined", group: "daily" },
+  { path: "/diagnostics", labelKey: "diagnostics.navigation", icon: "activity", group: "console" },
   { path: "/version", labelKey: "version.navigation", icon: "refreshCw", group: "console", capability: "instance-status" },
   { path: "/capabilities", labelKey: "capabilities.navigation", icon: "slidersHorizontal", group: "console" },
   { path: "/preferences", labelKey: "navigation.preferences", icon: "settings", group: "console" },
@@ -75,7 +67,8 @@ const navigationLayout = style({
   flexGrow: 1,
   minHeight: 0,
   minWidth: 0,
-  height: "full"
+  // Localized picker-label metrics can leave a fractional-height scrollport.
+  height: "[round(down, 100%, 1px)]"
 });
 
 const navigationFrame = style({
@@ -83,7 +76,7 @@ const navigationFrame = style({
   flexGrow: 1,
   minHeight: 0,
   minWidth: 0,
-  padding: size(16),
+  padding: 16,
   boxSizing: "border-box"
 });
 
@@ -96,10 +89,6 @@ export function navigationSections(items: readonly NavigationItem[]): readonly N
   return sections;
 }
 
-// Every section stays open. The console has fifteen destinations in six groups; behind
-// an accordion the sidebar showed one group at a time and read as an empty column, and
-// finding a screen cost a click before it cost a glance. SideNav carries the section
-// header, the row rhythm and the current-item indicator, so none of that is written here.
 // SideNavItemLink forwards every prop it receives to react-aria-components' Link, but
 // its declared props stop at children. Name what we actually pass rather than casting
 // the call site to any.
@@ -110,13 +99,11 @@ const NavigationLink = SideNavItemLink as (
 export function ConsoleNavigation({
   sections,
   selectedGroupSearch,
-  idPrefix,
-  onNavigate
+  idPrefix
 }: Readonly<{
   sections: readonly NavigationSection[];
   selectedGroupSearch: string;
   idPrefix: string;
-  onNavigate?: () => void;
 }>) {
   const { t } = useTranslation();
   const location = useLocation();
@@ -147,7 +134,6 @@ export function ConsoleNavigation({
               <SideNavItemContent>
                 <NavigationLink
                   href={`${item.path}${selectedGroupSearch}`}
-                  onPress={onNavigate}
                   data-navigation-item={item.path}
                   data-owner-navigation={item.path === "/owner" ? "true" : undefined}
                 >

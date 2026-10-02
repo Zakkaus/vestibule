@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/PageHeader";
 import type { ReactNode } from "react";
 import { Button, Text } from "@react-spectrum/s2/Button";
 import { useTranslation } from "react-i18next";
@@ -159,10 +160,8 @@ export function BypassScreen() {
       aria-busy={state.kind === "loading" || (state.kind === "ready" && state.saving) || undefined}
       aria-labelledby="bypass-title"
     >
-      <header data-page-heading>
-        <h1 id="bypass-title">{t("bypass.title")}</h1>
-        <p>{t("bypass.description")}</p>
-      </header>
+      <PageHeader ><h1 id="bypass-title">{t("bypass.title")}</h1>
+      <p>{t("bypass.description")}</p></PageHeader>
       <BypassStateContent controller={controller} />
     </section>
   );

@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/PageHeader";
 import { useCallback, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Button, Text } from "@react-spectrum/s2/Button";
 import { useTranslation } from "react-i18next";
@@ -425,13 +426,11 @@ export function StatsScreen() {
       aria-busy={stats.screenState.kind === "loading" || stats.submitting ? true : undefined}
       aria-labelledby="stats-title"
     >
-      <header data-page-heading>
-        <h1 id="stats-title">
-          <Icon name="chartNoAxesCombined" />
-          {t("stats.title")}
-        </h1>
-        <p>{t("stats.description")}</p>
-      </header>
+      <PageHeader ><h1 id="stats-title">
+        <Icon name="chartNoAxesCombined" />
+        {t("stats.title")}
+      </h1>
+      <p>{t("stats.description")}</p></PageHeader>
       {stats.canQuery ? (
         <StatsFilters
           draft={stats.draft}

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { selectAppOption } from "./app-select";
+import { selectConsolePreference } from "./app-select";
 import { chartDays, mockSpectrumTransport, openSpectrumRoute } from "./spectrum-fixtures";
 
 async function dateLabelOverlaps(page: Page) {
@@ -73,12 +73,7 @@ test("the current destination is marked by the side nav's own cues in both theme
   await openSpectrumRoute(page, "/home");
 
   for (const theme of ["light", "dark"] as const) {
-    const themeTrigger = page
-      .locator('[data-utility-controls][data-variant="chrome"] [data-console-control]')
-      .first()
-      .locator("button")
-      .first();
-    await selectAppOption(themeTrigger, theme);
+    await selectConsolePreference(page, "theme", theme);
     await page.waitForFunction((expected) => document.documentElement.dataset.theme === expected, theme);
     // The theme change fades colours in several waves, each starting as the previous
     // one lands; wait until no transition is running before measuring.
@@ -130,8 +125,8 @@ test("content navigation moves the current marker and the keyboard entry point t
   await expect(destination).toHaveAttribute("aria-current", "page");
   await expect(page.locator('.console-sidebar [aria-current="page"]')).toHaveCount(1);
   await expect(destination).toBeInViewport({ ratio: 1 });
-  // Tab from the brand link enters the tree at the current destination, not at the first row.
-  await page.locator(".console-brand a").focus();
+  // The last desktop utility is followed by the tree's current destination.
+  await page.locator('[data-console-utilities="desktop"] [data-preference="theme"]').focus();
   await page.keyboard.press("Tab");
   await expect(destination).toBeFocused();
 });

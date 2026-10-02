@@ -66,7 +66,9 @@ function DraftGuard({ registry, action, clear }: Readonly<{ registry: Registry; 
   const { t } = useTranslation();
   useSyncExternalStore(registry.subscribe, registry.snapshot);
   const { dirty, pending } = states(registry);
-  const blocker = useBlocker(dirty || pending);
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => (dirty || pending) &&
+    (currentLocation.pathname !== nextLocation.pathname ||
+      new URLSearchParams(currentLocation.search).get("group") !== new URLSearchParams(nextLocation.search).get("group")));
   const blocked = blocker.state === "blocked";
   const actionHandled = useRef(false);
   useEffect(() => {

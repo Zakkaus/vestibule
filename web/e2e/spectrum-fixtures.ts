@@ -7,12 +7,10 @@ export type SpectrumRole = "manager" | "operator";
 export type TrendMode = "full" | "zero" | "gap" | "single";
 
 export const operatorNavigationGroups = [
-  { id: "daily", paths: ["/home", "/queue", "/audit"] },
+  { id: "daily", paths: ["/home", "/queue", "/audit", "/stats"] },
   { id: "verification", paths: ["/verification", "/questions", "/bypass"] },
-  { id: "group", paths: ["/groups", "/moderation", "/messages"] },
-  { id: "content", paths: ["/feeds"] },
-  { id: "observe", paths: ["/stats", "/diagnostics"] },
-  { id: "console", paths: ["/version", "/capabilities", "/preferences"] }
+  { id: "group", paths: ["/groups", "/moderation", "/messages", "/feeds"] },
+  { id: "console", paths: ["/diagnostics", "/version", "/capabilities", "/preferences"] }
 ] as const;
 
 export const managerNavigationGroups = operatorNavigationGroups.map((group) => ({

@@ -130,7 +130,7 @@ async function expectThemePreferenceAfterReload(
   }, preference);
   await expect(controls.theme).toHaveAttribute("data-value", preference);
   await expectAppSelection(
-    page.locator(".console-controls [data-utility-controls]").getByRole("button").first(),
+    page.locator('[data-console-utilities="desktop"] [data-preference="theme"]'),
     preference
   );
   expect(await page.evaluate(() => localStorage.getItem("verify-console-theme"))).toBe(preference);

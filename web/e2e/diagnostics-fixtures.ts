@@ -77,6 +77,8 @@ export async function mockDiagnosticsTransport(
 export async function clickSidebarLink(page: Page, path: "/groups" | "/diagnostics"): Promise<void> {
   const link = page.locator(`.console-sidebar [data-navigation-item="${path}"]`);
   await expect(link).toBeVisible();
+  await link.scrollIntoViewIfNeeded();
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   await link.click();
 }
 

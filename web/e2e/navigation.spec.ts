@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { mockSpectrumTransport } from "./spectrum-fixtures";
 
 const selectedGroupID = "-1009000010001";
 const selectedGroupTitle = "Gentoo-zh Community";
@@ -10,12 +11,10 @@ type NavigationSection = Readonly<{
 }>;
 
 const operatorSections: readonly NavigationSection[] = [
-  { id: "daily", paths: ["/home", "/queue", "/audit"] },
+  { id: "daily", paths: ["/home", "/queue", "/audit", "/stats"] },
   { id: "verification", paths: ["/verification", "/questions", "/bypass"] },
-  { id: "group", paths: ["/groups", "/moderation", "/messages"] },
-  { id: "content", paths: ["/feeds"] },
-  { id: "observe", paths: ["/stats", "/diagnostics"] },
-  { id: "console", paths: ["/version", "/capabilities", "/preferences"] }
+  { id: "group", paths: ["/groups", "/moderation", "/messages", "/feeds"] },
+  { id: "console", paths: ["/diagnostics", "/version", "/capabilities", "/preferences"] }
 ];
 
 async function fulfillJSON(route: Route, body: unknown): Promise<void> {
@@ -110,7 +109,7 @@ test("capability filtering leaves no empty navigation section", async ({ page })
   const sections = await navigationSections(page, ".console-sidebar");
   expect(sections).toEqual([
     ...operatorSections.slice(0, -1),
-    { id: "console", paths: ["/capabilities", "/preferences"] }
+    { id: "console", paths: ["/diagnostics", "/capabilities", "/preferences"] }
   ]);
   expect(sections.every((section) => section.paths.length > 0)).toBe(true);
 });
@@ -119,25 +118,20 @@ test("capability filtering leaves no empty navigation section", async ({ page })
 test.describe("mobile navigation", () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 
-  test("opens all sections and returns keyboard focus when dismissed", async ({ page }) => {
-    await mockNavigationTransport(page, "operator");
+  test("bottom hubs expose the current hub pages and navigate by keyboard", async ({ page }) => {
+    await mockSpectrumTransport(page, { role: "operator" });
     await page.goto("/groups");
     await expect(page.locator("[data-groups-source='api']")).toBeVisible();
-
-    const trigger = page.locator("[data-mobile-navigation]").getByRole("button");
-    await trigger.focus();
+    const bar = page.locator("[data-hub-bar]");
+    await expect(bar.getByRole("link")).toHaveCount(4);
+    await expect(page.locator("[data-hub-pages] [data-navigation-item]")).toHaveCount(4);
+    const consoleHub = bar.locator('[data-hub="console"]');
+    await consoleHub.focus();
     await page.keyboard.press("Enter");
-    const panel = page.getByRole("dialog");
-    await expect(panel).toBeVisible();
-    expect(await navigationSections(page, ".console-mobile-panel")).toEqual(operatorSections);
-    const box = await panel.boundingBox();
-    expect(box).not.toBeNull();
-    expect(box!.x).toBeGreaterThanOrEqual(0);
-    expect(box!.x + box!.width).toBeLessThanOrEqual(390);
-
-    await page.keyboard.press("Escape");
-    await expect(panel).toBeHidden();
-    await expect(trigger).toBeFocused();
+    await expect(page).toHaveURL(url => url.pathname === "/diagnostics");
+    await expect(page.locator("[data-hub-pages] [data-navigation-item]")).toHaveCount(4);
+    await expect(page.locator("h1")).toBeFocused();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
   });
 });
 
@@ -150,8 +144,7 @@ test("every destination is visible without opening a section", async ({ page }) 
   const sidebar = page.locator(".console-sidebar");
   const items = sidebar.locator("[data-navigation-item]");
   const headers = sidebar.locator("[data-navigation-group]");
-  // No clicking: the console has fifteen destinations in six groups, and behind an
-  // accordion the sidebar showed one group at a time.
+  // Four expanded hubs expose every authorized destination.
   await expect(items).toHaveCount(operatorSections.reduce((total, section) => total + section.paths.length, 0));
   await expect(headers).toHaveCount(operatorSections.length);
   for (const item of await items.all()) await expect(item).toBeVisible();

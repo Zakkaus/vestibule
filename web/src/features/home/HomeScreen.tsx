@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/PageHeader";
 import { Content, Header, Heading } from "@react-spectrum/s2";
 import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { useTranslation } from "react-i18next";
@@ -24,10 +25,8 @@ export function HomeScreen() {
       aria-busy={isBusy || undefined}
       aria-labelledby="home-title"
     >
-      <Header data-page-heading data-home-heading styles={style({ display: "grid", gap: 16 })}>
-        <Heading level={1} id="home-title" styles={style({ margin: 0 })}>{t("home.title")}</Heading>
-        <p>{t("home.description")}</p>
-      </Header>
+      <PageHeader data-home-heading styles={style({ display: "grid", gap: 12 })}><Heading level={1} id="home-title" styles={style({ margin: 0 })}>{t("home.title")}</Heading>
+      <p>{t("home.description")}</p></PageHeader>
       <HomeStateContent
         state={controller.state}
         chatID={chatID}

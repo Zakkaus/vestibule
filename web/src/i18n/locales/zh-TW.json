@@ -39,20 +39,18 @@
   },
   "navigation": {
     "label": "控制台導覽",
-    "sections": {
+    "hubs": {
       "daily": "日常",
       "verification": "驗證",
       "group": "群組",
-      "content": "內容",
-      "observe": "觀察",
-      "console": "此控制台"
+      "console": "控制台"
     },
     "queue": "等待佇列",
     "groups": "群組與頻道",
     "preferences": "偏好"
   },
   "shell": {
-    "mobileNavigation": "開啟導覽",
+    "more": "更多",
     "groupSwitcher": "目前群組",
     "allGroups": "全部可管理的群組"
   },

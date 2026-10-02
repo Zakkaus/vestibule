@@ -4,7 +4,7 @@ import { mockSpectrumTransport, selectedGroupID } from "./spectrum-fixtures";
 for (const locale of ["zh-CN", "ru"]) {
   test.describe(`shared save footer in ${locale}`, () => {
     test.use({ locale, viewport: { width: 390, height: 844 }, hasTouch: true });
-    test("phone actions stack full width without wrapping their labels", async ({ page }) => {
+    test("phone actions retain intrinsic widths and complete labels", async ({ page }) => {
       await mockSpectrumTransport(page);
       await page.goto(`/verification?group=${selectedGroupID}`);
       await page.locator("#verification-timeout-seconds").fill("360");
@@ -28,11 +28,11 @@ for (const locale of ["zh-CN", "ru"]) {
       expect(geometry).toHaveLength(2);
       for (const button of geometry) {
         expect(button.lines).toBe(1);
-        expect(button.width).toBeCloseTo(button.groupWidth, 0);
+        expect(button.width).toBeLessThanOrEqual(button.groupWidth);
         expect(button.x).toBeGreaterThanOrEqual(0);
         expect(button.right).toBeLessThanOrEqual(390);
       }
-      expect(geometry[1].top).toBeGreaterThan(geometry[0].bottom);
+      expect(geometry[1]!.top).toBeGreaterThanOrEqual(geometry[0]!.top);
     });
   });
 }

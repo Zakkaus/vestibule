@@ -21,6 +21,7 @@ import {
 import { Icon, type IconName } from "../icons";
 import { useConsoleSize } from "./ConsoleProvider";
 import { AppSelect } from "./AppSelect";
+import { ConsoleUtilityMenus } from "./ConsoleUtilityMenus";
 
 const localeLabelKeys: Record<LocalePreference, string> = {
   system: "locale.system",
@@ -62,7 +63,7 @@ type UtilityControlsProps = Readonly<{
       stacked names said more about themselves than the card below them said
       about what to do next. "labelled" is the settings-page treatment, where the
       control is the content of the screen and its name belongs on screen. */
-  variant?: "labelled" | "chrome";
+  variant?: "labelled" | "chrome" | "console";
 }>;
 
 export function UtilityControls({ variant = "labelled" }: UtilityControlsProps) {
@@ -109,6 +110,8 @@ export function UtilityControls({ variant = "labelled" }: UtilityControlsProps) 
     label: t(localeLabelKeys[preference]),
     value: preference
   }));
+  if (variant === "console") return <ConsoleUtilityMenus locale={locale} theme={theme}
+    locales={localeOptions} themes={themeOptions} onLocale={changeLocale} onTheme={changeTheme} />;
 
 
   const chrome = variant === "chrome";

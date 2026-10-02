@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/PageHeader";
 import { Feedback, writeOutcomeUnknown } from "../../components/feedback";
 import { Button } from "@react-spectrum/s2/Button";
 import { ButtonGroup } from "@react-spectrum/s2/ButtonGroup";
@@ -419,13 +420,11 @@ export function QueueScreen() {
       aria-labelledby="queue-title"
       styles={queuePageStyles}
     >
-      <Header data-page-heading>
-        <Heading id="queue-title" level={1} styles={queueHeadingStyles}>
-          <Icon name="inbox" />
-          <Text>{t("queue.title")}</Text>
-        </Heading>
-        <Text>{t("queue.description")}</Text>
-      </Header>
+      <PageHeader ><Heading id="queue-title" level={1} styles={queueHeadingStyles}>
+        <Icon name="inbox" />
+        <Text>{t("queue.title")}</Text>
+      </Heading>
+      <Text>{t("queue.description")}</Text></PageHeader>
 
       <Content data-queue-results styles={queueResultsStyles}>
         {hasRecords ? (

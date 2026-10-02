@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/PageHeader";
 import { Button } from "@react-spectrum/s2/Button";
 import { Text } from "@react-spectrum/s2";
 import { useEffect, useState } from "react";
@@ -138,10 +139,8 @@ export function OwnerLimitsScreen() {
       aria-busy={screenState.kind === "loading" || saving ? true : undefined}
       aria-labelledby="owner-title"
     >
-      <header data-page-heading>
-        <h1 id="owner-title" data-state-heading><Icon name="settings" />{t("owner.title")}</h1>
-        <p>{t("owner.description")}</p>
-      </header>
+      <PageHeader ><h1 id="owner-title" data-state-heading><Icon name="settings" />{t("owner.title")}</h1>
+      <p>{t("owner.description")}</p></PageHeader>
 
       {screenState.kind === "loading" ? (
         <StateCard titleKey="owner.loading.title" descriptionKey="owner.loading.description" />

@@ -248,17 +248,11 @@ async function exerciseBusyVerificationControls(
   });
   await patchRequested;
 
-  await expect(focusedSelect).toBeFocused();
-  await expect(focusedSelect).toHaveAttribute("aria-disabled", "true");
+  await expect(focusedSelect).toBeDisabled();
   const controls = page.locator(
     "#verification-delivery-mode, #verification-mode, [data-verification-number] input, #verification-invited-members"
   );
-  await expectControlsFocusable(controls);
-  expect(
-    await page.locator("[data-verification-number] input").evaluateAll((inputs) =>
-      inputs.every((input) => (input as HTMLInputElement).readOnly)
-    )
-  ).toBe(true);
+  for (const control of await controls.all()) await expect(control).toBeDisabled();
 
   await focusedSelect.dispatchEvent("click");
   await expect(focusedSelect).toHaveAttribute("aria-expanded", "false");
@@ -266,7 +260,7 @@ async function exerciseBusyVerificationControls(
   await invited.evaluate((input) => (input as HTMLInputElement).click());
   await expect(invited).toBeChecked();
 
-  const saving = page.locator('[data-verification-savebar] button').last();
+  const saving = page.locator('[data-verification-savebar] button').first();
   await expect(saving).toContainText("正在保存…");
   await saving.dispatchEvent("click");
   await page.waitForTimeout(100);
@@ -615,7 +609,7 @@ test("configuration-file question bank overrides and restores the configuration 
 });
 
 
-test("busy question and verification controls keep focus and ignore interaction", async ({ page }) => {
+test("busy question controls keep focus and disabled verification controls ignore interaction", async ({ page }) => {
   const questionPatchRequested = deferred();
   const questionPatchResponse = deferred();
   const verificationPatchRequested = deferred();
@@ -670,9 +664,7 @@ test("busy question and verification controls keep focus and ignore interaction"
     () => patchCalls
   );
   verificationPatchResponse.resolve();
-  await expect(page.locator("[data-verification-feedback]")).toContainText(
-    "已保存验证设置"
-  );
+  await expect(page.locator("[data-console-toasts]")).toContainText("已保存验证设置");
 });
 
 test("question deletion requires confirmation and language restoration writes null", async ({ page }) => {

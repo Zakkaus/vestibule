@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { selectAppOption } from "./app-select";
+import { expectAppSelection, selectAppOption } from "./app-select";
 
 const selectedGroupID = "-1009000010001";
 const actorID = "741928306";
@@ -132,7 +132,7 @@ test("verification saves only the edited field through the shared CSRF transport
     }
   );
 
-  await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "kernel");
+  await expectAppSelection(page.locator("#verification-mode"), "kernel");
   await expect(page.getByText("来源：配置文件")).toBeVisible();
   await selectAppOption(page.locator("#verification-mode"), "quiz");
   await page.getByRole("button", { name: "保存更改" }).click();
@@ -141,9 +141,9 @@ test("verification saves only the edited field through the shared CSRF transport
     "data-verification-state",
     "loaded"
   );
-  await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "quiz");
+  await expectAppSelection(page.locator("#verification-mode"), "quiz");
   await expect(page.getByText("来源：当前群覆盖")).toBeVisible();
-  await expect(page.locator("[data-verification-feedback]")).toContainText("已保存验证设置");
+  await expect(page.locator("[data-console-toasts]")).toContainText("已保存验证设置");
 });
 
 test("verification explains an existing cap violation and keeps the rejected draft", async ({ page }) => {
@@ -170,7 +170,7 @@ test("verification explains an existing cap violation and keeps the rejected dra
   await expect(violations).toContainText("240");
   await expect(violations).toContainText("120");
   await expect(violations).not.toContainText("owner.fields.");
-  await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "quiz");
+  await expectAppSelection(page.locator("#verification-mode"), "quiz");
   await expect(page.getByRole("button", { name: "保存更改" })).toBeEnabled();
 });
 
@@ -214,7 +214,7 @@ test("verification restores only the selected chat override with null", async ({
   await patchSettled;
   await expect(page.locator("#verification-ban-seconds")).toHaveValue("0");
   await expect(banSetting).toContainText("来源：程序默认值");
-  await expect(page.locator("[data-verification-feedback]")).toContainText("已保存验证设置");
+  await expect(page.locator("[data-console-toasts]")).toContainText("已保存验证设置");
 });
 
 test("verification conflict keeps the draft until explicitly discarded", async ({
@@ -259,9 +259,9 @@ test("verification conflict keeps the draft until explicitly discarded", async (
     "data-verification-state",
     "loaded"
   );
-  await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "quiz");
+  await expectAppSelection(page.locator("#verification-mode"), "quiz");
   await page.locator("[data-verification-conflict]").getByRole("button", { name: "放弃我的更改" }).click();
-  await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "mixed");
+  await expectAppSelection(page.locator("#verification-mode"), "mixed");
   expect(reads).toBe(2);
 });
 
@@ -413,9 +413,11 @@ test("verification rejects durations the bot cannot honour and saves valid bound
   for (const [selector, invalid, valid] of invalidDurations) {
     const field = page.locator(selector);
     await field.fill(invalid);
-    await page.getByRole("button", { name: "保存更改" }).click();
+    await field.blur();
+    await expect(page.getByRole("button", { name: "保存更改" })).toBeDisabled();
     await expect(field).toHaveAttribute("aria-invalid", "true");
-    await expect(page.locator(`${selector}-error`)).toBeVisible();
+    const describedBy = (await field.getAttribute("aria-describedby"))!.split(" ");
+    await expect(page.locator(`[id="${describedBy.at(-1)}"]`)).toBeVisible();
     expect(patchRequests).toBe(0);
     await field.fill(valid);
   }
@@ -427,7 +429,7 @@ test("verification rejects durations the bot cannot honour and saves valid bound
   await page.locator("#verification-mute-seconds").fill("30");
   await page.getByRole("button", { name: "保存更改" }).click();
 
-  await expect(page.locator("[data-verification-feedback]")).toContainText("已保存验证设置");
+  await expect(page.locator("[data-console-toasts]")).toContainText("已保存验证设置");
   expect(patchRequests).toBe(1);
 });
 
@@ -473,12 +475,12 @@ test("verification retains a draft through transient access failures and removes
       "data-verification-state",
       "loaded"
     );
-    await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "quiz");
+    await expectAppSelection(page.locator("#verification-mode"), "quiz");
   }
 
   await page.getByRole("button", { name: "保存更改" }).click();
   await expect.poll(() => writes).toBe(3);
-  await expect(page.locator("[data-verification-feedback]")).toContainText("已保存验证设置");
+  await expect(page.locator("[data-console-toasts]")).toContainText("已保存验证设置");
 
   await selectAppOption(page.locator("#verification-mode"), "kernel");
   await page.getByRole("button", { name: "保存更改" }).click();

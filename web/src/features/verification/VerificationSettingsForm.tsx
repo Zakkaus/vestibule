@@ -1,13 +1,15 @@
 import { TextField } from "@react-spectrum/s2/TextField";
-import { Button } from "@react-spectrum/s2/Button";
-import { Text } from "@react-spectrum/s2";
+import { ActionButton } from "@react-spectrum/s2/ActionButton";
+import { Picker, PickerItem } from "@react-spectrum/s2/Picker";
+import { Switch } from "@react-spectrum/s2/Switch";
+import { Tooltip, TooltipTrigger } from "@react-spectrum/s2/Tooltip";
+import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { type FormEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
-import { AppSelect, type AppSelectOption } from "../../components/AppSelect";
-import { useConsoleSize } from "../../components/ConsoleProvider";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SettingsSection } from "../../components/SettingsSection";
+import { SettingsFieldRow } from "../../components/SettingsFieldRow";
 import { SettingsSaveFooter } from "../../components/SettingsSaveFooter";
 import { Icon } from "../../icons";
 import {
@@ -37,13 +39,10 @@ type VerificationSettingsFormProps = Readonly<{
 
 type SettingRowProps = Readonly<{
   field: VerificationSettingField;
-  controlID: string;
-  labelKey: string;
-  descriptionKey: string;
   source: SettingSource;
-  errorKey?: string;
+  saving?: boolean;
   onRestore: (field: VerificationSettingField) => void;
-  children: (describedBy: string) => ReactNode;
+  children: ReactNode;
 }>;
 
 type NumericSettingProps = Readonly<{
@@ -95,52 +94,19 @@ const verifyModeDescriptionKeys: Readonly<Record<VerifyMode, string>> = {
   mixed: "verification.challenge.mixedDescription"
 };
 
-function SettingRow({
-  field,
-  controlID,
-  labelKey,
-  descriptionKey,
-  source,
-  errorKey,
-  onRestore,
-  children
-}: SettingRowProps) {
+function SettingRow({ field, source, saving, onRestore, children }: SettingRowProps) {
   const { t } = useTranslation();
-  const size = useConsoleSize("L");
-  const descriptionID = `${controlID}-description`;
-  const errorID = `${controlID}-error`;
-  const describedBy = errorKey ? `${descriptionID} ${errorID}` : descriptionID;
-
   return (
-    <div data-slot="setting" data-verification-setting={field}>
-      <div data-verification-setting-copy>
-        <label htmlFor={controlID}>{t(labelKey)}</label>
-        <p id={descriptionID}>{t(descriptionKey)}</p>
-        <StatusBadge tone="neutral">
-          {t("verification.source.value", { source: t(sourceMessageKeys[source]) })}
-        </StatusBadge>
-        {errorKey ? (
-          <p id={errorID} data-slot="field-error" role="alert">
-            {t(errorKey)}
-          </p>
-        ) : null}
-      </div>
-      <div data-verification-setting-control>
-        {children(describedBy)}
-        {source === "chat override" ? (
-          <Button
-            type="button"
-            variant="secondary"
-            size={size}
-            data-slot="button"
-            onPress={() => onRestore(field)}
-          >
-            <Icon name="rotateCcw" />
-            <Text>{t("verification.actions.restore")}</Text>
-          </Button>
-        ) : null}
-      </div>
-    </div>
+    <SettingsFieldRow data-verification-setting={field}>
+      {children}
+      <StatusBadge tone="neutral">{t("verification.source.value", { source: t(sourceMessageKeys[source]) })}</StatusBadge>
+      {source === "chat override" ? (
+        <TooltipTrigger>
+          <ActionButton size="M" isDisabled={saving} aria-label={t("verification.actions.restore")} onPress={() => onRestore(field)}><Icon name="rotateCcw" /></ActionButton>
+          <Tooltip>{t("verification.actions.restore")}</Tooltip>
+        </TooltipTrigger>
+      ) : null}
+    </SettingsFieldRow>
   );
 }
 
@@ -161,27 +127,28 @@ function NumericSetting({
   return (
     <SettingRow
       field={field}
-      controlID={controlID}
-      labelKey={labelKey}
-      descriptionKey={descriptionKey}
       source={source}
-      errorKey={errorKey}
+      saving={saving}
       onRestore={onRestore}
     >
-      {(describedBy) => (
         <TextField
           id={controlID}
-          aria-label={t(labelKey)}
+          label={t(labelKey)}
+          labelPosition="top"
+          description={t(descriptionKey)}
+          errorMessage={errorKey ? t(errorKey) : undefined}
+          validationBehavior="aria"
+          type="text"
+          size="M"
+          styles={style({ width: "full", minWidth: 0 })}
           data-verification-number
           inputMode="numeric"
           isInvalid={Boolean(errorKey)}
-          aria-describedby={describedBy}
           value={value}
-          isReadOnly={saving}
+          isDisabled={saving}
           onBlur={onBlur}
           onChange={onChange}
         />
-      )}
     </SettingRow>
   );
 }
@@ -200,59 +167,55 @@ export function VerificationSettingsForm({
   onRestore
 }: VerificationSettingsFormProps) {
   const { t } = useTranslation();
-  const deliveryOptions: readonly AppSelectOption<DeliveryMode>[] = deliveryModes.map((mode) => ({
-    label: t(deliveryModeMessageKeys[mode]),
-    value: mode
-  }));
-  const verifyOptions: readonly AppSelectOption<VerifyMode>[] = verifyModes.map((mode) => ({
-    label: t(verifyModeMessageKeys[mode]),
-    value: mode
-  }));
+  const deliveryOptions = deliveryModes.map(mode => ({ label: t(deliveryModeMessageKeys[mode]), value: mode }));
+  const verifyOptions = verifyModes.map(mode => ({ label: t(verifyModeMessageKeys[mode]), value: mode }));
 
   return (
     <form data-verification-form onSubmit={onSubmit}>
       <SettingsSection data-verification-section id="verification-delivery-title" title={t("verification.delivery.title")} description={t("verification.delivery.description")}><SettingRow
         field="delivery_mode"
-        controlID="verification-delivery-mode"
-        labelKey="verification.delivery.label"
-        descriptionKey={deliveryModeDescriptionKeys[draft.delivery_mode]}
         source={settings.delivery_mode.source}
-        errorKey={errors.delivery_mode}
+        saving={saving}
         onRestore={onRestore}
       >
-        {(describedBy) => (
-          <AppSelect
-            aria-label={t("verification.delivery.label")}
+          <Picker
+            label={t("verification.delivery.label")}
+            labelPosition="top"
             id="verification-delivery-mode"
-            aria-describedby={describedBy}
-            value={draft.delivery_mode}
-            aria-disabled={saving ? "true" : undefined}
-            options={deliveryOptions}
-            onValueChange={(value) => onDraftChange("delivery_mode", value)}
-          />
-        )}
+            description={t(deliveryModeDescriptionKeys[draft.delivery_mode])}
+            errorMessage={errors.delivery_mode ? t(errors.delivery_mode) : undefined}
+            isInvalid={Boolean(errors.delivery_mode)}
+            validationBehavior="aria"
+            selectedKey={draft.delivery_mode}
+            isDisabled={saving}
+            size="M"
+            styles={style({ width: "full", minWidth: 0 })}
+            items={deliveryOptions}
+            onSelectionChange={key => { if (key !== null) onDraftChange("delivery_mode", key as DeliveryMode); }}
+          >{option => <PickerItem id={option.value}>{option.label}</PickerItem>}</Picker>
       </SettingRow></SettingsSection>
 
       <SettingsSection data-verification-section id="verification-challenge-title" title={t("verification.challenge.title")} description={t("verification.challenge.description")}><SettingRow
         field="verify_mode"
-        controlID="verification-mode"
-        labelKey="verification.challenge.label"
-        descriptionKey={verifyModeDescriptionKeys[draft.verify_mode]}
         source={settings.verify_mode.source}
-        errorKey={errors.verify_mode}
+        saving={saving}
         onRestore={onRestore}
       >
-        {(describedBy) => (
-          <AppSelect
-            aria-label={t("verification.challenge.label")}
+          <Picker
+            label={t("verification.challenge.label")}
+            labelPosition="top"
             id="verification-mode"
-            aria-describedby={describedBy}
-            value={draft.verify_mode}
-            aria-disabled={saving ? "true" : undefined}
-            options={verifyOptions}
-            onValueChange={(value) => onDraftChange("verify_mode", value)}
-          />
-        )}
+            description={t(verifyModeDescriptionKeys[draft.verify_mode])}
+            errorMessage={errors.verify_mode ? t(errors.verify_mode) : undefined}
+            isInvalid={Boolean(errors.verify_mode)}
+            validationBehavior="aria"
+            selectedKey={draft.verify_mode}
+            isDisabled={saving}
+            size="M"
+            styles={style({ width: "full", minWidth: 0 })}
+            items={verifyOptions}
+            onSelectionChange={key => { if (key !== null) onDraftChange("verify_mode", key as VerifyMode); }}
+          >{option => <PickerItem id={option.value}>{option.label}</PickerItem>}</Picker>
       </SettingRow></SettingsSection>
 
       <SettingsSection data-verification-section id="verification-timing-title" title={t("verification.timing.title")} description={t("verification.timing.description")}><NumericSetting
@@ -323,30 +286,15 @@ export function VerificationSettingsForm({
 
       <SettingsSection data-verification-section id="verification-invited-title" title={t("verification.invited.title")} description={t("verification.invited.description")}><SettingRow
         field="verify_invited"
-        controlID="verification-invited-members"
-        labelKey="verification.invited.label"
-        descriptionKey="verification.invited.settingDescription"
         source={settings.verify_invited.source}
-        errorKey={errors.verify_invited}
+        saving={saving}
         onRestore={onRestore}
       >
-        {(describedBy) => (
-          <input
-            id="verification-invited-members"
-            data-slot="switch"
-            type="checkbox"
-            role="switch"
-            aria-checked={draft.verify_invited}
-            aria-describedby={describedBy}
-            checked={draft.verify_invited}
-            aria-disabled={saving ? "true" : undefined}
-            onChange={(event) => {
-              if (!saving) {
-                onDraftChange("verify_invited", event.currentTarget.checked);
-              }
-            }}
-          />
-        )}
+          <Switch id="verification-invited-members" size="M" isSelected={draft.verify_invited} isDisabled={saving}
+            styles={style({ width: "full", minWidth: 0 })}
+            description={t("verification.invited.settingDescription")} validationBehavior="aria"
+            isInvalid={Boolean(errors.verify_invited)} errorMessage={errors.verify_invited ? t(errors.verify_invited) : undefined}
+            onChange={value => onDraftChange("verify_invited", value)}>{t("verification.invited.label")}</Switch>
       </SettingRow></SettingsSection>
 
       <SettingsSaveFooter data-verification-savebar dirtyCount={dirtyCount} pending={saving} disabled={saveBlocked} onDiscard={onDiscard}

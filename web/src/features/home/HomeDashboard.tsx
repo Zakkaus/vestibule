@@ -161,7 +161,7 @@ function OverviewSection({
               {/* The icon sits beside the number, not inside the label: a label that wraps
                   in a wider language would otherwise carry the icon on its first line and
                   the four tiles would no longer line up. */}
-              <Content styles={style({ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, minWidth: 0 })}>
+              <Content styles={style({ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, minWidth: 0 })}>
                 <Text styles={style({ font: "heading", fontWeight: "bold", color: "neutral" })}>{metric.value}</Text>
                 <Content styles={style({ display: "flex", color: "neutral-subdued" })}><Icon name={metric.icon} /></Content>
               </Content>

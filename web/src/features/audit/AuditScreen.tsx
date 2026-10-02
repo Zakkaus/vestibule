@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/PageHeader";
 import { Feedback, writeOutcomeUnknown } from "../../components/feedback";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button } from "@react-spectrum/s2/Button";
@@ -359,10 +360,8 @@ export function AuditScreen() {
       aria-busy={auditState.kind === "loading" ? true : undefined}
       aria-labelledby="audit-title"
     >
-      <header data-page-heading>
-        <h1 id="audit-title">{t("audit.title")}</h1>
-        <p>{t("audit.description")}</p>
-      </header>
+      <PageHeader ><h1 id="audit-title">{t("audit.title")}</h1>
+      <p>{t("audit.description")}</p></PageHeader>
 
       {auditState.kind === "loading" ? (
         <AuditStateCard

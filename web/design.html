@@ -928,12 +928,12 @@ li::marker { color: var(--border); }
     <div class="tw"><table class="spec-table">
       <thead><tr><th>角色</th><th>唯一来源</th><th>采用规则</th></tr></thead>
       <tbody>
-        <tr><td>动作与选择</td><td><code>@react-spectrum/s2</code> 的 Button、LinkButton、Picker、TextField</td><td>屏内主动作 XL（48px），卡片与工具栏 L（40px），行内 M（32px）；同排输入和按钮等高。触摸设备统一升为 XL，按 Spectrum 的 1.25 倍触摸尺度呈现为 60px。</td></tr>
-        <tr><td>容器与圆角</td><td>Content、Header、Heading、Card、IllustratedMessage</td><td>内容面板仅上方两个角采用 Spectrum 的 <code>xl</code> 圆角比例，下方两个角为直角。卡片与控件保留各自默认圆角、内边距和状态样式，不把按钮改成统一的项目圆角。</td></tr>
-        <tr><td>间距</td><td>Spectrum 2 的 <code>style()</code> 样式宏</td><td>内容面板顶部紧贴顶栏底部，左侧衔接导航右边缘，底部不留外间距。面板右侧和桌面侧栏左侧采用 spacing-200（12）间距，窄屏面板右侧采用 8；面板内边距采用 32，窄屏采用 16。常规区块间距采用 24；首页区块采用 16，紧邻内容采用 8。数值均来自库的 spacing 比例，不另写像素变量；卡片内边距由库决定。</td></tr>
+        <tr><td>动作与选择</td><td><code>@react-spectrum/s2</code> 的 Button、LinkButton、Picker、TextField、Switch</td><td>外壳和验证设置模板采用 M，鼠标设备为 32px，触摸设备按 Spectrum 的 1.25 倍尺度呈现为 40px。其他屏保留既有尺寸。设置页的保存和放弃操作位于普通表单页脚，按钮按完整标签换行，不强制占满宽度。</td></tr>
+        <tr><td>容器与圆角</td><td>Content、Header、Heading、Card、IllustratedMessage</td><td>内容面板仅上方两个角采用 Spectrum 的 <code>xl</code> 圆角，下方为直角。验证设置采用原生具名 section，内边距 16px、边框 1px、圆角 16px；控件和焦点样式仍由 Spectrum 提供。</td></tr>
+        <tr><td>间距</td><td>Spectrum 2 的 <code>style()</code> 样式宏</td><td>外壳最大宽度 1600px，正文最大宽度 1120px。桌面侧栏 240px，正文右侧外间距 16px。正文顶部 32px、左右 40px、底部 48px；600px 及以下改为 20px、16px、40px。正文和通知另留底栏及安全区域空间。设置区块间距 24px，字段网格间距 12px，字段外层间距 4px。</td></tr>
         <tr><td>主色</td><td>库的默认强调色</td><td>采用 Spectrum accent 的蓝色，主动作使用 accent 变体；不使用 premium、genai 或靛蓝、紫色的演示配色。</td></tr>
         <tr><td>背景分层</td><td>Provider 的 <code>background</code> 与 style 宏的 layer token</td><td><code>@react-spectrum/s2@1.7.1</code> 中，Provider 保留 <code>base</code>，控制台外层使用 <code>layer-1</code>；顶栏和侧栏沿用外层背景，移除分隔边框。内容面板使用 <code>layer-2</code>；原生 Card 的 primary 变体同样使用 <code>layer-2</code> 并保留库的阴影。未迁移页面的背景变量继续通过公开 style 宏绑定 layer token，跟随浅色、深色和系统主题，不复制颜色常量。</td></tr>
-        <tr><td>导航</td><td>Spectrum Accordion、Disclosure、Popover 与 React Aria Button、Link</td><td>保留六组和全部授权入口，一次展开一组；路由改变时同步展开目标组。React Aria 原语沿用库的展开、链接和键盘行为，外观使用 S2 的公开样式宏。当前项只用粗体和文字颜色区分，底色透明、圆角为零，不显示左轨，也不改变图标描边。字重从 400 变为 700，作为非颜色差异单独验证。字号、行高、项间距、分组间距和宽度取库中最接近 docs 实测值的尺度；保留悬停和键盘焦点提示。1280×720 下逐组展开后检查滚动边界，不允许只露出半个导航项。</td></tr>
+        <tr><td>导航</td><td>Spectrum SideNav、Menu 与 React Aria Link</td><td>全部授权入口分为日常、验证、群组、控制台四组。桌面 SideNav 始终展开；1024px 以下采用 64px 底部导航栏，当前组的完整页面链接位于标题下方。每组记住本次会话最后访问的页面，切换组或页面写入浏览历史。桌面选群器位于侧栏底部；窄屏选群器位于单行 64px 顶栏，语言和外观收入更多菜单。仅选中的群名可省略，完整名称在选项中显示。</td></tr>
         <tr><td>等待队列</td><td>TableView、TableHeader、Column、TableBody、Row、Cell</td><td>库提供多行选择、排序提示和空态容器。Tab 进入表格后，以方向键移动焦点；窄屏保留同一表格并横向滚动。行内放行沿用原有权限与请求流程。切换群后清空选择，排序保持选中项；空队列和筛选无结果使用不同提示。</td></tr>
         <tr><td>图表</td><td>Adobe 的 <code>@spectrum-charts/react-spectrum-charts-s2</code>、Vega-Lite 与统计 API</td><td>请求数柱与通过率线叠在一张双轴图中：左轴计数，右轴固定为 0–100%。保留刻度和每日数值，去掉竖排轴标题，由横排图例说明系列及对应轴。只画接口返回的日期；仅在缺数据时提示缺少的天数，不补零。</td></tr>
         <tr><td>图标</td><td>Lucide Static 1.39.0 清单及 Spectrum 内部图标</td><td>侧栏保留图标。概况依次使用 chartColumn、circleCheck、inbox、shieldOff；待办、异常、正常分别使用 inbox、circleAlert、circleCheck。验证、题库、频道、反垃圾入口分别使用 shieldCheck、bookOpen、usersRound、shieldAlert。图例使用 chartColumn 与 chartLine，趋势空状态使用 chartNoAxesCombined，无群状态使用 usersRound。旁边已有文字时，图标不重复朗读。新增图标从清单声明的同版包原样复制，更新 SHA-256 与来源路径；Spectrum 内部图标仍由锁定版本的依赖持有。</td></tr>
@@ -943,7 +943,7 @@ li::marker { color: var(--border); }
     <p>页面与容器背景禁止使用 <code>gray-*</code> 色阶，文字和边框不受此限制。外壳采用 <a href="https://react-spectrum.adobe.com/getting-started">Spectrum 入门文档</a>的灰底与正文面板版式：浅色模式为灰底、白色面板，深色模式下面板比外层亮一档。顶栏和侧栏直接放在外层灰底上，不形成独立立柱。分层值以本地锁定版本的 Provider 和 style 类型定义为准。导航不使用选中底色。端到端检查覆盖上方圆角、下方直角、面板与顶栏和侧栏衔接、右侧间距、侧栏背景与边框，以及显式和系统主题。</p>
     <p><code>web/src/styles/{tokens,components,shell}.css</code> 原样保留，旧样式进入独立的低优先级层，继续服务未迁移页面。
       <code>web/src/icons/lucide/</code> 中已有图标不改写，新增图标沿用同一来源和清单格式。CSS 来源清单分别记录项目样式、依赖样式和生成样式的 TSX 来源；生成的原子类不能靠文件名绕过来源检查。</p>
-    <p>内容面板独立纵向滚动，顶栏和侧栏不随正文移动；首页面板按内容高度收拢，不强行填满视口。最后一块内容到底部的距离不得超过首页一个区块间距。首页在 1280×900 下无需纵向滚动，图表和表格保留各自的横向滚动边界。</p>
+    <p>正文使用文档纵向滚动，不建立固定高度的嵌套滚动区。顶栏与桌面侧栏保持粘性定位；窄屏高度不超过 500px 时顶栏随正文滚动。图表和表格保留各自的横向滚动边界。</p>
     <p>S2 1.7.1 存在一项横向虚拟化限制：从整行直接跳到尚未渲染过的末列时，焦点无法到达目标。
       窄屏可用右方向键逐列进入操作按钮，等当前单元格进入视口后再继续。
       不覆写依赖源码，也不为此保留另一套表格或卡片。</p>
@@ -1476,10 +1476,9 @@ li::marker { color: var(--border); }
   <section id="s5" class="stack-m">
     <hr class="rule">
     <div class="sechead"><span class="num">06</span><h2>后台职责</h2></div>
-    <p>十五个屏，分六组。<b>分组不是为了好看，而是为了让人不必记住十五个屏名。</b>
-      导航是一份数据，按能力过滤：一个群没开推送订阅，那一项不出现；
-      一整组都看不到时，组标题跟着消失，不留空标题。</p>
-    <p>面包屑从同一份数据推导，不另写一份列表；两份列表只会在下一次增加路由之前保持一致。</p>
+    <p>控制台分为日常、验证、群组、控制台四组。导航数据按能力过滤；
+      一整组都不可见时，组标题与底栏入口一并隐藏。</p>
+    <p>桌面侧栏和窄屏底栏及页面链接共用同一份导航数据，保留全部现有路由和权限边界。</p>
 
     <div class="shellview">
       <nav class="side" aria-label="控制台导航">
@@ -1488,6 +1487,7 @@ li::marker { color: var(--border); }
           <a href="#" aria-current="page"><svg class="i"><use href="#i-chart"/></svg>首页</a>
           <a href="#"><svg class="i"><use href="#i-inbox"/></svg>等待队列<span class="count badge pending">7</span></a>
           <a href="#"><svg class="i"><use href="#i-file"/></svg>操作记录</a>
+          <a href="#"><svg class="i"><use href="#i-chart"/></svg>统计</a>
         </div>
         <div class="grp">
           <span class="glabel">验证</span>
@@ -1496,26 +1496,20 @@ li::marker { color: var(--border); }
           <a href="#"><svg class="i"><use href="#i-usercheck"/></svg>免验证来源</a>
         </div>
         <div class="grp">
-          <span class="glabel">群</span>
+          <span class="glabel">群组</span>
           <a href="#"><svg class="i"><use href="#i-users"/></svg>群与频道</a>
           <a href="#"><svg class="i"><use href="#i-alert"/></svg>管理与处罚</a>
           <a href="#"><svg class="i"><use href="#i-msg"/></svg>消息与文案</a>
-        </div>
-        <div class="grp">
-          <span class="glabel">内容</span>
           <a href="#"><svg class="i"><use href="#i-rss"/></svg>订阅推送</a>
         </div>
         <div class="grp">
-          <span class="glabel">观察</span>
-          <a href="#"><svg class="i"><use href="#i-chart"/></svg>统计</a>
+          <span class="glabel">控制台</span>
           <a href="#"><svg class="i"><use href="#i-activity"/></svg>诊断</a>
-        </div>
-        <div class="grp">
-          <span class="glabel">这台控制台</span>
           <a href="#"><svg class="i"><use href="#i-refresh"/></svg>版本
             <span class="count badge plain">v5.1</span></a>
           <a href="#"><svg class="i"><use href="#i-toggle"/></svg>功能</a>
           <a href="#"><svg class="i"><use href="#i-settings"/></svg>偏好</a>
+          <a href="#"><svg class="i"><use href="#i-settings"/></svg>部署者设置</a>
         </div>
       </nav>
       <div class="body stack">

@@ -1,279 +1,85 @@
-import { Button } from "@react-spectrum/s2/Button";
-import { Content, Header, Link, Popover, Text } from "@react-spectrum/s2";
-import { size, style } from "@react-spectrum/s2/style" with { type: "macro" };
-import { DialogTrigger } from "@react-spectrum/s2/Dialog";
-import { useEffect, useState } from "react";
+import { Content, Header, Link, Text } from "@react-spectrum/s2";
+import { style } from "@react-spectrum/s2/style" with { type: "macro" };
+import { ToastContainer } from "@react-spectrum/s2/Toast";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useMatches } from "react-router-dom";
-
 import { UtilityControls } from "../components/UtilityControls";
-import { ConsoleProvider, useConsoleSize } from "../components/ConsoleProvider";
-import { ToastContainer } from "@react-spectrum/s2/Toast";
+import { ConsoleProvider } from "../components/ConsoleProvider";
 import { DraftProvider } from "./drafts";
 import { GroupSwitcher } from "../features/groups";
 import { Icon } from "../icons";
-import {
-  canViewInstanceStatus,
-  canViewOwner,
-  useConsoleSession,
-  type ConsoleSessionState
-} from "./session";
+import { canViewInstanceStatus, canViewOwner, useConsoleSession, type ConsoleSessionState } from "./session";
 import { ConsoleNavigation, navigationItems, navigationSections, type NavigationCapability } from "./ConsoleNavigation";
+import { HubBar, HubContext } from "./ConsoleHubs";
 
-type ShellVariant = "entry" | "console";
+const shellLayout = style({ display: "grid", gridTemplateColumns: { default: "[240px minmax(0,1fr)]", "@media (max-width: 1023px)": "[minmax(0,1fr)]" }, gridTemplateRows: "[auto 1fr]", minHeight: "screen", maxWidth: "[1600px]", marginX: "auto", minWidth: 0, backgroundColor: "layer-1", color: "neutral" });
+const headerLayout = style({ gridColumnStart: 1, gridColumnEnd: -1, position: "sticky", top: 0, zIndex: 2, display: "grid", gridTemplateColumns: { default: "[216px minmax(0,1fr) auto]", "@media (max-width: 1023px)": "[auto minmax(0,1fr) auto]" }, alignItems: "center", minHeight: "[64px]", gap: { default: 24, "@media (max-width: 399px)": 8 }, paddingX: { default: 24, "@media (max-width: 399px)": 12 }, backgroundColor: "inherit" });
+const sidebarLayout = style({ display: { default: "flex", "@media (max-width: 1023px)": "none" }, flexDirection: "column", minWidth: 0, alignSelf: "start", position: "sticky", top: "[64px]" });
+const contentLayout = style({ minWidth: 0, marginEnd: { default: 16, "@media (max-width: 1023px)": 0 }, paddingTop: { default: 32, "@media (max-width: 600px)": 20 }, paddingX: { default: 40, "@media (max-width: 600px)": 16 }, borderTopStartRadius: "xl", borderTopEndRadius: "xl", backgroundColor: "layer-2" });
+const capabilityChecks: Readonly<Record<NavigationCapability, (state: ConsoleSessionState) => boolean>> = { "instance-status": canViewInstanceStatus, owner: canViewOwner };
 
-type RouteHandle = {
-  shell?: ShellVariant;
-};
-
-const shellLayout = style({
-  display: "grid",
-  gridTemplateColumns: {
-    default: [size(280), "minmax(0, 1fr)"],
-    "@media (max-width: 48rem)": ["minmax(0, 1fr)"]
-  },
-  height: "screen",
-  minHeight: 0,
-  minWidth: 0,
-  overflow: "hidden",
-  boxSizing: "border-box",
-  paddingStart: { default: 12, "@media (max-width: 48rem)": 0 },
-  color: "neutral",
-  backgroundColor: "layer-1"
-});
-
-const sidebarLayout = style({
-  display: { default: "flex", "@media (max-width: 48rem)": "none" },
-  flexDirection: "column",
-  height: "full",
-  minHeight: 0,
-  minWidth: 0,
-  overflow: "hidden",
-  boxSizing: "border-box",
-  backgroundColor: "inherit",
-  borderWidth: 0
-});
-
-
-const brandHeaderLayout = style({
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-  minWidth: 0,
-  minHeight: size(64),
-  padding: 16,
-  boxSizing: "border-box",
-  backgroundColor: "inherit",
-  borderWidth: 0
-});
-
-const brandLinkLayout = style({
-  display: "flex",
-  alignItems: "center",
-  minWidth: 0,
-  gap: 8,
-  font: "title",
-  color: "neutral",
-  textDecoration: "none"
-});
-
-const mainLayout = style({
-  display: "grid",
-  height: "full",
-  minHeight: 0,
-  minWidth: 0,
-  overflow: "hidden",
-  boxSizing: "border-box",
-  backgroundColor: "inherit"
-});
-
-const headerLayout = style({
-  justifyContent: "end",
-  position: "sticky",
-  top: 0,
-  zIndex: 1,
-  display: "grid",
-  gridTemplateColumns: {
-    default: ["minmax(0, 1fr)", "auto"],
-    "@media (max-width: 64rem)": ["minmax(0, 1fr)"]
-  },
-  alignItems: "center",
-  gap: 16,
-  minHeight: size(64),
-  paddingX: {
-    default: 32,
-    "@media (max-width: 48rem)": 16
-  },
-  paddingY: 16,
-  boxSizing: "border-box",
-  borderWidth: 0,
-  backgroundColor: "inherit"
-});
-
-const headerTitleLayout = style({
-  minWidth: 0,
-  color: "neutral-subdued",
-  font: "ui-lg",
-  overflowWrap: "anywhere"
-});
-
-const controlsLayout = style({
-  display: { default: "flex", "@media (max-width: 48rem)": "grid" },
-  gridTemplateColumns: ["minmax(0, 1fr)", "minmax(0, 1fr)"],
-  flexWrap: "wrap",
-  alignItems: "center",
-  gap: 8,
-  minWidth: 0,
-  gridColumn: { default: "auto", "@media (max-width: 64rem)": "1" },
-  width: { default: "auto", "@media (max-width: 64rem)": "full" }
-});
-
-const contentLayout = style({
-  // The panel reaches the bottom of the window on every route. Letting the home page
-  // shrink to its content left a fifth of the window showing the shell behind it,
-  // and overflow already keeps a long page from pushing the window taller.
-  alignSelf: "stretch",
-  maxHeight: "none",
-  minHeight: 0,
-  minWidth: 0,
-  marginEnd: {
-    default: 12,
-    "@media (max-width: 48rem)": 8
-  },
-  padding: {
-    default: 32,
-    "@media (max-height: 800px)": 20,
-    "@media (max-width: 48rem)": 16
-  },
-  overflow: "auto",
-  overscrollBehavior: "contain",
-  boxSizing: "border-box",
-  borderTopStartRadius: "xl",
-  borderTopEndRadius: "xl",
-  backgroundColor: "layer-2"
-});
-
-const innerLayout = style({
-  width: "full",
-  maxWidth: size(1248),
-  marginX: "auto",
-  minWidth: 0
-});
-
-
-const capabilityChecks: Readonly<
-  Record<NavigationCapability, (state: ConsoleSessionState) => boolean>
-> = {
-  "instance-status": canViewInstanceStatus,
-  owner: canViewOwner
-};
-
+function useNarrowLayout() {
+  const [narrow, setNarrow] = useState(() => window.matchMedia("(max-width: 1023px)").matches);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 1023px)");
+    const update = () => setNarrow(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  return narrow;
+}
 
 function ShellContent() {
   const { t } = useTranslation();
   const location = useLocation();
+  const previousPath = useRef(location.pathname);
   const session = useConsoleSession();
-  const controlSize = useConsoleSize("L");
-  const [navigationOpen, setNavigationOpen] = useState(false);
-  useEffect(() => {
-    setNavigationOpen(false);
-  }, [location.key]);
+  const narrow = useNarrowLayout();
   const selectedGroupId = new URLSearchParams(location.search).get("group");
-  const selectedGroupSearch = selectedGroupId
-    ? `?${new URLSearchParams({ group: selectedGroupId }).toString()}`
-    : "";
-  const visibleNavigationItems = navigationItems.filter((item) =>
-    item.capability === undefined || capabilityChecks[item.capability](session)
-  );
-  const visibleNavigationSections = navigationSections(visibleNavigationItems);
-
-  const currentNavigationItem = visibleNavigationItems.find((item) => item.path === location.pathname);
+  const search = selectedGroupId ? `?${new URLSearchParams({ group: selectedGroupId })}` : "";
+  const sections = navigationSections(navigationItems.filter(item => !item.capability || capabilityChecks[item.capability](session)));
   const matches = useMatches();
-  const routeHandle = matches.at(-1)?.handle as RouteHandle | undefined;
-  const shellVariant = routeHandle?.shell ?? "entry";
-
-  document.title = t("app.title");
-
-  if (shellVariant === "entry") {
-    return (
-      <Content data-app-shell data-shell-variant={shellVariant}>
-        <Header data-entry-utilities>
-          <UtilityControls variant="chrome" />
-        </Header>
-        <main data-entry-main>
-          <Outlet />
-        </main>
-      </Content>
-    );
-  }
-
-  return (
-    <Content
-      data-app-shell
-      data-shell-variant={shellVariant}
-      UNSAFE_className="console-shell"
-      styles={shellLayout}
-    >
-      <Content UNSAFE_className="console-sidebar" styles={sidebarLayout}>
-        <aside className={style({ display: "flex", flexDirection: "column", height: "full", minHeight: 0 })}>
-          <Header UNSAFE_className="console-brand" styles={brandHeaderLayout}>
-            <Link href={`/home${selectedGroupSearch}`} variant="secondary" isStandalone isQuiet>
-              <Content styles={brandLinkLayout}>
-                <Icon name="shieldCheck" />
-                <Text>{t("app.name")}</Text>
-              </Content>
-            </Link>
-          </Header>
-          <ConsoleNavigation
-            sections={visibleNavigationSections}
-            selectedGroupSearch={selectedGroupSearch}
-            idPrefix="desktop"
-          />
-        </aside>
-      </Content>
-      <Content UNSAFE_className="console-main" styles={mainLayout}>
-        <main className={style({ display: "grid", gridTemplateRows: ["auto", "minmax(0, 1fr)"], minHeight: 0, minWidth: 0 })}>
-          <Header UNSAFE_className="console-header" styles={headerLayout} data-console-header>
-            <Content UNSAFE_className="console-mobile-navigation" data-mobile-navigation styles={style({ display: { default: "none", "@media (max-width: 48rem)": "block" } })}>
-              <DialogTrigger isOpen={navigationOpen} onOpenChange={setNavigationOpen}>
-                <Button size={controlSize} variant="secondary" aria-haspopup="dialog" data-console-control data-control-size={controlSize}>
-                  <Icon name="layoutDashboard" />
-                  <Text>{t("shell.mobileNavigation")}</Text>
-                </Button>
-                <Popover
-                  aria-label={t("navigation.label")}
-                  UNSAFE_className="console-mobile-panel"
-                  size="S"
-                  styles={style({ maxHeight: "[70dvh]" })}
-                >
-                  <ConsoleNavigation
-                    sections={visibleNavigationSections}
-                    selectedGroupSearch={selectedGroupSearch}
-                    idPrefix="mobile"
-                    onNavigate={() => setNavigationOpen(false)}
-                  />
-                </Popover>
-              </DialogTrigger>
-            </Content>
-            <Content UNSAFE_className="console-controls" styles={controlsLayout}>
-              <GroupSwitcher />
-              <UtilityControls variant="chrome" />
-            </Content>
-          </Header>
-          <Content
-            UNSAFE_className="console-content"
-            styles={contentLayout}
-          >
-            <Content key={location.pathname} UNSAFE_className="console-inner" styles={innerLayout}>
-              <Outlet />
-            </Content>
-          </Content>
-        </main>
-      </Content>
+  const handle = matches.at(-1)?.handle as { shell?: "entry" | "console" } | undefined;
+  const variant = handle?.shell ?? "entry";
+  useEffect(() => { document.title = t("app.title"); }, [t]);
+  useEffect(() => {
+    if (previousPath.current === location.pathname) return;
+    previousPath.current = location.pathname;
+    const heading = document.querySelector<HTMLElement>(".console-inner h1");
+    if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
+  }, [location.pathname]);
+  if (variant === "entry") return (
+    <Content data-app-shell data-shell-variant="entry">
+      <Header data-entry-utilities><UtilityControls variant="chrome" /></Header>
+      <main data-entry-main><Outlet /></main>
     </Content>
+  );
+  return (
+    <HubContext.Provider value={{ sections, search, narrow }}>
+      <Content data-app-shell data-shell-variant="console" UNSAFE_className="console-shell" styles={shellLayout}>
+        <Header data-console-header UNSAFE_className="console-header" styles={headerLayout}>
+          <Link href={`/home${search}`} aria-label={t("app.name")} variant="secondary" isStandalone isQuiet>
+            <Content styles={style({ display: "flex", alignItems: "center", gap: 8 })}>
+              <Icon name="shieldCheck" /><Text styles={style({ display: { default: "block", "@media (max-width: 420px)": "none" }, whiteSpace: "nowrap" })}>{t("app.name")}</Text>
+            </Content>
+          </Link>
+          <div className={style({ minWidth: 0 })}>{narrow ? <GroupSwitcher compact /> : null}</div>
+          <UtilityControls variant="console" />
+        </Header>
+        <Content {...{ role: "complementary" }} UNSAFE_className="console-sidebar" styles={sidebarLayout}>
+          <ConsoleNavigation sections={sections} selectedGroupSearch={search} idPrefix="desktop" />
+          <div className={style({ padding: 16, minWidth: 0, flexShrink: 0 })}>{!narrow ? <GroupSwitcher /> : null}</div>
+        </Content>
+        <Content {...{ role: "main" }} UNSAFE_className="console-content" styles={contentLayout}>
+          <Content UNSAFE_className="console-inner" styles={style({ width: "full", maxWidth: "[1120px]", marginX: "auto", minWidth: 0 })}><Outlet /></Content>
+        </Content>
+        <HubBar />
+      </Content>
+    </HubContext.Provider>
   );
 }
 
 export function AppShell() {
-  return <ConsoleProvider><DraftProvider><ShellContent /><ToastContainer placement="top" /></DraftProvider></ConsoleProvider>;
+  return <ConsoleProvider><DraftProvider><ShellContent /><ToastContainer placement="bottom" data-console-toasts /></DraftProvider></ConsoleProvider>;
 }

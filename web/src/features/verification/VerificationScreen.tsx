@@ -1,8 +1,11 @@
+import { PageHeader } from "../../components/PageHeader";
 import { useDraftOwner, useScopeChange } from "../../app/drafts";
 import { Feedback, writeOutcomeUnknown } from "../../components/feedback";
 import { changedDraftFields, reapplyDraft, VerificationConflict } from "./VerificationConflict";
 import { Button } from "@react-spectrum/s2/Button";
 import { Text } from "@react-spectrum/s2";
+import { ProgressCircle } from "@react-spectrum/s2/ProgressCircle";
+import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
@@ -12,7 +15,6 @@ import {
   retryConsoleAccess,
   useConsoleSession
 } from "../../app/session";
-import { useConsoleSize } from "../../components/ConsoleProvider";
 import { Icon, type IconName } from "../../icons";
 import { SettingsLimitNotice } from "../../components/SettingsLimitNotice";
 import type { ApiRequestError } from "../../lib/api";
@@ -107,7 +109,7 @@ function StateCard({
 
 export function VerificationScreen() {
   const { t } = useTranslation();
-  const size = useConsoleSize("L");
+  const size = "M";
   const session = useConsoleSession();
   const [searchParams] = useSearchParams();
   const selectedGroupID = searchParams.get("group");
@@ -202,6 +204,7 @@ export function VerificationScreen() {
     setDraft(settingsDraft(settings));
     setRestored(new Set());
     setAttemptedSave(false);
+    setTouched(new Set());
     setFeedback(null);
     setConflict(null);
   }
@@ -330,22 +333,26 @@ export function VerificationScreen() {
       aria-busy={screenState.kind === "loading" || saving ? true : undefined}
       aria-labelledby="verification-title"
     >
-      <header data-page-heading>
-        <h1 id="verification-title">
-          <Icon name="shieldCheck" />
-          {t("verification.title")}
-        </h1>
-        <p>{t("verification.description")}</p>
-      </header>
+      <PageHeader ><h1 id="verification-title">
+        <Icon name="shieldCheck" />
+        {t("verification.title")}
+      </h1>
+      <p>{t("verification.description")}</p></PageHeader>
 
-      {screenState.kind === "loading" ? (
-        <StateCard
-          id="loading"
-          icon="loaderCircle"
-          titleKey="verification.loading.title"
-          descriptionKey="verification.loading.description"
-        />
+      {conflict && screenState.kind === "loaded" && draft ? (
+        <VerificationConflict baseline={screenState.settings} draft={draft} latest={conflict}
+          restored={restored} onDiscard={discardDraft} onReapply={reapplyChanges} />
       ) : null}
+      {feedback ? (
+        <Feedback data-verification-feedback focusFailure={feedback.kind === "error"} level={feedback.kind === "saved" ? "positive" : "negative"}
+          message={t(feedback.kind === "saved" ? "verification.feedback.saved" : verificationErrorMessageKey(feedback.error, "verification.errors.saveUnavailable"))}
+          unknown={feedback.kind === "error" && feedback.unknown}
+          onRefetch={feedback.kind === "error" && feedback.refetch ? () => { void refetchOutcome(); } : undefined}>
+          {feedback.kind === "error" && feedback.error.kind === "api" && feedback.error.code === "settings_limit_exceeded"
+            ? <SettingsLimitNotice error={feedback.error} messageKey="verification.errors.settingsLimitExceeded" /> : undefined}
+        </Feedback>
+      ) : null}
+      {screenState.kind === "loading" ? <div><ProgressCircle aria-label={t("verification.loading.title")} isIndeterminate /><p>{t("verification.loading.description")}</p></div> : null}
       {screenState.kind === "group-required" ? (
         <StateCard
           id="group-required"
@@ -386,7 +393,7 @@ export function VerificationScreen() {
             onPress={reloadVerification}
           >
             <Icon name="refreshCw" />
-            <Text>{t("verification.unavailable.retry")}</Text>
+            <Text styles={style({ whiteSpace: "nowrap" })}>{t("verification.unavailable.retry")}</Text>
           </Button>
         </StateCard>
       ) : null}
@@ -398,7 +405,7 @@ export function VerificationScreen() {
           saving={saving}
           dirtyCount={dirtyCount}
           onDiscard={discardDraft}
-          saveBlocked={conflict !== null}
+          saveBlocked={conflict !== null || !validation.values}
           onSubmit={submit}
           onDraftChange={updateDraft}
           onFieldBlur={(field) => setTouched((current) => new Set(current).add(field))}
@@ -406,19 +413,6 @@ export function VerificationScreen() {
         />
       ) : null}
 
-      {conflict && screenState.kind === "loaded" && draft ? (
-        <VerificationConflict baseline={screenState.settings} draft={draft} latest={conflict}
-          restored={restored} onDiscard={discardDraft} onReapply={reapplyChanges} />
-      ) : null}
-      {feedback ? (
-        <Feedback data-verification-feedback level={feedback.kind === "saved" ? "positive" : "negative"}
-          message={t(feedback.kind === "saved" ? "verification.feedback.saved" : verificationErrorMessageKey(feedback.error, "verification.errors.saveUnavailable"))}
-          unknown={feedback.kind === "error" && feedback.unknown}
-          onRefetch={feedback.kind === "error" && feedback.refetch ? () => { void refetchOutcome(); } : undefined}>
-          {feedback.kind === "error" && feedback.error.kind === "api" && feedback.error.code === "settings_limit_exceeded"
-            ? <SettingsLimitNotice error={feedback.error} messageKey="verification.errors.settingsLimitExceeded" /> : undefined}
-        </Feedback>
-      ) : null}
     </section>
   );
 }

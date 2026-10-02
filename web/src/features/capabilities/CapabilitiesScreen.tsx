@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/PageHeader";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
@@ -366,10 +367,8 @@ export function CapabilitiesScreen() {
       aria-busy={screenState.kind === "loading" || saving ? true : undefined}
       aria-labelledby="capabilities-title"
     >
-      <header data-page-heading>
-        <h1 id="capabilities-title">{t("capabilities.title")}</h1>
-        <p>{t("capabilities.description")}</p>
-      </header>
+      <PageHeader ><h1 id="capabilities-title">{t("capabilities.title")}</h1>
+      <p>{t("capabilities.description")}</p></PageHeader>
 
       {screenState.kind === "loading" ? (
         <StateCard

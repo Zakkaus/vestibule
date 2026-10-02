@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/PageHeader";
 import { useTranslation } from "react-i18next";
 
 import { UtilityControls } from "../../components/UtilityControls";
@@ -7,10 +8,8 @@ export function PreferencesScreen() {
 
   return (
     <section data-preferences-page aria-labelledby="preferences-title">
-      <header data-page-heading>
-        <h1 id="preferences-title">{t("preferences.title")}</h1>
-        <p>{t("preferences.description")}</p>
-      </header>
+      <PageHeader ><h1 id="preferences-title">{t("preferences.title")}</h1>
+      <p>{t("preferences.description")}</p></PageHeader>
       <section data-slot="card" data-preference-local aria-labelledby="preferences-interface-title">
         <div>
           <h2 id="preferences-interface-title">{t("preferences.interface.title")}</h2>

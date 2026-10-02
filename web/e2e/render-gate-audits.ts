@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { selectAppOption } from "./app-select";
+import { selectAppOption, selectConsolePreference } from "./app-select";
 
 import type { LocaleCatalogues, RenderRoute } from "./render-gate-routes";
 
@@ -128,13 +128,10 @@ export async function renderCell(
   await page.goto(cell.route.urlPath);
   await page.locator("[data-app-shell]").waitFor({ state: "visible" });
 
-  const controls = page.locator("[data-utility-controls]").first();
-  const triggers = controls.locator('button[aria-haspopup="listbox"]');
-  if ((await triggers.count()) !== 2) {
-    throw new Error(`${cell.route.sourcePath}: utility controls must expose theme and locale triggers`);
-  }
-
-  await selectAppOption(triggers.nth(0), cell.theme);
+  const consoleShell = await page.locator('[data-shell-variant="console"]').count();
+  const triggers = page.locator('[data-utility-controls]').first().locator('button[aria-haspopup="listbox"]');
+  if (consoleShell) await selectConsolePreference(page, "theme", cell.theme);
+  else await selectAppOption(triggers.nth(0), cell.theme);
   await page.waitForFunction((theme) => {
     const root = document.documentElement;
     return (
@@ -143,7 +140,8 @@ export async function renderCell(
     );
   }, cell.theme);
 
-  await selectAppOption(triggers.nth(1), locale);
+  if (consoleShell) await selectConsolePreference(page, "locale", locale);
+  else await selectAppOption(triggers.nth(1), locale);
   await page.waitForFunction(
     (selectedLocale) => document.documentElement.lang === selectedLocale,
     locale

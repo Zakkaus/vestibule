@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { selectAppOption } from "./app-select";
+import { selectConsolePreference } from "./app-select";
 import { horizontalGeometry } from "./render-gate-audits";
 
 import {
@@ -42,7 +42,7 @@ async function navigationSections(page: Page, root: string) {
 async function controlGeometry(page: Page) {
   return page.evaluate(() => {
     const expectedHeight: Record<string, number> = {
-      M: 32,
+      M: matchMedia("not ((hover: hover) and (pointer: fine))").matches ? 40 : 32,
       L: 40,
       XL: matchMedia("not ((hover: hover) and (pointer: fine))").matches ? 60 : 48
     };
@@ -94,10 +94,10 @@ test("operator navigation is one tab stop whose rows the arrow keys walk", async
   await waitForHome(page);
 
   const nav = page.locator(".console-sidebar .console-navigation");
-  await page.locator(".console-brand a").focus();
-  await page.keyboard.press("Tab");
+  await nav.locator('[data-navigation-item="/home"]').focus();
   await expect(nav.locator('[data-navigation-item="/home"]')).toBeFocused();
-  // Rows are reached by arrow, not by Tab: the fourth row is in the next section.
+  // Four Daily rows precede the Verification hub.
+  await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowDown");
@@ -106,6 +106,8 @@ test("operator navigation is one tab stop whose rows the arrow keys walk", async
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(new RegExp(`/verification\\?group=${selectedGroupID}$`));
   await expect(link).toHaveAttribute("aria-current", "page");
+  await expect(page.locator("h1")).toBeFocused();
+  await link.focus();
   // Tab leaves the tree in one step; Shift+Tab returns to the current row.
   await page.keyboard.press("Tab");
   await expect(nav.locator(":focus")).toHaveCount(0);
@@ -114,7 +116,7 @@ test("operator navigation is one tab stop whose rows the arrow keys walk", async
 });
 
 
-test("manager navigation preserves the six groups while filtering only the instance-status destination", async ({ page }) => {
+test("manager navigation preserves the four hubs while filtering only the instance-status destination", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await mockSpectrumTransport(page, { role: "manager" });
   await openSpectrumRoute(page, "/groups");
@@ -141,12 +143,7 @@ test.describe("Spectrum shell geometry across changed routes", () => {
           await openSpectrumRoute(page, route);
           if (route === "/home") await waitForHome(page);
           else await waitForQueue(page);
-          const themeTrigger = page
-            .locator('[data-utility-controls][data-variant="chrome"] [data-console-control]')
-            .first()
-            .locator("button")
-            .first();
-          await selectAppOption(themeTrigger, theme);
+          await selectConsolePreference(page, "theme", theme);
           await waitForFonts(page);
           const overflow = await horizontalGeometry(page);
           expect(overflow.document.scrollWidth).toBeLessThanOrEqual(overflow.document.clientWidth);
@@ -163,13 +160,12 @@ test.describe("Spectrum shell geometry across changed routes", () => {
               pageWidth: pageRoot?.getBoundingClientRect().width
             };
           });
-          // The panel's padding steps down with the window: 32px, 20px under 800px tall, 16px on narrow screens.
-          expect(geometry.contentPadding).toBe(width < 768 ? "16px" : "20px");
-          expect(geometry.contentPaddingBlock).toBe(width < 768 ? "16px" : "20px");
-          expect(geometry.headerGap).toBe("16px");
+          expect(geometry.contentPadding).toBe(width < 768 ? "16px" : "40px");
+          expect(geometry.contentPaddingBlock).toBe(width < 768 ? "20px" : "32px");
+          expect(geometry.headerGap).toBe(width < 400 ? "8px" : "24px");
           if (width === 1280) {
             await page.setViewportSize({ width, height: 900 });
-            expect(await page.locator(".console-content").evaluate((content) => getComputedStyle(content).paddingInlineStart)).toBe("32px");
+            expect(await page.locator(".console-content").evaluate((content) => getComputedStyle(content).paddingInlineStart)).toBe("40px");
             await page.setViewportSize({ width, height: 720 });
           }
           await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
@@ -187,7 +183,7 @@ test.describe("Spectrum shell geometry across changed routes", () => {
   test.describe("touch scale", () => {
     test.use({ isMobile: true, hasTouch: true, viewport: { width: 390, height: 844 } });
 
-    test("touch controls upgrade to XL and measure at the 1.25 Spectrum scale", async ({ page }) => {
+    test("shell uses M while unrelated touch controls retain XL promotion", async ({ page }) => {
       await page.addInitScript(() => localStorage.setItem("verify-console-locale", "en"));
       await mockSpectrumTransport(page, { role: "operator" });
       await openSpectrumRoute(page, "/queue");
@@ -214,9 +210,9 @@ test.describe("Spectrum shell geometry across changed routes", () => {
       expect(clipping.overflowStart, JSON.stringify({ ...actionGeometry, ...clipping })).toBeLessThanOrEqual(1);
       const controls = await controlGeometry(page);
       expect(controls.length).toBeGreaterThan(0);
-      expect(controls.every((control) => control.size === "XL")).toBe(true);
+      expect(controls.some(control => control.size === "M")).toBe(true);
       for (const control of controls) {
-        expect(control.innerHeight, JSON.stringify(control)).toBe(60);
+        expect(control.innerHeight, JSON.stringify(control)).toBe(control.expectedHeight);
       }
     });
   });
@@ -255,12 +251,7 @@ for (const [preference, system] of [["light", "dark"], ["dark", "light"], ["syst
     await page.emulateMedia({ colorScheme: system });
     await openSpectrumRoute(page, "/home");
     await waitForHome(page);
-    const themeTrigger = page
-      .locator('[data-utility-controls][data-variant="chrome"] [data-console-control]')
-      .first()
-      .locator("button")
-      .first();
-    await selectAppOption(themeTrigger, preference);
+    await selectConsolePreference(page, "theme", preference);
     await page.waitForFunction((expected) => (
       document.documentElement.dataset.themePreference === expected &&
       (expected === "system" ? !document.documentElement.hasAttribute("data-theme") : document.documentElement.dataset.theme === expected)
@@ -268,14 +259,15 @@ for (const [preference, system] of [["light", "dark"], ["dark", "light"], ["syst
     await page.evaluate(async () => {
       await Promise.all(document.getAnimations().map((animation) => animation.finished.catch(() => {})));
     });
+    await page.evaluate(() => window.scrollTo(0, 0));
 
     const nativeSurfaces = await page.evaluate(() => {
       const shell = document.querySelector<HTMLElement>("[data-app-shell]");
-      const main = document.querySelector<HTMLElement>(".console-main");
+      const main = document.querySelector<HTMLElement>(".console-inner");
       const panel = document.querySelector<HTMLElement>(".console-content");
       const sidebar = document.querySelector<HTMLElement>(".console-sidebar");
       const header = document.querySelector<HTMLElement>(".console-header");
-      const brand = document.querySelector<HTMLElement>(".console-brand");
+      const brand = document.querySelector<HTMLElement>("[data-console-header] a");
       // The home page's rows: a metric, an attention row and a configuration entry each
       // put their surface on the one element inside the link.
       const tiles = ["[data-home-metric] > *", "[data-home-attention] > *", "[data-home-entry] > *"]
@@ -363,7 +355,7 @@ for (const [preference, system] of [["light", "dark"], ["dark", "light"], ["syst
     expect(nativeSurfaces.panelWidth).toBeGreaterThan(0);
     expect(nativeSurfaces.panelHeight).toBeGreaterThan(0);
     expect(nativeSurfaces.leftGap).toBe(0);
-    expect(nativeSurfaces.sidebarLeftGap).toBeGreaterThan(0);
+    expect(nativeSurfaces.sidebarLeftGap).toBe(0);
     expect(nativeSurfaces.topGap).toBe(0);
     expect(nativeSurfaces.rightGap).toBeGreaterThan(0);
     expect(nativeSurfaces.sidebarRightBorder).toBe("0px");
@@ -393,10 +385,10 @@ for (const [preference, system] of [["light", "dark"], ["dark", "light"], ["syst
         viewportHeight: window.innerHeight
       };
     });
-    expect(["auto", "scroll"]).toContain(panelScroll.overflowY);
-    expect(panelScroll.scrollHeight).toBeGreaterThan(panelScroll.clientHeight);
-    expect(panelScroll.scrollTop).toBeGreaterThan(0);
-    expect(panelScroll.documentHeight).toBeLessThanOrEqual(panelScroll.viewportHeight + 1);
+    expect(panelScroll.overflowY).toBe("visible");
+    expect(panelScroll.scrollHeight).toBe(panelScroll.clientHeight);
+    expect(panelScroll.scrollTop).toBe(0);
+    expect(panelScroll.documentHeight).toBeGreaterThan(panelScroll.viewportHeight);
     await page.setViewportSize({ width: 1280, height: 720 });
 
     await openSpectrumRoute(page, "/groups");
@@ -418,34 +410,18 @@ for (const [preference, system] of [["light", "dark"], ["dark", "light"], ["syst
 }
 
 
-test("mobile navigation uses a portalled dialog, restores focus on Escape, and closes after selecting a link", async ({
-  page
-}) => {
+test("mobile hubs show whole page links and focus the committed destination", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockSpectrumTransport(page, { role: "operator" });
   await openSpectrumRoute(page, "/home");
   await waitForHome(page);
-
-  const trigger = page.locator("[data-mobile-navigation] button");
-  await expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
-  await trigger.click();
-  const panel = page.locator(".console-mobile-panel");
-  await expect(panel).toBeVisible();
-  expect(await panel.evaluate((element) => !element.closest("[data-mobile-navigation]"))).toBe(true);
-  expect(await navigationSections(page, ".console-mobile-panel")).toEqual(operatorNavigationGroups);
-
-  await page.keyboard.press("Escape");
-  await expect(panel).toBeHidden();
-  await expect.poll(() => trigger.evaluate((element) => document.activeElement === element)).toBe(true);
-
-  await trigger.click();
-  const destination = panel.locator('[data-navigation-item="/preferences"]');
-  await expect(destination).toBeVisible();
-  await destination.click();
-  await expect(page).toHaveURL((url) =>
-    url.pathname === "/preferences" && url.searchParams.get("group") === selectedGroupID
-  );
-  await expect(panel).toBeHidden();
+  await expect(page.locator("[data-hub-bar] [data-hub]")).toHaveCount(4);
+  await page.locator('[data-hub-bar] [data-hub="console"]').click();
+  await expect(page.locator('[data-hub-pages] [data-navigation-item="/preferences"]')).toBeVisible();
+  await page.locator('[data-hub-pages] [data-navigation-item="/preferences"]').click();
+  await expect(page).toHaveURL(url => url.pathname === "/preferences" && url.searchParams.get("group") === selectedGroupID);
+  await expect(page.locator("h1")).toBeFocused();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
 test("home chart combines seven-day counts and rates with dual axes, labels, legend, and hover readings", async ({ page }) => {
