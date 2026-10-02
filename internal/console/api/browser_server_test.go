@@ -117,8 +117,9 @@ func newTrialBrowserAuth(t *testing.T) (*auth.Manager, []trialBrowserCookie) {
 	}
 	recorder := httptest.NewRecorder()
 	manager.SetCookies(recorder, grant)
-	cookies := make([]trialBrowserCookie, 0, len(recorder.Result().Cookies()))
-	for _, cookie := range recorder.Result().Cookies() {
+	responseCookies := browserResponseCookies(recorder)
+	cookies := make([]trialBrowserCookie, 0, len(responseCookies))
+	for _, cookie := range responseCookies {
 		cookies = append(cookies, trialBrowserCookie{Name: cookie.Name, Value: cookie.Value})
 	}
 	return manager, cookies

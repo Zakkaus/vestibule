@@ -423,16 +423,29 @@ func (m *Manager) AccessibleChats(ctx context.Context, session Session, candidat
 	return allowed
 }
 
-// SetCookies writes the opaque session cookie; the CSRF value is returned in Grant.
+// SetCookies expires the other cookie scope before writing the session cookie; CSRF is returned in Grant.
 func (m *Manager) SetCookies(writer http.ResponseWriter, grant Grant) {
-	http.SetCookie(writer, &http.Cookie{Name: sessionCookieName, Value: grant.Session.token, Path: "/", Expires: grant.Session.ExpiresAt,
-		HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode})
+	cookie := &http.Cookie{Name: sessionCookieName, Value: grant.Session.token, Path: "/", Expires: grant.Session.ExpiresAt,
+		HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode}
+	otherScope := &http.Cookie{Name: sessionCookieName, Path: "/", Expires: time.Unix(1, 0), MaxAge: -1,
+		HttpOnly: true, Secure: true, SameSite: http.SameSiteNoneMode, Partitioned: true}
+	if grant.Session.Principal.Role == RoleManager {
+		cookie.SameSite = http.SameSiteNoneMode
+		cookie.Partitioned = true
+		otherScope.SameSite = http.SameSiteLaxMode
+		otherScope.Partitioned = false
+	}
+	http.SetCookie(writer, otherScope)
+	http.SetCookie(writer, cookie)
 }
 
-// ClearCookies expires the browser session cookie after an authentication failure.
+// ClearCookies expires both session-cookie scopes after an authentication failure.
 func (m *Manager) ClearCookies(writer http.ResponseWriter) {
 	http.SetCookie(writer, &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", Expires: time.Unix(1, 0), MaxAge: -1,
 		HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode})
+	// #nosec G124 -- SameSite=None is required to expire the secure partitioned Mini App cookie in Telegram's iframe.
+	http.SetCookie(writer, &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", Expires: time.Unix(1, 0), MaxAge: -1,
+		HttpOnly: true, Secure: true, SameSite: http.SameSiteNoneMode, Partitioned: true})
 }
 
 func (m *Manager) pruneLocked(now time.Time) {

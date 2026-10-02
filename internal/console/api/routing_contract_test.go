@@ -257,7 +257,7 @@ func TestChatRoutesRejectMalformedIdentifiersAndActions(t *testing.T) {
 func routingCookies(manager *auth.Manager, grant auth.Grant) []*http.Cookie {
 	response := httptest.NewRecorder()
 	manager.SetCookies(response, grant)
-	return response.Result().Cookies()
+	return browserResponseCookies(response)
 }
 
 func routingRoundTrip(server *Server, route routingRequest, method, path string) *httptest.ResponseRecorder {

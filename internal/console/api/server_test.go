@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -196,11 +197,12 @@ func TestEnterRedeemsOperatorLinkOnce(t *testing.T) {
 	server := New(Config{Authenticator: manager})
 	first := enterLink(server, token)
 	cookies := first.Result().Cookies()
-	if first.Code != http.StatusSeeOther || first.Header().Get("Location") != "/" || len(cookies) != 1 {
+	if first.Code != http.StatusSeeOther || first.Header().Get("Location") != "/" || len(cookies) != 2 {
 		t.Fatalf("first enter response = %d %q cookies=%d", first.Code, first.Header().Get("Location"), len(cookies))
 	}
-	if !cookies[0].Secure || !cookies[0].HttpOnly || cookies[0].SameSite != http.SameSiteLaxMode {
-		t.Fatalf("session cookie lacks required protections: %#v", cookies[0])
+	if !cookies[0].Partitioned || cookies[0].MaxAge != -1 || cookies[0].Value != "" ||
+		!cookies[1].Secure || !cookies[1].HttpOnly || cookies[1].SameSite != http.SameSiteLaxMode || cookies[1].Partitioned {
+		t.Fatalf("entry cookie scopes or protections are wrong: %#v", cookies)
 	}
 	second := enterLink(server, token)
 	if second.Code != http.StatusSeeOther || second.Header().Get("Location") != "/?state=redeemed" {
@@ -217,8 +219,9 @@ func TestGetSessionRejectsMissingCookieWithoutIssuingSession(t *testing.T) {
 	cookies := response.Result().Cookies()
 	errorCode := decodeError(response)
 	if response.Code != http.StatusUnauthorized || errorCode != "authentication_expired" ||
-		len(cookies) != 1 || cookies[0].Value != "" || cookies[0].MaxAge != -1 {
-		t.Fatalf("status=%d code=%s cookies=%#v, want 401, authentication_expired, and only a clearing cookie",
+		len(cookies) != 2 || cookies[0].Value != "" || cookies[0].MaxAge != -1 ||
+		cookies[1].Value != "" || cookies[1].MaxAge != -1 || !cookies[1].Partitioned {
+		t.Fatalf("status=%d code=%s cookies=%#v, want 401, authentication_expired, and clearing cookies for both partitions",
 			response.Code, errorCode, cookies)
 	}
 	t.Logf("GET /api/session no_cookie -> status=%d body=%s set_cookie=%q",
@@ -240,12 +243,13 @@ func TestGetSessionRejectsExpiredCookie(t *testing.T) {
 	cookieWriter := httptest.NewRecorder()
 	manager.SetCookies(cookieWriter, grant)
 	clock = clock.Add(time.Minute)
-	response := getAuthenticatedPath(New(Config{Authenticator: manager}), cookieWriter.Result().Cookies(), "/api/session")
+	response := getAuthenticatedPath(New(Config{Authenticator: manager}), browserResponseCookies(cookieWriter), "/api/session")
 	cookies := response.Result().Cookies()
 	errorCode := decodeError(response)
 	if response.Code != http.StatusUnauthorized || errorCode != "authentication_expired" ||
-		len(cookies) != 1 || cookies[0].Value != "" || cookies[0].MaxAge != -1 {
-		t.Fatalf("status=%d code=%s cookies=%#v, want 401, authentication_expired, and only a clearing cookie",
+		len(cookies) != 2 || cookies[0].Value != "" || cookies[0].MaxAge != -1 ||
+		cookies[1].Value != "" || cookies[1].MaxAge != -1 || !cookies[1].Partitioned {
+		t.Fatalf("status=%d code=%s cookies=%#v, want 401, authentication_expired, and clearing cookies for both partitions",
 			response.Code, errorCode, cookies)
 	}
 	t.Logf("GET /api/session expired_cookie -> status=%d body=%s set_cookie=%q",
@@ -276,7 +280,7 @@ func TestOperatorCanSettleAfterReadingCurrentSession(t *testing.T) {
 	}
 	server := New(Config{Authenticator: manager, Verification: queue})
 	entered := enterLink(server, token)
-	cookies := entered.Result().Cookies()
+	cookies := browserResponseCookies(entered)
 	if entered.Code != http.StatusSeeOther || entered.Header().Get("Location") != "/" || len(cookies) != 1 {
 		t.Fatalf("enter status=%d location=%q cookies=%d, want 303, /, and one cookie",
 			entered.Code, entered.Header().Get("Location"), len(cookies))
@@ -487,7 +491,7 @@ func apiTestServer(
 	cookies := httptest.NewRecorder()
 	manager.SetCookies(cookies, grant)
 	config := Config{Authenticator: manager, Verification: queue, Settings: settingsService, Health: health}
-	return New(config), cookies.Result().Cookies(), grant.CSRFToken
+	return New(config), browserResponseCookies(cookies), grant.CSRFToken
 }
 
 func getAuthenticatedPath(server *Server, cookies []*http.Cookie, path string) *httptest.ResponseRecorder {
@@ -498,6 +502,12 @@ func getAuthenticatedPath(server *Server, cookies []*http.Cookie, path string) *
 	response := httptest.NewRecorder()
 	server.Handler().ServeHTTP(response, request)
 	return response
+}
+
+func browserResponseCookies(response *httptest.ResponseRecorder) []*http.Cookie {
+	return slices.DeleteFunc(response.Result().Cookies(), func(cookie *http.Cookie) bool {
+		return cookie.MaxAge < 0
+	})
 }
 
 func requireNoSetCookie(t *testing.T, response *httptest.ResponseRecorder) {

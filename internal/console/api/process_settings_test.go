@@ -218,7 +218,7 @@ func processSettingsTestServer(
 	}
 	cookies := httptest.NewRecorder()
 	manager.SetCookies(cookies, grant)
-	return New(Config{Authenticator: manager, ProcessSettings: service}), cookies.Result().Cookies()
+	return New(Config{Authenticator: manager, ProcessSettings: service}), browserResponseCookies(cookies)
 }
 
 func processSettingsRequest(server *Server, cookies []*http.Cookie, method string) *httptest.ResponseRecorder {

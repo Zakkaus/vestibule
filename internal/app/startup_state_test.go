@@ -159,7 +159,9 @@ func patchGentooCapability(t *testing.T, runtime *startupTestServices, groupID i
 	request := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/chats/%d/settings", groupID),
 		strings.NewReader(`{"expected_revision":0,"changes":{"gentoo_lookups_enabled":true}}`))
 	for _, cookie := range entry.Result().Cookies() {
-		request.AddCookie(cookie)
+		if cookie.MaxAge >= 0 {
+			request.AddCookie(cookie)
+		}
 	}
 	grant, err := runtime.consoleAuth.GrantFromRequest(request)
 	if err != nil {

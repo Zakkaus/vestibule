@@ -6,6 +6,7 @@ import {
   type ApiRequestError,
   type ApiTransport
 } from "../lib/api";
+import { telegramLaunchInitData } from "./telegramLaunch";
 
 export type ConsoleRole = "manager" | "operator";
 
@@ -247,7 +248,7 @@ function chatsFromPayload(payload: unknown): readonly ConsoleChat[] | undefined 
 
 function telegramInitData(): string | undefined {
   const initData = window.Telegram?.WebApp?.initData;
-  return typeof initData === "string" && initData.length > 0 ? initData : undefined;
+  return typeof initData === "string" && initData.length > 0 ? initData : telegramLaunchInitData;
 }
 
 class ConsoleSessionStore {
@@ -353,6 +354,10 @@ export function canViewInstanceStatus(state: ConsoleSessionState): boolean {
 }
 export function canViewOwner(state: ConsoleSessionState): boolean {
   return "session" in state && state.session.isOwner;
+}
+
+export function isTelegramLaunchReplayed(state: ConsoleSessionState): boolean {
+  return state.state === "blocked" && state.error.kind === "api" && state.error.code === "init_data_replayed";
 }
 
 export function retryConsoleGroups(): Promise<void> {
