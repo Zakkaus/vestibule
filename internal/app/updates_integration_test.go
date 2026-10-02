@@ -119,8 +119,8 @@ func TestRenamedGentooAliasesReplyWithoutLookup(t *testing.T) {
 	fixture.application.Register(handler)
 	for aliasIndex, alias := range gentooCommandNames {
 		for languageIndex, language := range []struct{ code, format string }{
-			{"zh", "此命令已改名为 /%s，请改用新名。"},
-			{"zh-Hant", "此指令已改名為 /%s，請改用新名稱。"},
+			{"zh", "此命令已更名为 /%s，请使用新名称。"},
+			{"zh-Hant", "此指令已更名為 /%s，請使用新名稱。"},
 			{"en", "This command has been renamed to /%s; please use the new name."},
 			{"ja", "このコマンドは /%s に変更されたため、新しい名前を使用してください。"},
 			{"ru", "Команда переименована в /%s; используйте новое имя."},

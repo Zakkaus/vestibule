@@ -35,7 +35,7 @@ var forbiddenLocaleTerms = []forbiddenLocaleTerm{
 	{locale: LangZH, term: "申请者", preferred: "申请人"},
 	{locale: LangZH, term: "管理者", preferred: "管理员"},
 	{locale: LangZH, term: "封锁", preferred: "封禁"},
-	{locale: LangZH, term: "移出群组", preferred: "踢出"},
+	{locale: LangZH, term: "踢出", preferred: "移出群组"},
 	{locale: LangZH, term: "静音", preferred: "禁言"},
 	{locale: LangZH, term: "还有", preferred: "剩余"},
 	{locale: LangZH, term: "剩下", preferred: "剩余"},
