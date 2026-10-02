@@ -15,7 +15,7 @@ import (
 // phase-ten acceptance about repeating the import depends on.
 func TestImportRefusesWhileAnInstanceHoldsThePollingLease(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestImportRefusesWhileAnInstanceHoldsThePollingLease(t *testing.T) {
 // An expired lease is a stopped instance, not a running one.
 func TestImportProceedsWhenThePollingLeaseHasExpired(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}

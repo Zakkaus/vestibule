@@ -10,7 +10,7 @@ import (
 
 func TestObservationStorePersistsSanitizedActionsAndCascadesSubjects(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +54,7 @@ func TestObservationStorePersistsSanitizedActionsAndCascadesSubjects(t *testing.
 
 func TestObservationStoreSurvivesIndependentSchemaReopen(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestObservationStoreSurvivesIndependentSchemaReopen(t *testing.T) {
 
 func TestObservationStoreRejectsUnclassifiedOrIdentifyingMessageWrites(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +120,7 @@ func observedActionsByOperation(
 
 func TestObservationStoreAcceptsEverySuppressedWriteShape(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}

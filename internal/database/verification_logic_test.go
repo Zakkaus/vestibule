@@ -92,7 +92,7 @@ func newLogicService(t *testing.T, db *Database, bot *logicGateway, delivery str
 
 func logicFixture(t *testing.T, delivery string) (*Database, *logicGateway, *verification.Service) {
 	t.Helper()
-	db, err := Open(context.Background(), testSQLiteConfig(t))
+	db, err := Open(context.Background(), testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -14,7 +14,7 @@ import (
 
 func TestImportLegacyStatePersistsFixtureSnapshots(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestImportLegacyStatePersistsFixtureSnapshots(t *testing.T) {
 
 func TestLegacyImportPreservesEveryPendingChallengeField(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,12 +194,12 @@ func assertImportedWarningFixture(t *testing.T, db *Database) {
 
 func TestImportLegacyStateRejectsSilentlyDroppedSnapshot(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	if _, err = db.Exec(ctx, `
+	if _, err = execTestTrigger(t, ctx, db, `
 		CREATE TRIGGER discard_imported_failures
 		BEFORE INSERT ON verification_failure
 		BEGIN
@@ -260,13 +260,13 @@ func TestImportRefusesSuccessWhenPendingChallengesDifferFromJSON(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
-			db, err := Open(ctx, testSQLiteConfig(t))
+			db, err := Open(ctx, testDatabaseConfig(t))
 			if err != nil {
 				t.Fatal(err)
 			}
 			t.Cleanup(func() { _ = db.Close() })
 			if tc.trigger != "" {
-				if _, err = db.Exec(ctx, tc.trigger); err != nil {
+				if _, err = execTestTrigger(t, ctx, db, tc.trigger); err != nil {
 					t.Fatal(err)
 				}
 			}

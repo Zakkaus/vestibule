@@ -32,7 +32,7 @@ func TestValidationTextLabelsEachSnapshotCount(t *testing.T) {
 
 func TestPersistLegacyStateRollsBackEverySnapshotWhenTheLastReplacementFails(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestPersistLegacyStateRollsBackEverySnapshotWhenTheLastReplacementFails(t *
 	if err = persistLegacyState(ctx, db, previous); err != nil {
 		t.Fatalf("seed previous snapshot: %v", err)
 	}
-	if _, err = db.Exec(ctx, `
+	if _, err = execTestTrigger(t, ctx, db, `
 		CREATE TRIGGER fail_imported_warnings
 		BEFORE DELETE ON warning_counter
 		BEGIN
@@ -59,7 +59,11 @@ func TestPersistLegacyStateRollsBackEverySnapshotWhenTheLastReplacementFails(t *
 		t.Fatalf("failed import left a mixed-generation database instead of rolling every snapshot back: %v", err)
 	}
 
-	if _, err = db.Exec(ctx, "DROP TRIGGER fail_imported_warnings"); err != nil {
+	dropTrigger := "DROP TRIGGER fail_imported_warnings"
+	if db.Dialect.String() == "postgres" {
+		dropTrigger += " ON warning_counter"
+	}
+	if _, err = db.Exec(ctx, dropTrigger); err != nil {
 		t.Fatal(err)
 	}
 	if err = persistLegacyState(ctx, db, next); err != nil {

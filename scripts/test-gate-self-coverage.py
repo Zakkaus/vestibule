@@ -9,6 +9,7 @@ also runs the unmodified and restored copy as a positive control.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -92,6 +93,16 @@ class GateSelfCoverageTest(GateInvocationCases, SpectrumGateCases, unittest.Test
             "mutation anchor %r in %s moved or became ambiguous" % (old, relative),
         )
         path.write_text(original.replace(old, new, 1), encoding="utf-8")
+        return lambda: path.write_text(original, encoding="utf-8")
+
+    def replace_untagged_go_tests(
+        self, tree: Path, relative: str, new: str
+    ) -> Callable[[], None]:
+        path = tree / relative
+        original = path.read_text(encoding="utf-8")
+        changed, count = re.subn(r"go test -race -shuffle=on (?=\./)", new, original)
+        self.assertEqual(count, 2, "SQLite and PostgreSQL invocation anchors moved")
+        path.write_text(changed, encoding="utf-8")
         return lambda: path.write_text(original, encoding="utf-8")
 
 
@@ -484,8 +495,10 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
                 "scripts/check-gate-list.py",
                 "a documented Go gate disappeared from CI",
                 (key,),
-                lambda old=old, new=new: self.replace_text(
-                    tree, ".github/workflows/ci.yml", old, new
+                lambda old=old, new=new, key=key: (
+                    self.replace_untagged_go_tests(tree, ".github/workflows/ci.yml", "true ")
+                    if key == "go test -race -shuffle=on" else
+                    self.replace_text(tree, ".github/workflows/ci.yml", old, new)
                 ),
             )
 
@@ -553,8 +566,10 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
                 "scripts/check-gate-list.py",
                 "a CI Go gate disappeared from the contributor contract",
                 (key,),
-                lambda old=old, new=new: self.replace_text(
-                    tree, "CONTRIBUTING.md", old, new
+                lambda old=old, new=new, key=key: (
+                    self.replace_untagged_go_tests(tree, "CONTRIBUTING.md", "true ")
+                    if key == "go test -race -shuffle=on" else
+                    self.replace_text(tree, "CONTRIBUTING.md", old, new)
                 ),
             )
 
@@ -624,13 +639,10 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
         self.assert_mutation_is_rejected(
             tree,
             "scripts/check-gate-list.py",
-            "the default Go test lost its race detector",
+            "the untagged Go tests lost their race detectors",
             ("go test -race",),
-            lambda: self.replace_text(
-                tree,
-                ".github/workflows/ci.yml",
-                "          go test -race -shuffle=on ./... 2>&1 | tee go-test.log\n",
-                "          go test -shuffle=on ./... 2>&1 | tee go-test.log\n",
+            lambda: self.replace_untagged_go_tests(
+                tree, ".github/workflows/ci.yml", "go test -shuffle=on "
             ),
         )
 
@@ -639,13 +651,10 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
         self.assert_mutation_is_rejected(
             tree,
             "scripts/check-gate-list.py",
-            "the default Go test lost order shuffling",
+            "the untagged Go tests lost order shuffling",
             ("go test -race -shuffle=on",),
-            lambda: self.replace_text(
-                tree,
-                ".github/workflows/ci.yml",
-                "          go test -race -shuffle=on ./... 2>&1 | tee go-test.log\n",
-                "          go test -race ./... 2>&1 | tee go-test.log\n",
+            lambda: self.replace_untagged_go_tests(
+                tree, ".github/workflows/ci.yml", "go test -race "
             ),
         )
 

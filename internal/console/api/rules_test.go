@@ -173,7 +173,7 @@ func TestRuleStoreRejectsUnparseableDefinition(t *testing.T) {
 
 func newAPIRulesHarness(t *testing.T, allowed bool) *apiRulesHarness {
 	t.Helper()
-	db, err := database.Open(context.Background(), database.Config{StateDirectory: t.TempDir()})
+	db, err := database.Open(context.Background(), database.TestConfig(t, database.Config{StateDirectory: t.TempDir()}))
 	if err != nil {
 		t.Fatal(err)
 	}

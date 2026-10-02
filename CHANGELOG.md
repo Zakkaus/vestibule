@@ -39,6 +39,8 @@ All notable changes to this project are documented here. The format is based on
 - Japanese and Russian console and bot locales, including language selection and
   Russian cardinal plural forms.
 - A scheduled render gate covering every console locale, route, width, and theme.
+- Database store tests can select isolated PostgreSQL databases with
+  `VESTIBULE_TEST_POSTGRES_URI`; CI runs the store and migration suites against PostgreSQL 18.
 
 ### Fixed
 - Recovery alerts use each group's effective language and administrator-log destination,
@@ -55,6 +57,11 @@ All notable changes to this project are documented here. The format is based on
   returns a complete error response instead of an empty successful response.
 - Auto-reply hashtag rules require a valid left boundary, excluding embedded words and URL
   fragments while preserving punctuation-delimited tags and the context of later tags.
+- PostgreSQL expiry and action claims now drain query results before conditional updates.
+  Test DSNs no longer use deprecated URL conversion. CI shuffles PostgreSQL tests, and
+  gate self-coverage mutations cover both SQLite and PostgreSQL invocations.
+- PostgreSQL test fixtures now use dialect-specific read-only settings and table discovery,
+  portable boolean literals, and the current database test helper after rebases.
 - The Compose database volume now mounts at `/var/lib/postgresql` as PostgreSQL 18 requires.
   Native installs record their deployment type so host replacement works, and `import-state`
   rejects a missing or invalid `-pending` before touching the database.

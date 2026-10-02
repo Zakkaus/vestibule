@@ -16,7 +16,7 @@ import (
 // successor took the stream in the meantime, both of them believe they hold it. Telegram accepts
 // one update stream per bot token, so the two would then take turns losing each other's updates.
 func TestAnExpiredLeaseIsNotRenewed(t *testing.T) {
-	db, err := Open(context.Background(), testSQLiteConfig(t))
+	db, err := Open(context.Background(), testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}

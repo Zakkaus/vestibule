@@ -13,7 +13,7 @@ import (
 // happens before anything is backed up or written.
 func TestImportRequiresAPendingDisposition(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +41,7 @@ func TestImportRequiresAPendingDisposition(t *testing.T) {
 // that bot is still answering for.
 func TestImportDroppingPendingKeepsTheOtherSnapshots(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}

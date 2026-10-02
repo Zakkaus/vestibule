@@ -437,7 +437,7 @@ func TestQueueResponseUsesChallengeVocabulary(t *testing.T) {
 }
 
 func TestHealthKeepsLivenessWhenDatabaseFails(t *testing.T) {
-	databaseHandle, err := database.Open(context.Background(), database.Config{StateDirectory: t.TempDir()})
+	databaseHandle, err := database.Open(context.Background(), database.TestConfig(t, database.Config{StateDirectory: t.TempDir()}))
 	if err != nil {
 		t.Fatal(err)
 	}

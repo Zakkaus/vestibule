@@ -17,7 +17,7 @@ import (
 func TestImportRefusesSuccessWhenOpenChallengesDisagreeWithTheJSON(t *testing.T) {
 	t.Run("a row the database kept when the import was told to drop it", func(t *testing.T) {
 		ctx := context.Background()
-		db, err := Open(ctx, testSQLiteConfig(t))
+		db, err := Open(ctx, testDatabaseConfig(t))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -33,7 +33,7 @@ func TestImportRefusesSuccessWhenOpenChallengesDisagreeWithTheJSON(t *testing.T)
 		if err != nil || carried.PendingRows != 2 {
 			t.Fatalf("carrying import = %+v, %v; want the two fixture challenges", carried, err)
 		}
-		if _, err = db.Exec(ctx, `
+		if _, err = execTestTrigger(t, ctx, db, `
 			CREATE TRIGGER keep_open_challenges
 			BEFORE DELETE ON challenge
 			BEGIN
@@ -54,14 +54,14 @@ func TestImportRefusesSuccessWhenOpenChallengesDisagreeWithTheJSON(t *testing.T)
 
 	t.Run("a row the database mangled on the way in", func(t *testing.T) {
 		ctx := context.Background()
-		db, err := Open(ctx, testSQLiteConfig(t))
+		db, err := Open(ctx, testDatabaseConfig(t))
 		if err != nil {
 			t.Fatal(err)
 		}
 		t.Cleanup(func() { _ = db.Close() })
 		// Same number of challenges, different content: the count says nothing is wrong and
 		// only the field-by-field comparison can see it.
-		if _, err = db.Exec(ctx, `
+		if _, err = execTestTrigger(t, ctx, db, `
 			CREATE TRIGGER mangle_imported_challenge
 			AFTER INSERT ON challenge
 			BEGIN
@@ -98,7 +98,7 @@ func requirePendingValidationRefusal(t *testing.T, err error, harm string) {
 // validated. Nothing held the check.
 func TestImportRefusesASnapshotThatSurvivesOnlyAsACorruptSibling(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}

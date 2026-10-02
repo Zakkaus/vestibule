@@ -86,11 +86,22 @@ func (s *VerificationStore) ClaimExpired(_ string, now, claimUntil int64, limit 
 			return fmt.Errorf("select due challenges: %w", err)
 		}
 		defer rows.Close()
+		var candidates []verification.PendingRecord
 		for rows.Next() {
 			record, err := scanPending(rows)
 			if err != nil {
 				return err
 			}
+			candidates = append(candidates, record)
+		}
+		if err := rows.Close(); err != nil {
+			return fmt.Errorf("close due challenges: %w", err)
+		}
+		if err := rows.Err(); err != nil {
+			return fmt.Errorf("iterate due challenges: %w", err)
+		}
+		claimed = candidates[:0]
+		for _, record := range candidates {
 			if record.Epoch >= maxStoredEpoch {
 				return fmt.Errorf("due challenge for chat %d user %d has exhausted epoch %d",
 					record.GroupID, record.UserID, record.Epoch)
@@ -115,9 +126,6 @@ func (s *VerificationStore) ClaimExpired(_ string, now, claimUntil int64, limit 
 			record.Deadline = claimUntil
 			record.Epoch = nextEpoch
 			claimed = append(claimed, record)
-		}
-		if err := rows.Err(); err != nil {
-			return fmt.Errorf("iterate due challenges: %w", err)
 		}
 		return nil
 	})
@@ -152,12 +160,23 @@ func (s *VerificationStore) ClaimActions(
 			return fmt.Errorf("select ready actions: %w", err)
 		}
 		defer rows.Close()
+		var candidates []verification.PendingAction
 		for rows.Next() {
 			var action verification.PendingAction
 			if err := rows.Scan(&action.ID, &action.ChallengeID, &action.Kind, &action.Payload,
 				&action.Attempts, &action.NextTryAt); err != nil {
 				return fmt.Errorf("scan pending action: %w", err)
 			}
+			candidates = append(candidates, action)
+		}
+		if err := rows.Close(); err != nil {
+			return fmt.Errorf("close ready actions: %w", err)
+		}
+		if err := rows.Err(); err != nil {
+			return fmt.Errorf("iterate ready actions: %w", err)
+		}
+		claimed = candidates[:0]
+		for _, action := range candidates {
 			result, err := s.db.Exec(ctx, `
 				UPDATE pending_action
 				   SET claim_owner=$1, claim_until=$2
@@ -173,9 +192,6 @@ func (s *VerificationStore) ClaimActions(
 			if changed {
 				claimed = append(claimed, action)
 			}
-		}
-		if err := rows.Err(); err != nil {
-			return fmt.Errorf("iterate ready actions: %w", err)
 		}
 		return nil
 	})

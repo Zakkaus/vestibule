@@ -12,6 +12,8 @@ import (
 	"github.com/Zakkaus/vestibule/internal/console/auth"
 	"github.com/Zakkaus/vestibule/internal/database"
 	"github.com/Zakkaus/vestibule/internal/status"
+
+	"go.mau.fi/util/dbutil"
 )
 
 type apiDailyService struct {
@@ -79,7 +81,7 @@ func dailyAPIRequest(server *Server, cookies []*http.Cookie, method, body, csrf 
 
 func TestDailyAPIPersistsSwitchAcrossDatabaseReopen(t *testing.T) {
 	ctx := context.Background()
-	config := database.Config{StateDirectory: t.TempDir()}
+	config := database.TestConfig(t, database.Config{StateDirectory: t.TempDir()})
 	db, err := database.Open(ctx, config)
 	if err != nil {
 		t.Fatal(err)
@@ -122,7 +124,7 @@ func TestDailyAPIPersistsSwitchAcrossDatabaseReopen(t *testing.T) {
 
 func TestDailyAPIPatchReturnsCommittedStateWhenDatabaseClosesAfterSet(t *testing.T) {
 	ctx := context.Background()
-	config := database.Config{StateDirectory: t.TempDir()}
+	config := database.TestConfig(t, database.Config{StateDirectory: t.TempDir()})
 	db, err := database.Open(ctx, config)
 	if err != nil {
 		t.Fatal(err)
@@ -220,7 +222,7 @@ func TestDailyAPIRejectsManagerAndUnavailableStore(t *testing.T) {
 
 func TestDailyAPIRejectsReadOnlyPersistenceWithoutChangingSwitch(t *testing.T) {
 	ctx := context.Background()
-	db, err := database.Open(ctx, database.Config{StateDirectory: t.TempDir()})
+	db, err := database.Open(ctx, database.TestConfig(t, database.Config{StateDirectory: t.TempDir()}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -230,7 +232,11 @@ func TestDailyAPIRejectsReadOnlyPersistenceWithoutChangingSwitch(t *testing.T) {
 		Store: database.NewDailyStatusStore(db), Location: time.UTC,
 	})
 	server, cookies, csrf := newDailyAPIServer(t, auth.RoleOperator, daily)
-	if _, err := db.Exec(ctx, "PRAGMA query_only = ON"); err != nil {
+	readOnlySQL := "PRAGMA query_only = ON"
+	if db.Dialect == dbutil.Postgres {
+		readOnlySQL = "SET default_transaction_read_only = on"
+	}
+	if _, err := db.Exec(ctx, readOnlySQL); err != nil {
 		t.Fatal(err)
 	}
 	patch := dailyAPIRequest(server, cookies, http.MethodPatch, `{"enabled":false}`, csrf)

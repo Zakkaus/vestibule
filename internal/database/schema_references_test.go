@@ -66,7 +66,7 @@ func TestARowMustNameAParentThatExists(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
-			db, err := Open(ctx, testSQLiteConfig(t))
+			db, err := Open(ctx, testDatabaseConfig(t))
 			if err != nil {
 				t.Fatal(err)
 			}

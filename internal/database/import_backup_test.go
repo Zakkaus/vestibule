@@ -19,7 +19,7 @@ import (
 func importedFixtureDatabase(t *testing.T) (context.Context, *Database, string) {
 	t.Helper()
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestImportRefusesASnapshotThatIsMissingBesideItsCorruptSibling(t *testing.T
 // state directory that never held warns.json is an ordinary import.
 func TestImportAcceptsASnapshotThatIsSimplyAbsent(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func TestImportRefusesWhenACorruptSiblingCannotBeInspected(t *testing.T) {
 // ability to roll back to the pre-migration state at all.
 func TestImportRefusesToReuseAnExistingBackupDirectory(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,7 +179,7 @@ func TestImportRefusesToReuseAnExistingBackupDirectory(t *testing.T) {
 // keeping migration backups under their own directory tree does.
 func TestImportCreatesTheBackupParent(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,7 +207,7 @@ func TestImportCreatesTheBackupParent(t *testing.T) {
 // whether a rollback loses anything — only has the backup to read.
 func TestAnAbsentSnapshotIsNotBackedUpAsAnEmptyFile(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}

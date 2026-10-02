@@ -364,7 +364,7 @@ func newDailyAppFixture(t *testing.T, telegramAPI string) dailyAppFixture {
 	if _, err := runtimeSettings.CommitRegistrations(registration.Revision, registration); err != nil {
 		t.Fatal(err)
 	}
-	db, err := database.Open(context.Background(), database.Config{StateDirectory: stateDirectory})
+	db, err := database.Open(context.Background(), database.TestConfig(t, database.Config{StateDirectory: stateDirectory}))
 	if err != nil {
 		t.Fatal(err)
 	}

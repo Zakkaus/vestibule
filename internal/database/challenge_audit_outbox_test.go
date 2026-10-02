@@ -16,7 +16,7 @@ import (
 func TestChallengeUndoWaitsForTheBanItUndoes(t *testing.T) {
 	const chatID int64 = -1009000000821
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func TestChallengeUndoWaitsForTheBanItUndoes(t *testing.T) {
 func TestChallengeAuditReturnsOneRowPerSettledChallenge(t *testing.T) {
 	const chatID int64 = -1009000000822
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,7 +143,7 @@ func TestChallengeAuditReturnsOneRowPerSettledChallenge(t *testing.T) {
 func TestChallengeAuditReportsEverySettlementActionKind(t *testing.T) {
 	const chatID int64 = -1009000000831
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -205,7 +205,7 @@ func TestChallengeAuditReportsEverySettlementActionKind(t *testing.T) {
 func TestChallengeAuditKeepsUndoWithItsChallenge(t *testing.T) {
 	const chatID int64 = -1009000000832
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -276,7 +276,7 @@ func TestChallengeAuditKeepsUndoWithItsChallenge(t *testing.T) {
 func TestChallengeAuditBreaksEqualSettlementTimesByID(t *testing.T) {
 	const chatID int64 = -1009000000833
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
