@@ -180,6 +180,32 @@ func TestPutFeedsRequiresBugzillaBaseForEnabledBugs(t *testing.T) {
 	}
 }
 
+func TestPutFeedsReturnsSettingsLimitViolation(t *testing.T) {
+	server, cookies, csrf, service, _ := apiSettingsTestServer(t, true)
+	limit := int64(30)
+	if _, err := service.store.UpdateOwnerLimits(0, settings.LimitChanges{"timeout_seconds": &limit}); err != nil {
+		t.Fatal(err)
+	}
+	response := feedsRequest(server, cookies, csrf, http.MethodPut, strings.NewReader(
+		`{"expected_revision":0,"lang":"","interval_seconds":300,"bugs":false,"bugzilla_base":"","news":true,"bug_product":"","bug_component":"","silent_bugs":false,"github_repos":[]}`))
+	var body settingsLimitErrorResponse
+	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	want := ownerLimitViolationResponse{
+		ChatID: strconv.FormatInt(apiSettingsGroupID, 10), Field: "timeout_seconds", Value: 240, Limit: limit,
+	}
+	if response.Code != http.StatusBadRequest || body.Error.Code != "settings_limit_exceeded" ||
+		len(body.Violations) != 1 || body.Violations[0] != want {
+		t.Fatalf("feed limit response status=%d body=%+v, want violation=%+v", response.Code, body, want)
+	}
+	group, _ := service.store.Settings(apiSettingsGroupID)
+	if group.Revision() != 0 || group.Feed().News.Value {
+		t.Fatalf("rejected feed write changed settings: revision=%d news=%v", group.Revision(), group.Feed().News.Value)
+	}
+	t.Logf("PUT feeds -> status=%d body=%s", response.Code, response.Body.String())
+}
+
 func feedsRequest(
 	server *Server,
 	cookies []*http.Cookie,

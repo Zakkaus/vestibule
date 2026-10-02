@@ -332,3 +332,135 @@ test("an interrupted release provides the queue reload it names", async ({ page 
   await expect.poll(() => queueReads).toBe(2);
   await expect(feedback).toHaveCount(0);
 });
+
+for (const locale of ["en", "zh-CN", "zh-TW", "ja", "ru"]) {
+  for (const outcome of ["approval_pending_retry", "approval_unconfirmed"]) {
+    test(`queue refetches ${outcome} and keeps pending rows usable in ${locale}`, async ({ page }) => {
+      let reads = 0;
+      let releases = 0;
+      await page.addInitScript((language) => {
+        localStorage.setItem("verify-console-locale", language);
+      }, locale);
+      await mockQueueTransport(
+        page,
+        async (route) => {
+          reads += 1;
+          await route.fulfill({
+            contentType: "application/json",
+            body: JSON.stringify({
+              items: [{ ...groupAQueueEntry, remaining_seconds: reads === 1 ? 161 : 120 }]
+            })
+          });
+        },
+        async (route) => {
+          releases += 1;
+          expect(route.request().postDataJSON()).toEqual({
+            expected: { state: "pending", reason: "" },
+            result: { state: "approved", reason: "" }
+          });
+          await route.fulfill({
+            contentType: "application/json",
+            body: JSON.stringify({
+              ...approvedGroupAQueueEntry,
+              result: { state: releases === 1 ? outcome : "approved", reason: null }
+            })
+          });
+        }
+      );
+      await page.goto(`/queue?group=${groupAID}`);
+      const row = queueRow(page, "@queue_group_a");
+      await row.locator("[data-queue-action-id='release']").click();
+      await expect.poll(() => reads).toBe(2);
+      await expect(row).toHaveAttribute("data-result", "pending");
+      await expect(row.locator("[data-queue-action-id='release']")).toBeEnabled();
+      await expect(row.locator("[data-queue-result]")).toContainText("2:00");
+      const feedback = page.locator("[data-queue-feedback]");
+      await expect(feedback).toHaveAttribute("data-tone", "pending");
+      await expect(feedback).toContainText("@queue_group_a");
+      await expect(feedback).toContainText("Gentoo-zh Community");
+      await expect(feedback).toContainText("Telegram");
+      await expect(page.locator("html")).toHaveAttribute("lang", locale);
+
+      await page.reload();
+      await expect(row).toHaveAttribute("data-result", "pending");
+      await row.locator("[data-queue-action-id='release']").click();
+      await expect(row).toHaveAttribute("data-result", "approved");
+      await expect(row.locator("[data-queue-action-id='release']")).toHaveCount(0);
+      await expect(feedback).toHaveAttribute("data-tone", "ok");
+      expect(releases).toBe(2);
+    });
+  }
+}
+
+test("queue removes an unconfirmed release when the refetched queue no longer contains it", async ({ page }) => {
+  let reads = 0;
+  await mockQueueTransport(
+    page,
+    async (route) => {
+      reads += 1;
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({ items: reads === 1 ? [groupAQueueEntry] : [] })
+      });
+    },
+    async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          ...approvedGroupAQueueEntry,
+          result: { state: "approval_pending_retry", reason: null }
+        })
+      });
+    }
+  );
+  await page.goto(`/queue?group=${groupAID}`);
+  await queueRow(page, "@queue_group_a").getByRole("button").click();
+  await expect.poll(() => reads).toBe(2);
+  await expect(queueRow(page, "@queue_group_a")).toHaveCount(0);
+  await expect(page.locator("[data-queue-feedback]")).toHaveAttribute("data-tone", "pending");
+  await expect(page.locator("[data-queue-feedback]")).toContainText("@queue_group_a");
+});
+
+test("queue discards an unconfirmed release refetch after switching groups", async ({ page }) => {
+  let reads = 0;
+  let finishRead!: () => void;
+  const delayedRead = new Promise<void>((resolve) => { finishRead = resolve; });
+  let markRefetch!: () => void;
+  const refetchRequested = new Promise<void>((resolve) => { markRefetch = resolve; });
+  await mockQueueTransport(
+    page,
+    async (route, chatID) => {
+      if (chatID === groupAID && ++reads === 2) {
+        markRefetch();
+        await delayedRead;
+      }
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({ items: [chatID === groupAID ? groupAQueueEntry : groupBQueueEntry] })
+      });
+    },
+    async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          ...approvedGroupAQueueEntry,
+          result: { state: "approval_unconfirmed", reason: null }
+        })
+      });
+    }
+  );
+  await page.goto(`/queue?group=${groupAID}`);
+  await queueRow(page, "@queue_group_a").getByRole("button").click();
+  await refetchRequested;
+  await selectGroupB(page);
+  await expect(queueRow(page, "@queue_group_b")).toBeVisible();
+  const refetchResponse = page.waitForResponse((response) =>
+    new URL(response.url()).pathname === `/api/chats/${groupAID}/queue`
+  );
+  finishRead();
+  await refetchResponse;
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+  await expect(queueRow(page, "@queue_group_a")).toHaveCount(0);
+  await expect(queueRow(page, "@queue_group_b")).toHaveAttribute("data-result", "pending");
+  await expect(page.locator("[data-queue-feedback]")).toHaveCount(0);
+});

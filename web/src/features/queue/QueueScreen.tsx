@@ -398,12 +398,24 @@ export function QueueScreen() {
         }
 
         if (result.ok) {
-          setRecords((currentRecords) =>
-            currentRecords.map((currentRecord) =>
-              currentRecord.id === record.id ? result.data : currentRecord
-            )
+          const approvalPending = result.data.result.state === "approval_pending_retry";
+          const approvalUnconfirmed = result.data.result.state === "approval_unconfirmed";
+          if (approvalPending || approvalUnconfirmed) {
+            setReloadVersion((currentVersion) => currentVersion + 1);
+          } else {
+            setRecords((currentRecords) =>
+              currentRecords.map((currentRecord) =>
+                currentRecord.id === record.id ? result.data : currentRecord
+              )
+            );
+          }
+          showFeedback(
+            approvalPending ? "queue.feedback.releasePendingRetry"
+              : approvalUnconfirmed ? "queue.feedback.releaseUnconfirmed" : "queue.feedback.releaseSuccess",
+            approvalPending || approvalUnconfirmed ? "pending" : "ok",
+            result.data,
+            approvalPending || approvalUnconfirmed ? undefined : FEEDBACK_DURATION_MS
           );
-          showFeedback("queue.feedback.releaseSuccess", "ok", result.data, FEEDBACK_DURATION_MS);
           return;
         }
 

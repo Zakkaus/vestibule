@@ -54,6 +54,11 @@ All notable changes to this project are documented here. The format is based on
   only until five minutes after the original admission.
 - Wrong-answer declines retain the same failure strike in direct console settlement and retries
   when Telegram reports that the join request is gone and confirms the applicant is outside the group.
+- The queue refetches server state after an unconfirmed release, retains warning
+  feedback and restores Release for applications that remain pending.
+- Console releases distinguish accepted approvals pending retry from confirmed admission,
+  with warning feedback in all five locales. Feed saves return deployer-cap violations
+  with their field, value and limit instead of reporting a service outage.
 - Owner private help lists active owner commands. The owner menu and help omit
   `/console` when its link handler is disabled.
 - Production entry pages ignore preview query parameters and retain the authenticated

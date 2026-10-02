@@ -17,6 +17,12 @@ var (
 	ErrConsoleTargetProtected   = errors.New("target is a group administrator")
 )
 
+// Console approval outcomes do not change the durable challenge decision.
+const (
+	consoleApprovalPendingRetry ChallengeState = "approval_pending_retry"
+	consoleApprovalUnconfirmed  ChallengeState = "approval_unconfirmed"
+)
+
 // ConsoleQueueEntry is the live challenge view intentionally exposed to the console adapter.
 type ConsoleQueueEntry struct {
 	ID        string
@@ -139,8 +145,8 @@ func (v *Service) SettleConsole(ctx context.Context, settlement ConsoleSettlemen
 		return ConsoleQueueEntry{}, ErrConsoleChallengeConflict
 	}
 	entry := consoleEntry(pendingRecord(pkey{gid: ref.GroupID, uid: ref.UserID}, pending))
-	entry.State, entry.Reason = settlement.Target, consoleResponseReason(settlement)
-	v.executeConsoleSettlement(ctx, ref, pending, settlement)
+	entry.Reason = consoleResponseReason(settlement)
+	entry.State = v.executeConsoleSettlement(ctx, ref, pending, settlement)
 	return entry, nil
 }
 
@@ -205,15 +211,29 @@ func (v *Service) consoleTargetAllowed(ctx context.Context, groupID, userID int6
 	}
 }
 
-func (v *Service) executeConsoleSettlement(ctx context.Context, ref PendingRef, item *pending, settlement ConsoleSettlement) {
+func (v *Service) executeConsoleSettlement(ctx context.Context, ref PendingRef, item *pending, settlement ConsoleSettlement) ChallengeState {
 	switch settlement.Target {
 	case ChallengeApproved:
-		_ = v.executeApprove(ctx, v.gateway, ref.GroupID, ref.UserID, item)
+		outcome := v.executeApprove(ctx, v.gateway, ref.GroupID, ref.UserID, item)
+		if outcome == approveConfirmed {
+			return ChallengeApproved
+		}
+		if outcome == approveFailed {
+			v.mu.Lock()
+			key := pkey{gid: ref.GroupID, uid: ref.UserID}
+			retrying := v.terminal[key] == item || v.pend[key] == item
+			v.mu.Unlock()
+			if retrying {
+				return consoleApprovalPendingRetry
+			}
+		}
+		return consoleApprovalUnconfirmed
 	case ChallengeDeclined:
 		_, _ = v.finishDecline(ctx, v.gateway, ref.GroupID, ref.UserID, item, consoleStoredReason(settlement))
 	case ChallengeBanned:
 		_ = v.executeBan(ctx, v.gateway, ref.GroupID, ref.UserID, item)
 	}
+	return settlement.Target
 }
 
 func (v *Service) consolePendingCurrent(ref PendingRef) (bool, error) {
