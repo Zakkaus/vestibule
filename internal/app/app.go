@@ -389,8 +389,9 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 		return err
 	}
 	administration.SetCommandModules(modules.commands)
-	updates := telegram.NewUpdates(runtime.cfg, settingsService, connector,
-		telegramHandlers(verificationService, verificationGateway, administration, moderation, modules.commands, consoleHandler))
+	handlers := telegramHandlers(verificationService, verificationGateway, administration, moderation, modules.commands, consoleHandler)
+	handlers.AutoReply = telegram.NewAutoReplyHandler(database.NewRuleStore(runtime.database), settingsService, connector)
+	updates := telegram.NewUpdates(runtime.cfg, settingsService, connector, handlers)
 	registration := newRegistration(ctx, bot, runtime.cfg, runtime.settings, identity, moderation, verificationService, updates)
 	runtime.bot = bot
 	runtime.connector = connector

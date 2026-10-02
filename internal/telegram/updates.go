@@ -122,6 +122,7 @@ type HandlerSet struct {
 	Moderation   ModerationHandlers
 	Commands     CommandModules
 	Console      th.Handler
+	AutoReply    th.Handler
 }
 
 type handlerRoute struct {
@@ -199,6 +200,9 @@ func (u *Updates) handlerRoutes() []handlerRoute {
 		routes = append(routes, handlerRoute{
 			name: command.Name, handler: command.Handler, predicates: predicates,
 		})
+	}
+	if u.handlers.AutoReply != nil {
+		routes = append(routes, handlerRoute{name: "bot.auto_reply", handler: u.handlers.AutoReply})
 	}
 	return routes
 }

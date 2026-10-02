@@ -1915,6 +1915,29 @@ Sender {
       </tbody>
     </table></div>
 
+    <h3>自动回复的运行期契约</h3>
+    <p><code>auto_reply</code> 集合只处理已管理群的文本消息，不处理私聊、机器人发言、
+      频道身份发言或命令。每条消息读取当前规则，按 <code>ordinal</code> 跳过停用项并匹配；
+      第一条命中后停止，即使该规则仍在冷却期也不继续匹配其他规则。</p>
+    <p><code>definition</code> 是 JSON 对象。<code>trigger</code> 与 <code>reply</code>
+      是必填字符串，分别最多 512 与 4096 个字符。
+      <code>match_mode</code> 默认为 <code>contains</code>；
+      <code>hashtag</code> 匹配完整井号标签，保留汉字之间的空白与下划线，不删除分隔符；
+      <code>equals</code> 匹配完整消息，
+      <code>one_of</code> 匹配 <code>trigger</code> 或 <code>alternatives</code> 数组中的完整值，
+      <code>regex</code> 将表达式应用于归一化后的消息。
+      正则使用 Go 的线性时间引擎，表达式受 512 字符上限约束，消息长度受 Telegram 上限约束。</p>
+    <p><code>cooldown_seconds</code> 是可选正整数，默认 600，必须能表示为 Go 的时长。
+      冷却按规则与群独立记录，发送尝试即开始计时，不影响 <code>private_reply</code> 的按用户限流。
+      冷却状态保存在内存中，重启后重置。回复通过 Telegram 适配器按纯文本发送，不解释标记。</p>
+    <p><code>internal/rules</code> 共用同一份解码与校验。
+      控制台 API 仅校验新建或修改的定义，拒绝无效定义并返回字段错误；
+      定义未变的已有规则仍可停用或调整顺序。GET 遇到格式损坏的 JSON 时，
+      在提交响应头之前返回 500 与 <code>rules_unavailable</code> 错误，不返回空的成功响应。
+      运行期将无法解码的已存规则视为停用，每次定义变化只记录一条不含正文的日志。
+      当前消息屏仅调整启用状态与顺序，
+      不编辑定义；其他规则集合仍按不透明 JSON 保存。</p>
+
     <h3>配置包是数据，不是代码</h3>
     <p>规则集合可以打包分发。<b>包的内容是封闭集合，且不含任何可执行形式。</b>
       这不是保守，是责任边界：数据包最坏的情况是内容不合适，可以停用；
