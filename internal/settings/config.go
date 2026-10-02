@@ -465,11 +465,6 @@ func (c *Config) BlockChannelSendersEnabled() bool {
 	return c.BlockChannelSenders == nil || *c.BlockChannelSenders
 }
 
-// FailOpenChannel reports whether unreadable required-channel membership admits users.
-func (c *Config) FailOpenChannel() bool {
-	return c.RequiredChannelFailOpen == nil || *c.RequiredChannelFailOpen
-}
-
 // ChannelDisplayFor returns the effective required-channel display name for a group.
 func (c *Config) ChannelDisplayFor(id int64) string {
 	if g := c.group(id); g != nil && g.ChannelDisplay != "" {

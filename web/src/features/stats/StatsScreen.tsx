@@ -8,6 +8,7 @@ import {
   useConsoleSession
 } from "../../app/session";
 import type { ApiRequestError } from "../../lib/api";
+import { browserTimeZone, defaultStatsQuery } from "../../lib/statsQuery";
 import { Icon, type IconName } from "../../icons";
 import type { StatsQuery } from "./api";
 import {
@@ -40,51 +41,6 @@ function statsErrorMessageKey(error: ApiRequestError, fallback: string): string 
     return errorMessageKeys[error.code] ?? fallback;
   }
   return fallback;
-}
-
-function browserTimeZone(): string {
-  try {
-    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    return timeZone.length > 0 ? timeZone : "UTC";
-  } catch {
-    return "UTC";
-  }
-}
-
-function calendarDateInTimeZone(timeZone: string): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  }).formatToParts();
-  const values: Record<string, string> = {};
-
-  for (const part of parts) {
-    if (part.type === "year" || part.type === "month" || part.type === "day") {
-      values[part.type] = part.value;
-    }
-  }
-
-  const year = values.year;
-  const month = values.month;
-  const day = values.day;
-  return year && month && day ? `${year}-${month}-${day}` : new Date().toISOString().slice(0, 10);
-}
-
-function shiftCalendarDate(date: string, days: number): string {
-  const shifted = new Date(`${date}T00:00:00Z`);
-  shifted.setUTCDate(shifted.getUTCDate() + days);
-  return shifted.toISOString().slice(0, 10);
-}
-
-function defaultStatsQuery(timeZone: string): StatsQuery {
-  const today = calendarDateInTimeZone(timeZone);
-  return {
-    from: shiftCalendarDate(today, -6),
-    to: shiftCalendarDate(today, 1),
-    timezone: timeZone
-  };
 }
 
 function validDateInput(value: string): boolean {
