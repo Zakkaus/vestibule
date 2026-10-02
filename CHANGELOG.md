@@ -7,6 +7,9 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 ### Added
+- The verification core supports proof-of-work and Turnstile challenges with hashed bearer
+  tokens, atomic settlement, private-delivery validation, a difficulty cap, and in-place
+  quiz fallback that preserves gate ownership.
 - Feed subscriptions are effective group settings with sourced reads and atomic full-replacement
   writes. Legacy `config.json` feed entries are imported once for managed chats; runtime
   polling follows subsequent store changes without restart. Bug and news factory defaults are off.

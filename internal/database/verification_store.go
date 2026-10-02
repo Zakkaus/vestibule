@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"strconv"
 
 	"github.com/Zakkaus/vestibule/internal/verification"
 )
@@ -160,9 +159,10 @@ func insertPending(ctx context.Context, db *Database, record verification.Pendin
 	result, err := db.Exec(ctx, `
 		INSERT INTO challenge
 			(id, chat_id, user_id, state, kind, payload, delivery, attempts, expires_at, epoch)
-		VALUES ($1, $2, $3, 'pending', 'rule', $4, $5, $6, $7, $8)
+		VALUES ($1, $2, $3, 'pending', $9, $4, $5, $6, $7, $8)
 		ON CONFLICT DO NOTHING`,
-		challengeID(record.Ref()), record.GroupID, record.UserID, payload, delivery, record.Tries, record.Deadline, record.Epoch)
+		challengeID(record.Ref()), record.GroupID, record.UserID, payload, delivery, record.Tries, record.Deadline, record.Epoch,
+		challengeKind(record.Mode))
 	if err != nil {
 		return false, fmt.Errorf("insert pending challenge for chat %d user %d: %w", record.GroupID, record.UserID, err)
 	}
@@ -192,7 +192,7 @@ func validatePendingReplacement(expected verification.PendingRef, record verific
 }
 
 func challengeID(ref verification.PendingRef) string {
-	return strconv.FormatInt(ref.GroupID, 10) + ":" + strconv.FormatInt(ref.UserID, 10) + ":" + ref.Nonce
+	return verification.ChallengeID(ref)
 }
 
 func changedRow(result sql.Result) (bool, error) {

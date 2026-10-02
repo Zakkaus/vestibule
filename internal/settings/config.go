@@ -12,7 +12,9 @@ const (
 	// ModeKernel requires applicants to type a kernel version.
 	ModeKernel = "kernel"
 	// ModeMixed chooses quiz or kernel verification per applicant.
-	ModeMixed = "mixed"
+	ModeMixed   = "mixed"
+	ModePoW     = "pow"
+	ModeCaptcha = "captcha"
 )
 
 const (
@@ -72,7 +74,7 @@ type factoryQuestionBank struct {
 // ValidMode reports whether mode names a supported verification mode.
 func ValidMode(mode string) bool {
 	switch mode {
-	case ModeQuiz, ModeKernel, ModeMixed:
+	case ModeQuiz, ModeKernel, ModeMixed, ModePoW, ModeCaptcha:
 		return true
 	}
 	return false
@@ -189,6 +191,8 @@ type GroupConfig struct {
 	Enabled                 *bool            `json:"enabled"`
 	DeliveryMode            string           `json:"delivery_mode"`
 	VerifyMode              string           `json:"verify_mode"`
+	PoWBits                 *int             `json:"pow_bits"`
+	CaptchaUnavailable      *string          `json:"captcha_unavailable"`
 	NameSpoiler             *bool            `json:"name_spoiler"`
 	BanSeconds              *int             `json:"ban_seconds"`
 	LookupTTLSeconds        *int             `json:"lookup_ttl_seconds"`
@@ -341,7 +345,9 @@ type Config struct {
 	// VerifyMaxFails is the automatic-ban threshold and a negative value disables it.
 	VerifyMaxFails int `json:"verify_max_fails"`
 	// VerifyMode selects kernel, quiz, or mixed verification.
-	VerifyMode string `json:"verify_mode"`
+	VerifyMode         string  `json:"verify_mode"`
+	PoWBits            *int    `json:"pow_bits"`
+	CaptchaUnavailable *string `json:"captcha_unavailable"`
 	// DeliveryMode selects group-only, private-with-fallback, or group-and-private challenge delivery.
 	DeliveryMode string `json:"delivery_mode"`
 	// FallbackQuestions is the answer-hidden path for applicants without Linux.

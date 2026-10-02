@@ -398,6 +398,7 @@ type ChallengeTransition struct {
 	SettledAt int64
 	SettledBy int64
 	Actions   []ActionIntent
+	WebClaim  *WebClaim
 }
 
 // ActionIntent is an externally visible operation made durable with a challenge transition.

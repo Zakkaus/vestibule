@@ -58,6 +58,9 @@ func (v *Service) questions(groupID int64) []settings.Question {
 // Mixed mode uses a cryptographic coin flip; explicitly empty chat banks keep the legacy kernel fallback.
 func (v *Service) pickMode(gid int64) string {
 	mode := v.EffectiveMode(gid)
+	if settings.IsWebMode(mode) && v.settings.WebModeUnavailable(mode) != "" {
+		mode = settings.ModeQuiz
+	}
 	if mode == (settings.ModeMixed) {
 		mode = (settings.ModeQuiz)
 		if cryptoIntn(2) == 0 {
@@ -73,6 +76,9 @@ func (v *Service) pickMode(gid int64) string {
 // Kernel challenges have no options and use correctIdx -1.
 func (v *Service) newChallenge(gid int64, ul i18n.Lang) (mode, text string, opts []string, correctIdx int) {
 	mode = v.pickMode(gid)
+	if settings.IsWebMode(mode) {
+		return mode, "", nil, -1
+	}
 	if mode == (settings.ModeKernel) {
 		return mode, tgfmt.KernelQuestion(v.messages, ul), nil, -1
 	}

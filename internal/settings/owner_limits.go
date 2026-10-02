@@ -21,6 +21,7 @@ type OwnerLimits struct {
 	ChannelWhitelist      int64 `json:"channel_whitelist"`
 	TrustedMemberGroupIDs int64 `json:"trusted_member_group_ids"`
 	KnownChatIDs          int64 `json:"known_chat_ids"`
+	PoWBits               int64 `json:"pow_bits"`
 }
 
 // OwnerLimitsState is the immutable owner-limit snapshot exposed to adapters.
@@ -90,6 +91,7 @@ var ownerLimitFields = [...]string{
 	"channel_whitelist",
 	"trusted_member_group_ids",
 	"known_chat_ids",
+	"pow_bits",
 }
 
 type ownerLimitRule struct {
@@ -111,6 +113,7 @@ var ownerLimitRules = map[string]ownerLimitRule{
 	"channel_whitelist":        {min: 1, max: 2147483647},
 	"trusted_member_group_ids": {min: 1, max: 2147483647},
 	"known_chat_ids":           {min: 1, max: 2147483647},
+	"pow_bits":                 {min: 12, max: 22},
 }
 
 func (l OwnerLimits) Value(field string) (int64, bool) {
@@ -141,6 +144,8 @@ func (l OwnerLimits) Value(field string) (int64, bool) {
 		return l.TrustedMemberGroupIDs, true
 	case "known_chat_ids":
 		return l.KnownChatIDs, true
+	case "pow_bits":
+		return l.PoWBits, true
 	default:
 		return 0, false
 	}
@@ -174,6 +179,8 @@ func (l *OwnerLimits) setValue(field string, value int64) bool {
 		l.TrustedMemberGroupIDs = value
 	case "known_chat_ids":
 		l.KnownChatIDs = value
+	case "pow_bits":
+		l.PoWBits = value
 	default:
 		return false
 	}
@@ -279,8 +286,8 @@ func ownerLimitViolations(snapshot *settingsSnapshot) []LimitViolation {
 	return violations
 }
 
-func effectiveLimitValues(group *effectiveGroup) [13]int64 {
-	return [13]int64{
+func effectiveLimitValues(group *effectiveGroup) [14]int64 {
+	return [14]int64{
 		int64(group.timeoutSeconds.Value),
 		int64(group.banSeconds.Value),
 		int64(group.muteSeconds.Value),
@@ -294,6 +301,7 @@ func effectiveLimitValues(group *effectiveGroup) [13]int64 {
 		int64(len(group.channelWhitelist.Value)),
 		int64(len(group.trustedMemberGroupIDs.Value)),
 		int64(len(group.knownChatIDs.Value)),
+		int64(group.powBits.Value),
 	}
 }
 

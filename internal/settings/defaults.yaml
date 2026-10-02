@@ -36,6 +36,9 @@ factory:
   delivery_mode: both
   # Verification strategy: kernel, quiz, or mixed.
   verify_mode: quiz
+  # Web proof difficulty and policy when the captcha provider is unavailable.
+  pow_bits: 18
+  captcha_unavailable: fallback
   # Hide applicant names in public challenge messages.
   name_spoiler: true
   # Ban duration in seconds; 0 means permanent, otherwise Telegram requires 30..31622400.

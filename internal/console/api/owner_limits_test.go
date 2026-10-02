@@ -32,6 +32,7 @@ var ownerLimitsFields = [...]string{
 	"channel_whitelist",
 	"trusted_member_group_ids",
 	"known_chat_ids",
+	"pow_bits",
 }
 
 type ownerLimitsTestResponse struct {

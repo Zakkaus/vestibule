@@ -17,6 +17,9 @@ func (s *VerificationStore) transitionChallenge(ctx context.Context, transition 
 	if err := validateActionIntents(transition.Actions); err != nil {
 		return false, err
 	}
+	if transition.WebClaim != nil && transition.WebClaim.TokenHash == "" {
+		return false, fmt.Errorf("web claim requires token hash")
+	}
 	payload, delivery, err := encodePending(transition.Record)
 	if err != nil {
 		return false, err
@@ -37,10 +40,13 @@ func (s *VerificationStore) transitionChallenge(ctx context.Context, transition 
 			UPDATE challenge
 			   SET state=$1, payload=$2, delivery=$3, attempts=$4, expires_at=$5, epoch=$6,
 			       reason=$7, settled_at=$8, settled_by=$9
-			 WHERE id=$10 AND chat_id=$11 AND user_id=$12 AND state=$13 AND epoch=$14`,
+			 WHERE id=$10 AND chat_id=$11 AND user_id=$12 AND state=$13 AND epoch=$14
+			   AND ($15='' OR (state='pending' AND expires_at>$16 AND kind IN ('pow', 'captcha')
+			       AND EXISTS (SELECT 1 FROM verify_tokens WHERE challenge_id=challenge.id AND token_hash=$15)))`,
 			transition.To, payload, delivery, transition.Record.Tries, transition.Record.Deadline,
 			transition.Record.Epoch, reason, settledAt, settledBy, challengeID(transition.Expected),
-			transition.Expected.GroupID, transition.Expected.UserID, transition.From, transition.Expected.Epoch)
+			transition.Expected.GroupID, transition.Expected.UserID, transition.From, transition.Expected.Epoch,
+			webClaimHash(transition), webClaimNow(transition))
 		if err != nil {
 			return fmt.Errorf("transition challenge for chat %d user %d from %s to %s: %w",
 				transition.Expected.GroupID, transition.Expected.UserID, transition.From, transition.To, err)

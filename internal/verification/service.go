@@ -170,6 +170,7 @@ type Service struct {
 	probe             LiveProbe
 	passed            map[pkey]time.Time
 	timeNow           func() time.Time
+	turnstile         TurnstileVerifier
 }
 
 func loadStatsLoc(name string) *time.Location {

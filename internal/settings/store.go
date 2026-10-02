@@ -54,6 +54,8 @@ type GroupBaseline struct {
 	Enabled                 BaselineValue[bool]
 	DeliveryMode            BaselineValue[string]
 	VerifyMode              BaselineValue[string]
+	PoWBits                 BaselineValue[int]
+	CaptchaUnavailable      BaselineValue[string]
 	NameSpoiler             BaselineValue[bool]
 	BanSeconds              BaselineValue[int]
 	LookupTTLSeconds        BaselineValue[int]
@@ -95,6 +97,8 @@ type GroupOverrides struct {
 	Enabled                 *bool            `json:"enabled,omitempty"`
 	DeliveryMode            *string          `json:"delivery_mode,omitempty"`
 	VerifyMode              *string          `json:"verify_mode,omitempty"`
+	PoWBits                 *int             `json:"pow_bits,omitempty"`
+	CaptchaUnavailable      *string          `json:"captcha_unavailable,omitempty"`
 	NameSpoiler             *bool            `json:"name_spoiler,omitempty"`
 	BanSeconds              *int             `json:"ban_seconds,omitempty"`
 	LookupTTLSeconds        *int             `json:"lookup_ttl_seconds,omitempty"`
@@ -259,6 +263,8 @@ type effectiveGroup struct {
 	enabled                 Setting[bool]
 	deliveryMode            Setting[string]
 	verifyMode              Setting[string]
+	powBits                 Setting[int]
+	captchaUnavailable      Setting[string]
 	nameSpoiler             Setting[bool]
 	banSeconds              Setting[int]
 	lookupTTLSeconds        Setting[int]
@@ -300,15 +306,16 @@ type statusError struct{ err error }
 
 // Store owns the one immutable runtime-settings snapshot and its serialized commit path.
 type Store struct {
-	path         string
-	repository   Repository
-	baseline     SettingsBaseline
-	baselineByID map[int64]GroupBaseline
-	writer       sync.Mutex
-	state        settingsFile
-	writable     bool
-	snapshot     atomic.Pointer[settingsSnapshot]
-	lastError    atomic.Pointer[statusError]
+	path            string
+	repository      Repository
+	baseline        SettingsBaseline
+	baselineByID    map[int64]GroupBaseline
+	webCapabilities WebCapabilities
+	writer          sync.Mutex
+	state           settingsFile
+	writable        bool
+	snapshot        atomic.Pointer[settingsSnapshot]
+	lastError       atomic.Pointer[statusError]
 }
 
 // GroupView is a read-only, allocation-free handle into one immutable snapshot.
@@ -433,6 +440,9 @@ func (s *Store) Update(groupID int64, expectedRevision uint64, next GroupOverrid
 	if err != nil {
 		return CommitResult{}, err
 	}
+	if err := s.validateWebSettings(snap.groups[groupID]); err != nil {
+		return CommitResult{}, err
+	}
 	if violations := ownerLimitViolationsForGroup(snap.groups[groupID], current.limits); len(violations) > 0 {
 		return CommitResult{}, &OwnerLimitsExceededError{Violations: violations}
 	}
@@ -460,14 +470,16 @@ func (s *Store) Update(groupID int64, expectedRevision uint64, next GroupOverrid
 	return CommitResult{Revision: record.Revision, Durable: s.repository != nil || s.path != ""}, nil
 }
 
-func (v GroupView) ID() int64                     { return v.group.id }
-func (v GroupView) Revision() uint64              { return v.group.revision }
-func (v GroupView) RuntimeRegistered() bool       { return v.group.registered }
-func (v GroupView) Enabled() Setting[bool]        { return v.group.enabled }
-func (v GroupView) DeliveryMode() Setting[string] { return v.group.deliveryMode }
-func (v GroupView) VerifyMode() Setting[string]   { return v.group.verifyMode }
-func (v GroupView) NameSpoiler() Setting[bool]    { return v.group.nameSpoiler }
-func (v GroupView) BanSeconds() Setting[int]      { return v.group.banSeconds }
+func (v GroupView) ID() int64                           { return v.group.id }
+func (v GroupView) Revision() uint64                    { return v.group.revision }
+func (v GroupView) RuntimeRegistered() bool             { return v.group.registered }
+func (v GroupView) Enabled() Setting[bool]              { return v.group.enabled }
+func (v GroupView) DeliveryMode() Setting[string]       { return v.group.deliveryMode }
+func (v GroupView) VerifyMode() Setting[string]         { return v.group.verifyMode }
+func (v GroupView) PoWBits() Setting[int]               { return v.group.powBits }
+func (v GroupView) CaptchaUnavailable() Setting[string] { return v.group.captchaUnavailable }
+func (v GroupView) NameSpoiler() Setting[bool]          { return v.group.nameSpoiler }
+func (v GroupView) BanSeconds() Setting[int]            { return v.group.banSeconds }
 func (v GroupView) LookupTTLSeconds() Setting[int] {
 	return v.group.lookupTTLSeconds
 }

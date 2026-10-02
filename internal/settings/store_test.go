@@ -18,6 +18,8 @@ func testSettingsBaseline() SettingsBaseline {
 		Enabled:                 BaselineValue[bool]{Value: true, Source: SourceFactory},
 		DeliveryMode:            BaselineValue[string]{Value: DeliveryBoth, Source: SourceFactory},
 		VerifyMode:              BaselineValue[string]{Value: ModeKernel, Source: SourceFactory},
+		PoWBits:                 factoryValue(18),
+		CaptchaUnavailable:      factoryValue(CaptchaFallback),
 		NameSpoiler:             BaselineValue[bool]{Value: true, Source: SourceFactory},
 		BanSeconds:              BaselineValue[int]{Value: 0, Source: SourceFactory},
 		LookupTTLSeconds:        BaselineValue[int]{Value: 180, Source: SourceFactory},

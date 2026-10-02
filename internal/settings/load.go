@@ -34,6 +34,7 @@ limits:
   channel_whitelist: 0
   trusted_member_group_ids: 0
   known_chat_ids: 0
+  pow_bits: 0
 groups: {}
 `
 
@@ -42,6 +43,8 @@ revision: 0
 enabled:
 delivery_mode:
 verify_mode:
+pow_bits:
+captcha_unavailable:
 name_spoiler:
 ban_seconds:
 lookup_ttl_seconds:
@@ -95,6 +98,8 @@ var groupCopyRules = []copyRule{
 	{configupgrade.Bool, []string{"enabled"}},
 	{configupgrade.Str, []string{"delivery_mode"}},
 	{configupgrade.Str, []string{"verify_mode"}},
+	{configupgrade.Int, []string{"pow_bits"}},
+	{configupgrade.Str, []string{"captcha_unavailable"}},
 	{configupgrade.Bool, []string{"name_spoiler"}},
 	{configupgrade.Int, []string{"ban_seconds"}},
 	{configupgrade.Int, []string{"lookup_ttl_seconds"}},

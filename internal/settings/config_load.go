@@ -287,9 +287,9 @@ func validateConfigLanguage(c *Config) error {
 
 func validateConfigVerifyMode(c *Config) error {
 	if c.VerifyMode != "" && !ValidMode(c.VerifyMode) {
-		return fmt.Errorf("verify_mode %q is not one of %q, %q, %q", c.VerifyMode, ModeKernel, ModeQuiz, ModeMixed)
+		return fmt.Errorf("invalid verify_mode %q", c.VerifyMode)
 	}
-	return nil
+	return validateConfigWebProof(c.PoWBits, c.CaptchaUnavailable)
 }
 
 func validateConfigDeliveryMode(c *Config) error {
@@ -337,9 +337,9 @@ func validateGroupQuestions(_ *Config, group *GroupConfig) error {
 
 func validateGroupVerifyMode(_ *Config, group *GroupConfig) error {
 	if group.VerifyMode != "" && !ValidMode(group.VerifyMode) {
-		return fmt.Errorf("group %d: verify_mode %q is not one of %q, %q, %q", group.ID, group.VerifyMode, ModeKernel, ModeQuiz, ModeMixed)
+		return fmt.Errorf("group %d: invalid verify_mode %q", group.ID, group.VerifyMode)
 	}
-	return nil
+	return validateConfigWebProof(group.PoWBits, group.CaptchaUnavailable)
 }
 
 func validateGroupDeliveryMode(_ *Config, group *GroupConfig) error {
@@ -357,7 +357,7 @@ func validateGroupLanguage(_ *Config, group *GroupConfig) error {
 }
 
 func validateGroupEffectiveQuestions(c *Config, group *GroupConfig) error {
-	if c.VerifyModeFor(group.ID) != ModeKernel && len(c.QuestionsFor(group.ID)) == 0 {
+	if mode := c.VerifyModeFor(group.ID); !IsWebMode(mode) && mode != ModeKernel && len(c.QuestionsFor(group.ID)) == 0 {
 		return fmt.Errorf("group %d: no questions (add global questions or this group's own questions, or set verify_mode to %q)", group.ID, ModeKernel)
 	}
 	return nil
@@ -374,7 +374,7 @@ func validateDefaultRuntimeGroup(c *Config) error {
 	if len(c.Groups) != 0 {
 		return nil
 	}
-	if c.VerifyMode != "" && c.VerifyMode != ModeKernel && len(c.QuestionsFor(0)) == 0 {
+	if c.VerifyMode != "" && !IsWebMode(c.VerifyMode) && c.VerifyMode != ModeKernel && len(c.QuestionsFor(0)) == 0 {
 		return fmt.Errorf("default runtime group: no questions (add global questions or set verify_mode to %q)", ModeKernel)
 	}
 	if c.RequiredChannelID != 0 && c.ChannelInviteURL == "" && !strings.HasPrefix(c.ChannelDisplay, "@") {

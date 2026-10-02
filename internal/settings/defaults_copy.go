@@ -6,6 +6,16 @@ type topLevelUserValueRule struct {
 }
 
 var topLevelUserValueRules = [...]topLevelUserValueRule{
+	{key: "pow_bits", apply: func(group *GroupBaseline, cfg *Config, present bool) {
+		if cfg.PoWBits != nil {
+			group.PoWBits = inputValue(*cfg.PoWBits, present)
+		}
+	}},
+	{key: "captcha_unavailable", apply: func(group *GroupBaseline, cfg *Config, present bool) {
+		if cfg.CaptchaUnavailable != nil {
+			group.CaptchaUnavailable = inputValue(*cfg.CaptchaUnavailable, present)
+		}
+	}},
 	{
 		key: "enabled",
 		apply: func(group *GroupBaseline, cfg *Config, present bool) {
@@ -255,6 +265,16 @@ type groupUserValueRule struct {
 }
 
 var groupUserValueRules = [...]groupUserValueRule{
+	{key: "pow_bits", apply: func(group *GroupBaseline, cfg *GroupConfig) {
+		if cfg.PoWBits != nil {
+			group.PoWBits = userFileValue(*cfg.PoWBits)
+		}
+	}},
+	{key: "captcha_unavailable", apply: func(group *GroupBaseline, cfg *GroupConfig) {
+		if cfg.CaptchaUnavailable != nil {
+			group.CaptchaUnavailable = userFileValue(*cfg.CaptchaUnavailable)
+		}
+	}},
 	{
 		key: "enabled",
 		apply: func(group *GroupBaseline, cfg *GroupConfig) {

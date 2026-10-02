@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/Zakkaus/vestibule/internal/i18n"
+	"github.com/Zakkaus/vestibule/internal/settings"
 )
 
 type answerCallback struct {
@@ -20,6 +21,10 @@ type answerCallback struct {
 // QuizAnswerMatches reports whether a quiz choice is the configured answer.
 func QuizAnswerMatches(choice, correctIndex int) bool {
 	return choice == correctIndex
+}
+
+func pendingAcceptsQuizCallback(p *pending) bool {
+	return p != nil && !p.done && !settings.IsWebMode(p.mode) && !p.fallbackPending
 }
 
 func parseAnswerCallback(data string) (answerCallback, bool) {
@@ -66,7 +71,7 @@ func (v *Service) OnAnswer(ctx *HandlerContext, update Update) error {
 
 	v.mu.Lock()
 	p, exists := v.pend[pkey{answer.gid, answer.owner}]
-	done := !exists || p.done
+	done := !pendingAcceptsQuizCallback(p)
 	correctIdx, currentNonce := -1, ""
 	if exists {
 		correctIdx, currentNonce = p.correctIdx, p.nonce

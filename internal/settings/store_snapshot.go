@@ -10,6 +10,7 @@ type effectiveGroupValidator func(*effectiveGroup) error
 var effectiveGroupValidators = [...]effectiveGroupValidator{
 	validateEffectiveDeliveryMode,
 	validateEffectiveVerifyMode,
+	validateEffectiveWebProof,
 	validateEffectiveLanguage,
 	validateEffectiveBanSeconds,
 	validateEffectiveLookupTTL,
@@ -86,17 +87,19 @@ func buildEffectiveGroup(
 		fallback = resolveSlice(record.FallbackQuestions, baseline.FallbackQuestions, cloneShortQuestions)
 	}
 	return &effectiveGroup{
-		id:               baseline.ID,
-		revision:         record.Revision,
-		registered:       registered,
-		baseline:         cloneGroupBaseline(baseline),
-		overrides:        cloneGroupOverrides(record.GroupOverrides),
-		enabled:          resolve(record.Enabled, baseline.Enabled),
-		deliveryMode:     resolve(record.DeliveryMode, baseline.DeliveryMode),
-		verifyMode:       resolve(record.VerifyMode, baseline.VerifyMode),
-		nameSpoiler:      resolve(record.NameSpoiler, baseline.NameSpoiler),
-		banSeconds:       resolve(record.BanSeconds, baseline.BanSeconds),
-		lookupTTLSeconds: resolve(record.LookupTTLSeconds, baseline.LookupTTLSeconds),
+		id:                 baseline.ID,
+		revision:           record.Revision,
+		registered:         registered,
+		baseline:           cloneGroupBaseline(baseline),
+		overrides:          cloneGroupOverrides(record.GroupOverrides),
+		enabled:            resolve(record.Enabled, baseline.Enabled),
+		deliveryMode:       resolve(record.DeliveryMode, baseline.DeliveryMode),
+		verifyMode:         resolve(record.VerifyMode, baseline.VerifyMode),
+		powBits:            resolve(record.PoWBits, baseline.PoWBits),
+		captchaUnavailable: resolve(record.CaptchaUnavailable, baseline.CaptchaUnavailable),
+		nameSpoiler:        resolve(record.NameSpoiler, baseline.NameSpoiler),
+		banSeconds:         resolve(record.BanSeconds, baseline.BanSeconds),
+		lookupTTLSeconds:   resolve(record.LookupTTLSeconds, baseline.LookupTTLSeconds),
 		lookupAutoDeleteEnabled: resolve(
 			record.LookupAutoDeleteEnabled,
 			baseline.LookupAutoDeleteEnabled,
@@ -226,6 +229,7 @@ func validateBaseline(baseline SettingsBaseline) error {
 func validateBaselineSources(group GroupBaseline) error {
 	sources := []Source{
 		group.Enabled.Source, group.DeliveryMode.Source, group.VerifyMode.Source, group.NameSpoiler.Source,
+		group.PoWBits.Source, group.CaptchaUnavailable.Source,
 		group.BanSeconds.Source, group.LookupTTLSeconds.Source, group.LookupAutoDeleteEnabled.Source,
 		group.TimeoutSeconds.Source, group.VerifyMaxFails.Source, group.VerifyRetrySeconds.Source,
 		group.MuteSeconds.Source, group.WarnLimit.Source, group.VerifyInvited.Source,

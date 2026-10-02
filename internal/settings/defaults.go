@@ -35,6 +35,8 @@ type groupDefaults struct {
 	Enabled                 bool            `yaml:"enabled"`
 	DeliveryMode            string          `yaml:"delivery_mode"`
 	VerifyMode              string          `yaml:"verify_mode"`
+	PoWBits                 int             `yaml:"pow_bits"`
+	CaptchaUnavailable      string          `yaml:"captcha_unavailable"`
 	NameSpoiler             bool            `yaml:"name_spoiler"`
 	BanSeconds              int             `yaml:"ban_seconds"`
 	LookupTTLSeconds        int             `yaml:"lookup_ttl_seconds"`
@@ -114,6 +116,8 @@ func factoryBaseline() GroupBaseline {
 		Enabled:                 factoryValue(defaults.Enabled),
 		DeliveryMode:            factoryValue(defaults.DeliveryMode),
 		VerifyMode:              factoryValue(defaults.VerifyMode),
+		PoWBits:                 factoryValue(defaults.PoWBits),
+		CaptchaUnavailable:      factoryValue(defaults.CaptchaUnavailable),
 		NameSpoiler:             factoryValue(defaults.NameSpoiler),
 		BanSeconds:              factoryValue(defaults.BanSeconds),
 		LookupTTLSeconds:        factoryValue(defaults.LookupTTLSeconds),
