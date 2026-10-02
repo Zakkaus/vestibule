@@ -93,6 +93,8 @@ factory:
   private_query_per_min: 3
   # Destination for audit and failure notices; 0 falls back to the acting chat.
   admin_log_chat_id: 0
+  # Optional chat for remote moderation commands; 0 disables it.
+  control_chat_id: 0
   # Admit applicants when the bot cannot read the required channel.
   required_channel_fail_open: true
   # Factory subscription defaults; config.json feeds are migration inputs only.

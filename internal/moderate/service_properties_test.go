@@ -76,7 +76,7 @@ func newRegisteredSetupService(t *testing.T, groupID, registrantID, adminLogID i
 		}
 		overrides := group.Overrides()
 		overrides.AdminLogChatID = &adminLogID
-		if _, err := store.Update(groupID, group.Revision(), overrides); err != nil {
+		if _, err := store.Update(groupID, group.Revision(), overrides, 7); err != nil {
 			t.Fatalf("set admin log target: %v", err)
 		}
 	}

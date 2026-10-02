@@ -34,9 +34,10 @@ func (s *apiTestSettingsService) Update(
 	groupID int64,
 	expectedRevision uint64,
 	next settings.GroupOverrides,
+	actorID int64,
 ) (settings.CommitResult, error) {
 	s.updateCalls++
-	return s.store.Update(groupID, expectedRevision, next)
+	return s.store.Update(groupID, expectedRevision, next, actorID)
 }
 
 func TestGetSettingsRejectsUnauthorizedChat(t *testing.T) {
@@ -84,7 +85,7 @@ func TestPatchSettingsReturnsDedicatedRevisionConflict(t *testing.T) {
 	next := group.Overrides()
 	spoiler := false
 	next.NameSpoiler = &spoiler
-	if _, err := service.store.Update(apiSettingsGroupID, group.Revision(), next); err != nil {
+	if _, err := service.store.Update(apiSettingsGroupID, group.Revision(), next, 7); err != nil {
 		t.Fatal(err)
 	}
 	response := patchGroupSettings(server, cookies, csrf, apiSettingsGroupID,
@@ -116,7 +117,7 @@ func TestPatchSettingsMergesSparseChangesAndRestoresDefault(t *testing.T) {
 	next := group.Overrides()
 	spoiler := false
 	next.NameSpoiler = &spoiler
-	if _, err := service.store.Update(apiSettingsGroupID, group.Revision(), next); err != nil {
+	if _, err := service.store.Update(apiSettingsGroupID, group.Revision(), next, 7); err != nil {
 		t.Fatal(err)
 	}
 	changed := patchGroupSettings(server, cookies, csrf, apiSettingsGroupID,

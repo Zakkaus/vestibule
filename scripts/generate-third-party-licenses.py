@@ -105,6 +105,7 @@ def go_modules() -> list[tuple[str, str, Path]]:
         [
             "go",
             "list",
+            "-buildvcs=false",
             "-deps",
             "-f",
             "{{if .Module}}{{.Module.Path}}\\t{{.Module.Version}}\\t{{.Module.Dir}}{{end}}",

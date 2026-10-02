@@ -150,7 +150,7 @@ func TestRuntimeRegistrationActivatesServicesWithoutRebuiltConfig(t *testing.T) 
 	runtimeOverrides := runtimeSettings.Overrides()
 	runtimeLanguage := "zh-Hant"
 	runtimeOverrides.Lang = &runtimeLanguage
-	if _, err := fixture.settings.Update(groupID, runtimeSettings.Revision(), runtimeOverrides); err != nil {
+	if _, err := fixture.settings.Update(groupID, runtimeSettings.Revision(), runtimeOverrides, 7); err != nil {
 		t.Fatal(err)
 	}
 	fixture.updates.SetupCommands(context.Background(), fixture.bot)
@@ -338,7 +338,7 @@ func requireTenantSettingsIsolation(t *testing.T, state *settings.Store, groupA,
 	disabled := false
 	next := first.Overrides()
 	next.Enabled = &disabled
-	if _, err := state.Update(groupA, first.Revision(), next); err != nil {
+	if _, err := state.Update(groupA, first.Revision(), next, 7); err != nil {
 		t.Fatal(err)
 	}
 	first, _ = state.Settings(groupA)

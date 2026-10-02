@@ -15,6 +15,7 @@ type SettingsPayload = Readonly<{
   linux_lookups_enabled: SourcedBoolean;
   warn_limit: Readonly<{ value: number; source: SettingSource }>;
   admin_log_chat_id: Readonly<{ value: number; source: SettingSource }>;
+  control_chat_id: Readonly<{ value: number; source: SettingSource }>;
 }>;
 type ReadSettingsHandler = (route: Route, requestNumber: number) => Promise<void>;
 type PatchSettingsHandler = (route: Route) => Promise<void>;
@@ -41,7 +42,8 @@ const baseSettings: SettingsPayload = {
   gentoo_lookups_enabled: { value: false, source: "factory default" },
   linux_lookups_enabled: { value: false, source: "factory default" },
   warn_limit: { value: 3, source: "factory default" },
-  admin_log_chat_id: { value: 0, source: "factory default" }
+  admin_log_chat_id: { value: 0, source: "factory default" },
+  control_chat_id: { value: 0, source: "factory default" }
 };
 
 function settingsPayload(overrides: Partial<SettingsPayload> = {}): SettingsPayload {

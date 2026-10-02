@@ -4,7 +4,8 @@ export const moderationFixtureSettings: ModerationSettings = {
   revision: 7,
   warnLimit: { value: 5, source: "chat override" },
   antispamEnabled: { value: true, source: "factory default" },
-  adminLogChatID: { value: 0, source: "user file" }
+  adminLogChatID: { value: 0, source: "user file" },
+  controlChatID: { value: 0, source: "factory default" }
 };
 
 function changedSetting<T>(
@@ -36,15 +37,18 @@ export function applyModerationFixtureChanges(
     changes.admin_log_chat_id,
     0
   );
+  const controlChatID = changedSetting(current.controlChatID, changes.control_chat_id, 0);
   const changed =
     warnLimit !== current.warnLimit ||
     antispamEnabled !== current.antispamEnabled ||
-    adminLogChatID !== current.adminLogChatID;
+    adminLogChatID !== current.adminLogChatID ||
+    controlChatID !== current.controlChatID;
 
   return {
     revision: changed ? current.revision + 1 : current.revision,
     warnLimit,
     antispamEnabled,
-    adminLogChatID
+    adminLogChatID,
+    controlChatID
   };
 }

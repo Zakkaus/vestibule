@@ -11,6 +11,10 @@ All notable changes to this project are documented here. The format is based on
   entity-based link and mention detection (private invites as `t.me/+`, `telegram.me`, `telegram.dog`,
   `joinchat/` and `tg://join?invite=`, excluding `t.me/+<phone>` contact links), emoji-aware
   hidden-character counting, and sample fixtures.
+- Each protected group can configure a separate control chat for user-ID-based
+  `/ban`, `/mute`, `/unmute`, and `/warn` commands. Commands check the sender's live
+  rights in the protected group and reply in the control chat without deleting
+  the command; moderation durations, audit records, and failure alerts remain shared.
 - Feed subscriptions are effective group settings with sourced reads and atomic full-replacement
   writes. Legacy `config.json` feed entries are imported once for managed chats; runtime
   polling follows subsequent store changes without restart. Bug and news factory defaults are off.
@@ -55,6 +59,8 @@ All notable changes to this project are documented here. The format is based on
   returns a complete error response instead of an empty successful response.
 - Auto-reply hashtag rules require a valid left boundary, excluding embedded words and URL
   fragments while preserving punctuation-delimited tags and the context of later tags.
+- CSS build provenance identifies dependencies correctly when `node_modules` is a symlink.
+  Dependency license inventory no longer requires VCS metadata in copied source trees.
 - The Compose database volume now mounts at `/var/lib/postgresql` as PostgreSQL 18 requires.
   Native installs record their deployment type so host replacement works, and `import-state`
   rejects a missing or invalid `-pending` before touching the database.
@@ -68,6 +74,15 @@ All notable changes to this project are documented here. The format is based on
   only until five minutes after the original admission.
 - Wrong-answer declines retain the same failure strike in direct console settlement and retries
   when Telegram reports that the join request is gone and confirms the applicant is outside the group.
+- Promoting a runtime-registered group into `config.json` preserves its saved
+  control-chat assignment on restart instead of treating the group as a competing claimant.
+- Control-chat assignments now require live administrator authority in a group or
+  supergroup. Unchanged assignments and clearing skip membership checks; changed
+  assignments check outside the settings writer lock and revalidate before commit.
+  Startup drops invalid or conflicting assignments without removing protected groups.
+  Conflict responses omit other groups' identities. Forum topic roots no longer
+  count as local reply targets; remote bans and mutes need restrict rights only.
+  Only `/mute` usage describes durations.
 - Owner private help lists active owner commands. The owner menu and help omit
   `/console` when its link handler is disabled.
 - Production entry pages ignore preview query parameters and retain the authenticated

@@ -9,7 +9,8 @@ const baseSettings = {
   revision: 7,
   warn_limit: { value: 3, source: "factory default" },
   antispam_enabled: { value: true, source: "factory default" },
-  admin_log_chat_id: { value: 0, source: "factory default" }
+  admin_log_chat_id: { value: 0, source: "factory default" },
+  control_chat_id: { value: 0, source: "factory default" }
 } as const;
 
 type SettingsPayload = {
@@ -17,6 +18,7 @@ type SettingsPayload = {
   warn_limit: { value: number; source: string };
   antispam_enabled: { value: boolean; source: string };
   admin_log_chat_id: { value: number; source: string };
+  control_chat_id: { value: number; source: string };
 };
 
 type ReadSettingsHandler = (route: Route, requestNumber: number) => Promise<void>;
@@ -366,4 +368,47 @@ test("moderation ignores a previous group's delayed settings save", async ({ pag
     "aria-checked",
     "true"
   );
+});
+
+test("moderation sets and clears the control chat without changing the log chat", async ({ page }) => {
+  const controlID = -1009000000661;
+  let stored = settingsPayload({
+    admin_log_chat_id: { value: -1009000000662, source: "chat override" }
+  });
+  const writes: unknown[] = [];
+  await openModeration(
+    page,
+    async (route) => fulfillJSON(route, stored),
+    async (route) => {
+      const body = route.request().postDataJSON();
+      writes.push(body);
+      const value = writes.length === 1 ? controlID : 0;
+      stored = {
+        ...stored,
+        revision: stored.revision + 1,
+        control_chat_id: { value, source: value === 0 ? "factory default" : "chat override" }
+      };
+      await fulfillJSON(route, stored);
+    }
+  );
+  const input = page.getByLabel("控制群", { exact: true });
+  await expect(input).toHaveValue("");
+  await input.fill("not-a-chat");
+  await expect(input).toHaveAttribute("aria-invalid", "true");
+  await expect(page.getByRole("button", { name: "保存", exact: true })).toHaveAttribute("aria-disabled", "true");
+  await input.fill(String(controlID));
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await expect(page.locator("[data-moderation-savebar]")).toHaveCount(0);
+  await page.reload();
+  await expect(input).toHaveValue(String(controlID));
+  await input.fill("");
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await expect(page.locator("[data-moderation-savebar]")).toHaveCount(0);
+  await page.reload();
+  await expect(input).toHaveValue("");
+  await expect(page.getByLabel("处罚记录群")).toHaveValue("-1009000000662");
+  expect(writes).toEqual([
+    { expected_revision: 7, changes: { control_chat_id: controlID } },
+    { expected_revision: 8, changes: { control_chat_id: 0 } }
+  ]);
 });

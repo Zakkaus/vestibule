@@ -20,7 +20,7 @@ func TestGetFeedsReturnsEffectiveValuesAndSources(t *testing.T) {
 	repos := []settings.GitHubRepo{{Repo: "owner/repo", Branch: "main"}}
 	next := group.Overrides()
 	next.Feed = &settings.FeedOverride{Lang: &lang, BugzillaBase: &bugzillaBase, News: &news, GitHubRepos: &repos}
-	if _, err := service.store.Update(apiSettingsGroupID, group.Revision(), next); err != nil {
+	if _, err := service.store.Update(apiSettingsGroupID, group.Revision(), next, 7); err != nil {
 		t.Fatal(err)
 	}
 
@@ -61,7 +61,7 @@ func TestPutFeedsReplacesOnlyFeedOverride(t *testing.T) {
 	next := group.Overrides()
 	next.Enabled = &enabled
 	next.Feed = &settings.FeedOverride{News: &oldNews}
-	if _, err := service.store.Update(apiSettingsGroupID, group.Revision(), next); err != nil {
+	if _, err := service.store.Update(apiSettingsGroupID, group.Revision(), next, 7); err != nil {
 		t.Fatal(err)
 	}
 
@@ -84,7 +84,7 @@ func TestPutFeedsRejectsConflictAndCSRF(t *testing.T) {
 	next := group.Overrides()
 	spoiler := false
 	next.NameSpoiler = &spoiler
-	if _, err := service.store.Update(apiSettingsGroupID, group.Revision(), next); err != nil {
+	if _, err := service.store.Update(apiSettingsGroupID, group.Revision(), next, 7); err != nil {
 		t.Fatal(err)
 	}
 

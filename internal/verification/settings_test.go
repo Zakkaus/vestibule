@@ -176,7 +176,7 @@ func TestPerGroupRuntimeSettingsIsolation(t *testing.T) {
 	overrides.FallbackQuestions = &fallback
 	overrides.FallbackBuiltin = &fallbackBuiltin
 	overrides.Lang = &language
-	if _, err := store.Update(groupA, group.Revision(), overrides); err != nil {
+	if _, err := store.Update(groupA, group.Revision(), overrides, 7); err != nil {
 		t.Fatal(err)
 	}
 	groupAView, _ := store.Settings(groupA)

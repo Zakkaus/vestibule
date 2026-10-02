@@ -26,6 +26,10 @@ type ModerateCommonCatalog struct {
 	CommandAdminOnly Format
 	// ReplyUsage formats reply-target command guidance.
 	ReplyUsage Format
+	// ControlUsage formats numeric-target command guidance in a control chat.
+	ControlUsage Format
+	// ControlMuteUsage adds duration guidance to numeric-target mute commands.
+	ControlMuteUsage Format
 	// TargetAdminCheckFailed reports an unavailable target-admin check.
 	TargetAdminCheckFailed Text
 	// CallerAdminCheckFailed reports an unavailable admin check for the caller themselves.

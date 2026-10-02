@@ -29,6 +29,8 @@
   "common": {
     "command_admin_only": "%[1]s 僅限群組管理員使用。",
     "reply_usage": "用法：請回覆目標使用者的訊息，再傳送 %[1]s。",
+    "control_usage": "用法：%[1]s <user_id>。user_id 必須是正整數使用者 ID。",
+    "control_mute_usage": "用法：%[1]s <user_id> [duration]。user_id 必須是正整數使用者 ID。duration 可填寫秒數，或使用 s/m/h/d 後綴。",
     "settings_save_failed": "無法儲存設定。請稍後重試。",
     "target_admin_check_failed": "無法確認目標使用者是否為管理員，本次未執行操作。請確認機器人可讀取成員資訊後重試。",
     "target_is_admin": "目標使用者是管理員，未執行操作。請回覆非管理員使用者的訊息後重試。",

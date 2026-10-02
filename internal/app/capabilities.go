@@ -34,9 +34,9 @@ func newRuntimeCapabilitySettings(
 	})
 }
 
-func (s *capabilitySettings) Update(groupID int64, expectedRevision uint64, next settings.GroupOverrides) (settings.CommitResult, error) {
+func (s *capabilitySettings) Update(groupID int64, expectedRevision uint64, next settings.GroupOverrides, actorID int64) (settings.CommitResult, error) {
 	before, existed := s.Store.Settings(groupID)
-	result, err := s.Store.Update(groupID, expectedRevision, next)
+	result, err := s.Store.Update(groupID, expectedRevision, next, actorID)
 	if err != nil || !existed || s.onCapabilityChange == nil {
 		return result, err
 	}

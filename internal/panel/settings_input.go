@@ -89,7 +89,7 @@ func (v *Panel) dispatchQuizDraft(ctx context.Context, bot *telego.Bot, session 
 		}
 		next := group.Overrides()
 		next.Questions = &questions
-		result, err := v.settings.Update(session.groupID, session.revision, next)
+		result, err := v.settings.Update(session.groupID, session.revision, next, session.ownerID)
 		if err != nil {
 			return err
 		}
@@ -178,7 +178,7 @@ func (v *Panel) dispatchFallbackDraft(ctx context.Context, bot *telego.Bot, sess
 		next := group.Overrides()
 		next.FallbackBuiltin = &builtin
 		next.FallbackQuestions = &questions
-		result, err := v.settings.Update(session.groupID, session.revision, next)
+		result, err := v.settings.Update(session.groupID, session.revision, next, session.ownerID)
 		if err != nil {
 			return err
 		}
@@ -220,7 +220,7 @@ func (v *Panel) dispatchChannel(ctx context.Context, bot *telego.Bot, session *p
 		invite := ""
 		next := group.Overrides()
 		next.ChannelInviteURL = &invite
-		result, err := v.settings.Update(session.groupID, session.revision, next)
+		result, err := v.settings.Update(session.groupID, session.revision, next, session.ownerID)
 		if err != nil {
 			return err
 		}
@@ -283,7 +283,7 @@ func (v *Panel) dispatchConfirmation(ctx context.Context, bot *telego.Bot, sessi
 	default:
 		return errors.New("unknown confirmation")
 	}
-	result, err := v.settings.Update(session.groupID, session.revision, next)
+	result, err := v.settings.Update(session.groupID, session.revision, next, session.ownerID)
 	if err != nil {
 		return err
 	}
@@ -642,7 +642,7 @@ func (v *Panel) applyTextInput(ctx context.Context, bot *telego.Bot, session *pa
 		return errors.New("unknown panel input")
 	}
 	if commit {
-		result, err := v.settings.Update(session.groupID, session.revision, next)
+		result, err := v.settings.Update(session.groupID, session.revision, next, session.ownerID)
 		if err != nil {
 			return err
 		}
@@ -697,7 +697,7 @@ func (v *Panel) applySharedChat(ctx context.Context, bot *telego.Bot, session *p
 		next := group.Overrides()
 		next.RequiredChannelID = &sharedID
 		next.ChannelDisplay = &display
-		result, err := v.settings.Update(session.groupID, session.revision, next)
+		result, err := v.settings.Update(session.groupID, session.revision, next, session.ownerID)
 		if err != nil {
 			return err
 		}
@@ -715,7 +715,7 @@ func (v *Panel) applySharedChat(ctx context.Context, bot *telego.Bot, session *p
 	if pending.kind == inputAlertChat {
 		next := group.Overrides()
 		next.AdminLogChatID = &sharedID
-		result, err := v.settings.Update(session.groupID, session.revision, next)
+		result, err := v.settings.Update(session.groupID, session.revision, next, session.ownerID)
 		if err != nil {
 			return err
 		}
@@ -733,7 +733,7 @@ func (v *Panel) applySharedChat(ctx context.Context, bot *telego.Bot, session *p
 	values = append(values, sharedID)
 	next := group.Overrides()
 	setListOverride(&next, pending.kind, values)
-	result, err := v.settings.Update(session.groupID, session.revision, next)
+	result, err := v.settings.Update(session.groupID, session.revision, next, session.ownerID)
 	if err != nil {
 		return err
 	}

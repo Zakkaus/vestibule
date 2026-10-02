@@ -1,4 +1,5 @@
-import { isAbsolute, relative } from "node:path";
+import { realpathSync } from "node:fs";
+import { isAbsolute, join, relative } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import macros from "unplugin-parcel-macros";
 import { removeRemoteFonts } from "./build/remove-remote-fonts.ts";
@@ -7,10 +8,14 @@ const cssSources = new Set<string>();
 
 function cssProvenance(): Plugin {
   let root = "";
+  let nodeModulesRoot = "";
   return {
     name: "console-css-provenance",
     enforce: "post",
-    configResolved(config) { root = config.root; },
+    configResolved(config) {
+      root = config.root;
+      nodeModulesRoot = realpathSync(join(root, "node_modules"));
+    },
     buildStart() { cssSources.clear(); },
     generateBundle(_options, bundle) {
       const css = Object.values(bundle).filter(
@@ -25,8 +30,10 @@ function cssProvenance(): Plugin {
         .map((id) => id.split("?")[0]!)
         .filter((id) => isAbsolute(id) && id.endsWith(".css") && !macroModules.has(relative(root, id))));
       const origins = [...stylesheets].map((id) => {
-        const path = relative(root, id).replaceAll("\\", "/");
-        return { path, kind: path.startsWith("node_modules/") ? "vendor" : "project" };
+        const vendorPath = relative(nodeModulesRoot, id).replaceAll("\\", "/");
+        const vendor = !isAbsolute(vendorPath) && vendorPath !== ".." && !vendorPath.startsWith("../");
+        const path = vendor ? `node_modules/${vendorPath}` : relative(root, id).replaceAll("\\", "/");
+        return { path, kind: vendor ? "vendor" : "project" };
       });
       const macroSources = new Set([...macroModules]
         .flatMap((id) => this.getModuleInfo(id)?.importers ?? []));

@@ -76,7 +76,7 @@ func TestPanelSharedChatCountRefusesOwnerLimitViolation(t *testing.T) {
 	known := []int64{-1009000000802}
 	overrides := group.Overrides()
 	overrides.KnownChatIDs = &known
-	if _, err := store.Update(panelTestGroupA, group.Revision(), overrides); err != nil {
+	if _, err := store.Update(panelTestGroupA, group.Revision(), overrides, 7); err != nil {
 		t.Fatal(err)
 	}
 	panelSetOwnerLimit(t, store, "known_chat_ids", 1)

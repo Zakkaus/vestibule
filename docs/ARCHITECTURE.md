@@ -1078,7 +1078,9 @@ migrations/01-settings.sql      settings_revision
 | user file | 启动文件管理的部署题库或每群值 | 修改文件并重启 |
 | chat override | `chat.settings` 的运行时覆盖 | 删除该稀疏字段 |
 
-`Store.Update(chatID, expectedRevision, overrides)` 接收完整稀疏记录。 Store 先解析整份有效设置并执行值域校验，再以 compare-and-swap 写数据库。 revision 冲突、校验失败或数据库写入失败都不发布新快照。
+`Store.Update(chatID, expectedRevision, overrides, actorID)` 接收完整稀疏记录。 Store 先解析整份有效设置并执行值域校验，再以 compare-and-swap 写数据库。 revision 冲突、校验失败或数据库写入失败都不发布新快照。
+
+只有改为另一个非零控制聊天时，Store 才在写锁外检查 bot 是否仍在群内，以及 `actorID` 是否仍为该群的群主或管理员。控制聊天只能是另一个群或超级群。 控制台传入会话用户，群内设置面板传入操作用户；未更改或清除控制聊天不触发检查。 取得写锁后，Store 重新检查 revision、唯一分配与检查结果是否仍适用。 启动时，已存覆盖优先于文件配置；同一来源按受保护群的加载顺序保留首个分配。 同一群同时出现在文件配置与运行时注册记录时，只检查一次控制聊天分配。 后续冲突或无效分配只清除控制聊天并记录一条日志，不删除受保护群或其他设置。
 
 ### 声明式资源：可由文件管理的部分
 

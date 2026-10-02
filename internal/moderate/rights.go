@@ -22,15 +22,21 @@ func (s *Service) requireRights(
 	l i18n.Lang,
 	required verification.GroupRights,
 ) bool {
-	got, err := s.telegram.FreshRights(ctx, chatID, userID)
-	if err != nil {
-		log.Printf("requireRights getChatMember chat=%d user=%d: %v", chatID, userID, err)
-		s.notify(ctx, chatID, i18n.Messages.Moderate.Common.CallerAdminCheckFailed.For(l))
-		return false
-	}
-	if !requiredRightsSatisfied(got, required) {
-		s.notify(ctx, chatID, i18n.Messages.Moderate.Common.CommandAdminOnly.Render(l, command))
+	if notice := s.rightsFailure(ctx, chatID, userID, command, l, required); notice != "" {
+		s.notify(ctx, chatID, notice)
 		return false
 	}
 	return true
+}
+
+func (s *Service) rightsFailure(ctx context.Context, chatID, userID int64, command string, l i18n.Lang, required verification.GroupRights) string {
+	got, err := s.telegram.FreshRights(ctx, chatID, userID)
+	if err != nil {
+		log.Printf("requireRights getChatMember chat=%d user=%d: %v", chatID, userID, err)
+		return i18n.Messages.Moderate.Common.CallerAdminCheckFailed.For(l)
+	}
+	if !requiredRightsSatisfied(got, required) {
+		return i18n.Messages.Moderate.Common.CommandAdminOnly.Render(l, command)
+	}
+	return ""
 }

@@ -78,7 +78,7 @@ func TestSettingsAntispamMigrationDoesNotReapply(t *testing.T) {
 	override.AntispamEnabled = ptr(false)
 	empty := []int64{}
 	override.ChannelWhitelist = &empty
-	_, err := migration.settings.Update(group.ID(), group.Revision(), override)
+	_, err := migration.settings.Update(group.ID(), group.Revision(), override, 7)
 	requireNoError(t, err)
 	reloaded, err := NewStore(migration.settingsPath, testSettingsBaseline(), nil, nil)
 	requireNoError(t, err)

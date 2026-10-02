@@ -20,8 +20,9 @@ func (s panelCapabilitySettings) Update(
 	groupID int64,
 	revision uint64,
 	next settings.GroupOverrides,
+	actorID int64,
 ) (settings.CommitResult, error) {
-	result, err := s.Store.Update(groupID, revision, next)
+	result, err := s.Store.Update(groupID, revision, next, actorID)
 	if err == nil && s.afterUpdate != nil {
 		s.afterUpdate()
 	}

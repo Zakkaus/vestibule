@@ -320,7 +320,7 @@ func TestPanelDeliveryModePersistsAndRejectsStaleRevision(t *testing.T) {
 	next := group.Overrides()
 	spoiler := !group.NameSpoiler().Value
 	next.NameSpoiler = &spoiler
-	if _, err := store.Update(panelTestGroupA, group.Revision(), next); err != nil {
+	if _, err := store.Update(panelTestGroupA, group.Revision(), next, 7); err != nil {
 		t.Fatal(err)
 	}
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "df", "g")
@@ -725,7 +725,7 @@ func TestPanelChannelWhitelistUsesModerationPolicy(t *testing.T) {
 	}
 	overrides := group.Overrides()
 	overrides.ChannelWhitelist = &whitelist
-	if _, err := settings.Update(panelTestGroupA, group.Revision(), overrides); err != nil {
+	if _, err := settings.Update(panelTestGroupA, group.Revision(), overrides, 7); err != nil {
 		t.Fatal(err)
 	}
 
@@ -805,7 +805,7 @@ func TestPanelStaleRevisionRefused(t *testing.T) {
 	next := group.Overrides()
 	spoiler := !group.NameSpoiler().Value
 	next.NameSpoiler = &spoiler
-	if _, err := settings.Update(panelTestGroupA, group.Revision(), next); err != nil {
+	if _, err := settings.Update(panelTestGroupA, group.Revision(), next, 7); err != nil {
 		t.Fatal(err)
 	}
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "en", "_")
@@ -827,7 +827,7 @@ func TestPanelStaleQuestionIndexRefused(t *testing.T) {
 	}
 	next := group.Overrides()
 	next.Questions = &questions
-	result, err := store.Update(panelTestGroupA, group.Revision(), next)
+	result, err := store.Update(panelTestGroupA, group.Revision(), next, 7)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -837,7 +837,7 @@ func TestPanelStaleQuestionIndexRefused(t *testing.T) {
 	questions = questions[:1]
 	next = group.Overrides()
 	next.Questions = &questions
-	if _, err := store.Update(panelTestGroupA, group.Revision(), next); err != nil {
+	if _, err := store.Update(panelTestGroupA, group.Revision(), next, 7); err != nil {
 		t.Fatal(err)
 	}
 	invokePanelCallback(t, panel, bot, session, panelTestGroupA, "qq", encodeUnsigned(1))
@@ -943,7 +943,7 @@ func TestPanelCommittedCallbackRenderFailuresReportSaved(t *testing.T) {
 		next := group.Overrides()
 		next.ChannelDisplay = &display
 		next.ChannelInviteURL = &invite
-		if _, err := settings.Update(panelTestGroupA, group.Revision(), next); err != nil {
+		if _, err := settings.Update(panelTestGroupA, group.Revision(), next, 7); err != nil {
 			t.Fatal(err)
 		}
 		session := addPanelSession(t, panel, settings, panelTestGroupA, "ch")
@@ -966,7 +966,7 @@ func TestPanelCommittedCallbackRenderFailuresReportSaved(t *testing.T) {
 		known := []int64{knownID}
 		next := group.Overrides()
 		next.KnownChatIDs = &known
-		if _, err := settings.Update(panelTestGroupA, group.Revision(), next); err != nil {
+		if _, err := settings.Update(panelTestGroupA, group.Revision(), next, 7); err != nil {
 			t.Fatal(err)
 		}
 		session := addPanelSession(t, panel, settings, panelTestGroupA, "li")
@@ -990,7 +990,7 @@ func TestPanelCommittedCallbackRenderFailuresReportSaved(t *testing.T) {
 		whitelist := []int64{senderID}
 		next := group.Overrides()
 		next.ChannelWhitelist = &whitelist
-		if _, err := settings.Update(panelTestGroupA, group.Revision(), next); err != nil {
+		if _, err := settings.Update(panelTestGroupA, group.Revision(), next, 7); err != nil {
 			t.Fatal(err)
 		}
 		session := addPanelSession(t, panel, settings, panelTestGroupA, "li")
@@ -1016,7 +1016,7 @@ func TestPanelCommittedCallbackRenderFailuresReportSaved(t *testing.T) {
 		next.RequiredChannelID = &channelID
 		next.ChannelDisplay = &display
 		next.ChannelInviteURL = &invite
-		if _, err := settings.Update(panelTestGroupA, group.Revision(), next); err != nil {
+		if _, err := settings.Update(panelTestGroupA, group.Revision(), next, 7); err != nil {
 			t.Fatal(err)
 		}
 		session := addPanelSession(t, panel, settings, panelTestGroupA, "cf")

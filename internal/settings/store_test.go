@@ -66,11 +66,11 @@ func TestEmptyOverridesInheritFactoryDefault(t *testing.T) {
 	group, _ := settings.Settings(testGroupA)
 	next := group.Overrides()
 	next.Enabled = ptr(false)
-	if _, err = settings.Update(group.ID(), group.Revision(), next); err != nil {
+	if _, err = settings.Update(group.ID(), group.Revision(), next, 7); err != nil {
 		t.Fatal(err)
 	}
 	group, _ = settings.Settings(testGroupA)
-	if _, err = settings.Update(group.ID(), group.Revision(), GroupOverrides{}); err != nil {
+	if _, err = settings.Update(group.ID(), group.Revision(), GroupOverrides{}, 7); err != nil {
 		t.Fatal(err)
 	}
 	group, _ = settings.Settings(testGroupA)
@@ -106,7 +106,7 @@ func TestSettingsRejectsInvalidWholeRecord(t *testing.T) {
 			before, _ := settings.Settings(testGroupA)
 			next := before.Overrides()
 			test.mutate(&next)
-			if _, err = settings.Update(before.ID(), before.Revision(), next); err == nil {
+			if _, err = settings.Update(before.ID(), before.Revision(), next, 7); err == nil {
 				t.Fatal("invalid complete record was accepted")
 			}
 			after, _ := settings.Settings(testGroupA)
@@ -134,7 +134,7 @@ func TestGroupLanguageSettingSourceAndRevision(t *testing.T) {
 	}
 	override := group.Overrides()
 	override.Lang = ptr("en")
-	result, err := settings.Update(testGroupA, group.Revision(), override)
+	result, err := settings.Update(testGroupA, group.Revision(), override, 7)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,12 +148,12 @@ func TestGroupLanguageSettingSourceAndRevision(t *testing.T) {
 
 	stale := group.Overrides()
 	stale.Lang = ptr("zh")
-	if _, err := settings.Update(testGroupA, 0, stale); !errors.Is(err, ErrSettingsConflict) {
+	if _, err := settings.Update(testGroupA, 0, stale, 7); !errors.Is(err, ErrSettingsConflict) {
 		t.Fatalf("stale language commit error = %v, want conflict", err)
 	}
 	invalid := group.Overrides()
 	invalid.Lang = ptr("fr")
-	if _, err := settings.Update(testGroupA, group.Revision(), invalid); err == nil {
+	if _, err := settings.Update(testGroupA, group.Revision(), invalid, 7); err == nil {
 		t.Fatal("unsupported runtime language was accepted")
 	}
 	group, _ = settings.Settings(testGroupA)
@@ -163,7 +163,7 @@ func TestGroupLanguageSettingSourceAndRevision(t *testing.T) {
 
 	restore := group.Overrides()
 	restore.Lang = nil
-	if _, err := settings.Update(testGroupA, group.Revision(), restore); err != nil {
+	if _, err := settings.Update(testGroupA, group.Revision(), restore, 7); err != nil {
 		t.Fatal(err)
 	}
 	group, _ = settings.Settings(testGroupA)

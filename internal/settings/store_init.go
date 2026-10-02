@@ -25,10 +25,11 @@ func NewStore(path string, baseline SettingsBaseline, repository Repository, leg
 	}
 	migration := s.loadLegacySettings()
 	s.migrateLegacyAntispam(&migration)
-	s.persistLegacyMigration(migration)
 	if err := s.loadRepositorySettings(); err != nil {
 		return nil, err
 	}
+	s.sanitizeLoadedControlChats()
+	s.persistLegacyMigration(migration)
 	if err := s.importLegacyFeeds(legacyFeeds); err != nil {
 		return nil, err
 	}

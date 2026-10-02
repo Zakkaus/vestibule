@@ -94,7 +94,7 @@ func TestSaveVerifyFailsPrunesOnlyFullyExpiredRecords(t *testing.T) {
 	overrides := group.Overrides()
 	longRetrySeconds := int((8 * time.Hour) / time.Second)
 	overrides.VerifyRetrySeconds = &longRetrySeconds
-	if _, err := v.settings.Update(longGroup, group.Revision(), overrides); err != nil {
+	if _, err := v.settings.Update(longGroup, group.Revision(), overrides, 7); err != nil {
 		t.Fatal(err)
 	}
 

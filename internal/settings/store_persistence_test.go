@@ -42,7 +42,7 @@ func TestSettingsBaselineEqualValuesDoNotPinChatOverrides(t *testing.T) {
 	settings, path, initial := newSparseSettings(t)
 	next := baselineEqualGroupOverrides(testSettingsBaseline().Groups[0])
 
-	result, err := settings.Update(initial.ID(), initial.Revision(), next)
+	result, err := settings.Update(initial.ID(), initial.Revision(), next, 7)
 	if err != nil {
 		t.Fatalf("baseline-equal save must not pin a chat override: %v", err)
 	}

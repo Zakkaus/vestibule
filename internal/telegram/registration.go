@@ -126,6 +126,7 @@ func newRegistrationService(
 		waiting:             make(map[int64]time.Time),
 		reportAfter:         make(map[int64]time.Time),
 	}
+	settings.SetControlChatMembership(s.checkControlChatAssignment)
 	state := settings.Registrations()
 	for _, pending := range state.PendingRegistrations {
 		s.scheduleUnknownLeave(pending.GroupID, pending.Title, time.Unix(pending.ExpiresAt, 0))

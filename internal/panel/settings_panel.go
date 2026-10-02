@@ -356,7 +356,7 @@ func (v *Panel) dispatchRuntime(ctx context.Context, bot *telego.Bot, session *p
 	default:
 		return errors.New("invalid runtime action")
 	}
-	result, err := v.settings.Update(session.groupID, session.revision, next)
+	result, err := v.settings.Update(session.groupID, session.revision, next, session.ownerID)
 	if err != nil {
 		return err
 	}
@@ -417,7 +417,7 @@ func (v *Panel) dispatchList(ctx context.Context, bot *telego.Bot, session *pane
 			return v.renderAfterCommit(ctx, bot, session)
 		}
 		setListOverride(&next, session.listKind, kept)
-		result, err := v.settings.Update(session.groupID, session.revision, next)
+		result, err := v.settings.Update(session.groupID, session.revision, next, session.ownerID)
 		if err != nil {
 			return err
 		}
@@ -440,7 +440,7 @@ func (v *Panel) dispatchVerificationParameters(ctx context.Context, bot *telego.
 		next := group.Overrides()
 		value := !group.VerifyInvited().Value
 		next.VerifyInvited = &value
-		result, err := v.settings.Update(session.groupID, session.revision, next)
+		result, err := v.settings.Update(session.groupID, session.revision, next, session.ownerID)
 		if err != nil {
 			return err
 		}
@@ -790,7 +790,7 @@ func (v *Panel) dispatchModeration(ctx context.Context, bot *telego.Bot, session
 		next := group.Overrides()
 		value := !group.AntispamEnabled().Value
 		next.AntispamEnabled = &value
-		result, err := v.settings.Update(session.groupID, session.revision, next)
+		result, err := v.settings.Update(session.groupID, session.revision, next, session.ownerID)
 		if err != nil {
 			return err
 		}
@@ -827,7 +827,7 @@ func (v *Panel) commitGroupFromModeration(ctx context.Context, bot *telego.Bot, 
 	}
 	overrides := group.Overrides()
 	apply(&overrides)
-	result, err := v.settings.Update(session.groupID, session.revision, overrides)
+	result, err := v.settings.Update(session.groupID, session.revision, overrides, session.ownerID)
 	if err != nil {
 		return err
 	}

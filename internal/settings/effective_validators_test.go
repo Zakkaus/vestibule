@@ -66,7 +66,7 @@ func TestEffectiveValidatorsRefuseUnusableOverrides(t *testing.T) {
 			next := group.Overrides()
 			tc.override(&next)
 
-			_, err = store.Update(testGroupA, group.Revision(), next)
+			_, err = store.Update(testGroupA, group.Revision(), next, 7)
 			if err == nil {
 				t.Fatalf("the store accepted %s; a group left in that state cannot be worked "+
 					"with and nothing else refuses it", tc.name)

@@ -51,7 +51,7 @@ func (s *Service) toggleAntispam(groupID int64) (bool, error) {
 	enabled := !group.AntispamEnabled().Value
 	overrides := group.Overrides()
 	overrides.AntispamEnabled = &enabled
-	_, err := s.settings.Update(groupID, group.Revision(), overrides)
+	_, err := s.settings.Update(groupID, group.Revision(), overrides, 0)
 	return enabled, err
 }
 
@@ -64,7 +64,7 @@ func (s *Service) UpdateChannelWhitelist(ctx context.Context, groupID, senderID 
 	whitelist := ids.UpdateChannelWhitelist(group.ChannelWhitelist().Value, senderID, allow)
 	overrides := group.Overrides()
 	overrides.ChannelWhitelist = &whitelist
-	if _, err := s.settings.Update(groupID, group.Revision(), overrides); err != nil {
+	if _, err := s.settings.Update(groupID, group.Revision(), overrides, 0); err != nil {
 		return nil, err
 	}
 	if allow {

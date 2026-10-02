@@ -347,6 +347,10 @@
       "label": "处罚记录群",
       "description": "留空等同于群号 0：不发送额外的处罚记录；处罚失败提醒仍发送到当前群。"
     },
+    "controlChat": {
+      "label": "控制群",
+      "description": "留空即可停用。设置者须是所选群的管理员，且机器人已加入该群；只能选择其他群。本群管理员可在该群发送带用户 ID 的 /ban、/mute、/unmute 和 /warn。"
+    },
     "validation": {
       "warnLimit": "警告上限必须是大于 0 的整数。",
       "adminLog": "请输入整数形式的群号，或留空使用群号 0。"
@@ -375,6 +379,8 @@
       "accessUnavailable": "暂时无法确认当前账号对该群的管理权限。请重试。",
       "chatNotFound": "该群已无法在控制台中管理。",
       "invalidSettings": "当前设置未通过校验。请检查改动后重试。",
+      "controlChatInvalid": "控制群必须是其他群，机器人需已加入，且设置者必须是该群管理员。",
+      "controlChatConflict": "该群已是其他群的控制群。请选择其他群。",
       "settingsLimitExceeded": "当前改动会超过实例所有者设定的上限。请降低数值，或请实例所有者提高上限。",
       "settingsUnavailable": "设置服务暂时不可用。请重试。",
       "loadUnavailable": "管理与处罚设置暂时不可用。",

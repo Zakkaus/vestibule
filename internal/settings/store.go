@@ -80,6 +80,7 @@ type GroupBaseline struct {
 	RichMessages            BaselineValue[bool]
 	PrivateQueryPerMin      BaselineValue[int]
 	AdminLogChatID          BaselineValue[int64]
+	ControlChatID           BaselineValue[int64]
 	RequiredChannelFailOpen BaselineValue[bool]
 	Feed                    FeedBaseline
 }
@@ -121,6 +122,7 @@ type GroupOverrides struct {
 	RichMessages            *bool            `json:"rich_messages,omitempty"`
 	PrivateQueryPerMin      *int             `json:"private_query_per_min,omitempty"`
 	AdminLogChatID          *int64           `json:"admin_log_chat_id,omitempty"`
+	ControlChatID           *int64           `json:"control_chat_id,omitempty"`
 	RequiredChannelFailOpen *bool            `json:"required_channel_fail_open,omitempty"`
 	Feed                    *FeedOverride    `json:"feed,omitempty"`
 }
@@ -285,6 +287,7 @@ type effectiveGroup struct {
 	richMessages            Setting[bool]
 	privateQueryPerMin      Setting[int]
 	adminLogChatID          Setting[int64]
+	controlChatID           Setting[int64]
 	requiredChannelFailOpen Setting[bool]
 	feed                    FeedView
 }
@@ -300,15 +303,16 @@ type statusError struct{ err error }
 
 // Store owns the one immutable runtime-settings snapshot and its serialized commit path.
 type Store struct {
-	path         string
-	repository   Repository
-	baseline     SettingsBaseline
-	baselineByID map[int64]GroupBaseline
-	writer       sync.Mutex
-	state        settingsFile
-	writable     bool
-	snapshot     atomic.Pointer[settingsSnapshot]
-	lastError    atomic.Pointer[statusError]
+	path                  string
+	repository            Repository
+	baseline              SettingsBaseline
+	baselineByID          map[int64]GroupBaseline
+	writer                sync.Mutex
+	controlChatMembership atomic.Pointer[controlChatMembershipCheck]
+	state                 settingsFile
+	writable              bool
+	snapshot              atomic.Pointer[settingsSnapshot]
+	lastError             atomic.Pointer[statusError]
 }
 
 // GroupView is a read-only, allocation-free handle into one immutable snapshot.
@@ -370,7 +374,7 @@ func (s *Store) IsKnownChat(chatID int64) bool {
 	}
 	for _, groupID := range snapshot.groupIDs {
 		group := snapshot.groups[groupID]
-		if group.requiredChannelID.Value == chatID || group.adminLogChatID.Value == chatID {
+		if group.requiredChannelID.Value == chatID || group.adminLogChatID.Value == chatID || group.controlChatID.Value == chatID {
 			return true
 		}
 		for _, knownID := range group.knownChatIDs.Value {
@@ -408,7 +412,15 @@ func (s *Store) Registrations() RegistrationState {
 }
 
 // Update validates and atomically commits a complete sparse record at the expected revision.
-func (s *Store) Update(groupID int64, expectedRevision uint64, next GroupOverrides) (CommitResult, error) {
+// A changed nonzero control assignment requires actorID's live administrator authority.
+func (s *Store) Update(groupID int64, expectedRevision uint64, next GroupOverrides, actorID int64) (CommitResult, error) {
+	if !s.writable {
+		return CommitResult{}, s.unavailableError()
+	}
+	approval, err := s.prepareControlChatWrite(groupID, expectedRevision, next, actorID)
+	if err != nil {
+		return CommitResult{}, err
+	}
 	s.writer.Lock()
 	defer s.writer.Unlock()
 	if !s.writable {
@@ -423,6 +435,9 @@ func (s *Store) Update(groupID int64, expectedRevision uint64, next GroupOverrid
 		return CommitResult{}, &ConflictError{GroupID: groupID, Expected: expectedRevision, Actual: group.revision}
 	}
 	next = compactGroupOverrides(cloneGroupOverrides(next), group.baseline)
+	if err := s.validateControlChatWrite(group, next, approval); err != nil {
+		return CommitResult{}, err
+	}
 
 	candidate := cloneSettingsFile(s.state)
 	record := candidate.Groups[groupID]
@@ -436,8 +451,9 @@ func (s *Store) Update(groupID int64, expectedRevision uint64, next GroupOverrid
 	if violations := ownerLimitViolationsForGroup(snap.groups[groupID], current.limits); len(violations) > 0 {
 		return CommitResult{}, &OwnerLimitsExceededError{Violations: violations}
 	}
+	durable := s.repository != nil || s.path != ""
 	if reflect.DeepEqual(group.overrides, next) {
-		return CommitResult{Revision: group.revision, Durable: s.repository != nil || s.path != ""}, nil
+		return CommitResult{Revision: group.revision, Durable: durable}, nil
 	}
 	if s.repository != nil {
 		actual, written, writeErr := s.repository.CompareAndSwapSettings(groupID, expectedRevision, next)
@@ -457,7 +473,7 @@ func (s *Store) Update(groupID int64, expectedRevision uint64, next GroupOverrid
 	s.state = candidate
 	s.snapshot.Store(snap)
 	s.setLastError(nil)
-	return CommitResult{Revision: record.Revision, Durable: s.repository != nil || s.path != ""}, nil
+	return CommitResult{Revision: record.Revision, Durable: durable}, nil
 }
 
 func (v GroupView) ID() int64                     { return v.group.id }
@@ -495,6 +511,7 @@ func (v GroupView) RequiredChannelID() Setting[int64] { return v.group.requiredC
 func (v GroupView) RichMessages() Setting[bool]       { return v.group.richMessages }
 func (v GroupView) PrivateQueryPerMin() Setting[int]  { return v.group.privateQueryPerMin }
 func (v GroupView) AdminLogChatID() Setting[int64]    { return v.group.adminLogChatID }
+func (v GroupView) ControlChatID() Setting[int64]     { return v.group.controlChatID }
 func (v GroupView) RequiredChannelFailOpen() Setting[bool] {
 	return v.group.requiredChannelFailOpen
 }

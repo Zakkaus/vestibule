@@ -108,7 +108,7 @@ func TestOwnerLimitsDetectEachEffectiveFieldAtCapBoundary(t *testing.T) {
 			if tc.prepare != nil {
 				next := group.Overrides()
 				tc.prepare(&next)
-				_, err := store.Update(group.ID(), group.Revision(), next)
+				_, err := store.Update(group.ID(), group.Revision(), next, 7)
 				requireNoError(t, err)
 			}
 			cap := tc.equal
@@ -148,7 +148,7 @@ func TestOwnerLimitsPermanentBanAndDisabledNegativeValues(t *testing.T) {
 			} else {
 				next.VerifyMaxFails = &negative
 			}
-			_, err := store.Update(group.ID(), group.Revision(), next)
+			_, err := store.Update(group.ID(), group.Revision(), next, 7)
 			requireNoError(t, err)
 			cap := int64(1)
 			state, err := store.UpdateOwnerLimits(0, LimitChanges{field: &cap})
@@ -195,25 +195,25 @@ func TestOwnerLimitsSourcesLoweredCapAndTargetedGroupUpdates(t *testing.T) {
 	b = requireSettingsView(t, store, testGroupB)
 	next := b.Overrides()
 	next.Enabled = ptr(false)
-	_, err = store.Update(testGroupB, b.Revision(), next)
+	_, err = store.Update(testGroupB, b.Revision(), next, 7)
 	requireNoError(t, err)
 
 	a = requireSettingsView(t, store, testGroupA)
 	next = a.Overrides()
 	next.TimeoutSeconds = ptr(180)
-	_, err = store.Update(testGroupA, a.Revision(), next)
+	_, err = store.Update(testGroupA, a.Revision(), next, 7)
 	requireNoError(t, err)
 	a = requireSettingsView(t, store, testGroupA)
 	restore := a.Overrides()
 	restore.TimeoutSeconds = nil
 	beforeRestore := a
-	_, err = store.Update(testGroupA, a.Revision(), restore)
+	_, err = store.Update(testGroupA, a.Revision(), restore, 7)
 	requireErrorIs(t, err, ErrOwnerLimitsExceeded, "null restore of over-limit baseline")
 	requireDeepEqual(t, requireSettingsView(t, store, testGroupA), beforeRestore, "failed null restore state")
 
 	c = requireSettingsView(t, store, ownerLimitsRuntimeGroup)
 	beforeNoop := c
-	_, err = store.Update(c.ID(), c.Revision(), c.Overrides())
+	_, err = store.Update(c.ID(), c.Revision(), c.Overrides(), 7)
 	requireErrorIs(t, err, ErrOwnerLimitsExceeded, "over-limit no-op")
 	requireDeepEqual(t, requireSettingsView(t, store, ownerLimitsRuntimeGroup), beforeNoop, "failed no-op state")
 }

@@ -221,21 +221,15 @@ func (s *Service) groupLanguage(groupID int64) i18n.Lang {
 
 func (s *Service) warnPrecheck(ctx context.Context, msg *telego.Message, command string, checkTargetAdmin bool, l i18n.Lang) *telego.User {
 	groupID := msg.Chat.ID
-	if msg.ReplyToMessage == nil || msg.ReplyToMessage.From == nil {
+	reply := moderationReplyTarget(msg)
+	if reply == nil || reply.From == nil {
 		s.notify(ctx, groupID, i18n.Messages.Moderate.Common.ReplyUsage.Render(l, command))
 		return nil
 	}
-	target := msg.ReplyToMessage.From
-	if checkTargetAdmin {
-		isAdmin, err := s.telegram.FreshAdmin(ctx, groupID, target.ID)
-		if err != nil {
-			s.notify(ctx, groupID, i18n.Messages.Moderate.Common.TargetAdminCheckFailed.For(l))
-			return nil
-		}
-		if isAdmin {
-			s.notify(ctx, groupID, i18n.Messages.Moderate.Common.TargetIsAdmin.For(l))
-			return nil
-		}
+	target := reply.From
+	if notice := s.targetFailure(ctx, groupID, target.ID, checkTargetAdmin, l); notice != "" {
+		s.notify(ctx, groupID, notice)
+		return nil
 	}
 	return target
 }
@@ -251,59 +245,9 @@ func (s *Service) warnKick(ctx context.Context, groupID, userID int64) (rejoinab
 	return true, nil
 }
 
-// OnWarn increments the replied user's group-specific warning counter and kicks at the limit.
+// OnWarn increments the target's group-specific warning counter and kicks at the limit.
 func (s *Service) OnWarn(ctx *th.Context, update telego.Update) error {
-	msg := update.Message
-	if msg == nil || msg.From == nil || msg.From.ID <= 0 || msg.From.IsBot || !s.settings.IsGroup(msg.Chat.ID) {
-		return nil
-	}
-	requestCtx := ctx.Context()
-	groupID := msg.Chat.ID
-	defer s.telegram.Delete(requestCtx, groupID, msg.MessageID)
-	l := s.groupLanguage(groupID)
-	if !s.requireRights(requestCtx, groupID, msg.From.ID, "/warn", l,
-		verification.GroupRights{CanRestrictMembers: true}) {
-		return nil
-	}
-	target := s.warnPrecheck(requestCtx, msg, "/warn", true, l)
-	if target == nil {
-		return nil
-	}
-	limit := s.warnLimit(groupID)
-	count := s.warnings.increment(groupID, target.ID)
-	// Persist immediately so a failed at-limit kick survives restart. A write failure keeps the
-	// in-memory count authoritative for this process; the store already logged the cause.
-	if err := s.warnings.save(); err != nil {
-		log.Printf("moderate: warning state save failed for group %d: %v", groupID, err)
-	}
-
-	if count >= limit {
-		rejoinable, err := s.warnKick(requestCtx, groupID, target.ID)
-		if err != nil {
-			log.Printf("/warn kick %d in %d: %v", target.ID, groupID, err)
-			s.notify(requestCtx, groupID, i18n.Messages.Moderate.Warning.LimitKickFailed.For(l))
-			// A failed limit kick must reach admins even without a configured admin log.
-			s.telegram.FailAlert(requestCtx, s.adminLogChatID(groupID), groupID,
-				i18n.Messages.Moderate.Warning.LimitKickAlert.Render(l, tgfmt.DisplayName(target), limit, tgfmt.DisplayName(msg.From)))
-			return nil
-		}
-		s.warnings.clear(groupID, target.ID)
-		if err := s.warnings.save(); err != nil {
-			log.Printf("moderate: warning state save failed for group %d: %v", groupID, err)
-		}
-		outcome := i18n.Messages.Moderate.Warning.KickRejoinable.For(l)
-		if !rejoinable {
-			outcome = i18n.Messages.Moderate.Warning.KickUnbanFailed.For(l)
-		}
-		s.notify(requestCtx, groupID, i18n.Messages.Moderate.Warning.LimitReached.Render(l, tgfmt.DisplayName(target), limit, outcome, tgfmt.DisplayName(msg.From)))
-		s.telegram.AuditLog(requestCtx, s.adminLogChatID(groupID),
-			i18n.Messages.Moderate.Warning.KickAlert.Render(l, groupID, target.ID, tgfmt.DisplayName(target), tgfmt.DisplayName(msg.From)))
-		log.Printf("/warn-kick user=%d group=%d by=%d", target.ID, groupID, msg.From.ID)
-		return nil
-	}
-	s.notify(requestCtx, groupID, i18n.Messages.Moderate.Warning.Issued.Render(l, tgfmt.DisplayName(target), count, limit, limit, tgfmt.DisplayName(msg.From)))
-	log.Printf("/warn user=%d group=%d count=%d by=%d", target.ID, groupID, count, msg.From.ID)
-	return nil
+	return s.runModeration(ctx, update, "/warn")
 }
 
 // OnClearWarn clears the replied user's warning counter in the current group.
@@ -335,127 +279,22 @@ func (s *Service) OnClearWarn(ctx *th.Context, update telego.Update) error {
 
 // OnPurge handles /sb by banning the replied user and purging their messages.
 func (s *Service) OnPurge(ctx *th.Context, update telego.Update) error {
-	return s.moderate(ctx, update, "/sb")
+	return s.runModeration(ctx, update, "/sb")
 }
 
-// OnBan handles /ban by banning the replied user and deleting the replied message.
+// OnBan bans the target and deletes replied-to evidence after success.
 func (s *Service) OnBan(ctx *th.Context, update telego.Update) error {
-	return s.moderate(ctx, update, "/ban")
-}
-
-// Both ban commands require a fresh admin check and use the group's effective duration.
-func (s *Service) moderate(ctx *th.Context, update telego.Update, command string) error {
-	msg := update.Message
-	if msg == nil || msg.From == nil || msg.From.ID <= 0 || msg.From.IsBot || !s.settings.IsGroup(msg.Chat.ID) {
-		return nil
-	}
-	requestCtx := ctx.Context()
-	groupID := msg.Chat.ID
-	defer s.telegram.Delete(requestCtx, groupID, msg.MessageID)
-	l := s.groupLanguage(groupID)
-	if !s.requireRights(requestCtx, groupID, msg.From.ID, command, l,
-		verification.GroupRights{CanRestrictMembers: true, CanDeleteMessages: true}) {
-		return nil
-	}
-	target := s.warnPrecheck(requestCtx, msg, command, true, l)
-	if target == nil {
-		return nil
-	}
-	// Ban before deleting, so a permission failure leaves evidence and the user unchanged.
-	seconds := s.banDuration(groupID)
-	revoke := command == "/sb"
-	if err := s.telegram.Ban(requestCtx, groupID, target.ID, seconds, revoke); err != nil {
-		log.Printf("%s ban user=%d in %d: %v", command, target.ID, groupID, err)
-		s.notify(requestCtx, groupID, i18n.Messages.Moderate.Ban.Failed.For(l))
-		s.telegram.FailAlert(requestCtx, s.adminLogChatID(groupID), groupID,
-			i18n.Messages.Moderate.Ban.FailureAlert.Render(l, command, groupID, target.ID, tgfmt.DisplayName(target), tgfmt.DisplayName(msg.From)))
-		return nil
-	}
-	s.telegram.Delete(requestCtx, groupID, msg.ReplyToMessage.MessageID)
-	verb := i18n.Messages.Moderate.Ban.Verb.For(l)
-	if command == "/sb" {
-		verb = i18n.Messages.Moderate.Ban.PurgeVerb.For(l)
-	}
-	action := i18n.Messages.Moderate.Ban.Action.Render(l, verb, tgfmt.ModerationBanDurationStatus(l, seconds))
-	s.notify(requestCtx, groupID, i18n.Messages.Moderate.Ban.Applied.Render(l, action, tgfmt.DisplayName(target), target.ID, tgfmt.DisplayName(msg.From)))
-	s.telegram.AuditLog(requestCtx, s.adminLogChatID(groupID),
-		i18n.Messages.Moderate.Ban.Alert.Render(l, command, action, groupID, target.ID, tgfmt.DisplayName(target), tgfmt.DisplayName(msg.From)))
-	log.Printf("%s by admin=%d target=%d group=%d ban_secs=%d", command, msg.From.ID, target.ID, groupID, seconds)
-	return nil
+	return s.runModeration(ctx, update, "/ban")
 }
 
 // OnMute handles a finite /mute duration, with an optional inline override.
 func (s *Service) OnMute(ctx *th.Context, update telego.Update) error {
-	msg := update.Message
-	if msg == nil || msg.From == nil || msg.From.ID <= 0 || msg.From.IsBot || !s.settings.IsGroup(msg.Chat.ID) {
-		return nil
-	}
-	requestCtx := ctx.Context()
-	groupID := msg.Chat.ID
-	defer s.telegram.Delete(requestCtx, groupID, msg.MessageID)
-	l := s.groupLanguage(groupID)
-	if !s.requireRights(requestCtx, groupID, msg.From.ID, "/mute", l,
-		verification.GroupRights{CanRestrictMembers: true, CanDeleteMessages: true}) {
-		return nil
-	}
-	target := s.warnPrecheck(requestCtx, msg, "/mute", true, l)
-	if target == nil {
-		return nil
-	}
-	seconds := s.muteSeconds(groupID)
-	if arg := strings.TrimSpace(commandArg(msg.Text)); arg != "" {
-		parsed, ok := parseBanDuration(arg)
-		if !ok || parsed <= 0 {
-			s.notify(requestCtx, groupID, i18n.Messages.Moderate.Mute.Usage.Render(l, tgfmt.ModerationBanDurationStatus(l, seconds)))
-			return nil
-		}
-		seconds = parsed
-	}
-	// Delete the offending message only after the restriction succeeds.
-	if err := s.telegram.Mute(requestCtx, groupID, target.ID, seconds); err != nil {
-		log.Printf("/mute user=%d in %d: %v", target.ID, groupID, err)
-		failure := i18n.Messages.Moderate.Mute.Failed.For(l)
-		s.notify(requestCtx, groupID, failure)
-		alert := failure + "\n" + i18n.Messages.Moderate.Mute.Alert.Render(
-			l, tgfmt.ModerationBanDurationStatus(l, seconds), groupID, target.ID, tgfmt.DisplayName(target), tgfmt.DisplayName(msg.From))
-		s.telegram.FailAlert(requestCtx, s.adminLogChatID(groupID), groupID, alert)
-		return nil
-	}
-	s.telegram.Delete(requestCtx, groupID, msg.ReplyToMessage.MessageID)
-	s.notify(requestCtx, groupID, i18n.Messages.Moderate.Mute.Applied.Render(l,
-		tgfmt.DisplayName(target), target.ID, tgfmt.ModerationBanDurationStatus(l, seconds), tgfmt.DisplayName(msg.From)))
-	s.telegram.AuditLog(requestCtx, s.adminLogChatID(groupID),
-		i18n.Messages.Moderate.Mute.Alert.Render(l, tgfmt.ModerationBanDurationStatus(l, seconds), groupID, target.ID, tgfmt.DisplayName(target), tgfmt.DisplayName(msg.From)))
-	log.Printf("/mute by admin=%d target=%d group=%d secs=%d", msg.From.ID, target.ID, groupID, seconds)
-	return nil
+	return s.runModeration(ctx, update, "/mute")
 }
 
 // OnUnmute handles /unmute and fails closed when caller authorization is unavailable.
 func (s *Service) OnUnmute(ctx *th.Context, update telego.Update) error {
-	msg := update.Message
-	if msg == nil || msg.From == nil || msg.From.ID <= 0 || msg.From.IsBot || !s.settings.IsGroup(msg.Chat.ID) {
-		return nil
-	}
-	requestCtx := ctx.Context()
-	groupID := msg.Chat.ID
-	defer s.telegram.Delete(requestCtx, groupID, msg.MessageID)
-	l := s.groupLanguage(groupID)
-	if !s.requireRights(requestCtx, groupID, msg.From.ID, "/unmute", l,
-		verification.GroupRights{CanRestrictMembers: true}) {
-		return nil
-	}
-	target := s.warnPrecheck(requestCtx, msg, "/unmute", false, l)
-	if target == nil {
-		return nil
-	}
-	if err := s.telegram.Unmute(requestCtx, groupID, target.ID); err != nil {
-		log.Printf("/unmute user=%d in %d: %v", target.ID, groupID, err)
-		s.notify(requestCtx, groupID, i18n.Messages.Moderate.Mute.UnmuteFailed.For(l))
-		return nil
-	}
-	s.notify(requestCtx, groupID, i18n.Messages.Moderate.Mute.Unmuted.Render(l, tgfmt.DisplayName(target), target.ID, tgfmt.DisplayName(msg.From)))
-	log.Printf("/unmute by admin=%d target=%d group=%d", msg.From.ID, target.ID, groupID)
-	return nil
+	return s.runModeration(ctx, update, "/unmute")
 }
 
 // OnBanTime handles the group-specific /bantime policy command.
@@ -533,7 +372,7 @@ func (s *Service) setBanDuration(groupID int64, seconds int) error {
 	}
 	overrides := group.Overrides()
 	overrides.BanSeconds = &seconds
-	_, err := s.settings.Update(groupID, group.Revision(), overrides)
+	_, err := s.settings.Update(groupID, group.Revision(), overrides, 0)
 	return err
 }
 

@@ -29,6 +29,8 @@
   "common": {
     "command_admin_only": "⛔ Only group administrators can use %[1]s.",
     "reply_usage": "Usage: reply to the target user's message, then send %[1]s.",
+    "control_usage": "Usage: %[1]s <user_id>. user_id must be a positive numeric user ID.",
+    "control_mute_usage": "Usage: %[1]s <user_id> [duration]. user_id must be a positive numeric user ID. duration accepts seconds or s/m/h/d suffixes.",
     "settings_save_failed": "❌ Could not save the settings. Try again later.",
     "target_admin_check_failed": "⚠️ Could not determine whether the target user is an administrator, so no action was taken. Make sure the bot can read member information, then try again.",
     "target_is_admin": "The target user is an administrator, so no action was taken. Reply to a non-administrator's message and try again.",

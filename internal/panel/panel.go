@@ -53,7 +53,7 @@ type SettingsService interface {
 	IsGroup(int64) bool
 	Registrations() settings.RegistrationState
 	Persistence() settings.PersistenceStatus
-	Update(int64, uint64, settings.GroupOverrides) (settings.CommitResult, error)
+	Update(int64, uint64, settings.GroupOverrides, int64) (settings.CommitResult, error)
 }
 
 type Panel struct {
