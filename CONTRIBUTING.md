@@ -201,6 +201,7 @@ go mod verify
 scripts/lint.sh                  # package boundaries, file and function length, complexity
 python3 scripts/check-test-chat-ids.py internal cmd testdata  # test topology stays synthetic
 python3 scripts/check-baseline-ratchet.py origin/main   # a held violation may not grow
+# Set GITHUB_TOKEN to authenticate GitHub API requests when shared-runner limits apply.
 python3 scripts/test-gate-self-coverage.py  # every static gate rejects its recorded regression
 python3 scripts/check-third-party-licenses.py  # notices match the pinned shipped sources (requires network)
 go vet ./...
@@ -304,12 +305,12 @@ for c in html-structure coverage-floor style-rules shadowed undefined-var theme-
   python3 "scripts/design-checks/$c.py" web/design.html web/architecture.html; done
 python3 scripts/check-css-coverage.py web/design.html web/architecture.html
 cd web && npm run e2e && cd ..  # PR gate: measure all five locales, render the widest
-cd web && npm run e2e -- --project journeys-dev --project questions-trial-real --shard=1/2 && cd ..  # one CI journeys shard
+cd web && npm run e2e -- --project journeys-dev --project questions-trial-real --shard=1/3 && cd ..  # one CI journeys shard
 cd web && npm run e2e -- --project render-gate-preview && cd ..  # the CI render-gate job
 ```
 
-CI runs the gate set as `go`, `static`, `docs`, and three `e2e` runners: two
-journeys shards plus the render gate on its own. Playwright uses four workers in
+CI runs the gate set as `go`, `static`, `docs`, and four `e2e` runners: three
+journeys shards plus the render gate on its own. Playwright uses two workers in
 CI and one locally. The untagged Go leg runs on `ubuntu-latest`; the `gentoo` leg
 runs on `ubuntu-24.04-arm`. Both keep race detection and test-order shuffling.
 The matrix jobs report through `go-done` and `e2e-done`: success or a scope-declared

@@ -19,6 +19,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import urllib.parse
 import urllib.request
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -33,16 +34,29 @@ TDLIB_REPOSITORY = "https://github.com/tdlib/td"
 TDLIB_REF = "bc9c263e2bfee06aaab41e82db51a103376030bc"
 
 def fetch_text(url: str) -> str:
+    authorization = ""
+    token = os.environ.get("GITHUB_TOKEN")
+    parsed = urllib.parse.urlsplit(url)
+    if token and parsed.scheme == "https" and parsed.hostname == "api.github.com":
+        authorization = f"Bearer {token}"
     curl = shutil.which("curl")
     if curl:
+        command = [curl, "--fail", "--location", "--silent", "--show-error", "--max-time", "60", url]
+        if authorization:
+            # Keep credentials out of argv and subprocess failure diagnostics.
+            command.extend(["--header", "@-"])
         result = subprocess.run(
-            [curl, "--fail", "--location", "--silent", "--show-error", "--max-time", "60", url],
+            command,
+            input=f"Authorization: {authorization}\n".encode() if authorization else None,
             check=True,
             capture_output=True,
             timeout=75,
         )
         return result.stdout.decode("utf-8")
-    with urllib.request.urlopen(url, timeout=60) as response:
+    request = urllib.request.Request(url)
+    if authorization:
+        request.add_unredirected_header("Authorization", authorization)
+    with urllib.request.urlopen(request, timeout=60) as response:
         return response.read().decode("utf-8")
 
 

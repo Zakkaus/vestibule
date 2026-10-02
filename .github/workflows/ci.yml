@@ -141,6 +141,8 @@ jobs:
     if: needs.changes.outputs.static == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -333,9 +335,11 @@ jobs:
       matrix:
         include:
           - name: journeys-1
-            args: --project journeys-dev --project questions-trial-real --shard=1/2
+            args: --project journeys-dev --project questions-trial-real --shard=1/3
           - name: journeys-2
-            args: --project journeys-dev --project questions-trial-real --shard=2/2
+            args: --project journeys-dev --project questions-trial-real --shard=2/3
+          - name: journeys-3
+            args: --project journeys-dev --project questions-trial-real --shard=3/3
           - name: render-gate
             args: --project render-gate-preview
     steps:
