@@ -37,6 +37,11 @@
     "groupSwitcher": "目前群組",
     "allGroups": "全部可管理的群組"
   },
+  "routeError": {
+    "title": "無法開啟此頁面",
+    "description": "請重新載入頁面再試一次，或使用導覽開啟其他頁面。",
+    "reload": "重新載入頁面"
+  },
   "entry": {
     "nextSteps": "後續步驟",
     "thisBot": "此執行個體的機器人",
@@ -654,6 +659,7 @@
       "retry": "重試"
     },
     "actions": {
+      "loadMore": "載入更多",
       "undo": "撤銷封鎖",
       "undoFor": "撤銷對 {{user}} 的封鎖",
       "undoing": "正在撤銷…",

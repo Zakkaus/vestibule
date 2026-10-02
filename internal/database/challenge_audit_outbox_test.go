@@ -31,7 +31,7 @@ func TestChallengeUndoWaitsForTheBanItUndoes(t *testing.T) {
 			ID: "settle-ban", Kind: "settle_ban", Payload: `{}`, NextTryAt: 100,
 			ClaimOwner: "settler", ClaimUntil: 130,
 		})
-	records, err := state.LoadChallengeAudit(ctx, chatID)
+	records, err := state.LoadChallengeAudit(ctx, chatID, verification.AuditPageRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func TestChallengeAuditReturnsOneRowPerSettledChallenge(t *testing.T) {
 	}
 	requireAuditTransition(t, state, declined, verification.ChallengeDeclined, "wrong_answer", 110, 9)
 
-	records, err := state.LoadChallengeAudit(ctx, chatID)
+	records, err := state.LoadChallengeAudit(ctx, chatID, verification.AuditPageRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +111,7 @@ func TestChallengeAuditReturnsOneRowPerSettledChallenge(t *testing.T) {
 		NextTryAt: 120, ClaimOwner: "operator", ClaimUntil: 150,
 	}, true)
 
-	records, err = state.LoadChallengeAudit(ctx, chatID)
+	records, err = state.LoadChallengeAudit(ctx, chatID, verification.AuditPageRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +175,7 @@ func TestChallengeAuditReportsEverySettlementActionKind(t *testing.T) {
 		requireAuditActionCompletion(t, state, actionID, "settler", int64(110+index))
 	}
 
-	records, err := state.LoadChallengeAudit(ctx, chatID)
+	records, err := state.LoadChallengeAudit(ctx, chatID, verification.AuditPageRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -228,7 +228,7 @@ func TestChallengeAuditKeepsUndoWithItsChallenge(t *testing.T) {
 		requireAuditActionCompletion(t, state, actionID, "settler", int64(110+index))
 	}
 
-	records, err := state.LoadChallengeAudit(ctx, chatID)
+	records, err := state.LoadChallengeAudit(ctx, chatID, verification.AuditPageRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,7 +254,7 @@ func TestChallengeAuditKeepsUndoWithItsChallenge(t *testing.T) {
 		t.Fatal("valid undo was refused")
 	}
 
-	records, err = state.LoadChallengeAudit(ctx, chatID)
+	records, err = state.LoadChallengeAudit(ctx, chatID, verification.AuditPageRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -292,7 +292,7 @@ func TestChallengeAuditBreaksEqualSettlementTimesByID(t *testing.T) {
 	requireAuditTransition(t, state, first, verification.ChallengeApproved, "", 100, 9)
 	requireAuditTransition(t, state, second, verification.ChallengeApproved, "", 100, 9)
 
-	records, err := state.LoadChallengeAudit(ctx, chatID)
+	records, err := state.LoadChallengeAudit(ctx, chatID, verification.AuditPageRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -307,6 +307,39 @@ func TestChallengeAuditBreaksEqualSettlementTimesByID(t *testing.T) {
 	}
 }
 
+func TestChallengeAuditUndoUsesSameSecondIDOrder(t *testing.T) {
+	const chatID int64 = -1009000000834
+	ctx := context.Background()
+	db, err := Open(ctx, testSQLiteConfig(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	state := NewVerificationStore(db)
+	first := verification.PendingRecord{
+		GroupID: chatID, UserID: 7903, Nonce: "a-first", Deadline: 90, Epoch: 1,
+	}
+	second := first
+	second.Nonce, second.Epoch = "z-second", 2
+	requireAuditTransition(t, state, first, verification.ChallengeBanned, "", 100, 9)
+	requireAuditTransition(t, state, second, verification.ChallengeBanned, "", 100, 9)
+	records, err := state.LoadChallengeAudit(ctx, chatID, verification.AuditPageRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(records) != 2 || records[0].ID != challengeID(second.Ref()) ||
+		!records[0].Latest || records[1].Latest {
+		t.Fatalf("same-second history order and latest flags = %#v", records)
+	}
+	action := verification.ActionIntent{
+		ID: "undo-same-second", Kind: "undo_ban",
+		Payload:   `{"chat_id":-1009000000834,"user_id":7903}`,
+		NextTryAt: 110, ClaimOwner: "operator", ClaimUntil: 140,
+	}
+	requireChallengeUndo(t, state, records[1], action, false)
+	requireChallengeUndo(t, state, records[0], action, true)
+}
+
 func auditUndoAction(
 	t *testing.T,
 	ctx context.Context,
@@ -314,7 +347,7 @@ func auditUndoAction(
 	chatID int64,
 ) verification.ChallengeActionState {
 	t.Helper()
-	records, err := state.LoadChallengeAudit(ctx, chatID)
+	records, err := state.LoadChallengeAudit(ctx, chatID, verification.AuditPageRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}

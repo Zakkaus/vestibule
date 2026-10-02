@@ -37,6 +37,11 @@
     "groupSwitcher": "現在のグループ",
     "allGroups": "管理可能なすべてのグループ"
   },
+  "routeError": {
+    "title": "この画面を開けません",
+    "description": "ページを再読み込みして再試行するか、ナビゲーションから別の画面を開いてください。",
+    "reload": "ページを再読み込み"
+  },
   "entry": {
     "nextSteps": "次の手順",
     "thisBot": "このインスタンスのボット",
@@ -654,6 +659,7 @@
       "retry": "再試行"
     },
     "actions": {
+      "loadMore": "さらに読み込む",
       "undo": "アクセス禁止を取り消す",
       "undoFor": "{{user}} のアクセス禁止を取り消す",
       "undoing": "取り消し中…",

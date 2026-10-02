@@ -98,13 +98,13 @@ export function AuditTable({ records, pendingActions, dateFormatter, onUndo }: A
                 data-result={record.result.id}
                 data-undo-state={pending ? "submitting" : record.undoState}
               >
-                <td data-record-user>{record.user}</td>
+                <td data-record-user><span title={record.user}>{record.user}</span></td>
                 <td data-record-group>{group}</td>
                 <td data-record-result>
                   <StatusBadge tone={record.result.tone}>{result}</StatusBadge>
                 </td>
                 <td data-record-reason>{reason}</td>
-                <td data-record-actor>{actor}</td>
+                <td data-record-actor><span title={actor}>{actor}</span></td>
                 <td data-record-time>{settledAt}</td>
                 <td data-record-action>
                   <AuditAction record={record} pending={pending} onUndo={onUndo} />

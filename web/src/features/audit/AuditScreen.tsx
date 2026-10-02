@@ -13,9 +13,10 @@ import { Icon } from "../../icons";
 import type { IconName } from "../../icons";
 import type { StatusTone } from "../../components/StatusBadge";
 import type { ApiRequestError } from "../../lib/api";
-import { loadAuditRecords, undoAuditRecord, type AuditRecord } from "./api";
+import { undoAuditRecord, type AuditRecord } from "./api";
 import { auditFixtureFor, type AuditFixture } from "./fixtures";
 import { AuditTable, type PendingAuditActions } from "./AuditTable";
+import { accessRevocationCodes, useAuditPages } from "./useAuditPages";
 
 const FIXTURE_ACTION_DELAY_MS = 700;
 const FEEDBACK_DURATION_MS = 5_000;
@@ -33,21 +34,6 @@ const errorMessageKeys: Readonly<Record<string, string>> = {
   csrf_invalid: "audit.errors.csrfInvalid",
   invalid_audit: "audit.errors.invalidAudit"
 };
-
-const accessRevocationCodes: Readonly<Record<string, true>> = {
-  authentication_expired: true,
-  authentication_invalid: true,
-  chat_access_denied: true,
-  chat_not_found: true
-};
-
-type AuditScreenState =
-  | Readonly<{ kind: "loading" }>
-  | Readonly<{ kind: "fixture"; fixture: AuditFixture }>
-  | Readonly<{ kind: "loaded" }>
-  | Readonly<{ kind: "unavailable"; error: ApiRequestError }>
-  | Readonly<{ kind: "group-required" }>
-  | Readonly<{ kind: "no-groups" }>;
 
 type AuditFeedback = Readonly<{
   id: number;
@@ -155,13 +141,12 @@ export function AuditScreen() {
   const selectedGroupID = searchParams.get("group");
   const chatID =
     selectedGroupID !== null && /^-?\d+$/.test(selectedGroupID) ? selectedGroupID : undefined;
-  const [auditState, setAuditState] = useState<AuditScreenState>({ kind: "loading" });
-  const [records, setRecords] = useState<readonly AuditRecord[]>([]);
   const [pendingActions, setPendingActions] = useState<PendingAuditActions>({});
   const [feedback, setFeedback] = useState<AuditFeedback | null>(null);
   const [reloadVersion, setReloadVersion] = useState(0);
+  const { records, setRecords, auditState, setAuditState, activeScopeRef,
+    nextCursor, loadingMore, pageError, loadMore } = useAuditPages(session, chatID, fixture, reloadVersion);
   const inFlightRecordIDsRef = useRef(new Set<string>());
-  const activeScopeRef = useRef("");
   const feedbackSequenceRef = useRef(0);
   const feedbackTimerRef = useRef<number | undefined>(undefined);
   const fixtureTimerIDsRef = useRef(new Set<number>());
@@ -178,65 +163,6 @@ export function AuditScreen() {
     [i18n.language, i18n.resolvedLanguage]
   );
 
-  useEffect(() => {
-    const scope = `${session.state}:${chatID ?? ""}`;
-    activeScopeRef.current = scope;
-    let active = true;
-    setRecords([]);
-
-    if (session.state === "loading" || session.state === "checking-groups") {
-      setAuditState({ kind: "loading" });
-      return () => {
-        active = false;
-      };
-    }
-
-    if (session.state === "blocked" && session.error.kind === "non-json") {
-      setRecords([...fixture.records]);
-      setAuditState({ kind: "fixture", fixture });
-      return () => {
-        active = false;
-      };
-    }
-
-    if (session.state === "blocked" || session.state === "groups-unavailable") {
-      setAuditState({ kind: "unavailable", error: session.error });
-      return () => {
-        active = false;
-      };
-    }
-
-    if (session.state === "no-groups") {
-      setAuditState({ kind: "no-groups" });
-      return () => {
-        active = false;
-      };
-    }
-
-    if (!chatID) {
-      setAuditState({ kind: "group-required" });
-      return () => {
-        active = false;
-      };
-    }
-
-    setAuditState({ kind: "loading" });
-    void loadAuditRecords(consoleApi, chatID).then((result) => {
-      if (!active || activeScopeRef.current !== scope) {
-        return;
-      }
-      if (result.ok) {
-        setRecords(result.data);
-        setAuditState({ kind: "loaded" });
-        return;
-      }
-      setAuditState({ kind: "unavailable", error: result.error });
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [chatID, fixture, reloadVersion, session]);
 
   useEffect(() => {
     if (feedbackTimerRef.current !== undefined) {
@@ -258,7 +184,7 @@ export function AuditScreen() {
       fixtureTimerIDsRef.current.clear();
       inFlightRecordIDsRef.current.clear();
     };
-  }, [chatID, session.state]);
+  }, [chatID, fixture, reloadVersion, session]);
 
   function showFeedback(
     messageKey: string,
@@ -475,6 +401,14 @@ export function AuditScreen() {
           dateFormatter={dateFormatter}
           onUndo={undoRecord}
         />
+      ) : null}
+      {auditState.kind === "loaded" && nextCursor ? (
+        <div>
+          {pageError ? <p role="alert">{t(auditErrorMessageKey(pageError, "audit.errors.loadUnavailable"))}</p> : null}
+          <Button variant="secondary" isPending={loadingMore} onPress={loadMore}>
+            <Text>{t("audit.actions.loadMore")}</Text>
+          </Button>
+        </div>
       ) : null}
       {(auditState.kind === "fixture" || auditState.kind === "loaded") && records.length === 0 ? (
         <AuditStateCard

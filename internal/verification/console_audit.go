@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 )
@@ -18,24 +17,18 @@ var (
 	ErrConsoleAuditConflict    = errors.New("console audit entry changed before undo")
 )
 
-type latestAuditSettlement struct {
-	at    int64
-	count int
-}
-
 // ConsoleAudit returns terminal challenge decisions without treating settings as audited data.
-func (v *Service) ConsoleAudit(ctx context.Context, groupID, actorID int64) ([]ConsoleAuditEntry, error) {
+func (v *Service) ConsoleAudit(ctx context.Context, groupID, actorID int64, page AuditPageRequest) ([]ConsoleAuditEntry, error) {
 	if groupID == 0 || actorID <= 0 {
 		return nil, ErrConsoleAuditInvalid
 	}
-	records, err := v.loadChallengeAudit(ctx, groupID)
+	_, records, err := v.challengeAudit(ctx, groupID, page)
 	if err != nil {
 		return nil, err
 	}
-	latest := latestAuditSettlements(records)
 	entries := make([]ConsoleAuditEntry, 0, len(records))
 	for _, record := range records {
-		entries = append(entries, consoleAuditEntry(record, actorID, latest[record.Record.UserID]))
+		entries = append(entries, consoleAuditEntry(record, actorID))
 	}
 	return entries, nil
 }
@@ -45,16 +38,15 @@ func (v *Service) UndoConsoleAudit(ctx context.Context, undo ConsoleAuditUndo) (
 	if undo.GroupID == 0 || undo.ActorID <= 0 || strings.TrimSpace(undo.ID) == "" || strings.Contains(undo.ID, "/") {
 		return ConsoleAuditEntry{}, ErrConsoleAuditInvalid
 	}
-	store, records, err := v.challengeAudit(ctx, undo.GroupID)
+	store, ok := v.stateStore.(challengeAuditStore)
+	if !ok {
+		return ConsoleAuditEntry{}, ErrConsoleAuditUnavailable
+	}
+	record, err := loadAuditTarget(ctx, store, undo.GroupID, undo.ID)
 	if err != nil {
 		return ConsoleAuditEntry{}, err
 	}
-	record, found := challengeAuditByID(records, undo.ID)
-	if !found {
-		return ConsoleAuditEntry{}, ErrConsoleAuditNotFound
-	}
-	latest := latestAuditSettlements(records)
-	entry := consoleAuditEntry(record, undo.ActorID, latest[record.Record.UserID])
+	entry := consoleAuditEntry(record, undo.ActorID)
 
 	// Telegram exposes the current ban but not who placed it. Letting any administrator undo it
 	// repeats the previous generation's dangerous unban: one administrator silently overrules
@@ -77,27 +69,25 @@ func (v *Service) UndoConsoleAudit(ctx context.Context, undo ConsoleAuditUndo) (
 	}
 	v.executePendingAction(ctx, v.gateway, v.actionOwner, PendingAction{ActionIntent: action})
 
-	entries, err := v.ConsoleAudit(ctx, undo.GroupID, undo.ActorID)
+	record, err = loadAuditTarget(ctx, store, undo.GroupID, undo.ID)
 	if err != nil {
 		return ConsoleAuditEntry{}, err
 	}
-	for _, current := range entries {
-		if current.ID == undo.ID {
-			return current, nil
-		}
-	}
-	return ConsoleAuditEntry{}, ErrConsoleAuditNotFound
+	return consoleAuditEntry(record, undo.ActorID), nil
 }
 
 func (v *Service) challengeAudit(
 	ctx context.Context,
-	groupID int64,
+	groupID int64, page AuditPageRequest,
 ) (challengeAuditStore, []ChallengeAuditRecord, error) {
 	store, ok := v.stateStore.(challengeAuditStore)
 	if !ok {
 		return nil, nil, ErrConsoleAuditUnavailable
 	}
-	records, err := store.LoadChallengeAudit(ctx, groupID)
+	if _, _, _, err := page.Boundary(groupID); err != nil {
+		return nil, nil, err
+	}
+	records, err := store.LoadChallengeAudit(ctx, groupID, page)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%w: %v", ErrConsoleAuditUnavailable, err)
 	}
@@ -107,52 +97,38 @@ func (v *Service) challengeAudit(
 				ErrConsoleAuditUnavailable, record.ID, record.Record.GroupID)
 		}
 	}
-	sort.Slice(records, func(i, j int) bool {
-		if records[i].SettledAt == records[j].SettledAt {
-			return records[i].ID > records[j].ID
-		}
-		return records[i].SettledAt > records[j].SettledAt
-	})
 	return store, records, nil
 }
 
-func (v *Service) loadChallengeAudit(ctx context.Context, groupID int64) ([]ChallengeAuditRecord, error) {
-	_, records, err := v.challengeAudit(ctx, groupID)
-	return records, err
-}
-
-func latestAuditSettlements(records []ChallengeAuditRecord) map[int64]latestAuditSettlement {
-	latest := make(map[int64]latestAuditSettlement)
-	for _, record := range records {
-		current, exists := latest[record.Record.UserID]
-		switch {
-		case !exists || record.SettledAt > current.at:
-			latest[record.Record.UserID] = latestAuditSettlement{at: record.SettledAt, count: 1}
-		case record.SettledAt == current.at:
-			current.count++
-			latest[record.Record.UserID] = current
-		}
+func loadAuditTarget(ctx context.Context, store challengeAuditStore, groupID int64, id string) (ChallengeAuditRecord, error) {
+	record, found, err := store.LoadChallengeAuditByID(ctx, groupID, id)
+	if err != nil {
+		return ChallengeAuditRecord{}, fmt.Errorf("%w: %v", ErrConsoleAuditUnavailable, err)
 	}
-	return latest
+	if !found {
+		return ChallengeAuditRecord{}, ErrConsoleAuditNotFound
+	}
+	if record.Record.GroupID != groupID {
+		return ChallengeAuditRecord{}, ErrConsoleAuditUnavailable
+	}
+	return record, nil
 }
 
 func consoleAuditEntry(
 	record ChallengeAuditRecord,
 	actorID int64,
-	latest latestAuditSettlement,
 ) ConsoleAuditEntry {
 	return ConsoleAuditEntry{
 		ID: record.ID, GroupID: record.Record.GroupID, UserID: record.Record.UserID,
 		Name: record.Record.Name, State: record.State, Reason: record.Reason,
 		SettledAt: time.Unix(record.SettledAt, 0).UTC(), SettledBy: record.SettledBy,
-		UndoState: consoleAuditUndoState(record, actorID, latest),
+		UndoState: consoleAuditUndoState(record, actorID),
 	}
 }
 
 func consoleAuditUndoState(
 	record ChallengeAuditRecord,
 	actorID int64,
-	latest latestAuditSettlement,
 ) ConsoleUndoState {
 	switch record.UndoAction {
 	case ChallengeActionPending:
@@ -164,20 +140,10 @@ func consoleAuditUndoState(
 	}
 	settlementComplete := record.SettlementAction == ChallengeActionNone ||
 		record.SettlementAction == ChallengeActionDone
-	isLatest := latest.count == 1 && latest.at == record.SettledAt
-	if record.State == ChallengeBanned && record.SettledBy == actorID && settlementComplete && isLatest {
+	if record.State == ChallengeBanned && record.SettledBy == actorID && settlementComplete && record.Latest {
 		return ConsoleUndoAvailable
 	}
 	return ConsoleUndoUnavailable
-}
-
-func challengeAuditByID(records []ChallengeAuditRecord, id string) (ChallengeAuditRecord, bool) {
-	for _, record := range records {
-		if record.ID == id {
-			return record, true
-		}
-	}
-	return ChallengeAuditRecord{}, false
 }
 
 func (v *Service) newUndoBanAction(record ChallengeAuditRecord) (ActionIntent, error) {

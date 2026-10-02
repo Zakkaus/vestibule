@@ -17,9 +17,18 @@ type consoleAuditTestStore struct {
 	loads    int
 }
 
-func (s *consoleAuditTestStore) LoadChallengeAudit(context.Context, int64) ([]ChallengeAuditRecord, error) {
+func (s *consoleAuditTestStore) LoadChallengeAudit(_ context.Context, _ int64, page AuditPageRequest) ([]ChallengeAuditRecord, error) {
 	s.loads++
-	return append([]ChallengeAuditRecord(nil), s.records...), nil
+	return auditTestPage(s.records, page), nil
+}
+
+func (s *consoleAuditTestStore) LoadChallengeAuditByID(_ context.Context, _ int64, id string) (ChallengeAuditRecord, bool, error) {
+	for _, record := range auditTestPage(s.records, AuditPageRequest{}) {
+		if record.ID == id {
+			return record, true, nil
+		}
+	}
+	return ChallengeAuditRecord{}, false, nil
 }
 
 func (s *consoleAuditTestStore) EnqueueChallengeUndo(
@@ -59,7 +68,7 @@ func (s *consoleAuditTestStore) CompleteAction(
 
 func TestConsoleAuditExposesHistoryAndNarrowUndoState(t *testing.T) {
 	service, store, _ := newConsoleAuditTestService()
-	entries, err := service.ConsoleAudit(context.Background(), -100, 9)
+	entries, err := service.ConsoleAudit(context.Background(), -100, 9, AuditPageRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,7 +142,7 @@ func TestConsoleAuditRefusesInvalidReadParameters(t *testing.T) {
 	service, store := newConsoleAuditCoverageService([]ChallengeAuditRecord{
 		consoleAuditCoverageRecord("-1009000000704:101:valid", 101, 100, 9),
 	})
-	if _, err := service.ConsoleAudit(context.Background(), consoleAuditCoverageChatID, 9); err != nil {
+	if _, err := service.ConsoleAudit(context.Background(), consoleAuditCoverageChatID, 9, AuditPageRequest{}); err != nil {
 		t.Fatalf("a valid audit read was refused: %v", err)
 	}
 	cases := []struct {
@@ -153,7 +162,7 @@ func TestConsoleAuditRefusesInvalidReadParameters(t *testing.T) {
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			_, err := service.ConsoleAudit(context.Background(), testCase.groupID, testCase.actorID)
+			_, err := service.ConsoleAudit(context.Background(), testCase.groupID, testCase.actorID, AuditPageRequest{})
 			if !errors.Is(err, ErrConsoleAuditInvalid) {
 				t.Fatalf("%s: audit error=%v, want %v", testCase.harm, err, ErrConsoleAuditInvalid)
 			}
@@ -172,7 +181,7 @@ func TestConsoleAuditSortsEqualSettlementsByDescendingID(t *testing.T) {
 		consoleAuditCoverageRecord(higherID, 105, 100, 9),
 	})
 
-	entries, err := service.ConsoleAudit(context.Background(), consoleAuditCoverageChatID, 9)
+	entries, err := service.ConsoleAudit(context.Background(), consoleAuditCoverageChatID, 9, AuditPageRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,7 +190,7 @@ func TestConsoleAuditSortsEqualSettlementsByDescendingID(t *testing.T) {
 	}
 }
 
-func TestConsoleAuditWithholdsUndoForAmbiguousLatestSettlement(t *testing.T) {
+func TestConsoleAuditSelectsLatestEqualSecondSettlementByID(t *testing.T) {
 	firstID := "-1009000000704:106:tie-a"
 	secondID := "-1009000000704:106:tie-b"
 	controlID := "-1009000000704:107:control"
@@ -191,16 +200,16 @@ func TestConsoleAuditWithholdsUndoForAmbiguousLatestSettlement(t *testing.T) {
 		consoleAuditCoverageRecord(controlID, 107, 100, 9),
 	})
 
-	entries, err := service.ConsoleAudit(context.Background(), consoleAuditCoverageChatID, 9)
+	entries, err := service.ConsoleAudit(context.Background(), consoleAuditCoverageChatID, 9, AuditPageRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	states := consoleAuditUndoStates(entries)
-	if states[firstID] != ConsoleUndoUnavailable || states[secondID] != ConsoleUndoUnavailable {
-		t.Fatalf("ambiguous latest settlements offered an undo; either ban could lift the other: %#v", states)
+	if states[firstID] != ConsoleUndoUnavailable || states[secondID] != ConsoleUndoAvailable {
+		t.Fatalf("equal-second undo eligibility disagrees with identifier-descending history: %#v", states)
 	}
 	if states[controlID] != ConsoleUndoAvailable {
-		t.Fatalf("an unambiguous latest ban was not available as the positive control: %#v", states)
+		t.Fatalf("the latest ban for another applicant was not available: %#v", states)
 	}
 }
 
@@ -221,7 +230,7 @@ func TestConsoleAuditPreservesRecordFieldsAndUndoLifecycle(t *testing.T) {
 	completed.UndoAction = ChallengeActionDone
 	service, _ := newConsoleAuditCoverageService([]ChallengeAuditRecord{declined, pending, failed, completed})
 
-	entries, err := service.ConsoleAudit(context.Background(), consoleAuditCoverageChatID, 9)
+	entries, err := service.ConsoleAudit(context.Background(), consoleAuditCoverageChatID, 9, AuditPageRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -261,7 +270,7 @@ func TestConsoleAuditDoesNotOfferUndoAfterFailedSettlement(t *testing.T) {
 	control.SettlementAction = ChallengeActionDone
 	service, _ := newConsoleAuditCoverageService([]ChallengeAuditRecord{failed, control})
 
-	entries, err := service.ConsoleAudit(context.Background(), consoleAuditCoverageChatID, 9)
+	entries, err := service.ConsoleAudit(context.Background(), consoleAuditCoverageChatID, 9, AuditPageRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}

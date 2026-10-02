@@ -45,6 +45,9 @@ All notable changes to this project are documented here. The format is based on
   falling back to the group when no log chat is set. `/autodel` status and enable replies
   preserve second-based retention settings with localized durations. English duration
   units use singular forms for a count of one in cleanup and moderation replies.
+- Desktop audit columns keep handles, actors, verdicts, and timestamps on one line;
+  long identities show an ellipsis with the full value in a title, and reasons use
+  the remaining width without leaving a gap before undo actions.
 - The Compose database volume now mounts at `/var/lib/postgresql` as PostgreSQL 18 requires.
   Native installs record their deployment type so host replacement works, and `import-state`
   rejects a missing or invalid `-pending` before touching the database.
@@ -58,6 +61,14 @@ All notable changes to this project are documented here. The format is based on
   only until five minutes after the original admission.
 - Wrong-answer declines retain the same failure strike in direct console settlement and retries
   when Telegram reports that the join request is gone and confirms the applicant is outside the group.
+- The audit history migration now occupies slot 03 after main's schema-v3 migration,
+  upgrading to schema v4 while retaining rollback compatibility with schema v1.
+- Failed console route downloads now retain navigation and offer localized reload recovery.
+  Audit reloads clear pending undo bookkeeping, equal-second decisions use history order
+  for undo eligibility, and history index migrations tolerate existing indexes.
+- Audit history now uses bounded newest-first cursor pages with on-demand loading and
+  undo available across pages. Persistent history indexes avoid scanning other groups,
+  and console route screens load separately from the unauthenticated entry bundle.
 - Owner private help lists active owner commands. The owner menu and help omit
   `/console` when its link handler is disabled.
 - Production entry pages ignore preview query parameters and retain the authenticated

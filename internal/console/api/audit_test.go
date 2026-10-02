@@ -130,3 +130,50 @@ func postAuditUndo(
 	server.Handler().ServeHTTP(response, request)
 	return response
 }
+
+func TestAuditPageBoundsAndCursor(t *testing.T) {
+	const chatID int64 = -1009000000913
+	service := &apiTestQueueService{groups: []int64{chatID}}
+	for _, id := range []string{"newest", "last-visible", "lookahead"} {
+		service.auditEntries = append(service.auditEntries, verification.ConsoleAuditEntry{
+			ID: id, GroupID: chatID, UserID: 42, State: verification.ChallengeApproved,
+			SettledAt: time.Unix(100, 0),
+		})
+	}
+	server, cookies, _ := apiTestServer(t, &apiTestAdminChecker{allowed: true}, service, nil)
+	path := "/api/chats/" + strconv.FormatInt(chatID, 10) + "/audit"
+	response := getAuthenticatedPath(server, cookies, path+"?limit=2")
+	var page struct {
+		Items      []auditResponse `json:"items"`
+		NextCursor *string         `json:"next_cursor"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &page); err != nil {
+		t.Fatal(err)
+	}
+	if response.Code != http.StatusOK || len(page.Items) != 2 || page.Items[1].ID != "last-visible" || page.NextCursor == nil {
+		t.Fatalf("bounded audit response=%s status=%d", response.Body.String(), response.Code)
+	}
+	_, at, id, err := (verification.AuditPageRequest{Cursor: *page.NextCursor}).Boundary(chatID)
+	if err != nil || at != 100 || id != "last-visible" {
+		t.Fatalf("cursor boundary=(%d, %q), error=%v", at, id, err)
+	}
+	for _, query := range []string{"limit=0", "limit=-1", "limit=101", "limit=invalid", "cursor=broken"} {
+		bad := getAuthenticatedPath(server, cookies, path+"?"+query)
+		if bad.Code != http.StatusBadRequest || decodeError(bad) != "invalid_audit" {
+			t.Fatalf("%s: status=%d body=%s", query, bad.Code, bad.Body.String())
+		}
+	}
+	if service.auditCalls != 1 {
+		t.Fatalf("invalid pages reached the service: %d calls", service.auditCalls)
+	}
+}
+
+func TestAuditEmptyPageContract(t *testing.T) {
+	const chatID int64 = -1009000000914
+	service := &apiTestQueueService{groups: []int64{chatID}}
+	server, cookies, _ := apiTestServer(t, &apiTestAdminChecker{allowed: true}, service, nil)
+	empty := getAuthenticatedPath(server, cookies, "/api/chats/"+strconv.FormatInt(chatID, 10)+"/audit")
+	if !strings.Contains(empty.Body.String(), `"items":[]`) || !strings.Contains(empty.Body.String(), `"next_cursor":null`) {
+		t.Fatalf("empty page contract: %s", empty.Body.String())
+	}
+}

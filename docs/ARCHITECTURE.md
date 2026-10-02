@@ -1127,7 +1127,7 @@ policr-mini 选了另一条：把 Telegram 的权限镜像进 `permissions` 表�
 | PATCH /api/chats/{id}/settings | 只提交改动过的字段，带版本号做冲突检测。共用 settings 服务校验写入后的完整有效群设置；超过部署者上限返回 settings_limit_exceeded 与具体字段、值和上限，不改变群设置或版本号 |
 | GET · PUT /api/chats/{id}/rules | 题库、消息与文案、免验证来源三屏共用，`collection` 区分题库、自动回复、显示名黑名单与反垃圾。PUT 整份替换用于导入 |
 | POST /api/chats/{id}/rules/test | 试答；从已保存设置读取 `questions` 或 `fallback_questions`，不读取编辑草稿。请求包含 `collection`、从零开始的 `question_index` 和 `expected_revision`；选择题传选项索引 `choice`，简答题传字符串 `answer`。返回布尔值 `correct`；版本冲突返回 409，题目不存在返回 404。调用线上同一份答案判定，不写入验证、审计或统计状态 |
-| GET /api/chats/{id}/audit | 操作记录 |
+| GET /api/chats/{id}/audit | 操作记录。验证判定记录按 `settled_at`、`id` 降序使用键集分页。查询参数 `limit` 默认 50，范围 1 至 100；`cursor` 是绑定本群的不透明游标。响应包含 `items` 和 `next_cursor`，末页游标为 `null`；无效参数返回 400。界面按需加载后续页，撤销资格依据完整历史中的最新判定，不限于已加载页。同一用户在同一秒产生多条判定时，以 `id` 较大者为最新判定；读取资格与撤销写入使用相同排序规则 |
 | POST /api/chats/{id}/audit/{aid}/undo | 撤销一条。 只有可逆的才给这个入口，删掉的消息回不来 |
 | GET · PUT /api/chats/{id}/feeds | 群级订阅推送。PUT 整份替换；配置文件 `feeds` 仅首次导入 |
 | GET /api/chats/{id}/stats | 统计屏。区间与粒度由查询参数给，服务端聚合，不把明细发给前端 |
@@ -1386,6 +1386,8 @@ Grafana 把前端指南拆成九份，**按维护者任务分**，不按组件�
 发布说明只记录使用者能观察到或必须采取行动的变化：破坏性变化、功能、缺陷修复、 安全、配置与数据库。内部重构、构建清理和机械调整不进入发布说明。
 
 应用 SemVer 与 schema version 独立。schema 使用单调递增版本和兼容下限； 旧二进制发现数据库兼容下限高于自身能力时拒绝启动。已发布 migration 不修改、不重排、 不删除，错误由新的 forward migration 修正。降级只保证到兼容下限允许的版本； 破坏性迁移执行前必须备份。
+
+迁移文件编号从 `00` 开始，schema 版本由迁移声明决定，不等于文件编号。 `00` 至 `02` 将数据库升级到 v3； `03-history-indexes.sql` 增加历史索引，将 v3 升级到 v4，兼容下限仍为 v1。
 
 发布验证至少覆盖空库升级、上一发布版本数据库升级，以及兼容范围内的一次降级启动。 这些是场景合同，不把当前执行命令或流水线作业名写进架构书。
 

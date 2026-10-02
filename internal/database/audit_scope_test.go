@@ -31,7 +31,7 @@ func TestChallengeAuditAndStatsAnswerOnlyTheGroupAsked(t *testing.T) {
 		GroupID: asked, UserID: 62, Name: "Asked", Nonce: "asked", Deadline: 90, Epoch: 1,
 	}, verification.ChallengeDeclined, "wrong_answer", 1_010, 9)
 
-	records, err := state.LoadChallengeAudit(ctx, asked)
+	records, err := state.LoadChallengeAudit(ctx, asked, verification.AuditPageRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
