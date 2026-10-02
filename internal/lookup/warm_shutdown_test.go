@@ -11,7 +11,7 @@ import (
 // A warm-up outliving its service raced the next service's configuration in the
 // app tests (CI run 34713781235). Shutdown must end it before returning.
 func TestShutdownWaitsForDemandedWarmUp(t *testing.T) {
-	service := New(nil, nil, &settings.Config{}, "")
+	service := New(nil, &settings.Config{}, "")
 	service.DemandWarm()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -27,7 +27,7 @@ func TestShutdownWaitsForDemandedWarmUp(t *testing.T) {
 }
 
 func TestShutdownWithoutWarmUpReturnsAtOnce(t *testing.T) {
-	service := New(nil, nil, &settings.Config{}, "")
+	service := New(nil, &settings.Config{}, "")
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	service.Shutdown(ctx)

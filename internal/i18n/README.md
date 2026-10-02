@@ -61,3 +61,7 @@ Complete every step:
 ## Shared glossary
 
 Use one translation for the same concept throughout a locale, including across subsystem files. Preserve commands, package identifiers, API fields, URLs, and upstream project names. Write Traditional Chinese (`zh-Hant`) natively for a general Traditional Chinese audience; never derive it by character conversion from Simplified Chinese. Do not introduce region-specific Cantonese, Taiwan-only, or Hong Kong-only wording.
+
+## Bugzilla enum labels
+
+Lookup and feed formatters share `TranslateBugValue` for Bugzilla status, resolution, severity, and priority labels. Unknown values pass through unchanged. Lookup results retain the raw upstream enum values.

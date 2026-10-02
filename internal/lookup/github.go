@@ -37,6 +37,7 @@ type Commit struct {
 }
 
 var githubAtomBase = githubAtomBaseURL
+
 var githubAPIBase = "https://api.github.com"
 
 // GitHubItem is one validated issue or pull request creation record.
@@ -204,7 +205,7 @@ func RecentGitHubItems(ctx context.Context, repo string) ([]GitHubItem, bool, er
 		return nil, false, fmt.Errorf("fetch GitHub REST: %w", err)
 	}
 	if len(body) > maxGitHubRESTBytes {
-		return nil, false, &httpBodyTooLargeError{url: endpoint, limit: maxGitHubRESTBytes}
+		return nil, false, &httpBodyTooLargeError{Url: endpoint, Limit: maxGitHubRESTBytes}
 	}
 	items, full, err := parseGitHubItems(body, repo)
 	if err != nil {

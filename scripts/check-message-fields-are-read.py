@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Every message field the catalogue declares is read by something outside i18n.
+"""Every message field has a reader, directly or through a called i18n helper.
 
 A declared field costs three translations and reads as a promise that the software
 says this somewhere. Five were left behind by the rewrite -- the previous generation's
@@ -75,6 +75,46 @@ def catalogue_fields_read(text: str, roots: set) -> set:
             fields.update(re.findall(r"\.\s*([A-Z][A-Za-z0-9]*)", match.group("tail")))
     return fields
 
+
+def go_identifiers(text: str) -> str:
+    """Exclude Go comments and literals from helper dependency discovery."""
+    return re.sub(r'"(?:\\.|[^"\\])*"|`[^`]*`|\'(?:\\.|[^\'\\])*\'|//[^\n]*|/\*[\s\S]*?\*/',
+                  lambda match: "\n" * match.group().count("\n"), text)
+
+
+def helper_readers(production_sources: str) -> list[str]:
+    """Follow called catalogue helpers and their package-level dependencies."""
+    declarations = {}
+    for path in CATALOGUE.glob("*.go"):
+        if path.name.endswith("_test.go"):
+            continue
+        text = go_identifiers(path.read_text())
+        starts = list(re.finditer(r"^(?:func|var|const|type)\b", text, re.M))
+        for index, start in enumerate(starts):
+            end = starts[index + 1].start() if index + 1 < len(starts) else len(text)
+            body = text[start.start():end]
+            # Types and the catalogue itself are declarations, not readers.
+            if body.startswith("type "):
+                continue
+            names = re.findall(r"^func (\w+)\(", body, re.M)
+            if not body.startswith("func "):
+                names += re.findall(r"^(?:var |const |\t)(\w+)\s*(?:=(?!=)|\s+\w+\s*=(?!=))", body, re.M)
+            for name in names:
+                if name != "Messages":
+                    declarations[name] = body
+    pending = re.findall(r"\bi18n\.([A-Z]\w*)\s*\(", go_identifiers(production_sources))
+    visited = set()
+    readers = []
+    while pending:
+        name = pending.pop()
+        if name in visited or name not in declarations:
+            continue
+        visited.add(name)
+        body = declarations[name]
+        readers.append(body)
+        pending.extend(re.findall(r"\b\w+\b", body))
+    return readers
+
 def main() -> int:
     if not CATALOGUE.is_dir():
         print("FAIL check-message-fields-are-read: %s does not exist, so this check read "
@@ -97,11 +137,14 @@ def main() -> int:
         return 1
 
     source_texts = []
+    production_texts = []
     for directory in ("internal", "cmd"):
         for path in (ROOT / directory).rglob("*.go"):
             if path.is_relative_to(CATALOGUE):
                 continue
             source_texts.append(path.read_text())
+            if not path.name.endswith("_test.go"):
+                production_texts.append(path.read_text())
     all_source = "\n".join(source_texts)
     catalogue_fields = {
         match.group(1) for match in re.finditer(
@@ -109,6 +152,8 @@ def main() -> int:
     }
     readers = [(text, catalogue_roots(text, catalogue_fields))
                for text in source_texts]
+    for text in helper_readers("\n".join(production_texts)):
+        readers.append((text, catalogue_roots(text, catalogue_fields) | {"Messages"}))
 
     read_fields = set()
     for text, roots in readers:
@@ -128,8 +173,8 @@ def main() -> int:
             used_exemptions.add(key)
             continue
         failures.append("%s declares %s and no catalogue reader outside "
-                        "internal/i18n names it; its translations describe text "
-                        "nobody can read"
+                        "internal/i18n names it, directly or through a called helper; "
+                        "its translations describe text nobody can read"
                         % (", ".join(where), name))
     for key in sorted(set(UNREAD_EXEMPTIONS) - used_exemptions):
         failures.append("%s is no longer an unread field; remove its exemption"
@@ -141,7 +186,7 @@ def main() -> int:
     if failures:
         return 1
     print("check-message-fields-are-read: passed; %d message fields, every one "
-          "without an explicit existing exemption has a reader outside the catalogue"
+          "without an explicit existing exemption has a direct or called-helper reader"
           % len(declared))
     return 0
 

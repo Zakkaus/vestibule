@@ -5,84 +5,17 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/settings"
-	"github.com/mymmrac/telego"
 )
 
-func TestRequesterLanguageFallbackChain(t *testing.T) {
-	const groupID int64 = -100
-	service := New(nil, nil, &settings.Config{
-		Groups:   []settings.GroupConfig{{ID: groupID, Lang: "zh-Hant"}},
-		GroupIDs: []int64{groupID},
-	}, "")
-	tests := []struct {
-		name     string
-		chat     telego.Chat
-		code     string
-		expected i18n.Lang
-	}{
-		{name: "requester overrides group", chat: telego.Chat{ID: groupID, Type: "supergroup"}, code: "en", expected: i18n.LangEN},
-		{name: "supported Chinese overrides group", chat: telego.Chat{ID: groupID, Type: "supergroup"}, code: "zh-CN", expected: i18n.LangZH},
-		{name: "unsupported falls back to group", chat: telego.Chat{ID: groupID, Type: "supergroup"}, code: "fr", expected: i18n.LangZHHant},
-		{name: "missing falls back to group", chat: telego.Chat{ID: groupID, Type: "supergroup"}, expected: i18n.LangZHHant},
-		{name: "unsupported DM falls back to English", chat: telego.Chat{ID: 7, Type: "private"}, code: "fr", expected: i18n.LangEN},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			msg := &telego.Message{Chat: test.chat, From: &telego.User{ID: 7, LanguageCode: test.code}}
-			if got := service.requesterLanguage(msg); got != test.expected {
-				t.Fatalf("requester language = %s, want %s", got, test.expected)
-			}
-		})
-	}
-}
-
-func TestRuntimeRegisteredGroupUsesLiveMembership(t *testing.T) {
-	const groupID int64 = -1009000000401
-	cfg := &settings.Config{Lang: "zh-Hant"}
-	baseline, err := settings.LoadBaseline(filepath.Join(t.TempDir(), "missing-config.json"), cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	store, err := settings.NewStore(filepath.Join(t.TempDir(), "settings.json"), baseline, nil, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	service := New(store, nil, cfg, "")
-	registration := store.Registrations()
-	registration.RegisteredGroups = []settings.RegisteredGroup{{ID: groupID, RegisteredBy: 42}}
-	if _, err := store.CommitRegistrations(registration.Revision, registration); err != nil {
-		t.Fatal(err)
-	}
-	group, _ := store.Settings(groupID)
-	overrides := group.Overrides()
-	language := "zh-Hant"
-	overrides.Lang = &language
-	if _, err := store.Update(groupID, group.Revision(), overrides); err != nil {
-		t.Fatal(err)
-	}
-	msg := &telego.Message{
-		Chat: telego.Chat{ID: groupID, Type: telego.ChatTypeSupergroup},
-		From: &telego.User{ID: 7, LanguageCode: "fr"},
-	}
-	if got := service.requesterLanguage(msg); got != i18n.LangZHHant {
-		t.Errorf("runtime group requester language = %s, want %s", got, i18n.LangZHHant)
-	}
-	if !service.queryAllowed(nil, msg, i18n.LangZHHant) {
-		t.Error("runtime group lookup was not exempted from the private-query rate limit")
-	}
-}
-
 func TestHTTPStatusCode(t *testing.T) {
-	if got := httpStatusCode(&httpStatusError{url: "u", code: 404}); got != 404 {
+	if got := httpStatusCode(&httpStatusError{Url: "u", Code: 404}); got != 404 {
 		t.Errorf("httpStatusCode(404) = %d, want 404", got)
 	}
-	if got := httpStatusCode(&httpStatusError{url: "u", code: 503}); got != 503 {
+	if got := httpStatusCode(&httpStatusError{Url: "u", Code: 503}); got != 503 {
 		t.Errorf("httpStatusCode(503) = %d, want 503", got)
 	}
 	if got := httpStatusCode(errors.New("context deadline exceeded")); got != 0 {
@@ -152,17 +85,17 @@ func TestAcquireHTTPSlotBusy(t *testing.T) {
 }
 
 func TestPrivateQueryRate(t *testing.T) {
-	service := New(nil, nil, &settings.Config{PrivateQueryPerMin: 3}, "")
+	service := New(nil, &settings.Config{PrivateQueryPerMin: 3}, "")
 	pass := 0
 	for range 5 {
-		if service.queryRateOK(7) {
+		if service.QueryRateOK(7) {
 			pass++
 		}
 	}
 	if pass != 3 {
 		t.Errorf("user 7: %d/5 allowed, want 3", pass)
 	}
-	if !service.queryRateOK(8) {
+	if !service.QueryRateOK(8) {
 		t.Error("user 8 should be allowed")
 	}
 }

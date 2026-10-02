@@ -10,11 +10,11 @@ import (
 )
 
 func TestNewConfiguresGitHubRequests(t *testing.T) {
-	oldUserAgent, oldOverlays := userAgent, overlays
+	oldUserAgent, oldOverlays := userAgent, Overlays
 	oldNewsURL, oldNewsBase := newsURL, newsBase
 	oldGitHubToken, oldGitHubAtomBase, oldGitHubAPIBase := githubToken, githubAtomBase, githubAPIBase
 	t.Cleanup(func() {
-		userAgent, overlays = oldUserAgent, oldOverlays
+		userAgent, Overlays = oldUserAgent, oldOverlays
 		newsURL, newsBase = oldNewsURL, oldNewsBase
 		githubToken, githubAtomBase, githubAPIBase = oldGitHubToken, oldGitHubAtomBase, oldGitHubAPIBase
 	})
@@ -25,7 +25,7 @@ func TestNewConfiguresGitHubRequests(t *testing.T) {
 		serveConfiguredGitHubRequest(t, w, r)
 	}))
 	defer server.Close()
-	New(nil, nil, &settings.Config{
+	New(nil, &settings.Config{
 		UserAgent:      "new-test-agent",
 		Overlays:       []settings.OverlayCfg{{Name: "test", Repo: "owner/repo", Branch: "feature"}},
 		NewsURL:        server.URL + "/news",
@@ -46,18 +46,18 @@ func TestNewConfiguresGitHubRequests(t *testing.T) {
 }
 
 func TestNewWithoutOverlaysUsesOfficialPackagesOnly(t *testing.T) {
-	oldUserAgent, oldOverlays := userAgent, overlays
+	oldUserAgent, oldOverlays := userAgent, Overlays
 	oldNewsURL, oldNewsBase := newsURL, newsBase
 	oldGitHubToken, oldGitHubAtomBase, oldGitHubAPIBase := githubToken, githubAtomBase, githubAPIBase
 	t.Cleanup(func() {
-		userAgent, overlays = oldUserAgent, oldOverlays
+		userAgent, Overlays = oldUserAgent, oldOverlays
 		newsURL, newsBase = oldNewsURL, oldNewsBase
 		githubToken, githubAtomBase, githubAPIBase = oldGitHubToken, oldGitHubAtomBase, oldGitHubAPIBase
 	})
 
-	New(nil, nil, &settings.Config{}, "")
-	if overlays != nil {
-		t.Fatalf("default package overlays = %#v, want none", overlays)
+	New(nil, &settings.Config{}, "")
+	if Overlays != nil {
+		t.Fatalf("default package overlays = %#v, want none", Overlays)
 	}
 }
 

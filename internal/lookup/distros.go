@@ -2,33 +2,30 @@ package lookup
 
 import (
 	"context"
-	"fmt"
-	"html"
+
 	neturl "net/url"
 	"regexp"
 	"sort"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/Zakkaus/vestibule/internal/i18n"
-	"github.com/mymmrac/telego"
-	th "github.com/mymmrac/telego/telegohandler"
 )
 
-type repologyPkg struct {
+type RepologyPkg struct {
 	Repo    string `json:"repo"`
 	Version string `json:"version"`
 }
 
+type distroFamily struct {
+	Label    string
+	Prefixes []string
+	Search   string
+	Relabel  func(string) ReleaseInfo
+}
+
 // Repo prefixes define displayed families; relabel derives live release roles.
 // RHEL rebuilds, CentOS Stream, and EPEL remain separate version channels.
-var distroFamilies = []struct {
-	label    string
-	prefixes []string
-	search   string
-	relabel  func(i18n.Lang, string) string
-}{
+var DistroFamilies = []distroFamily{
 	{"Gentoo", []string{"gentoo"}, "https://packages.gentoo.org/packages/search?q=%s", nil},
 	{"AUR", []string{"aur"}, "https://aur.archlinux.org/packages?K=%s", nil},
 	{"Arch", []string{"arch"}, "https://archlinux.org/packages/?q=%s", nil},
@@ -44,12 +41,12 @@ var distroFamilies = []struct {
 	{"openSUSE Tumbleweed", []string{"opensuse_tumbleweed"}, "https://software.opensuse.org/search?q=%s", nil},
 }
 
-func famOf(repo string) string {
-	for _, f := range distroFamilies {
-		for _, p := range f.prefixes {
+func FamOf(repo string) string {
+	for _, f := range DistroFamilies {
+		for _, p := range f.Prefixes {
 			// Require an exact prefix boundary; "archpower_*" is not Arch.
 			if repo == p || strings.HasPrefix(repo, strings.TrimRight(p, "_")+"_") {
-				return f.label
+				return f.Label
 			}
 		}
 	}
@@ -117,7 +114,7 @@ var snapTransitionalRe = regexp.MustCompile(`(?i)\d+snap\d+`)
 func snapVersion(v string) bool { return snapTransitionalRe.MatchString(v) }
 
 // Transitional package versions render as "snap".
-func displayVer(v string) string {
+func DisplayVer(v string) string {
 	if snapVersion(v) {
 		return "snap"
 	}
@@ -144,11 +141,11 @@ func betterVer(cur, cand string) bool {
 	return verLess(cur, cand)
 }
 
-func repologyVersionsURL(proj string) string {
+func RepologyVersionsURL(proj string) string {
 	return "https://repology.org/project/" + neturl.PathEscape(proj) + "/versions"
 }
 
-func newestRow(rows []repologyPkg) (ver, repo string) {
+func NewestRow(rows []RepologyPkg) (ver, repo string) {
 	for _, p := range rows {
 		if ver == "" || betterVer(ver, p.Version) {
 			ver, repo = p.Version, p.Repo
@@ -166,74 +163,80 @@ func rollingRelease(label string) bool {
 	return false
 }
 
-type channelLine struct{ ver, label string }
+type channelLine struct{ Ver, Label string }
 
 // Show the newest supported numbered release and a newer rolling channel.
 // Choose by release recency, not package version: an old release's higher version must not win.
 // isTesting excludes development, unreleased, or EOL numbered series.
-func familyChannels(rows []repologyPkg, prefixes []string, isTesting func(string) bool) []channelLine {
+func familyChannels(rows []RepologyPkg, prefixes []string, isTesting func(string) bool) []channelLine {
 	if len(rows) == 0 {
 		return nil
 	}
 	excluded := func(lbl string) bool { return isTesting != nil && isTesting(lbl) }
 
-	// Select the newest rolling version.
-	rollingVer, rollingLabel := "", ""
+	rolling := newestRollingChannel(rows, prefixes, excluded)
+	stable := newestStableChannel(rows, prefixes, excluded)
+	switch {
+	case stable.Ver == "" && rolling.Ver == "": // everything excluded — fall back to the raw newest
+		v, r := NewestRow(rows)
+		return []channelLine{{v, ReleaseLabel(r, prefixes)}}
+	case stable.Ver == "": // a pure rolling distro (Arch, AUR, Tumbleweed) — just the rolling line
+		return []channelLine{rolling}
+	case rolling.Ver == "" || !betterVer(stable.Ver, rolling.Ver): // no rolling, or it isn't ahead
+		return []channelLine{stable}
+	default: // a rolling/dev channel is ahead of stable — show it, then stable
+		return []channelLine{rolling, stable}
+	}
+}
+
+func newestRollingChannel(rows []RepologyPkg, prefixes []string, excluded func(string) bool) channelLine {
+	var newest channelLine
 	for _, p := range rows {
-		lbl := releaseLabel(p.Repo, prefixes)
-		if !rollingRelease(lbl) || excluded(lbl) {
+		label := ReleaseLabel(p.Repo, prefixes)
+		if !rollingRelease(label) || excluded(label) {
 			continue
 		}
-		if rollingVer == "" || betterVer(rollingVer, p.Version) {
-			rollingVer, rollingLabel = p.Version, lbl
+		if newest.Ver == "" || betterVer(newest.Ver, p.Version) {
+			newest = channelLine{p.Version, label}
 		}
 	}
+	return newest
+}
 
-	// Select the newest supported numbered release, then its best version.
-	stableVer, stableLabel := "", ""
+func newestStableChannel(rows []RepologyPkg, prefixes []string, excluded func(string) bool) channelLine {
+	var newest channelLine
 	for _, p := range rows {
-		lbl := releaseLabel(p.Repo, prefixes)
-		if rollingRelease(lbl) || excluded(lbl) {
+		label := ReleaseLabel(p.Repo, prefixes)
+		if rollingRelease(label) || excluded(label) {
 			continue
 		}
 		switch {
-		case stableLabel == "" || verLess(stableLabel, lbl): // first, or a newer release
-			stableVer, stableLabel = p.Version, lbl
-		case lbl == stableLabel && betterVer(stableVer, p.Version): // same release, better version
-			stableVer = p.Version
+		case newest.Label == "" || verLess(newest.Label, label): // first, or a newer release
+			newest = channelLine{p.Version, label}
+		case label == newest.Label && betterVer(newest.Ver, p.Version): // same release, better version
+			newest.Ver = p.Version
 		}
 	}
-
-	switch {
-	case stableVer == "" && rollingVer == "": // everything excluded — fall back to the raw newest
-		v, r := newestRow(rows)
-		return []channelLine{{v, releaseLabel(r, prefixes)}}
-	case stableVer == "": // a pure rolling distro (Arch, AUR, Tumbleweed) — just the rolling line
-		return []channelLine{{rollingVer, rollingLabel}}
-	case rollingVer == "" || !betterVer(stableVer, rollingVer): // no rolling, or it isn't ahead
-		return []channelLine{{stableVer, stableLabel}}
-	default: // a rolling/dev channel is ahead of stable — show it, then stable
-		return []channelLine{{rollingVer, rollingLabel}, {stableVer, stableLabel}}
-	}
+	return newest
 }
 
 // Live distro metadata prevents Debian testing from being mislabeled stable.
-func debianTesting(label string) bool {
-	relInfo.mu.Lock()
-	defer relInfo.mu.Unlock()
-	return relInfo.debian[label] == "testing"
+func DebianTesting(label string) bool {
+	relInfo.Mu.Lock()
+	defer relInfo.Mu.Unlock()
+	return relInfo.Debian[label] == "testing"
 }
 
 // Known unreleased Debian suites, including sid, are development channels.
-func debianDevSuite(series string) bool {
-	relInfo.mu.Lock()
-	defer relInfo.mu.Unlock()
-	released, known := relInfo.debianSer[strings.ToLower(series)]
+func DebianDevSuite(series string) bool {
+	relInfo.Mu.Lock()
+	defer relInfo.Mu.Unlock()
+	released, known := relInfo.DebianSer[strings.ToLower(series)]
 	return known && !released
 }
 
 // releaseLabel removes the family prefix; exact rolling repos have no label.
-func releaseLabel(repo string, prefixes []string) string {
+func ReleaseLabel(repo string, prefixes []string) string {
 	s := repo
 	for _, p := range prefixes {
 		if strings.HasPrefix(repo, p) {
@@ -250,7 +253,7 @@ func releaseLabel(repo string, prefixes []string) string {
 }
 
 // A Repology 404 or empty direct result may fall back to search; other failures remain unavailable.
-func fetchRepology(ctx context.Context, name string) (proj string, pkgs []repologyPkg, alts []string, exact, available bool) {
+func FetchRepology(ctx context.Context, name string) (proj string, pkgs []RepologyPkg, alts []string, exact, available bool) {
 	return fetchRepologyWith(ctx, name, func(ctx context.Context, url string, dst any) error {
 		return GetJSON(ctx, url, nil, dst)
 	})
@@ -260,7 +263,7 @@ func fetchRepologyWith(
 	ctx context.Context,
 	name string,
 	getJSON func(context.Context, string, any) error,
-) (proj string, pkgs []repologyPkg, alts []string, exact, available bool) {
+) (proj string, pkgs []RepologyPkg, alts []string, exact, available bool) {
 	q := strings.ToLower(strings.TrimSpace(name))
 	if q == "" {
 		return "", nil, nil, false, true
@@ -272,7 +275,7 @@ func fetchRepologyWith(
 	if err != nil && httpStatusCode(err) != 404 {
 		return "", nil, nil, false, false
 	}
-	var found map[string][]repologyPkg
+	var found map[string][]RepologyPkg
 	if err := getJSON(ctx, "https://repology.org/api/v1/projects/?search="+neturl.QueryEscape(q), &found); err != nil {
 		return "", nil, nil, false, false
 	}
@@ -290,7 +293,7 @@ func fetchRepologyWith(
 		}
 		fset := map[string]bool{}
 		for _, p := range ps {
-			if f := famOf(p.Repo); f != "" {
+			if f := FamOf(p.Repo); f != "" {
 				fset[f] = true
 			}
 		}
@@ -313,180 +316,23 @@ func fetchRepologyWith(
 	return cands[0].name, found[cands[0].name], alts, false, true
 }
 
-type distroLine struct{ label, ver, rel, url string }
+type DistroLine struct{ Label, Ver, Rel, Url string }
 
 // Show stable and newer ~amd64 separately; equal versions remain one stable line.
 // Without a stable keyword, show only ~amd64.
-func gentooDistroLines(stable, latest, url string) []distroLine {
+func GentooDistroLines(stable, latest, url string) []DistroLine {
 	switch {
 	case stable != "" && latest != "" && stable != latest:
-		return []distroLine{{"Gentoo amd64", stable, "", url}, {"Gentoo ~amd64", latest, "", url}}
+		return []DistroLine{{"Gentoo amd64", stable, "", url}, {"Gentoo ~amd64", latest, "", url}}
 	case stable != "":
-		return []distroLine{{"Gentoo amd64", stable, "", url}}
+		return []DistroLine{{"Gentoo amd64", stable, "", url}}
 	case latest != "":
-		return []distroLine{{"Gentoo ~amd64", latest, "", url}}
+		return []DistroLine{{"Gentoo ~amd64", latest, "", url}}
 	}
 	return nil
 }
 
-func renderRepologyLookupMiss(l i18n.Lang, name string, available bool) string {
-	if !available {
-		return i18n.Messages.LookupDistros.Pkgs.RepologyUnavailable.Render(l, name)
-	}
-	return i18n.Messages.LookupDistros.Pkgs.RepologyNotFound.Render(l, name)
-}
-
-// OnPkgs handles cross-distribution package version lookups.
-func (v *Service) OnPkgs(ctx *th.Context, update telego.Update) error {
-	msg := update.Message
-	if msg == nil || msg.From == nil {
-		return nil
-	}
-	l := v.requesterLanguage(msg)
-	if !v.queryAllowed(ctx, msg, l) {
-		return nil
-	}
-	bot := ctx.Bot()
-	c := ctx.Context()
-	name := commandArg(msg.Text)
-	if name == "" {
-		v.replyLookupPlain(c, bot, msg.Chat.ID, msg.MessageID, i18n.Messages.LookupDistros.Pkgs.Usage.For(l))
-		return nil
-	}
-	hc, cancel := context.WithTimeout(c, 25*time.Second)
-	defer cancel()
-	ensureReleaseInfo(hc, time.Now()) // refresh Debian/Ubuntu stable/testing labels (cached, non-hardcoded)
-	proj, pkgs, alts, exact, repologyOK := fetchRepology(hc, repologyQuery(name))
-	esc := html.EscapeString
-	if len(pkgs) == 0 {
-		v.replyLookupPlain(c, bot, msg.Chat.ID, msg.MessageID, renderRepologyLookupMiss(l, name, repologyOK))
-		return nil
-	}
-
-	// Group rows before selecting stable and rolling channels.
-	famRows := map[string][]repologyPkg{}
-	for _, p := range pkgs {
-		if fam := famOf(p.Repo); fam != "" && p.Version != "" {
-			famRows[fam] = append(famRows[fam], p)
-		}
-	}
-
-	// Gentoo uses authoritative keyword data; Repology cannot distinguish stable from ~amd64.
-	var lines []distroLine
-	if atoms, _ := searchMainTree(hc, proj); len(atoms) > 0 {
-		atom := atoms[0]
-		if pkgName := atom[strings.LastIndexByte(atom, '/')+1:]; strings.EqualFold(pkgName, proj) {
-			gURL := "https://packages.gentoo.org/packages/" + atom
-			stable, latest, _ := pkgVersion(hc, atom)
-			lines = append(lines, gentooDistroLines(stable, latest, gURL)...)
-		}
-	}
-	qproj := neturl.QueryEscape(proj)
-	for _, f := range distroFamilies {
-		rows := famRows[f.label]
-		if f.label == "Gentoo" {
-			if len(lines) == 0 && len(rows) > 0 { // bot lookup found nothing -> fall back to Repology
-				nv, nr := newestRow(rows)
-				lines = append(lines, distroLine{"Gentoo", nv, releaseLabel(nr, f.prefixes), fmt.Sprintf(f.search, qproj)})
-			}
-			continue
-		}
-		if len(rows) == 0 {
-			continue
-		}
-		// Relabel raw release numbers from live distro metadata.
-		var isTesting func(string) bool
-		switch f.label {
-		case "Debian": // Debian numbers a testing series (forky/14) above stable
-			isTesting = debianTesting
-		case "Ubuntu": // exclude unreleased + proposed/backports + EOL series (18.04/20.04, …)
-			isTesting = ubuntuExcluded
-		}
-		url := fmt.Sprintf(f.search, qproj)
-		for _, ch := range familyChannels(rows, f.prefixes, isTesting) {
-			label := ch.label
-			if f.relabel != nil {
-				label = f.relabel(l, ch.label)
-			}
-			lines = append(lines, distroLine{f.label, ch.ver, label, url})
-		}
-	}
-	if len(lines) == 0 {
-		v.replyLookupPlain(c, bot, msg.Chat.ID, msg.MessageID, i18n.Messages.LookupDistros.Pkgs.NoSupportedDistro.Render(l, proj))
-		return nil
-	}
-
-	head := i18n.Messages.LookupDistros.Pkgs.Heading.Render(l, esc(repologyVersionsURL(proj)), esc(proj))
-	if !exact {
-		head += i18n.Messages.LookupDistros.Pkgs.ClosestMatch.Render(l, esc(name))
-	}
-	var plain, rich strings.Builder
-	plain.WriteString(i18n.Messages.LookupDistros.Pkgs.PlainHeading.Render(l, head))
-	rich.WriteString("<h3>" + head + "</h3><ul>")
-	for _, ln := range lines {
-		famLink := fmt.Sprintf("<a href=\"%s\">%s</a>", esc(ln.url), esc(ln.label))
-		rel := ""
-		if ln.rel != "" {
-			rel = i18n.Messages.LookupDistros.Pkgs.ReleaseRole.Render(l, esc(ln.rel))
-		}
-		plain.WriteString(i18n.Messages.LookupDistros.Pkgs.PlainRow.Render(l, famLink, esc(displayVer(ln.ver)), rel))
-		rich.WriteString(i18n.Messages.LookupDistros.Pkgs.RichRow.Render(l, famLink, esc(displayVer(ln.ver)), rel))
-	}
-	rich.WriteString("</ul>")
-	if len(alts) > 0 {
-		var al strings.Builder
-		for i, a := range alts {
-			if i > 0 {
-				al.WriteString(" · ")
-			}
-			fmt.Fprintf(&al, "<a href=\"%s\">%s</a>", esc(repologyVersionsURL(a)), esc(a))
-		}
-		plain.WriteString(i18n.Messages.LookupDistros.Pkgs.Alternatives.Render(l, al.String()))
-		// Collapse alternatives so the main table stays compact.
-		rich.WriteString(i18n.Messages.LookupDistros.Pkgs.RichAlternatives.Render(l, len(alts), al.String()))
-	}
-	v.sendRichOrHTML(c, bot, msg.Chat.ID, msg.MessageID, rich.String(), plain.String())
-	return nil
-}
-
-// /armpkgs compares arm64 support across distro-specific architecture APIs.
-
-func (v *Service) gentooArmStatus(ctx context.Context, l i18n.Lang, name string) (status, url string) {
-	return gentooArmStatusWith(ctx, l, name, searchMainTree, armStatus)
-}
-
-func gentooArmStatusWith(
-	ctx context.Context,
-	l i18n.Lang,
-	name string,
-	search func(context.Context, string) ([]string, bool),
-	status func(context.Context, string) (string, string, bool),
-) (string, string) {
-	searchURL := "https://packages.gentoo.org/packages/search?q=" + neturl.QueryEscape(name)
-	atoms, available := search(ctx, name)
-	if !available {
-		return i18n.Messages.LookupDistros.Armpkgs.QueryFailed.For(l), searchURL
-	}
-	if len(atoms) == 0 {
-		return i18n.Messages.LookupDistros.Armpkgs.NotInOfficialTree.For(l), searchURL
-	}
-	url := "https://packages.gentoo.org/packages/" + atoms[0]
-	stable, testing, ok := status(ctx, atoms[0])
-	switch {
-	case !ok:
-		return i18n.Messages.LookupDistros.Armpkgs.QueryFailed.For(l), url
-	case stable != "" && testing != "":
-		return i18n.Messages.LookupDistros.Armpkgs.StableTesting.Render(l, stable, testing), url
-	case stable != "":
-		return i18n.Messages.LookupDistros.Armpkgs.StableOnly.Render(l, stable), url
-	case testing != "":
-		return i18n.Messages.LookupDistros.Armpkgs.TestingOnly.Render(l, testing), url
-	default:
-		return i18n.Messages.LookupDistros.Armpkgs.NoArm64Keyword.For(l), url
-	}
-}
-
-type madEntry struct{ suite, ver string }
+type madEntry struct{ Suite, ver string }
 
 // Madison output is oldest-first; pocket variants are excluded and suites deduplicated.
 func parseMadison(body string) []madEntry {
@@ -515,190 +361,18 @@ func parseMadison(body string) []madEntry {
 // pickMadison prefers the newest released suite, flagging a development-only fallback.
 func pickMadison(entries []madEntry, devSuite func(string) bool) (suite, ver string, dev bool) {
 	pick := entries[len(entries)-1] // madison lists oldest-first, so the last is the newest suite
-	dev = devSuite != nil && devSuite(pick.suite)
+	dev = devSuite != nil && devSuite(pick.Suite)
 	if dev {
 		for i := len(entries) - 2; i >= 0; i-- {
-			if !devSuite(entries[i].suite) {
-				return entries[i].suite, entries[i].ver, false
+			if !devSuite(entries[i].Suite) {
+				return entries[i].Suite, entries[i].ver, false
 			}
 		}
 	}
-	return pick.suite, pick.ver, dev
-}
-
-// Development suites are never presented as current releases.
-func madisonArmStatus(ctx context.Context, l i18n.Lang, madisonURL, pkg string, devSuite func(string) bool) string {
-	body, err := httpGetBody(ctx, madisonURL+neturl.QueryEscape(pkg)+"&text=on&a=arm64", 1<<20)
-	if err != nil {
-		return i18n.Messages.LookupDistros.Armpkgs.QueryFailed.For(l)
-	}
-	entries := parseMadison(string(body))
-	if len(entries) == 0 {
-		return i18n.Messages.LookupDistros.Armpkgs.NoArm64Package.For(l)
-	}
-	suite, ver, dev := pickMadison(entries, devSuite)
-	if dev {
-		suite = i18n.Messages.LookupDistros.Armpkgs.DevelopmentSuite.Render(l, suite)
-	}
-	return i18n.Messages.LookupDistros.Armpkgs.Available.Render(l, suite, displayVer(ver))
-}
-
-// Only an authoritative 404 proves absence; all other failures remain unknown.
-func fedoraArmStatus(ctx context.Context, l i18n.Lang, pkg string) string {
-	return fedoraArmStatusWith(ctx, l, pkg, func(ctx context.Context, url string) (string, error) {
-		var r struct {
-			Version string `json:"version"`
-			Arch    string `json:"arch"`
-		}
-		if err := GetJSON(ctx, url, nil, &r); err != nil {
-			return "", err
-		}
-		// mdapi currently serves x86_64 metadata for this route. Only an
-		// aarch64 or architecture-independent record can prove arm64 support.
-		if r.Arch != "aarch64" && r.Arch != "noarch" {
-			return "", fmt.Errorf("fedora mdapi returned architecture %q", r.Arch)
-		}
-		return r.Version, nil
-	})
-}
-
-func fedoraArmStatusWith(
-	ctx context.Context,
-	l i18n.Lang,
-	pkg string,
-	fetch func(context.Context, string) (string, error),
-) string {
-	version, err := fetch(ctx, "https://mdapi.fedoraproject.org/rawhide/pkg/"+neturl.PathEscape(pkg))
-	if err != nil {
-		if httpStatusCode(err) == 404 {
-			return i18n.Messages.LookupDistros.Armpkgs.NotInFedora.For(l)
-		}
-		return i18n.Messages.LookupDistros.Armpkgs.FedoraQueryFailed.For(l)
-	}
-	if version == "" {
-		return i18n.Messages.LookupDistros.Armpkgs.FedoraQueryFailed.For(l)
-	}
-	return i18n.Messages.LookupDistros.Armpkgs.FedoraRawhide.Render(l, version)
+	return pick.Suite, pick.ver, dev
 }
 
 var aurArchRe = regexp.MustCompile(`(?i)arch=\(([^)]*)\)`)
-
-// AUR support follows the PKGBUILD arch declaration, not buildability in practice.
-func aurArchLabel(l i18n.Lang, pkgbuild string) string {
-	m := aurArchRe.FindStringSubmatch(pkgbuild)
-	if m == nil {
-		return i18n.Messages.LookupDistros.Armpkgs.PKGBUILDParseFailed.For(l)
-	}
-	arch := strings.ToLower(m[1])
-	switch {
-	case strings.Contains(arch, "any"):
-		return i18n.Messages.LookupDistros.Armpkgs.AnyArchitecture.For(l)
-	case strings.Contains(arch, "aarch64"):
-		return i18n.Messages.LookupDistros.Armpkgs.DeclaresAarch64.For(l)
-	case strings.Contains(arch, "arm"):
-		return i18n.Messages.LookupDistros.Armpkgs.Arm32Only.For(l)
-	default:
-		return i18n.Messages.LookupDistros.Armpkgs.X86Only.For(l)
-	}
-}
-
-// Only an AUR 404 proves absence; other failures remain unknown.
-func (v *Service) aurArmStatus(ctx context.Context, l i18n.Lang, pkg string) string {
-	body, err := httpGetBody(ctx, "https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h="+neturl.QueryEscape(pkg), 64<<10)
-	if err != nil {
-		if httpStatusCode(err) == 404 {
-			return i18n.Messages.LookupDistros.Armpkgs.NotInAUR.For(l)
-		}
-		return i18n.Messages.LookupDistros.Armpkgs.AURQueryFailed.For(l)
-	}
-	return aurArchLabel(l, string(body))
-}
-
-// Only an Arch Linux ARM 404 proves absence.
-func alarmArmStatus(ctx context.Context, l i18n.Lang, pkg string) string {
-	resp, err := httpGet(ctx, "https://archlinuxarm.org/packages/aarch64/"+neturl.PathEscape(pkg), nil)
-	if err == nil {
-		err = resp.Body.Close()
-	}
-	if err != nil {
-		if httpStatusCode(err) == 404 {
-			return i18n.Messages.LookupDistros.Armpkgs.NotPackaged.For(l)
-		}
-		return i18n.Messages.LookupDistros.Armpkgs.QueryFailed.For(l)
-	}
-	return i18n.Messages.LookupDistros.Armpkgs.Packaged.For(l)
-}
-
-// OnArmpkgs handles cross-distribution arm64 support lookups.
-func (v *Service) OnArmpkgs(ctx *th.Context, update telego.Update) error {
-	msg := update.Message
-	if msg == nil || msg.From == nil {
-		return nil
-	}
-	l := v.requesterLanguage(msg)
-	if !v.queryAllowed(ctx, msg, l) {
-		return nil
-	}
-	bot := ctx.Bot()
-	c := ctx.Context()
-	name := commandArg(msg.Text)
-	if name == "" {
-		v.replyLookupPlain(c, bot, msg.Chat.ID, msg.MessageID, i18n.Messages.LookupDistros.Armpkgs.Usage.For(l))
-		return nil
-	}
-	hc, cancel := context.WithTimeout(c, 25*time.Second)
-	defer cancel()
-	ensureReleaseInfo(hc, time.Now()) // load Debian and Ubuntu series status so development suites are skipped
-	pe := neturl.PathEscape(name)
-
-	sources := []struct {
-		label string
-		fn    func() (string, string)
-	}{
-		{"Gentoo", func() (string, string) { return v.gentooArmStatus(hc, l, name) }},
-		{"Debian", func() (string, string) {
-			return madisonArmStatus(hc, l, "https://qa.debian.org/madison.php?package=", name, debianDevSuite), "https://tracker.debian.org/pkg/" + pe
-		}},
-		{"Ubuntu", func() (string, string) {
-			return madisonArmStatus(hc, l, "https://people.canonical.com/~ubuntu-archive/madison.cgi?package=", name, ubuntuDevSuite), "https://launchpad.net/ubuntu/+source/" + pe
-		}},
-		{"Fedora", func() (string, string) {
-			return fedoraArmStatus(hc, l, name), "https://packages.fedoraproject.org/pkgs/" + pe + "/"
-		}},
-		{"Arch Linux ARM", func() (string, string) {
-			return alarmArmStatus(hc, l, name), "https://archlinuxarm.org/packages/aarch64/" + pe
-		}},
-		{"AUR", func() (string, string) {
-			return v.aurArmStatus(hc, l, name), "https://aur.archlinux.org/packages/" + pe
-		}},
-	}
-	type srcResult struct{ label, status, url string }
-	results := make([]srcResult, len(sources))
-	var wg sync.WaitGroup
-	for i, s := range sources {
-		wg.Add(1)
-		go func(i int, label string, fn func() (string, string)) {
-			defer wg.Done()
-			status, url := fn()
-			results[i] = srcResult{label, status, url}
-		}(i, s.label, s.fn)
-	}
-	wg.Wait()
-
-	esc := html.EscapeString
-	var b strings.Builder
-	b.WriteString(i18n.Messages.LookupDistros.Armpkgs.Heading.Render(l, esc(name)))
-	for _, r := range results {
-		b.WriteString(i18n.Messages.LookupDistros.Armpkgs.Row.Render(l, esc(r.url), esc(r.label), esc(r.status)))
-	}
-	b.WriteByte('\n')
-	b.WriteString(i18n.Messages.LookupDistros.Armpkgs.Footer.For(l))
-	v.replyLookupHTML(c, bot, msg.Chat.ID, msg.MessageID, b.String())
-	return nil
-}
-
-// Debian and Ubuntu channel roles come from live distro-info-data, not hardcoded releases.
-// /pkgs uses the cached roles for stable, testing, oldstable, LTS, and EOL labels.
 
 const relInfoTTL = 24 * time.Hour
 
@@ -711,53 +385,53 @@ var (
 )
 
 var relInfo = struct {
-	mu         sync.Mutex
-	debian     map[string]string // Debian version ("13") -> status ("stable"/"testing"/...)
-	debianSer  map[string]bool   // Debian series codename ("trixie") -> already released?
+	Mu         sync.Mutex
+	Debian     map[string]string // Debian version ("13") -> status ("stable"/"testing"/...)
+	DebianSer  map[string]bool   // Debian series codename ("trixie") -> already released?
 	ubuntu     map[string]bool   // Ubuntu version ("24.04") -> is it an LTS?
 	ubuntuRel  map[string]bool   // Ubuntu version ("24.04") -> already released (date in the past)?
 	ubuntuEOL  map[string]bool   // Ubuntu version ("18.04") -> past the standard-support end date?
-	ubuntuSer  map[string]bool   // Ubuntu series codename ("resolute") -> already released?
-	fetched    time.Time
-	refreshing bool // a fetch is in flight (so concurrent /pkgs don't all hit upstream)
+	UbuntuSer  map[string]bool   // Ubuntu series codename ("resolute") -> already released?
+	Fetched    time.Time
+	Refreshing bool // a fetch is in flight (so concurrent /pkgs don't all hit upstream)
 }{}
 
 // Refresh is optional enrichment: failures retain old data and raw labels still work.
 // The in-flight guard coalesces concurrent cold lookups.
-func ensureReleaseInfo(ctx context.Context, now time.Time) {
-	relInfo.mu.Lock()
-	fresh := relInfo.debian != nil && now.Sub(relInfo.fetched) < relInfoTTL
-	if fresh || relInfo.refreshing {
-		relInfo.mu.Unlock()
+func EnsureReleaseInfo(ctx context.Context, now time.Time) {
+	relInfo.Mu.Lock()
+	fresh := relInfo.Debian != nil && now.Sub(relInfo.Fetched) < relInfoTTL
+	if fresh || relInfo.Refreshing {
+		relInfo.Mu.Unlock()
 		return // already fresh, or someone else is fetching — fall back to current data
 	}
-	relInfo.refreshing = true
-	relInfo.mu.Unlock()
+	relInfo.Refreshing = true
+	relInfo.Mu.Unlock()
 	// Always clear the in-flight flag, including during panic unwinding.
 	defer func() {
-		relInfo.mu.Lock()
-		relInfo.refreshing = false
-		relInfo.mu.Unlock()
+		relInfo.Mu.Lock()
+		relInfo.Refreshing = false
+		relInfo.Mu.Unlock()
 	}()
 
 	deb := fetchDebianStatusFn(ctx, now)
 	ubu, ubuRel, ubuEOL, ubuSer := fetchUbuntuFn(ctx, now)
 
 	// Empty HTTP-200 parses indicate upstream errors or schema drift; never replace good data.
-	debOK, ubuOK := len(deb.roles) > 0, len(ubu) > 0
-	relInfo.mu.Lock()
+	debOK, ubuOK := len(deb.Roles) > 0, len(ubu) > 0
+	relInfo.Mu.Lock()
 	if debOK {
-		relInfo.debian, relInfo.debianSer = deb.roles, deb.series
+		relInfo.Debian, relInfo.DebianSer = deb.Roles, deb.Series
 	}
 	if ubuOK {
-		relInfo.ubuntu, relInfo.ubuntuRel, relInfo.ubuntuEOL, relInfo.ubuntuSer = ubu, ubuRel, ubuEOL, ubuSer
+		relInfo.ubuntu, relInfo.ubuntuRel, relInfo.ubuntuEOL, relInfo.UbuntuSer = ubu, ubuRel, ubuEOL, ubuSer
 	}
-	if relInfo.debian == nil {
-		relInfo.debian = map[string]string{} // mark attempted so the freshness gate can hold (no per-call refetch)
+	if relInfo.Debian == nil {
+		relInfo.Debian = map[string]string{} // mark attempted so the freshness gate can hold (no per-call refetch)
 	}
 	// Full TTL requires both sources; partial refreshes use the short retry window.
-	relInfo.fetched = relInfoNextFetched(now, debOK && ubuOK)
-	relInfo.mu.Unlock()
+	relInfo.Fetched = relInfoNextFetched(now, debOK && ubuOK)
+	relInfo.Mu.Unlock()
 }
 
 // Backdate failed refreshes to leave only relInfoRetryTTL freshness.
@@ -780,8 +454,8 @@ func parseDistroInfo(body string) (rows [][]string) {
 }
 
 type debianReleaseData struct {
-	roles  map[string]string
-	series map[string]bool
+	Roles  map[string]string
+	Series map[string]bool
 }
 
 func fetchDebianStatus(ctx context.Context, now time.Time) debianReleaseData {
@@ -793,7 +467,7 @@ func fetchDebianStatus(ctx context.Context, now time.Time) debianReleaseData {
 }
 
 func deriveDebianStatus(body string, now time.Time) map[string]string {
-	return deriveDebianReleaseData(body, now).roles
+	return deriveDebianReleaseData(body, now).Roles
 }
 
 // Derive stable generations, the next testing release, and suite release state from dates.
@@ -851,7 +525,7 @@ func deriveDebianReleaseData(body string, now time.Time) debianReleaseData {
 			roles[testing] = "testing"
 		}
 	}
-	return debianReleaseData{roles: roles, series: series}
+	return debianReleaseData{Roles: roles, Series: series}
 }
 
 // Ubuntu maps track LTS, release, standard-support end, and codename release state.
@@ -892,47 +566,44 @@ func fetchUbuntu(ctx context.Context, now time.Time) (lts, released, eol, series
 }
 
 // Known unreleased Ubuntu suites are development; unknown suites remain displayable.
-func ubuntuDevSuite(series string) bool {
-	relInfo.mu.Lock()
-	defer relInfo.mu.Unlock()
-	released, known := relInfo.ubuntuSer[strings.ToLower(series)]
+func UbuntuDevSuite(series string) bool {
+	relInfo.Mu.Lock()
+	defer relInfo.Mu.Unlock()
+	released, known := relInfo.UbuntuSer[strings.ToLower(series)]
 	return known && !released
 }
 
 // Unknown Debian labels pass through before metadata loads.
-func debianRelabel(_ i18n.Lang, raw string) string {
+func debianRelabel(raw string) ReleaseInfo {
 	if raw == "unstable" {
-		return "unstable/sid" // the rolling unstable channel is codenamed sid
+		return ReleaseInfo{Label: "unstable/sid"}
 	}
-	relInfo.mu.Lock()
-	defer relInfo.mu.Unlock()
-	if s, ok := relInfo.debian[raw]; ok {
-		return raw + " " + s // e.g. "13 stable"
+	relInfo.Mu.Lock()
+	defer relInfo.Mu.Unlock()
+	if s, ok := relInfo.Debian[raw]; ok {
+		return ReleaseInfo{Label: raw + " " + s}
 	}
-	return raw
+	return ReleaseInfo{Label: raw}
 }
 
-func ubuntuRelabel(l i18n.Lang, raw string) string {
-	relInfo.mu.Lock()
-	defer relInfo.mu.Unlock()
+func ubuntuRelabel(raw string) ReleaseInfo {
+	relInfo.Mu.Lock()
+	defer relInfo.Mu.Unlock()
 	out := raw
 	if relInfo.ubuntu[raw] {
 		out += " LTS"
 	}
-	if relInfo.ubuntuEOL[raw] { // the upstream EOL column marks the end of standard support
-		out += i18n.Messages.LookupDistros.Release.StandardSupportEnded.For(l)
-	}
-	return out
+	return ReleaseInfo{Label: out, SupportEnded: relInfo.ubuntuEOL[raw]}
 }
 
 // Exclude proposed, backports, unreleased, and post-standard-support Ubuntu series from the current line.
 // Unknown series remain eligible so lookups still work before metadata loads.
-func ubuntuExcluded(label string) bool {
+func UbuntuExcluded(label string) bool {
 	if strings.Contains(label, "proposed") || strings.Contains(label, "backport") {
 		return true
 	}
-	relInfo.mu.Lock()
-	defer relInfo.mu.Unlock()
+	relInfo.Mu.Lock()
+	defer relInfo.Mu.Unlock()
 	if relInfo.ubuntuEOL[label] {
 		return true
 	}

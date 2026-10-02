@@ -62,10 +62,6 @@ func NewHealth(databaseHealthy func(context.Context) error) *Health {
 	return health
 }
 
-func (h *Health) SetLive(ready bool) {
-	h.live.Store(ready)
-}
-
 func (h *Health) SetConfigReady(ready bool) {
 	h.configReady.Store(ready)
 }

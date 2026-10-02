@@ -222,6 +222,7 @@ func newLifecycleBot(t *testing.T, caller ta.Caller) *telego.Bot {
 	}
 	return bot
 }
+
 func (c *lifecycleCaller) sentMessages() []telego.SendMessageParams {
 	c.mu.Lock()
 	defer c.mu.Unlock()

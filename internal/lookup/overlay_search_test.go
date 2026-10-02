@@ -29,7 +29,7 @@ func TestAnExactOverlayMatchOutranksSubstringMatchesAndSurvivesTheCap(t *testing
 	}
 	pc := overlayCacheWith("guru", atoms...)
 
-	hits := pc.search(query)["guru"]
+	hits := pc.Search(query)["guru"]
 	if len(hits) == 0 {
 		t.Fatalf("search(%q) returned nothing, want the exact package and its neighbours", query)
 	}
@@ -60,14 +60,14 @@ func TestASlashedQueryIsMatchedAgainstTheWholeAtom(t *testing.T) {
 		"app-misc/other-oh-my-pi-bin",
 	)
 
-	hits := pc.search("dev-util/oh-my-pi-bin")["guru"]
+	hits := pc.Search("dev-util/oh-my-pi-bin")["guru"]
 	if len(hits) != 1 || hits[0] != "dev-util/oh-my-pi-bin" {
 		t.Errorf("search(dev-util/oh-my-pi-bin) = %v, want exactly [dev-util/oh-my-pi-bin]: a categorised query must find its own package and nothing from another category",
 			hits)
 	}
 
 	// Positive control: the bare name still reaches both packages through the same call.
-	if bare := pc.search("oh-my-pi-bin")["guru"]; len(bare) != 2 {
+	if bare := pc.Search("oh-my-pi-bin")["guru"]; len(bare) != 2 {
 		t.Errorf("search(oh-my-pi-bin) = %v, want both packages", bare)
 	}
 }

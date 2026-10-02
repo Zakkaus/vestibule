@@ -458,9 +458,9 @@ func formatBugMarked(base string, b recentBug, l i18n.Lang, marker string) strin
 		}
 	}
 
-	status := lookup.TranslateBugValue(l, b.Status)
+	status := i18n.TranslateBugValue(l, b.Status)
 	if b.Resolution != "" {
-		status += labels.StatusResolutionSeparator.For(l) + lookup.TranslateBugValue(l, b.Resolution)
+		status += labels.StatusResolutionSeparator.For(l) + i18n.TranslateBugValue(l, b.Resolution)
 	}
 	line(labels.Status.For(l), status)
 
@@ -469,8 +469,8 @@ func formatBugMarked(base string, b recentBug, l i18n.Lang, marker string) strin
 		comp += " › " + b.Component
 	}
 	line(labels.ProductComponent.For(l), comp)
-	line(labels.Priority.For(l), lookup.TranslateBugValue(l, b.Priority))
-	line(labels.Severity.For(l), lookup.TranslateBugValue(l, b.Severity))
+	line(labels.Priority.For(l), i18n.TranslateBugValue(l, b.Priority))
+	line(labels.Severity.For(l), i18n.TranslateBugValue(l, b.Severity))
 	if len(b.Keywords) > 0 {
 		line(labels.Keywords.For(l), capRunes(strings.Join(b.Keywords, ", "), 400))
 	}
@@ -655,11 +655,11 @@ func formatNews(_ i18n.Lang, n lookup.NewsItem) string {
 
 // confirmNotice is the brief, non-silent message sent when a previously-UNCONFIRMED bug (which was
 // posted silently) leaves UNCONFIRMED — the notification the silent original never produced. It
-// names the bug's ACTUAL new status (CONFIRMED, IN_PROGRESS, …), localized by lookup.TranslateBugValue, rather than
+// names the bug's ACTUAL new status (CONFIRMED, IN_PROGRESS, …), localized by i18n.TranslateBugValue, rather than
 // always "confirmed", since the trigger is any move out of UNCONFIRMED. 🔔 (not ✅, which marks
 // resolution) signals a live status update; rendered in the feed's own language.
 func confirmNotice(base string, b recentBug, l i18n.Lang) string {
-	status := lookup.TranslateBugValue(l, b.Status)
+	status := i18n.TranslateBugValue(l, b.Status)
 	return fmt.Sprintf("🔔 <a href=\"%s/%d\"><b>Bug %d</b></a> → %s\n%s",
 		base, b.ID, b.ID, html.EscapeString(status), html.EscapeString(capRunes(b.Summary, 600)))
 }

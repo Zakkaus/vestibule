@@ -63,9 +63,9 @@ func TestFormatBugCatalogueLabels(t *testing.T) {
 					t.Errorf("formatted bug does not contain catalogue field %q: %q", want, got)
 				}
 			}
-			wantStatus := lookup.TranslateBugValue(lang, bug.Status) +
+			wantStatus := i18n.TranslateBugValue(lang, bug.Status) +
 				labels.StatusResolutionSeparator.For(lang) +
-				lookup.TranslateBugValue(lang, bug.Resolution)
+				i18n.TranslateBugValue(lang, bug.Resolution)
 			if !strings.Contains(got, wantStatus) {
 				t.Errorf("formatted bug status = %q, want substring %q", got, wantStatus)
 			}
@@ -845,7 +845,7 @@ func TestConfirmNotice(t *testing.T) {
 	if got := confirmNotice("https://bugzilla.example.test", recentBug{ID: 5, Status: "IN_PROGRESS"}, feedLanguage("en")); !strings.Contains(got, "IN_PROGRESS") {
 		t.Errorf("en IN_PROGRESS notice should name the status, got %q", got)
 	}
-	want := lookup.TranslateBugValue(i18n.LangZH, "IN_PROGRESS")
+	want := i18n.TranslateBugValue(i18n.LangZH, "IN_PROGRESS")
 	if got := confirmNotice("https://bugzilla.example.test", recentBug{ID: 5, Status: "IN_PROGRESS"}, feedLanguage("zh")); !strings.Contains(got, want) {
 		t.Errorf("zh IN_PROGRESS notice should contain catalogue status %q, got %q", want, got)
 	}

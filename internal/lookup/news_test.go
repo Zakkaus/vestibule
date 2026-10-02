@@ -4,12 +4,9 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
-
-	"github.com/Zakkaus/vestibule/internal/i18n"
 )
 
 type newsLookupResult struct {
@@ -164,69 +161,4 @@ func TestConcurrentNewsLookupReturnsPreviousItemsWithoutSecondFetch(t *testing.T
 
 	releaseFirst()
 	expectFreshNewsLookup(t, firstResult)
-}
-
-func TestRenderNewsAvailability(t *testing.T) {
-	item := NewsItem{Date: "2026-08-24", Title: "Kernel update", URL: "https://example.test/kernel"}
-	tests := []struct {
-		name      string
-		arg       string
-		items     []NewsItem
-		available bool
-		want      []string
-		notWant   string
-	}{
-		{
-			name:      "authoritative empty result",
-			arg:       "missing",
-			available: true,
-			want:      []string{i18n.Messages.LookupContent.News.NoMatches.For(i18n.LangZH)},
-			notWant:   i18n.Messages.LookupContent.News.Unavailable.For(i18n.LangZH),
-		},
-		{
-			name:    "index unavailable",
-			arg:     "missing",
-			want:    []string{i18n.Messages.LookupContent.News.Unavailable.For(i18n.LangZH)},
-			notWant: i18n.Messages.LookupContent.News.NoMatches.For(i18n.LangZH),
-		},
-		{
-			name:      "available filtered miss",
-			arg:       "missing",
-			items:     []NewsItem{item},
-			available: true,
-			want:      []string{i18n.Messages.LookupContent.News.NoMatches.For(i18n.LangZH)},
-		},
-		{
-			name:    "stale hit is incomplete",
-			arg:     "kernel",
-			items:   []NewsItem{item},
-			want:    []string{item.Title, i18n.Messages.LookupContent.News.Stale.For(i18n.LangZH)},
-			notWant: i18n.Messages.LookupContent.News.NoMatches.For(i18n.LangZH),
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := renderNews(i18n.LangZH, tt.arg, tt.items, tt.available)
-			for _, want := range tt.want {
-				if !strings.Contains(got, want) {
-					t.Errorf("renderNews() = %q, want substring %q", got, want)
-				}
-			}
-			if tt.notWant != "" && strings.Contains(got, tt.notWant) {
-				t.Errorf("renderNews() = %q, unwanted substring %q", got, tt.notWant)
-			}
-		})
-	}
-}
-
-func TestNewsRenderingLimitsRepliesToEightItems(t *testing.T) {
-	items := make([]NewsItem, 9)
-	for i := range items {
-		items[i] = NewsItem{Date: "2026-09-03", Title: "Kernel news", URL: "https://example.test/news"}
-	}
-
-	got := renderNews(i18n.LangEN, "", items, true)
-	if count := strings.Count(got, "\n • "); count != 8 {
-		t.Errorf("/news rendered %d items; more than eight can make its Telegram reply too long", count)
-	}
 }

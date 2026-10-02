@@ -62,6 +62,10 @@ All notable changes to this project are documented here. The format is based on
   gate self-coverage mutations cover both SQLite and PostgreSQL invocations.
 - PostgreSQL test fixtures now use dialect-specific read-only settings and table discovery,
   portable boolean literals, and the current database test helper after rebases.
+- Message-reader validation follows called catalogue helpers and their dependencies,
+  while rejecting uncalled helpers, comment-only references, and test-only callers.
+  The package-boundary ratchet self-test uses an isolated lint-clean fixture, and
+  the license mutation fixture supplies a valid VCS root for dependency discovery.
 - The Compose database volume now mounts at `/var/lib/postgresql` as PostgreSQL 18 requires.
   Native installs record their deployment type so host replacement works, and `import-state`
   rejects a missing or invalid `-pending` before touching the database.

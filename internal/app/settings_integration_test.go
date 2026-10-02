@@ -58,7 +58,7 @@ func newTestVerifier(
 }
 
 func testLookupService(v *testLookupApplication) *lookup.Service {
-	return lookup.New(v.settings, nil, v.cfg, "")
+	return lookup.New(v.settings, v.cfg, "")
 }
 
 func TestLookupAutoDelete(t *testing.T) {

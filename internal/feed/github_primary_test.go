@@ -101,7 +101,7 @@ func primaryGitHubDelivery(t *testing.T) {
 	defer server.Close()
 	primaryRestrictHTTP(t, server.URL)
 	config := primaryLoadConfig(t, server.URL+"/mount&amp;copy")
-	lookup.New(nil, nil, config, "")
+	lookup.New(nil, config, "")
 	feedSendPause = 0
 	caller := &primaryCaller{}
 	bot := newAPITestBot(t, caller)

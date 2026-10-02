@@ -13,18 +13,18 @@ const xzRecord = `{"vulnerabilities":[{"cve":{
 
 func TestCVERecordParsing(t *testing.T) {
 	withFixtureBody(t, "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2024-3094", xzRecord, func() {
-		record, found, failed := fetchCVE(context.Background(), "CVE-2024-3094")
+		record, found, failed := FetchCVE(context.Background(), "CVE-2024-3094")
 		if !found || failed {
 			t.Fatalf("found=%v failed=%v", found, failed)
 		}
-		if record.severity != "CRITICAL" || record.score != "10" {
-			t.Errorf("severity=%q score=%q", record.severity, record.score)
+		if record.Severity != "CRITICAL" || record.Score != "10" {
+			t.Errorf("severity=%q score=%q", record.Severity, record.Score)
 		}
-		if record.published != "2024-03-29" {
-			t.Errorf("published = %q, want the date without the time", record.published)
+		if record.Published != "2024-03-29" {
+			t.Errorf("published = %q, want the date without the time", record.Published)
 		}
-		if !strings.HasPrefix(record.description, "Malicious code") {
-			t.Errorf("description = %q, want the English one", record.description)
+		if !strings.HasPrefix(record.Description, "Malicious code") {
+			t.Errorf("description = %q, want the English one", record.Description)
 		}
 	})
 }
@@ -33,7 +33,7 @@ func TestCVERecordParsing(t *testing.T) {
 func TestCVEUnknownIsNotAnOutage(t *testing.T) {
 	withFixtureBody(t, "https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-2099-9999",
 		`{"vulnerabilities":[]}`, func() {
-			_, found, failed := fetchCVE(context.Background(), "CVE-2099-9999")
+			_, found, failed := FetchCVE(context.Background(), "CVE-2099-9999")
 			if found {
 				t.Error("an empty result means the record does not exist")
 			}
@@ -46,12 +46,12 @@ func TestCVEUnknownIsNotAnOutage(t *testing.T) {
 // Only a published identifier reaches the network.
 func TestCVEIdentifierShape(t *testing.T) {
 	for _, id := range []string{"CVE-2024-3094", "cve-1999-0001", "CVE-2024-1234567890"} {
-		if !cveIDRe.MatchString(id) {
+		if !CveIDRe.MatchString(id) {
 			t.Errorf("%q is a valid identifier", id)
 		}
 	}
 	for _, id := range []string{"", "CVE-24-1", "GHSA-xxxx", "CVE-2024-3094 OR 1=1", "../x", "CVE-2024-123"} {
-		if cveIDRe.MatchString(id) {
+		if CveIDRe.MatchString(id) {
 			t.Errorf("%q must not reach the network", id)
 		}
 	}

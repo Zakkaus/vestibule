@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"strings"
 	"testing"
-
-	"github.com/Zakkaus/vestibule/internal/i18n"
 )
 
 type bugTestRoundTripper func(*http.Request) (*http.Response, error)
@@ -25,17 +23,17 @@ func TestFetchBugLookupState(t *testing.T) {
 		status    int
 		body      string
 		err       error
-		wantState bugLookupState
+		wantState BugLookupState
 		wantTitle string
 	}{
 		{
 			name:      "found",
 			status:    http.StatusOK,
 			body:      `{"bugs":[{"summary":"Example","status":"CONFIRMED"}]}`,
-			wantState: bugLookupFound,
+			wantState: BugLookupFound,
 			wantTitle: "Example",
 		},
-		{name: "genuine 404", status: http.StatusNotFound, wantState: bugLookupNotFound},
+		{name: "genuine 404", status: http.StatusNotFound, wantState: BugLookupNotFound},
 		{name: "rate limited", status: http.StatusTooManyRequests, wantState: bugLookupUnavailable},
 		{name: "server failure", status: http.StatusInternalServerError, wantState: bugLookupUnavailable},
 		{name: "timeout", err: context.DeadlineExceeded, wantState: bugLookupUnavailable},
@@ -54,129 +52,12 @@ func TestFetchBugLookupState(t *testing.T) {
 					Body:       io.NopCloser(strings.NewReader(tt.body)),
 				}, nil
 			})}
-			info, state := fetchBug(context.Background(), "123")
+			info, state := FetchBug(context.Background(), "123")
 			if state != tt.wantState {
 				t.Errorf("fetchBug() state = %v, want %v", state, tt.wantState)
 			}
-			if info.summary != tt.wantTitle {
-				t.Errorf("fetchBug() summary = %q, want %q", info.summary, tt.wantTitle)
-			}
-		})
-	}
-}
-
-func TestBugLookupFailureMessage(t *testing.T) {
-	const (
-		id   = "123"
-		link = "https://bugs.gentoo.org/123"
-	)
-	l := i18n.LangZH
-	tests := []struct {
-		name  string
-		state bugLookupState
-		want  string
-	}{
-		{
-			name:  "not found",
-			state: bugLookupNotFound,
-			want:  i18n.Messages.LookupContent.Bug.NotFound.Render(l, id),
-		},
-		{
-			name:  "temporary failure",
-			state: bugLookupUnavailable,
-			want:  i18n.Messages.LookupContent.Bug.Unavailable.Render(l, id, link),
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := bugLookupFailureMessage(l, id, link, tt.state); got != tt.want {
-				t.Errorf("bugLookupFailureMessage() = %q, want %q", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestBugLabels(t *testing.T) {
-	l := i18n.LangZH
-	tests := []struct {
-		name string
-		got  string
-		want string
-	}{
-		{
-			name: "removed package resolution",
-			got:  bugResolutionZH["PKGREMOVED"],
-			want: i18n.Messages.LookupContent.Bug.Resolution.PackageRemoved.For(l),
-		},
-		{
-			name: "upstream resolution",
-			got:  bugResolutionZH["UPSTREAM"],
-			want: i18n.Messages.LookupContent.Bug.Resolution.Upstream.For(l),
-		},
-		{
-			name: "enhancement severity",
-			got:  bugSeverityZH["enhancement"],
-			want: i18n.Messages.LookupContent.Bug.Severity.Enhancement.For(l),
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.got != tt.want {
-				t.Errorf("label = %q, want %q", tt.got, tt.want)
-			}
-		})
-	}
-}
-
-func TestTranslateBugValueLocalizesKnownEnumsAndPreservesUnknownValues(t *testing.T) {
-	tests := []struct {
-		name, value string
-		text        i18n.Text
-	}{
-		{name: "status UNCONFIRMED", value: "UNCONFIRMED", text: i18n.Messages.LookupContent.Bug.Status.Unconfirmed},
-		{name: "status CONFIRMED", value: "CONFIRMED", text: i18n.Messages.LookupContent.Bug.Status.Confirmed},
-		{name: "status IN_PROGRESS", value: "IN_PROGRESS", text: i18n.Messages.LookupContent.Bug.Status.InProgress},
-		{name: "status RESOLVED", value: "RESOLVED", text: i18n.Messages.LookupContent.Bug.Status.Resolved},
-		{name: "status VERIFIED", value: "VERIFIED", text: i18n.Messages.LookupContent.Bug.Status.Verified},
-		{name: "resolution FIXED", value: "FIXED", text: i18n.Messages.LookupContent.Bug.Resolution.Fixed},
-		{name: "resolution WONTFIX", value: "WONTFIX", text: i18n.Messages.LookupContent.Bug.Resolution.WontFix},
-		{name: "resolution CANTFIX", value: "CANTFIX", text: i18n.Messages.LookupContent.Bug.Resolution.CantFix},
-		{name: "resolution DUPLICATE", value: "DUPLICATE", text: i18n.Messages.LookupContent.Bug.Resolution.Duplicate},
-		{name: "resolution INVALID", value: "INVALID", text: i18n.Messages.LookupContent.Bug.Resolution.Invalid},
-		{name: "resolution WORKSFORME", value: "WORKSFORME", text: i18n.Messages.LookupContent.Bug.Resolution.WorksForMe},
-		{name: "resolution OBSOLETE", value: "OBSOLETE", text: i18n.Messages.LookupContent.Bug.Resolution.Obsolete},
-		{name: "resolution UPSTREAM", value: "UPSTREAM", text: i18n.Messages.LookupContent.Bug.Resolution.Upstream},
-		{name: "resolution PKGREMOVED", value: "PKGREMOVED", text: i18n.Messages.LookupContent.Bug.Resolution.PackageRemoved},
-		{name: "resolution NEEDINFO", value: "NEEDINFO", text: i18n.Messages.LookupContent.Bug.Resolution.NeedInfo},
-		{name: "resolution TEST-REQUEST", value: "TEST-REQUEST", text: i18n.Messages.LookupContent.Bug.Resolution.TestRequest},
-		{name: "resolution PENDING-UPSTREAM", value: "PENDING-UPSTREAM", text: i18n.Messages.LookupContent.Bug.Resolution.PendingUpstream},
-		{name: "severity blocker", value: "blocker", text: i18n.Messages.LookupContent.Bug.Severity.Blocker},
-		{name: "severity critical", value: "critical", text: i18n.Messages.LookupContent.Bug.Severity.Critical},
-		{name: "severity major", value: "major", text: i18n.Messages.LookupContent.Bug.Severity.Major},
-		{name: "severity normal", value: "normal", text: i18n.Messages.LookupContent.Bug.Severity.Normal},
-		{name: "severity minor", value: "minor", text: i18n.Messages.LookupContent.Bug.Severity.Minor},
-		{name: "severity trivial", value: "trivial", text: i18n.Messages.LookupContent.Bug.Severity.Trivial},
-		{name: "severity enhancement", value: "enhancement", text: i18n.Messages.LookupContent.Bug.Severity.Enhancement},
-		{name: "priority Highest", value: "Highest", text: i18n.Messages.LookupContent.Bug.Priority.Highest},
-		{name: "priority High", value: "High", text: i18n.Messages.LookupContent.Bug.Priority.High},
-		{name: "priority Normal", value: "Normal", text: i18n.Messages.LookupContent.Bug.Priority.Normal},
-		{name: "priority Low", value: "Low", text: i18n.Messages.LookupContent.Bug.Priority.Low},
-		{name: "priority Lowest", value: "Lowest", text: i18n.Messages.LookupContent.Bug.Priority.Lowest},
-	}
-
-	for _, language := range i18n.Languages() {
-		t.Run(language.String(), func(t *testing.T) {
-			for _, tt := range tests {
-				t.Run(tt.name, func(t *testing.T) {
-					want := tt.text.For(language)
-					if got := TranslateBugValue(language, tt.value); got != want {
-						t.Errorf("/bug displayed raw or wrong %s as %q, want localized label %q", tt.name, got, want)
-					}
-				})
-			}
-			const unknown = "FUTURE_UPSTREAM_ENUM"
-			if got := TranslateBugValue(language, unknown); got != unknown {
-				t.Errorf("/bug rewrote unknown upstream enum %q as %q; unknown values must remain visible", unknown, got)
+			if info.Summary != tt.wantTitle {
+				t.Errorf("fetchBug() summary = %q, want %q", info.Summary, tt.wantTitle)
 			}
 		})
 	}

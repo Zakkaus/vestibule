@@ -1,4 +1,3 @@
-// Package app composes process services and owns their lifecycle.
 package app
 
 import (
@@ -343,7 +342,7 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 	if err != nil {
 		return err
 	}
-	lookups := lookup.New(runtime.settings, connector, runtime.cfg, options.GitHubToken)
+	lookups := lookup.New(runtime.settings, runtime.cfg, options.GitHubToken)
 	settingsService := newRuntimeCapabilitySettings(runtime, bot, lookups)
 	runtime.settingsService = settingsService
 	logRuntimeOptions(options)
@@ -384,7 +383,7 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 	)
 	modules, err := newRuntimeModules(
 		runtime.cfg, runtime.settings, bot, options.StateDirectory, administration, moderation, lookups, consoleHandler != nil,
-	)
+		connector)
 	if err != nil {
 		return err
 	}

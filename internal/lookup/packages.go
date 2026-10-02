@@ -3,7 +3,7 @@ package lookup
 import (
 	"context"
 	"fmt"
-	"html"
+
 	"log"
 	"net/http"
 	"net/url"
@@ -14,14 +14,12 @@ import (
 	"time"
 
 	"github.com/Zakkaus/vestibule/internal/edition"
-	"github.com/Zakkaus/vestibule/internal/i18n"
+
 	"github.com/Zakkaus/vestibule/internal/settings"
-	"github.com/mymmrac/telego"
-	th "github.com/mymmrac/telego/telegohandler"
 )
 
 type overlay struct {
-	name   string // short display name
+	Name   string // short display name
 	repo   string // GitHub owner/name
 	branch string
 }
@@ -29,17 +27,17 @@ type overlay struct {
 // Identify outbound requests as this product; operators can override it.
 var userAgent = edition.Name
 
-var overlays []overlay
+var Overlays []overlay
 
 func configurePkg(cfg *settings.Config) {
 	if cfg.UserAgent != "" {
 		userAgent = cfg.UserAgent
 	}
 	if len(cfg.Overlays) == 0 {
-		overlays = nil
+		Overlays = nil
 		return
 	}
-	overlays = nil
+	Overlays = nil
 	for _, o := range cfg.Overlays {
 		br := o.Branch
 		if br == "" {
@@ -49,17 +47,20 @@ func configurePkg(cfg *settings.Config) {
 		if name == "" {
 			name = o.Repo
 		}
-		overlays = append(overlays, overlay{name: name, repo: o.Repo, branch: br})
+		Overlays = append(Overlays, overlay{Name: name, repo: o.Repo, branch: br})
 	}
 }
 
 const pkgCacheTTL = 6 * time.Hour
+
 const verCacheTTL = 6 * time.Hour
+
 const maxHitsPerSource = 8
 
 // Bound caches keyed by user input; exceptional overflow clears them wholesale.
 const pkgCacheMax = 2000
-const pkgRetryFloor = 3 * time.Minute // throttle refresh retries after a failure (avoids GitHub rate-limit storms)
+
+const pkgRetryFloor = 3 * time.Minute
 
 type pkgCache struct {
 	mu          sync.Mutex
@@ -70,46 +71,27 @@ type pkgCache struct {
 	refreshing  bool
 }
 
-var pkgC = &pkgCache{
+var PkgC = &pkgCache{
 	pkgs:      map[string]map[string]string{},
 	available: map[string]bool{},
 }
 
 // Preserve per-source availability so partial answers never become definitive misses.
-type pkgLookupAvailability struct {
-	official bool
-	overlays map[string]bool
+type PkgLookupAvailability struct {
+	Official bool
+	Overlays map[string]bool
 }
 
-func (a pkgLookupAvailability) anyUnavailable() bool {
-	if !a.official {
+func (a PkgLookupAvailability) AnyUnavailable() bool {
+	if !a.Official {
 		return true
 	}
-	for _, ok := range a.overlays {
+	for _, ok := range a.Overlays {
 		if !ok {
 			return true
 		}
 	}
 	return false
-}
-
-func (a pkgLookupAvailability) unavailableSources(l i18n.Lang) string {
-	messages := i18n.Messages.LookupPackages.Source
-	sources := make([]string, 0, len(a.overlays)+1)
-	if !a.official {
-		sources = append(sources, messages.GentooOfficialTree.For(l))
-	}
-	unavailableOverlays := make([]string, 0, len(a.overlays))
-	for name, ok := range a.overlays {
-		if !ok {
-			unavailableOverlays = append(unavailableOverlays, name)
-		}
-	}
-	sort.Strings(unavailableOverlays)
-	for _, name := range unavailableOverlays {
-		sources = append(sources, messages.Overlay.Render(l, html.EscapeString(name)))
-	}
-	return strings.Join(sources, messages.ListSeparator.For(l))
 }
 
 func isPkgPath(p string) bool {
@@ -302,7 +284,7 @@ func ebuildAtomVer(path string) (string, string, bool) {
 	return dir, ver, true
 }
 
-func (o overlay) treeURL(atom string) string {
+func (o overlay) TreeURL(atom string) string {
 	return "https://github.com/" + o.repo + "/tree/" + o.branch + "/" + atom
 }
 
@@ -349,8 +331,8 @@ func fetchOverlay(ctx context.Context, o overlay) (map[string]string, error) {
 	return pkgs, nil
 }
 
-func (pc *pkgCache) refresh(ctx context.Context) map[string]bool {
-	return pc.refreshWith(ctx, overlays, fetchOverlay)
+func (pc *pkgCache) Refresh(ctx context.Context) map[string]bool {
+	return pc.refreshWith(ctx, Overlays, fetchOverlay)
 }
 
 func (pc *pkgCache) refreshWith(
@@ -385,16 +367,16 @@ func (pc *pkgCache) refreshWith(
 		if err != nil {
 			log.Printf("pkg cache: %v", err)
 			pc.mu.Lock()
-			pc.available[o.name] = false
+			pc.available[o.Name] = false
 			pc.mu.Unlock()
 			allOK = false
 			continue
 		}
 		pc.mu.Lock()
-		pc.pkgs[o.name] = m
-		pc.available[o.name] = true
+		pc.pkgs[o.Name] = m
+		pc.available[o.Name] = true
 		pc.mu.Unlock()
-		log.Printf("pkg cache: %s -> %d packages", o.name, len(m))
+		log.Printf("pkg cache: %s -> %d packages", o.Name, len(m))
 	}
 	// Partial refreshes retry after the floor, not the full TTL.
 	if allOK {
@@ -414,18 +396,18 @@ func (pc *pkgCache) availability(sources []overlay) map[string]bool {
 func (pc *pkgCache) availabilityLocked(sources []overlay) map[string]bool {
 	status := make(map[string]bool, len(sources))
 	for _, o := range sources {
-		ok, known := pc.available[o.name]
+		ok, known := pc.available[o.Name]
 		if !known {
-			_, ok = pc.pkgs[o.name]
+			_, ok = pc.pkgs[o.Name]
 		}
-		status[o.name] = ok
+		status[o.Name] = ok
 	}
 	return status
 }
 
 func pn(atom string) string { return atom[strings.IndexByte(atom, '/')+1:] }
 
-func (pc *pkgCache) search(name string) map[string][]string {
+func (pc *pkgCache) Search(name string) map[string][]string {
 	low := strings.ToLower(name)
 	full := strings.Contains(low, "/") // query includes a category -> match the whole atom
 	res := map[string][]string{}
@@ -457,7 +439,7 @@ func (pc *pkgCache) search(name string) map[string][]string {
 	return res
 }
 
-func (pc *pkgCache) overlayVer(ov, atom string) string {
+func (pc *pkgCache) OverlayVer(ov, atom string) string {
 	pc.mu.Lock()
 	defer pc.mu.Unlock()
 	if m, ok := pc.pkgs[ov]; ok {
@@ -526,7 +508,7 @@ func pickStableLatest(versions []pkgVersionJSON) (stable, latest string) {
 }
 
 // A 404 is an answered miss; transport, overload, and parse failures are unavailable.
-func pkgVersion(ctx context.Context, atom string) (stable, latest string, available bool) {
+func PkgVersion(ctx context.Context, atom string) (stable, latest string, available bool) {
 	verC.mu.Lock()
 	if v, ok := verC.m[atom]; ok && time.Since(v.fetched) < verCacheTTL {
 		verC.mu.Unlock()
@@ -560,8 +542,8 @@ var (
 )
 
 // Availability prevents official-tree outages from rendering as "not found".
-func searchMainTree(ctx context.Context, name string) ([]string, bool) {
-	return searchMainTreeWith(ctx, name, pkgVersion, httpGetBody)
+func SearchMainTree(ctx context.Context, name string) ([]string, bool) {
+	return searchMainTreeWith(ctx, name, PkgVersion, httpGetBody)
 }
 
 func searchMainTreeWith(
@@ -653,14 +635,14 @@ func pkgRelevance(atom, q string) int {
 }
 
 // Repology indexes bare names, while the Gentoo lookup retains the full atom.
-func repologyQuery(name string) string {
+func RepologyQuery(name string) string {
 	if strings.Contains(name, "/") && isPkgPath(strings.ToLower(name)) {
 		return name[strings.LastIndexByte(name, '/')+1:]
 	}
 	return name
 }
 
-func commandArg(text string) string {
+func CommandArg(text string) string {
 	// Fields accepts tabs and newlines from pasted commands.
 	fields := strings.Fields(text)
 	if len(fields) < 2 {
@@ -669,217 +651,54 @@ func commandArg(text string) string {
 	return strings.TrimSpace(strings.Join(fields[1:], " "))
 }
 
-// OnPkg handles package searches across the Gentoo tree and configured overlays.
-func (v *Service) OnPkg(ctx *th.Context, update telego.Update) error {
-	msg := update.Message
-	if msg == nil || msg.From == nil {
-		return nil
-	}
-	l := v.requesterLanguage(msg)
-	if !v.queryAllowed(ctx, msg, l) {
-		return nil
-	}
-	bot := ctx.Bot()
-	c := ctx.Context()
-
-	q := commandArg(msg.Text)
-	if q == "" {
-		v.replyLookupPlain(c, bot, msg.Chat.ID, msg.MessageID, i18n.Messages.LookupPackages.Pkg.Usage.For(l))
-		return nil
-	}
-	q = normalizeQuery(q)
-
-	hc, cancel := context.WithTimeout(c, 25*time.Second)
-	defer cancel()
-	overlayOK := pkgC.refresh(hc)
-	ovRes := pkgC.search(q)
-	mainRes, mainOK := searchMainTree(hc, q)
-
-	vm := map[string][2]string{}
-	if len(mainRes) > 0 {
-		var wg sync.WaitGroup
-		var vmu sync.Mutex
-		for _, a := range mainRes {
-			wg.Add(1)
-			go func(a string) {
-				defer wg.Done()
-				s, l, _ := pkgVersion(hc, a)
-				vmu.Lock()
-				vm[a] = [2]string{s, l}
-				vmu.Unlock()
-			}(a)
-		}
-		wg.Wait()
-	}
-
-	availability := pkgLookupAvailability{official: mainOK, overlays: overlayOK}
-	plain := renderPkg(l, q, mainRes, vm, ovRes, availability)
-	rich := ""
-	if v.richEnabled(msg.Chat.ID) {
-		rich = renderPkgRich(l, q, mainRes, vm, ovRes, availability)
-	}
-	v.sendRichOrHTML(c, bot, msg.Chat.ID, msg.MessageID, rich, plain)
-	return nil
-}
-
-func renderPkg(l i18n.Lang, q string, mainRes []string, vm map[string][2]string, ovRes map[string][]string, availability pkgLookupAvailability) string {
-	esc := html.EscapeString
-	messages := i18n.Messages.LookupPackages.Pkg
-	var b strings.Builder
-	fmt.Fprintf(&b, "🔎 %s", messages.ResultsHeading.Render(l, "<b>"+esc(q)+"</b>"))
-	found := false
-	if len(mainRes) > 0 {
-		found = true
-		fmt.Fprintf(&b, "\n\n📦 <b>%s</b>", messages.OfficialHeading.For(l))
-		for _, a := range mainRes {
-			ver := ""
-			if vm[a][0] != "" {
-				ver = " — " + esc(vm[a][0]) // amd64-stable: no symbol
-			} else if vm[a][1] != "" {
-				ver = " — ~" + esc(vm[a][1]) // no amd64-stable version; latest need not have ~amd64
-			}
-			fmt.Fprintf(&b, "\n • <a href=\"%s\">%s</a>%s",
-				esc("https://packages.gentoo.org/packages/"+a), esc(a), ver)
-		}
-	}
-	for _, o := range overlays {
-		hits := ovRes[o.name]
-		if len(hits) == 0 {
-			continue
-		}
-		found = true
-		fmt.Fprintf(&b, "\n\n🧩 <b>%s</b>", esc(o.name))
-		for _, a := range hits {
-			ver := ""
-			if vv := pkgC.overlayVer(o.name, a); vv != "" {
-				ver = " — ~" + esc(vv) // the marker identifies an overlay version, not keyword status
-			}
-			fmt.Fprintf(&b, "\n • <a href=\"%s\">%s</a>%s",
-				esc(o.treeURL(a)), esc(a), ver)
-		}
-	}
-	if !found {
-		if availability.anyUnavailable() {
-			fmt.Fprintf(&b, "\n\n%s", messages.Unavailable.Render(l, availability.unavailableSources(l)))
-		} else {
-			fmt.Fprintf(&b, "\n\n%s", messages.NotFound.For(l))
-		}
-	} else {
-		fmt.Fprintf(&b, "\n\n<i>%s</i>", messages.KeywordLegend.For(l))
-		if availability.anyUnavailable() {
-			fmt.Fprintf(&b, "\n<i>%s</i>", i18n.Messages.LookupPackages.Source.PartialResults.Render(l, availability.unavailableSources(l)))
-		}
-	}
-	return b.String()
-}
-
-// Rich messages require block tags because newlines are ignored.
-func renderPkgRich(l i18n.Lang, q string, mainRes []string, vm map[string][2]string, ovRes map[string][]string, availability pkgLookupAvailability) string {
-	esc := html.EscapeString
-	messages := i18n.Messages.LookupPackages.Pkg
-	var b strings.Builder
-	fmt.Fprintf(&b, "<h3>🔎 %s</h3>", messages.ResultsHeading.Render(l, esc(q)))
-	found := false
-	if len(mainRes) > 0 {
-		found = true
-		fmt.Fprintf(&b, "<h4>📦 %s</h4><ul>", messages.OfficialHeading.For(l))
-		for _, a := range mainRes {
-			ver := ""
-			if vm[a][0] != "" {
-				ver = " — " + esc(vm[a][0])
-			} else if vm[a][1] != "" {
-				ver = " — ~" + esc(vm[a][1])
-			}
-			fmt.Fprintf(&b, "<li><a href=\"%s\">%s</a>%s</li>",
-				esc("https://packages.gentoo.org/packages/"+a), esc(a), ver)
-		}
-		b.WriteString("</ul>")
-	}
-	for _, o := range overlays {
-		hits := ovRes[o.name]
-		if len(hits) == 0 {
-			continue
-		}
-		found = true
-		fmt.Fprintf(
-			&b,
-			"<details><summary>🧩 <b>%s</b>%s</summary><ul>",
-			esc(o.name),
-			messages.OverlayCount.Render(l, len(hits)),
-		)
-		for _, a := range hits {
-			ver := ""
-			if vv := pkgC.overlayVer(o.name, a); vv != "" {
-				ver = " — ~" + esc(vv)
-			}
-			fmt.Fprintf(&b, "<li><a href=\"%s\">%s</a>%s</li>",
-				esc(o.treeURL(a)), esc(a), ver)
-		}
-		b.WriteString("</ul></details>")
-	}
-	if !found {
-		if availability.anyUnavailable() {
-			fmt.Fprintf(&b, "<p>%s</p>", messages.Unavailable.Render(l, availability.unavailableSources(l)))
-		} else {
-			fmt.Fprintf(&b, "<p>%s</p>", messages.NotFound.For(l))
-		}
-	} else {
-		fmt.Fprintf(&b, "<footer><i>%s</i></footer>", messages.KeywordLegend.For(l))
-		if availability.anyUnavailable() {
-			fmt.Fprintf(&b, "<footer><i>%s</i></footer>", i18n.Messages.LookupPackages.Source.PartialResults.Render(l, availability.unavailableSources(l)))
-		}
-	}
-	return b.String()
-}
-
-type useFlag struct {
-	name string
-	desc string
-	def  bool // default-enabled (+ prefix)
+type UseFlag struct {
+	Name string
+	Desc string
+	Def  bool // default-enabled (+ prefix)
 }
 
 // Preserve USE_EXPAND groups so large sets such as l10n do not flood local flags.
-type useExpandGroup struct {
-	name  string
-	flags []useFlag
+type UseExpandGroup struct {
+	Name  string
+	Flags []UseFlag
 }
 
-type pkgFullInfo struct {
-	atom        string
-	description string
-	homepage    string
-	stable      string
-	latest      string
-	local       []useFlag
-	global      []useFlag
-	expand      []useExpandGroup
+type PkgFullInfo struct {
+	Atom        string
+	Description string
+	Homepage    string
+	Stable      string
+	Latest      string
+	Local       []UseFlag
+	Global      []UseFlag
+	Expand      []UseExpandGroup
 	fetched     time.Time
 }
 
 var infoC = struct {
 	mu sync.Mutex
-	m  map[string]pkgFullInfo
-}{m: map[string]pkgFullInfo{}}
+	m  map[string]PkgFullInfo
+}{m: map[string]PkgFullInfo{}}
 
 type useEntry struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 }
 
-func toUseFlags(in []useEntry) []useFlag {
-	out := make([]useFlag, 0, len(in))
+func toUseFlags(in []useEntry) []UseFlag {
+	out := make([]UseFlag, 0, len(in))
 	for _, f := range in {
-		out = append(out, useFlag{
-			name: strings.TrimLeft(f.Name, "+-"),
-			desc: f.Description,
-			def:  strings.HasPrefix(f.Name, "+"),
+		out = append(out, UseFlag{
+			Name: strings.TrimLeft(f.Name, "+-"),
+			Desc: f.Description,
+			Def:  strings.HasPrefix(f.Name, "+"),
 		})
 	}
 	return out
 }
 
 // Only an authoritative 404 proves absence; other failures leave it unknown.
-func officialInfo(ctx context.Context, atom string) (info pkgFullInfo, found, available bool) {
+func OfficialInfo(ctx context.Context, atom string) (info PkgFullInfo, found, available bool) {
 	infoC.mu.Lock()
 	if v, ok := infoC.m[atom]; ok && time.Since(v.fetched) < verCacheTTL {
 		infoC.mu.Unlock()
@@ -902,20 +721,20 @@ func officialInfo(ctx context.Context, atom string) (info pkgFullInfo, found, av
 	}
 	err := GetJSON(ctx, "https://packages.gentoo.org/packages/"+atom+".json", nil, &pj)
 	if err != nil {
-		return pkgFullInfo{}, false, httpStatusCode(err) == http.StatusNotFound
+		return PkgFullInfo{}, false, httpStatusCode(err) == http.StatusNotFound
 	}
-	info = pkgFullInfo{atom: atom, description: pj.Description, fetched: time.Now()}
-	info.stable, info.latest = pickStableLatest(pj.Versions)
-	info.local = toUseFlags(pj.Use.Local)
-	info.global = toUseFlags(pj.Use.Global)
+	info = PkgFullInfo{Atom: atom, Description: pj.Description, fetched: time.Now()}
+	info.Stable, info.Latest = pickStableLatest(pj.Versions)
+	info.Local = toUseFlags(pj.Use.Local)
+	info.Global = toUseFlags(pj.Use.Global)
 	for _, g := range pj.UseExpand {
 		if fl := toUseFlags(g.Flags); len(fl) > 0 {
-			info.expand = append(info.expand, useExpandGroup{name: g.Name, flags: fl})
+			info.Expand = append(info.Expand, UseExpandGroup{Name: g.Name, Flags: fl})
 		}
 	}
 	infoC.mu.Lock()
 	if len(infoC.m) >= pkgCacheMax {
-		infoC.m = map[string]pkgFullInfo{}
+		infoC.m = map[string]PkgFullInfo{}
 	}
 	infoC.m[atom] = info
 	infoC.mu.Unlock()
@@ -965,6 +784,7 @@ func parseIUSE(eb []byte) []string {
 }
 
 var ebuildFieldRe = map[string]*regexp.Regexp{}
+
 var ebuildFieldMu sync.Mutex
 
 func ebuildField(eb []byte, key string) string {
@@ -983,7 +803,9 @@ func ebuildField(eb []byte, key string) string {
 }
 
 var mdFlagRe = regexp.MustCompile(`(?s)<flag name="([^"]+)">(.*?)</flag>`)
+
 var tagRe = regexp.MustCompile(`<[^>]+>`)
+
 var wsRe = regexp.MustCompile(`\s+`)
 
 func parseMetadataUse(md []byte) map[string]string {
@@ -997,299 +819,49 @@ func parseMetadataUse(md []byte) map[string]string {
 }
 
 // Overlay metadata comes from the latest ebuild and metadata.xml.
-func overlayInfo(ctx context.Context, o overlay, atom, version string) (pkgFullInfo, bool) {
+func OverlayInfo(ctx context.Context, o overlay, atom, version string) (PkgFullInfo, bool) {
 	if version == "" {
-		return pkgFullInfo{}, false
+		return PkgFullInfo{}, false
 	}
 	pkg := pn(atom)
 	base := "https://raw.githubusercontent.com/" + o.repo + "/" + o.branch + "/" + atom + "/"
 	eb := fetchRaw(ctx, base+pkg+"-"+version+".ebuild")
 	if eb == nil {
-		return pkgFullInfo{}, false
+		return PkgFullInfo{}, false
 	}
 	descs := map[string]string{}
 	if md := fetchRaw(ctx, base+"metadata.xml"); md != nil {
 		descs = parseMetadataUse(md)
 	}
-	info := pkgFullInfo{
-		atom:        atom,
-		description: ebuildField(eb, "DESCRIPTION"),
-		latest:      version,
+	info := PkgFullInfo{
+		Atom:        atom,
+		Description: ebuildField(eb, "DESCRIPTION"),
+		Latest:      version,
 	}
 	if hp := ebuildField(eb, "HOMEPAGE"); hp != "" {
-		info.homepage = strings.Fields(hp)[0]
+		info.Homepage = strings.Fields(hp)[0]
 	}
 	for _, n := range parseIUSE(eb) {
 		clean := strings.TrimLeft(n, "+-")
-		info.local = append(info.local, useFlag{name: clean, desc: descs[clean], def: strings.HasPrefix(n, "+")})
+		info.Local = append(info.Local, UseFlag{Name: clean, Desc: descs[clean], Def: strings.HasPrefix(n, "+")})
 	}
 	return info, true
 }
 
-// Keep compact output to one short, URL-free sentence.
-func shortDesc(s string) string {
-	s = strings.TrimSpace(s)
-	if i := strings.Index(s, "http"); i > 0 {
-		s = strings.TrimSpace(s[:i])
-	}
-	if i := strings.IndexAny(s, ".。"); i > 8 {
-		s = s[:i]
-	}
-	r := []rune(strings.TrimSpace(s))
-	if len(r) > 64 {
-		return strings.TrimSpace(string(r[:64])) + "…"
-	}
-	return string(r)
-}
-
-func flagMark(f useFlag) string {
-	if f.def {
-		return "+"
-	}
-	return ""
-}
-
-func useLink(f useFlag) string {
-	u := "https://packages.gentoo.org/useflags/" + f.name
-	return flagMark(f) + fmt.Sprintf("<a href=\"%s\">%s</a>", html.EscapeString(u), html.EscapeString(f.name))
-}
-
-func writeLocalFlags(b *strings.Builder, l i18n.Lang, flags []useFlag) {
-	if len(flags) == 0 {
-		return
-	}
-	messages := i18n.Messages.LookupPackages.Use
-	fmt.Fprintf(b, "\n<b>%s</b>%s", messages.LocalFlags.For(l), messages.Count.Render(l, len(flags)))
-	for i, f := range flags {
-		if i >= 12 && len(flags) > 12 {
-			fmt.Fprintf(b, "\n%s", messages.TruncatedCount.Render(l, len(flags)))
-			break
-		}
-		if d := shortDesc(f.desc); d != "" {
-			fmt.Fprintf(b, "\n • %s — %s", useLink(f), html.EscapeString(d))
-		} else {
-			fmt.Fprintf(b, "\n • %s", useLink(f))
-		}
-	}
-}
-
-func writeGlobalFlags(b *strings.Builder, l i18n.Lang, flags []useFlag) {
-	if len(flags) == 0 {
-		return
-	}
-	links := make([]string, 0, len(flags))
-	for _, f := range flags {
-		links = append(links, useLink(f))
-	}
-	messages := i18n.Messages.LookupPackages.Use
-	fmt.Fprintf(
-		b,
-		"\n<b>%s</b>%s%s%s",
-		messages.GlobalFlags.For(l),
-		messages.Count.Render(l, len(flags)),
-		messages.ValueSeparator.For(l),
-		strings.Join(links, " "),
-	)
-}
-
 // Bound compact USE_EXPAND output; l10n commonly exceeds 100 values.
-const expandCap = 16
+const ExpandCap = 16
 
-// Compact output truncates values; the rich view retains full descriptions.
-func writeExpandFlags(b *strings.Builder, l i18n.Lang, groups []useExpandGroup) {
-	messages := i18n.Messages.LookupPackages.Use
-	for _, g := range groups {
-		if len(g.flags) == 0 {
-			continue
-		}
-		names := make([]string, 0, expandCap)
-		for i, f := range g.flags {
-			if i >= expandCap {
-				break
-			}
-			names = append(names, flagMark(f)+html.EscapeString(f.name))
-		}
-		more := ""
-		if len(g.flags) > expandCap {
-			more = messages.TruncatedCount.Render(l, len(g.flags))
-		}
-		fmt.Fprintf(
-			b,
-			"\n<b>%s</b>%s%s%s%s",
-			html.EscapeString(strings.ToUpper(g.name)),
-			messages.Count.Render(l, len(g.flags)),
-			messages.ValueSeparator.For(l),
-			strings.Join(names, " "),
-			more,
-		)
-	}
-}
-
-func overlayByName(name string) (overlay, bool) {
-	for _, o := range overlays {
-		if o.name == name {
+func OverlayByName(name string) (overlay, bool) {
+	for _, o := range Overlays {
+		if o.Name == name {
 			return o, true
 		}
 	}
 	return overlay{}, false
 }
 
-// overlayRefs renders linked overlay names for the cross-source footer.
-func overlayRefs(l i18n.Lang, alsoIn []string, atom string) string {
-	refs := make([]string, 0, len(alsoIn))
-	for _, ovName := range alsoIn {
-		ref := html.EscapeString(ovName)
-		if o, ok := overlayByName(ovName); ok {
-			ref = fmt.Sprintf("<a href=\"%s\">%s</a>", html.EscapeString(o.treeURL(atom)), html.EscapeString(ovName))
-		}
-		refs = append(refs, ref)
-	}
-	return strings.Join(refs, i18n.Messages.LookupPackages.Source.ListSeparator.For(l))
-}
-
-func renderUse(l i18n.Lang, info pkgFullInfo, srcLabel, pkgURL string, overlay bool, alsoIn []string) string {
-	esc := html.EscapeString
-	messages := i18n.Messages.LookupPackages.Use
-	var b strings.Builder
-	label := ""
-	if srcLabel != "" { // only overlay packages get a source label; official tree is implied
-		label = messages.SourceLabel.Render(l, esc(srcLabel))
-	}
-	if pkgURL != "" {
-		fmt.Fprintf(&b, "🧩 <a href=\"%s\"><b>%s</b></a>%s", esc(pkgURL), esc(info.atom), label)
-	} else {
-		fmt.Fprintf(&b, "🧩 <b>%s</b>%s", esc(info.atom), label)
-	}
-	if info.description != "" {
-		fmt.Fprintf(&b, "\n%s", esc(info.description))
-	}
-	if info.homepage != "" {
-		fmt.Fprintf(&b, "\n🏠 %s", esc(info.homepage))
-	}
-	switch {
-	case info.stable != "" && info.latest != "" && info.latest != info.stable:
-		fmt.Fprintf(&b, "\n%s", messages.VersionStableLatest.Render(l, esc(info.stable), esc(info.latest)))
-	case info.stable != "":
-		fmt.Fprintf(&b, "\n%s", messages.VersionStable.Render(l, esc(info.stable)))
-	case info.latest != "":
-		fmt.Fprintf(&b, "\n%s", messages.VersionLatest.Render(l, esc(info.latest)))
-	}
-	writeLocalFlags(&b, l, info.local)
-	writeGlobalFlags(&b, l, info.global)
-	writeExpandFlags(&b, l, info.expand)
-	if len(info.local) == 0 && len(info.global) == 0 && len(info.expand) == 0 {
-		fmt.Fprintf(&b, "\n%s", messages.NoFlags.For(l))
-	}
-	if len(alsoIn) > 0 {
-		fmt.Fprintf(&b, "\n<i>%s</i>", messages.AlsoInOverlay.Render(l, overlayRefs(l, alsoIn, info.atom)))
-	}
-	if overlay {
-		fmt.Fprintf(&b, "\n\n<i>%s</i>", messages.OverlayLegend.For(l))
-	} else {
-		fmt.Fprintf(&b, "\n\n<i>%s</i>", messages.OfficialLegend.For(l))
-	}
-	return b.String()
-}
-
-// Rich output keeps full flag descriptions in collapsible sections.
-func renderUseRich(l i18n.Lang, info pkgFullInfo, srcLabel, pkgURL string, overlay bool, alsoIn []string) string {
-	esc := html.EscapeString
-	messages := i18n.Messages.LookupPackages.Use
-	var b strings.Builder
-	label := ""
-	if srcLabel != "" {
-		label = messages.SourceLabel.Render(l, esc(srcLabel))
-	}
-	if pkgURL != "" {
-		fmt.Fprintf(&b, "<h3>🧩 <a href=\"%s\">%s</a>%s</h3>", esc(pkgURL), esc(info.atom), label)
-	} else {
-		fmt.Fprintf(&b, "<h3>🧩 %s%s</h3>", esc(info.atom), label)
-	}
-	// One paragraph with <br> avoids large inter-paragraph gaps.
-	var hdr []string
-	if info.description != "" {
-		hdr = append(hdr, esc(info.description))
-	}
-	if info.homepage != "" {
-		hdr = append(hdr, fmt.Sprintf("🏠 <a href=\"%s\">%s</a>", esc(info.homepage), esc(messages.Homepage.For(l))))
-	}
-	switch {
-	case info.stable != "" && info.latest != "" && info.latest != info.stable:
-		hdr = append(hdr, messages.VersionStableLatest.Render(l, esc(info.stable), esc(info.latest)))
-	case info.stable != "":
-		hdr = append(hdr, messages.VersionStable.Render(l, esc(info.stable)))
-	case info.latest != "":
-		hdr = append(hdr, messages.VersionLatest.Render(l, esc(info.latest)))
-	}
-	if len(hdr) > 0 {
-		fmt.Fprintf(&b, "<p>%s</p>", strings.Join(hdr, "<br>"))
-	}
-	writeFlagsRich(&b, l, messages.LocalFlags.For(l), info.local, false)
-	writeFlagsRich(&b, l, messages.GlobalFlags.For(l), info.global, true)
-	writeExpandFlagsRich(&b, l, info.expand)
-	if len(info.local) == 0 && len(info.global) == 0 && len(info.expand) == 0 {
-		fmt.Fprintf(&b, "<p>%s</p>", messages.NoFlags.For(l))
-	}
-	if len(alsoIn) > 0 {
-		fmt.Fprintf(&b, "<p>%s</p>", messages.AlsoInOverlay.Render(l, overlayRefs(l, alsoIn, info.atom)))
-	}
-	if overlay {
-		fmt.Fprintf(&b, "<footer><i>%s</i></footer>", messages.OverlayLegend.For(l))
-	} else {
-		fmt.Fprintf(&b, "<footer><i>%s</i></footer>", messages.OfficialLegend.For(l))
-	}
-	return b.String()
-}
-
-// Rich messages require block structure; newlines are whitespace.
-func writeFlagsRich(b *strings.Builder, l i18n.Lang, title string, flags []useFlag, collapse bool) {
-	if len(flags) == 0 {
-		return
-	}
-	count := i18n.Messages.LookupPackages.Use.Count.Render(l, len(flags))
-	if collapse {
-		fmt.Fprintf(b, "<details><summary><b>%s</b>%s</summary><ul>", title, count)
-	} else {
-		fmt.Fprintf(b, "<p><b>%s</b>%s</p><ul>", title, count)
-	}
-	for _, f := range flags {
-		if f.desc != "" {
-			fmt.Fprintf(b, "<li>%s — %s</li>", useLink(f), html.EscapeString(f.desc))
-		} else {
-			fmt.Fprintf(b, "<li>%s</li>", useLink(f))
-		}
-	}
-	b.WriteString("</ul>")
-	if collapse {
-		b.WriteString("</details>")
-	}
-}
-
-// Each large USE_EXPAND group gets its own collapsible section.
-func writeExpandFlagsRich(b *strings.Builder, l i18n.Lang, groups []useExpandGroup) {
-	for _, g := range groups {
-		if len(g.flags) == 0 {
-			continue
-		}
-		fmt.Fprintf(
-			b,
-			"<details><summary><b>%s</b>%s</summary><ul>",
-			html.EscapeString(strings.ToUpper(g.name)),
-			i18n.Messages.LookupPackages.Use.Count.Render(l, len(g.flags)),
-		)
-		for _, f := range g.flags {
-			if f.desc != "" {
-				fmt.Fprintf(b, "<li>%s%s — %s</li>", flagMark(f), html.EscapeString(f.name), html.EscapeString(f.desc))
-			} else {
-				fmt.Fprintf(b, "<li>%s%s</li>", flagMark(f), html.EscapeString(f.name))
-			}
-		}
-		b.WriteString("</ul></details>")
-	}
-}
-
 // Normalize supported package and overlay URLs to category/package atoms.
-func normalizeQuery(q string) string {
+func NormalizeQuery(q string) string {
 	q = strings.TrimSpace(q)
 	q = strings.SplitN(q, "?", 2)[0]
 	q = strings.SplitN(q, "#", 2)[0]
@@ -1318,29 +890,29 @@ func normalizeQuery(q string) string {
 	return q
 }
 
-type useSrc struct {
-	official bool
-	ovs      []string
+type UseSrc struct {
+	Official bool
+	Ovs      []string
 }
 
 // Empty matches are definitive only when every source answered.
-func resolveUseSources(ctx context.Context, q string, overlayOK map[string]bool) (map[string]*useSrc, pkgLookupAvailability) {
-	return resolveUseSourcesWith(ctx, q, overlayOK, officialInfo, searchMainTree)
+func ResolveUseSources(ctx context.Context, q string, overlayOK map[string]bool) (map[string]*UseSrc, PkgLookupAvailability) {
+	return resolveUseSourcesWith(ctx, q, overlayOK, OfficialInfo, SearchMainTree)
 }
 
 func resolveUseSourcesWith(
 	ctx context.Context,
 	q string,
 	overlayOK map[string]bool,
-	info func(context.Context, string) (pkgFullInfo, bool, bool),
+	info func(context.Context, string) (PkgFullInfo, bool, bool),
 	search func(context.Context, string) ([]string, bool),
-) (map[string]*useSrc, pkgLookupAvailability) {
-	srcs := map[string]*useSrc{}
-	availability := pkgLookupAvailability{overlays: overlayOK}
-	get := func(a string) *useSrc {
+) (map[string]*UseSrc, PkgLookupAvailability) {
+	srcs := map[string]*UseSrc{}
+	availability := PkgLookupAvailability{Overlays: overlayOK}
+	get := func(a string) *UseSrc {
 		s := srcs[a]
 		if s == nil {
-			s = &useSrc{}
+			s = &UseSrc{}
 			srcs[a] = s
 		}
 		return s
@@ -1349,147 +921,38 @@ func resolveUseSourcesWith(
 	low := strings.ToLower(q)
 	if strings.Contains(low, "/") && isPkgPath(low) {
 		_, found, ok := info(ctx, q)
-		availability.official = ok
+		availability.Official = ok
 		if found {
-			get(q).official = true
+			get(q).Official = true
 		}
-		for _, o := range overlays {
-			if pkgC.overlayVer(o.name, q) != "" {
+		for _, o := range Overlays {
+			if PkgC.OverlayVer(o.Name, q) != "" {
 				s := get(q)
-				s.ovs = append(s.ovs, o.name)
+				s.Ovs = append(s.Ovs, o.Name)
 			}
 		}
 		return srcs, availability
 	}
 	atoms, ok := search(ctx, q)
-	availability.official = ok
+	availability.Official = ok
 	for _, a := range atoms {
 		if strings.EqualFold(pn(a), q) {
-			get(a).official = true
+			get(a).Official = true
 		}
 	}
-	for ov, list := range pkgC.search(q) {
+	for ov, list := range PkgC.Search(q) {
 		for _, a := range list {
 			if strings.EqualFold(pn(a), q) {
 				s := get(a)
-				s.ovs = append(s.ovs, ov)
+				s.Ovs = append(s.Ovs, ov)
 			}
 		}
 	}
 	return srcs, availability
 }
 
-func renderUseLookupMiss(l i18n.Lang, q string, availability pkgLookupAvailability) string {
-	messages := i18n.Messages.LookupPackages.Use
-	if availability.anyUnavailable() {
-		return messages.Unavailable.Render(l, q, availability.unavailableSources(l))
-	}
-	return messages.NotFound.Render(l, q)
-}
-
-func appendUseAvailabilityNote(l i18n.Lang, plain, rich string, availability pkgLookupAvailability) (string, string) {
-	if !availability.anyUnavailable() {
-		return plain, rich
-	}
-	note := i18n.Messages.LookupPackages.Source.PartialResults.Render(l, availability.unavailableSources(l))
-	plain += "\n\n<i>" + note + "</i>"
-	if rich != "" {
-		rich += "<footer><i>" + note + "</i></footer>"
-	}
-	return plain, rich
-}
-
-// OnUse handles package metadata and USE flag lookups.
-// renderUseMultipleMatches lists candidate atoms with the canonical query command.
-func renderUseMultipleMatches(l i18n.Lang, atoms []string, availability pkgLookupAvailability) string {
-	sort.Strings(atoms)
-	var b strings.Builder
-	b.WriteString(i18n.Messages.LookupPackages.Use.MultipleMatches.For(l))
-	for _, a := range atoms {
-		fmt.Fprintf(&b, "\n • /guse %s", a)
-	}
-	if availability.anyUnavailable() {
-		fmt.Fprintf(&b, "\n%s", i18n.Messages.LookupPackages.Use.PartialMatches.Render(l, availability.unavailableSources(l)))
-	}
-	return b.String()
-}
-
-func (v *Service) OnUse(ctx *th.Context, update telego.Update) error {
-	msg := update.Message
-	if msg == nil || msg.From == nil {
-		return nil
-	}
-	l := v.requesterLanguage(msg)
-	if !v.queryAllowed(ctx, msg, l) {
-		return nil
-	}
-	bot := ctx.Bot()
-	c := ctx.Context()
-	q := commandArg(msg.Text)
-	if q == "" {
-		v.replyLookupPlain(c, bot, msg.Chat.ID, msg.MessageID, i18n.Messages.LookupPackages.Use.Usage.For(l))
-		return nil
-	}
-	q = normalizeQuery(q)
-	hc, cancel := context.WithTimeout(c, 25*time.Second)
-	defer cancel()
-	overlayOK := pkgC.refresh(hc)
-
-	srcs, availability := resolveUseSources(hc, q, overlayOK)
-
-	switch len(srcs) {
-	case 0:
-		v.replyLookupPlain(c, bot, msg.Chat.ID, msg.MessageID, renderUseLookupMiss(l, q, availability))
-		return nil
-	case 1:
-		// A unique atom needs no disambiguation.
-	default:
-		atoms := make([]string, 0, len(srcs))
-		for a := range srcs {
-			atoms = append(atoms, a)
-		}
-		v.replyLookupPlain(c, bot, msg.Chat.ID, msg.MessageID, renderUseMultipleMatches(l, atoms, availability))
-		return nil
-	}
-
-	var atom string
-	var s *useSrc
-	for a, ss := range srcs {
-		atom, s = a, ss
-	}
-
-	out, outRich := "", ""
-	if s.official {
-		if info, found, _ := officialInfo(hc, atom); found {
-			url := "https://packages.gentoo.org/packages/" + atom
-			out = renderUse(l, info, "", url, false, s.ovs)
-			if v.richEnabled(msg.Chat.ID) {
-				outRich = renderUseRich(l, info, "", url, false, s.ovs)
-			}
-		}
-	}
-	if out == "" && len(s.ovs) > 0 {
-		ovName := s.ovs[0]
-		o, _ := overlayByName(ovName)
-		if info, ok := overlayInfo(hc, o, atom, pkgC.overlayVer(ovName, atom)); ok {
-			url := o.treeURL(atom)
-			out = renderUse(l, info, "overlay:"+ovName, url, true, s.ovs[1:])
-			if v.richEnabled(msg.Chat.ID) {
-				outRich = renderUseRich(l, info, "overlay:"+ovName, url, true, s.ovs[1:])
-			}
-		}
-	}
-	if out == "" {
-		v.replyLookupPlain(c, bot, msg.Chat.ID, msg.MessageID, i18n.Messages.LookupPackages.Use.InfoUnavailable.Render(l, atom))
-		return nil
-	}
-	out, outRich = appendUseAvailabilityNote(l, out, outRich, availability)
-	v.sendRichOrHTML(c, bot, msg.Chat.ID, msg.MessageID, outRich, out)
-	return nil
-}
-
 // ok distinguishes lookup failure from a package with no arm64 keyword.
-func armStatus(ctx context.Context, atom string) (stable, testing string, ok bool) {
+func ArmStatus(ctx context.Context, atom string) (stable, testing string, ok bool) {
 	var pj struct {
 		Versions []pkgVersionJSON `json:"versions"`
 	}
@@ -1520,70 +983,4 @@ func arm64Keywords(versions []pkgVersionJSON) (stable, testing string) {
 		}
 	}
 	return stable, testing
-}
-
-// Failed searches remain distinct from authoritative package misses.
-func lookupArm(
-	ctx context.Context,
-	l i18n.Lang,
-	name string,
-	search func(context.Context, string) ([]string, bool),
-	status func(context.Context, string) (string, string, bool),
-) (body string, useHTML bool) {
-	messages := i18n.Messages.LookupPackages.Arm
-	atoms, available := search(ctx, name)
-	if !available {
-		return messages.OfficialUnavailable.For(l), false
-	}
-	if len(atoms) == 0 {
-		return messages.NotFound.Render(l, name), false
-	}
-	atom := atoms[0]
-	stable, testing, ok := status(ctx, atom)
-	url := "https://packages.gentoo.org/packages/" + atom
-	esc := html.EscapeString
-
-	var b strings.Builder
-	b.WriteString(messages.Heading.Render(l, esc(url), esc(atom)))
-	switch {
-	case !ok:
-		b.WriteString("\n" + messages.KeywordUnavailable.For(l))
-	case stable != "" && testing != "" && stable != testing:
-		b.WriteString(messages.StableTesting.Render(l, esc(stable), esc(testing)))
-	case stable != "":
-		b.WriteString(messages.StableOnly.Render(l, esc(stable)))
-	case testing != "":
-		b.WriteString(messages.TestingOnly.Render(l, esc(testing)))
-	default:
-		b.WriteString("\n" + messages.NoKeyword.For(l))
-	}
-	return b.String(), true
-}
-
-// OnArm handles Gentoo arm64 keyword lookups.
-func (v *Service) OnArm(ctx *th.Context, update telego.Update) error {
-	msg := update.Message
-	if msg == nil || msg.From == nil {
-		return nil
-	}
-	l := v.requesterLanguage(msg)
-	if !v.queryAllowed(ctx, msg, l) {
-		return nil
-	}
-	bot := ctx.Bot()
-	c := ctx.Context()
-	name := commandArg(msg.Text)
-	if name == "" {
-		v.replyLookupPlain(c, bot, msg.Chat.ID, msg.MessageID, i18n.Messages.LookupPackages.Arm.Usage.For(l))
-		return nil
-	}
-	hc, cancel := context.WithTimeout(c, 20*time.Second)
-	defer cancel()
-	body, useHTML := lookupArm(hc, l, name, searchMainTree, armStatus)
-	if useHTML {
-		v.replyLookupHTML(c, bot, msg.Chat.ID, msg.MessageID, body)
-	} else {
-		v.replyLookupPlain(c, bot, msg.Chat.ID, msg.MessageID, body)
-	}
-	return nil
 }

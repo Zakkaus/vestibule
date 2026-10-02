@@ -48,6 +48,7 @@ type setupActivationError struct {
 }
 
 func (e setupActivationError) Error() string { return "instance activation failed" }
+
 func (e setupActivationError) Unwrap() error { return e.cause }
 
 // minimumSetupTokenLength is the floor for an operator-supplied setup token.
@@ -147,8 +148,7 @@ func (s *setupState) BotToken() string {
 func (s *setupState) setupAvailable(token string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.path != "" && s.record.BotToken == "" && s.record.SetupTokenHash != "" &&
-		constantTimeEqual(s.record.SetupTokenHash, hashSetupToken(token))
+	return s.path != "" && s.record.BotToken == "" && s.record.SetupTokenHash != "" && constantTimeEqual(s.record.SetupTokenHash, hashSetupToken(token))
 }
 
 func (s *setupState) stage(token string) error {
@@ -175,6 +175,7 @@ func (s *setupState) rollback() error {
 		s.record = previous
 		return err
 	}
+
 	return nil
 }
 
@@ -230,6 +231,7 @@ func (c *setupCoordinator) stop() {
 	defer c.mu.Unlock()
 	c.stopped = true
 }
+
 func (c *setupCoordinator) Claim(_ context.Context, token string) (api.SetupResult, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
