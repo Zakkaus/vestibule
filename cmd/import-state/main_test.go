@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -155,6 +157,55 @@ func TestNoStateDirectoryIsRefusedBeforeADatabaseIsOpened(t *testing.T) {
 	if result.err != nil {
 		t.Fatalf("the same call with a state directory: %v\n%s%s", result.err, result.stdout, result.stderr)
 	}
+}
+
+func TestInvalidPendingIsRefusedWithoutTouchingState(t *testing.T) {
+	for _, pendingArgs := range [][]string{nil, {"-pending", "invalid"}} {
+		for _, existing := range []bool{false, true} {
+			t.Run(fmt.Sprintf("args=%v/existing=%t", pendingArgs, existing), func(t *testing.T) {
+				directory := legacyState(t)
+				destination := t.TempDir()
+				databaseFile := filepath.Join(destination, "vestibule.db")
+				backup := filepath.Join(destination, "backup")
+				beforeState := snapshotFiles(t, directory)
+				if existing {
+					if err := os.WriteFile(databaseFile, []byte("untouched destination"), 0o600); err != nil {
+						t.Fatal(err)
+					}
+				}
+				beforeDestination := snapshotFiles(t, destination)
+				args := append([]string{"-state-dir", directory, "-database-uri",
+					"file:" + databaseFile + "?_txlock=immediate", "-backup-dir", backup}, pendingArgs...)
+				result := importState(t, nil, args...)
+				if result.err == nil || !strings.Contains(result.stderr, "pending") {
+					t.Fatalf("expected pending refusal: %+v", result)
+				}
+				if after := snapshotFiles(t, directory); !reflect.DeepEqual(after, beforeState) {
+					t.Errorf("legacy state changed: before=%v, after=%v", beforeState, after)
+				}
+				if after := snapshotFiles(t, destination); !reflect.DeepEqual(after, beforeDestination) {
+					t.Errorf("destination changed: before=%v, after=%v", beforeDestination, after)
+				}
+			})
+		}
+	}
+}
+
+func snapshotFiles(t *testing.T, directory string) map[string]string {
+	t.Helper()
+	entries, err := os.ReadDir(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot := make(map[string]string, len(entries))
+	for _, entry := range entries {
+		data, err := os.ReadFile(filepath.Join(directory, entry.Name()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		snapshot[entry.Name()] = string(data)
+	}
+	return snapshot
 }
 
 // Production runs this command without -backup-dir. Every test of ImportLegacyState supplies one,

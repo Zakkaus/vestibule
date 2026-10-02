@@ -31,6 +31,10 @@ func run(ctx context.Context, args []string) error {
 	if strings.TrimSpace(*stateDirectory) == "" {
 		return fmt.Errorf("-state-dir or STATE_DIRECTORY is required")
 	}
+	pendingDisposition := database.PendingDisposition(strings.TrimSpace(*pending))
+	if pendingDisposition != database.PendingCarry && pendingDisposition != database.PendingDrop {
+		return fmt.Errorf("-pending must be carry or drop")
+	}
 	db, err := database.Open(ctx, database.Config{
 		Type: *databaseType, URI: *databaseURI, StateDirectory: *stateDirectory,
 	})
@@ -39,7 +43,7 @@ func run(ctx context.Context, args []string) error {
 	}
 	report, importErr := database.ImportLegacyState(ctx, db, database.ImportOptions{
 		StateDirectory: *stateDirectory, BackupDirectory: *backupDirectory,
-		Pending: database.PendingDisposition(strings.TrimSpace(*pending)),
+		Pending: pendingDisposition,
 	})
 	closeErr := db.Close()
 	if importErr != nil {

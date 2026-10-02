@@ -57,6 +57,8 @@ native_install_or_upgrade() {
 	printf '%s\n' "$version" > "${work}/release-version"
 	txn_replace "${work}/release-version" 644 "$current_version_file"
 	txn_replace "${work}/THIRD-PARTY-LICENSES" 644 "$native_notice"
+	printf 'deployment=native\n' > "${work}/deployment.env"
+	txn_replace "${work}/deployment.env" 600 "$deployment_file"
 
 	install_support_files
 	if [ "$manager" = systemd ]; then
@@ -232,7 +234,7 @@ native_uninstall_release() {
 		"$current_manifest" "$previous_manifest" "$current_version_file" "$previous_version_file" \
 		"$native_notice" "$previous_native_notice" \
 		"$managed_installer" "$managed_common" "$managed_native" "$managed_container" \
-		"$replacement_runner" "$replacement_service" "$replacement_path" "$replacement_unit_state"; do
+		"$replacement_runner" "$replacement_service" "$replacement_path" "$replacement_unit_state" "$deployment_file"; do
 		txn_remove "$installed_file"
 	done
 	if [ -d "$state_dir" ]; then

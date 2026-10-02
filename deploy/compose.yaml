@@ -43,7 +43,7 @@ services:
       POSTGRES_USER: vestibule
       POSTGRES_PASSWORD: "${VESTIBULE_POSTGRES_PASSWORD:?VESTIBULE_POSTGRES_PASSWORD is required}"
     volumes:
-      - vestibule-postgres:/var/lib/postgresql/data
+      - vestibule-postgres:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U vestibule -d vestibule"]
       interval: 5s
