@@ -715,8 +715,18 @@ CREATE TABLE challenge (
     expires_at BIGINT NOT NULL,
     settled_at BIGINT,
     settled_by BIGINT,          -- 管理员结算时记录其 user_id
-    epoch      INTEGER NOT NULL DEFAULT 0  -- 掉线恢复重发时递增
+    epoch      INTEGER NOT NULL DEFAULT 0, -- 重置答案窗口或领取超时租约时递增
+    expiry_claim_until BIGINT  -- 独立扫描租约，领取不得延长 expires_at
 );
+
+CREATE TABLE verify_tokens (
+    challenge_id TEXT PRIMARY KEY REFERENCES challenge(id) ON DELETE CASCADE,
+    token_hash   TEXT NOT NULL, -- 随机 bearer token 的 SHA256 哈希
+    salt         BYTEA NOT NULL,
+    pow_bits     INTEGER NOT NULL CHECK (pow_bits BETWEEN 12 AND 22),
+    issued_at    BIGINT NOT NULL
+);
+CREATE UNIQUE INDEX verify_tokens_hash ON verify_tokens(token_hash);
 
 -- 挑战的外部副作用。首项动作与状态转换同一事务写入，后续动作由完成前项时写入。
 CREATE TABLE pending_action (
@@ -1122,7 +1132,7 @@ policr-mini 选了另一条：把 Telegram 的权限镜像进 `permissions` 表�
 | GET /api/chats/{id}/queue | 等待队列 |
 | POST /api/chats/{id}/queue/{cid} | 人工结算一条：放行、拒绝、封禁。 **带当前状态做条件更新**，已被超时或他人结算过的返回冲突，不覆盖 |
 | PATCH /api/chats/{id} | 这个群开不开验证、是不是只发消息不验证 |
-| GET /api/chats/{id}/settings | 验证方式、管理与处罚、功能三屏共用。带每项来源：出厂默认、本群设定或由文件管理 |
+| GET /api/chats/{id}/settings | 验证方式、管理与处罚、功能三屏共用。带每项来源：出厂默认、本群设定或由文件管理；含 pow_bits、captcha_unavailable，以及网页模式当前是否可用和不可用原因，不因此重写已存模式 |
 | PATCH /api/chats/{id}/settings | 只提交改动过的字段，带版本号做冲突检测。共用 settings 服务校验写入后的完整有效群设置；超过部署者上限返回 settings_limit_exceeded 与具体字段、值和上限，不改变群设置或版本号 |
 | GET · PUT /api/chats/{id}/rules | 题库、消息与文案、免验证来源三屏共用，`collection` 区分题库、自动回复、显示名黑名单与反垃圾。PUT 整份替换用于导入 |
 | POST /api/chats/{id}/rules/test | 试答；从已保存设置读取 `questions` 或 `fallback_questions`，不读取编辑草稿。请求包含 `collection`、从零开始的 `question_index` 和 `expected_revision`；选择题传选项索引 `choice`，简答题传字符串 `answer`。返回布尔值 `correct`；版本冲突返回 409，题目不存在返回 404。调用线上同一份答案判定，不写入验证、审计或统计状态 |
@@ -1133,14 +1143,15 @@ policr-mini 选了另一条：把 Telegram 的权限镜像进 `permissions` 表�
 | GET /api/chats/{id}/packages | 已装的配置包与可装的包 |
 | POST /api/chats/{id}/packages | 装一个包。先返回它将改动哪些项，确认后才落库 |
 | GET · PATCH /api/me/preferences | 看的人自己的偏好，不属于任何群 |
-| GET /api/status | 诊断屏与版本屏。健康、当前版本、设置持久化、Bot API 探测、回退条件读数和宿主替换状态。**只有运维可见** |
+| GET /api/status | 诊断屏与版本屏。健康、当前版本、设置持久化、Bot API 探测、回退条件读数、宿主替换状态和网页验证能力。**只有运维可见** |
 | GET · PATCH /api/status/daily | 诊断屏的每日状态推送开关。仅运维可读写；PATCH 需要 CSRF，成功保存后返回 enabled、固定 time 与实际 timezone |
 | GET /api/status/release | 运维明确操作后，按需读取固定 GitHub 仓库的最新正式发布、变更说明与目标结构清单；失败不影响本地状态。同上，只有运维 |
 | GET /api/process/settings | 实例级设置的只读视图（新闻源地址、overlay 与时区），每项带来源。**只有运维可见**，没有写入路由 |
 | GET /api/owner/limits | 部署者设置屏。仅当前非零 OwnerID 可见，返回上限、独立版本号与既有超限群；不依赖所选群或运维角色 |
 | PATCH /api/owner/limits | 仅当前 OwnerID 可写，校验会话与 CSRF。带 expected_revision 和 changes，省略字段不改，null 还原为 0。先原子持久化再发布；降低上限只标出既有超限群，不截断或重写群设置 |
 | POST /api/status/upgrade | 发起升级，只写目标版本，执行在宿主侧。同上，只有运维 |
-| GET /verify/{token} | **长期存在的唯一公开面。**令牌一次性、带签名与有效期，不复用管理会话 |
+| GET /verify/{token} | **长期存在的公开申请人入口。**随机 128-bit bearer token，仅保存哈希。读取与刷新不消费、不旋转；不复用管理会话 |
+| POST /verify/{token} | 提交工作量证明或 Turnstile 响应；先在事务外校验证明和必关频道，再条件更新挑战与 outbox。只有领取成功的调用返回已收到，后续提交返回不可用 |
 | GET · POST /setup/{token} | **只在认领之前存在。**安装脚本打印的一次性链接落在这里， 用来填写 Bot token，再给 Telegram 部署者一次性绑定链接；网页不接收或显示绑定口令。 **认领成功后这条路由不再注册**，之后任何人访问都是 404，不是隐藏 |
 
 **这张表是穷举的。**界面上多一个屏，这里就要多一行； 没有对应行的屏是还没设计，不是省略。两份文档的一致性照这条核对： 设计文档里的每一个屏，都要能在这里找到它取数与写入的那一行。
@@ -1148,6 +1159,22 @@ policr-mini 选了另一条：把 Telegram 的权限镜像进 `permissions` 表�
 部署者上限涵盖验证超时、封禁、禁言、查询消息保留、重试间隔、 失败次数、警告次数、每分钟私聊查询次数、选择题与简答题条数， 以及频道白名单、信任群和支援聊天的条数。上限 0 表示不追加限制， 原有值域仍有效；有限封禁上限拒绝群设置中的永久封禁值 0。 负数重试间隔和失败次数保留停用语义。上限默认全部为 0。
 
 超限列表包含配置群与运行时注册群的完整有效值，包括出厂、文件与内建题库继承； 按群 ID 数值升序、固定字段顺序返回。降低上限后群继续使用原值； 下一次写入须将该群全部超限项一并改到范围内，包括空修改与还原操作。 另一群超限不阻止当前群写入。上限与群设置更新共用 settings 写入锁； 上限存于既有元数据文件，缺少可写路径时拒绝保存，不提供仅内存成功。
+
+### 网页验证
+
+网页模式为 `pow` 与 `captcha`，要求私聊投递（dm 或 both）以及非回环的绝对 HTTPS 控制台 URL。 Turnstile 的 `TURNSTILE_SITE_KEY` 与 `TURNSTILE_SECRET_KEY` 只由 app 装配读取，不进入配置 JSON 或数据库。 能力缺失时，新挑战实际使用 quiz，不改写群的已存模式。配置漂移导致群模式与投递方式冲突时，同样只让该群实际使用 quiz， 不使设置存储只读或丢弃其他群的覆盖值；设置写入仍拒绝冲突组合。
+
+**bearer URL 可以转交。**持有完整链接即可为原申请人提交，不再核对提交者的 Telegram `From.ID`。 这比现有 quiz 的答题者归属校验更弱，是为了普通浏览器入口而明确接受的取舍；私聊提示不得转发链接。 初次投递保留 join request 的 `UserChatID` 与时间，在 Telegram 的五分钟临时私聊窗口内优先使用它。 保存实际私聊目的地，C5 替换题目沿用它；明确私聊重发则使用申请人的用户 ID。 网页链接解析控制台 URL，清除查询与片段后再追加验证路由。 明确重发才旋转令牌；GET、页面刷新及自动恢复均不旋转。重启后只有哈希可恢复，自动恢复仅发群内 /start 链接。
+
+DM 明确拒绝后仍用既有群内 /start 恢复路径，不把网页方式换成题目，也不把网页 bearer 发到群里。 用户 /start 后私聊重发网页链接；不确定投递与申请人已离开的既有分类不变。 能力丢失或 captcha fallback 则原位改为 quiz，保留 challenge、gate 与限制；questions 为空时使用内核题，而不是 fallback_questions。 替换题目使用既有的投递分类与群内 /start 恢复路径；明确投递成功后才开始完整答案窗口，拒绝投递不得回滚到另一道内核题。 C5 的数据库 epoch 更新与内存安装在同一把锁内完成，不允许其他待处理状态写入旧 epoch。 配置了必关频道时，网页私聊消息和频道要求页面均显示频道名称与邀请链接。 超时扫描使用独立 expiry_claim_until，不能通过改写 expires_at 使已到期链接重新可用。
+
+PoW 验证 `SHA256(salt bytes || ASCII decimal uint64 nonce)` 的二进制前导零位， salt 为 16 bytes，nonce 最多 20 位；难度在签发时固定，有效设置值域为 12–22 bits。 页面只使用内嵌纯 JavaScript，在主线程分片计算并显示进度，不创建 Worker；完成后由普通 form POST 提交。 错误证明按现有错误次数上限计次，不能绕过必关频道检查。
+
+Turnstile 固定使用 action=verify，siteverify 每次使用新的 UUIDv4 idempotency_key， 不发送 remoteIP、cdata、用户 ID 或显示名。总超时五秒，包括响应正文读取； hostname 按控制台 Hostname 比较，不含端口，双方转小写并各去掉一个末尾点。 传输失败（包括响应正文读取中断）、超时或 HTTP 5xx 为 outage，按该群 fallback/approve/decline 策略处理； 凭据或配置错误固定 fallback 并通知操作人员。其余失败，包括 action 或 hostname 不符，计一次错误，绝不放行。 调用方取消直接中止，不应用 outage 策略。
+
+POST 只接收 application/x-www-form-urlencoded，正文不超过 4 KiB； 要求 same-origin Fetch Metadata 或与控制台同源的 Origin，拒绝缺失证明及跨站请求。 no-referrer 可能使普通 form 的 Origin 为 null，此时必须仍有 same-origin Fetch Metadata。 未知、到期、已使用或已结算令牌返回完全相同的固定默认语言页面；有效页面使用已存申请人语言。
+
+页面设置 no-store、no-referrer 和独立 CSP：default-src none，内嵌 style/script 使用内容哈希， form-action self、frame-ancestors none、base-uri none。仅 captcha 放行 challenges.cloudflare.com 的 script、frame 与连接来源， 不改变控制台 CSP；失败响应生成新的 Turnstile widget。请求日志将 /verify/{token} 替换为 /verify/[redacted]， 不记录查询字符串、PoW nonce 或 provider response。verify_tokens 随挑战删除；人机验证浏览器会将 IP 和浏览器信号交给 Cloudflare， 这一外部通信在两份隐私说明中单独披露。
 
 ### 每日状态摘要
 

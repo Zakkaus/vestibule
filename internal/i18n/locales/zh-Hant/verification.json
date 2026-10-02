@@ -145,5 +145,26 @@
     "wrong_banned": "❌ 已達到設定的驗證失敗次數上限，你已被移出群組並封禁（%[1]s）。請在封禁到期後重新加入；若為永久封禁，請聯絡群組管理員。",
     "wrong_no_wait": "❌ 回答錯誤，你已被移出群組。可以立即重新加入並再次驗證。",
     "wrong_retry": "❌ 回答錯誤，你已被移出群組。請在 %[1]d 秒後重新加入。"
+  },
+  "web": {
+    "title": "入群驗證",
+    "po_w_intro": "請使用此裝置計算證明，再提交驗證。計算完成前，請保持此頁面開啟。",
+    "captcha_intro": "請完成下方的人機驗證，再提交結果。",
+    "computing": "正在計算證明…",
+    "ready": "證明已計算完成，請提交以繼續驗證。",
+    "progress": "已計算的雜湊數",
+    "start": "計算證明",
+    "submit": "提交驗證",
+    "received": "已收到驗證請求，請返回 Telegram 查看狀態。",
+    "settled": "此驗證連結已無法使用，請返回 Telegram 查看申請狀態或要求新的連結。",
+    "wrong": "驗證失敗，已計為一次錯誤回答。請在期限內重試。",
+    "channel_required": "請加入指定頻道，再次提交驗證。",
+    "fallback": "驗證已改為問答，請返回機器人私訊回答問題。",
+    "unavailable": "無法處理驗證請求，請在期限內重試。",
+    "java_script_required": "此驗證需要啟用 JavaScript。",
+    "privacy": "Cloudflare Turnstile 會接收 IP 位址和瀏覽器訊號，以檢查此次互動。",
+    "dm_prompt": "請透過下方按鈕開啟驗證頁面。請勿分享此連結，任何持有連結的人皆可提交驗證。",
+    "button": "開啟驗證頁面",
+    "operator_alert": "群組 %[1]d 的 Turnstile 設定有誤，驗證已改為問答。請檢查 TURNSTILE_SITE_KEY 和 TURNSTILE_SECRET_KEY。"
   }
 }

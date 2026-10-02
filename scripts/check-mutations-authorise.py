@@ -66,6 +66,9 @@ ALLOWED = {
                     "authenticated Telegram user with the current nonzero OwnerID",
     "patchOwnerLimits": "instance-wide rather than per-group; ownerLimitsRoute first requires "
                         "ownerSession, and this handler checks CSRF before updating caps",
+    "submitVerification": "public applicant route; resolves the bearer token before AnswerWeb, "
+                          "which binds and conditionally claims its pending challenge; "
+                          "admitVerification requires same-origin proof before resolution",
 }
 
 

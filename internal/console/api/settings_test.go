@@ -267,3 +267,25 @@ func requireLookupResponse(
 			field, setting.Value, setting.Source, wantValue, wantSource)
 	}
 }
+
+func TestPatchWebProofSettingsRejectsInvalidDomainAndResetsOverrides(t *testing.T) {
+	server, cookies, csrf, service, _ := apiSettingsTestServer(t, true)
+	original, _ := service.store.Settings(apiSettingsGroupID)
+	rejected := patchGroupSettings(server, cookies, csrf, apiSettingsGroupID,
+		`{"expected_revision":0,"changes":{"pow_bits":11}}`)
+	if rejected.Code != http.StatusBadRequest {
+		t.Fatalf("invalid difficulty status=%d", rejected.Code)
+	}
+	changed := patchGroupSettings(server, cookies, csrf, apiSettingsGroupID,
+		`{"expected_revision":0,"changes":{"pow_bits":16,"captcha_unavailable":"approve"}}`)
+	body := decodeSettings(t, changed)
+	if changed.Code != http.StatusOK || body.PoWBits.Value != 16 || body.CaptchaUnavailable.Value != settings.CaptchaApprove {
+		t.Fatalf("web settings were not writable: status=%d body=%+v", changed.Code, body)
+	}
+	reset := patchGroupSettings(server, cookies, csrf, apiSettingsGroupID,
+		`{"expected_revision":1,"changes":{"pow_bits":null,"captcha_unavailable":null}}`)
+	body = decodeSettings(t, reset)
+	if reset.Code != http.StatusOK || body.PoWBits.Value != original.PoWBits().Value || body.CaptchaUnavailable.Value != original.CaptchaUnavailable().Value {
+		t.Fatalf("null did not restore inherited settings: status=%d body=%+v", reset.Code, body)
+	}
+}

@@ -139,12 +139,10 @@ func TestSettingsRevisionMigrationAllowsSchemaV1Rollback(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	current, err := Open(ctx, cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	assertSchemaV1ChatDefaults(t, ctx, current.Database, settingsMigrationExistingChatID)
-	if err = current.Close(); err != nil {
+	// Exercise the compatible settings migration, not later migrations with a higher rollback floor.
+	current := openWithUpgradeTable(t, ctx, cfg, migrations.Table[:2])
+	assertSchemaV1ChatDefaults(t, ctx, current, settingsMigrationExistingChatID)
+	if err := current.Close(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -152,6 +150,27 @@ func TestSettingsRevisionMigrationAllowsSchemaV1Rollback(t *testing.T) {
 	t.Cleanup(func() { _ = rolledBack.Close() })
 	insertSchemaV1Chat(t, ctx, rolledBack, settingsMigrationNewChatID)
 	assertSchemaV1ChatDefaults(t, ctx, rolledBack, settingsMigrationNewChatID)
+}
+
+func TestExpiryLeaseMigrationRefusesSchemaV4Rollback(t *testing.T) {
+	ctx := context.Background()
+	cfg := testSQLiteConfig(t)
+	current, err := Open(ctx, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := current.Close(); err != nil {
+		t.Fatal(err)
+	}
+	older, err := dbutil.NewWithDialect(cfg.URI, cfg.Type)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = older.Close() })
+	older.UpgradeTable = migrations.Table[:4]
+	if err := older.Upgrade(ctx); !errors.Is(err, dbutil.ErrUnsupportedDatabaseVersion) {
+		t.Fatalf("schema v4 reopened expiry-lease schema: %v", err)
+	}
 }
 
 func openWithUpgradeTable(t *testing.T, ctx context.Context, cfg Config, upgrades dbutil.UpgradeTable) *dbutil.Database {

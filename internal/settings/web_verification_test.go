@@ -81,3 +81,22 @@ func TestWebSettingsCopyResetAndCapPersistence(t *testing.T) {
 	requireNoError(t, err)
 	requireEqual(t, requireSettingsView(t, reloaded, testGroupA).PoWBits().Value, 18, "reset bits")
 }
+
+func TestWebDeliveryConfigDriftPreservesOtherGroupOverrides(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	baseline := testSettingsBaseline()
+	store, err := NewStore(path, baseline, nil, nil)
+	requireNoError(t, err)
+	store.SetWebCapabilities(WebCapabilities{ConsoleURL: "https://console.example"})
+	_, err = store.Update(testGroupA, 0, GroupOverrides{VerifyMode: ptr(ModePoW)})
+	requireNoError(t, err)
+	_, err = store.Update(testGroupB, 0, GroupOverrides{BanSeconds: ptr(77)})
+	requireNoError(t, err)
+	baseline.Groups[0].DeliveryMode.Value = DeliveryGroup
+	reloaded, err := NewStore(path, baseline, nil, nil)
+	requireNoError(t, err)
+	requireEqual(t, requireSettingsView(t, reloaded, testGroupB).BanSeconds().Value, 77, "unrelated persisted override")
+	_, err = reloaded.Update(testGroupB, 1, GroupOverrides{BanSeconds: ptr(78)})
+	requireNoError(t, err)
+	requireEqual(t, requireSettingsView(t, reloaded, testGroupA).VerifyMode().Value, ModePoW, "stored web mode")
+}

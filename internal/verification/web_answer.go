@@ -55,6 +55,7 @@ func (v *Service) IssueWebToken(ctx context.Context, id string) (string, WebToke
 	if err != nil || !written {
 		return "", record, err
 	}
+	p.webToken = raw
 	return raw, record, nil
 }
 
@@ -72,11 +73,17 @@ func (v *Service) AnswerWeb(ctx context.Context, id string, proof WebProof) (Web
 	}
 	key, p, ref := target.key, target.pending, target.ref
 	outcome := checkWebProof(ctx, target.mode, target.verifier, token, proof)
+	if err := ctx.Err(); err != nil {
+		return settled, err
+	}
+	if outcome == TurnstileCanceled {
+		return settled, context.Canceled
+	}
 	if outcome == TurnstileOutage || outcome == TurnstileConfiguration {
 		return v.webUnavailable(ctx, key, p, ref, token.TokenHash, outcome)
 	}
 	if outcome == TurnstilePassed && !v.isChannelMember(ctx, v.gateway, key.gid, key.uid, v.groupLanguage(key.gid)) {
-		return WebResult{Outcome: WebChannelRequired}, nil
+		return v.webChannelRequired(key.gid), nil
 	}
 	claimed, state, err := v.claimWebAnswer(ctx, key, p, ref, token.TokenHash, outcome == TurnstileFailed, ChallengeApproved)
 	if err != nil || !claimed {
@@ -96,6 +103,9 @@ func (v *Service) AnswerWeb(ctx context.Context, id string, proof WebProof) (Web
 func (v *Service) claimWebAnswer(ctx context.Context, key pkey, p *pending, ref PendingRef, hash string, wrong bool, state ChallengeState) (bool, ChallengeState, error) {
 	v.mu.Lock()
 	defer v.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return false, state, err
+	}
 	if v.shuttingDown || !v.webPendingMatches(key, p, ref) {
 		return false, state, nil
 	}

@@ -64,6 +64,9 @@ type services struct {
 	daily                *status.DailyService
 	version              string
 	identity             verification.Identity
+	consoleURL           string
+	turnstileSiteKey     string
+	turnstileVerifier    verification.TurnstileVerifier
 }
 
 type activeRuntime struct {
@@ -218,6 +221,10 @@ func claimedConsoleConfig(runtime *services) api.Config {
 		Version:                    runtime.version,
 		ObserveOnly:                runtime.cfg.ObserveOnly,
 		BotUsername:                runtime.identity.Username,
+		WebVerification:            runtime.verification,
+		ConsoleURL:                 runtime.consoleURL,
+		TurnstileSiteKey:           runtime.turnstileSiteKey,
+		WebOperatorAlert:           runtime.webOperatorAlert,
 	}
 }
 
@@ -319,13 +326,15 @@ func newBaseServices(ctx context.Context, options Options) (*services, error) {
 		return nil, err
 	}
 	health.SetConfigReady(true)
-	return &services{
+	runtime := &services{
 		database: db, cfg: cfg, settings: runtimeSettings, health: health,
 		replacement:          status.NewReplacement(options.StateDirectory),
 		release:              status.NewReleaseChecker(options.Version, options.GitHubToken),
 		rollbackObservations: status.NewRollbackObservations(time.Now),
 		version:              options.Version,
-	}, nil
+	}
+	configureWebVerification(runtime, options.ConsoleURL)
+	return runtime, nil
 }
 
 func activateServices(ctx context.Context, runtime *services, options Options, progress chan<- struct{}) error {
@@ -377,6 +386,7 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 	if err != nil {
 		return fmt.Errorf("verification: %w", err)
 	}
+	wireWebVerification(runtime, verificationService, liveVerificationGateway)
 	daily := newDailyService(runtime, verificationService, verificationGateway, time.Now)
 	administration := panel.New(
 		settingsService, connector, runtime.cfg, &i18n.Messages,

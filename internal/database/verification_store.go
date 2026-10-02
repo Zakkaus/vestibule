@@ -106,7 +106,7 @@ func (s *VerificationStore) UpdatePending(
 	}
 	result, err := s.db.Exec(context.Background(), `
 		UPDATE challenge
-		   SET payload=$1, delivery=$2, attempts=$3, expires_at=$4, epoch=$5
+		   SET payload=$1, delivery=$2, attempts=$3, expires_at=$4, epoch=$5, expiry_claim_until=NULL
 		 WHERE id=$6 AND chat_id=$7 AND user_id=$8 AND state='pending' AND epoch=$9`,
 		payload, delivery, record.Tries, record.Deadline, record.Epoch,
 		challengeID(expected), expected.GroupID, expected.UserID, expected.Epoch)

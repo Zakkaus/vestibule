@@ -15,7 +15,8 @@ func pendingRecord(key pkey, p *pending) PendingRecord {
 	}
 	return PendingRecord{
 		UserID: key.uid, GroupID: key.gid,
-		GroupMsgID: p.groupMsgID, PrivateMsgID: p.privateMsgID,
+		UserChatID: p.userChatID, RequestDate: p.requestDate,
+		GroupMsgID: p.groupMsgID, PrivateMsgID: p.privateMsgID, PrivateChatID: p.privateChatID,
 		ChallengeDelivered: p.challengeDelivered && p.groupMsgID == 0 && p.privateMsgID == 0,
 		Mode:               p.mode, Lang: p.persistedLang(),
 		FbAnswers: append([]string(nil), p.fbAnswers...), FallbackPending: p.fallbackPending, Prompted: p.prompted,

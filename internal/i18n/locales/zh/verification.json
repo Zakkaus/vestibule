@@ -150,5 +150,26 @@
     "wrong_banned": "❌ 已达到设定的验证失败次数上限，你已被踢出并封禁（%[1]s）。请在封禁到期后重新加入；若为永久封禁，请联系群管理员。",
     "wrong_no_wait": "❌ 回答错误，你已被踢出。可以立即重新加入并再次验证。",
     "wrong_retry": "❌ 回答错误，你已被踢出。请在 %[1]d 秒后重新加入。"
+  },
+  "web": {
+    "title": "入群验证",
+    "po_w_intro": "请在此设备上计算证明，然后提交。计算完成前，请保持此页面打开。",
+    "captcha_intro": "请完成下方的人机验证，然后提交结果。",
+    "computing": "正在计算证明…",
+    "ready": "证明已计算完成，请提交以继续验证。",
+    "progress": "已计算的哈希数",
+    "start": "计算证明",
+    "submit": "提交验证",
+    "received": "验证请求已收到，请返回 Telegram 查看状态。",
+    "settled": "此验证链接已不可用，请返回 Telegram 查看申请状态或请求新的链接。",
+    "wrong": "验证失败，已计为一次错误回答。请在期限内重试。",
+    "channel_required": "请加入必关频道，然后再次提交验证。",
+    "fallback": "验证已改为问答，请返回机器人私聊回答问题。",
+    "unavailable": "无法处理验证请求，请在期限内重试。",
+    "java_script_required": "此验证需要启用 JavaScript。",
+    "privacy": "Cloudflare Turnstile 会接收 IP 地址和浏览器信号，以检查此次交互。",
+    "dm_prompt": "请通过下方按钮打开验证页面。请勿分享此链接，持有链接的任何人均可提交验证。",
+    "button": "打开验证页面",
+    "operator_alert": "群 %[1]d 的 Turnstile 配置错误，验证已改为问答。请检查 TURNSTILE_SITE_KEY 和 TURNSTILE_SECRET_KEY。"
   }
 }

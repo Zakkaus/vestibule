@@ -86,6 +86,7 @@ func (s *VerificationStore) ClaimExpired(_ string, now, claimUntil int64, limit 
 			SELECT chat_id, user_id, payload, delivery, attempts, expires_at, epoch
 			  FROM challenge
 			 WHERE state='pending' AND expires_at <= $1
+			   AND (expiry_claim_until IS NULL OR expiry_claim_until <= $1)
 			 ORDER BY expires_at, id
 			 LIMIT $2`, now, limit)
 		if err != nil {
@@ -104,9 +105,10 @@ func (s *VerificationStore) ClaimExpired(_ string, now, claimUntil int64, limit 
 			nextEpoch := record.Epoch + 1
 			result, err := s.db.Exec(ctx, `
 				UPDATE challenge
-				   SET expires_at=$1, epoch=$2
+				   SET expiry_claim_until=$1, epoch=$2
 				 WHERE id=$3 AND chat_id=$4 AND user_id=$5 AND state='pending'
-				   AND expires_at <= $6 AND epoch=$7`,
+				   AND expires_at <= $6 AND epoch=$7
+				   AND (expiry_claim_until IS NULL OR expiry_claim_until <= $6)`,
 				claimUntil, nextEpoch, challengeID(record.Ref()), record.GroupID, record.UserID, now, record.Epoch)
 			if err != nil {
 				return fmt.Errorf("claim due challenge for chat %d user %d: %w", record.GroupID, record.UserID, err)
@@ -118,7 +120,6 @@ func (s *VerificationStore) ClaimExpired(_ string, now, claimUntil int64, limit 
 			if !changed {
 				continue
 			}
-			record.Deadline = claimUntil
 			record.Epoch = nextEpoch
 			claimed = append(claimed, record)
 		}

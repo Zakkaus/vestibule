@@ -56,6 +56,8 @@ type VerificationCatalog struct {
 	Duration VerificationDurationCatalog
 	// Admin contains administrator controls and operational notices.
 	Admin VerificationAdminCatalog
+	// Web contains public web verification and private-link copy.
+	Web VerificationWebCatalog
 }
 
 // VerificationGroupCatalog contains public group challenge text.

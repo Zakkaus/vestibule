@@ -365,7 +365,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 | 三个 `Save` 的错误被丢弃 | `internal/verification/state.go:108`、`:298`、`:754` 都走 `retryStoreWrite`，失败落日志 |
 | `moderate` 的 `LoadWarnings` 同形状 | `internal/moderate/state.go:36` 记下 `loadErr` 并把错误返回 |
 | 构造函数无法返回恢复错误 | `internal/verification/service.go:193` 与 `internal/moderate/service.go:58` 都返回 `error` |
-| 装配层只能继续启动 | `internal/app/app.go:89-92` 在 `newBaseServices` 返回错误时终止启动 |
+| 装配层只能继续启动 | `internal/app/app.go:96-99` 在 `newBaseServices` 返回错误时终止启动 |
 
 「出错」与「条件不匹配影响 0 行」的区分由
 `internal/database/verification_store.go:198` 的 `changedRow` 承担：读不出受影响行数是错误，
@@ -563,8 +563,8 @@ internal/app  verification  rules  telegram  console  settings  database  status
 #### 后续补充：为运维会话提供写入凭据（**已完成**）
 
 原实现中，`GET /enter/{token}` 仅写入 HttpOnly 会话 Cookie，再以 `303` 重定向到首页
-（`internal/console/api/server.go:262-279`）；CSRF 令牌仅由
-`POST /api/session` 的 JSON 响应返回（`internal/console/api/server.go:242-260`），
+（`internal/console/api/server.go:253-270`）；CSRF 令牌仅由
+`POST /api/session` 的 JSON 响应返回（`internal/console/api/server.go:233-251`），
 而结算要求 `X-CSRF-Token`（`internal/console/auth/manager.go:317-323`）。
 
 因此，通过一次性链接进入的运维可以读取群和队列，但无法执行写入；
@@ -677,15 +677,15 @@ internal/app  verification  rules  telegram  console  settings  database  status
 阶段七实施前逐屏核对 13 个屏的数据来源，由此确定设置端点必须优先完成。
 核对时，控制台共有七条路由，均不支持设置读写
 （`/livez` `/readyz` `GET/POST /api/session` `/enter/` `/api/chats` `/api/chats/`）。
-当前顶层分发已包含 `GET · POST /setup/{token}`、`GET /api/process/settings`、
-`GET /api/status`、`GET · PATCH /api/status/daily`、`GET /api/status/release` 和 `POST /api/status/upgrade`
-（`internal/console/api/server.go:152-194`）；`/api/chats/` 也已按群展开为
-`queue`、`audit`、`stats`、`settings`、`rules` 五组
-（`internal/console/api/server.go:292-321`）。
+当前顶层分发已包含 `GET · POST /setup/{token}`、`GET /verify/{token}`、`POST /verify/{token}`、
+`GET /api/process/settings`、`GET /api/status`、`GET · PATCH /api/status/daily`、
+`GET /api/status/release` 和 `POST /api/status/upgrade`（`internal/console/api/server.go:163`）；
+`/api/chats/` 也已按群展开为 `queue`、`audit`、`stats`、`feeds`、`settings`、`rules` 六组
+（`internal/console/api/server.go:283-314`）。
 阶段七已经完成八个屏所依赖的设置端点。
 
-底层读写能力来自 `internal/settings/store.go:339` 的 `Settings(chatID)` 和
-`:399` 的 `Update(groupID, expectedRevision, next)`。实现以按群授权、
+底层读写能力来自 `internal/settings/store.go:358` 的 `Settings(chatID)` 和
+`:418` 的 `Update(groupID, expectedRevision, next)`。实现以按群授权、
 写入前实时检查管理员和可区分的 revision 冲突为不变量，
 再根据 `Store` 的调用面确定接口契约并写回文档。
 
@@ -998,7 +998,7 @@ Bot API 容器从独立的 `bot-api.env` 读取上游必需凭据。应用代码
 | 验证失败计数（`verifyfail.json`） | `cmd/import-state` | 丢了会让冷却与自动封禁从头计 |
 | 自动化代理计数（`agents.json`） | `cmd/import-state` | 反垃圾的历史依据 |
 | 心跳（`heartbeat.json`） | `cmd/import-state` | 决定恢复后要不要重发挑战 |
-| 每群设置与文案、题库、自动回复（`settings.json`） | **设置层直接读**（`internal/settings/store.go:320` 的对账） | 丢了会回到出厂默认，群管理员未必立刻发现；是手写内容，无法重建 |
+| 每群设置与文案、题库、自动回复（`settings.json`） | **设置层直接读**（`internal/settings/store.go:327` 的对账） | 丢了会回到出厂默认，群管理员未必立刻发现；是手写内容，无法重建 |
 | 反垃圾旧格式（`antispam.json`） | **设置层直接读**（`internal/settings/store_init.go:115`） | 上一代单独存了一份，不迁会静默回到默认 |
 | 进行中的待验证记录（`pending.json`） | `cmd/import-state -pending carry\|drop` | 是否迁移由维护者在切换前决定 |
 
@@ -1033,8 +1033,8 @@ Bot API 规定，机器人必须持有 `can_invite_users` 管理员权限才会�
 它由 `internal/verification/observe_only.go:68` 的 `ApplyObservationMode` 装在网关外面：
 读全部转给真网关，**每一次对外写入都换成一条落库的观察**，合成的消息号是负数，
 不可能指向真实的 Telegram 消息。
-开关是配置里的 `observe_only`（`internal/settings/config.go:287`），
-由 `internal/app/app.go:217` 把它接上 `ObserveOnly`。
+开关是配置里的 `observe_only`（`internal/settings/config.go:291`），
+由 `internal/app/app.go:222` 把它接上 `ObserveOnly`。
 观察写不进去时它**不报成功**，否则「没发出去」和「发了但没记下」会长得一样。
 
 这个模式拦下的是全部对外写入，不只是 approve 与 decline。
@@ -1226,7 +1226,7 @@ Catppuccin Mocha、Tokyo Night Storm 和 Tokyo Night。
 | 控制台域名 | **阶段九已完成，代码不再等它；剩下的只有实机。** 实现把它做成了配置（`CONSOLE_URL`，留空即不投递链接，Mini App 登录接口照常），所以代码不需要答案。需要它的是那台真机：证书要签给某个域名，Mini App 也要填一个。阶段九剩的两条 `EXEMPT` 都卡在这里 |
 | 申请人应答顺序 | **已于 2026-09-02 确定提前应答。** 阶段三第三片已具备事务落库和执行器重试前提；文案表述为「已判定通过」，而非「已经进群」 |
 | 四屏欠的五条职责 | **三条已定 2026-09-02，归阶段十一**：强调色改为整套主题、拥有者绑定（唯一）、控制群。**两条仍待决**：题库的内置模板、偏好的标题图标 | 实测：把设计文档「各屏职责」表里每屏的特征词拿去比三份语言目录（控制台文案检查保证凡是屏上能看见的字都在目录里），四屏存在缺口：**题库**缺「内置模板」，**偏好**缺「强调色」与「标题图标」，**群与频道**缺「拥有者绑定」，**管理与处罚**缺「控制群」。试答已由本片实现，题库屏仍需补齐内置模板 |
-| 路由表与实现的差异要不要收敛 | 阶段十与阶段十一 | `POST /api/status/upgrade` 已由阶段九的宿主替换机制实现；当前未实现清单包括：`GET /api/chats/{id}/overview`、`GET /api/chats/{id}/packages`、`POST /api/chats/{id}/packages`、`GET · PATCH /api/me/preferences`、`PATCH /api/chats/{id}`、`GET /verify/{token}`。`GET · PUT /api/chats/{id}/feeds` 与 `POST /api/chats/{id}/rules/test` 已实现。这份清单由 `scripts/check-console-routes.py` 打印，不是手数的 |
+| 路由表与实现的差异要不要收敛 | 阶段十与阶段十一 | `POST /api/status/upgrade` 已由阶段九的宿主替换机制实现；当前未实现清单包括：`GET /api/chats/{id}/overview`、`GET /api/chats/{id}/packages`、`POST /api/chats/{id}/packages`、`GET · PATCH /api/me/preferences`、`PATCH /api/chats/{id}`。`GET · PUT /api/chats/{id}/feeds`、`POST /api/chats/{id}/rules/test`、`GET /verify/{token}` 与 `POST /verify/{token}` 已实现。这份清单由 `scripts/check-console-routes.py` 打印，不是手数的 |
 | ~~全部语言或仅最宽语言参与渲染门禁~~ **已于 2026-09-02 确定：分两档执行** | 每个 PR 测试实测最宽语言，定时任务测试全部语言与全部屏；`scripts/check-locale-catalogues.py` 静态检查目录键集和占位符 |
 | 结构信号 | **已于 2026-09-02 确定归阶段十一。** 该功能是架构文档新增设计，两代代码均未实现 |
 

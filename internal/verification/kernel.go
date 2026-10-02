@@ -58,7 +58,7 @@ func (v *Service) questions(groupID int64) []settings.Question {
 // Mixed mode uses a cryptographic coin flip; explicitly empty chat banks keep the legacy kernel fallback.
 func (v *Service) pickMode(gid int64) string {
 	mode := v.EffectiveMode(gid)
-	if settings.IsWebMode(mode) && v.settings.WebModeUnavailable(mode) != "" {
+	if v.WebModeUnavailable(gid, mode) != "" {
 		mode = settings.ModeQuiz
 	}
 	if mode == (settings.ModeMixed) {

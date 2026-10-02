@@ -34,6 +34,7 @@ type diagnosticsResponse struct {
 	Persistence diagnosticsPersistenceResponse `json:"persistence"`
 	Rollback    diagnosticsRollbackResponse    `json:"rollback_observations"`
 	Replacement diagnosticsReplacementResponse `json:"replacement"`
+	WebModes    []webModeAvailability          `json:"web_modes,omitempty"`
 }
 
 type diagnosticsHealthResponse struct {
@@ -93,13 +94,11 @@ func (s *Server) readDiagnostics(writer http.ResponseWriter, request *http.Reque
 	if s.replacement != nil {
 		replacement = s.replacement.Status()
 	}
-	writeJSON(
-		writer,
-		http.StatusOK,
-		diagnosticsView(
-			s.version, s.observeOnly, health, s.health.Ready(ctx), s.persistence.Persistence(), replacement, rollback,
-		),
+	response := diagnosticsView(
+		s.version, s.observeOnly, health, s.health.Ready(ctx), s.persistence.Persistence(), replacement, rollback,
 	)
+	response.WebModes = s.webModeAvailability(0)
+	writeJSON(writer, http.StatusOK, response)
 }
 
 func diagnosticsView(

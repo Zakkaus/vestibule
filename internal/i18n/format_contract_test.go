@@ -331,4 +331,5 @@ verification.result.timeout_banned=1:s
 verification.result.timeout_retry=1:d
 verification.result.wrong_banned=1:s
 verification.result.wrong_retry=1:d
+verification.web.operator_alert=1:d
 `

@@ -27,6 +27,9 @@ type settingsResponse struct {
 	Enabled                 settingResponse[bool]                     `json:"enabled"`
 	DeliveryMode            settingResponse[string]                   `json:"delivery_mode"`
 	VerifyMode              settingResponse[string]                   `json:"verify_mode"`
+	PoWBits                 settingResponse[int]                      `json:"pow_bits"`
+	CaptchaUnavailable      settingResponse[string]                   `json:"captcha_unavailable"`
+	WebModes                []webModeAvailability                     `json:"web_modes,omitempty"`
 	NameSpoiler             settingResponse[bool]                     `json:"name_spoiler"`
 	BanSeconds              settingResponse[int]                      `json:"ban_seconds"`
 	LookupTTLSeconds        settingResponse[int]                      `json:"lookup_ttl_seconds"`
@@ -61,6 +64,7 @@ func settingsView(group settings.GroupView) settingsResponse {
 		Revision: group.Revision(),
 		Enabled:  settingView(group.Enabled()), DeliveryMode: settingView(group.DeliveryMode()),
 		VerifyMode: settingView(group.VerifyMode()), NameSpoiler: settingView(group.NameSpoiler()),
+		PoWBits: settingView(group.PoWBits()), CaptchaUnavailable: settingView(group.CaptchaUnavailable()),
 		BanSeconds: settingView(group.BanSeconds()), LookupTTLSeconds: settingView(group.LookupTTLSeconds()),
 		LookupAutoDeleteEnabled: settingView(group.LookupAutoDeleteEnabled()),
 		TimeoutSeconds:          settingView(group.TimeoutSeconds()), VerifyMaxFails: settingView(group.VerifyMaxFails()),
@@ -93,6 +97,8 @@ type settingsPatch struct {
 	Enabled                 *bool                     `json:"enabled"`
 	DeliveryMode            *string                   `json:"delivery_mode"`
 	VerifyMode              *string                   `json:"verify_mode"`
+	PoWBits                 *int                      `json:"pow_bits"`
+	CaptchaUnavailable      *string                   `json:"captcha_unavailable"`
 	NameSpoiler             *bool                     `json:"name_spoiler"`
 	BanSeconds              *int                      `json:"ban_seconds"`
 	LookupTTLSeconds        *int                      `json:"lookup_ttl_seconds"`
@@ -159,6 +165,12 @@ func (p settingsPatch) applyModesAndTiming(next *settings.GroupOverrides) {
 	}
 	if p.has("verify_mode") {
 		next.VerifyMode = p.VerifyMode
+	}
+	if p.has("pow_bits") {
+		next.PoWBits = p.PoWBits
+	}
+	if p.has("captcha_unavailable") {
+		next.CaptchaUnavailable = p.CaptchaUnavailable
 	}
 	if p.has("name_spoiler") {
 		next.NameSpoiler = p.NameSpoiler
@@ -280,7 +292,7 @@ func (s *Server) readSettings(writer http.ResponseWriter, request *http.Request,
 	if !ok {
 		return
 	}
-	writeJSON(writer, http.StatusOK, settingsView(group))
+	writeJSON(writer, http.StatusOK, s.webSettingsView(group, chatID))
 }
 
 func (s *Server) patchSettings(writer http.ResponseWriter, request *http.Request, chatID int64) {
@@ -314,7 +326,7 @@ func (s *Server) patchSettings(writer http.ResponseWriter, request *http.Request
 	if !ok {
 		return
 	}
-	writeJSON(writer, http.StatusOK, settingsView(group))
+	writeJSON(writer, http.StatusOK, s.webSettingsView(group, chatID))
 }
 
 func (s *Server) settingsGroup(writer http.ResponseWriter, chatID int64) (settings.GroupView, bool) {
@@ -347,6 +359,8 @@ func writeSettingsLimitExceeded(writer http.ResponseWriter, exceeded *settings.O
 
 func writeSettingsError(writer http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, settings.ErrWebVerificationSettings):
+		writeError(writer, http.StatusBadRequest, "invalid_settings")
 	case errors.Is(err, settings.ErrOwnerLimitsExceeded):
 		var exceeded *settings.OwnerLimitsExceededError
 		if errors.As(err, &exceeded) {

@@ -101,7 +101,7 @@ func TestUnreadableChannelGateExplainsTheAccessProblem(t *testing.T) {
 	if service.isChannelMember(context.Background(), unreadable, groupID, applicantID, i18n.LangEN) {
 		t.Fatal("an unreadable required channel must not silently admit the applicant in a fail-closed group")
 	}
-	if _, err := service.sendChannelPrompt(context.Background(), unreadable, groupID, applicantID, i18n.LangEN); err != nil {
+	if _, err := service.sendChannelPrompt(context.Background(), unreadable, groupID, applicantID, applicantID, i18n.LangEN); err != nil {
 		t.Fatalf("send unreadable-channel prompt: %v", err)
 	}
 	want := service.messages.Verification.Channel.Unreadable.For(i18n.LangEN)

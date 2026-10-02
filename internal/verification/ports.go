@@ -50,8 +50,10 @@ type Chat struct {
 
 // ChatJoinRequest is the information the core needs from a join-request event.
 type ChatJoinRequest struct {
-	Chat Chat
-	From User
+	Chat       Chat
+	From       User
+	UserChatID int64
+	Date       int64
 }
 
 // ChatMember exposes membership state without leaking a platform SDK type.
@@ -187,6 +189,11 @@ type OutgoingMessage struct {
 	HTML               bool
 	DisableLinkPreview bool
 	Buttons            [][]Button
+	ChallengeID        string
+	WebMode            string
+	Language           string
+	WebToken           string
+	Resend             bool
 }
 
 func sendText(ctx context.Context, gateway Gateway, chatID int64, text string) (int, error) {
@@ -342,6 +349,7 @@ type PendingRecord struct {
 	GroupID            int64    `json:"group_id"`
 	GroupMsgID         int      `json:"group_msg_id"`
 	PrivateMsgID       int      `json:"private_msg_id,omitempty"`
+	PrivateChatID      int64    `json:"private_chat_id,omitempty"`
 	ChallengeDelivered bool     `json:"challenge_delivered,omitempty"`
 	Mode               string   `json:"mode,omitempty"`
 	Lang               string   `json:"lang,omitempty"`
@@ -359,8 +367,11 @@ type PendingRecord struct {
 	Nonce              string   `json:"nonce"`
 	Name               string   `json:"name,omitempty"`
 	CreatedAt          int64    `json:"created_at,omitempty"`
+	UserChatID         int64    `json:"user_chat_id,omitempty"`
+	RequestDate        int64    `json:"request_date,omitempty"`
 	Deadline           int64    `json:"deadline"`
 	Epoch              uint64   `json:"epoch,omitempty"`
+	ExpiryClaimUntil   int64    `json:"expiry_claim_until,omitempty"` // legacy JSON lease; SQLite uses its separate column
 	DeferredSince      int64    `json:"deferred_since,omitempty"`
 	DeferralCapReached bool     `json:"deferral_cap_reached,omitempty"`
 	Gate               string   `json:"gate,omitempty"`
@@ -455,9 +466,7 @@ type Store interface {
 	TransitionChallenge(string, ChallengeTransition) (bool, error)
 	// DeletePending removes an unexposed challenge conditionally; false is already handled.
 	DeletePending(string, PendingRef) (bool, error)
-	// ClaimExpired leases due pending rows by moving their deadline to claimUntil. The scanner
-	// supplies both timestamps and a bounded batch so it needs neither a Clock nor an unbounded
-	// transaction.
+	// ClaimExpired leases due pending rows without changing their answer deadline.
 	ClaimExpired(namespace string, now, claimUntil int64, limit int) ([]PendingRecord, error)
 	// ClaimActions leases ready actions to one worker. A lease expiry makes a crashed worker's
 	// action available again; every action implementation must therefore be idempotent.

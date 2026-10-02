@@ -15,6 +15,7 @@ import (
 type webGateway struct {
 	verification.Gateway
 	approvals, declines atomic.Int32
+	sendErr             error
 }
 
 func (g *webGateway) ApproveJoin(context.Context, int64, int64) error { g.approvals.Add(1); return nil }
@@ -22,7 +23,9 @@ func (g *webGateway) DeclineJoin(context.Context, int64, int64) error { g.declin
 func (*webGateway) Member(context.Context, int64, int64) (verification.ChatMember, error) {
 	return &verification.ChatMemberLeft{Status: verification.MemberStatusLeft}, nil
 }
-func (*webGateway) Send(context.Context, verification.OutgoingMessage) (int, error) { return 1, nil }
+func (g *webGateway) Send(context.Context, verification.OutgoingMessage) (int, error) {
+	return 1, g.sendErr
+}
 func (*webGateway) SendHTMLFallback(context.Context, int64, string, string) (int, error) {
 	return 1, nil
 }

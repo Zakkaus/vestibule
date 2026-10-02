@@ -133,14 +133,14 @@ func (s *VerificationJSONStore) ClaimExpired(path string, now, claimUntil int64,
 	claimed := make([]verification.PendingRecord, 0, limit)
 	for i := range records {
 		record := &records[i]
-		if len(claimed) == limit || record.Deadline > now {
+		if len(claimed) == limit || record.Deadline > now || record.ExpiryClaimUntil > now {
 			continue
 		}
 		if record.Epoch >= 1<<63-1 {
 			return nil, fmt.Errorf("due challenge for chat %d user %d exhausted epoch", record.GroupID, record.UserID)
 		}
 		record.Epoch++
-		record.Deadline = claimUntil
+		record.ExpiryClaimUntil = claimUntil
 		claimed = append(claimed, *record)
 	}
 	if len(claimed) == 0 {

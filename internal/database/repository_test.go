@@ -203,7 +203,7 @@ func TestVerificationStoreClaimsExpiredChallenges(t *testing.T) {
 		t.Fatalf("due scanner claim count=%d, want 1: %#v", len(claimed), claimed)
 	}
 	t.Logf("due scanner claim: count=%d nonce=%q epoch=%d deadline=%d", len(claimed), claimed[0].Nonce, claimed[0].Epoch, claimed[0].Deadline)
-	if claimed[0].Nonce != due.Nonce || claimed[0].Epoch != due.Epoch+1 || claimed[0].Deadline != claimUntil {
+	if claimed[0].Nonce != due.Nonce || claimed[0].Epoch != due.Epoch+1 || claimed[0].Deadline != due.Deadline {
 		t.Fatalf("claimed due rows = %#v, want only updated due record", claimed)
 	}
 	pending, err := state.LoadPending("ignored")

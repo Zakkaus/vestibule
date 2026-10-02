@@ -10,6 +10,11 @@ All notable changes to this project are documented here. The format is based on
 - The verification core supports proof-of-work and Turnstile challenges with hashed bearer
   tokens, atomic settlement, private-delivery validation, a difficulty cap, and in-place
   quiz fallback that preserves gate ownership.
+- Public, localized `/verify/{token}` pages deliver time-sliced browser PoW or
+  Turnstile, then settle through bounded same-origin form POSTs. Web links are
+  delivered privately; rejected DMs retain their method and recover through
+  `/start`. Reload never consumes or rotates a token; explicit resend does.
+  Turnstile uses its compact widget to fit the 390-pixel private verification page.
 - Feed subscriptions are effective group settings with sourced reads and atomic full-replacement
   writes. Legacy `config.json` feed entries are imported once for managed chats; runtime
   polling follows subsequent store changes without restart. Bug and news factory defaults are off.
@@ -40,6 +45,22 @@ All notable changes to this project are documented here. The format is based on
 - A scheduled render gate covering every console locale, route, width, and theme.
 
 ### Fixed
+- Caller cancellation cannot apply captcha outage policy; provider body transport
+  errors and timeouts are outages. Hostname matching is case-insensitive with one
+  trailing dot removed.
+- Expiry-worker leases no longer extend the applicant answer deadline. C5 question
+  recovery retains its question on rejected delivery and starts a full answer window
+  only after confirmed delivery. Concurrent fallback cannot overwrite a settlement.
+  The schema target and minimum rollback version are now v5; older binaries are
+  rejected rather than reopening expired answer windows.
+- Web DMs and channel-required pages include the configured channel name and invitation.
+  Verification URLs clear the console URL's query and fragment before appending the route.
+- C5 replacements retain the web link's private-chat destination and use the existing
+  delivery classification and group `/start` recovery. Their committed epoch and
+  in-memory installation are serialized with other pending-state writes.
+- Invalid web-delivery combinations degrade only that group's runtime to quiz on
+  load, preserving other settings; writes still reject them. Token rotation binds
+  challenge, group and applicant identity.
 - Owner private help lists active owner commands. The owner menu and help omit
   `/console` when its link handler is disabled.
 - Production entry pages ignore preview query parameters and retain the authenticated

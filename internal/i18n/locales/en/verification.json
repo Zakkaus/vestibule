@@ -153,5 +153,26 @@
     "wrong_banned": "❌ You reached the verification failure limit, so you were removed and banned (%[1]s). Join again once the ban ends; if it is permanent, contact a group administrator.",
     "wrong_no_wait": "❌ Wrong answer. You were removed from the group. You may join again right away and verify.",
     "wrong_retry": "❌ Wrong answer. You were removed from the group. You may join again in %[1]d seconds."
+  },
+  "web": {
+    "title": "Join verification",
+    "po_w_intro": "Compute a proof on this device, then submit it. Keep this page open until the computation finishes.",
+    "captcha_intro": "Complete the human verification below, then submit the result.",
+    "computing": "Computing the proof…",
+    "ready": "The proof is ready. Submit it to continue.",
+    "progress": "Hashes checked",
+    "start": "Compute proof",
+    "submit": "Submit verification",
+    "received": "Your verification request was received. Return to Telegram to check its status.",
+    "settled": "This verification link is no longer available. Return to Telegram to check the request or request a new link.",
+    "wrong": "Verification failed. This used one attempt. Try again before the deadline.",
+    "channel_required": "Join the required channel, then submit verification again.",
+    "fallback": "Verification has switched to a question. Return to the bot's direct messages to answer it.",
+    "unavailable": "Verification could not be processed. Try again before the deadline.",
+    "java_script_required": "JavaScript is required for this verification.",
+    "privacy": "Cloudflare Turnstile receives your IP address and browser signals to check this interaction.",
+    "dm_prompt": "Open the verification page using the button below. Do not share this link; anyone holding it can submit verification.",
+    "button": "Open verification page",
+    "operator_alert": "Turnstile configuration failed for group %[1]d. Verification has switched to a question. Check TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY."
   }
 }

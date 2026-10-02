@@ -111,7 +111,8 @@ func pendingFromRecord(record PendingRecord) *pending {
 		createdAt = time.Unix(record.CreatedAt, 0)
 	}
 	return &pending{
-		groupMsgID: record.GroupMsgID, privateMsgID: record.PrivateMsgID,
+		groupMsgID: record.GroupMsgID, privateMsgID: record.PrivateMsgID, privateChatID: record.PrivateChatID,
+		userChatID: record.UserChatID, requestDate: record.RequestDate,
 		challengeDelivered: record.ChallengeDelivered || record.GroupMsgID != 0 || record.PrivateMsgID != 0,
 		mode:               mode, lang: i18n.FromStored(record.Lang), storedLang: record.Lang, preserveStoredLang: true,
 		fbAnswers: record.FbAnswers, fallbackPending: record.FallbackPending, prompted: record.Prompted,

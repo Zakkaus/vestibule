@@ -68,6 +68,10 @@ type pending struct {
 	passing            bool   // the applicant answered correctly; a retry must complete the approval, never decline
 	groupMsgID         int
 	privateMsgID       int
+	privateChatID      int64
+	userChatID         int64
+	requestDate        int64
+	webToken           string
 	challengeDelivered bool
 	mode               string    // challenge type this applicant got: settings.ModeKernel (typed answer) or settings.ModeQuiz (buttons)
 	lang               i18n.Lang // applicant locale from Telegram; every applicant message uses it
@@ -1031,7 +1035,7 @@ func (v *Service) OnJoinRequest(ctx *HandlerContext, update Update) error {
 	mode, text, opts, correctIdx := v.newChallenge(gid, applicantLang)
 	name := jr.From.DisplayName()
 	p := &pending{mode: mode, lang: applicantLang, qText: text, qOpts: opts, correctIdx: correctIdx,
-		nonce: newNonce(), name: name, createdAt: v.wallNow()}
+		nonce: newNonce(), name: name, createdAt: v.wallNow(), userChatID: jr.UserChatID, requestDate: jr.Date}
 	oldMessages, status, err := v.startPending(bot, gid, uid, p)
 	if err != nil {
 		return fmt.Errorf("persist pending challenge for user %d in group %d: %w", uid, gid, err)
@@ -1286,6 +1290,7 @@ const challengeResendMapMax = 10000
 
 type dmPrompt struct {
 	gid             int64
+	chatID          int64
 	mode            string
 	lang            i18n.Lang
 	text            string
@@ -1350,10 +1355,13 @@ func (v *Service) completeFailedDMDeliveryLocked(
 	prompt dmPrompt,
 	p *pending,
 	sendErr error,
-	question, resetExpiry bool,
+	question, resetExpiry, destinationChanged bool,
 	expectedEpoch uint64,
 ) (current, changed bool) {
-	if !question || !prompt.fallbackPending || !p.fallbackPending || !definiteDMFailure(sendErr) {
+	if !question || !prompt.fallback || !prompt.fallbackPending || !p.fallbackPending || !definiteDMFailure(sendErr) {
+		if destinationChanged {
+			return v.persistPendingLocked(pkey{prompt.gid, uid}, p, expectedEpoch), true
+		}
 		return true, false
 	}
 	p.qText = tgfmt.KernelQuestion(v.messages, p.lang)
@@ -1385,16 +1393,17 @@ func (v *Service) completeDMDelivery(
 		return false, false, 0
 	}
 	expectedEpoch := p.epoch
+	changed = recordPrivateDestination(p, prompt, question)
 	if sendErr != nil {
 		current, changed = v.completeFailedDMDeliveryLocked(
-			bot, uid, prompt, p, sendErr, question, resetExpiry, expectedEpoch,
+			bot, uid, prompt, p, sendErr, question, resetExpiry, changed, expectedEpoch,
 		)
 		return current, changed, 0
 	}
 	resetDeadline := false
 	if question && prompt.fallbackPending && p.fallbackPending {
 		p.fallbackPending = false
-		resetDeadline = resetExpiry
+		resetDeadline = resetExpiry || !prompt.fallback
 		changed = true
 	}
 	if messageID != 0 && p.privateMsgID != messageID {
@@ -1404,7 +1413,7 @@ func (v *Service) completeDMDelivery(
 	}
 	if !p.challengeDelivered {
 		p.challengeDelivered = true
-		resetDeadline = resetExpiry
+		resetDeadline = resetDeadline || resetExpiry
 		changed = true
 	}
 	if resetDeadline {
@@ -1422,12 +1431,12 @@ func (v *Service) completeDMDelivery(
 	return true, changed, oldPrivateMsgID
 }
 
-func (v *Service) sendChannelPrompt(c context.Context, bot Gateway, gid, uid int64, ul i18n.Lang) (int, error) {
+func (v *Service) sendChannelPrompt(c context.Context, bot Gateway, gid, uid, chatID int64, ul i18n.Lang) (int, error) {
 	channel := &v.messages.Verification.Channel
 	if v.channelWasUnreadable(gid, uid) {
 		// Asking someone to join a channel they may already be in is misleading when the bot
 		// simply could not look. Say what actually happened instead.
-		return sendHTML(c, bot, uid, channel.Unreadable.For(ul), nil)
+		return sendHTML(c, bot, chatID, channel.Unreadable.For(ul), nil)
 	}
 	var rows [][]Button
 	if curl := v.channelURL(gid); curl != "" {
@@ -1437,7 +1446,7 @@ func (v *Service) sendChannelPrompt(c context.Context, bot Gateway, gid, uid int
 	}
 	rows = append(rows, []Button{{Text: channel.ContinueButton.For(ul),
 		CallbackData: ChannelRecheckCallbackPrefix + strconv.FormatInt(gid, 10) + ":" + strconv.FormatInt(uid, 10)}})
-	return sendHTML(c, bot, uid, channel.FollowPrompt.Render(ul, v.channelLinkHTML(gid, ul)), rows)
+	return sendHTML(c, bot, chatID, channel.FollowPrompt.Render(ul, v.channelLinkHTML(gid, ul)), rows)
 }
 
 func (v *Service) sendDMQuestionRetainingPrevious(
@@ -1449,7 +1458,10 @@ func (v *Service) sendDMQuestionRetainingPrevious(
 ) (dmSendResult, error) {
 	var messageID int
 	var err error
-	if prompt.mode == settings.ModeKernel {
+	prompt.chatID = v.privateChallengeDestination(uid, prompt, resetExpiry)
+	if settings.IsWebMode(prompt.mode) {
+		messageID, err = v.sendWebChallenge(c, bot, uid, prompt, resetExpiry)
+	} else if prompt.mode == settings.ModeKernel {
 		left := kernelMaxTries - prompt.tries
 		var rich, plain string
 		if prompt.fallback {
@@ -1460,7 +1472,7 @@ func (v *Service) sendDMQuestionRetainingPrevious(
 			rich = tgfmt.KernelPromptHTML(v.messages, prompt.lang, prompt.text, left, prompt.nonce, true, held)
 			plain = tgfmt.KernelPromptHTML(v.messages, prompt.lang, prompt.text, left, prompt.nonce, false, held)
 		}
-		messageID, err = v.sendVerifyDM(c, bot, uid, rich, plain)
+		messageID, err = v.sendVerifyDM(c, bot, prompt.chatID, rich, plain)
 	} else {
 		gidStr, uidStr := strconv.FormatInt(prompt.gid, 10), strconv.FormatInt(uid, 10)
 		rows := make([][]Button, 0, len(prompt.opts))
@@ -1469,7 +1481,7 @@ func (v *Service) sendDMQuestionRetainingPrevious(
 				Text: opt, CallbackData: fmt.Sprintf("%s%s:%s:%s:%d", AnswerCallbackPrefix, gidStr, uidStr, prompt.nonce, i),
 			}})
 		}
-		messageID, err = sendHTML(c, bot, uid,
+		messageID, err = sendHTML(c, bot, prompt.chatID,
 			v.messages.Verification.Challenge.QuizPrompt.Render(prompt.lang, html.EscapeString(prompt.text)), rows)
 	}
 	current, _, oldPrivateMsgID := v.completeDMDelivery(bot, uid, prompt, messageID, err, true, resetExpiry)
@@ -1496,8 +1508,8 @@ func (v *Service) sendDMChallengeForGroup(
 	if !ok {
 		return false, 0, 0, nil
 	}
-	if v.RequiredChannelID(gid) != 0 && !v.isChannelMember(c, bot, gid, uid, v.groupLanguage(gid)) {
-		privateMsgID, err := v.sendChannelPrompt(c, bot, gid, uid, prompt.lang)
+	if !settings.IsWebMode(prompt.mode) && v.RequiredChannelID(gid) != 0 && !v.isChannelMember(c, bot, gid, uid, v.groupLanguage(gid)) {
+		privateMsgID, err := v.sendChannelPrompt(c, bot, gid, uid, v.privateChallengeDestination(uid, prompt, resetExpiry), prompt.lang)
 		current, _, oldPrivateMsgID := v.completeDMDelivery(bot, uid, prompt, privateMsgID, err, false, resetExpiry)
 		if !current {
 			return false, 0, 0, err
@@ -1622,8 +1634,9 @@ func (v *Service) SendDMChallenge(c context.Context, uid int64, languageCode str
 		return
 	}
 	// Bare links preserve the legacy first-pending channel gate and all-pending fan-out.
-	if v.RequiredChannelID(gid) != 0 && !v.isChannelMember(c, bot, gid, uid, v.groupLanguage(gid)) {
-		if _, err := v.sendChannelPrompt(c, bot, gid, uid, ul); err != nil {
+	prompt, _ := v.pendingDMChallenge(gid, uid, nil)
+	if !settings.IsWebMode(prompt.mode) && v.RequiredChannelID(gid) != 0 && !v.isChannelMember(c, bot, gid, uid, v.groupLanguage(gid)) {
+		if _, err := v.sendChannelPrompt(c, bot, gid, uid, uid, ul); err != nil {
 			log.Printf("verify DM channel prompt for %d in %d failed: %v", uid, gid, err)
 		}
 		return
@@ -1675,6 +1688,9 @@ func (v *Service) OnChannelRecheck(ctx *HandlerContext, update Update) error {
 	}
 	// Acknowledge before sends; membership toasts remain result-driven and happen first.
 	ackResult(c, bot, cq.ID, channel.ContinueOK.For(ul), false)
+	if v.continueWebFallback(c, gid, uid) {
+		return nil
+	}
 	v.sendQuizzes(c, bot, uid)
 	return nil
 }

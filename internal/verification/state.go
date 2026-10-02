@@ -924,6 +924,10 @@ func (v *Service) renotifyPending(
 	if v.dropIfAlreadyJoined(c, bot, gid, uid, p, oldMessages) {
 		return
 	}
+	if settings.IsWebMode(p.mode) {
+		v.renotifyWebPending(c, bot, gid, uid, name, oldMessages, p)
+		return
+	}
 	ul := p.lang
 	notice := v.messages.Verification.Recovery.Renotify.Render(ul, outageText(v.messages, ul, outage))
 	_, _ = sendHTML(c, bot, uid, notice, nil)

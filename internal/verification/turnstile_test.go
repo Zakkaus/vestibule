@@ -81,3 +81,91 @@ func TestTurnstileOutcomeClassification(t *testing.T) {
 		})
 	}
 }
+
+func TestTurnstileCallerCancellationIsNotProviderOutage(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	client, err := NewTurnstileClient("test-secret", "https://console.example", &http.Client{
+		Transport: turnstileRoundTrip(func(*http.Request) (*http.Response, error) {
+			cancel()
+			return nil, context.Canceled
+		}),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := client.Verify(ctx, "proof"); got != TurnstileOutcome("canceled") {
+		t.Fatalf("caller cancellation classified as %s", got)
+	}
+}
+
+type timeoutTurnstileBody struct{}
+
+func (timeoutTurnstileBody) Read([]byte) (int, error) { return 0, context.DeadlineExceeded }
+func (timeoutTurnstileBody) Close() error             { return nil }
+
+func TestTurnstileBodyTimeoutAndCanonicalHostname(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		body io.ReadCloser
+		want TurnstileOutcome
+	}{
+		{"body timeout", timeoutTurnstileBody{}, TurnstileOutage},
+		{"canonical hostname", io.NopCloser(strings.NewReader(`{"success":true,"hostname":"CONSOLE.EXAMPLE.","action":"verify"}`)), TurnstilePassed},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			client, err := NewTurnstileClient("test-secret", "https://Console.Example.:8443", &http.Client{
+				Transport: turnstileRoundTrip(func(*http.Request) (*http.Response, error) {
+					return &http.Response{StatusCode: 200, Body: test.body, Header: make(http.Header)}, nil
+				}),
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := client.Verify(context.Background(), "proof"); got != test.want {
+				t.Fatalf("outcome=%s, want %s", got, test.want)
+			}
+		})
+	}
+}
+
+type interruptedTurnstileBody struct {
+	err error
+}
+
+func (b interruptedTurnstileBody) Read([]byte) (int, error) { return 0, b.err }
+func (interruptedTurnstileBody) Close() error               { return nil }
+
+func TestTurnstileBodyTransportFailureDiffersFromMalformedJSONAndCancellation(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		body   io.ReadCloser
+		cancel bool
+		want   TurnstileOutcome
+	}{
+		{"connection reset", interruptedTurnstileBody{errors.New("connection reset by peer")}, false, TurnstileOutage},
+		{"truncated transfer", interruptedTurnstileBody{io.ErrUnexpectedEOF}, false, TurnstileOutage},
+		{"malformed JSON", io.NopCloser(strings.NewReader(`{"success":`)), false, TurnstileFailed},
+		{"empty JSON", io.NopCloser(strings.NewReader("")), false, TurnstileFailed},
+		{"caller canceled", interruptedTurnstileBody{context.Canceled}, true, TurnstileCanceled},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			client, err := NewTurnstileClient("test-secret", "https://console.example", &http.Client{
+				Transport: turnstileRoundTrip(func(*http.Request) (*http.Response, error) {
+					if test.cancel {
+						cancel()
+					}
+					return &http.Response{StatusCode: http.StatusOK, Body: test.body, Header: make(http.Header)}, nil
+				}),
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := client.Verify(ctx, "proof"); got != test.want {
+				t.Fatalf("outcome=%s, want %s", got, test.want)
+			}
+		})
+	}
+}

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"mime"
 	"net"
 	"net/http"
@@ -61,6 +62,11 @@ type Config struct {
 	ObserveOnly                bool
 	Setup                      SetupService
 	SetupClaimed               func()
+	WebVerification            WebVerificationService
+	ConsoleURL                 string
+	TurnstileSiteKey           string
+	WebOperatorAlert           func(context.Context, int64)
+	RequestLog                 *log.Logger
 	// BotUsername is the Telegram handle this instance answers on. The screen a
 	// visitor without a session lands on has to name the bot they should open,
 	// and that name is different for every deployment.
@@ -88,6 +94,11 @@ type Server struct {
 	setup                      SetupService
 	setupClaimed               func()
 	botUsername                string
+	webVerification            WebVerificationService
+	consoleURL                 string
+	turnstileSiteKey           string
+	webOperatorAlert           func(context.Context, int64)
+	requestLog                 *log.Logger
 	routes                     atomic.Pointer[routeSet]
 	mu                         sync.Mutex
 	listener                   net.Listener
@@ -157,6 +168,8 @@ func (s *Server) serveHTTP(writer http.ResponseWriter, request *http.Request) {
 		s.live(writer)
 	case request.Method == http.MethodGet && request.URL.Path == "/readyz":
 		s.ready(writer, request)
+	case strings.HasPrefix(request.URL.Path, "/verify/"):
+		s.verifyRoute(writer, request)
 	case s.setup != nil && strings.HasPrefix(request.URL.Path, "/setup/"):
 		s.setupRoute(writer, request)
 	case strings.HasPrefix(request.URL.Path, "/setup/"):
@@ -207,28 +220,6 @@ func (s *Server) statusRoute(writer http.ResponseWriter, request *http.Request) 
 	default:
 		writeError(writer, http.StatusNotFound, "not_found")
 	}
-}
-
-func (s *Server) live(writer http.ResponseWriter) {
-	if s.health != nil && s.health.Live() {
-		writeJSON(writer, http.StatusOK, map[string]string{"status": "ok"})
-		return
-	}
-	writeError(writer, http.StatusServiceUnavailable, "not_live")
-}
-
-func (s *Server) ready(writer http.ResponseWriter, request *http.Request) {
-	if s.health == nil {
-		writeError(writer, http.StatusServiceUnavailable, "not_ready")
-		return
-	}
-	ctx, cancel := context.WithTimeout(request.Context(), healthProbeTimeout)
-	defer cancel()
-	if s.health.Ready(ctx) {
-		writeJSON(writer, http.StatusOK, map[string]string{"status": "ok"})
-		return
-	}
-	writeError(writer, http.StatusServiceUnavailable, "not_ready")
 }
 
 func (s *Server) currentSession(writer http.ResponseWriter, request *http.Request) {

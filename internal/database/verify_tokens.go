@@ -38,10 +38,11 @@ func (s *VerificationStore) IssueWebToken(ctx context.Context, ref verification.
 	result, err := s.db.Exec(ctx, `
  INSERT INTO verify_tokens (challenge_id, token_hash, salt, pow_bits, issued_at)
  SELECT id, $1, $2, $3, $4 FROM challenge
- WHERE id=$5 AND state='pending' AND epoch=$6 AND expires_at>$4 AND kind IN ('pow','captcha')
+ WHERE id=$5 AND chat_id=$7 AND user_id=$8 AND state='pending' AND epoch=$6 AND expires_at>$4 AND kind IN ('pow','captcha')
  ON CONFLICT(challenge_id) DO UPDATE SET token_hash=excluded.token_hash, salt=excluded.salt,
- pow_bits=excluded.pow_bits, issued_at=excluded.issued_at`,
-		token.TokenHash, token.Salt[:], token.PoWBits, token.IssuedAt, challengeID(ref), ref.Epoch)
+ pow_bits=excluded.pow_bits, issued_at=excluded.issued_at
+ WHERE EXISTS (SELECT 1 FROM challenge WHERE id=$5 AND chat_id=$7 AND user_id=$8)`,
+		token.TokenHash, token.Salt[:], token.PoWBits, token.IssuedAt, challengeID(ref), ref.Epoch, ref.GroupID, ref.UserID)
 	if err != nil {
 		return false, fmt.Errorf("issue web token: %w", err)
 	}

@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -13,6 +14,9 @@ const (
 	CaptchaDecline  = "decline"
 )
 
+// ErrWebVerificationSettings identifies an invalid web-proof value or unavailable delivery capability.
+var ErrWebVerificationSettings = errors.New("invalid web verification settings")
+
 // WebCapabilities is supplied by process assembly; provider credentials never enter settings.
 type WebCapabilities struct {
 	ConsoleURL         string
@@ -23,15 +27,12 @@ func IsWebMode(mode string) bool { return mode == ModePoW || mode == ModeCaptcha
 
 func validateEffectiveWebProof(group *effectiveGroup) error {
 	if group.powBits.Value < 12 || group.powBits.Value > 22 {
-		return fmt.Errorf("pow_bits must be between 12 and 22")
+		return fmt.Errorf("%w: pow_bits must be between 12 and 22", ErrWebVerificationSettings)
 	}
 	switch group.captchaUnavailable.Value {
 	case CaptchaFallback, CaptchaApprove, CaptchaDecline:
 	default:
-		return fmt.Errorf("invalid captcha_unavailable %q", group.captchaUnavailable.Value)
-	}
-	if IsWebMode(group.verifyMode.Value) && group.deliveryMode.Value == DeliveryGroup {
-		return fmt.Errorf("web verification requires private delivery")
+		return fmt.Errorf("%w: invalid captcha_unavailable %q", ErrWebVerificationSettings, group.captchaUnavailable.Value)
 	}
 	return nil
 }
@@ -81,8 +82,11 @@ func (c WebCapabilities) unavailable(mode string) string {
 }
 
 func (s *Store) validateWebSettings(group *effectiveGroup) error {
+	if IsWebMode(group.verifyMode.Value) && group.deliveryMode.Value == DeliveryGroup {
+		return fmt.Errorf("%w: web verification requires private delivery", ErrWebVerificationSettings)
+	}
 	if reason := s.webCapabilities.unavailable(group.verifyMode.Value); reason != "" {
-		return fmt.Errorf("web verification unavailable: %s", reason)
+		return fmt.Errorf("%w: web verification unavailable: %s", ErrWebVerificationSettings, reason)
 	}
 	return nil
 }

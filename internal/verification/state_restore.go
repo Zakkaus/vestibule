@@ -54,7 +54,7 @@ func (v *Service) restorePendingRecord(bot Gateway, record PendingRecord, now ti
 	if !v.installRestoredPending(bot, record, p, delay, reason) {
 		return renotifyItem{}, false
 	}
-	if settings.IsWebMode(p.mode) && v.settings.WebModeUnavailable(p.mode) != "" {
+	if settings.IsWebMode(p.mode) && v.WebModeUnavailable(gid, p.mode) != "" {
 		changed, err := v.FallbackWeb(context.Background(), ChallengeID(record.Ref()))
 		if err != nil {
 			log.Printf("state load: web fallback for group %d user %d: %v", gid, uid, err)

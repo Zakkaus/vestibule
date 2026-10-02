@@ -27,7 +27,7 @@ func (v *Service) webUnavailable(ctx context.Context, key pkey, p *pending, ref 
 	if policy == settings.CaptchaApprove {
 		state = ChallengeApproved
 		if !v.isChannelMember(ctx, v.gateway, key.gid, key.uid, v.groupLanguage(key.gid)) {
-			return WebResult{Outcome: WebChannelRequired}, nil
+			return v.webChannelRequired(key.gid), nil
 		}
 	}
 	claimed, _, err := v.claimWebAnswer(ctx, key, p, ref, hash, false, state)
@@ -66,7 +66,7 @@ func (v *Service) fallbackWeb(ctx context.Context, key pkey, p *pending, ref Pen
 	}
 	v.mu.Lock()
 	defer v.mu.Unlock()
-	if v.pend[key] != p || p.done || p.epoch != ref.Epoch || !settings.IsWebMode(p.mode) {
+	if v.shuttingDown || v.pend[key] != p || p.done || p.epoch != ref.Epoch || !settings.IsWebMode(p.mode) {
 		return false, nil
 	}
 	next := *p
@@ -80,7 +80,9 @@ func (v *Service) fallbackWeb(ctx context.Context, key pkey, p *pending, ref Pen
 	next.challengeDelivered, next.fallbackPending, next.prompted = false, true, false
 	next.deadline = v.wallNow().Add(pendingDeliveryTimeout)
 	next.epoch++
-	changed, err := store.FallbackWeb(ctx, ref, pendingRecord(key, &next), claim)
+	record := pendingRecord(key, &next)
+	// The committed epoch and its installation must be atomic to other pending writes.
+	changed, err := store.FallbackWeb(ctx, ref, record, claim)
 	if err != nil || !changed {
 		return false, err
 	}

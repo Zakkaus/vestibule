@@ -15,7 +15,9 @@ import (
 // VerificationGateway translates the core port to Bot API calls. It performs network I/O but
 // never decides who passes or fails, and callers must not invoke it from a database transaction.
 type VerificationGateway struct {
-	connector *Connector
+	connector  *Connector
+	webService *verification.Service
+	consoleURL string
 }
 
 var _ verification.Gateway = (*VerificationGateway)(nil)
@@ -28,11 +30,21 @@ func NewVerificationGateway(connector *Connector) *VerificationGateway {
 }
 
 func (g *VerificationGateway) Send(ctx context.Context, message verification.OutgoingMessage) (int, error) {
+	if message.WebMode != "" {
+		var err error
+		message, err = g.webMessage(ctx, message)
+		if err != nil {
+			return 0, err
+		}
+	}
 	var params *telego.SendMessageParams
 	if message.HTML {
 		params = tgfmt.HTMLMessage(message.ChatID, message.Text)
 	} else {
 		params = tu.Message(tu.ID(message.ChatID), message.Text)
+	}
+	if message.DisableLinkPreview {
+		params.LinkPreviewOptions = &telego.LinkPreviewOptions{IsDisabled: true}
 	}
 	if len(message.Buttons) != 0 {
 		rows := make([][]telego.InlineKeyboardButton, len(message.Buttons))
@@ -240,8 +252,10 @@ func verificationUpdate(update telego.Update) verification.Update {
 	converted := verification.Update{}
 	if request := update.ChatJoinRequest; request != nil {
 		converted.ChatJoinRequest = &verification.ChatJoinRequest{
-			Chat: verification.Chat{ID: request.Chat.ID, Type: request.Chat.Type},
-			From: verificationUser(request.From),
+			Chat:       verification.Chat{ID: request.Chat.ID, Type: request.Chat.Type},
+			From:       verificationUser(request.From),
+			UserChatID: request.UserChatID,
+			Date:       int64(request.Date),
 		}
 	}
 	if membership := update.ChatMember; membership != nil {

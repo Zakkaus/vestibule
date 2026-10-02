@@ -47,8 +47,9 @@ const (
 )
 
 type WebResult struct {
-	Outcome       WebAnswer
-	OperatorAlert bool
+	Outcome                 WebAnswer
+	OperatorAlert           bool
+	ChannelName, ChannelURL string
 }
 
 func ChallengeID(ref PendingRef) string {

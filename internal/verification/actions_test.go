@@ -48,11 +48,11 @@ func (s *actionTestStore) ClaimExpired(_ string, now, claimUntil int64, limit in
 	claimed := make([]PendingRecord, 0, limit)
 	for i := range s.pending {
 		record := &s.pending[i]
-		if len(claimed) == limit || record.Deadline > now {
+		if len(claimed) == limit || record.Deadline > now || record.ExpiryClaimUntil > now {
 			continue
 		}
 		record.Epoch++
-		record.Deadline = claimUntil
+		record.ExpiryClaimUntil = claimUntil
 		claimed = append(claimed, *record)
 	}
 	return claimed, nil

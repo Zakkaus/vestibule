@@ -19,6 +19,7 @@ const (
 	TurnstileFailed        TurnstileOutcome = "failed"
 	TurnstileOutage        TurnstileOutcome = "outage"
 	TurnstileConfiguration TurnstileOutcome = "configuration"
+	TurnstileCanceled      TurnstileOutcome = "canceled"
 )
 
 // TurnstileVerifier performs provider I/O outside any challenge transaction.
@@ -45,10 +46,11 @@ func NewTurnstileClient(secret, consoleURL string, client *http.Client) (*Turnst
 	if client == nil {
 		client = http.DefaultClient
 	}
-	return &TurnstileClient{secret: secret, hostname: u.Hostname(), client: client}, nil
+	return &TurnstileClient{secret: secret, hostname: canonicalHostname(u.Hostname()), client: client}, nil
 }
 
 func (c *TurnstileClient) Verify(ctx context.Context, response string) TurnstileOutcome {
+	caller := ctx
 	var id [16]byte
 	if _, err := rand.Read(id[:]); err != nil {
 		return TurnstileOutage
@@ -66,6 +68,9 @@ func (c *TurnstileClient) Verify(ctx context.Context, response string) Turnstile
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	result, err := c.client.Do(req)
 	if err != nil {
+		if caller.Err() != nil {
+			return TurnstileCanceled
+		}
 		return TurnstileOutage
 	}
 	defer result.Body.Close()
@@ -73,10 +78,35 @@ func (c *TurnstileClient) Verify(ctx context.Context, response string) Turnstile
 		return TurnstileOutage
 	}
 	var payload turnstileResponse
-	if err := json.NewDecoder(io.LimitReader(result.Body, 65536)).Decode(&payload); err != nil {
+	body := turnstileBodyReader{Reader: io.LimitReader(result.Body, 65536)}
+	err = json.NewDecoder(&body).Decode(&payload)
+	if caller.Err() != nil {
+		return TurnstileCanceled
+	}
+	if body.err != nil || ctx.Err() != nil {
+		return TurnstileOutage
+	}
+	if err != nil {
 		return TurnstileFailed
 	}
 	return classifyTurnstile(result.StatusCode, payload, c.hostname)
+}
+
+type turnstileBodyReader struct {
+	io.Reader
+	err error
+}
+
+func (r *turnstileBodyReader) Read(p []byte) (int, error) {
+	n, err := r.Reader.Read(p)
+	if err != nil && err != io.EOF {
+		r.err = err
+	}
+	return n, err
+}
+
+func canonicalHostname(host string) string {
+	return strings.TrimSuffix(strings.ToLower(host), ".")
 }
 
 func classifyTurnstile(status int, response turnstileResponse, hostname string) TurnstileOutcome {
@@ -91,7 +121,7 @@ func classifyTurnstile(status int, response turnstileResponse, hostname string) 
 			return TurnstileOutage
 		}
 	}
-	if status < 200 || status >= 300 || !response.Success || len(response.Errors) != 0 || response.Hostname != hostname || response.Action != "verify" {
+	if status < 200 || status >= 300 || !response.Success || len(response.Errors) != 0 || canonicalHostname(response.Hostname) != hostname || response.Action != "verify" {
 		return TurnstileFailed
 	}
 	return TurnstilePassed
