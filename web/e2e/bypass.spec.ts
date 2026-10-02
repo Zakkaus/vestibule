@@ -178,7 +178,7 @@ test("bypass restores only the selected channel invite override with null", asyn
   );
 
   const inviteSetting = page.locator("[data-bypass-setting=channelInviteURL]");
-  await expect(inviteSetting).toContainText("当前群设置");
+  await expect(inviteSetting.locator("[data-setting-source]")).toHaveAttribute("data-setting-source", "chat override");
   await inviteSetting.getByRole("button", { name: "恢复默认值" }).click();
   await page.getByRole("button", { name: "保存" }).click();
   await patchSettled;

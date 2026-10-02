@@ -39,7 +39,7 @@
   "help": {
     "member": "利用可能なコマンド：\n/gpkg <package> — Gentoo パッケージを検索（公式ツリー、gentoo-zh、GURU）\n/guse <package> — パッケージ情報と USE flags を表示\n/garm <package> — Gentoo arm64 keyword 状態を表示\n\n/pkgs <package> — ディストリビューション間のパッケージバージョンを比較（/distro <package> も使用可能）\n/armpkgs <package> — ディストリビューション間の arm64 対応を比較\n/gbug <number> — Gentoo Bugzilla の課題を検索\n/gnews [keywords] — Gentoo ニュースを閲覧または検索\n/wiki <keywords> — Gentoo Wiki と ArchWiki を検索（中国語ページを含む）\n/gbbs <keywords> — Linux フォーラムを検索（中国語を優先）\n/kernel — kernel.org で現在公開されているカーネルバージョン\n/man <name> — Linux マニュアルページを検索\n/cve <id> — 識別子で脆弱性を検索\n/repology <package> — ディストリビューションのリポジトリ間でパッケージバージョンを比較\n\n/ping — ボットの状態と稼働時間を表示\n/stats — 本日の承認数と拒否数を表示\n/help — この一覧を表示",
     "group_state": "参加認証：%[1]s",
-    "admin": "管理者（対象メッセージに返信）：\n/mute [duration] — ユーザーをミュート。既定は 1h、例：/mute 30m\n/unmute — ユーザーのミュートを解除\n/ban — ユーザーをアクセス禁止にして削除。返信先のメッセージだけを削除\n/sb — ユーザーをアクセス禁止にして削除。そのユーザーの全メッセージも削除\n/warn — ユーザーに警告。%[1]d 回で自動的に削除\n/clearwarn — 警告を消去\n\nその他の管理コマンド：\n/settings — ダイレクトメッセージの設定パネルを開く\n/bantime <duration> — アクセス禁止期間を設定。0 は永久、例：7d、12h、30m\n/autodel [on|off|minutes] — 検索結果の自動削除を設定\n/rich — リッチな検索結果出力を切り替え\n/spoiler — 新規メンバーの名前非表示を切り替え\n/vmode <mode> — 認証モードを設定：kernel、quiz、mixed、auto\n/bc — 送信元チャンネルのブロックを切り替え。/bc allow|deny <channel ID> で許可リストを管理\n/start または /stop — 参加認証を有効化または無効化",
+    "admin": "管理者（対象メッセージに返信）：\n/mute [duration] — ユーザーをミュート。既定は %[2]s、例：/mute 30m\n/unmute — ユーザーのミュートを解除\n/ban — ユーザーをアクセス禁止にして削除。返信先のメッセージだけを削除\n/sb — ユーザーをアクセス禁止にして削除。そのユーザーの全メッセージも削除\n/warn — ユーザーに警告。%[1]d 回で自動的に削除\n/clearwarn — 警告を消去\n\nその他の管理コマンド：\n/settings — ダイレクトメッセージの設定パネルを開く\n/bantime <duration> — アクセス禁止期間を設定。0 は永久、例：7d、12h、30m\n/autodel [on|off|minutes] — 検索結果の自動削除を設定\n/rich — リッチな検索結果出力を切り替え\n/spoiler — 新規メンバーの名前非表示を切り替え\n/vmode <mode> — 認証モードを設定：kernel、quiz、mixed、auto\n/bc — 送信元チャンネルのブロックを切り替え。/bc allow|deny <channel ID> で許可リストを管理\n/start または /stop — 参加認証を有効化または無効化",
     "owner": "所有者コマンド：\n/console — コンソールを開く\n/enroll — 一度だけ使えるグループ登録リンクを作成\n/unregister <group-id> — 実行時に登録されたグループの登録を解除",
     "direct_message_note": "上記の検索コマンドはダイレクトメッセージでも使えます。1 分あたり %[1]d 件までです。審査と管理のコマンドはグループ内でのみ使えます。"
   },
@@ -73,8 +73,8 @@
       "none": "なし"
     },
     "source": {
-      "runtime": "上書き",
-      "config": "config.json",
+      "runtime": "このグループの上書き",
+      "config": "設定ファイル",
       "default": "既定値"
     },
     "mode": {
@@ -94,7 +94,7 @@
       "runtime": "%[1]d の実行時設定\n認証：%[2]s\nモード：%[3]s\n問題の配信：%[4]s\n名前の非表示：%[5]s\nアクセス禁止期間：%[6]s\n検索結果の自動削除：%[7]s\n検索結果の有効期間：%[8]s\n言語：%[9]s\nGentoo 検索：%[10]s\nLinux 検索：%[11]s",
       "lists": "%[1]d のリスト設定\nチャンネル許可リスト：%[2]d\n信頼グループ：%[3]d\n既知のチャット：%[4]d",
       "list": "%[2]d の%[1]s\n項目：%[3]d\n%[4]s",
-      "verification": "%[1]d の認証パラメーター\nタイムアウト：%[2]s\n最大失敗数：%[3]s\n再試行クールダウン：%[4]s\n招待メンバーを認証：%[5]s\nプライベート検索レート（ボット全体）：%[6]s",
+      "verification": "%[1]d の認証パラメーター\nタイムアウト：%[2]s\n最大失敗数：%[3]s\n再試行クールダウン：%[4]s\n招待メンバーを認証：%[5]s",
       "content": "%[1]d の認証コンテンツ\n選択式問題：%[2]d\nフォールバック問題集：%[3]s\n必須チャンネル：%[4]s\n招待リンク：%[5]s",
       "quiz_bank": "%[1]d の問題集\n問題：%[2]d\n%[3]s",
       "quiz_detail": "選択式問題\n問題：%[1]s\n選択肢：\n%[2]s\n正解の選択肢：%[3]s",
@@ -103,7 +103,7 @@
       "channel": "%[1]d の必須チャンネル\nID：%[2]d\n表示名：%[3]s\n招待リンク：%[4]s",
       "confirm": "この操作を確認してください：\n%[1]s",
       "input": "入力を待機中\n%[1]s\n下に別途表示されるプロンプトに返信してください。",
-      "moderation": "%[1]d のモデレーション\n送信元チャンネルの投稿：%[2]s\nミュート期間：%[3]s\n警告上限：%[4]s\nリッチテキスト（ボット全体）：%[5]s\nアラートチャット（ボット全体）：%[6]s"
+      "moderation": "グループ %[1]d の管理設定\n送信元チャンネルの投稿：%[2]s\nミュート期間：%[3]s\n警告上限：%[4]s\nグループのリッチテキスト：%[5]s\nグループ管理ログの送信先：%[6]s"
     },
     "field": {
       "runtime": "実行時設定",
@@ -138,7 +138,6 @@
       "timeout": "認証タイムアウト",
       "max_fails": "最大失敗数",
       "retry_cooldown": "再試行クールダウン",
-      "private_rate": "ボット全体のプライベート検索レート",
       "quiz_bank": "問題集",
       "fallback_bank": "フォールバック問題集",
       "required_channel": "必須チャンネル",
@@ -165,7 +164,6 @@
       "timeout": "認証タイムアウトを秒単位で送信してください（30–1800）。",
       "max_fails": "正の最大失敗回数、または off を送信してください。",
       "retry_cooldown": "正の再試行クールダウン秒数、または off を送信してください。",
-      "private_rate": "ボット全体の 1 分あたりのプライベート検索上限を正の数で送信してください。",
       "quiz_question": "選択式問題の本文を送信してください。",
       "quiz_option": "選択肢を 1 つ送信してください。",
       "fallback_question": "フォールバック問題の本文を送信してください。",
@@ -177,7 +175,7 @@
       "required_channel": "必須チャンネルを選択してください。",
       "mute_duration": "30m、12h、7d などのミュート期間を送信してください。",
       "warn_limit": "削除前の警告回数を送信してください。",
-      "alert_chat": "運用アラートを受信するチャットを選択してください。"
+      "alert_chat": "このグループの管理ログを受信するチャットを選択してください。"
     },
     "error": {
       "expired": "このパネルは古いか有効期限切れです。/settings で開き直してください。",

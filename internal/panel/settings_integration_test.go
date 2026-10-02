@@ -472,8 +472,8 @@ func TestSettingsBaselineProvenance(t *testing.T) {
 	if got := group.TimeoutSeconds(); got.Value != 240 || got.Source != settings.SourceFactory {
 		t.Fatalf("default timeout provenance = %+v", got)
 	}
-	if got := group.PrivateQueryPerMin(); got.Value != 5 || got.Source != settings.SourceUserFile {
-		t.Fatalf("chat query-rate provenance = %+v", got)
+	if got := cfg.ProcessSettings().PrivateQueryPerMin(); got.Value != 5 || got.Source != settings.SourceUserFile {
+		t.Fatalf("process query-rate provenance = %+v", got)
 	}
 }
 

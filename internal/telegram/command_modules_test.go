@@ -74,7 +74,7 @@ func testCommandModules(t *testing.T) CommandModules {
 			{Name: "unmute", Description: admin.Unmute.For, Audience: CommandAdministrator, RouteName: "moderate.unmute", Handler: testCommandHandler},
 			{Name: "sb", Description: admin.Purge.For, Audience: CommandAdministrator, RouteName: "moderate.sb", Handler: testCommandHandler},
 			{Name: "ban", Description: admin.Ban.For, Audience: CommandAdministrator, RouteName: "moderate.ban", Handler: testCommandHandler},
-			{Name: "warn", Description: func(l i18n.Lang) string { return admin.Warn.Render(l, 3) }, Audience: CommandAdministrator, RouteName: "moderate.warn", Handler: testCommandHandler},
+			{Name: "warn", Description: admin.Warn.For, Audience: CommandAdministrator, RouteName: "moderate.warn", Handler: testCommandHandler},
 			{Name: "clearwarn", Description: admin.ClearWarn.For, Audience: CommandAdministrator, RouteName: "moderate.clearwarn", Handler: testCommandHandler},
 			{Name: "bc", Description: admin.Channel.For, Audience: CommandAdministrator, RouteName: "moderate.bc", Handler: testCommandHandler},
 			{Name: "rich", Description: admin.RichText.For, Audience: CommandAdministrator, RouteName: "panel.rich", Handler: testCommandHandler},

@@ -59,6 +59,14 @@ export async function mockDiagnosticsTransport(
       await fulfillJSON(route, { chats: [{ id: selectedGroupID, title: "Gentoo-zh Community", owner: null, administrators: [], administrators_status: "unavailable" }] });
       return;
     }
+    if (path === "/api/process/settings") {
+      await fulfillJSON(route, {
+        news_url: { value: "", source: "factory default" },
+        overlays: { value: [], source: "factory default" },
+        private_query_per_min: { value: 3, source: "factory default" }
+      });
+      return;
+    }
     if (path === "/api/status/daily") {
       await daily(route);
       return;

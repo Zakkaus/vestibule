@@ -2,11 +2,14 @@ import { Button } from "@react-spectrum/s2/Button";
 import { Text } from "@react-spectrum/s2";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
+import { settingsEditorPath } from "../../components/SettingsLimitNotice";
 
 import { Icon } from "../../icons";
 
 import { canViewOwner, consoleApi, useConsoleSession } from "../../app/session";
 import type { ApiRequestError } from "../../lib/api";
+import { groupName } from "../../lib/chatNames";
 import {
   loadOwnerLimits,
   ownerLimitFields,
@@ -234,11 +237,15 @@ export function OwnerLimitsScreen() {
                     data-owner-limit-violation={`${violation.chat_id}:${violation.field}`}
                   >
                     {t("owner.violations.row", {
-                      chatId: violation.chat_id,
+                      chatId: groupName(violation.chat_id, "chats" in session ? session.chats.find(chat => chat.id === violation.chat_id)?.title : undefined),
                       field: t(`owner.fields.${violation.field}`),
                       value: violation.value,
                       limit: violation.limit
                     })}
+                    {" "}
+                    <Link to={settingsEditorPath(violation.field, violation.chat_id)}>
+                      {t("owner.violations.edit")}
+                    </Link>
                   </li>
                 ))}
               </ul>

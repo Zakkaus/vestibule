@@ -1041,7 +1041,6 @@ func TestPanelCommittedTextInputRenderFailuresReportSaved(t *testing.T) {
 		text string
 	}{
 		{name: "timeout commit", kind: inputTimeout, text: "600"},
-		{name: "private-rate commit", kind: inputPrivateRate, text: "9"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -1060,10 +1059,6 @@ func TestPanelCommittedTextInputRenderFailuresReportSaved(t *testing.T) {
 			case inputTimeout:
 				if group.Revision() != beforeGroup+1 || group.TimeoutSeconds().Value != 600 {
 					t.Fatalf("group input state = revision %d, timeout %d", group.Revision(), group.TimeoutSeconds().Value)
-				}
-			case inputPrivateRate:
-				if group.Revision() != beforeGroup+1 || group.PrivateQueryPerMin().Value != 9 {
-					t.Fatalf("chat input state = revision %d, rate %d", group.Revision(), group.PrivateQueryPerMin().Value)
 				}
 			}
 			assertSavedRenderWarning(t, caller.lastEditText)

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/Zakkaus/vestibule/internal/settings"
 )
@@ -43,8 +44,15 @@ func (s *SettingsStore) LoadSettings() ([]settings.Record, error) {
 		if revision < 0 {
 			return nil, fmt.Errorf("chat %d has negative settings revision %d", record.ChatID, revision)
 		}
-		if err = json.Unmarshal([]byte(payload), &record.Overrides); err != nil {
+		legacy := struct {
+			*settings.GroupOverrides
+			PrivateQueryPerMin json.RawMessage `json:"private_query_per_min"`
+		}{GroupOverrides: &record.Overrides}
+		if err = json.Unmarshal([]byte(payload), &legacy); err != nil {
 			return nil, fmt.Errorf("decode chat %d settings: %w", record.ChatID, err)
+		}
+		if len(legacy.PrivateQueryPerMin) != 0 {
+			log.Printf("settings migration: ignoring chat %d private_query_per_min; use process configuration", record.ChatID)
 		}
 		record.Revision = uint64(revision)
 		records = append(records, record)

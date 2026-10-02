@@ -144,7 +144,8 @@ test("diagnostics tells group managers that instance state is not a load failure
   await expect(screen).toContainText("此页面仅供运维人员使用");
   await expect(screen.getByText("无法读取实例状态", { exact: true })).toHaveCount(0);
   await expect(screen.getByRole("button", { name: "重试" })).toHaveCount(0);
-  expect(statusMethods).toEqual(["GET"]);
+  expect(statusMethods).toEqual([]);
+  await expect(page.locator('[data-navigation-item="/diagnostics"]')).toHaveCount(0);
 });
 
 test("diagnostics renders measured Bot API data and the recorded persistence failure", async ({ page }) => {

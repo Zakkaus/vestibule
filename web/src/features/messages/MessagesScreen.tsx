@@ -26,7 +26,7 @@ const errorMessageKeys: Readonly<Record<string, string>> = {
   chat_not_found: "messages.errors.chatNotFound",
   csrf_invalid: "messages.errors.csrfInvalid",
   invalid_settings: "messages.errors.invalidSettings",
-  settings_limit_exceeded: "messages.errors.settingsLimitExceeded",
+  settings_limit_exceeded: "settings.errors.settingsLimitExceeded",
   settings_unavailable: "messages.errors.settingsUnavailable",
   invalid_rule: "messages.errors.invalidRule",
   rule_not_found: "messages.errors.ruleNotFound",

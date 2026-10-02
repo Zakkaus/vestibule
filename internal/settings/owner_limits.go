@@ -15,7 +15,6 @@ type OwnerLimits struct {
 	VerifyRetrySeconds    int64 `json:"verify_retry_seconds"`
 	VerifyMaxFails        int64 `json:"verify_max_fails"`
 	WarnLimit             int64 `json:"warn_limit"`
-	PrivateQueryPerMin    int64 `json:"private_query_per_min"`
 	Questions             int64 `json:"questions"`
 	FallbackQuestions     int64 `json:"fallback_questions"`
 	ChannelWhitelist      int64 `json:"channel_whitelist"`
@@ -84,7 +83,6 @@ var ownerLimitFields = [...]string{
 	"verify_retry_seconds",
 	"verify_max_fails",
 	"warn_limit",
-	"private_query_per_min",
 	"questions",
 	"fallback_questions",
 	"channel_whitelist",
@@ -105,7 +103,6 @@ var ownerLimitRules = map[string]ownerLimitRule{
 	"verify_retry_seconds":     {min: 1, max: 31622400},
 	"verify_max_fails":         {min: 1, max: 2147483647},
 	"warn_limit":               {min: 1, max: 2147483647},
-	"private_query_per_min":    {min: 1, max: 2147483647},
 	"questions":                {min: 1, max: 2147483647},
 	"fallback_questions":       {min: 1, max: 2147483647},
 	"channel_whitelist":        {min: 1, max: 2147483647},
@@ -129,8 +126,6 @@ func (l OwnerLimits) Value(field string) (int64, bool) {
 		return l.VerifyMaxFails, true
 	case "warn_limit":
 		return l.WarnLimit, true
-	case "private_query_per_min":
-		return l.PrivateQueryPerMin, true
 	case "questions":
 		return l.Questions, true
 	case "fallback_questions":
@@ -162,8 +157,6 @@ func (l *OwnerLimits) setValue(field string, value int64) bool {
 		l.VerifyMaxFails = value
 	case "warn_limit":
 		l.WarnLimit = value
-	case "private_query_per_min":
-		l.PrivateQueryPerMin = value
 	case "questions":
 		l.Questions = value
 	case "fallback_questions":
@@ -288,7 +281,6 @@ func effectiveLimitValues(group *effectiveGroup) [13]int64 {
 		int64(group.verifyRetrySeconds.Value),
 		int64(group.verifyMaxFails.Value),
 		int64(group.warnLimit.Value),
-		int64(group.privateQueryPerMin.Value),
 		int64(len(group.questions.Value)),
 		int64(len(group.fallbackQuestions.Value)),
 		int64(len(group.channelWhitelist.Value)),

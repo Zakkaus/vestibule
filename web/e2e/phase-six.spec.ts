@@ -345,8 +345,8 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
     const selectedRow = page.locator("[data-group-row][data-selected]");
     await expect(selectedRow).toContainText(selectedGroupTitle);
     await expect(page.locator("[data-groups-page]")).not.toContainText(/-100\d+/);
-    await expect(selectedRow.getByRole("link")).toHaveAccessibleName(new RegExp(selectedGroupTitle));
-    await expect(selectedRow.getByRole("link")).not.toHaveAccessibleName(/-100\d+/);
+    await expect(selectedRow.locator("[data-select-group]")).toHaveAccessibleName(new RegExp(selectedGroupTitle));
+    await expect(selectedRow.locator("[data-select-group]")).not.toHaveAccessibleName(/-100\d+/);
     await expect(selectedRow).not.toContainText("Gentoo 中文社区");
   });
 

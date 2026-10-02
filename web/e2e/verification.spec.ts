@@ -166,7 +166,9 @@ test("verification explains an existing cap violation and keeps the rejected dra
   const feedback = page.locator("[data-verification-feedback]");
   await expect(feedback).toHaveAttribute("role", "alert");
   const violations = feedback.locator("[data-settings-limit-violations]");
-  await expect(violations).toContainText(selectedGroupID);
+  await expect(violations).toContainText("Gentoo-zh Community");
+  await expect(violations).not.toContainText(selectedGroupID);
+  await expect(violations.getByRole("link")).toHaveAttribute("href", `/verification?group=${selectedGroupID}`);
   await expect(violations).toContainText("240");
   await expect(violations).toContainText("120");
   await expect(violations).not.toContainText("owner.fields.");

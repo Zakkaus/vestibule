@@ -447,7 +447,10 @@ func (v *Panel) dispatchVerificationParameters(ctx context.Context, bot *telego.
 		session.revision = result.Revision
 		return v.renderAfterCommit(ctx, bot, session)
 	}
-	kind := map[string]inputKind{"to": inputTimeout, "mf": inputMaxFails, "rc": inputRetryCooldown, "pr": inputPrivateRate}[data.field]
+	kind, ok := map[string]inputKind{"to": inputTimeout, "mf": inputMaxFails, "rc": inputRetryCooldown}[data.field]
+	if !ok {
+		return errors.New("invalid verification parameter action")
+	}
 	return v.armTextInput(ctx, bot, session, kind, "vp")
 }
 
@@ -735,14 +738,12 @@ func (v *Panel) buildVerificationParameters(session *panelSession, token string)
 	text := i18n.Messages.Panel.Settings.Screen.Verification.Render(session.language, session.groupID,
 		v.sourcedSeconds(session.language, group.TimeoutSeconds(), false), v.sourcedLimit(session.language, group.VerifyMaxFails()),
 		v.sourcedLimit(session.language, group.VerifyRetrySeconds()),
-		v.sourcedBool(session.language, group.VerifyInvited()),
-		i18n.Messages.Panel.Settings.Value.Sourced.Render(session.language, strconv.Itoa(group.PrivateQueryPerMin().Value), v.sourceText(session.language, group.PrivateQueryPerMin().Source)))
+		v.sourcedBool(session.language, group.VerifyInvited()))
 	buttons := []panelButton{
 		{text: i18n.Messages.Panel.Settings.Field.Timeout.For(session.language), field: "to", value: "_"},
 		{text: i18n.Messages.Panel.Settings.Field.MaxFails.For(session.language), field: "mf", value: "_"},
 		{text: i18n.Messages.Panel.Settings.Field.RetryCooldown.For(session.language), field: "rc", value: "_"},
 		{text: i18n.Messages.Panel.Settings.Field.VerifyInvited.For(session.language), field: "vi", value: "_"},
-		{text: i18n.Messages.Panel.Settings.Field.PrivateRate.For(session.language), field: "pr", value: "_"},
 		{text: i18n.Messages.Panel.Settings.Common.Back.For(session.language), field: "go", value: "gh"},
 	}
 	return v.screenWithSingleButtons(text, token, session, buttons)
@@ -1340,8 +1341,6 @@ func (v *Panel) inputPrompt(language i18n.Lang, kind inputKind) string {
 		return prompts.MaxFails.For(language)
 	case inputRetryCooldown:
 		return prompts.RetryCooldown.For(language)
-	case inputPrivateRate:
-		return prompts.PrivateRate.For(language)
 	case inputQuizQuestion:
 		return prompts.QuizQuestion.For(language)
 	case inputQuizOption:

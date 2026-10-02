@@ -91,7 +91,7 @@ function readyState(settings: BypassSettings): BypassReadyState {
 
 function editReadyState(state: BypassReadyState, action: EditAction): BypassReadyState {
   const field = action.type === "edit-text" ? action.field : "requiredChannelFailOpen";
-  if (state.saving || sourceForField(state.settings, field) === "user file") {
+  if (state.saving) {
     return state;
   }
 

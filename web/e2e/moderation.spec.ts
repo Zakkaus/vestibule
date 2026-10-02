@@ -103,7 +103,7 @@ test("moderation shows provenance and expresses group ID zero as a blank destina
   });
 
   const warningRow = page.locator('[data-moderation-field="warnLimit"]');
-  await expect(warningRow).toContainText("当前群设置");
+  await expect(warningRow.locator("[data-setting-source]")).toHaveAttribute("data-setting-source", "chat override");
   await expect(warningRow.getByRole("button", { name: "恢复默认值" })).toBeVisible();
 
   const antispamRow = page.locator('[data-moderation-field="antispamEnabled"]');
@@ -112,9 +112,9 @@ test("moderation shows provenance and expresses group ID zero as a blank destina
 
   const adminLogRow = page.locator('[data-moderation-field="adminLogChatID"]');
   const adminLogInput = adminLogRow.getByLabel("处罚记录群");
-  await expect(adminLogRow).toContainText("用户配置文件");
+  await expect(adminLogRow.locator("[data-setting-source]")).toHaveAttribute("data-setting-source", "user file");
   await expect(adminLogInput).toHaveValue("");
-  await expect(adminLogInput).toHaveAttribute("readonly", "");
+  await expect(adminLogInput).toBeEditable();
   await expect(adminLogRow).toContainText(
     "留空等同于群号 0：不发送额外的处罚记录；处罚失败提醒仍发送到当前群。"
   );

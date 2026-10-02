@@ -11,7 +11,6 @@ const initialLimits = {
   verify_retry_seconds: 180,
   verify_max_fails: 3,
   warn_limit: 3,
-  private_query_per_min: 3,
   questions: 10,
   fallback_questions: 10,
   channel_whitelist: 5,
@@ -122,7 +121,10 @@ test("owner navigation opens limits, marks stale groups, and saves a new limit",
 
   await expect(page.locator("[data-owner-page]")).toBeVisible();
   await expect(page.locator("[data-owner-limits-form]")).toBeVisible();
-  await expect(page.locator(`[data-owner-limit-violation="${groupID}:timeout_seconds"]`)).toContainText(groupID);
+  const violation = page.locator(`[data-owner-limit-violation="${groupID}:timeout_seconds"]`);
+  await expect(violation).toContainText("Limits group");
+  await expect(violation).not.toContainText(groupID);
+  await expect(violation.getByRole("link")).toHaveAttribute("href", `/verification?group=${groupID}`);
 
   await page.locator('[data-owner-limit-input="timeout_seconds"]').fill("1500");
   await page.locator("[data-owner-limits-save]").click();
@@ -148,6 +150,7 @@ test("an owner without any managed groups can edit instance caps", async ({ page
   await mockOwnerTransport(page, { isOwner: true, noGroups: true });
   await page.goto("/owner");
   await expect(page.locator("[data-owner-limits-form]")).toBeVisible();
+  await expect(page.locator("[data-owner-limit-violation]")).toContainText(groupID);
   await page.locator('[data-owner-limit-input="questions"]').fill("12");
   await expect(page.locator("[data-owner-limits-save]")).toBeEnabled();
 });

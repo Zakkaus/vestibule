@@ -1,4 +1,9 @@
 {
+  "settings": {
+    "errors": {
+      "settingsLimitExceeded": "This change would exceed an instance owner limit. Reduce the value or ask the instance owner to raise the limit."
+    }
+  },
   "app": {
     "title": "Verification Console",
     "name": "Verification Console"
@@ -111,6 +116,16 @@
     }
   },
   "groups": {
+    "knownChats": {
+      "title": "Known chats",
+      "edit": "Edit known chats",
+      "description": "Support chats known to this group. Enter one Telegram chat ID per line. This list does not grant verification trust or permission to post as a channel.",
+      "invalid": "Enter unique, non-zero integer chat IDs, one per line.",
+      "unavailable": "Known chats could not be loaded or saved.",
+      "conflict": "The settings changed elsewhere. Your draft is retained. Reload to discard it and read the latest values.",
+      "unknown": "The request outcome is unknown. Reload to read the saved values before making another change.",
+      "reload": "Discard draft and reload"
+    },
     "title": "Groups and channels",
     "description": "View the groups and channels this Telegram account can manage, with each group’s live administrator permissions. Pick a group and the other screens apply to it.",
     "managedCount_one": "{{count}} manageable group",
@@ -331,8 +346,8 @@
     },
     "source": {
       "factory": "Factory default",
-      "file": "Managed by file",
-      "chat": "This group",
+      "file": "Configuration file",
+      "chat": "Group override",
       "pending": "Unsaved",
       "restoring": "Restore pending"
     },
@@ -377,7 +392,6 @@
       "accessUnavailable": "Your administration access cannot be verified right now. Try again.",
       "chatNotFound": "This group can no longer be managed in the console.",
       "invalidSettings": "These settings did not pass validation. Review the changes and try again.",
-      "settingsLimitExceeded": "This change would exceed an instance owner limit. Reduce the value or ask the owner to raise the limit.",
       "settingsUnavailable": "The settings service is unavailable. Try again.",
       "loadUnavailable": "Moderation settings are unavailable.",
       "saveUnavailable": "Moderation settings cannot be saved right now. Try again."
@@ -386,7 +400,7 @@
   "feeds": {
     "navigation": "Feed delivery",
     "title": "Feed delivery",
-    "description": "Edit the selected group's effective Bugzilla, news, and GitHub delivery settings; operators can also view process-wide news and overlay resources.",
+    "description": "Edit the selected group's effective Bugzilla, news, and GitHub delivery settings. Operators can inspect instance lookup resources in Diagnostics.",
     "loading": {
       "title": "Loading feed delivery settings",
       "description": "Reading group feed values and their sources…"
@@ -402,7 +416,7 @@
     "source": {
       "value": "Source: {{source}}",
       "factoryDefault": "Factory default",
-      "userFile": "Managed by file",
+      "userFile": "Configuration file",
       "chatOverride": "Group override"
     },
     "form": {
@@ -546,8 +560,8 @@
     },
     "source": {
       "factory": "Factory default",
-      "file": "Managed by file",
-      "chat": "This group",
+      "file": "Configuration file",
+      "chat": "Group override",
       "pending": "Unsaved",
       "restoring": "Restore pending"
     },
@@ -617,7 +631,6 @@
       "chatNotFound": "This group can no longer be managed in the console.",
       "csrfInvalid": "This page's security token has expired. Refresh the page and try again.",
       "invalidSettings": "One or more settings are invalid. Review the changes and save again.",
-      "settingsLimitExceeded": "This change would exceed an instance owner limit. Reduce the value or ask the owner to raise the limit.",
       "settingsUnavailable": "Verification bypass sources are unavailable. Try again.",
       "loadUnavailable": "Verification bypass sources cannot be read right now. Try again.",
       "saveUnavailable": "Verification bypass sources cannot be saved right now. Try again.",
@@ -804,7 +817,6 @@
       "chatNotFound": "This group can no longer be managed in the console.",
       "csrfInvalid": "The security token for this page has expired. Refresh the page and try again.",
       "invalidSettings": "One or more settings are invalid. Check them and save again.",
-      "settingsLimitExceeded": "This change would exceed an instance owner limit. Reduce the value or ask the owner to raise the limit.",
       "settingsUnavailable": "Verification settings are temporarily unavailable. Try again.",
       "loadUnavailable": "Verification settings cannot be read right now. Try again.",
       "saveUnavailable": "Verification settings cannot be saved right now. Try again.",
@@ -967,7 +979,6 @@
       "chatNotFound": "This group can no longer be managed in the console.",
       "csrfInvalid": "The security token for this page has expired. Refresh the page and try again.",
       "invalidSettings": "The question bank did not pass validation. Check its questions and answers, then save again.",
-      "settingsLimitExceeded": "This change would exceed an instance owner limit. Reduce the value or ask the owner to raise the limit.",
       "settingsUnavailable": "Question-bank settings are temporarily unavailable. Try again.",
       "loadUnavailable": "The question bank cannot be read right now. Try again.",
       "saveUnavailable": "The question bank cannot be saved right now. Try again.",
@@ -975,6 +986,11 @@
     }
   },
   "diagnostics": {
+    "process": {
+      "title": "Process settings",
+      "description": "Read-only instance settings. Set these in the configuration file; changes take effect after restart.",
+      "privateQueryPerMin": "Private queries per user per minute"
+    },
     "navigation": "Diagnostics",
     "title": "Diagnostics",
     "description": "View instance-wide permission preflight, Telegram Bot API latency, heartbeat, fallback readings, and the daily status summary; operators only.",
@@ -1422,7 +1438,7 @@
       "value": "Source: {{source}}",
       "factoryDefault": "Factory default",
       "userFile": "Configuration file",
-      "chatOverride": "This group override",
+      "chatOverride": "Group override",
       "pending": "Unsaved in this session",
       "restoring": "Will restore inherited value"
     },
@@ -1456,7 +1472,6 @@
       "chatNotFound": "This group can no longer be managed in the console.",
       "csrfInvalid": "The security token for this page has expired. Refresh the page and try again.",
       "invalidSettings": "One or more message settings are invalid. Check them, then save again.",
-      "settingsLimitExceeded": "This change would exceed an instance owner limit. Reduce the value or ask the owner to raise the limit.",
       "settingsUnavailable": "Message settings are temporarily unavailable. Try again.",
       "loadUnavailable": "Messages and copy are temporarily unavailable. Try again.",
       "loadSettingsUnavailable": "Message settings cannot be read right now. Try again.",
@@ -1562,7 +1577,6 @@
       "chatNotFound": "This group can no longer be managed in the console.",
       "csrfInvalid": "The security token for this page has expired. Refresh the page and try again.",
       "invalidSettings": "The capability settings are invalid. Reload them and try again.",
-      "settingsLimitExceeded": "This change would exceed an instance owner limit. Reduce the value or ask the owner to raise the limit.",
       "settingsUnavailable": "Capability settings are temporarily unavailable. Try again.",
       "loadUnavailable": "Capabilities cannot be loaded right now. Try again.",
       "saveUnavailable": "Capability settings cannot be saved right now. Try again.",
@@ -1588,7 +1602,6 @@
       "verify_retry_seconds": "Verification retry delay (seconds)",
       "verify_max_fails": "Maximum verification failures",
       "warn_limit": "Warning limit",
-      "private_query_per_min": "Private queries per minute",
       "questions": "Primary questions",
       "fallback_questions": "Fallback questions",
       "channel_whitelist": "Allowed channels",
@@ -1602,6 +1615,7 @@
       "retry": "Try again"
     },
     "violations": {
+      "edit": "Open group editor",
       "title": "Groups above the current caps",
       "row": "Group {{chatId}}: {{field}} is {{value}}; the limit is {{limit}}."
     },

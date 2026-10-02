@@ -151,7 +151,6 @@ func TestUpgradeKeepsEverySparseGroupOverride(t *testing.T) {
 			FallbackBuiltin:         ptr(false),
 			Lang:                    ptr("en"),
 			RichMessages:            ptr(true),
-			PrivateQueryPerMin:      ptr(9),
 			AdminLogChatID:          ptr(int64(-1009000002226)),
 			RequiredChannelFailOpen: ptr(false),
 		},

@@ -93,7 +93,7 @@ const errorMessageKeys: Readonly<Record<string, string>> = {
   chat_not_found: "capabilities.errors.chatNotFound",
   csrf_invalid: "capabilities.errors.csrfInvalid",
   invalid_settings: "capabilities.errors.invalidSettings",
-  settings_limit_exceeded: "capabilities.errors.settingsLimitExceeded",
+  settings_limit_exceeded: "settings.errors.settingsLimitExceeded",
   settings_unavailable: "capabilities.errors.settingsUnavailable"
 };
 
@@ -245,7 +245,6 @@ export function CapabilitiesScreen() {
     if (
       !settings ||
       !draftValues ||
-      settings[field].source === "user file" ||
       restoringFields.has(field) ||
       saving
     ) {
@@ -454,7 +453,7 @@ export function CapabilitiesScreen() {
               const field = definition.field;
               const setting = settings[field];
               const restoring = restoringFields.has(field);
-              const readOnly = setting.source === "user file" || restoring || saving;
+              const readOnly = restoring || saving;
               const pending = changedFields.includes(field);
               return (
                 <CapabilityCard
@@ -480,7 +479,6 @@ export function CapabilitiesScreen() {
                     />
                   }
                   control={
-                    setting.source === "user file" ? undefined : (
                       <button
                         type="button"
                         role="switch"
@@ -491,7 +489,6 @@ export function CapabilitiesScreen() {
                         aria-describedby={`capabilities-${definition.id}-summary`}
                         onClick={() => toggleField(field)}
                       />
-                    )
                   }
                 />
               );
@@ -543,7 +540,7 @@ export function CapabilitiesScreen() {
             feedback.error.code === "settings_limit_exceeded" ? (
               <SettingsLimitNotice
                 error={feedback.error}
-                messageKey="capabilities.errors.settingsLimitExceeded"
+                messageKey="settings.errors.settingsLimitExceeded"
               />
             ) : (
               t(

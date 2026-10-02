@@ -66,8 +66,6 @@ func TestTopLevelUserValuesReachTheGroupBaseline(t *testing.T) {
 			func(b GroupBaseline) any { return b.Lang.Value }, "en"},
 		{"rich_messages", func(c *Config) { c.RichMessages = true },
 			func(b GroupBaseline) any { return b.RichMessages.Value }, true},
-		{"private_query_per_min", func(c *Config) { c.PrivateQueryPerMin = 11 },
-			func(b GroupBaseline) any { return b.PrivateQueryPerMin.Value }, 11},
 		{"admin_log_chat_id", func(c *Config) { c.AdminLogChatID = -1009000001305 },
 			func(b GroupBaseline) any { return b.AdminLogChatID.Value }, int64(-1009000001305)},
 		{"required_channel_fail_open", func(c *Config) { c.RequiredChannelFailOpen = &trueValue },

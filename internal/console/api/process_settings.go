@@ -13,16 +13,18 @@ type ProcessSettingsService interface {
 }
 
 type processSettingsResponse struct {
-	NewsURL       settingResponse[string]                `json:"news_url"`
-	Overlays      settingResponse[[]settings.OverlayCfg] `json:"overlays"`
-	StatsTimezone settingResponse[string]                `json:"stats_timezone"`
+	NewsURL            settingResponse[string]                `json:"news_url"`
+	Overlays           settingResponse[[]settings.OverlayCfg] `json:"overlays"`
+	StatsTimezone      settingResponse[string]                `json:"stats_timezone"`
+	PrivateQueryPerMin settingResponse[int]                   `json:"private_query_per_min"`
 }
 
 func processSettingsView(view settings.ProcessView) processSettingsResponse {
 	return processSettingsResponse{
-		NewsURL:       settingView(view.NewsURL()),
-		Overlays:      settingView(view.Overlays()),
-		StatsTimezone: settingView(view.StatsTimezone()),
+		NewsURL:            settingView(view.NewsURL()),
+		Overlays:           settingView(view.Overlays()),
+		StatsTimezone:      settingView(view.StatsTimezone()),
+		PrivateQueryPerMin: settingView(view.PrivateQueryPerMin()),
 	}
 }
 

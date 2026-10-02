@@ -1002,7 +1002,7 @@ Bot API 容器从独立的 `bot-api.env` 读取上游必需凭据。应用代码
 | 验证失败计数（`verifyfail.json`） | `cmd/import-state` | 丢了会让冷却与自动封禁从头计 |
 | 自动化代理计数（`agents.json`） | `cmd/import-state` | 反垃圾的历史依据 |
 | 心跳（`heartbeat.json`） | `cmd/import-state` | 决定恢复后要不要重发挑战 |
-| 每群设置与文案、题库、自动回复（`settings.json`） | **设置层直接读**（`internal/settings/store.go:320` 的对账） | 丢了会回到出厂默认，群管理员未必立刻发现；是手写内容，无法重建 |
+| 每群设置与文案、题库、自动回复（`settings.json`） | **设置层直接读**（`internal/settings/store.go:317` 的对账） | 丢了会回到出厂默认，群管理员未必立刻发现；是手写内容，无法重建 |
 | 反垃圾旧格式（`antispam.json`） | **设置层直接读**（`internal/settings/store_init.go:115`） | 上一代单独存了一份，不迁会静默回到默认 |
 | 进行中的待验证记录（`pending.json`） | `cmd/import-state -pending drop` | 已于 2026-10-03 确定不迁移，记录留在旧机器人 |
 

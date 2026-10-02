@@ -3,6 +3,7 @@ package settings
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 
 	"go.mau.fi/util/configupgrade"
@@ -28,7 +29,6 @@ limits:
   verify_retry_seconds: 0
   verify_max_fails: 0
   warn_limit: 0
-  private_query_per_min: 0
   questions: 0
   fallback_questions: 0
   channel_whitelist: 0
@@ -66,7 +66,6 @@ fallback_questions:
 fallback_builtin:
 lang:
 rich_messages:
-private_query_per_min:
 admin_log_chat_id:
 required_channel_fail_open:
 feed:
@@ -119,7 +118,6 @@ var groupCopyRules = []copyRule{
 	{configupgrade.Bool, []string{"fallback_builtin"}},
 	{configupgrade.Str, []string{"lang"}},
 	{configupgrade.Bool, []string{"rich_messages"}},
-	{configupgrade.Int, []string{"private_query_per_min"}},
 	{configupgrade.Int, []string{"admin_log_chat_id"}},
 	{configupgrade.Bool, []string{"required_channel_fail_open"}},
 	{configupgrade.Map, []string{"feed"}},
@@ -182,6 +180,9 @@ type legacySettingsUpgrader struct {
 func (u *legacySettingsUpgrader) GetBase() string { return currentSettingsBase }
 
 func (u *legacySettingsUpgrader) DoUpgrade(helper configupgrade.Helper) {
+	if helper.GetNode("private_query_per_min") != nil || helper.GetNode("limits", "private_query_per_min") != nil {
+		log.Printf("settings migration: ignoring private_query_per_min in stored settings; use process configuration")
+	}
 	for _, rule := range settingsCopyRules {
 		applyCopyRule(helper, rule)
 	}
@@ -203,6 +204,9 @@ func (u *legacySettingsUpgrader) upgradeExistingGroupRecords(helper configupgrad
 		return groups
 	}
 	for chatID, sourceRecord := range source.Map {
+		if _, present := sourceRecord.Map["private_query_per_min"]; present {
+			log.Printf("settings migration: ignoring chat %s private_query_per_min; use process configuration", chatID)
+		}
 		upgradedRecord, err := upgradeGroupRecord(sourceRecord)
 		if err != nil {
 			u.err = err

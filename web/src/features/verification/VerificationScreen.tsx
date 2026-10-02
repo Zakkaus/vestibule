@@ -49,7 +49,7 @@ const errorMessageKeys: Readonly<Record<string, string>> = {
   chat_not_found: "verification.errors.chatNotFound",
   csrf_invalid: "verification.errors.csrfInvalid",
   invalid_settings: "verification.errors.invalidSettings",
-  settings_limit_exceeded: "verification.errors.settingsLimitExceeded",
+  settings_limit_exceeded: "settings.errors.settingsLimitExceeded",
   settings_unavailable: "verification.errors.settingsUnavailable"
 };
 
@@ -374,7 +374,7 @@ export function VerificationScreen() {
           feedback.error.code === "settings_limit_exceeded" ? (
             <SettingsLimitNotice
               error={feedback.error}
-              messageKey="verification.errors.settingsLimitExceeded"
+              messageKey="settings.errors.settingsLimitExceeded"
             />
           ) : (
             t(

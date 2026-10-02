@@ -23,6 +23,7 @@ import {
   resolveGroupSelection,
   verificationPrerequisites
 } from "./fixtures";
+import { KnownChatsEditor } from "./KnownChatsEditor";
 
 type GroupsPageProps = Readonly<{
   state: "loading" | "populated" | "empty" | "error";
@@ -234,6 +235,10 @@ function LiveGroupList({
         </div>
         <div data-group-actions>
           <OpenQueueLink groupId={chat.id} groupName={name} />
+          <Link data-slot="button" data-size="sm" to={`/groups?${new URLSearchParams({ group: chat.id, edit: "known-chats" })}`}>
+            <Icon name="arrowRight" />
+            {t("groups.knownChats.edit")}
+          </Link>
         </div>
         <GroupAdministration chat={chat} />
       </article>
@@ -525,6 +530,9 @@ export function GroupListScreen() {
     const selectedGroupId = resolveGroupSelection(searchParams.get("group"), session.chats);
     return (
       <GroupsPage state="populated" source="api" count={session.chats.length}>
+        {searchParams.get("edit") === "known-chats" && session.chats.some(chat => chat.id === selectedGroupId) ? (
+          <KnownChatsEditor key={selectedGroupId} chatID={selectedGroupId} />
+        ) : null}
         <LiveGroupList chats={session.chats} selectedGroupId={selectedGroupId} />
       </GroupsPage>
     );

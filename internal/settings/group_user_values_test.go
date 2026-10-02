@@ -73,8 +73,6 @@ func TestGroupUserValuesReachThatGroupsBaseline(t *testing.T) {
 			func(b GroupBaseline) any { return b.Lang.Value }, "en"},
 		{"rich_messages", func(c *GroupConfig) { c.RichMessages = &no },
 			func(b GroupBaseline) any { return b.RichMessages.Value }, false},
-		{"private_query_per_min", func(c *GroupConfig) { c.PrivateQueryPerMin = i(11) },
-			func(b GroupBaseline) any { return b.PrivateQueryPerMin.Value }, 11},
 		{"admin_log_chat_id", func(c *GroupConfig) { c.AdminLogChatID = i64(-1009000001405) },
 			func(b GroupBaseline) any { return b.AdminLogChatID.Value }, int64(-1009000001405)},
 		{"required_channel_fail_open", func(c *GroupConfig) { c.RequiredChannelFailOpen = &yes },

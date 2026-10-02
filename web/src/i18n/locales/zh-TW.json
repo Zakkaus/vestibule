@@ -1,4 +1,9 @@
 {
+  "settings": {
+    "errors": {
+      "settingsLimitExceeded": "這項變更會超過部署者設定的上限。請降低數值，或聯絡部署者調整上限。"
+    }
+  },
   "app": {
     "title": "驗證控制台",
     "name": "驗證控制台"
@@ -111,6 +116,16 @@
     }
   },
   "groups": {
+    "knownChats": {
+      "title": "已知聊天室",
+      "edit": "編輯已知聊天室",
+      "description": "此群組已知的支援聊天室。每行填入一個 Telegram 聊天 ID。此清單不授予免驗證資格或頻道身分發言權限。",
+      "invalid": "每行填入一個非零整數聊天 ID，不得重複。",
+      "unavailable": "無法讀取或儲存已知聊天室。",
+      "conflict": "設定已由其他管理員修改。草稿已保留。重新讀取將捨棄草稿並顯示最新值。",
+      "unknown": "請求結果未知。請重新讀取已儲存的值，再進行修改。",
+      "reload": "捨棄草稿並重新讀取"
+    },
     "title": "群組與頻道",
     "description": "檢視目前帳號在 Telegram 中可管理的群組與頻道，以及各群的即時管理員權限。選擇一個群組後，其餘各屏都作用於該群組。",
     "managedCount_other": "可管理的群組：{{count}} 個",
@@ -330,7 +345,7 @@
     },
     "source": {
       "factory": "出廠預設",
-      "file": "設定檔提供",
+      "file": "設定檔",
       "chat": "此群組覆寫",
       "pending": "尚未儲存",
       "restoring": "待還原預設值"
@@ -375,7 +390,6 @@
       "accessUnavailable": "暫時無法確認目前帳號對此群組的管理權限。請重試。",
       "chatNotFound": "此群組已無法在控制台中管理。",
       "invalidSettings": "管理與處罰設定未通過驗證。檢查變更後重試。",
-      "settingsLimitExceeded": "這項變更會超過執行個體擁有者設定的上限。請降低數值，或請擁有者提高上限。",
       "settingsUnavailable": "設定服務暫時無法使用。請重試。",
       "loadUnavailable": "暫時無法讀取管理與處罰設定。請重試。",
       "saveUnavailable": "無法儲存管理與處罰設定。請重試。"
@@ -384,7 +398,7 @@
   "feeds": {
     "navigation": "訂閱推送",
     "title": "訂閱推送",
-    "description": "編輯所選群組的 Bugzilla、新聞與 GitHub 推送生效設定；維運人員還可檢視處理程序層級的新聞來源與 overlay 資源。",
+    "description": "編輯所選群組的 Bugzilla、新聞與 GitHub 推送生效設定。維運人員可在診斷頁檢視實例查詢資源。",
     "loading": {
       "title": "正在載入訂閱推送設定",
       "description": "正在讀取群組層級的訂閱生效值及其來源…"
@@ -400,8 +414,8 @@
     "source": {
       "value": "來源：{{source}}",
       "factoryDefault": "程式預設",
-      "userFile": "設定檔提供",
-      "chatOverride": "群組覆寫"
+      "userFile": "設定檔",
+      "chatOverride": "此群組覆寫"
     },
     "form": {
       "title": "群組訂閱設定",
@@ -543,7 +557,7 @@
     },
     "source": {
       "factory": "出廠預設",
-      "file": "設定檔提供",
+      "file": "設定檔",
       "chat": "此群組覆寫",
       "pending": "尚未儲存",
       "restoring": "待還原預設值"
@@ -613,7 +627,6 @@
       "chatNotFound": "此群組已無法在控制台中管理。",
       "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
       "invalidSettings": "一項或多項設定無效。檢查後重新儲存。",
-      "settingsLimitExceeded": "這項變更會超過執行個體擁有者設定的上限。請降低數值，或請擁有者提高上限。",
       "settingsUnavailable": "免驗證來源設定暫時無法使用。請重試。",
       "loadUnavailable": "暫時無法讀取免驗證來源設定。請重試。",
       "saveUnavailable": "暫時無法儲存免驗證來源設定。請重試。",
@@ -800,7 +813,6 @@
       "chatNotFound": "此群組已無法在控制台中管理。",
       "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
       "invalidSettings": "一或多個設定無效。檢查後重新儲存。",
-      "settingsLimitExceeded": "這項變更會超過執行個體擁有者設定的上限。請降低數值，或請擁有者提高上限。",
       "settingsUnavailable": "驗證設定暫時無法使用。請重試。",
       "loadUnavailable": "暫時無法讀取驗證設定。請重試。",
       "saveUnavailable": "暫時無法儲存驗證設定。請重試。",
@@ -960,7 +972,6 @@
       "chatNotFound": "此群組已無法在控制台中管理。",
       "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
       "invalidSettings": "題庫未通過驗證。檢查題目及答案後重新儲存。",
-      "settingsLimitExceeded": "這項變更會超過執行個體擁有者設定的上限。請降低數值，或請擁有者提高上限。",
       "settingsUnavailable": "題庫設定暫時無法使用。請重試。",
       "loadUnavailable": "暫時無法讀取題庫。請重試。",
       "saveUnavailable": "暫時無法儲存題庫。請重試。",
@@ -968,12 +979,17 @@
     }
   },
   "diagnostics": {
+    "process": {
+      "title": "程序設定",
+      "description": "實例層級的唯讀設定。請在設定檔中修改，重新啟動後生效。",
+      "privateQueryPerMin": "每位使用者每分鐘私人訊息查詢次數"
+    },
     "navigation": "診斷",
     "title": "診斷",
     "description": "檢視整個實例的權限預檢、Telegram Bot API 延遲、心跳、回退讀數與每日摘要；僅維運人員可檢視。",
     "daily": {
       "title": "每日狀態報告",
-      "description": "每天透過私人訊息將狀態摘要傳送給執行個體擁有者。",
+      "description": "每天透過私人訊息將狀態摘要傳送給部署者。",
       "loading": "正在讀取每日報告設定…",
       "enabled": {
         "label": "每日狀態報告",
@@ -1449,7 +1465,6 @@
       "chatNotFound": "此群組已無法在控制台中管理。",
       "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
       "invalidSettings": "一或多個訊息設定無效。檢查後重新儲存。",
-      "settingsLimitExceeded": "這項變更會超過執行個體擁有者設定的上限。請降低數值，或請擁有者提高上限。",
       "settingsUnavailable": "訊息設定暫時無法使用。請重試。",
       "loadUnavailable": "訊息與文案暫時無法使用。請重試。",
       "loadSettingsUnavailable": "暫時無法讀取訊息設定。請重試。",
@@ -1555,7 +1570,6 @@
       "chatNotFound": "此群組已無法在控制台中管理。",
       "csrfInvalid": "此頁面的安全權杖已過期。重新整理頁面後再重試。",
       "invalidSettings": "功能設定無效。請重新載入後重試。",
-      "settingsLimitExceeded": "這項變更會超過執行個體擁有者設定的上限。請降低數值，或請擁有者提高上限。",
       "settingsUnavailable": "功能設定暫時無法使用。請重試。",
       "loadUnavailable": "暫時無法讀取功能。請重試。",
       "saveUnavailable": "暫時無法儲存功能設定。請重試。",
@@ -1581,7 +1595,6 @@
       "verify_retry_seconds": "驗證重試間隔（秒）",
       "verify_max_fails": "驗證失敗次數",
       "warn_limit": "警告次數",
-      "private_query_per_min": "每分鐘私人訊息查詢次數",
       "questions": "選擇題數量",
       "fallback_questions": "備用題數量",
       "channel_whitelist": "允許的頻道數",
@@ -1595,6 +1608,7 @@
       "retry": "重新讀取"
     },
     "violations": {
+      "edit": "開啟群組設定",
       "title": "超出目前上限的群組",
       "row": "群組 {{chatId}}：{{field}}為 {{value}}，上限為 {{limit}}。"
     },

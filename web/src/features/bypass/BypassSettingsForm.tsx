@@ -195,7 +195,7 @@ function TextSetting({
   onChange,
   onSetRestoring
 }: TextSettingProps) {
-  const readOnly = setting.source === "user file" || restoring || saving;
+  const readOnly = restoring || saving;
   return (
     <SettingRow
       field={field}
@@ -255,7 +255,7 @@ function IDListSetting({
   onChange,
   onSetRestoring
 }: IDListSettingProps) {
-  const readOnly = setting.source === "user file" || restoring || saving;
+  const readOnly = restoring || saving;
   return (
     <SettingRow
       field={field}
@@ -296,7 +296,7 @@ function FailOpenSetting({ state, pending, onChange, onSetRestoring }: FailOpenS
   const field = "requiredChannelFailOpen";
   const setting = state.settings.requiredChannelFailOpen;
   const restoring = state.restoring[field] === true;
-  const readOnly = setting.source === "user file" || restoring || state.saving;
+  const readOnly = restoring || state.saving;
   const controlID = "bypass-required-channel-fail-open";
   const isFailOpen = state.form.requiredChannelFailOpen;
 

@@ -63,7 +63,7 @@ export const navigationItems: readonly NavigationItem[] = [
   { path: "/messages", labelKey: "messages.navigation", icon: "messagesSquare", group: "group" },
   { path: "/feeds", labelKey: "feeds.navigation", icon: "rss", group: "content" },
   { path: "/stats", labelKey: "stats.navigation", icon: "chartNoAxesCombined", group: "observe" },
-  { path: "/diagnostics", labelKey: "diagnostics.navigation", icon: "activity", group: "observe" },
+  { path: "/diagnostics", labelKey: "diagnostics.navigation", icon: "activity", group: "observe", capability: "instance-status" },
   { path: "/version", labelKey: "version.navigation", icon: "refreshCw", group: "console", capability: "instance-status" },
   { path: "/capabilities", labelKey: "capabilities.navigation", icon: "slidersHorizontal", group: "console" },
   { path: "/preferences", labelKey: "navigation.preferences", icon: "settings", group: "console" },

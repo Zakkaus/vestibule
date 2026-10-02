@@ -1,0 +1,10 @@
+@layer legacy {
+  [data-process-settings] {
+    display: grid;
+    gap: var(--sp-4);
+  }
+
+  [data-process-private-query-rate] {
+    font-variant-numeric: tabular-nums;
+  }
+}

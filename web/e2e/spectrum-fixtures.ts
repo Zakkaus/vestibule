@@ -17,7 +17,7 @@ export const operatorNavigationGroups = [
 
 export const managerNavigationGroups = operatorNavigationGroups.map((group) => ({
   ...group,
-  paths: group.paths.filter((path) => path !== "/version")
+  paths: group.paths.filter((path) => path !== "/version" && path !== "/diagnostics")
 }));
 
 export const chartDays = [
@@ -248,6 +248,7 @@ export async function mockSpectrumTransport(page: Page, options: MockOptions = {
     }
     if (path === "/api/process/settings" && request.method() === "GET") {
       await fulfillJSON(route, {
+        private_query_per_min: { value: 3, source: "factory default" },
         news_url: { value: "https://example.invalid/news.xml", source: "factory default" },
         overlays: { value: [], source: "factory default" },
         stats_timezone: { value: "UTC", source: "factory default" }

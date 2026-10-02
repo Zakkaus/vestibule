@@ -26,7 +26,7 @@
       "unmute": "[Administrator] Unmute the user you replied to",
       "purge": "[Administrator] Ban the user you replied to and delete all messages",
       "ban": "[Administrator] Ban and remove the user you replied to",
-      "warn": "[Administrator] Warn the user you replied to (removed after %[1]d warnings)",
+      "warn": "[Administrator] Warn the user you replied to",
       "clear_warn": "[Administrator] Clear warnings for the user you replied to",
       "channel": "[Administrator] Manage sender-channel blocking",
       "rich_text": "[Administrator] Toggle rich text for /gpkg and /guse",

@@ -92,7 +92,7 @@ function readyState(origin: ReadyOrigin, settings: ModerationSettings): Moderati
 }
 
 function editReadyState(state: ModerationReadyState, action: EditAction): ModerationReadyState {
-  if (state.saving || sourceForField(state.settings, action.field) === "user file") {
+  if (state.saving) {
     return state;
   }
   const restoring = { ...state.restoring };

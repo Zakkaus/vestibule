@@ -1,0 +1,12 @@
+@layer legacy {
+  [data-known-chats-editor] form {
+    display: grid;
+    gap: var(--sp-3);
+  }
+
+  [data-known-chats-actions] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+}

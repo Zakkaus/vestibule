@@ -221,14 +221,6 @@ var topLevelUserValueRules = [...]topLevelUserValueRule{
 		},
 	},
 	{
-		key: "private_query_per_min",
-		apply: func(group *GroupBaseline, cfg *Config, present bool) {
-			if present || cfg.PrivateQueryPerMin != 0 {
-				group.PrivateQueryPerMin = inputValue(cfg.PrivateQueryPerMin, present)
-			}
-		},
-	},
-	{
 		key: "admin_log_chat_id",
 		apply: func(group *GroupBaseline, cfg *Config, present bool) {
 			if present || cfg.AdminLogChatID != 0 {
@@ -468,14 +460,6 @@ var groupUserValueRules = [...]groupUserValueRule{
 		apply: func(group *GroupBaseline, cfg *GroupConfig) {
 			if cfg.RichMessages != nil {
 				group.RichMessages = userFileValue(*cfg.RichMessages)
-			}
-		},
-	},
-	{
-		key: "private_query_per_min",
-		apply: func(group *GroupBaseline, cfg *GroupConfig) {
-			if cfg.PrivateQueryPerMin != nil {
-				group.PrivateQueryPerMin = userFileValue(*cfg.PrivateQueryPerMin)
 			}
 		},
 	},

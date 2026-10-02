@@ -186,7 +186,6 @@ type PanelSettingsFieldCatalog struct {
 	MaxFails               Text
 	RetryCooldown          Text
 	VerifyInvited          Text
-	PrivateRate            Text
 	QuizBank               Text
 	FallbackBank           Text
 	RequiredChannel        Text
@@ -212,7 +211,6 @@ type PanelSettingsPromptCatalog struct {
 	Timeout          Text
 	MaxFails         Text
 	RetryCooldown    Text
-	PrivateRate      Text
 	QuizQuestion     Text
 	QuizOption       Text
 	FallbackQuestion Text

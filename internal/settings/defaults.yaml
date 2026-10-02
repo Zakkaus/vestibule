@@ -89,8 +89,6 @@ factory:
   lang: zh
   # Send rich Bot API messages with an HTML fallback.
   rich_messages: false
-  # Per-user query limit presented and enforced for this chat. Must be positive.
-  private_query_per_min: 3
   # Destination for audit and failure notices; 0 falls back to the acting chat.
   admin_log_chat_id: 0
   # Admit applicants when the bot cannot read the required channel.
@@ -168,6 +166,5 @@ examples:
     fallback_builtin: true
     lang: zh
     rich_messages: false
-    private_query_per_min: 3
     admin_log_chat_id: 0
     required_channel_fail_open: true

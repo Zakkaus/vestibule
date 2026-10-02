@@ -78,7 +78,6 @@ type GroupBaseline struct {
 	FallbackBuiltin         BaselineValue[bool]
 	Lang                    BaselineValue[string]
 	RichMessages            BaselineValue[bool]
-	PrivateQueryPerMin      BaselineValue[int]
 	AdminLogChatID          BaselineValue[int64]
 	RequiredChannelFailOpen BaselineValue[bool]
 	Feed                    FeedBaseline
@@ -119,7 +118,6 @@ type GroupOverrides struct {
 	FallbackBuiltin         *bool            `json:"fallback_builtin,omitempty"`
 	Lang                    *string          `json:"lang,omitempty"`
 	RichMessages            *bool            `json:"rich_messages,omitempty"`
-	PrivateQueryPerMin      *int             `json:"private_query_per_min,omitempty"`
 	AdminLogChatID          *int64           `json:"admin_log_chat_id,omitempty"`
 	RequiredChannelFailOpen *bool            `json:"required_channel_fail_open,omitempty"`
 	Feed                    *FeedOverride    `json:"feed,omitempty"`
@@ -283,7 +281,6 @@ type effectiveGroup struct {
 	fallbackBuiltin         Setting[bool]
 	lang                    Setting[string]
 	richMessages            Setting[bool]
-	privateQueryPerMin      Setting[int]
 	adminLogChatID          Setting[int64]
 	requiredChannelFailOpen Setting[bool]
 	feed                    FeedView
@@ -493,7 +490,6 @@ func (v GroupView) FallbackBuiltin() Setting[bool]    { return v.group.fallbackB
 func (v GroupView) Lang() Setting[string]             { return v.group.lang }
 func (v GroupView) RequiredChannelID() Setting[int64] { return v.group.requiredChannelID }
 func (v GroupView) RichMessages() Setting[bool]       { return v.group.richMessages }
-func (v GroupView) PrivateQueryPerMin() Setting[int]  { return v.group.privateQueryPerMin }
 func (v GroupView) AdminLogChatID() Setting[int64]    { return v.group.adminLogChatID }
 func (v GroupView) RequiredChannelFailOpen() Setting[bool] {
 	return v.group.requiredChannelFailOpen

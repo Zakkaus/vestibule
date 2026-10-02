@@ -196,7 +196,7 @@ func coreAdministrationModule(
 			{Name: "unmute", Description: menu.Unmute.For, Audience: telegram.CommandAdministrator, RouteName: "moderate.unmute", Handler: moderation.OnUnmute},
 			{Name: "sb", Description: menu.Purge.For, Audience: telegram.CommandAdministrator, RouteName: "moderate.sb", Handler: moderation.OnPurge},
 			{Name: "ban", Description: menu.Ban.For, Audience: telegram.CommandAdministrator, RouteName: "moderate.ban", Handler: moderation.OnBan},
-			{Name: "warn", Description: func(l i18n.Lang) string { return menu.Warn.Render(l, cfg.WarnLimit) }, Audience: telegram.CommandAdministrator, RouteName: "moderate.warn", Handler: moderation.OnWarn},
+			{Name: "warn", Description: menu.Warn.For, Audience: telegram.CommandAdministrator, RouteName: "moderate.warn", Handler: moderation.OnWarn},
 			{Name: "clearwarn", Description: menu.ClearWarn.For, Audience: telegram.CommandAdministrator, RouteName: "moderate.clearwarn", Handler: moderation.OnClearWarn},
 			{Name: "bc", Description: menu.Channel.For, Audience: telegram.CommandAdministrator, RouteName: "moderate.bc", Handler: telegram.NewBlockChannelHandler(moderation)},
 			{Name: "rich", Description: menu.RichText.For, Audience: telegram.CommandAdministrator, RouteName: "panel.rich", Handler: administration.OnRich},

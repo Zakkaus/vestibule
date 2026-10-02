@@ -294,8 +294,7 @@ test("feeds saves edited settings through the shared CSRF transport", async ({ p
       );
     }
   });
-  await expect(page.getByRole("heading", { name: "新闻源地址" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "仓库与分支" })).toBeVisible();
+  expect(requests.process).toBe(0);
 
   await selectAppOption(page.locator("#feeds-language"), "en");
   await page.locator("#feeds-interval-seconds").fill("900");
@@ -590,7 +589,7 @@ test("feeds keeps the editable group form when process settings are forbidden", 
   await expect(page.locator('[data-feeds-section="news-url"]')).toHaveCount(0);
   await expect(page.locator('[data-feeds-section="overlays"]')).toHaveCount(0);
   expect(requests.feed).toBe(1);
-  expect(requests.process).toBe(1);
+  expect(requests.process).toBe(0);
 });
 
 test("feeds stacks field copy above controls on narrow screens", async ({ page }) => {

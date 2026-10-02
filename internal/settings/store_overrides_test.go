@@ -125,7 +125,6 @@ func sparseOverrides() GroupOverrides {
 		FallbackBuiltin:         ptr(false),
 		Lang:                    ptr("en"),
 		RichMessages:            ptr(true),
-		PrivateQueryPerMin:      ptr(7),
 	}
 }
 
@@ -197,7 +196,6 @@ func TestSettingsSparseOverridesRoundTrip(t *testing.T) {
 	requireEqual(t, fallbackSetting.Source, SourceChatOverride, "fallback question source")
 	requireEqual(t, group.FallbackBuiltin().Value, false, "fallback builtin")
 	requireEqual(t, group.Lang().Value, "en", "fallback language")
-	requireEqual(t, group.PrivateQueryPerMin(), Setting[int]{Value: 7, Source: SourceChatOverride}, "chat query rate")
 	requireEqual(t, group.RichMessages(), Setting[bool]{Value: true, Source: SourceChatOverride}, "chat rich messages")
 }
 

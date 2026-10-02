@@ -44,7 +44,6 @@ func testSettingsBaseline() SettingsBaseline {
 		FallbackBuiltin:         BaselineValue[bool]{Value: true, Source: SourceFactory},
 		Lang:                    BaselineValue[string]{Value: "zh", Source: SourceFactory},
 		RichMessages:            BaselineValue[bool]{Value: false, Source: SourceFactory},
-		PrivateQueryPerMin:      BaselineValue[int]{Value: 3, Source: SourceFactory},
 		AdminLogChatID:          BaselineValue[int64]{Value: 0, Source: SourceFactory},
 		RequiredChannelFailOpen: BaselineValue[bool]{Value: true, Source: SourceFactory},
 	}
@@ -91,7 +90,6 @@ func TestSettingsRejectsInvalidWholeRecord(t *testing.T) {
 		{name: "ban boundary", mutate: func(next *GroupOverrides) { next.BanSeconds = ptr(10) }},
 		{name: "mute boundary", mutate: func(next *GroupOverrides) { next.MuteSeconds = ptr(10) }},
 		{name: "warning limit", mutate: func(next *GroupOverrides) { next.WarnLimit = ptr(0) }},
-		{name: "private query rate", mutate: func(next *GroupOverrides) { next.PrivateQueryPerMin = ptr(0) }},
 		{name: "question answer", mutate: func(next *GroupOverrides) {
 			questions := []Question{{Q: "Package manager?", Options: []string{"Portage", "apt"}, Answer: 2}}
 			next.Questions = &questions

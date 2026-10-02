@@ -239,9 +239,9 @@ func (m CommandModules) MemberHelp(l i18n.Lang) string {
 }
 
 // AdministratorHelp returns the administrator help body without commands from disabled modules.
-func (m CommandModules) AdministratorHelp(l i18n.Lang, warnLimit int) string {
+func (m CommandModules) AdministratorHelp(l i18n.Lang, warnLimit int, muteDuration string) string {
 	return filterCommandHelp(
-		i18n.Messages.Panel.Help.Admin.Render(l, warnLimit),
+		i18n.Messages.Panel.Help.Admin.Render(l, warnLimit, muteDuration),
 		m.commandNames(CommandAdministrator, CommandMember),
 	)
 }
@@ -257,9 +257,9 @@ func (m CommandModules) MemberHelpFor(l i18n.Lang, capabilities CommandCapabilit
 }
 
 // AdministratorHelpFor returns administrator help projected through group capabilities.
-func (m CommandModules) AdministratorHelpFor(l i18n.Lang, warnLimit int, capabilities CommandCapabilities) string {
+func (m CommandModules) AdministratorHelpFor(l i18n.Lang, warnLimit int, muteDuration string, capabilities CommandCapabilities) string {
 	return filterCommandHelp(
-		i18n.Messages.Panel.Help.Admin.Render(l, warnLimit),
+		i18n.Messages.Panel.Help.Admin.Render(l, warnLimit, muteDuration),
 		m.commandNamesFor(&capabilities, CommandAdministrator, CommandMember),
 	)
 }

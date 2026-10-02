@@ -176,7 +176,7 @@ func expectedAdminCommands(language i18n.Lang, warnLimit int) []telego.BotComman
 		{Command: "unmute", Description: menu.Unmute.For(language)},
 		{Command: "sb", Description: menu.Purge.For(language)},
 		{Command: "ban", Description: menu.Ban.For(language)},
-		{Command: "warn", Description: menu.Warn.Render(language, warnLimit)},
+		{Command: "warn", Description: menu.Warn.For(language)},
 		{Command: "clearwarn", Description: menu.ClearWarn.For(language)},
 		{Command: "bc", Description: menu.Channel.For(language)},
 		{Command: "rich", Description: menu.RichText.For(language)},

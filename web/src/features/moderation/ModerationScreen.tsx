@@ -29,7 +29,7 @@ const errorMessageKeys: Readonly<Record<string, string>> = {
   chat_not_found: "moderation.errors.chatNotFound",
   csrf_invalid: "moderation.errors.csrfInvalid",
   invalid_settings: "moderation.errors.invalidSettings",
-  settings_limit_exceeded: "moderation.errors.settingsLimitExceeded",
+  settings_limit_exceeded: "settings.errors.settingsLimitExceeded",
   settings_unavailable: "moderation.errors.settingsUnavailable"
 };
 
@@ -154,7 +154,7 @@ function NumericSetting({
   const inputID = `moderation-${field}-input`;
   const descriptionID = `moderation-${field}-description`;
   const errorID = `moderation-${field}-error`;
-  const readOnly = setting.source === "user file" || restoring || saving;
+  const readOnly = restoring || saving;
   const labelKey = isWarnLimit ? "moderation.warnLimit.label" : "moderation.adminLog.label";
   const descriptionKey = isWarnLimit
     ? "moderation.warnLimit.description"
@@ -221,7 +221,7 @@ function AntispamSetting({
   const { t } = useTranslation();
   const field = "antispamEnabled";
   const restoring = state.restoring[field] === true;
-  const readOnly = state.settings.antispamEnabled.source === "user file" || restoring || state.saving;
+  const readOnly = restoring || state.saving;
   return (
     <div data-slot="setting" data-moderation-field={field} data-read-only={readOnly || undefined}>
       <div data-setting-copy>

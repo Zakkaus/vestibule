@@ -213,7 +213,6 @@ type GroupConfig struct {
 	FallbackBuiltin         *bool            `json:"fallback_builtin"`
 	Lang                    string           `json:"lang"`
 	RichMessages            *bool            `json:"rich_messages"`
-	PrivateQueryPerMin      *int             `json:"private_query_per_min"`
 	AdminLogChatID          *int64           `json:"admin_log_chat_id"`
 	RequiredChannelFailOpen *bool            `json:"required_channel_fail_open"`
 }

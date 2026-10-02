@@ -26,7 +26,6 @@ const (
 	inputTimeout          inputKind = "to"
 	inputMaxFails         inputKind = "mf"
 	inputRetryCooldown    inputKind = "rc"
-	inputPrivateRate      inputKind = "pr"
 	inputQuizQuestion     inputKind = "qq"
 	inputQuizOption       inputKind = "qo"
 	inputFallbackQuestion inputKind = "fq"

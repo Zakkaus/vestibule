@@ -32,7 +32,6 @@ func baselineEqualGroupOverrides(baseline GroupBaseline) GroupOverrides {
 		FallbackBuiltin:         ptr(baseline.FallbackBuiltin.Value),
 		Lang:                    ptr(baseline.Lang.Value),
 		RichMessages:            ptr(baseline.RichMessages.Value),
-		PrivateQueryPerMin:      ptr(baseline.PrivateQueryPerMin.Value),
 		AdminLogChatID:          ptr(baseline.AdminLogChatID.Value),
 		RequiredChannelFailOpen: ptr(baseline.RequiredChannelFailOpen.Value),
 	}

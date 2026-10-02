@@ -591,12 +591,6 @@ func (v *Panel) applyTextInput(ctx context.Context, bot *telego.Bot, session *pa
 			return &panelNoticeError{text: i18n.Messages.Panel.Settings.Error.InvalidNumber.For(session.language)}
 		}
 		next.VerifyRetrySeconds = &value
-	case inputPrivateRate:
-		value, ok := parseBoundedPositive(text, 1, 1<<30)
-		if !ok {
-			return &panelNoticeError{text: i18n.Messages.Panel.Settings.Error.InvalidNumber.For(session.language)}
-		}
-		next.PrivateQueryPerMin = &value
 	case inputQuizQuestion:
 		commit = false
 		if session.quiz == nil {

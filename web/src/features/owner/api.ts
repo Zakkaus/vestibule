@@ -8,7 +8,6 @@ export const ownerLimitFields = [
   "verify_retry_seconds",
   "verify_max_fails",
   "warn_limit",
-  "private_query_per_min",
   "questions",
   "fallback_questions",
   "channel_whitelist",

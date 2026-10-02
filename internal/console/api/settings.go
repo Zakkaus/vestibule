@@ -51,7 +51,6 @@ type settingsResponse struct {
 	FallbackBuiltin         settingResponse[bool]                     `json:"fallback_builtin"`
 	Lang                    settingResponse[string]                   `json:"lang"`
 	RichMessages            settingResponse[bool]                     `json:"rich_messages"`
-	PrivateQueryPerMin      settingResponse[int]                      `json:"private_query_per_min"`
 	AdminLogChatID          settingResponse[int64]                    `json:"admin_log_chat_id"`
 	RequiredChannelFailOpen settingResponse[bool]                     `json:"required_channel_fail_open"`
 }
@@ -75,7 +74,7 @@ func settingsView(group settings.GroupView) settingsResponse {
 		ChannelInviteURL: settingView(group.ChannelInviteURL()), Questions: settingView(group.Questions()),
 		FallbackQuestions: settingView(group.FallbackQuestions()), FallbackBuiltin: settingView(group.FallbackBuiltin()),
 		Lang: settingView(group.Lang()), RichMessages: settingView(group.RichMessages()),
-		PrivateQueryPerMin: settingView(group.PrivateQueryPerMin()), AdminLogChatID: settingView(group.AdminLogChatID()),
+		AdminLogChatID:          settingView(group.AdminLogChatID()),
 		RequiredChannelFailOpen: settingView(group.RequiredChannelFailOpen()),
 	}
 }
@@ -117,7 +116,6 @@ type settingsPatch struct {
 	FallbackBuiltin         *bool                     `json:"fallback_builtin"`
 	Lang                    *string                   `json:"lang"`
 	RichMessages            *bool                     `json:"rich_messages"`
-	PrivateQueryPerMin      *int                      `json:"private_query_per_min"`
 	AdminLogChatID          *int64                    `json:"admin_log_chat_id"`
 	RequiredChannelFailOpen *bool                     `json:"required_channel_fail_open"`
 	present                 map[string]struct{}
@@ -243,9 +241,6 @@ func (p settingsPatch) applyContent(next *settings.GroupOverrides) {
 	}
 	if p.has("rich_messages") {
 		next.RichMessages = p.RichMessages
-	}
-	if p.has("private_query_per_min") {
-		next.PrivateQueryPerMin = p.PrivateQueryPerMin
 	}
 	if p.has("admin_log_chat_id") {
 		next.AdminLogChatID = p.AdminLogChatID

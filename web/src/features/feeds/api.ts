@@ -6,8 +6,6 @@ import {
 
 export const feedSettingSources = ["factory default", "user file", "chat override"] as const;
 export type FeedSettingSource = (typeof feedSettingSources)[number];
-export const processSettingSources = ["factory default", "user file"] as const;
-export type ProcessSettingSource = (typeof processSettingSources)[number];
 
 export const feedLanguages = ["", "zh", "zh-Hant", "en", "ja", "ru"] as const;
 export type FeedLanguage = (typeof feedLanguages)[number];
@@ -53,16 +51,6 @@ export type FeedSettings = Readonly<{
   githubRepos: Setting<readonly GitHubRepo[]>;
 }>;
 
-export type OverlayConfig = Readonly<{
-  name: string;
-  repo: string;
-  branch: string;
-}>;
-
-export type ProcessSettings = Readonly<{
-  newsURL: Setting<string, ProcessSettingSource>;
-  overlays: Setting<readonly OverlayConfig[], ProcessSettingSource>;
-}>;
 
 type PayloadParser<T> = (value: unknown) => T | undefined;
 
@@ -152,26 +140,6 @@ function feedSettingsFromPayload(payload: unknown): FeedSettings | undefined {
     : { revision, feed, githubRepos };
 }
 
-function overlayFromPayload(payload: unknown): OverlayConfig | undefined {
-  const overlay = object(payload);
-  if (!overlay) return undefined;
-  const name = stringFromPayload(overlay.name);
-  const repo = stringFromPayload(overlay.repo);
-  const branch = stringFromPayload(overlay.branch);
-  return name === undefined || repo === undefined || branch === undefined ? undefined : { name, repo, branch };
-}
-
-function processSettingsFromPayload(payload: unknown): ProcessSettings | undefined {
-  const response = object(payload);
-  if (!response) return undefined;
-  const newsURL = settingFromPayload(response.news_url, stringFromPayload, processSettingSources);
-  const overlays = settingFromPayload(
-    response.overlays,
-    (value) => arrayFromPayload(value, overlayFromPayload),
-    processSettingSources
-  );
-  return newsURL && overlays ? { newsURL, overlays } : undefined;
-}
 
 export function loadFeedSettings(
   transport: ApiTransport,
@@ -193,6 +161,3 @@ export function saveFeedSettings(
   });
 }
 
-export function loadProcessSettings(transport: ApiTransport): Promise<ApiResult<ProcessSettings>> {
-  return transport.request("/api/process/settings", { parse: processSettingsFromPayload });
-}

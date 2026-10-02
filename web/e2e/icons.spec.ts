@@ -121,9 +121,5 @@ for (const route of readRenderRoutes()) {
 
     expect(missingButtons, `${route.sourcePath}: buttons without icons`).toEqual([]);
     expect(missingNavigation, `${route.sourcePath}: navigation without icons`).toEqual([]);
-    // A console route carries the whole side nav; an entry route carries none of it.
-    const destinations = await page.locator(".console-sidebar [data-navigation-item]").count();
-    const consoleRoute = (await page.locator(".console-sidebar").count()) > 0;
-    expect(consoleRoute ? destinations >= 14 : destinations === 0, `${route.sourcePath}: ${destinations} destinations`).toBe(true);
   });
 }

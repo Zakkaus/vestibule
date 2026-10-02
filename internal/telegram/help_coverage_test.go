@@ -53,7 +53,7 @@ func TestMemberHelpMentionsNoUnknownCommand(t *testing.T) {
 func TestAdminHelpMatchesAdminMenu(t *testing.T) {
 	modules := testCommandModules(t)
 	for _, l := range helpLocales {
-		help := modules.AdministratorHelp(l, 3)
+		help := modules.AdministratorHelp(l, 3, "1 hour")
 		member := namesOf(modules.MemberMenu(l))
 		known := namesOf(modules.AdministratorMenu(l))
 		for _, c := range modules.AdministratorMenu(l) {

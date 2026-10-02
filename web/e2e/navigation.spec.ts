@@ -109,7 +109,8 @@ test("capability filtering leaves no empty navigation section", async ({ page })
 
   const sections = await navigationSections(page, ".console-sidebar");
   expect(sections).toEqual([
-    ...operatorSections.slice(0, -1),
+    ...operatorSections.slice(0, -2),
+    { id: "observe", paths: ["/stats"] },
     { id: "console", paths: ["/capabilities", "/preferences"] }
   ]);
   expect(sections.every((section) => section.paths.length > 0)).toBe(true);

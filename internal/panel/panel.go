@@ -352,11 +352,19 @@ func (v *Panel) memberHelpText(l i18n.Lang) string {
 	return v.commands.MemberHelp(l)
 }
 
-func (v *Panel) administratorHelpText(l i18n.Lang) string {
-	if !v.commands.HasCommands() {
-		return i18n.Messages.Panel.Help.Admin.Render(l, v.cfg.WarnLimit)
+func (v *Panel) administratorHelpText(l i18n.Lang, chatID int64) string {
+	limit := v.cfg.WarnLimit
+	muteSeconds := v.cfg.MuteSeconds
+	if v.settings != nil {
+		if group, ok := v.settings.Settings(chatID); ok {
+			limit = group.WarnLimit().Value
+			muteSeconds = group.MuteSeconds().Value
+		}
 	}
-	return v.commands.AdministratorHelp(l, v.cfg.WarnLimit)
+	if !v.commands.HasCommands() {
+		return i18n.Messages.Panel.Help.Admin.Render(l, limit, tgfmt.ModerationBanDurationText(l, muteSeconds))
+	}
+	return v.commands.AdministratorHelpFor(l, limit, tgfmt.ModerationBanDurationText(l, muteSeconds), v.groupCapabilities(chatID))
 }
 
 func (v *Panel) ownerHelpText(l i18n.Lang) string {
@@ -427,11 +435,7 @@ func (v *Panel) OnHelp(ctx *th.Context, update telego.Update) error {
 		help += "\n\n" + i18n.Messages.Panel.Help.GroupState.Render(l, v.stateText(l, chatID))
 	}
 	if inGroup && v.isGroupAdminCached(c, bot, chatID, msg.From.ID) {
-		adminHelp := v.administratorHelpText(l)
-		if v.commands.HasCommands() {
-			adminHelp = v.commands.AdministratorHelpFor(l, v.cfg.WarnLimit, v.groupCapabilities(chatID))
-		}
-		help += "\n\n" + adminHelp
+		help += "\n\n" + v.administratorHelpText(l, chatID)
 	}
 	if inGroup {
 		_ = bot.DeleteMessage(c, &telego.DeleteMessageParams{ChatID: tu.ID(chatID), MessageID: msg.MessageID})

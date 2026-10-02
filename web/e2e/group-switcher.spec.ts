@@ -57,7 +57,7 @@ test("a chat with a missing title falls back to its group ID", async ({ page }) 
   await expect(page.locator("[data-group-row][aria-current]")).toHaveCount(1);
   await expect(page.locator("[data-group-row]").first()).toHaveAttribute("aria-current", "true");
   await expect(page.locator("[data-group-row]").nth(1)).not.toHaveAttribute("aria-current", "true");
-  await expect(page.locator("[data-group-row]").first().getByRole("link")).toHaveAttribute(
+  await expect(page.locator("[data-group-row]").first().locator("[data-select-group]")).toHaveAttribute(
     "href",
     `/queue?group=${namedGroupId}`
   );
@@ -125,8 +125,8 @@ test("titled group pages and switcher selections never expose transport IDs", as
   const trigger = page.getByRole("button", { name: "当前群组" });
   await expect(trigger).toHaveText(title);
   await expect(page.locator("[data-groups-page]")).not.toContainText(/-100\d+/);
-  await expect(page.locator("[data-group-row]").first().getByRole("link")).toHaveAccessibleName(new RegExp(title));
-  await expect(page.locator("[data-group-row]").first().getByRole("link")).not.toHaveAccessibleName(/-100\d+/);
+  await expect(page.locator("[data-group-row]").first().locator("[data-select-group]")).toHaveAccessibleName(new RegExp(title));
+  await expect(page.locator("[data-group-row]").first().locator("[data-select-group]")).not.toHaveAccessibleName(/-100\d+/);
 
   await trigger.click();
   await expect(page.getByRole("listbox")).not.toContainText(/-100\d+/);

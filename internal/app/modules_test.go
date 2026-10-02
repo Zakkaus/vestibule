@@ -53,7 +53,7 @@ func TestRenamedCommandsStayOutOfMenusAndHelp(t *testing.T) {
 	}
 	help := strings.Join([]string{
 		modules.commands.MemberHelp(i18n.LangEN), modules.commands.MemberHelpFor(i18n.LangEN, capabilities),
-		modules.commands.AdministratorHelp(i18n.LangEN, 3), modules.commands.AdministratorHelpFor(i18n.LangEN, 3, capabilities),
+		modules.commands.AdministratorHelp(i18n.LangEN, 3, "1 hour"), modules.commands.AdministratorHelpFor(i18n.LangEN, 3, "1 hour", capabilities),
 		modules.commands.OwnerHelp(i18n.LangEN),
 	}, "\n")
 	for _, alias := range gentooCommandNames {
@@ -80,7 +80,7 @@ func TestEmptyModulesDisappearFromCommandSurface(t *testing.T) {
 	member := commandNames(modules.commands.MemberMenu(i18n.LangEN))
 	routes := routeCommandNames(modules.commands.Definitions())
 	memberHelp := modules.commands.MemberHelp(i18n.LangEN)
-	adminHelp := modules.commands.AdministratorHelp(i18n.LangEN, 3)
+	adminHelp := modules.commands.AdministratorHelp(i18n.LangEN, 3, "1 hour")
 	for module, names := range optionalModuleCommands {
 		for _, name := range names {
 			if member[name] || routes[name] {

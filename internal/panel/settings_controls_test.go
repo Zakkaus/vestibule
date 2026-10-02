@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -46,9 +45,7 @@ func expectedVerificationScreen(panel *Panel, _ *settings.Store, group settings.
 	return i18n.Messages.Panel.Settings.Screen.Verification.Render(language, group.ID(),
 		panel.sourcedSeconds(language, group.TimeoutSeconds(), false), panel.sourcedLimit(language, group.VerifyMaxFails()),
 		panel.sourcedLimit(language, group.VerifyRetrySeconds()),
-		panel.sourcedBool(language, group.VerifyInvited()),
-		i18n.Messages.Panel.Settings.Value.Sourced.Render(language, strconv.Itoa(group.PrivateQueryPerMin().Value),
-			panel.sourceText(language, group.PrivateQueryPerMin().Source)))
+		panel.sourcedBool(language, group.VerifyInvited()))
 }
 
 func expectedModerationScreen(panel *Panel, _ *settings.Store, group settings.GroupView, language i18n.Lang) string {
@@ -238,7 +235,7 @@ func testSettingsScreenContracts(t *testing.T) {
 			actions: []string{
 				action(panelTestGroupA, "to", "_"), action(panelTestGroupA, "mf", "_"),
 				action(panelTestGroupA, "rc", "_"), action(panelTestGroupA, "vi", "_"),
-				action(panelTestGroupA, "pr", "_"), action(panelTestGroupA, "go", "gh"),
+				action(panelTestGroupA, "go", "gh"),
 			},
 		},
 		{
@@ -596,15 +593,6 @@ func TestPanelNumericControlsMutateOnlyTargetRenderAndRejectStale(t *testing.T) 
 			check: func(t *testing.T, settings *settings.Store) {
 				if got := panelTestGroup(t, settings).VerifyRetrySeconds().Value; got != 90 {
 					t.Fatalf("retry seconds = %d", got)
-				}
-			},
-		},
-		{
-			name: "private query rate", screen: "vp", field: "pr", input: "9",
-			setGroup: func(next *settings.GroupOverrides) { value := 9; next.PrivateQueryPerMin = &value },
-			check: func(t *testing.T, settings *settings.Store) {
-				if got := panelTestGroup(t, settings).PrivateQueryPerMin().Value; got != 9 {
-					t.Fatalf("private rate = %d", got)
 				}
 			},
 		},

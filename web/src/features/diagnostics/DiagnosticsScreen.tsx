@@ -4,6 +4,7 @@ import { Button } from "@react-spectrum/s2/Button";
 
 import {
   consoleApi,
+  canViewInstanceStatus,
   retryConsoleAccess,
   useConsoleSession
 } from "../../app/session";
@@ -16,6 +17,8 @@ import { DailyStatusSection } from "./DailyStatusSection";
 import { DetailRow, DiagnosticsCard } from "./DiagnosticsCard";
 import type { DiagnosticsFormatters } from "./model";
 import { RollbackSection } from "./RollbackSection";
+import { ProcessSettingsSection } from "./ProcessSettingsSection";
+import { diagnosticsErrorMessageKey } from "./errors";
 
 type DiagnosticsScreenState =
   | Readonly<{ kind: "loading" }>
@@ -23,21 +26,6 @@ type DiagnosticsScreenState =
   | Readonly<{ kind: "access-denied" }>
   | Readonly<{ kind: "unavailable"; error: ApiRequestError }>;
 
-const errorMessageKeys: Readonly<Record<string, string>> = {
-  authentication_expired: "diagnostics.errors.authenticationExpired",
-  authentication_invalid: "diagnostics.errors.authenticationInvalid",
-  diagnostics_unavailable: "diagnostics.errors.unavailable"
-};
-
-function diagnosticsErrorMessageKey(error: ApiRequestError): string {
-  if (error.kind === "network") {
-    return "diagnostics.errors.network";
-  }
-  if (error.kind === "api") {
-    return errorMessageKeys[error.code] ?? "diagnostics.errors.loadUnavailable";
-  }
-  return "diagnostics.errors.invalidResponse";
-}
 
 function StateCard({
   id,
@@ -214,6 +202,7 @@ function DiagnosticsContent({
   return (
     <div data-diagnostics-content>
       <DailyStatusSection />
+      <ProcessSettingsSection />
       <HealthSection health={diagnostics.health} />
       <BotAPISection botAPI={diagnostics.botAPI} formatters={formatters} />
       <PersistenceSection persistence={diagnostics.persistence} />
@@ -241,6 +230,10 @@ function useDiagnosticsScreenState(): Readonly<{
     }
     if (session.state === "blocked") {
       setScreenState({ kind: "unavailable", error: session.error });
+      return stop;
+    }
+    if (!canViewInstanceStatus(session)) {
+      setScreenState({ kind: "access-denied" });
       return stop;
     }
 

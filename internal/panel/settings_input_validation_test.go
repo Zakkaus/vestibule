@@ -97,7 +97,6 @@ func TestPanelNumericInputsKeepInvalidValuesPendingAndAcceptValidValues(t *testi
 		{name: "warning limit", screen: "md", field: "wl", invalid: "0", valid: "5", wantError: i18n.Messages.Panel.Settings.Error.InvalidNumber.For(i18n.LangEN)},
 		{name: "maximum failures", screen: "vp", field: "mf", invalid: "0", valid: "5", wantError: i18n.Messages.Panel.Settings.Error.InvalidNumber.For(i18n.LangEN)},
 		{name: "retry cooldown", screen: "vp", field: "rc", invalid: "0", valid: "90", wantError: i18n.Messages.Panel.Settings.Error.InvalidNumber.For(i18n.LangEN)},
-		{name: "private query rate", screen: "vp", field: "pr", invalid: "0", valid: "9", wantError: i18n.Messages.Panel.Settings.Error.InvalidNumber.For(i18n.LangEN)},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

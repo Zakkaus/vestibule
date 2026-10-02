@@ -7,9 +7,10 @@ import (
 )
 
 type processSettingsSources struct {
-	newsURL       bool
-	overlays      bool
-	statsTimezone bool
+	newsURL            bool
+	overlays           bool
+	statsTimezone      bool
+	privateQueryPerMin bool
 }
 
 func processSettingsSourcesFromConfig(data []byte) (processSettingsSources, error) {
@@ -21,9 +22,10 @@ func processSettingsSourcesFromConfig(data []byte) (processSettingsSources, erro
 		return processSettingsSources{}, fmt.Errorf("disabled_modules is no longer supported; use modules to select enabled optional modules")
 	}
 	return processSettingsSources{
-		newsURL:       processSettingPresent(fields, "news_url"),
-		overlays:      processSettingPresent(fields, "overlays"),
-		statsTimezone: processSettingPresent(fields, "stats_timezone"),
+		newsURL:            processSettingPresent(fields, "news_url"),
+		overlays:           processSettingPresent(fields, "overlays"),
+		statsTimezone:      processSettingPresent(fields, "stats_timezone"),
+		privateQueryPerMin: processSettingPresent(fields, "private_query_per_min"),
 	}, nil
 }
 
@@ -52,6 +54,10 @@ func (v ProcessView) Overlays() Setting[[]OverlayCfg] {
 
 func (v ProcessView) StatsTimezone() Setting[string] {
 	return processSetting(v.config.StatsTimezone, v.config.processSettingsSources.statsTimezone)
+}
+
+func (v ProcessView) PrivateQueryPerMin() Setting[int] {
+	return processSetting(v.config.PrivateQueryPerMin, v.config.processSettingsSources.privateQueryPerMin)
 }
 
 func processSetting[T any](value T, managedByFile bool) Setting[T] {

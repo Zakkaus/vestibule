@@ -82,8 +82,8 @@ type BotAdminMenuCatalog struct {
 	Purge Text
 	// Ban describes banning and removing a user.
 	Ban Text
-	// Warn formats the warning-limit description.
-	Warn Format
+	// Warn describes warning a user without assuming a group threshold.
+	Warn Text
 	// ClearWarn describes clearing a user's warnings.
 	ClearWarn Text
 	// Channel describes channel-identity posting controls.

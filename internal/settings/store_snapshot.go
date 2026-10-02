@@ -16,7 +16,6 @@ var effectiveGroupValidators = [...]effectiveGroupValidator{
 	validateEffectiveMuteSeconds,
 	validateEffectiveWarnLimit,
 	validateEffectiveTimeout,
-	validateEffectivePrivateQueryRate,
 	validateEffectiveIDLists,
 	validateEffectiveRequiredChannel,
 	validateEffectiveQuestions,
@@ -121,7 +120,6 @@ func buildEffectiveGroup(
 		fallbackBuiltin:         builtin,
 		lang:                    resolve(record.Lang, baseline.Lang),
 		richMessages:            resolve(record.RichMessages, baseline.RichMessages),
-		privateQueryPerMin:      resolve(record.PrivateQueryPerMin, baseline.PrivateQueryPerMin),
 		adminLogChatID:          resolve(record.AdminLogChatID, baseline.AdminLogChatID),
 		requiredChannelFailOpen: resolve(record.RequiredChannelFailOpen, baseline.RequiredChannelFailOpen),
 		feed:                    resolveFeed(record.Feed, baseline.Feed),
@@ -308,13 +306,6 @@ func validateEffectiveWarnLimit(group *effectiveGroup) error {
 func validateEffectiveTimeout(group *effectiveGroup) error {
 	if group.timeoutSeconds.Source == SourceChatOverride && (group.timeoutSeconds.Value < 30 || group.timeoutSeconds.Value > 1800) {
 		return fmt.Errorf("timeout_seconds must be between 30 and 1800")
-	}
-	return nil
-}
-
-func validateEffectivePrivateQueryRate(group *effectiveGroup) error {
-	if group.privateQueryPerMin.Value <= 0 {
-		return fmt.Errorf("private_query_per_min must be positive")
 	}
 	return nil
 }

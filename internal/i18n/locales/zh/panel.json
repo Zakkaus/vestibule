@@ -39,7 +39,7 @@
   "help": {
     "member": "可用命令：\n/gpkg <包名>：搜索 Gentoo 包（官方树、gentoo-zh、GURU）\n/guse <包名>：查看包信息和 USE flag\n/garm <包名>：查看 Gentoo arm64 keyword 状态\n\n/pkgs <包名>：比较各发行版的包版本（也可使用 /distro <包名>）\n/armpkgs <包名>：比较各发行版的 arm64 支持情况\n/gbug <编号>：查询 Gentoo Bugzilla\n/gnews [关键词]：查看或搜索 Gentoo 新闻\n/wiki <关键词>：搜索 Gentoo Wiki、ArchWiki（含中文页面）\n/gbbs <关键词>：搜索 Linux 论坛（中文优先）\n/kernel：查看 kernel.org 当前发布的内核版本\n/man <名称>：查询 Linux 手册页\n/cve <编号>：查询 CVE 漏洞信息\n/repology <包名>：查看软件包在各发行版仓库中的版本\n\n/ping：查看机器人状态和运行时长\n/stats：查看今日通过、拒绝人数\n/help：显示本帮助",
     "group_state": "入群验证：%[1]s",
-    "admin": "管理员（请回复目标消息）：\n/mute [时长]：禁言用户；默认 1h，例如 /mute 30m\n/unmute：解除禁言\n/ban：封禁用户并移出群组；仅删除被回复的消息\n/sb：封禁用户并移出群组；同时删除该用户的全部消息\n/warn：警告用户；累计 %[1]d 次后自动移出群组\n/clearwarn：清除警告\n\n其他管理命令：\n/settings：打开私聊设置面板\n/bantime <时长>：设置封禁时长；0 表示永久，例如 7d、12h、30m\n/autodel [on|off|分钟]：设置查询结果自动删除\n/rich：切换查询结果的富文本输出\n/spoiler：切换新成员姓名遮盖\n/vmode <模式>：设置验证方式：kernel、quiz、mixed 或 auto\n/bc：切换频道身份发言封禁；使用 /bc allow|deny <频道 ID> 管理白名单\n/start 或 /stop：开启或关闭入群验证",
+    "admin": "管理员（请回复目标消息）：\n/mute [时长]：禁言用户；默认 %[2]s，例如 /mute 30m\n/unmute：解除禁言\n/ban：封禁用户并移出群组；仅删除被回复的消息\n/sb：封禁用户并移出群组；同时删除该用户的全部消息\n/warn：警告用户；累计 %[1]d 次后自动移出群组\n/clearwarn：清除警告\n\n其他管理命令：\n/settings：打开私聊设置面板\n/bantime <时长>：设置封禁时长；0 表示永久，例如 7d、12h、30m\n/autodel [on|off|分钟]：设置查询结果自动删除\n/rich：切换查询结果的富文本输出\n/spoiler：切换新成员姓名遮盖\n/vmode <模式>：设置验证方式：kernel、quiz、mixed 或 auto\n/bc：切换频道身份发言封禁；使用 /bc allow|deny <频道 ID> 管理白名单\n/start 或 /stop：开启或关闭入群验证",
     "owner": "机器人所有者命令：\n/console：打开控制台\n/enroll：创建一次性群组登记链接\n/unregister <group-id>：取消登记运行时群组",
     "direct_message_note": "以上查询命令也可在私聊中使用，每分钟最多 %[1]d 次。审核和管理命令仅可在群组内使用。"
   },
@@ -73,7 +73,7 @@
       "none": "无"
     },
     "source": {
-      "runtime": "群组覆盖值",
+      "runtime": "当前群覆盖",
       "config": "配置文件",
       "default": "默认值"
     },
@@ -94,7 +94,7 @@
       "runtime": "群组 %[1]d 的运行设置\n入群验证：%[2]s\n验证方式：%[3]s\n验证题发送方式：%[4]s\n姓名遮盖：%[5]s\n封禁时长：%[6]s\n自动删除查询结果：%[7]s\n查询结果保留时间：%[8]s\n语言：%[9]s\nGentoo 查询：%[10]s\nLinux 查询：%[11]s",
       "lists": "群组 %[1]d 的列表设置\n频道白名单：%[2]d\n受信任群组：%[3]d\n已知聊天：%[4]d",
       "list": "群组 %[2]d 的%[1]s\n条目数：%[3]d\n%[4]s",
-      "verification": "群组 %[1]d 的验证参数\n超时：%[2]s\n最多失败次数：%[3]s\n重试冷却时间：%[4]s\n验证被邀请的成员：%[5]s\n私聊查询频率（机器人全局）：%[6]s",
+      "verification": "群组 %[1]d 的验证参数\n超时：%[2]s\n最多失败次数：%[3]s\n重试冷却时间：%[4]s\n验证被邀请的成员：%[5]s",
       "content": "群组 %[1]d 的验证内容\n选择题数量：%[2]d\n备用题库：%[3]s\n必需频道：%[4]s\n邀请链接：%[5]s",
       "quiz_bank": "群组 %[1]d 的选择题库\n题目数：%[2]d\n%[3]s",
       "quiz_detail": "选择题\n问题：%[1]s\n选项：\n%[2]s\n正确选项：%[3]s",
@@ -103,7 +103,7 @@
       "channel": "群组 %[1]d 的必需频道\nID：%[2]d\n显示名称：%[3]s\n邀请链接：%[4]s",
       "confirm": "请确认此操作：\n%[1]s",
       "input": "等待输入\n%[1]s\n回复下方单独发送的提示消息。",
-      "moderation": "群组 %[1]d 的管理设置\n频道身份发言：%[2]s\n禁言时长：%[3]s\n警告上限：%[4]s\n富文本输出（机器人全局）：%[5]s\n告警聊天（机器人全局）：%[6]s"
+      "moderation": "群组 %[1]d 的管理设置\n频道身份发言：%[2]s\n禁言时长：%[3]s\n警告上限：%[4]s\n本群富文本输出：%[5]s\n本群管理日志接收聊天：%[6]s"
     },
     "field": {
       "runtime": "运行设置",
@@ -138,7 +138,6 @@
       "timeout": "验证超时",
       "max_fails": "最多失败次数",
       "retry_cooldown": "重试冷却时间",
-      "private_rate": "机器人全局私聊查询频率",
       "quiz_bank": "选择题库",
       "fallback_bank": "备用题库",
       "required_channel": "必需频道",
@@ -165,7 +164,6 @@
       "timeout": "发送验证超时秒数（30–1800）。",
       "max_fails": "发送大于零的最多失败次数，或发送 off。",
       "retry_cooldown": "发送大于零的重试冷却秒数，或发送 off。",
-      "private_rate": "发送大于零的机器人全局每分钟私聊查询次数。",
       "quiz_question": "发送选择题的问题文本。",
       "quiz_option": "发送一个答案选项。",
       "fallback_question": "发送备用问题文本。",
@@ -177,7 +175,7 @@
       "required_channel": "选择必需频道。",
       "mute_duration": "发送禁言时长，例如 30m、12h、7d。",
       "warn_limit": "发送触发移出群组所需的警告次数。",
-      "alert_chat": "选择接收运维告警的聊天。"
+      "alert_chat": "选择接收本群管理日志的聊天。"
     },
     "error": {
       "expired": "此面板已过期或状态失效。请使用 /settings 重新打开。",

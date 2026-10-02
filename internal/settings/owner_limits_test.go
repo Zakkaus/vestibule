@@ -56,7 +56,7 @@ func TestOwnerLimitsValidateAllFieldsAtUpperBound(t *testing.T) {
 	maxima := map[string]int64{
 		"timeout_seconds": 1800, "ban_seconds": 31622400, "mute_seconds": 31622400,
 		"lookup_ttl_seconds": 86400, "verify_retry_seconds": 31622400, "verify_max_fails": 2147483647,
-		"warn_limit": 2147483647, "private_query_per_min": 2147483647, "questions": 2147483647,
+		"warn_limit": 2147483647, "questions": 2147483647,
 		"fallback_questions": 2147483647, "channel_whitelist": 2147483647,
 		"trusted_member_group_ids": 2147483647, "known_chat_ids": 2147483647,
 	}
@@ -92,7 +92,6 @@ func TestOwnerLimitsDetectEachEffectiveFieldAtCapBoundary(t *testing.T) {
 		{"verify_retry_seconds", testGroupA, 180, nil},
 		{"verify_max_fails", testGroupA, 3, nil},
 		{"warn_limit", testGroupA, 3, nil},
-		{"private_query_per_min", testGroupA, 3, nil},
 		{"questions", testGroupA, 2, func(next *GroupOverrides) {
 			next.Questions = &[]Question{{Q: "one", Options: []string{"a", "b"}, Answer: 0}, {Q: "two", Options: []string{"a", "b"}, Answer: 0}}
 		}},

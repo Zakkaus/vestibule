@@ -114,7 +114,7 @@ test("operator navigation is one tab stop whose rows the arrow keys walk", async
 });
 
 
-test("manager navigation preserves the six groups while filtering only the instance-status destination", async ({ page }) => {
+test("manager navigation keeps group destinations and excludes operator destinations", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await mockSpectrumTransport(page, { role: "manager" });
   await openSpectrumRoute(page, "/groups");
@@ -126,6 +126,7 @@ test("manager navigation preserves the six groups while filtering only the insta
   expect(actualPaths).toHaveLength(managerPaths.length);
   expect(actualPaths).toEqual(managerPaths);
   expect(actualPaths).not.toContain("/version");
+  expect(actualPaths).not.toContain("/diagnostics");
 });
 
 test.describe("Spectrum shell geometry across changed routes", () => {

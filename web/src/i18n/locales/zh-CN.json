@@ -1,4 +1,9 @@
 {
+  "settings": {
+    "errors": {
+      "settingsLimitExceeded": "当前改动会超过部署者设定的上限。请降低数值，或联系部署者提高上限。"
+    }
+  },
   "app": {
     "title": "验证控制台",
     "name": "验证控制台"
@@ -111,6 +116,16 @@
     }
   },
   "groups": {
+    "knownChats": {
+      "title": "已知聊天",
+      "edit": "编辑已知聊天",
+      "description": "本群已知的支持聊天。每行填写一个 Telegram 聊天 ID。此列表不授予免验证资格或频道身份发言权限。",
+      "invalid": "每行填写一个非零整数聊天 ID，不得重复。",
+      "unavailable": "无法读取或保存已知聊天。",
+      "conflict": "设置已被其他管理员修改。草稿已保留。重新读取将丢弃草稿并显示最新值。",
+      "unknown": "请求结果未知。请重新读取已保存的值，再进行修改。",
+      "reload": "丢弃草稿并重新读取"
+    },
     "title": "群与频道",
     "description": "查看当前账号在 Telegram 中可管理的群与频道，以及各群的实时管理员权限。选择一个群后，其余各屏都作用于该群。",
     "managedCount_other": "{{count}} 个可管理的群",
@@ -330,8 +345,8 @@
     },
     "source": {
       "factory": "程序默认值",
-      "file": "用户配置文件",
-      "chat": "当前群设置",
+      "file": "配置文件",
+      "chat": "当前群覆盖",
       "pending": "未保存",
       "restoring": "待恢复为默认值"
     },
@@ -375,7 +390,6 @@
       "accessUnavailable": "暂时无法确认当前账号对该群的管理权限。请重试。",
       "chatNotFound": "该群已无法在控制台中管理。",
       "invalidSettings": "当前设置未通过校验。请检查改动后重试。",
-      "settingsLimitExceeded": "当前改动会超过实例所有者设定的上限。请降低数值，或请实例所有者提高上限。",
       "settingsUnavailable": "设置服务暂时不可用。请重试。",
       "loadUnavailable": "管理与处罚设置暂时不可用。",
       "saveUnavailable": "无法保存管理与处罚设置。请重试。"
@@ -384,7 +398,7 @@
   "feeds": {
     "navigation": "订阅推送",
     "title": "订阅推送",
-    "description": "编辑所选群的 Bugzilla、新闻与 GitHub 推送有效设置；运维人员还可查看进程级新闻源和 overlay 资源。",
+    "description": "编辑所选群的 Bugzilla、新闻与 GitHub 推送有效设置。运维人员可在诊断页查看实例查询资源。",
     "loading": {
       "title": "正在载入订阅推送配置",
       "description": "正在读取群级订阅有效值及其来源…"
@@ -401,7 +415,7 @@
       "value": "来源：{{source}}",
       "factoryDefault": "程序默认值",
       "userFile": "配置文件",
-      "chatOverride": "群覆盖"
+      "chatOverride": "当前群覆盖"
     },
     "form": {
       "title": "群级订阅设置",
@@ -543,8 +557,8 @@
     },
     "source": {
       "factory": "程序默认值",
-      "file": "用户配置文件",
-      "chat": "当前群设置",
+      "file": "配置文件",
+      "chat": "当前群覆盖",
       "pending": "未保存",
       "restoring": "待恢复为默认值"
     },
@@ -613,7 +627,6 @@
       "chatNotFound": "该群已无法在控制台中管理。",
       "csrfInvalid": "当前页面的安全令牌已过期。请刷新页面后重试。",
       "invalidSettings": "一个或多个设置无效。请检查后重新保存。",
-      "settingsLimitExceeded": "当前改动会超过实例所有者设定的上限。请降低数值，或请实例所有者提高上限。",
       "settingsUnavailable": "免验证来源设置暂时不可用。请重试。",
       "loadUnavailable": "暂时无法读取免验证来源设置。请重试。",
       "saveUnavailable": "暂时无法保存免验证来源设置。请重试。",
@@ -800,7 +813,6 @@
       "chatNotFound": "该群已无法在控制台中管理。",
       "csrfInvalid": "当前页面的安全令牌已过期。请刷新页面后重试。",
       "invalidSettings": "一个或多个设置无效。请检查后重新保存。",
-      "settingsLimitExceeded": "当前改动会超过实例所有者设定的上限。请降低数值，或请实例所有者提高上限。",
       "settingsUnavailable": "验证设置暂时不可用。请重试。",
       "loadUnavailable": "暂时无法读取验证设置。请重试。",
       "saveUnavailable": "暂时无法保存验证设置。请重试。",
@@ -960,7 +972,6 @@
       "chatNotFound": "该群已无法在控制台中管理。",
       "csrfInvalid": "当前页面的安全令牌已过期。请刷新页面后重试。",
       "invalidSettings": "题库未通过校验。请检查题目和答案后重新保存。",
-      "settingsLimitExceeded": "当前改动会超过实例所有者设定的上限。请降低数值，或请实例所有者提高上限。",
       "settingsUnavailable": "题库设置暂时不可用。请重试。",
       "loadUnavailable": "暂时无法读取题库。请重试。",
       "saveUnavailable": "暂时无法保存题库。请重试。",
@@ -968,12 +979,17 @@
     }
   },
   "diagnostics": {
+    "process": {
+      "title": "进程设置",
+      "description": "实例级只读设置。请在配置文件中修改，重启后生效。",
+      "privateQueryPerMin": "每位用户每分钟私聊查询次数"
+    },
     "navigation": "诊断",
     "title": "诊断",
     "description": "查看整个实例的权限预检、Telegram Bot API 延迟、心跳、回退读数和每日摘要；仅运维可查看。",
     "daily": {
       "title": "每日状态推送",
-      "description": "每天向实例拥有者私聊发送一条状态摘要。",
+      "description": "每天向部署者私聊发送一条状态摘要。",
       "loading": "正在读取每日状态推送设置…",
       "enabled": {
         "label": "每日状态推送",
@@ -1449,7 +1465,6 @@
       "chatNotFound": "该群已无法在控制台中管理。",
       "csrfInvalid": "当前页面的安全令牌已过期。请刷新页面后重试。",
       "invalidSettings": "一个或多个消息设置无效。请检查后重新保存。",
-      "settingsLimitExceeded": "当前改动会超过实例所有者设定的上限。请降低数值，或请实例所有者提高上限。",
       "settingsUnavailable": "消息设置暂时不可用。请重试。",
       "loadUnavailable": "消息与文案暂时不可用。请重试。",
       "loadSettingsUnavailable": "暂时无法读取消息设置。请重试。",
@@ -1555,7 +1570,6 @@
       "chatNotFound": "该群已无法在控制台中管理。",
       "csrfInvalid": "当前页面的安全令牌已过期。请刷新页面后重试。",
       "invalidSettings": "功能设置无效。请重新加载后重试。",
-      "settingsLimitExceeded": "当前改动会超过实例所有者设定的上限。请降低数值，或请实例所有者提高上限。",
       "settingsUnavailable": "功能设置暂时不可用。请重试。",
       "loadUnavailable": "暂时无法读取功能状态。请重试。",
       "saveUnavailable": "暂时无法保存功能设置。请重试。",
@@ -1581,7 +1595,6 @@
       "verify_retry_seconds": "验证重试间隔（秒）",
       "verify_max_fails": "验证失败次数上限",
       "warn_limit": "警告次数上限",
-      "private_query_per_min": "每分钟私聊查询次数",
       "questions": "选择题条数",
       "fallback_questions": "备用题条数",
       "channel_whitelist": "允许的频道数",
@@ -1595,6 +1608,7 @@
       "retry": "重新载入"
     },
     "violations": {
+      "edit": "打开群设置",
       "title": "超出当前上限的群",
       "row": "群 {{chatId}}：{{field}}为 {{value}}，上限为 {{limit}}。"
     },

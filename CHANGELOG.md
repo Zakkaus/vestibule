@@ -33,7 +33,7 @@ All notable changes to this project are documented here. The format is based on
   the sender's Telegram user ID and explains that no deployer has claimed the instance.
 - Group and channel cards show the current Telegram creator and each administrator's
   applicable rights. Failed lookups are marked unavailable rather than inventing an owner.
-- The instance deployer can set thirteen group-setting caps in the console and inspect
+- The instance deployer can set twelve group-setting caps in the console and inspect
   existing violations. Every group-setting write checks its complete effective values;
   lowering a cap neither truncates existing settings nor prevents startup.
 - Japanese and Russian console and bot locales, including language selection and
@@ -58,6 +58,14 @@ All notable changes to this project are documented here. The format is based on
   only until five minutes after the original admission.
 - Wrong-answer declines retain the same failure strike in direct console settlement and retries
   when Telegram reports that the join request is gone and confirms the applicant is outside the group.
+- Known-chat reloads lock draft controls until the read settles and ignore stale responses.
+  Process-settings authentication failures show the existing reopen-console guidance.
+- Separate process-only lookup resources and private-query limits from editable group settings.
+  Diagnostics is operator-only; group managers can repair known-chat cap violations from linked
+  editors. Configuration-file group values remain overridable, and Telegram help reports the
+  current group's warning threshold and default mute duration. Cap notices show known group
+  names, link to the matching editor, and share one translated error message. Legacy group
+  private-query limits are ignored and logged.
 - Owner private help lists active owner commands. The owner menu and help omit
   `/console` when its link handler is disabled.
 - Production entry pages ignore preview query parameters and retain the authenticated
