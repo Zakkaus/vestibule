@@ -42,7 +42,7 @@ func TestDeclineGivesUpWhenJoinRequestIsGone(t *testing.T) {
 			p := &pending{nonce: "n1", deadline: time.Now().Add(time.Hour), groupMsgID: 11, privateMsgID: 12}
 			v.pend[key] = p
 
-			outcome, banned := v.finishDecline(context.Background(), fb, key.gid, key.uid, p, wrongAnswerReason)
+			outcome, banned := v.finishDecline(context.Background(), fb, key.gid, key.uid, p, WrongAnswerReason)
 
 			if outcome != tc.wantOutcome || banned {
 				t.Fatalf("outcome=%v banned=%v, want outcome=%v banned=false", outcome, banned, tc.wantOutcome)
@@ -92,7 +92,7 @@ func TestDeclineKeepsRequestOnPermissionFailure(t *testing.T) {
 	p := &pending{nonce: "n2", deadline: time.Now().Add(time.Hour)}
 	v.pend[key] = p
 
-	if outcome, _ := v.finishDecline(context.Background(), fb, key.gid, key.uid, p, wrongAnswerReason); outcome.settled() {
+	if outcome, _ := v.finishDecline(context.Background(), fb, key.gid, key.uid, p, WrongAnswerReason); outcome.settled() {
 		t.Fatal("a decline that Telegram rejected for missing rights is not settled")
 	}
 	v.mu.Lock()

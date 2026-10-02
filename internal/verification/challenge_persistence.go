@@ -13,7 +13,7 @@ func pendingRecord(key pkey, p *pending) PendingRecord {
 	if !p.createdAt.IsZero() {
 		createdAt = p.createdAt.Unix()
 	}
-	return PendingRecord{
+	record := PendingRecord{
 		UserID: key.uid, GroupID: key.gid,
 		GroupMsgID: p.groupMsgID, PrivateMsgID: p.privateMsgID,
 		ChallengeDelivered: p.challengeDelivered && p.groupMsgID == 0 && p.privateMsgID == 0,
@@ -23,10 +23,15 @@ func pendingRecord(key pkey, p *pending) PendingRecord {
 		NoLinuxReminded: p.noLinuxReminded, OSClarified: p.osClarified,
 		QText: p.qText, QOpts: append([]string(nil), p.qOpts...), CorrectIdx: p.correctIdx, Nonce: p.nonce, Name: p.name,
 		CreatedAt: createdAt, Deadline: p.deadline.Unix(), Epoch: p.epoch, DeferredSince: deferredSince, DeferralCapReached: p.deferralCapReached,
+		ExpiryCause:    p.expiryCause,
 		SettleFailures: p.settleFailures, SettlePendingSaid: p.settlePendingSaid, FailedAt: failedAt,
 		Gate: p.gate, Invited: p.invited, Held: p.held, HoldUntil: p.holdUntil, Passing: p.passing,
 		ChannelUnreadable: p.channelUnreadable,
 	}
+	if record.ExpiryCause == challengeExpiryReason(record.Delivered() && !record.FallbackPending) {
+		record.ExpiryCause = ""
+	}
+	return record
 }
 
 // save is retained for legacy-state tests. It issues one row operation per pending.
@@ -99,6 +104,23 @@ func (v *Service) supersedePendingLocked(key pkey, p *pending) {
 		return
 	}
 	v.forgetPendingLocked(key, p)
+}
+
+func (v *Service) supersedeGroupSettlementsLocked(groupID int64) []PendingRecord {
+	if v.stateUnavailable(v.statePath) {
+		return nil
+	}
+	var records []PendingRecord
+	err := retryStoreWrite(nil, func() error {
+		var err error
+		records, err = v.stateStore.SupersedeGroupSettlements(v.statePath, groupID, v.wallNow().Unix())
+		return err
+	})
+	if err != nil {
+		log.Printf("verification: supersede unsettled challenges for group %d: %v", groupID, err)
+		return nil
+	}
+	return records
 }
 
 func (v *Service) persistPendingLocked(key pkey, p *pending, expectedEpoch uint64) bool {

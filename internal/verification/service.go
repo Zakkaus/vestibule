@@ -88,6 +88,7 @@ type pending struct {
 	name               string   // applicant display name, kept so a post-outage re-notify can address them
 	createdAt          time.Time
 	deadline           time.Time
+	expiryCause        string
 	deferredSince      time.Time      // first unreachable expiry; retained across recovery and restart
 	epoch              uint64         // bumped on every durable deadline replacement so a stale scanner claim cannot settle a newer window
 	claimedState       ChallengeState // terminal state claimed in storage while its gateway action runs
@@ -224,6 +225,9 @@ func New(
 	if err := v.load(gateway); err != nil {
 		return nil, fmt.Errorf("restore pending verifications: %w", err)
 	}
+	if err := v.loadRecentPasses(); err != nil {
+		return nil, fmt.Errorf("restore recent verification passes: %w", err)
+	}
 	return v, nil
 }
 
@@ -342,8 +346,21 @@ func (v *Service) cancelGroupVerifications(groupID int64) {
 	}
 	var targets []releaseTarget
 	v.mu.Lock()
+	for _, record := range v.supersedeGroupSettlementsLocked(groupID) {
+		if p := v.pend[pkey{groupID, record.UserID}]; p != nil && p.nonce == record.Nonce {
+			continue
+		}
+		targets = append(targets, releaseTarget{
+			uid: record.UserID, messages: challengeMessages{record.GroupMsgID, record.PrivateMsgID},
+			held: record.Gate == gateMute && record.Held,
+		})
+	}
 	for key, p := range v.pend {
-		if key.gid != groupID || p == nil {
+		if key.gid != groupID {
+			continue
+		}
+		if p == nil {
+			delete(v.pend, key)
 			continue
 		}
 		targets = append(targets, releaseTarget{uid: key.uid, messages: p.messages(), held: p.gate == gateMute && p.held})
@@ -382,18 +399,8 @@ func (v *Service) handlerBot() Gateway {
 
 // RemoveGroup cancels every verification owned by an unregistered group without settling or striking it.
 func (v *Service) RemoveGroup(groupID int64) {
+	v.cancelGroupVerifications(groupID)
 	v.mu.Lock()
-	for key, p := range v.pend {
-		if key.gid != groupID {
-			continue
-		}
-		if p == nil {
-			delete(v.pend, key)
-			continue
-		}
-		p.removed = true
-		v.supersedePendingLocked(key, p)
-	}
 	for key, p := range v.terminal {
 		if key.gid != groupID {
 			continue
@@ -2032,6 +2039,7 @@ func (v *Service) reopenPending(bot Gateway, gid, uid int64, p *pending, reason 
 	}
 	expectedEpoch := p.epoch
 	originalDeadline := p.deadline
+	originalCause := p.expiryCause
 	p.done = false
 	// Keep the moment the applicant actually failed. Every caller here is retrying a settlement
 	// for a failure that already happened, so stamping the strike with the retry time instead
@@ -2052,6 +2060,7 @@ func (v *Service) reopenPending(bot Gateway, gid, uid int64, p *pending, reason 
 		p.done = true
 		p.epoch = expectedEpoch
 		p.deadline = originalDeadline
+		p.expiryCause = originalCause
 		return false
 	}
 	if !changed {
@@ -2240,7 +2249,7 @@ func (v *Service) timeoutResultText(groupID, userID int64, l i18n.Lang, gate str
 // Bot-caused failures receive a meaningful strike-free retry window.
 const noFaultGrace = 60 * time.Second
 
-// Timeouts and wrong answers strike; delivery, settlement, restart, and recovery failures do not.
+// Action payloads retain the operational cause; storedDeclineReason normalizes the audit column.
 // declineResultText keeps every applicant-facing decline message inside what the bot knows:
 // a definite result only when the request was actually settled, and a neutral "already handled"
 // when it vanished and the applicant's fate could not be read.
@@ -2259,12 +2268,12 @@ func (v *Service) declineResultText(outcome declineOutcome, l i18n.Lang, gate st
 // errRemovalLeftBanned names the state a failed unban leaves behind, for the operator alert.
 var errRemovalLeftBanned = errors.New("removed but the ban could not be lifted; unban them manually")
 
-// wrongAnswerReason marks a decline the applicant caused by failing the challenge.
-const wrongAnswerReason = "wrong answer"
+// WrongAnswerReason marks a decline the applicant caused by failing the challenge.
+const WrongAnswerReason = "wrong_answer"
 
 func storedDeclineReason(reason string) string {
-	if reason == wrongAnswerReason {
-		return "wrong_answer"
+	if reason == WrongAnswerReason {
+		return WrongAnswerReason
 	}
 	return "rejected"
 }
@@ -2276,7 +2285,7 @@ func (v *Service) strikesFor(outcome declineOutcome, reason string) bool {
 	if !strikesUser(reason) {
 		return false
 	}
-	return outcome == declineConfirmed || reason == wrongAnswerReason
+	return outcome == declineConfirmed || reason == WrongAnswerReason
 }
 
 func strikesUser(reason string) bool {

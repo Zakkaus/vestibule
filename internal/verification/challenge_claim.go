@@ -22,7 +22,7 @@ func (v *Service) claimPendingBy(gid, uid, settledBy int64) (*pending, bool, err
 	if !ok || p.done {
 		return nil, false, nil
 	}
-	claimed, err := v.claimPendingLocked(key, p, ChallengeApproved, "", settledBy)
+	claimed, err := v.claimPendingLocked(key, p, ChallengeApproved, "", "", settledBy)
 	if err != nil || !claimed {
 		return nil, false, err
 	}
@@ -51,7 +51,7 @@ func (v *Service) claimPendingNonceAs(
 	if !ok || p.done || p.nonce != nonce {
 		return nil, false, nil
 	}
-	claimed, err := v.claimPendingLocked(key, p, state, reason, settledBy)
+	claimed, err := v.claimPendingLocked(key, p, state, reason, reason, settledBy)
 	if err != nil || !claimed {
 		return nil, false, err
 	}
@@ -62,7 +62,7 @@ func (v *Service) claimPendingLocked(
 	key pkey,
 	p *pending,
 	state ChallengeState,
-	reason string,
+	reason, cause string,
 	settledBy int64,
 ) (bool, error) {
 	if p.failedAt.IsZero() {
@@ -70,7 +70,7 @@ func (v *Service) claimPendingLocked(
 	}
 	var actions []ActionIntent
 	if !v.stateUnavailable(v.statePath) {
-		action, err := v.newSettlementAction(key, p, state, reason)
+		action, err := v.newSettlementAction(key, p, state, cause)
 		if err != nil {
 			return false, fmt.Errorf("prepare %s action for group %d user %d: %w", state, key.gid, key.uid, err)
 		}
@@ -109,7 +109,7 @@ func (v *Service) consumeBy(gid, uid, settledBy int64) (*pending, bool, error) {
 	if !ok || p.done {
 		return nil, false, nil
 	}
-	claimed, err := v.claimPendingLocked(key, p, ChallengeBanned, "", settledBy)
+	claimed, err := v.claimPendingLocked(key, p, ChallengeBanned, "", "", settledBy)
 	if err != nil || !claimed {
 		return nil, false, err
 	}
@@ -137,7 +137,7 @@ func (v *Service) claimPendingExpiry(gid, uid int64, nonce string, epoch uint64,
 		state = ChallengeDeclined
 		storedReason = "rejected"
 	}
-	claimed, err := v.claimPendingLocked(key, p, state, storedReason, 0)
+	claimed, err := v.claimPendingLocked(key, p, state, storedReason, reason, 0)
 	if err != nil || !claimed {
 		return nil, false, err
 	}

@@ -153,7 +153,7 @@ func TestHeldMemberIsRemovedOnFailure(t *testing.T) {
 	p := &pending{gate: gateMute, nonce: "n", lang: i18n.LangEN, deadline: time.Now().Add(time.Hour)}
 	v.pend[pkey{gid, uid}] = p
 
-	outcome, _ := v.finishDecline(context.Background(), fb, gid, uid, p, wrongAnswerReason)
+	outcome, _ := v.finishDecline(context.Background(), fb, gid, uid, p, WrongAnswerReason)
 	if outcome != declineConfirmed {
 		t.Fatalf("outcome = %v, want declineConfirmed", outcome)
 	}

@@ -19,6 +19,18 @@ func (testVerificationStore) LoadPending(path string) ([]PendingRecord, error) {
 	return records, nil
 }
 
+func (testVerificationStore) LoadRecentPasses(string, int64, int64) ([]RecentPassRecord, error) {
+	return nil, nil
+}
+
+func (testVerificationStore) SettlementActionCurrent(string, string, string, PendingRef, ChallengeState) (bool, error) {
+	return true, nil
+}
+
+func (testVerificationStore) SupersedeGroupSettlements(string, int64, int64) ([]PendingRecord, error) {
+	return nil, nil
+}
+
 func (testVerificationStore) InsertPending(path string, record PendingRecord) (bool, error) {
 	return mutateTestPending(path, func(records *[]PendingRecord) bool {
 		for _, current := range *records {

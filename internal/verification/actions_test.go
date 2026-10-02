@@ -300,7 +300,7 @@ func TestDurableSettlementStopsRetryingAtAttemptLimit(t *testing.T) {
 	v.timeNow = func() time.Time { return now }
 	key := pkey{gid: groupID, uid: userID}
 	p := &pending{nonce: "bounded", deadline: now.Add(time.Hour), failedAt: now}
-	intent, err := v.newSettlementAction(key, p, ChallengeDeclined, wrongAnswerReason)
+	intent, err := v.newSettlementAction(key, p, ChallengeDeclined, WrongAnswerReason)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -483,7 +483,7 @@ func shutdownRaceService(
 		pkey{gid: shutdownRaceGroup, uid: shutdownRaceUser},
 		&pending{nonce: "claimed-before-shutdown", deadline: now.Add(time.Hour)},
 		ChallengeDeclined,
-		wrongAnswerReason,
+		WrongAnswerReason,
 	)
 	if err != nil {
 		t.Fatal(err)

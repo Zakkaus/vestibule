@@ -235,7 +235,7 @@ func TestSettlementForUnmanagedGroupDoesNotChargeApplicantStrike(t *testing.T) {
 
 			bot := newFakeVerifyBot()
 			outcome, banned := v.finishDecline(
-				context.Background(), bot, groupID, userID, p, wrongAnswerReason,
+				context.Background(), bot, groupID, userID, p, WrongAnswerReason,
 			)
 			if outcome != declineConfirmed || banned || bot.declines != 1 {
 				t.Fatalf("settlement outcome/banned/declines = %v/%v/%d, want confirmed/false/1",

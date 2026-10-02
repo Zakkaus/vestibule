@@ -69,7 +69,10 @@ func expiryReason(record PendingRecord) string {
 	if record.Passing {
 		return "approve-retry"
 	}
-	return challengeExpiryReason(record.ChallengeDelivered && !record.FallbackPending)
+	if record.ExpiryCause != "" {
+		return record.ExpiryCause
+	}
+	return challengeExpiryReason(record.Delivered() && !record.FallbackPending)
 }
 
 // installExpiryClaim makes the database lease visible to this process before the legacy
@@ -85,6 +88,7 @@ func (v *Service) installExpiryClaim(record PendingRecord) bool {
 	if current := v.pend[key]; current != nil && !current.done && current.nonce == record.Nonce {
 		current.deadline = time.Unix(record.Deadline, 0)
 		current.epoch = record.Epoch
+		current.expiryCause = record.ExpiryCause
 		return true
 	}
 	p := pendingFromRecord(record)
@@ -112,14 +116,15 @@ func pendingFromRecord(record PendingRecord) *pending {
 	}
 	return &pending{
 		groupMsgID: record.GroupMsgID, privateMsgID: record.PrivateMsgID,
-		challengeDelivered: record.ChallengeDelivered || record.GroupMsgID != 0 || record.PrivateMsgID != 0,
+		challengeDelivered: record.Delivered(),
 		mode:               mode, lang: i18n.FromStored(record.Lang), storedLang: record.Lang, preserveStoredLang: true,
 		fbAnswers: record.FbAnswers, fallbackPending: record.FallbackPending, prompted: record.Prompted,
 		tries: record.Tries, hinted: record.Hinted, sampleBounced: record.SampleBounced,
 		noLinuxReminded: record.NoLinuxReminded, osClarified: record.OSClarified,
 		qText: record.QText, qOpts: record.QOpts, correctIdx: record.CorrectIdx,
 		nonce: record.Nonce, name: record.Name, createdAt: createdAt, deadline: time.Unix(record.Deadline, 0), epoch: record.Epoch,
-		failedAt: failedAt, deferredSince: deferredSince, deferralCapReached: record.DeferralCapReached,
+		expiryCause: record.ExpiryCause,
+		failedAt:    failedAt, deferredSince: deferredSince, deferralCapReached: record.DeferralCapReached,
 		settleFailures: record.SettleFailures, gate: record.Gate, invited: record.Invited, held: record.Held,
 		holdUntil: record.HoldUntil, passing: record.Passing, channelUnreadable: record.ChannelUnreadable,
 		settlePendingSaid: record.SettlePendingSaid,

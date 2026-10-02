@@ -84,7 +84,7 @@ func (v *Service) OnAnswer(ctx *HandlerContext, update Update) error {
 
 	if !QuizAnswerMatches(answer.choice, correctIdx) {
 		gate := v.pendingGate(answer.gid, answer.owner)
-		outcome, banned, err := v.decline(c, bot, answer.gid, answer.owner, answer.nonce, wrongAnswerReason)
+		outcome, banned, err := v.decline(c, bot, answer.gid, answer.owner, answer.nonce, WrongAnswerReason)
 		if err != nil {
 			ackFast(c, bot, cq.ID)
 			return fmt.Errorf("settle quiz answer: %w", err)
