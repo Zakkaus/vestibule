@@ -17,8 +17,6 @@ var (
 	ErrConsoleTargetProtected   = errors.New("target is a group administrator")
 )
 
-const consoleDeclineReason = "console-decline"
-
 // ConsoleQueueEntry is the live challenge view intentionally exposed to the console adapter.
 type ConsoleQueueEntry struct {
 	ID        string
@@ -142,7 +140,7 @@ func (v *Service) SettleConsole(ctx context.Context, settlement ConsoleSettlemen
 	}
 	entry := consoleEntry(pendingRecord(pkey{gid: ref.GroupID, uid: ref.UserID}, pending))
 	entry.State, entry.Reason = settlement.Target, consoleResponseReason(settlement)
-	v.executeConsoleSettlement(ctx, ref, pending, settlement.Target)
+	v.executeConsoleSettlement(ctx, ref, pending, settlement)
 	return entry, nil
 }
 
@@ -171,7 +169,7 @@ func validConsoleReason(target ChallengeState, reason string) bool {
 	if target != ChallengeDeclined {
 		return reason == ""
 	}
-	return reason == "" || reason == "wrong_answer" || reason == "rejected" || reason == "external_unmet"
+	return reason == "" || reason == WrongAnswerReason || reason == "rejected" || reason == "external_unmet"
 }
 
 func consoleStoredReason(settlement ConsoleSettlement) string {
@@ -207,12 +205,12 @@ func (v *Service) consoleTargetAllowed(ctx context.Context, groupID, userID int6
 	}
 }
 
-func (v *Service) executeConsoleSettlement(ctx context.Context, ref PendingRef, item *pending, target ChallengeState) {
-	switch target {
+func (v *Service) executeConsoleSettlement(ctx context.Context, ref PendingRef, item *pending, settlement ConsoleSettlement) {
+	switch settlement.Target {
 	case ChallengeApproved:
 		_ = v.executeApprove(ctx, v.gateway, ref.GroupID, ref.UserID, item)
 	case ChallengeDeclined:
-		_, _ = v.finishDecline(ctx, v.gateway, ref.GroupID, ref.UserID, item, consoleDeclineReason)
+		_, _ = v.finishDecline(ctx, v.gateway, ref.GroupID, ref.UserID, item, consoleStoredReason(settlement))
 	case ChallengeBanned:
 		_ = v.executeBan(ctx, v.gateway, ref.GroupID, ref.UserID, item)
 	}

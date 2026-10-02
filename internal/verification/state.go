@@ -507,9 +507,8 @@ func (v *Service) reachable(c context.Context) bool {
 	return v.probe.Probe(pc) == nil
 }
 
-// armExpiry now records only a durable deadline. The scanner owns expiry work, so no callback
-// can settle an applicant after graceful shutdown or disappear across a restart.
-func (v *Service) armExpiry(_ Gateway, p *pending, _ int64, _ int64, delay time.Duration, _ string) {
+// armExpiry records the durable deadline and cause for scanner settlement and retries.
+func (v *Service) armExpiry(_ Gateway, p *pending, _ int64, _ int64, delay time.Duration, reason string) {
 	now := v.wallNow()
 	if delay <= 0 {
 		delay = noFaultGrace
@@ -525,6 +524,7 @@ func (v *Service) armExpiry(_ Gateway, p *pending, _ int64, _ int64, delay time.
 			p.deadline = now.Add(delay)
 		}
 	}
+	p.expiryCause = reason
 	p.epoch++
 }
 

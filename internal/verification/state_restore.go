@@ -72,6 +72,9 @@ func validRestoredChallenge(record PendingRecord) bool {
 func (v *Service) restoredDeadline(gid, uid int64, p *pending, now time.Time, longOutage bool) (time.Duration, string, bool) {
 	delay := p.deadline.Sub(now)
 	reason := challengeExpiryReason(p.challengeDelivered && !p.fallbackPending)
+	if p.expiryCause != "" {
+		reason = p.expiryCause
+	}
 	renotify := false
 	if !p.deferralCapReached && !p.deferredSince.IsZero() && !now.Before(p.deferredSince.Add(maxVerificationDeferral)) {
 		p.deferralCapReached = true

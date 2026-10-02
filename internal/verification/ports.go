@@ -360,6 +360,7 @@ type PendingRecord struct {
 	Name               string   `json:"name,omitempty"`
 	CreatedAt          int64    `json:"created_at,omitempty"`
 	Deadline           int64    `json:"deadline"`
+	ExpiryCause        string   `json:"expiry_cause,omitempty"`
 	Epoch              uint64   `json:"epoch,omitempty"`
 	DeferredSince      int64    `json:"deferred_since,omitempty"`
 	DeferralCapReached bool     `json:"deferral_cap_reached,omitempty"`
@@ -384,6 +385,10 @@ type PendingRef struct {
 
 func (r PendingRecord) Ref() PendingRef {
 	return PendingRef{GroupID: r.GroupID, UserID: r.UserID, Nonce: r.Nonce, Epoch: r.Epoch}
+}
+
+func (r PendingRecord) Delivered() bool {
+	return r.ChallengeDelivered || r.GroupMsgID != 0 || r.PrivateMsgID != 0
 }
 
 // ChallengeTransition carries both sides of one compare-and-swap and every externally visible
@@ -419,6 +424,13 @@ type PendingAction struct {
 	Attempts    int
 }
 
+// RecentPassRecord records a confirmed admission, not an approval still awaiting execution.
+type RecentPassRecord struct {
+	GroupID  int64
+	UserID   int64
+	PassedAt int64
+}
+
 // FailureRecord is the legacy JSON representation of one applicant's strike window.
 type FailureRecord struct {
 	GroupID int64 `json:"group_id"`
@@ -446,12 +458,16 @@ var ErrStoreReadOnly = errors.New("verification state is read-only")
 type Store interface {
 	// LoadPending restores the live set once at startup.
 	LoadPending(string) ([]PendingRecord, error)
+	// LoadRecentPasses restores confirmed admissions inside the inclusive time window.
+	LoadRecentPasses(namespace string, since, until int64) ([]RecentPassRecord, error)
 	// InsertPending returns false, not an error, when the open-challenge constraint rejects the row.
 	InsertPending(string, PendingRecord) (bool, error)
 	// UpdatePending returns false, not an error, when state, nonce, or epoch no longer matches.
 	UpdatePending(string, PendingRef, PendingRecord) (bool, error)
 	// TransitionChallenge conditionally changes state; false means another path already settled it.
 	TransitionChallenge(string, ChallengeTransition) (bool, error)
+	// SupersedeGroupSettlements cancels claimed challenges with unsettled actions and returns their cleanup records.
+	SupersedeGroupSettlements(namespace string, groupID, at int64) ([]PendingRecord, error)
 	// DeletePending removes an unexposed challenge conditionally; false is already handled.
 	DeletePending(string, PendingRef) (bool, error)
 	// ClaimExpired leases due pending rows by moving their deadline to claimUntil. The scanner
@@ -461,6 +477,8 @@ type Store interface {
 	// ClaimActions leases ready actions to one worker. A lease expiry makes a crashed worker's
 	// action available again; every action implementation must therefore be idempotent.
 	ClaimActions(namespace, owner string, now, claimUntil int64, limit int) ([]PendingAction, error)
+	// SettlementActionCurrent checks the owned action and its durable challenge identity and state.
+	SettlementActionCurrent(namespace, id, owner string, expected PendingRef, state ChallengeState) (bool, error)
 	// CompleteAction marks one owned action done and persists follow-up intents atomically.
 	CompleteAction(namespace, id, owner string, completedAt int64, followups []ActionIntent) (bool, error)
 	// RetryAction returns one owned action to the queue after a transient failure.

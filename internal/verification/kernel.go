@@ -283,7 +283,7 @@ func (v *Service) declineAgent(c context.Context, bot Gateway, gid, uid int64, n
 	} else {
 		log.Printf("verify: declining %d in %d — the same reply tripped the tripwire in another group", uid, gid)
 	}
-	outcome, banned, err := v.decline(c, bot, gid, uid, cur, wrongAnswerReason)
+	outcome, banned, err := v.decline(c, bot, gid, uid, cur, WrongAnswerReason)
 	if err != nil {
 		log.Printf("verification: decline automated-agent reply for group %d user %d: %v", gid, uid, err)
 		return
@@ -336,7 +336,7 @@ func (v *Service) gradeKernelAnswer(c context.Context, bot Gateway, gid, uid int
 			return
 		}
 		// Decline only the nonce charged by recordKernelTry, never a replacement pending.
-		outcome, banned, err := v.decline(c, bot, gid, uid, curNonce, wrongAnswerReason)
+		outcome, banned, err := v.decline(c, bot, gid, uid, curNonce, WrongAnswerReason)
 		if err != nil {
 			log.Printf("verification: decline fallback answer for group %d user %d: %v", gid, uid, err)
 			return
@@ -384,7 +384,7 @@ func (v *Service) gradeKernelAnswer(c context.Context, bot Gateway, gid, uid int
 			_, _ = sendHTML(c, bot, uid, heldOr(gate, challenge.KernelWrongHeld, challenge.KernelWrong).Render(ul, left), nil)
 			return
 		}
-		outcome, banned, err := v.decline(c, bot, gid, uid, curNonce, wrongAnswerReason) // the nonce as of the charge, see above
+		outcome, banned, err := v.decline(c, bot, gid, uid, curNonce, WrongAnswerReason) // the nonce as of the charge, see above
 		if err != nil {
 			log.Printf("verification: decline kernel answer for group %d user %d: %v", gid, uid, err)
 			return

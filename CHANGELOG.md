@@ -44,6 +44,16 @@ All notable changes to this project are documented here. The format is based on
 - The Compose database volume now mounts at `/var/lib/postgresql` as PostgreSQL 18 requires.
   Native installs record their deployment type so host replacement works, and `import-state`
   rejects a missing or invalid `-pending` before touching the database.
+- Disabling verification or removing a group cancels queued settlements even after a restart,
+  releases verification holds, and deletes group questions, so canceled challenges cannot
+  decline applicants or record failures on retry. An approval whose request has disappeared
+  still deletes its group question.
+- Delivered challenges time out as applicant failures even when delivery is represented only
+  by message IDs. Restart and recovery grace periods remain strike-free through queued retries.
+- Confirmed recent approvals survive restart and suppress duplicate membership challenges
+  only until five minutes after the original admission.
+- Wrong-answer declines retain the same failure strike in direct console settlement and retries
+  when Telegram reports that the join request is gone and confirms the applicant is outside the group.
 - Owner private help lists active owner commands. The owner menu and help omit
   `/console` when its link handler is disabled.
 - Production entry pages ignore preview query parameters and retain the authenticated

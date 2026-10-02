@@ -28,7 +28,7 @@ func TestRetryingASettlementKeepsTheRealFailureTime(t *testing.T) {
 		member: &ChatMemberMember{Status: MemberStatusMember},
 		banErr: errors.New("not enough rights"),
 	}
-	if outcome, _ := v.finishDecline(context.Background(), failing, gid, uid, p, wrongAnswerReason); outcome != declineUnsettled {
+	if outcome, _ := v.finishDecline(context.Background(), failing, gid, uid, p, WrongAnswerReason); outcome != declineUnsettled {
 		t.Fatalf("outcome = %v, want declineUnsettled", outcome)
 	}
 	v.mu.Lock()
@@ -43,7 +43,7 @@ func TestRetryingASettlementKeepsTheRealFailureTime(t *testing.T) {
 	p.done = true
 	v.mu.Unlock()
 	working := &fakeVerifyBot{member: &ChatMemberMember{Status: MemberStatusMember}}
-	if _, _ = v.finishDecline(context.Background(), working, gid, uid, p, wrongAnswerReason); true {
+	if _, _ = v.finishDecline(context.Background(), working, gid, uid, p, WrongAnswerReason); true {
 		v.mu.Lock()
 		rec := v.vfail[pkey{gid, uid}]
 		v.mu.Unlock()

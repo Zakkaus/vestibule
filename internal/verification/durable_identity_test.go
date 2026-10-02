@@ -163,11 +163,14 @@ func TestDurableActionIdentityDoesNotClaimReplacement(t *testing.T) {
 			record.Nonce = test.recordNonce
 			action := PendingAction{ActionIntent: ActionIntent{ID: "identity-action"}}
 
-			installed := v.installActionPending(
-				settlementActionPayload{Record: record, State: ChallengeDeclined, Reason: wrongAnswerReason},
+			installed, err := v.installActionPending(
+				settlementActionPayload{Record: record, State: ChallengeDeclined, Reason: WrongAnswerReason},
 				action,
 				"identity-worker",
 			)
+			if err != nil {
+				t.Fatal(err)
+			}
 			if test.wantCurrent {
 				if installed != current || !current.done || v.terminal[key] != current {
 					t.Fatalf("current durable action did not claim current pending: installed=%p current=%p done=%v terminal=%p",

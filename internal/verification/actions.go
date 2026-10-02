@@ -130,7 +130,11 @@ func (v *Service) executeSettlementAction(ctx context.Context, bot Gateway, owne
 		v.failPendingAction(action, owner, fmt.Errorf("decode settlement action: %w", err))
 		return
 	}
-	p := v.installActionPending(payload, action, owner)
+	p, err := v.installActionPending(payload, action, owner)
+	if err != nil {
+		v.retryOrFailPendingAction(action, owner, err)
+		return
+	}
 	if p == nil {
 		v.failPendingAction(action, owner, fmt.Errorf("settlement action is obsolete"))
 		return
@@ -147,15 +151,22 @@ func (v *Service) executeSettlementAction(ctx context.Context, bot Gateway, owne
 	}
 }
 
-func (v *Service) installActionPending(payload settlementActionPayload, action PendingAction, owner string) *pending {
+func (v *Service) installActionPending(payload settlementActionPayload, action PendingAction, owner string) (*pending, error) {
 	key := pkey{gid: payload.Record.GroupID, uid: payload.Record.UserID}
 	v.mu.Lock()
 	defer v.mu.Unlock()
 	if v.shuttingDown {
-		return nil
+		return nil, nil
+	}
+	current, err := v.stateStore.SettlementActionCurrent(v.statePath, action.ID, owner, payload.Record.Ref(), payload.State)
+	if err != nil || !current {
+		return nil, err
 	}
 	p := v.pend[key]
-	if p == nil || p.nonce != payload.Record.Nonce {
+	if p != nil && p.nonce != payload.Record.Nonce {
+		return nil, nil
+	}
+	if p == nil {
 		p = pendingFromRecord(payload.Record)
 		p.persistedPath = v.statePath
 		v.pend[key] = p
@@ -166,7 +177,7 @@ func (v *Service) installActionPending(payload settlementActionPayload, action P
 	p.actionOwner = owner
 	p.actionAttempts = action.Attempts
 	v.markTerminalLocked(key, p)
-	return p
+	return p, nil
 }
 
 func (v *Service) executeUndoBanAction(ctx context.Context, bot Gateway, owner string, action PendingAction) {

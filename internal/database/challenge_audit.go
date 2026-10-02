@@ -107,7 +107,7 @@ func validAuditReason(state verification.ChallengeState, reason string) bool {
 	if state != verification.ChallengeDeclined {
 		return reason == ""
 	}
-	return reason == "wrong_answer" || reason == "rejected" || reason == "external_unmet"
+	return reason == verification.WrongAnswerReason || reason == "rejected" || reason == "external_unmet"
 }
 
 func validChallengeActionState(state verification.ChallengeActionState) bool {
