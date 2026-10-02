@@ -726,9 +726,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ----- END LICENSE -----
 
-## Go: github.com/petermattis/goid @ v0.0.0-20260816044145-ed329add6b1b
+## Go: github.com/petermattis/goid @ v0.0.0-20260820044319-269ab09b5261
 
-Source module: github.com/petermattis/goid@v0.0.0-20260816044145-ed329add6b1b
+Source module: github.com/petermattis/goid@v0.0.0-20260820044319-269ab09b5261
 License file: LICENSE
 ----- BEGIN LICENSE -----
 Apache License
@@ -1068,9 +1068,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ----- END LICENSE -----
 
-## Go: go.mau.fi/util @ v0.10.1-0.20260820140024-eb612d936fde
+## Go: go.mau.fi/util @ v0.10.1
 
-Source module: go.mau.fi/util@v0.10.1-0.20260820140024-eb612d936fde
+Source module: go.mau.fi/util@v0.10.1
 License file: LICENSE
 ----- BEGIN LICENSE -----
 Mozilla Public License Version 2.0
@@ -1448,9 +1448,9 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
   defined by the Mozilla Public License, v. 2.0.
 ----- END LICENSE -----
 
-## Go: golang.org/x/exp @ v0.0.0-20260813180055-c1d0aacb2297
+## Go: golang.org/x/exp @ v0.0.0-20260908205506-85c1c2202aba
 
-Source module: golang.org/x/exp@v0.0.0-20260813180055-c1d0aacb2297
+Source module: golang.org/x/exp@v0.0.0-20260908205506-85c1c2202aba
 License file: LICENSE
 ----- BEGIN LICENSE -----
 Copyright 2009 The Go Authors.
@@ -1482,9 +1482,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ----- END LICENSE -----
 
-## Go: golang.org/x/sys @ v0.47.0
+## Go: golang.org/x/sys @ v0.48.0
 
-Source module: golang.org/x/sys@v0.47.0
+Source module: golang.org/x/sys@v0.48.0
 License file: LICENSE
 ----- BEGIN LICENSE -----
 Copyright 2009 The Go Authors.
@@ -1590,9 +1590,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ----- END LICENSE -----
 
-## Go: modernc.org/libc @ v1.75.6
+## Go: modernc.org/libc @ v1.75.7
 
-Source module: modernc.org/libc@v1.75.6
+Source module: modernc.org/libc@v1.75.7
 License file: LICENSE
 ----- BEGIN LICENSE -----
 Copyright (c) 2017 The Libc Authors. All rights reserved.
@@ -2065,9 +2065,9 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ----- END LICENSE -----
 
-## Go: modernc.org/sqlite @ v1.58.0
+## Go: modernc.org/sqlite @ v1.59.0
 
-Source module: modernc.org/sqlite@v1.58.0
+Source module: modernc.org/sqlite@v1.59.0
 License file: LICENSE
 ----- BEGIN LICENSE -----
 Copyright (c) 2017 The Sqlite Authors. All rights reserved.
