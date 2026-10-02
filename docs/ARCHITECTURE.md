@@ -1047,7 +1047,7 @@ internal/database/settings.go   chat.settings 的 Repository
 migrations/01-settings.sql      settings_revision
 ```
 
-- **没有全局默认记录，也没有控制群。**新群从 factory 取得默认值； `factory_questions_file` 指定的部署题库属于这一层，后来注册的群也继承。 用户文件中的其他旧式顶层值只展开到文件列出的群，不会传播给后来注册的群。
+- **没有全局默认记录，也没有管理全局设置的控制群。**每群控制聊天归方案计划书阶段十一，仅用于对该受保护群执行管理与处罚，不取得全局设置权限。新群从 factory 取得默认值； `factory_questions_file` 指定的部署题库属于这一层，后来注册的群也继承。 用户文件中的其他旧式顶层值只展开到文件列出的群，不会传播给后来注册的群。
 - **进程级凭据不进入每群设置。**`BOT_TOKEN`、 `VT_DATABASE_TYPE`、`VT_DATABASE_URI` 与 `TELEGRAM_API_URL` 在进程装配边界读取。未认领时，仅将认领口令的哈希保存到 `STATE_DIRECTORY/claim.json`；认领后，Bot token 以 `0600` 权限保存到同一文件，并删除该哈希。
 - **控制台地址在回环上可以是 HTTP。**一次性链接把凭据写在路径里， 因此在网络上必须是 HTTPS；回环不是网络，请求不离开这台机器， 从别处到达它意味着一次端口转发，那条链路的传输由隧道负责。 一律要求 HTTPS 的结果是：设计文档为「没有域名」写的那种部署 （只监听本机、用端口转发打开）根本无法启动。
 - **认领口令由进程生成，不由人选。**没有配置 `SETUP_TOKEN` 时，进程用 32 字节随机数生成一个，把完整地址打印到日志， 哈希写进 `claim.json`。开这条地址的人给进程一个 bot token 并成为它的属主， 因此人选的口令就是可以被猜到的口令：显式配置的 `SETUP_TOKEN` 短于 24 个字符时进程拒绝启动，而不是带着一条可猜的认领地址开始监听。
@@ -1118,10 +1118,9 @@ policr-mini 选了另一条：把 Telegram 的权限镜像进 `permissions` 表�
 | GET /api/session | 把当前会话的 CSRF 令牌和实时计算的 `is_owner` 交给已经持有 Cookie 的浏览器。一次性运维链接只写 Cookie，CSRF 令牌统一由此提供，不另设可读 Cookie |
 | GET /enter/{token} | 运维入口。机器人发的一次性链接落在这里，换成会话后重定向。**令牌用过即失效**，整条链与 Telegram 的登录服务无关 |
 | GET /api/chats | 群与频道屏。返回该管理员可管理的群及可用群名、Telegram 群拥有者与管理员细分权限。可管理群由 getChatMember 求交集；每次请求再以 getChatAdministrators 和 GetChat 读取 creator、管理员及权限适用范围。布尔权限的 null 表示不适用。查询失败或缺少 creator 时保留群 id/title，权限状态为 unavailable，不显示旧权限。群名优先取运行时注册状态；缺失时通过 GetChat 查询，成功缓存一小时，失败缓存 45 秒。群名查询上限三秒，同群并发合并，缓存至多 4096 项；权限不使用该缓存。注销时删除群名，重新注册时刷新 |
-| GET /api/chats/{id}/overview | 首页四层所需数据，一次返回 |
 | GET /api/chats/{id}/queue | 等待队列 |
 | POST /api/chats/{id}/queue/{cid} | 人工结算一条：放行、拒绝、封禁。 **带当前状态做条件更新**，已被超时或他人结算过的返回冲突，不覆盖 |
-| PATCH /api/chats/{id} | 这个群开不开验证、是不是只发消息不验证 |
+| PATCH /api/chats/{id} | **暂缓，尚未实现。**群与频道屏尚无模式写入入口；验证开关已有 `PATCH /api/chats/{id}/settings` 的 `enabled` 字段，标记为只发消息不验证仍无写入路径 |
 | GET /api/chats/{id}/settings | 验证方式、管理与处罚、功能三屏共用。带每项来源：出厂默认、本群设定或由文件管理 |
 | PATCH /api/chats/{id}/settings | 只提交改动过的字段，带版本号做冲突检测。共用 settings 服务校验写入后的完整有效群设置；超过部署者上限返回 settings_limit_exceeded 与具体字段、值和上限，不改变群设置或版本号 |
 | GET · PUT /api/chats/{id}/rules | 题库、消息与文案、免验证来源三屏共用，`collection` 区分题库、自动回复、显示名黑名单与反垃圾。PUT 整份替换用于导入 |
@@ -1130,9 +1129,6 @@ policr-mini 选了另一条：把 Telegram 的权限镜像进 `permissions` 表�
 | POST /api/chats/{id}/audit/{aid}/undo | 撤销一条。 只有可逆的才给这个入口，删掉的消息回不来 |
 | GET · PUT /api/chats/{id}/feeds | 群级订阅推送。PUT 整份替换；配置文件 `feeds` 仅首次导入 |
 | GET /api/chats/{id}/stats | 统计屏。区间与粒度由查询参数给，服务端聚合，不把明细发给前端 |
-| GET /api/chats/{id}/packages | 已装的配置包与可装的包 |
-| POST /api/chats/{id}/packages | 装一个包。先返回它将改动哪些项，确认后才落库 |
-| GET · PATCH /api/me/preferences | 看的人自己的偏好，不属于任何群 |
 | GET /api/status | 诊断屏与版本屏。健康、当前版本、设置持久化、Bot API 探测、回退条件读数和宿主替换状态。**只有运维可见** |
 | GET · PATCH /api/status/daily | 诊断屏的每日状态推送开关。仅运维可读写；PATCH 需要 CSRF，成功保存后返回 enabled、固定 time 与实际 timezone |
 | GET /api/status/release | 运维明确操作后，按需读取固定 GitHub 仓库的最新正式发布、变更说明与目标结构清单；失败不影响本地状态。同上，只有运维 |
@@ -1140,8 +1136,12 @@ policr-mini 选了另一条：把 Telegram 的权限镜像进 `permissions` 表�
 | GET /api/owner/limits | 部署者设置屏。仅当前非零 OwnerID 可见，返回上限、独立版本号与既有超限群；不依赖所选群或运维角色 |
 | PATCH /api/owner/limits | 仅当前 OwnerID 可写，校验会话与 CSRF。带 expected_revision 和 changes，省略字段不改，null 还原为 0。先原子持久化再发布；降低上限只标出既有超限群，不截断或重写群设置 |
 | POST /api/status/upgrade | 发起升级，只写目标版本，执行在宿主侧。同上，只有运维 |
-| GET /verify/{token} | **长期存在的唯一公开面。**令牌一次性、带签名与有效期，不复用管理会话 |
+| GET /verify/{token} | **暂缓，尚未实现。**归方案计划书阶段十一「五种验证方式」中的两种仅网页验证方式：工作量证明与人机验证，待对应分片完成。令牌随机生成、以哈希保存、一次性使用并随挑战过期，不复用管理会话 |
 | GET · POST /setup/{token} | **只在认领之前存在。**安装脚本打印的一次性链接落在这里， 用来填写 Bot token，再给 Telegram 部署者一次性绑定链接；网页不接收或显示绑定口令。 **认领成功后这条路由不再注册**，之后任何人访问都是 404，不是隐藏 |
+
+首页通过既有队列、统计与设置端点组合数据，运维另读取诊断端点，不需要独立概况路由。
+
+查看者的偏好（外观、配色、语言）按浏览器保存在本地，不提供服务端偏好路由。
 
 **这张表是穷举的。**界面上多一个屏，这里就要多一行； 没有对应行的屏是还没设计，不是省略。两份文档的一致性照这条核对： 设计文档里的每一个屏，都要能在这里找到它取数与写入的那一行。
 
