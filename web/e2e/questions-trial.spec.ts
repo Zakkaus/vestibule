@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext, type Page, type Route } from "@playwright/test";
 
-import { selectAppOption } from "./app-select";
+import { pickerMessage, selectPickerOption } from "./picker";
 
 const portOffset = Number.parseInt(process.env.PLAYWRIGHT_PORT_OFFSET ?? "0", 10);
 const trialAddress = `http://127.0.0.1:${4175 + portOffset}`;
@@ -145,7 +145,7 @@ test("saved quiz trial reports a correct answer through the real API", async ({ 
 });
 test("saved fallback trial uses the server answer matcher", async ({ page, request }) => {
   await openRealTrial(page, request);
-  await selectAppOption(page.getByRole("button", { name: "题库", exact: true }), "fallback_questions");
+  await selectPickerOption(trialRegion(page).getByRole("button", { name: /题库$/ }), await pickerMessage(page, "questions.trial.fallback"));
   await page.getByLabel("输入答案").fill("Portage");
   await submitTrial(page);
   await expect(trialRegion(page).getByRole("status")).toContainText("回答正确");
@@ -221,6 +221,21 @@ test("trial reads saved settings while an editor draft changes", async ({ page }
   await expect(trialRegion(page).getByText("Group A triangle?", { exact: true })).toBeVisible();
 });
 
+test("empty saved collections keep the question picker blank and disabled", async ({ page }) => {
+  await installMockTransport(page);
+  const settings = mockSettings("Group A triangle?", "Group A second?");
+  settings.questions.value = [];
+  settings.fallback_questions.value = [];
+  await page.route(`**/api/chats/${mockGroupAID}/settings`, (route) => fulfillJSON(route, settings));
+  await page.goto(`/questions?group=${mockGroupAID}`);
+  const questionPicker = trialRegion(page).getByRole("button", { name: /题目$/ });
+  await expect(questionPicker).toBeDisabled();
+  await expect(questionPicker).toHaveText("");
+  await selectPickerOption(trialRegion(page).getByRole("button", { name: /题库$/ }), await pickerMessage(page, "questions.trial.fallback"));
+  await expect(questionPicker).toBeDisabled();
+  await expect(questionPicker).toHaveText("");
+});
+
 test("trial result clears when the answer or question changes", async ({ page }) => {
   await openMockQuestions(page);
   await submitTrial(page);
@@ -229,11 +244,11 @@ test("trial result clears when the answer or question changes", async ({ page })
   await expect(trialRegion(page).getByRole("status")).toHaveCount(0);
   await submitTrial(page);
   await expect(trialRegion(page).getByRole("status")).toContainText("回答正确");
-  await selectAppOption(page.getByRole("button", { name: "题目", exact: true }), "1");
+  await selectPickerOption(trialRegion(page).getByRole("button", { name: /题目$/ }), "2. Group A second?");
   await expect(trialRegion(page).getByRole("status")).toHaveCount(0);
   await submitTrial(page);
   await expect(trialRegion(page).getByRole("status")).toContainText("回答正确");
-  await selectAppOption(page.getByRole("button", { name: "题库", exact: true }), "fallback_questions");
+  await selectPickerOption(trialRegion(page).getByRole("button", { name: /题库$/ }), await pickerMessage(page, "questions.trial.fallback"));
   await expect(trialRegion(page).getByRole("status")).toHaveCount(0);
   await page.getByLabel("输入答案").fill("Portage");
   await submitTrial(page);
@@ -246,7 +261,7 @@ test("trial result clears when the selected group changes", async ({ page }) => 
   await openMockQuestions(page);
   await submitTrial(page);
   await expect(trialRegion(page).getByRole("status")).toHaveCount(1);
-  await selectAppOption(page.getByRole("button", { name: "当前群组" }), mockGroupBID);
+  await selectPickerOption(page.getByRole("button", { name: "当前群组" }), "Trial group B");
   await expect(page).toHaveURL(new RegExp(`/questions\\?group=${mockGroupBID}$`));
   await expect(trialRegion(page)).toBeVisible();
   await expect(trialRegion(page).getByRole("status")).toHaveCount(0);

@@ -3,7 +3,10 @@ import { Button } from "@react-spectrum/s2/Button";
 import { Text } from "@react-spectrum/s2";
 import { useTranslation } from "react-i18next";
 
-import { AppSelect, type AppSelectOption } from "../../components/AppSelect";
+import { Picker, PickerItem } from "@react-spectrum/s2/Picker";
+import { SelectContext } from "react-aria-components/Select";
+import { usePickerSaveGuard } from "../../components/pickerAccessibility";
+import { useConsoleSize } from "../../components/ConsoleProvider";
 import { StatusBadge } from "../../components/StatusBadge";
 import { Icon } from "../../icons";
 import { FallbackQuestionEditor } from "./FallbackQuestionEditor";
@@ -106,8 +109,10 @@ function LanguageSection({
   onRestore
 }: Omit<QuestionsSettingsFormProps, "validation" | "hasChanges" | "onSubmit" | "onRestoreFallback">) {
   const { t } = useTranslation();
+  const size = useConsoleSize("L");
+  const languagePicker = usePickerSaveGuard(saving);
   const descriptionID = "questions-language-description";
-  const languageOptions: readonly AppSelectOption<QuestionLanguage>[] = questionLanguages.map((language) => ({
+  const languageOptions = questionLanguages.map((language) => ({
     label: t(languageMessageKeys[language]),
     value: language
   }));
@@ -128,20 +133,25 @@ function LanguageSection({
           />
         </div>
         <div data-question-setting-control>
-          <AppSelect
-            aria-label={t("questions.language.label")}
-            id="questions-language-select"
-            value={draft.lang}
-            aria-disabled={saving ? "true" : undefined}
-            aria-describedby={descriptionID}
-            options={languageOptions}
-            onValueChange={(value) =>
-              onDraftChange(
-                { ...draft, lang: value },
-                ["lang"]
-              )
-            }
-          />
+          <SelectContext value={{ "aria-describedby": descriptionID }}>
+            <Picker
+              aria-label={t("questions.language.label")}
+              id="questions-language-select"
+              selectedKey={draft.lang}
+              aria-disabled={saving ? "true" : undefined}
+              {...languagePicker}
+              aria-describedby={descriptionID}
+              items={languageOptions}
+              size={size}
+              data-slot="select"
+              data-console-control
+              onSelectionChange={(key) => {
+                if (!saving && key !== null) onDraftChange({ ...draft, lang: key as QuestionLanguage }, ["lang"]);
+              }}
+            >
+              {(option) => <PickerItem id={option.value}>{option.label}</PickerItem>}
+            </Picker>
+          </SelectContext>
         </div>
       </div>
     </QuestionSection>

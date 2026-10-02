@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { expectAppSelection, selectAppOption } from "./app-select";
+import { expectPickerSelection, pickerMessage, selectPickerOption } from "./picker";
 
 const selectedGroupId = "-1009000010001";
 const selectedGroupTitle = "Maintainers Workspace";
@@ -335,7 +335,7 @@ test("Mini App session exchange reaches a successful release", async ({ page }) 
     // Home already selects the first authorised group, so this step reads the
     // switcher rather than changing it.
     const groupSwitcher = page.getByRole("button", { name: "当前群组" });
-    await expectAppSelection(groupSwitcher, selectedGroupId);
+    await expectPickerSelection(groupSwitcher, selectedGroupTitle);
     await expect(groupSwitcher).toContainText(selectedGroupTitle);
     await expect(groupSwitcher).not.toContainText(/-100\d+/);
     await page.locator('.console-sidebar [data-navigation-group="group"]').click();
@@ -752,7 +752,7 @@ test("widest locale keeps group controls inside the desktop header", async ({ pa
 
   await page.goto("/groups");
   await expect(page.locator("[data-groups-source='api']")).toBeVisible();
-  await selectAppOption(page.getByRole("button", { name: "语言" }), "en");
+  await selectPickerOption(page.getByRole("button", { name: /语言$/ }), await pickerMessage(page, "locale.en"));
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
 
   const bounds = await page.evaluate(() => {

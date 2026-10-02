@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { selectAppOption } from "./app-select";
+import { selectPickerOption } from "./picker";
 
 const groupAID = "-1009000000101";
 const groupBID = "-1009000000102";
@@ -82,7 +82,7 @@ function queueRow(page: Page, user: string) {
 
 async function selectGroupB(page: Page): Promise<void> {
   const groupSwitcher = page.getByRole("button", { name: "当前群组" });
-  await selectAppOption(groupSwitcher, groupBID);
+  await selectPickerOption(groupSwitcher, "Arch Linux Community");
   await expect(page).toHaveURL(new RegExp(`/queue\\?group=${groupBID}$`));
   await expect(groupSwitcher).toContainText("Arch Linux Community");
   await expect(groupSwitcher).not.toContainText(/-100\d+/);

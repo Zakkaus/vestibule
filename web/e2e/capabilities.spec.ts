@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { selectAppOption } from "./app-select";
+import { selectPickerOption } from "./picker";
 
 const selectedGroupID = "-1009000000701";
 const otherGroupID = "-1009000000703";
@@ -498,7 +498,7 @@ test("capabilities discards a previous group's delayed settings response", async
 
   await page.goto(`/capabilities?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
   await settingsRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群组" }), otherGroupID);
+  await selectPickerOption(page.getByRole("button", { name: "当前群组" }), "Arch Linux Community");
   await expect(page).toHaveURL(new RegExp(`/capabilities\\?group=${otherGroupID}$`));
   await expect(page.getByRole("switch", { name: "自动入群验证" })).toHaveAttribute(
     "aria-checked",
@@ -552,7 +552,7 @@ test("capabilities ignores a previous group's delayed settings save", async ({ p
   await page.getByRole("switch", { name: "自动入群验证" }).click();
   await page.getByRole("button", { name: "保存更改" }).click();
   await patchRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群组" }), otherGroupID);
+  await selectPickerOption(page.getByRole("button", { name: "当前群组" }), "Arch Linux Community");
   await expect(page).toHaveURL(new RegExp(`/capabilities\\?group=${otherGroupID}$`));
   await expect(page.getByRole("switch", { name: "自动入群验证" })).toHaveAttribute(
     "aria-checked",

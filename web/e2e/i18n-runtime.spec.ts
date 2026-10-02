@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { Locator, Page, TestInfo } from "@playwright/test";
 
-import { selectAppOption } from "./app-select";
+import { expectPickerSelection, localeOption, selectPickerOption } from "./picker";
 
 const selectedGroupID = "-1009123456789";
 const localeStorageKey = "verify-console-locale";
@@ -56,7 +56,7 @@ async function waitForPreferences(page: Page): Promise<void> {
 async function preferenceControls(page: Page): Promise<PreferenceControls> {
   const controls = page.locator("[data-preference-local] [data-utility-controls]");
   await expect(controls).toHaveCount(1);
-  const triggers = controls.locator("[data-slot=\"select-trigger\"]");
+  const triggers = controls.getByRole("button");
   await expect(triggers).toHaveCount(2);
   return { locale: triggers.nth(1) };
 }
@@ -70,10 +70,7 @@ async function expectActiveLocale(page: Page, locale: string, preference = local
     "lang",
     locale
   );
-  await expect(controls.locale, "the application would activate a different catalogue than the document language").toHaveAttribute(
-    "data-value",
-    preference
-  );
+  await expectPickerSelection(controls.locale, await localeOption(controls.locale, preference));
 }
 
 test("browser and stored language choices select an available console catalogue", async ({ browser }, testInfo) => {
@@ -157,7 +154,7 @@ test("Japanese and Russian choices survive a page refresh", async ({ page }) => 
   for (const locale of ["ja", "ru"] as const) {
     await test.step(locale, async () => {
       const controls = await preferenceControls(page);
-      await selectAppOption(controls.locale, locale);
+      await selectPickerOption(controls.locale, await localeOption(controls.locale, locale));
       await expectActiveLocale(page, locale);
       await page.reload();
       await waitForPreferences(page);
@@ -224,7 +221,7 @@ test("every offered console language switches and persists", async ({ page }) =>
   for (const locale of ["zh-TW", "en", "zh-CN", "ja", "ru"] as const) {
     await test.step(locale, async () => {
       const controls = await preferenceControls(page);
-      await selectAppOption(controls.locale, locale);
+      await selectPickerOption(controls.locale, await localeOption(controls.locale, locale));
       await expectActiveLocale(page, locale);
       await expect(page.evaluate((key) => localStorage.getItem(key), localeStorageKey)).resolves.toBe(locale);
     });
@@ -245,10 +242,7 @@ test("unsupported document language starts the default console catalogue", async
   const controls = await preferenceControls(page);
 
   await expect(page.locator("html")).toHaveAttribute("lang", "fr-CA");
-  await expect(controls.locale, "an unsupported document language would start the wrong console catalogue").toHaveAttribute(
-    "data-value",
-    "system"
-  );
+  await expectPickerSelection(controls.locale, await localeOption(controls.locale, "system"));
 });
 
 test("language switching keeps working when locale storage rejects persistence", async ({ page }) => {
@@ -266,7 +260,7 @@ test("language switching keeps working when locale storage rejects persistence",
   await page.goto("/preferences");
   await waitForPreferences(page);
   const controls = await preferenceControls(page);
-  await selectAppOption(controls.locale, "en");
+  await selectPickerOption(controls.locale, await localeOption(controls.locale, "en"));
 
   await expectActiveLocale(page, "en", "system");
   await expect(page.evaluate((key) => localStorage.getItem(key), localeStorageKey)).resolves.toBeNull();

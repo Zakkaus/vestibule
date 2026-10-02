@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { selectAppOption } from "./app-select";
+import { selectPickerOption } from "./picker";
 
 const selectedGroupID = "-1009000010001";
 const selectedGroupTitle = "Gentoo-zh Community";
@@ -313,7 +313,7 @@ test("home switches its context to the selected chat title without showing trans
   await expect(page.locator("[data-home-context]")).toContainText(selectedGroupTitle);
 
   const switcher = page.getByRole("button", { name: "当前群组" });
-  await selectAppOption(switcher, otherGroupIDs[0]);
+  await selectPickerOption(switcher, "Arch Linux Community");
   await expect(page).toHaveURL(new RegExp(`/home\\?group=${otherGroupIDs[0]}$`));
   await expect(page.locator("[data-home-context]")).toContainText("Arch Linux Community");
   await expect(page.locator("[data-home-context]")).not.toContainText(selectedGroupTitle);

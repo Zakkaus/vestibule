@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { selectAppOption } from "./app-select";
+import { pickerMessage, selectPickerOption } from "./picker";
 
 const selectedGroupID = "-1009000010001";
 const actorID = "741928306";
@@ -132,16 +132,18 @@ test("verification saves only the edited field through the shared CSRF transport
     }
   );
 
-  await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "kernel");
+  await expect(page.getByRole("button", { name: /验证策略$/ })).toHaveAttribute("aria-describedby", "verification-mode-description");
+  await expect(page.getByRole("button", { name: /挑战发送位置$/ })).toHaveAttribute("aria-describedby", "verification-delivery-mode-description");
+  await expect(page.getByRole("button", { name: /验证策略$/ })).toContainText(await pickerMessage(page, "verification.challenge.kernel"));
   await expect(page.getByText("来源：配置文件")).toBeVisible();
-  await selectAppOption(page.locator("#verification-mode"), "quiz");
+  await selectPickerOption(page.getByRole("button", { name: /验证策略$/ }), await pickerMessage(page, "verification.challenge.quiz"));
   await page.getByRole("button", { name: "保存更改" }).click();
   await patchSettled;
   await expect(page.locator("[data-verification-page]")).toHaveAttribute(
     "data-verification-state",
     "loaded"
   );
-  await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "quiz");
+  await expect(page.getByRole("button", { name: /验证策略$/ })).toContainText(await pickerMessage(page, "verification.challenge.quiz"));
   await expect(page.getByText("来源：当前群覆盖")).toBeVisible();
   await expect(page.locator("[data-verification-feedback]")).toContainText("已保存验证设置");
 });
@@ -161,7 +163,7 @@ test("verification explains an existing cap violation and keeps the rejected dra
     }, 400)
   );
 
-  await selectAppOption(page.locator("#verification-mode"), "quiz");
+  await selectPickerOption(page.getByRole("button", { name: /验证策略$/ }), await pickerMessage(page, "verification.challenge.quiz"));
   await page.getByRole("button", { name: "保存更改" }).click();
   const feedback = page.locator("[data-verification-feedback]");
   await expect(feedback).toHaveAttribute("role", "alert");
@@ -170,7 +172,7 @@ test("verification explains an existing cap violation and keeps the rejected dra
   await expect(violations).toContainText("240");
   await expect(violations).toContainText("120");
   await expect(violations).not.toContainText("owner.fields.");
-  await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "quiz");
+  await expect(page.getByRole("button", { name: /验证策略$/ })).toContainText(await pickerMessage(page, "verification.challenge.quiz"));
   await expect(page.getByRole("button", { name: "保存更改" })).toBeEnabled();
 });
 
@@ -252,14 +254,14 @@ test("verification conflict loads the newer revision and says another administra
     }
   );
 
-  await selectAppOption(page.locator("#verification-mode"), "quiz");
+  await selectPickerOption(page.getByRole("button", { name: /验证策略$/ }), await pickerMessage(page, "verification.challenge.quiz"));
   await page.getByRole("button", { name: "保存更改" }).click();
   await latestSettingsSettled;
   await expect(page.locator("[data-verification-page]")).toHaveAttribute(
     "data-verification-state",
     "loaded"
   );
-  await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "mixed");
+  await expect(page.getByRole("button", { name: /验证策略$/ })).toContainText(await pickerMessage(page, "verification.challenge.mixed"));
   await expect(page.locator("[data-verification-feedback]")).toContainText(
     "其他管理员已修改这些设置"
   );
@@ -295,7 +297,7 @@ test("verification discards a previous group's delayed settings response", async
 
   await page.goto(`/verification?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
   await settingsRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群组" }), "all");
+  await selectPickerOption(page.getByRole("button", { name: "当前群组" }), await pickerMessage(page, "shell.allGroups"));
   await expect(page).toHaveURL(/\/verification$/);
   await expect(page.locator("[data-verification-page]")).toHaveAttribute(
     "data-verification-state",
@@ -344,10 +346,10 @@ test("verification ignores a previous group's delayed settings save", async ({ p
     }
   );
 
-  await selectAppOption(page.locator("#verification-mode"), "quiz");
+  await selectPickerOption(page.getByRole("button", { name: /验证策略$/ }), await pickerMessage(page, "verification.challenge.quiz"));
   await page.getByRole("button", { name: "保存更改" }).click();
   await patchRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群组" }), "all");
+  await selectPickerOption(page.getByRole("button", { name: "当前群组" }), await pickerMessage(page, "shell.allGroups"));
   await expect(page).toHaveURL(/\/verification$/);
   await expect(page.locator("[data-verification-page]")).toHaveAttribute(
     "data-verification-state",
@@ -466,7 +468,7 @@ test("verification retains a draft through transient access failures and removes
     }
   );
 
-  await selectAppOption(page.locator("#verification-mode"), "quiz");
+  await selectPickerOption(page.getByRole("button", { name: /验证策略$/ }), await pickerMessage(page, "verification.challenge.quiz"));
   for (const expectedWrites of [1, 2]) {
     await page.getByRole("button", { name: "保存更改" }).click();
     await expect.poll(() => writes).toBe(expectedWrites);
@@ -474,14 +476,14 @@ test("verification retains a draft through transient access failures and removes
       "data-verification-state",
       "loaded"
     );
-    await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "quiz");
+    await expect(page.getByRole("button", { name: /验证策略$/ })).toContainText(await pickerMessage(page, "verification.challenge.quiz"));
   }
 
   await page.getByRole("button", { name: "保存更改" }).click();
   await expect.poll(() => writes).toBe(3);
   await expect(page.locator("[data-verification-feedback]")).toContainText("已保存验证设置");
 
-  await selectAppOption(page.locator("#verification-mode"), "kernel");
+  await selectPickerOption(page.getByRole("button", { name: /验证策略$/ }), await pickerMessage(page, "verification.challenge.kernel"));
   await page.getByRole("button", { name: "保存更改" }).click();
   await expect.poll(() => writes).toBe(4);
   await expect(page.locator("[data-verification-page]")).toHaveAttribute(
@@ -502,7 +504,7 @@ test("an interrupted verification save provides the settings reload it names", a
     async (route) => route.abort("failed")
   );
 
-  await selectAppOption(page.locator("#verification-mode"), "quiz");
+  await selectPickerOption(page.getByRole("button", { name: /验证策略$/ }), await pickerMessage(page, "verification.challenge.quiz"));
   await page.getByRole("button", { name: "保存更改" }).click();
   const feedback = page.locator("[data-verification-feedback]");
   await expect(feedback).toContainText("连接已中断");

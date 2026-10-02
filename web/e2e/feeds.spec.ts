@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page, type Route } from "@playwright/test";
-import { selectAppOption } from "./app-select";
+import { pickerMessage, selectPickerOption } from "./picker";
 
 const actorID = "9000000201";
 const selectedGroupID = "-1009000000202";
@@ -212,7 +212,7 @@ function feedSetting(page: Page, name: keyof FeedValues): Locator {
 
 function settingControl(page: Page, name: keyof FeedValues): Locator {
   return feedSetting(page, name)
-    .locator("input, [data-slot='select-trigger'], [role='switch']")
+    .locator("input, button[aria-haspopup='listbox'], [role='switch']")
     .first();
 }
 
@@ -297,7 +297,8 @@ test("feeds saves edited settings through the shared CSRF transport", async ({ p
   await expect(page.getByRole("heading", { name: "新闻源地址" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "仓库与分支" })).toBeVisible();
 
-  await selectAppOption(page.locator("#feeds-language"), "en");
+  await expect(page.getByRole("button", { name: /推送语言$/ })).toHaveAttribute("aria-describedby", "feeds-language-description");
+  await selectPickerOption(page.getByRole("button", { name: /推送语言$/ }), await pickerMessage(page, "feeds.languages.en"));
   await page.locator("#feeds-interval-seconds").fill("900");
   await feedSetting(page, "bugs").getByRole("switch").click();
   await page.locator("#feeds-bugzilla-base").fill(editedValues.bugzilla_base);
@@ -361,10 +362,10 @@ test("feeds reloads the newer revision after a settings conflict", async ({ page
     }
   });
 
-  await selectAppOption(page.locator("#feeds-language"), "en");
+  await selectPickerOption(page.getByRole("button", { name: /推送语言$/ }), await pickerMessage(page, "feeds.languages.en"));
   await feedsSaveButton(page).click();
   await latestRead;
-  await expect(page.locator("#feeds-language")).toHaveAttribute("data-value", "ja");
+  await expect(page.getByRole("button", { name: /推送语言$/ })).toContainText(await pickerMessage(page, "feeds.languages.ja"));
   await expect(page.locator("#feeds-interval-seconds")).toHaveValue("120");
   await expect(page.locator("[data-feeds-feedback]")).toBeVisible();
   await expect(page.locator("[data-feeds-feedback]")).toContainText("管理员");
@@ -425,7 +426,7 @@ test("feeds restores factory settings with an empty repository list", async ({ p
     .locator("[data-feeds-form]")
     .getByRole("button", { name: /恢复.*(?:出厂|默认)/ })
     .click();
-  await expect(page.locator("#feeds-language")).toHaveAttribute("data-value", "");
+  await expect(page.getByRole("button", { name: /推送语言$/ })).toContainText(await pickerMessage(page, "feeds.languages.default"));
   await expect(page.locator("#feeds-interval-seconds")).toHaveValue("300");
   await expect(feedSetting(page, "bugs").getByRole("switch")).toHaveAttribute(
     "aria-checked",

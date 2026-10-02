@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { selectAppOption } from "./app-select";
+import { localeOption, selectPickerOption, themeOption } from "./picker";
 
 import type { LocaleCatalogues, RenderRoute } from "./render-gate-routes";
 
@@ -134,7 +134,7 @@ export async function renderCell(
     throw new Error(`${cell.route.sourcePath}: utility controls must expose theme and locale triggers`);
   }
 
-  await selectAppOption(triggers.nth(0), cell.theme);
+  await selectPickerOption(triggers.nth(0), await themeOption(triggers.nth(0), cell.theme));
   await page.waitForFunction((theme) => {
     const root = document.documentElement;
     return (
@@ -143,7 +143,7 @@ export async function renderCell(
     );
   }, cell.theme);
 
-  await selectAppOption(triggers.nth(1), locale);
+  await selectPickerOption(triggers.nth(1), await localeOption(triggers.nth(1), locale));
   await page.waitForFunction(
     (selectedLocale) => document.documentElement.lang === selectedLocale,
     locale

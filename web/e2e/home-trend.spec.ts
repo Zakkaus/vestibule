@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { parseSync, type ESTree } from "vite";
-import { selectAppOption } from "./app-select";
+import { pickerMessage, selectPickerOption } from "./picker";
 import {
   chartDays,
   installSpectrumClock,
@@ -267,7 +267,7 @@ test("combined chart keeps distinct themed colors, surface contrast, and semanti
   const colors: Record<string, string> = {};
   for (const [preference, system] of [["system", "light"], ["system", "dark"], ["light", "dark"], ["dark", "light"]] as const) {
     await page.emulateMedia({ colorScheme: system });
-    await selectAppOption(page.getByRole("button", { name: /Theme$/ }), preference);
+    await selectPickerOption(page.getByRole("button", { name: /Theme$/ }), await pickerMessage(page, `theme.${preference}`));
     await expect(legend).toBeVisible();
     await expect(legend.locator("[data-home-trend-series='count'] [data-icon-name]")).toHaveCount(1);
     await expect(legend.locator("[data-home-trend-series='rate'] [data-icon-name]")).toHaveCount(1);

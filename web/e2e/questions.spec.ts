@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Locator, type Page, type Route } from "@playwright/test";
-import { selectAppOption } from "./app-select";
+import { selectPickerOption } from "./picker";
 const selectedGroupID = "-1009000010001";
 const actorID = "741928306";
 
@@ -728,7 +728,8 @@ test("question deletion requires confirmation and language restoration writes nu
     expected_revision: 9,
     changes: { questions: remainingQuestions, lang: null }
   });
-  await expect(page.locator("#questions-language-select")).toHaveAttribute("data-value", "zh");
+  await expect(page.getByRole("button", { name: /群内答题语言$/ })).toContainText("简体中文");
+  await expect(page.getByRole("button", { name: /群内答题语言$/ })).toHaveAttribute("aria-describedby", "questions-language-description");
 });
 
 test("Japanese and Russian challenge languages can be selected and saved", async ({ page }) => {
@@ -757,7 +758,7 @@ test("Japanese and Russian challenge languages can be selected and saved", async
         );
       }
     );
-    await selectAppOption(page.locator("#questions-language-select"), language);
+    await selectPickerOption(page.getByRole("button", { name: /群内答题语言$/ }), languageLabels[language]);
     await expect(page.locator("#questions-language-select")).toHaveText(
       languageLabels[language]
     );
@@ -766,7 +767,7 @@ test("Japanese and Russian challenge languages can be selected and saved", async
       expected_revision: 20,
       changes: { lang: language }
     });
-    await expect(page.locator("#questions-language-select")).toHaveAttribute("data-value", language);
+    await expect(page.getByRole("button", { name: /群内答题语言$/ })).toHaveText(languageLabels[language]);
   }
 });
 
