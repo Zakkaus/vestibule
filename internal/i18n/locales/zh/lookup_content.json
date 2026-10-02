@@ -1,13 +1,13 @@
 {
   "bug": {
     "usage": "用法：/gbug <编号>。示例：/gbug 900000。",
-    "not_found": "❓ Bug %[1]s 不存在。请检查编号后重试。",
-    "unavailable": "❓ 暂时无法获取 Bug %[1]s 的详情。稍后重试；也可直接查看：%[2]s",
-    "heading": "🐞 <a href=\"%[1]s\">Bug %[2]s</a>\n%[3]s\n",
+    "not_found": "Bug %[1]s 不存在。请检查编号后重试。",
+    "unavailable": "暂时无法获取 Bug %[1]s 的详情。稍后重试；也可直接查看：%[2]s",
+    "heading": "<a href=\"%[1]s\">Bug %[2]s</a>\n%[3]s\n",
     "details": {
-      "resolution_separator": " · ",
+      "resolution_separator": "；",
       "status": "状态：%[1]s",
-      "severity": " · 严重性：%[1]s",
+      "severity": "；严重性：%[1]s",
       "product_component": "产品／组件：%[1]s"
     },
     "status": {
@@ -49,22 +49,22 @@
     }
   },
   "news": {
-    "latest_heading": "📰 Gentoo 最新新闻：",
-    "search_heading": "📰 Gentoo 新闻搜索：%[1]s",
+    "latest_heading": "Gentoo 最新新闻：",
+    "search_heading": "Gentoo 新闻搜索：%[1]s",
     "no_matches": "未找到匹配的新闻。请尝试其他关键词。",
     "unavailable": "暂时无法获取新闻列表。请稍后重试。",
     "stale": "新闻列表暂时无法更新。以上结果可能不完整。请稍后重试。"
   },
   "wiki": {
     "usage": "用法：/wiki <关键词>。示例：/wiki systemd boot。搜索 Gentoo Wiki 和 ArchWiki，并优先显示简体中文页面。",
-    "heading": "📚 <b>%[1]s</b> 的 Wiki 搜索结果",
+    "heading": "<b>%[1]s</b> 的 Wiki 搜索结果",
     "sources_unavailable": "\n\n以下来源暂时无法查询，结果可能不完整：%[1]s。请稍后重试。",
     "source_join": "、",
-    "no_matches": "\n\n未找到相关条目。请尝试其他关键词。"
+    "no_matches": "\n\n未找到匹配页面。请尝试其他关键词。"
   },
   "bbs": {
     "usage": "用法：/gbbs <关键词>。示例：/gbbs nvidia 黑屏。搜索 Linux 论坛，并优先显示中文结果。",
-    "heading": "💬 <b>%[1]s</b> 的论坛搜索结果",
+    "heading": "<b>%[1]s</b> 的论坛搜索结果",
     "arch_cn_heading": "\n\n<b>Arch Linux CN 论坛</b>",
     "arch_cn_unavailable": "\n\n暂时无法获取 Arch Linux CN 论坛的结果。请稍后重试。",
     "arch_cn_no_matches": "\n\nArch Linux CN 论坛未找到匹配结果。请使用下方按钮搜索其他论坛。",
@@ -75,6 +75,6 @@
     "debian_forum": "Debian 论坛"
   },
   "transport": {
-    "private_rate_limited": "⏳ 查询过于频繁。私聊每分钟最多 %[1]d 次；等待 1 分钟后重试。群组内不受此限制。"
+    "private_rate_limited": "查询过于频繁。私聊每分钟最多 %[1]d 次；等待 1 分钟后重试。群组内不受此限制。"
   }
 }

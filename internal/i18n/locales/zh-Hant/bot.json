@@ -1,7 +1,7 @@
 {
   "menu": {
     "member": {
-      "arm": "查看 Gentoo arm64 keyword",
+      "arm": "查看 Gentoo arm64 keyword 狀態",
       "arm_pkgs": "比較各發行版的 arm64 支援情況",
       "bbs": "搜尋 Linux 論壇（中文優先）",
       "bug": "查詢 Gentoo Bugzilla",
@@ -22,13 +22,13 @@
     "admin": {
       "start": "【管理】開啟加入群組驗證",
       "stop": "【管理】關閉加入群組驗證",
-      "mute": "【管理】回覆並禁言（預設 1h）",
-      "unmute": "【管理】回覆並解除禁言",
-      "purge": "【管理】回覆、封禁並清除訊息",
-      "ban": "【管理】回覆、封禁並移出群組",
-      "warn": "【管理】回覆並警告（滿 %[1]d 次移出群組）",
-      "clear_warn": "【管理】回覆並清除警告",
-      "channel": "【管理】管理頻道身分發言",
+      "mute": "【管理】禁言被回覆訊息的使用者（預設 1h）",
+      "unmute": "【管理】解除被回覆訊息的使用者的禁言",
+      "purge": "【管理】封禁被回覆訊息的使用者並清除其所有訊息",
+      "ban": "【管理】封禁被回覆訊息的使用者並移出群組",
+      "warn": "【管理】警告被回覆訊息的使用者（累計 %[1]d 次後移出群組）",
+      "clear_warn": "【管理】清除被回覆訊息的使用者的警告",
+      "channel": "【管理】管理頻道身分發言封禁",
       "rich_text": "【管理】切換 /gpkg、/guse 富文字",
       "name_spoiler": "【管理】切換新成員姓名遮蔽",
       "verification_mode": "【管理】切換驗證方式",
@@ -39,15 +39,15 @@
       "enroll": "建立一次性群組登記連結",
       "unregister": "取消登記執行階段群組",
       "console": "取得一次性控制台連結",
-      "console_denied": "無法提供控制台連結：此執行個體尚未綁定部署者。每次啟動時，綁定連結會寫入包含 OWNER UNCLAIMED 的服務記錄。重新啟動行程後會產生新連結。",
+      "console_denied": "僅部署時綁定的帳號可開啟控制台；此執行個體尚未綁定部署者。每次啟動時，綁定連結會寫入包含 OWNER UNCLAIMED 的服務記錄行。重新啟動行程可產生新連結。",
       "console_sent": "一次性連結，僅可使用一次，且僅限目前帳號。",
       "console_open": "開啟控制台",
       "console_local": "控制台監聽 loopback 介面；該地址僅可從執行控制台的機器開啟。其他機器須先設定連接埠轉送。"
     }
   },
-  "renamed_command": "此指令已改名為 /%[1]s，請改用新名稱。",
+  "renamed_command": "此指令已更名為 /%[1]s，請使用新名稱。",
   "lifecycle": {
-    "unauthorized_chat": "🚪 已自動退出未授權聊天：%[1]s（ID：%[2]d，類型：%[3]s）。"
+    "unauthorized_chat": "已自動退出未授權聊天：%[1]s（ID：%[2]d，類型：%[3]s）。"
   },
   "daily": {
     "report": "%[1]s 的每日裝置狀態\n上線：%[2]s\n就緒：%[3]s\nBot API 心跳：%[4]s\n最近驗證傳送失敗：%[5]s\n待處理驗證：%[6]d",
@@ -59,12 +59,12 @@
     "no_failure": "無"
   },
   "direct_message": {
-    "auto_reply": "👋 %[2]s\n\n• 申請加入群組：請在群組提出加入申請。請回答機器人傳送至此私訊的驗證題，或點選群組內機器人訊息中的「✅ 開始驗證」。\n• 查詢指令也可在私訊中使用，完整清單見 /help。私訊每分鐘最多 %[1]d 次，群組內不限次數。\n• 審核與管理指令僅可在群組內使用。",
+    "auto_reply": "%[2]s\n\n申請加入群組：在群組提交加入申請。回答機器人傳送至此私訊的驗證題，或點選群組內機器人訊息中的「開始驗證」。\n查詢指令也可在私訊中使用，完整清單見 /help。私訊每分鐘最多 %[1]d 次查詢，群組內不限次數。\n審核與管理指令僅可在群組內使用。",
     "identity": "本機器人提供加入群組驗證與群組管理功能；查詢指令由可選模組提供。"
   },
   "registration": {
     "owner_claimed": "部署者身分已綁定至目前帳號。現在可新增群組。",
-    "owner_claim_refused": "擁有者認領連結已使用或已過期。每次行程啟動時，新連結會寫入包含 OWNER UNCLAIMED 的服務記錄。",
+    "owner_claim_refused": "擁有者認領連結無效：已使用或已過期。每次行程啟動時，新連結會寫入包含 OWNER UNCLAIMED 的服務記錄行。",
     "owner_claim_save_failed": "無法儲存擁有者綁定狀態。恢復服務狀態目錄的寫入權限後，使用相同連結重試。",
     "start_identity": "目前 Telegram 使用者 ID：%[1]d。此執行個體尚未綁定部署者。",
     "enrollment_owner_only": "僅機器人擁有者可建立群組登記連結。",
@@ -75,7 +75,7 @@
     "registration_save_failed": "無法持久儲存群組登記。機器人將退出該群組；請檢查服務狀態目錄。",
     "unregister_owner_only": "僅機器人擁有者可取消登記執行階段群組。",
     "unregister_refused": "無法取消登記該群組。請使用 /unregister <group-id> 指定已登記的執行階段群組 ID。",
-    "unregister_save_failed": "無法持久儲存群組移除結果。請恢復服務狀態目錄的寫入權限後重試。",
+    "unregister_save_failed": "無法持久儲存群組取消登記結果。請恢復服務狀態目錄的寫入權限後重試。",
     "group_unregistered": "已取消登記群組「%[1]s」，並刪除其執行階段設定。"
   },
   "setup": {
@@ -84,7 +84,7 @@
     "token_label": "Telegram 機器人權杖",
     "submit": "認領執行個體",
     "token_required": "必須提供 Telegram 機器人權杖。",
-    "claimed": "執行個體已認領，機器人已啟動。",
+    "claimed": "執行個體已認領，機器人正在運作。",
     "binding": "在 Telegram 中開啟此連結，綁定部署者身分。",
     "binding_action": "在 Telegram 中綁定",
     "eyebrow": "部署",
@@ -92,14 +92,14 @@
     "step_console": "開啟控制台",
     "step_console_note": "安裝指令碼已印出一次性連結；該連結用於開啟此控制台。",
     "step_token": "輸入機器人權杖",
-    "step_token_note": "在此處填寫權杖，不要在終端機中輸入；權杖不會寫入指令列歷史，也不會因終端機回捲顯示。",
+    "step_token_note": "在此處填寫權杖，而非在終端機中輸入；權杖不會寫入指令列歷史，也不會顯示在終端機回捲記錄中。",
     "step_binding": "綁定帳號",
     "step_binding_note": "權杖驗證通過後，機器人才能接收綁定所需的私訊指令。",
     "step_group": "將機器人加入首個群組",
-    "step_group_note": "機器人出現在群組後，逐項檢查所需權限。",
+    "step_group_note": "執行個體等待群組出現後，逐項檢查機器人所需權限。",
     "token_hint": "在 Telegram 中透過 @BotFather 建立機器人，將回傳的整行權杖貼到此處；權杖包含冒號前的數字。",
     "token_rejected": "Telegram 未接受該權杖。確認已貼上包含冒號前數字的完整權杖。",
-    "telegram_unreachable": "無法連線至 Telegram，權杖尚未完成驗證。檢查本機網路或代理設定。",
+    "telegram_unreachable": "無法連線至 Telegram，因此權杖尚未完成驗證。應檢查本機網路或代理設定，而非權杖。",
     "instance_fault": "權杖已通過驗證，但執行個體未能啟動。權杖不是故障原因；伺服器記錄檔記錄了具體原因。",
     "bot_name_label": "已連線",
     "after_binding": "綁定後，將機器人加入首個群組；控制台將顯示群組清單。",

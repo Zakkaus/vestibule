@@ -1,7 +1,7 @@
 {
   "bug": {
     "field_separator": "：",
-    "status_resolution_separator": " · ",
+    "status_resolution_separator": "；",
     "status": "狀態",
     "product_component": "產品／元件",
     "priority": "優先順序",
@@ -13,13 +13,13 @@
     "creation_date": "建立日期"
   },
   "git_hub": {
-    "commit": "<a href=\"%[1]s\"><b>%[2]s</b></a> · <code>%[3]s</code>\n%[4]s%[5]s%[6]s",
+    "commit": "<a href=\"%[1]s\"><b>%[2]s</b></a>，<code>%[3]s</code>\n%[4]s%[5]s%[6]s",
     "branch": "\n<b>分支</b>：%[1]s",
     "author": "\n<b>作者</b>：%[1]s",
-    "item": "%[1]s <a href=\"%[2]s\"><b>%[3]s</b></a> · <code>#%[4]d</code> · %[5]s · %[6]s\n%[7]s\n<b>作者</b>：%[8]s",
+    "item": "%[1]s <a href=\"%[2]s\"><b>%[3]s</b></a>，<code>#%[4]d</code>，%[5]s，%[6]s\n%[7]s\n<b>作者</b>：%[8]s",
     "state": {
       "open": "新增",
-      "reopened": "已重開",
+      "reopened": "已重新開啟",
       "merged": "已合併",
       "closed": "已關閉"
     },
