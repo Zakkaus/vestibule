@@ -17,12 +17,13 @@ import unittest
 from collections.abc import Callable, Iterable
 from pathlib import Path
 
+from gate_invocation_cases import GateInvocationCases
 from spectrum_gate_cases import SpectrumGateCases
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
-class GateSelfCoverageTest(SpectrumGateCases, unittest.TestCase):
+class GateSelfCoverageTest(GateInvocationCases, SpectrumGateCases, unittest.TestCase):
     def temporary_tree(self) -> Path:
         directory = tempfile.TemporaryDirectory(prefix="vestibule-gate-")
         self.addCleanup(directory.cleanup)

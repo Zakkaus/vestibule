@@ -14,9 +14,10 @@ exemptions and the citation prefixes already carry.
 What this compares is invocations, not command lines: the release legitimately runs the same gate
 with different arguments.
 """
-import re
 import sys
 from pathlib import Path
+
+from gate_invocations import ci_actions, globbed_directories, invocations, workflow_run_text
 
 ROOT = Path(__file__).resolve().parent.parent
 CI = ROOT / ".github" / "workflows" / "ci.yml"
@@ -58,41 +59,6 @@ EXCLUDED = {
     "scripts/design-checks": "they read the console stylesheets and the two reference pages, none of which the release publishes",
 }
 
-# Command-line gates that are not a repository script. Each is a substring CI's text contains.
-TOOL_GATES = {
-    "gofmt -l": "gofmt",
-    "go mod tidy -diff": "go mod tidy -diff",
-    "go mod verify": "go mod verify",
-    "go vet ./...": "go vet",
-    "cmd/staticcheck": "staticcheck",
-    "go build ./...": "go build",
-    "go build -tags gentoo": "go build (gentoo tag)",
-    "go test -race -shuffle=on ./...": "go test -race -shuffle=on",
-    "go test -race -shuffle=on -tags gentoo": "go test -race -shuffle=on (gentoo tag)",
-    "cmd/govulncheck": "govulncheck",
-    "cmd/gosec": "gosec",
-}
-
-
-def invocations(text: str) -> set:
-    found = set()
-    for match in re.finditer(r"(?<![A-Za-z0-9_./~-])scripts/[A-Za-z0-9_./-]+\.(?:py|sh)", text):
-        found.add(match.group(0))
-    for match in re.finditer(r"npm run ([a-z0-9:-]+)", text):
-        found.add("npm run " + match.group(1))
-    for match in re.finditer(r"uses:\s*([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)@", text):
-        if not match.group(1).startswith("actions/") and not match.group(1).startswith("docker/"):
-            found.add(match.group(1))
-    return found
-
-
-def globbed_directories(text: str) -> set:
-    """A loop over scripts/design-checks/$c.py covers every script in that directory."""
-    return {
-        match.rsplit("/", 1)[0]
-        for match in re.findall(r"scripts/[A-Za-z0-9_./-]*\$[A-Za-z0-9_{}]+[A-Za-z0-9_./-]*", text)
-    }
-
 
 def main() -> int:
     for path in (CI, RELEASE):
@@ -102,10 +68,12 @@ def main() -> int:
     ci = CI.read_text(encoding="utf-8")
     release = RELEASE.read_text(encoding="utf-8")
 
-    ci_gates = invocations(ci)
-    release_gates = invocations(release)
-    release_dirs = globbed_directories(release)
-    ci_dirs = globbed_directories(ci)
+    ci_commands = workflow_run_text(ci)
+    release_commands = workflow_run_text(release)
+    ci_gates = invocations(ci_commands) | ci_actions(ci, ("actions/", "docker/"))
+    release_gates = invocations(release_commands) | ci_actions(release, ("actions/", "docker/"))
+    release_dirs = globbed_directories(release_commands)
+    ci_dirs = globbed_directories(ci_commands)
 
     failures = []
     for gate in sorted(ci_gates):
@@ -126,12 +94,8 @@ def main() -> int:
                 f"CI runs every script in {directory}/ and the release does not, and no reason is recorded"
             )
 
-    for name, label in sorted(TOOL_GATES.items()):
-        if name in ci and name not in release and name not in EXCLUDED:
-            failures.append(f"CI runs {label} and the release does not, and no reason is recorded")
-
     for gate in sorted(EXCLUDED):
-        if gate in ci_gates or gate in ci or gate in ci_dirs:
+        if gate in ci_gates or gate in ci_dirs:
             continue
         failures.append(
             f"{gate!r} is excused from the release gate, and CI does not run it any more; remove the entry"

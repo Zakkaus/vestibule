@@ -67,6 +67,10 @@ All notable changes to this project are documented here. The format is based on
   placeholders in language-specific plural forms.
 - The documented gate contract checks executed Go commands in both directions,
   including race detection, build tags, and pinned analysis-tool versions.
+- Release and documented gate checks share an execution-aware parser, so printed
+  commands cannot stand in for checks or keep obsolete release exclusions alive.
+  Inline and block-scalar workflow steps are recognised when `run` follows a YAML
+  sequence marker.
 - Frontend CSS variable checks retain theme-scope validation while accepting
   definitions from provenance-checked Spectrum output.
 - Navigation documentation consistently describes the selected item's pale accent
