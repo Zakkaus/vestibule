@@ -578,7 +578,7 @@ case_checksums() {
 run_case() {
 	case $1 in
 		hardening) case_hardening ;;
-		lifecycle) case_lifecycle ;;
+		lifecycle) case_lifecycle; . "${ROOT}/scripts/test-install-native.sh"; case_native_deployment ;;
 		legacy-notice) case_legacy_notice_lifecycle ;;
 		container) case_container ;;
 		container-credentials) case_container_requires_bot_api_credentials ;;

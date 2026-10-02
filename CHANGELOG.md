@@ -41,6 +41,9 @@ All notable changes to this project are documented here. The format is based on
 - A scheduled render gate covering every console locale, route, width, and theme.
 
 ### Fixed
+- The Compose database volume now mounts at `/var/lib/postgresql` as PostgreSQL 18 requires.
+  Native installs record their deployment type so host replacement works, and `import-state`
+  rejects a missing or invalid `-pending` before touching the database.
 - Owner private help lists active owner commands. The owner menu and help omit
   `/console` when its link handler is disabled.
 - Production entry pages ignore preview query parameters and retain the authenticated
@@ -82,6 +85,11 @@ All notable changes to this project are documented here. The format is based on
   document gates. The Gentoo compatibility leg runs on ARM; browser jobs retain
   two workers, three journeys shards, and a separate render gate. License inventory
   requests authenticate to the GitHub API when GITHUB_TOKEN is available.
+- Optional `gentoo` and `linux` modules now require an explicit `modules` allowlist.
+  Replace `disabled_modules`, which now prevents startup, with the modules
+  to enable; an absent or empty list enables none. Group lookup commands, menus and
+  help also require `gentoo_lookups_enabled` or `linux_lookups_enabled`, both off by
+  default. Private queries remain available when their process module is enabled.
 - Gentoo lookups now use `/gpkg`, `/guse`, `/garm`, `/gbug`, `/gnews`, and `/gbbs`.
   The `/pkg`, `/use`, `/arm`, `/bug`, `/news`, and `/bbs` aliases only return rename notices,
   stay hidden from menus and `/help`, and will be removed in v5.1.0.
