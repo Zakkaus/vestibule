@@ -443,6 +443,7 @@ func (m *Manager) SetCookies(writer http.ResponseWriter, grant Grant) {
 func (m *Manager) ClearCookies(writer http.ResponseWriter) {
 	http.SetCookie(writer, &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", Expires: time.Unix(1, 0), MaxAge: -1,
 		HttpOnly: true, Secure: true, SameSite: http.SameSiteLaxMode})
+	// #nosec G124 -- SameSite=None is required to expire the secure partitioned Mini App cookie in Telegram's iframe.
 	http.SetCookie(writer, &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", Expires: time.Unix(1, 0), MaxAge: -1,
 		HttpOnly: true, Secure: true, SameSite: http.SameSiteNoneMode, Partitioned: true})
 }

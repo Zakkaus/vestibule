@@ -785,10 +785,10 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
 
     def test_every_screen_error_map_uses_a_code_the_api_can_send(self) -> None:
         tree = self.temporary_tree()
-        old = """    case \"init_data_replayed\":
+        old = """    case \"authentication_invalid\":
       return entryFixtureFor(null);
     default:"""
-        new = """    case \"init_data_replayed\":
+        new = """    case \"authentication_invalid\":
       return entryFixtureFor(null);
     case \"never_sent_code\":
       return entryFixtureFor(null);
