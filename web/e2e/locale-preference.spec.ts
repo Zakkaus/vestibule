@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { expectAppSelection, selectAppOption } from "./app-select";
+import { expectPickerSelection, localeOption, selectPickerOption } from "./picker";
 
 const localeStorageKey = "verify-console-locale";
 
@@ -21,14 +21,14 @@ test.describe("a chosen language can be handed back to the browser", () => {
     await page.goto("/?state=expired");
 
     const control = await localeControl(page);
-    await selectAppOption(control, "en");
+    await selectPickerOption(control, await localeOption(control, "en"));
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     expect(await page.evaluate((key) => localStorage.getItem(key), localeStorageKey)).toBe("en");
 
-    await selectAppOption(control, "system");
+    await selectPickerOption(control, await localeOption(control, "system"));
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-TW");
     expect(await page.evaluate((key) => localStorage.getItem(key), localeStorageKey)).toBeNull();
-    await expectAppSelection(control, "system");
+    await expectPickerSelection(control, await localeOption(control, "system"));
   });
 });
 

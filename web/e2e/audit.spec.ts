@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { selectAppOption } from "./app-select";
+import { selectPickerOption } from "./picker";
 
 const selectedGroupID = "-1009000010001";
 const otherGroupID = "-1009000000001";
@@ -234,7 +234,7 @@ test("audit discards group A's delayed read after the visible group switcher sel
   await aReadRequested;
 
   const groupSwitcher = page.getByRole("button", { name: "当前群组" });
-  await selectAppOption(groupSwitcher, otherGroupID);
+  await selectPickerOption(groupSwitcher, "Arch Linux Community");
   await expect(page).toHaveURL(new RegExp(`/audit\\?group=${otherGroupID}$`));
   await expect(groupSwitcher).toContainText("Arch Linux Community");
   await expect(groupSwitcher).not.toContainText(/-100\d+/);
@@ -303,7 +303,7 @@ test("audit discards group A's delayed undo after the visible group switcher sel
   await expect(groupARow).toHaveAttribute("data-undo-state", "submitting");
 
   const groupSwitcher = page.getByRole("button", { name: "当前群组" });
-  await selectAppOption(groupSwitcher, otherGroupID);
+  await selectPickerOption(groupSwitcher, "Arch Linux Community");
   await expect(page).toHaveURL(new RegExp(`/audit\\?group=${otherGroupID}$`));
   await expect(groupSwitcher).toContainText("Arch Linux Community");
   await expect(groupSwitcher).not.toContainText(/-100\d+/);

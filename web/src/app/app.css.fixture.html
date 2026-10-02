@@ -18,19 +18,10 @@
     <div data-slot="button"></div>
     <div data-slot="field-error"></div>
     <div data-slot="input"></div>
-    <div data-slot="option"></div>
     <div data-slot="select"></div>
-    <div data-slot="select-content"></div>
-    <div data-slot="select-trigger"><span data-icon></span><span data-slot="select-value"></span></div>
-    <div data-utility-controls data-variant="chrome">
-      <div data-utility-control>
-        <div data-slot="select">
-          <button data-slot="select-trigger"><span data-icon></span><span data-slot="select-value"></span></button>
-          <div data-slot="select-content"><div data-slot="option" aria-selected="true"></div></div>
-        </div>
-      </div>
+    <div data-slot="setting" data-diagnostics-daily-setting>
+      <div data-setting-control><div data-slot="select"></div></div>
     </div>
-    <div data-slot="setting" data-diagnostics-daily-setting></div>
     <div data-slot="textarea"></div>
     <div data-stats-chart-series="pass-rate"></div>
     <div data-tone="error"></div>
@@ -39,6 +30,7 @@
     <div data-tone="ok"></div>
     <div data-tone="warning"></div>
     <div data-variant="link"></div>
+    <div data-utility-controls data-variant="chrome"><div data-utility-control></div></div>
     <div data-version-action="upgrade"></div>
     <div data-version-replacement-result="failed"></div>
     <div data-version-replacement-result="rejected"></div>

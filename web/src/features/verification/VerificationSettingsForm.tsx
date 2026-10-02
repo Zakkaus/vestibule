@@ -1,9 +1,12 @@
 import { Button } from "@react-spectrum/s2/Button";
 import { Text } from "@react-spectrum/s2";
+import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { type FormEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
-import { AppSelect, type AppSelectOption } from "../../components/AppSelect";
+import { Picker, PickerItem } from "@react-spectrum/s2/Picker";
+import { SelectContext } from "react-aria-components/Select";
+import { usePickerSaveGuard } from "../../components/pickerAccessibility";
 import { useConsoleSize } from "../../components/ConsoleProvider";
 import { StatusBadge } from "../../components/StatusBadge";
 import { Icon } from "../../icons";
@@ -190,11 +193,13 @@ export function VerificationSettingsForm({
 }: VerificationSettingsFormProps) {
   const { t } = useTranslation();
   const size = useConsoleSize("L");
-  const deliveryOptions: readonly AppSelectOption<DeliveryMode>[] = deliveryModes.map((mode) => ({
+  const deliveryPicker = usePickerSaveGuard(saving);
+  const verifyPicker = usePickerSaveGuard(saving);
+  const deliveryOptions = deliveryModes.map((mode) => ({
     label: t(deliveryModeMessageKeys[mode]),
     value: mode
   }));
-  const verifyOptions: readonly AppSelectOption<VerifyMode>[] = verifyModes.map((mode) => ({
+  const verifyOptions = verifyModes.map((mode) => ({
     label: t(verifyModeMessageKeys[mode]),
     value: mode
   }));
@@ -216,15 +221,23 @@ export function VerificationSettingsForm({
           onRestore={onRestore}
         >
           {(describedBy) => (
-            <AppSelect
-              aria-label={t("verification.delivery.label")}
-              id="verification-delivery-mode"
-              aria-describedby={describedBy}
-              value={draft.delivery_mode}
-              aria-disabled={saving ? "true" : undefined}
-              options={deliveryOptions}
-              onValueChange={(value) => onDraftChange("delivery_mode", value)}
-            />
+            <SelectContext value={{ "aria-describedby": describedBy }}>
+              <Picker
+                aria-label={t("verification.delivery.label")}
+                id="verification-delivery-mode"
+                aria-describedby={describedBy}
+                selectedKey={draft.delivery_mode}
+                aria-disabled={saving ? "true" : undefined}
+                {...deliveryPicker}
+                items={deliveryOptions}
+                size={size}
+                data-slot="select"
+                data-console-control
+                onSelectionChange={(key) => { if (!saving && key !== null) onDraftChange("delivery_mode", key as DeliveryMode); }}
+              >
+                {(option) => <PickerItem id={option.value}>{option.label}</PickerItem>}
+              </Picker>
+            </SelectContext>
           )}
         </SettingRow>
       </section>
@@ -244,15 +257,25 @@ export function VerificationSettingsForm({
           onRestore={onRestore}
         >
           {(describedBy) => (
-            <AppSelect
-              aria-label={t("verification.challenge.label")}
-              id="verification-mode"
-              aria-describedby={describedBy}
-              value={draft.verify_mode}
-              aria-disabled={saving ? "true" : undefined}
-              options={verifyOptions}
-              onValueChange={(value) => onDraftChange("verify_mode", value)}
-            />
+            <SelectContext value={{ "aria-describedby": describedBy }}>
+              <Picker
+                aria-label={t("verification.challenge.label")}
+                id="verification-mode"
+                aria-describedby={describedBy}
+                selectedKey={draft.verify_mode}
+                aria-disabled={saving ? "true" : undefined}
+                {...verifyPicker}
+                // Two lines fit the native control height without widening the card.
+                renderValue={(items) => <Text styles={style({ whiteSpace: "normal", overflow: "visible", textOverflow: "clip", lineHeight: "[1.1]" })}>{items[0]?.label}</Text>}
+                items={verifyOptions}
+                size={size}
+                data-slot="select"
+                data-console-control
+                onSelectionChange={(key) => { if (!saving && key !== null) onDraftChange("verify_mode", key as VerifyMode); }}
+              >
+                {(option) => <PickerItem id={option.value}>{option.label}</PickerItem>}
+              </Picker>
+            </SelectContext>
           )}
         </SettingRow>
       </section>

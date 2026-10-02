@@ -20,7 +20,6 @@ import {
 } from "../app/theme";
 import { Icon, type IconName } from "../icons";
 import { useConsoleSize } from "./ConsoleProvider";
-import { AppSelect } from "./AppSelect";
 
 const localeLabelKeys: Record<LocalePreference, string> = {
   system: "locale.system",
@@ -46,13 +45,23 @@ const themeLabelKeys: Record<ThemePreference, string> = {
   light: "theme.light",
   dark: "theme.dark"
 };
-// Wide enough for the longest value in each supported language: at 160 the
-// browser-default language read as "跟随浏…".
-const chromePickerLayout = style({
+const themePickerLayout = style({
   width: {
-    default: 176,
+    default: 192,
     "@media (max-width: 48rem)": "full"
   },
+  minWidth: 0
+});
+
+const localePickerLayout = style({
+  width: { default: 304, "@media (max-width: 48rem)": "full" },
+  maxWidth: "full",
+  minWidth: 0
+});
+
+const chromePickerLayout = style({
+  width: { default: 176, "@media (max-width: 48rem)": "full" },
+  maxWidth: "full",
   minWidth: 0
 });
 
@@ -167,23 +176,43 @@ export function UtilityControls({ variant = "labelled" }: UtilityControlsProps) 
     <div data-utility-controls data-variant={variant}>
       <div data-utility-control>
         <span id={themeLabelId}>{t("theme.label")}</span>
-        <AppSelect
+        <Picker
           aria-labelledby={themeLabelId}
-          icon={themeIcons[theme]}
-          value={theme}
-          options={themeOptions}
-          onValueChange={changeTheme}
-        />
+          selectedKey={theme}
+          items={themeOptions}
+          onSelectionChange={(key) => { if (key !== null) changeTheme(String(key)); }}
+          size={size}
+          data-slot="select"
+          data-console-control
+          styles={themePickerLayout}
+          renderValue={(items) => (
+            <Content data-console-choice-value styles={style({ display: "flex", alignItems: "center", minWidth: 0 })}>
+              <Icon name={themeIcons[theme]} /><Text styles={style({ minWidth: 0, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" })}>{items[0]?.label}</Text>
+            </Content>
+          )}
+        >
+          {(option) => <PickerItem id={option.value}>{option.label}</PickerItem>}
+        </Picker>
       </div>
       <div data-utility-control>
         <span id={localeLabelId}>{t("locale.label")}</span>
-        <AppSelect
+        <Picker
           aria-labelledby={localeLabelId}
-          icon="languages"
-          value={locale}
-          options={localeOptions}
-          onValueChange={changeLocale}
-        />
+          selectedKey={locale}
+          items={localeOptions}
+          onSelectionChange={(key) => { if (key !== null) changeLocale(String(key)); }}
+          size={size}
+          data-slot="select"
+          data-console-control
+          styles={localePickerLayout}
+          renderValue={(items) => (
+            <Content data-console-choice-value styles={style({ display: "flex", alignItems: "center", minWidth: 0 })}>
+              <Icon name="languages" /><Text styles={style({ minWidth: 0, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" })}>{items[0]?.label}</Text>
+            </Content>
+          )}
+        >
+          {(option) => <PickerItem id={option.value}>{option.label}</PickerItem>}
+        </Picker>
       </div>
     </div>
   );

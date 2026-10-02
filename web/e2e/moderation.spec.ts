@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { selectAppOption } from "./app-select";
+import { selectPickerOption } from "./picker";
 
 const selectedGroupID = "-1009000010001";
 const otherGroupID = "-1009000000001";
@@ -300,7 +300,7 @@ test("moderation discards a previous group's delayed settings response", async (
 
   await page.goto(`/moderation?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
   await settingsRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群组" }), otherGroupID);
+  await selectPickerOption(page.getByRole("button", { name: "当前群组" }), "Arch Linux Community");
   await expect(page).toHaveURL(new RegExp(`/moderation\\?group=${otherGroupID}$`));
   await expect(page.getByLabel("警告上限")).toHaveValue("9");
 
@@ -355,7 +355,7 @@ test("moderation ignores a previous group's delayed settings save", async ({ pag
   await page.getByRole("switch", { name: "拦截冒充频道身份的消息" }).click();
   await page.getByRole("button", { name: "保存", exact: true }).click();
   await patchRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群组" }), otherGroupID);
+  await selectPickerOption(page.getByRole("button", { name: "当前群组" }), "Arch Linux Community");
   await expect(page).toHaveURL(new RegExp(`/moderation\\?group=${otherGroupID}$`));
   await expect(page.getByLabel("警告上限")).toHaveValue("9");
 

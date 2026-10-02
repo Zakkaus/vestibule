@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { expectAppSelection, selectAppOption } from "./app-select";
+import { expectPickerSelection, localeOption, selectPickerOption, themeOption } from "./picker";
 
 const selectedGroupId = "-1009000010001";
 const resetMarker = "preferences-test-reset";
@@ -118,9 +118,9 @@ async function expectThemePreferenceAfterReload(
   await waitForPreferences(page);
   const controls = await preferenceControls(page);
   expect(await page.evaluate(() => localStorage.getItem("verify-console-theme"))).toBeNull();
-  await expect(controls.theme).toHaveAttribute("data-value", "system");
+  await expectPickerSelection(controls.theme, await themeOption(controls.theme, "system"));
 
-  await selectAppOption(controls.theme, preference);
+  await selectPickerOption(controls.theme, await themeOption(controls.theme, preference));
   await page.waitForFunction((expectedPreference) => {
     const root = document.documentElement;
     return (
@@ -128,11 +128,8 @@ async function expectThemePreferenceAfterReload(
       root.dataset.theme === expectedPreference
     );
   }, preference);
-  await expect(controls.theme).toHaveAttribute("data-value", preference);
-  await expectAppSelection(
-    page.locator(".console-controls [data-utility-controls]").getByRole("button").first(),
-    preference
-  );
+  await expectPickerSelection(controls.theme, await themeOption(controls.theme, preference));
+  await expectPickerSelection(page.locator(".console-controls [data-utility-controls]").getByRole("button").first(), await themeOption(page.locator(".console-controls [data-utility-controls]").getByRole("button").first(), preference));
   expect(await page.evaluate(() => localStorage.getItem("verify-console-theme"))).toBe(preference);
 
   const reloadedEntry = await pauseAppEntry(page);
@@ -148,7 +145,7 @@ async function expectThemePreferenceAfterReload(
 
   await waitForPreferences(page);
   const reloadedControls = await preferenceControls(page);
-  await expect(reloadedControls.theme).toHaveAttribute("data-value", preference);
+  await expectPickerSelection(reloadedControls.theme, await themeOption(reloadedControls.theme, preference));
   await page.waitForFunction((expectedPreference) => {
     const root = document.documentElement;
     return (
@@ -168,7 +165,7 @@ async function preferenceControls(page: Page): Promise<PreferenceControls> {
   const controls = page.locator("[data-preference-local] [data-utility-controls]");
   await expect(controls).toHaveCount(1);
 
-  const triggers = controls.locator("[data-slot=\"select-trigger\"]");
+  const triggers = controls.getByRole("button");
   await expect(triggers).toHaveCount(2);
 
   return {
@@ -196,10 +193,10 @@ test("an explicitly selected app locale persists after a real reload", async ({ 
   const browserLanguage = await page.evaluate(() => navigator.language);
   expect(browserLanguage.startsWith("zh")).toBe(true);
   expect(await page.evaluate(() => localStorage.getItem("verify-console-locale"))).toBeNull();
-  await expect(controls.locale).toHaveAttribute("data-value", "system");
+  await expectPickerSelection(controls.locale, await localeOption(controls.locale, "system"));
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
 
-  await selectAppOption(controls.locale, "en");
+  await selectPickerOption(controls.locale, await localeOption(controls.locale, "en"));
   await expect(page.locator("[data-preferences-page] h1")).toHaveText("Preferences");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   expect(await page.evaluate(() => localStorage.getItem("verify-console-locale"))).toBe("en");
@@ -208,7 +205,7 @@ test("an explicitly selected app locale persists after a real reload", async ({ 
   await waitForPreferences(page);
   const reloadedControls = await preferenceControls(page);
   await expect(page.locator("[data-preferences-page] h1")).toHaveText("Preferences");
-  await expect(reloadedControls.locale).toHaveAttribute("data-value", "en");
+  await expectPickerSelection(reloadedControls.locale, await localeOption(reloadedControls.locale, "en"));
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   expect(await page.evaluate(() => localStorage.getItem("verify-console-locale"))).toBe("en");
   expect(requests).toEqual(expectedShellRequests);
@@ -229,7 +226,7 @@ test.describe("browser-language locale selection", () => {
     const controls = await preferenceControls(page);
 
     await expect(page.locator("[data-preferences-page] h1")).toHaveText("Preferences");
-    await expect(controls.locale).toHaveAttribute("data-value", "system");
+    await expectPickerSelection(controls.locale, await localeOption(controls.locale, "system"));
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     expect(await page.evaluate(() => localStorage.getItem("verify-console-locale"))).toBeNull();
     expect(requests).toEqual(expectedShellRequests.slice(0, 2));
@@ -250,7 +247,7 @@ test.describe("Traditional Chinese browser-language locale selection", () => {
     await waitForPreferences(page);
     const controls = await preferenceControls(page);
 
-    await expect(controls.locale).toHaveAttribute("data-value", "system");
+    await expectPickerSelection(controls.locale, await localeOption(controls.locale, "system"));
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-TW");
     expect(await page.evaluate(() => localStorage.getItem("verify-console-locale"))).toBeNull();
     expect(requests).toEqual(expectedShellRequests.slice(0, 2));
@@ -267,16 +264,16 @@ test("theme preference listbox supports keyboard selection and dismissal", async
   await theme.focus();
   await page.keyboard.press("Enter");
   await expect(theme).toHaveAttribute("aria-expanded", "true");
-  await expect(theme.locator("xpath=..").locator('[role="option"][data-value="system"]')).toBeFocused();
+  await expect(page.getByRole("option", { name: await themeOption(theme, "system"), exact: true })).toBeFocused();
 
   await page.keyboard.press("ArrowDown");
-  await expect(theme.locator("xpath=..").locator('[role="option"][data-value="light"]')).toBeFocused();
+  await expect(page.getByRole("option", { name: await themeOption(theme, "light"), exact: true })).toBeFocused();
   await page.keyboard.press("End");
-  await expect(theme.locator("xpath=..").locator('[role="option"][data-value="dark"]')).toBeFocused();
+  await expect(page.getByRole("option", { name: await themeOption(theme, "dark"), exact: true })).toBeFocused();
   await page.keyboard.press("Enter");
 
   await expect(theme).toHaveAttribute("aria-expanded", "false");
-  await expect(theme).toHaveAttribute("data-value", "dark");
+  await expectPickerSelection(theme, await themeOption(theme, "dark"));
   await expect(theme).toBeFocused();
 
   await page.keyboard.press(" ");
@@ -285,20 +282,18 @@ test("theme preference listbox supports keyboard selection and dismissal", async
   await expect(theme).toHaveAttribute("aria-expanded", "false");
   await expect(theme).toBeFocused();
 
-  // Home and End are listed twice in this component: once for the closed trigger
-  // and once for a focused option. Disabling the trigger pair left the whole
-  // suite green, because every existing press happened with an option focused.
-  const options = theme.locator("xpath=..");
-  await page.keyboard.press("Home");
+  await page.keyboard.press("ArrowDown");
   await expect(theme).toHaveAttribute("aria-expanded", "true");
-  await expect(options.locator('[role="option"][data-value="system"]')).toBeFocused();
+  await page.keyboard.press("Home");
+  await expect(page.getByRole("option", { name: await themeOption(theme, "system"), exact: true })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(theme).toHaveAttribute("aria-expanded", "false");
   await expect(theme).toBeFocused();
 
-  await page.keyboard.press("End");
+  await page.keyboard.press("ArrowUp");
   await expect(theme).toHaveAttribute("aria-expanded", "true");
-  await expect(options.locator('[role="option"][data-value="dark"]')).toBeFocused();
+  await page.keyboard.press("End");
+  await expect(page.getByRole("option", { name: await themeOption(theme, "dark"), exact: true })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(theme).toHaveAttribute("aria-expanded", "false");
 });

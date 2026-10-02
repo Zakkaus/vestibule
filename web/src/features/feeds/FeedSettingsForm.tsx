@@ -3,7 +3,9 @@ import { Text } from "@react-spectrum/s2";
 import type { FormEvent, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
-import { AppSelect, type AppSelectOption } from "../../components/AppSelect";
+import { Picker, PickerItem } from "@react-spectrum/s2/Picker";
+import { SelectContext } from "react-aria-components/Select";
+import { usePickerSaveGuard } from "../../components/pickerAccessibility";
 import { useConsoleSize } from "../../components/ConsoleProvider";
 import { StatusBadge } from "../../components/StatusBadge";
 import { Icon } from "../../icons";
@@ -324,7 +326,8 @@ export function FeedSettingsForm({
 }: FeedSettingsFormProps) {
   const { t } = useTranslation();
   const size = useConsoleSize("L");
-  const languageOptions: readonly AppSelectOption<FeedLanguage>[] = Object.keys(languageMessageKeys).map((value) => ({
+  const languagePicker = usePickerSaveGuard(saving);
+  const languageOptions = Object.keys(languageMessageKeys).map((value) => ({
     value: value as FeedLanguage,
     label: t(languageMessageKeys[value as FeedLanguage])
   }));
@@ -360,16 +363,24 @@ export function FeedSettingsForm({
           errorKey={errors.lang}
         >
           {(describedBy) => (
-            <AppSelect
-              id="feeds-language"
-              aria-label={t("feeds.fields.language.label")}
-              aria-describedby={describedBy}
-              aria-invalid={errors.lang ? "true" : undefined}
-              aria-disabled={saving ? "true" : undefined}
-              value={draft.lang}
-              options={languageOptions}
-              onValueChange={(value) => update("lang", value)}
-            />
+            <SelectContext value={{ "aria-describedby": describedBy }}>
+              <Picker
+                id="feeds-language"
+                aria-label={t("feeds.fields.language.label")}
+                aria-describedby={describedBy}
+                isInvalid={Boolean(errors.lang)}
+                aria-disabled={saving ? "true" : undefined}
+                {...languagePicker}
+                selectedKey={draft.lang}
+                items={languageOptions}
+                size={size}
+                data-slot="select"
+                data-console-control
+                onSelectionChange={(key) => { if (!saving && key !== null) update("lang", key as FeedLanguage); }}
+              >
+                {(option) => <PickerItem id={option.value}>{option.label}</PickerItem>}
+              </Picker>
+            </SelectContext>
           )}
         </SettingRow>
         <SettingRow

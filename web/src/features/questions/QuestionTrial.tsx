@@ -5,7 +5,8 @@ import { useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import { consoleApi } from "../../app/session";
-import { AppSelect, type AppSelectOption } from "../../components/AppSelect";
+import { Picker, PickerItem } from "@react-spectrum/s2/Picker";
+import { useConsoleSize } from "../../components/ConsoleProvider";
 import type { ApiRequestError, ApiResult } from "../../lib/api";
 import { Icon } from "../../icons";
 import {
@@ -246,12 +247,13 @@ function TrialAnswer({ controller }: Readonly<{ controller: TrialController }>) 
 
 function TrialControls({ controller, onReload }: Readonly<{ controller: TrialController; onReload: () => void }>) {
   const { t } = useTranslation();
+  const size = useConsoleSize("L");
   const { collection, questionIndex, pending, questions, chooseCollection, chooseQuestion, submit, result, error } = controller;
-  const collectionOptions: readonly AppSelectOption<QuestionTrialCollection>[] = [
+  const collectionOptions: readonly { label: string; value: QuestionTrialCollection }[] = [
     { label: t("questions.trial.multipleChoice"), value: "questions" },
     { label: t("questions.trial.fallback"), value: "fallback_questions" }
   ];
-  const questionOptions: readonly AppSelectOption<string>[] = questions.map((item, index) => ({
+  const questionOptions = questions.map((item, index) => ({
     label: `${index + 1}. ${item.q}`,
     value: String(index)
   }));
@@ -262,13 +264,18 @@ function TrialControls({ controller, onReload }: Readonly<{ controller: TrialCon
           <label htmlFor="questions-trial-collection">{t("questions.trial.collectionLabel")}</label>
         </div>
         <div data-question-setting-control>
-          <AppSelect
+          <Picker
             aria-label={t("questions.trial.collectionLabel")}
             id="questions-trial-collection"
-            value={collection}
-            options={collectionOptions}
-            onValueChange={chooseCollection}
-          />
+            selectedKey={collection}
+            items={collectionOptions}
+            size={size}
+            data-slot="select"
+            data-console-control
+            onSelectionChange={(key) => { if (key !== null) chooseCollection(key as QuestionTrialCollection); }}
+          >
+            {(option) => <PickerItem id={option.value}>{option.label}</PickerItem>}
+          </Picker>
         </div>
       </div>
       <div data-slot="setting">
@@ -276,13 +283,22 @@ function TrialControls({ controller, onReload }: Readonly<{ controller: TrialCon
           <label htmlFor="questions-trial-question">{t("questions.trial.questionLabel")}</label>
         </div>
         <div data-question-setting-control>
-          <AppSelect
+          <Picker
             aria-label={t("questions.trial.questionLabel")}
             id="questions-trial-question"
-            value={String(questionIndex)}
-            options={questionOptions}
-            onValueChange={chooseQuestion}
-          />
+            label={questionOptions[questionIndex]?.label}
+            selectedKey={String(questionIndex)}
+            items={questionOptions}
+            isDisabled={questionOptions.length === 0}
+            placeholder={questionOptions.length === 0 ? "" : undefined}
+            size={size}
+            data-slot="select"
+            data-console-control
+            renderValue={() => <Text>{questionIndex + 1}</Text>}
+            onSelectionChange={(key) => { if (key !== null) chooseQuestion(String(key)); }}
+          >
+            {(option) => <PickerItem id={option.value}>{option.label}</PickerItem>}
+          </Picker>
         </div>
       </div>
       <TrialAnswer controller={controller} />

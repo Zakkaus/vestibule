@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { selectAppOption } from "./app-select";
+import { selectPickerOption, themeOption } from "./picker";
 import { horizontalGeometry } from "./render-gate-audits";
 
 import {
@@ -146,7 +146,7 @@ test.describe("Spectrum shell geometry across changed routes", () => {
             .first()
             .locator("button")
             .first();
-          await selectAppOption(themeTrigger, theme);
+          await selectPickerOption(themeTrigger, await themeOption(themeTrigger, theme));
           await waitForFonts(page);
           const overflow = await horizontalGeometry(page);
           expect(overflow.document.scrollWidth).toBeLessThanOrEqual(overflow.document.clientWidth);
@@ -260,7 +260,7 @@ for (const [preference, system] of [["light", "dark"], ["dark", "light"], ["syst
       .first()
       .locator("button")
       .first();
-    await selectAppOption(themeTrigger, preference);
+    await selectPickerOption(themeTrigger, await themeOption(themeTrigger, preference));
     await page.waitForFunction((expected) => (
       document.documentElement.dataset.themePreference === expected &&
       (expected === "system" ? !document.documentElement.hasAttribute("data-theme") : document.documentElement.dataset.theme === expected)

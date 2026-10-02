@@ -55,6 +55,10 @@ All notable changes to this project are documented here. The format is based on
   returns a complete error response instead of an empty successful response.
 - Auto-reply hashtag rules require a valid left boundary, excluding embedded words and URL
   fragments while preserving punctuation-delimited tags and the context of later tags.
+- Settings pickers fit translated values within card content boxes; long strategy
+  values wrap at whole-word boundaries. Question titles wrap above the trial picker.
+  Cards retain their phone gutters and padding, and header controls keep the main
+  branch's compact arrangement.
 - The Compose database volume now mounts at `/var/lib/postgresql` as PostgreSQL 18 requires.
   Native installs record their deployment type so host replacement works, and `import-state`
   rejects a missing or invalid `-pending` before touching the database.
@@ -68,6 +72,9 @@ All notable changes to this project are documented here. The format is based on
   only until five minutes after the original admission.
 - Wrong-answer declines retain the same failure strike in direct console settlement and retries
   when Telegram reports that the join request is gone and confirms the applicant is outside the group.
+- Console preferences and setting selectors use Spectrum Picker, retaining accessible
+  descriptions, save-time interaction guards, matching control heights, and blank
+  disabled triggers for empty saved question banks. Obsolete select styling is removed.
 - Owner private help lists active owner commands. The owner menu and help omit
   `/console` when its link handler is disabled.
 - Production entry pages ignore preview query parameters and retain the authenticated

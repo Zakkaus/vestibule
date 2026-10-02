@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { selectAppOption } from "./app-select";
+import { selectPickerOption } from "./picker";
 
 const selectedGroupID = "-1009000010001";
 const otherGroupID = "-1009000000003";
@@ -335,7 +335,7 @@ test("bypass discards a previous group's delayed settings response", async ({ pa
 
   await page.goto(`/bypass?group=${selectedGroupID}`, { waitUntil: "domcontentloaded" });
   await settingsRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群组" }), otherGroupID);
+  await selectPickerOption(page.getByRole("button", { name: "当前群组" }), "Arch Linux Community");
   await expect(page).toHaveURL(new RegExp(`/bypass\\?group=${otherGroupID}$`));
   await expect(page.locator("#bypass-channel-display")).toHaveValue("@group-b");
 
@@ -389,7 +389,7 @@ test("bypass ignores a previous group's delayed settings save", async ({ page })
   await page.locator("#bypass-channel-display").fill("@group-a");
   await page.getByRole("button", { name: "保存" }).click();
   await patchRequested;
-  await selectAppOption(page.getByRole("button", { name: "当前群组" }), otherGroupID);
+  await selectPickerOption(page.getByRole("button", { name: "当前群组" }), "Arch Linux Community");
   await expect(page).toHaveURL(new RegExp(`/bypass\\?group=${otherGroupID}$`));
   await expect(page.locator("#bypass-channel-display")).toHaveValue("@group-b");
 

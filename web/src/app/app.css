@@ -21,6 +21,7 @@ body {
    page; the vendored border and shadow would draw a second edge around it. */
 [data-app-shell] [data-slot="card"] {
   padding: var(--sp-4) var(--sp-5);
+  min-inline-size: 0;
   border: 0;
   box-shadow: none;
 }
@@ -82,6 +83,7 @@ body {
 [data-diagnostics-section],
 [data-version-section] {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--sp-4);
 }
 [data-slot="button"] {
@@ -165,40 +167,10 @@ body {
   gap: var(--sp-3);
 }
 
-/* The trigger carries three children now: the glyph for the current value, the
-   value itself, and the arrow. Under space-between the value drifted into the
-   middle of the control, away from the glyph it belongs to; letting it take the
-   free space keeps the pair together at the start and the arrow at the end. */
-/* These controls sit in the top corner, so a menu anchored to its trigger's
-   start edge grows toward the viewport edge and off it: the widest option in
-   English is "Chinese, Simplified", which is far wider than the trigger. It is
-   anchored to the end edge here, so it grows back into the page instead. A
-   max-inline-size cannot solve this — min-inline-size wins over max in CSS, and
-   the minimum is what stops the options wrapping. */
-[data-utility-controls][data-variant="chrome"] [data-slot="select-content"] {
-  inset-inline-start: auto;
-  inset-inline-end: 0;
-}
-
 /* Chrome drops the stacked label, so the control keeps its own minimum rather
    than the width a label above it used to impose. */
 [data-utility-controls][data-variant="chrome"] [data-utility-control] {
   gap: 0;
-}
-
-[data-slot="select-trigger"] [data-icon] {
-  flex: none;
-  inline-size: 1rem;
-  block-size: 1rem;
-  color: var(--muted-foreground);
-}
-
-[data-slot="select-value"] {
-  flex: 1 1 auto;
-  min-inline-size: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
 [data-utility-control] {
@@ -206,6 +178,8 @@ body {
   gap: var(--sp-1);
   font-size: 0.75rem;
   color: var(--muted-foreground);
+  min-inline-size: 0;
+  max-inline-size: 100%;
 }
 
 [data-utility-control] [data-slot="select"] {
@@ -221,68 +195,16 @@ body {
   min-inline-size: 0;
 }
 
-[data-slot="select-trigger"] {
-  max-inline-size: 100%;
-}
-
-[data-slot="select-trigger"][aria-disabled="true"],
-[data-slot="select-trigger"]:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-
-[data-slot="select-content"] {
-  position: absolute;
-  z-index: 1;
-  inset-block-start: calc(100% + var(--sp-1));
-  /* Anchored to the trigger's start edge and sized to its longest option. Pinning both edges made
-     the menu exactly as wide as whatever the current value happens to be, so a two-character value
-     left the four-character option wrapping onto a second line. A percentage minimum is not the
-     way back: this menu's containing block shrinks to fit, and the spec resolves a percentage min
-     to zero there. */
-  inset-inline-start: 0;
-  inset-inline-end: auto;
-  /* At least as wide as the trigger it drops out of, and at least as wide as its
-     longest option. A percentage minimum cannot say the first half: this menu's
-     containing block shrinks to fit and the spec resolves a percentage min to
-     zero there, so the length goes on inline-size and the intrinsic size goes on
-     the minimum, which is the pair that survives both. */
-  inline-size: 100%;
-  min-inline-size: max-content;
-  max-inline-size: min(18rem, 80vw);
-  display: grid;
-  gap: var(--sp-1);
-  max-block-size: calc(var(--control-h-lg) * 6);
-  overflow-y: auto;
-  padding: var(--sp-1) var(--sp-2);
-  border: var(--hairline) solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--popover);
-  box-shadow: var(--elev-2);
-}
-
-[data-slot="option"] {
-  display: flex;
-  align-items: center;
+/* Picker values need their own row rather than competing with translated help text. */
+[data-slot="setting"]:has([data-slot="select"]) {
+  flex-direction: column;
+  align-items: stretch;
   gap: var(--sp-2);
-  min-block-size: var(--control-h);
-  padding-inline: var(--sp-3);
-  white-space: nowrap;
-  border-radius: var(--radius-md);
-  color: var(--foreground);
-  cursor: pointer;
 }
 
-[data-slot="option"]:hover,
-[data-slot="option"][aria-selected="true"] {
-  background: var(--accent);
+[data-slot="setting"]:has([data-slot="select"]) > :last-child {
+  justify-content: start;
 }
-
-[data-slot="option"]:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: -2px;
-}
-
 
 [data-entry-main] {
   display: grid;
@@ -487,8 +409,10 @@ body {
 
 [data-setting-control] {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   inline-size: min(100%, 14rem);
   flex: none;
+  min-inline-size: 0;
   justify-items: end;
   padding-block-start: var(--sp-1);
 }
@@ -958,28 +882,21 @@ body {
   [data-entry-utilities] [data-utility-controls] {
     inline-size: 100%;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  /* The controls wrapper is display: contents at this width (the component's own rule
-     wins over the grid above), so the two controls are the header's flex items. Let the
-     header wrap and give each control half a row; at 320px in the widest locale half a
-     row is less than a picker's content, so there they take a row each. */
+  /* Display-contents exposes the controls as header flex items; translated values
+     need a full row each rather than sharing a narrow row. */
   [data-entry-utilities] {
     flex-wrap: wrap;
     gap: var(--sp-3);
   }
 
   [data-entry-utilities] [data-utility-control] {
-    flex: 1 1 calc(50% - var(--sp-3));
+    flex: 1 1 100%;
     min-inline-size: 0;
   }
 
-  @media (max-width: 24rem) {
-    [data-entry-utilities] [data-utility-control] {
-      flex-basis: 100%;
-    }
-  }
 
   [data-entry-utilities] [data-utility-control] [data-slot="select"] {
     inline-size: 100%;
@@ -1176,7 +1093,7 @@ body {
 }
 
 [data-verification-setting-control] [data-slot="select"] {
-  inline-size: var(--field-w);
+  inline-size: 22rem;
   max-inline-size: 100%;
 }
 
@@ -1373,13 +1290,23 @@ body {
 
 [data-question-setting-control] {
   display: flex;
+  flex-wrap: wrap;
   min-inline-size: 0;
   align-items: center;
   justify-content: end;
 }
 
 [data-question-setting-control] [data-slot="select"] {
-  inline-size: var(--field-w);
+  inline-size: 22rem;
+  max-inline-size: 100%;
+}
+
+[data-setting-control]:has([data-slot="select"]) {
+  inline-size: min(100%, 22rem);
+}
+
+[data-setting-control] [data-slot="select"] {
+  inline-size: 22rem;
   max-inline-size: 100%;
 }
 
@@ -2748,15 +2675,6 @@ body {
   [data-version-action="upgrade"] {
     inline-size: 100%;
   }
-}
-
-/* The chosen option is set in the weight of the foreground while the others are
-   not. Selection used to be shown by background alone, which is the treatment
-   hover uses, so a pointer resting on a neighbour made two rows look chosen.
-   Weight is the difference hover does not touch. */
-[data-slot="option"][aria-selected="true"] {
-  color: var(--foreground);
-  font-weight: 600;
 }
 
 [data-feeds-form] {
