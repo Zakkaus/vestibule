@@ -567,8 +567,8 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
             lambda: self.replace_text(
                 tree,
                 ".github/workflows/ci.yml",
-                '        tags: ["", "gentoo"]\n',
-                '        tags: ["gentoo"]\n',
+                '          - tags: ""\n            runner: ubuntu-latest\n',
+                "",
             ),
         )
 
@@ -582,8 +582,8 @@ func probeClearWholeTable(ctx context.Context, db *Database) error {
             lambda: self.replace_text(
                 tree,
                 ".github/workflows/ci.yml",
-                '        tags: ["", "gentoo"]\n',
-                '        tags: [""]\n',
+                '          - tags: gentoo\n            runner: ubuntu-24.04-arm\n',
+                "",
             ),
         )
 

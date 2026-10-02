@@ -201,6 +201,7 @@ go mod verify
 scripts/lint.sh                  # package boundaries, file and function length, complexity
 python3 scripts/check-test-chat-ids.py internal cmd testdata  # test topology stays synthetic
 python3 scripts/check-baseline-ratchet.py origin/main   # a held violation may not grow
+# Set GITHUB_TOKEN to authenticate GitHub API requests when shared-runner limits apply.
 python3 scripts/test-gate-self-coverage.py  # every static gate rejects its recorded regression
 python3 scripts/check-third-party-licenses.py  # notices match the pinned shipped sources (requires network)
 go vet ./...
@@ -215,6 +216,7 @@ go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
 go run github.com/securego/gosec/v2/cmd/gosec@v2.28.0 -exclude=G304,G703,G706 ./...
 python3 scripts/gen-arch-md.py --check
 python3 scripts/check-docs.py
+python3 scripts/ci-scope.py --self-test  # changed paths select every affected CI job
 python3 scripts/check-gate-list.py   # this list names every gate CI runs
 python3 scripts/check-limits.py      # the limits stated here are the ones lint.go enforces
 python3 scripts/check-console-copy.py  # no user-facing text written into a component
@@ -308,12 +310,20 @@ cd web && npm run e2e -- --project render-gate-preview && cd ..  # the CI render
 ```
 
 CI runs the gate set as `go`, `static`, `docs`, and four `e2e` runners: three
-journeys shards plus the render gate on its own, since that one spec runs as long
-as a third of the journeys. In CI Playwright uses two workers; locally it stays at
-one. The matrix jobs report through `go-done` and `e2e-done`; only an entirely
-successful matrix satisfies either required check. Each job appends its key lines
-to the run summary: the Go jobs record the `-shuffle` seeds a failure is replayed
-with, the e2e jobs their pass/fail line.
+journeys shards plus the render gate on its own. Playwright uses two workers in
+CI and one locally. The untagged Go leg runs on `ubuntu-latest`; the `gentoo` leg
+runs on `ubuntu-24.04-arm`. Both keep race detection and test-order shuffling.
+The matrix jobs report through `go-done` and `e2e-done`: success or a scope-declared
+skip passes; failures, cancellations, and unexpected skips fail. Each job appends
+its key lines to the run summary: Go shuffle seeds and the e2e pass/fail line.
+
+`docs` always runs. On pull requests, `scripts/ci-scope.py` compares the base and
+head: Markdown, `docs/`, and the two reference pages need no other jobs; `web/`
+changes run e2e; `internal/`, `cmd/`, `migrations/`, `testdata/`, and `deploy/`
+changes run Go and static checks. Console, settings, verification, and i18n backend
+changes also run e2e. Workflow and script changes, Go module files, frontend package
+manifests, and unknown paths run every job. Pushes to `main` and manual dispatches
+also run every job. A deliberately skipped `static` remains a successful required check.
 
 The `gentoo` tag remains only as a compatibility regression: default and tagged commands must
 select the same product behavior. It no longer selects an edition.
