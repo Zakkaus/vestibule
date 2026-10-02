@@ -21,6 +21,7 @@ type apiRulesHarness struct {
 	cookies []*http.Cookie
 	csrf    string
 	store   *database.RuleStore
+	db      *database.Database
 	checker *apiTestAdminChecker
 }
 
@@ -96,7 +97,7 @@ func TestRulesReorderPreservesRowsAndUnknownCollections(t *testing.T) {
 	if created.Code != http.StatusOK {
 		t.Fatalf("create future collection status=%d code=%s", created.Code, decodeError(created))
 	}
-	automatic := []ruleInput{{ID: "auto-a", Enabled: true, Definition: json.RawMessage(`{"reply":"ok"}`)}}
+	automatic := []ruleInput{{ID: "auto-a", Enabled: true, Definition: json.RawMessage(`{"trigger":"matrix","reply":"ok"}`)}}
 	if response := putRuleCollection(t, harness, "auto_reply", nil, automatic); response.Code != http.StatusOK {
 		t.Fatalf("create auto collection status=%d code=%s", response.Code, decodeError(response))
 	}
@@ -186,7 +187,7 @@ func newAPIRulesHarness(t *testing.T, allowed bool) *apiRulesHarness {
 	server, cookies, csrf := apiTestServer(t, checker, groups, nil)
 	store := database.NewRuleStore(db)
 	server.ReplaceRoutes(Config{Authenticator: server.routes.Load().server.authenticator, Verification: groups, Rules: store})
-	return &apiRulesHarness{server: server, cookies: cookies, csrf: csrf, store: store, checker: checker}
+	return &apiRulesHarness{server: server, cookies: cookies, csrf: csrf, store: store, db: db, checker: checker}
 }
 
 func seedStoredRuleItem(t *testing.T, harness *apiRulesHarness) (ruleStateInput, ruleStateInput) {

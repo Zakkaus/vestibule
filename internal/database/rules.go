@@ -76,7 +76,11 @@ func scanRule(row interface{ Scan(...any) error }) (rules.Record, error) {
 		return rules.Record{}, err
 	}
 	record.Definition = json.RawMessage(definition)
-	if err := validateRuleRecord(record); err != nil {
+	err := validateRuleIdentity(record)
+	if err == nil && record.Collection != rules.AutoReplyCollection {
+		err = validateRuleDefinition(record)
+	}
+	if err != nil {
 		return rules.Record{}, fmt.Errorf("stored rule %q: %w", record.ID, err)
 	}
 	return record, nil
@@ -256,10 +260,21 @@ func validateRuleSequence(chatID int64, collection string, records []rules.Recor
 	return nil
 }
 
-func validateRuleRecord(record rules.Record) error {
+func validateRuleIdentity(record rules.Record) error {
 	if record.ID == "" || record.ChatID == 0 || record.Collection == "" || record.Ordinal < 0 {
 		return fmt.Errorf("%w: incomplete rule identity", rules.ErrRuleInvalid)
 	}
+	return nil
+}
+
+func validateRuleRecord(record rules.Record) error {
+	if err := validateRuleIdentity(record); err != nil {
+		return err
+	}
+	return validateRuleDefinition(record)
+}
+
+func validateRuleDefinition(record rules.Record) error {
 	if !json.Valid(record.Definition) {
 		return fmt.Errorf("%w: rule %q definition is not JSON", rules.ErrRuleInvalid, record.ID)
 	}

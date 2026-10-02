@@ -84,6 +84,12 @@ func (s *Server) readRules(writer http.ResponseWriter, request *http.Request, ch
 		writeError(writer, http.StatusServiceUnavailable, "rules_unavailable")
 		return
 	}
+	for _, record := range records {
+		if !json.Valid(record.Definition) {
+			writeError(writer, http.StatusInternalServerError, "rules_unavailable")
+			return
+		}
+	}
 	writeJSON(writer, http.StatusOK, map[string]any{"items": ruleViews(records)})
 }
 
@@ -110,6 +116,9 @@ func (s *Server) replaceRules(writer http.ResponseWriter, request *http.Request,
 	}
 	expected := ruleRecords(chatID, input.Collection, *input.Expected)
 	next := ruleRecords(chatID, input.Collection, *input.Items)
+	if !validateAutoReplyDefinitions(writer, expected, next, "items") {
+		return
+	}
 	records, _, err := s.rules.ReplaceRules(request.Context(), chatID, input.Collection, expected, next)
 	if err != nil {
 		writeRulesError(writer, err)
@@ -146,6 +155,9 @@ func (s *Server) updateRule(
 	}
 	expected := input.Expected.record(chatID, ruleID)
 	next := input.Item.record(chatID, ruleID)
+	if !validateAutoReplyDefinitions(writer, []rules.Record{expected}, []rules.Record{next}, "item") {
+		return
+	}
 	record, _, err := s.rules.UpdateRule(request.Context(), chatID, expected, next)
 	if err != nil {
 		writeRulesError(writer, err)

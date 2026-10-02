@@ -45,6 +45,16 @@ All notable changes to this project are documented here. The format is based on
   falling back to the group when no log chat is set. `/autodel` status and enable replies
   preserve second-based retention settings with localized durations. English duration
   units use singular forms for a count of one in cleanup and moderation replies.
+- Console auto-reply rules now answer group messages in enabled ordinal order, stopping at
+  the first match. Validated triggers support substring, complete hashtag, exact, alternative,
+  and regex matching. Cooldowns apply per rule and group, default to ten minutes, and leave
+  private replies unchanged. Bot messages and commands are excluded; invalid stored definitions
+  are ignored with one diagnostic per definition change.
+- Existing auto-reply rules with unchanged invalid definitions can be disabled and reordered.
+  Hashtag matching preserves CJK word boundaries and underscores. Malformed stored JSON
+  returns a complete error response instead of an empty successful response.
+- Auto-reply hashtag rules require a valid left boundary, excluding embedded words and URL
+  fragments while preserving punctuation-delimited tags and the context of later tags.
 - The Compose database volume now mounts at `/var/lib/postgresql` as PostgreSQL 18 requires.
   Native installs record their deployment type so host replacement works, and `import-state`
   rejects a missing or invalid `-pending` before touching the database.
