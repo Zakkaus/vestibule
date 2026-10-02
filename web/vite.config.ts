@@ -16,8 +16,10 @@ function cssProvenance(): Plugin {
       const css = Object.values(bundle).filter(
         (output) => output.type === "asset" && output.fileName.endsWith(".css")
       );
-      if (css.length !== 1) {
-        this.error(`Expected one complete CSS bundle, received ${css.length}`);
+      const fontAssets = css.filter((asset) => /^assets\/fonts-(sc|tc)-/.test(asset.fileName));
+      const appCSS = css.filter((asset) => !fontAssets.includes(asset));
+      if (appCSS.length !== 1 || fontAssets.length !== 2) {
+        this.error(`Expected one application and two subset CSS assets, received ${css.length}`);
       }
       const modules = [...this.getModuleIds()];
       const macroModules = new Set(modules.filter((id) => /^macro-[a-f0-9]+\.css$/.test(id)));
@@ -25,7 +27,10 @@ function cssProvenance(): Plugin {
         .map((id) => id.split("?")[0]!)
         .filter((id) => isAbsolute(id) && id.endsWith(".css") && !macroModules.has(relative(root, id))));
       const origins = [...stylesheets].map((id) => {
-        const path = relative(root, id).replaceAll("\\", "/");
+        const vendorPath = id.lastIndexOf("/node_modules/");
+        const path = vendorPath < 0
+          ? relative(root, id).replaceAll("\\", "/")
+          : id.slice(vendorPath + 1);
         return { path, kind: path.startsWith("node_modules/") ? "vendor" : "project" };
       });
       const macroSources = new Set([...macroModules]
@@ -40,7 +45,13 @@ function cssProvenance(): Plugin {
       this.emitFile({
         type: "asset",
         fileName: "css-provenance.json",
-        source: JSON.stringify({ version: 1, assets: [{ file: css[0]!.fileName, origins }] }, null, 2)
+        source: JSON.stringify({ version: 1, assets: [
+          { file: appCSS[0]!.fileName, origins: origins.filter((origin) => !/^src\/fonts-(sc|tc)\.css$/.test(origin.path)) },
+          ...fontAssets.map((asset) => ({
+            file: asset.fileName,
+            origins: [{ path: `src/fonts-${asset.fileName.includes("fonts-sc-") ? "sc" : "tc"}.css`, kind: "project" }]
+          }))
+        ] }, null, 2)
       });
     }
   };
@@ -74,6 +85,14 @@ export default defineConfig({
         // declarations already carry system fallbacks, so dropping the remote faces
         // costs the shipped typeface, not the layout.
         postcssPlugin: "console-css-drop-remote-fonts",
+        Declaration: {
+          "font-family": (declaration) => {
+            // S2's CJK stacks bypass its supported custom-font hook.
+            if (/^(adobe-clean-han-|var\(--s2-font-family-sans)/.test(declaration.value)) {
+              declaration.value = "var(--s2-font-family-sans)";
+            }
+          }
+        },
         AtRule: {
           "font-face": (rule) => {
             const remote = rule.nodes?.some(

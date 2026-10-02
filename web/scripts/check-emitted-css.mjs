@@ -8,7 +8,12 @@ function parseCSS(filename, code) {
     filename,
     code,
     errorRecovery: false,
-    visitor: { Declaration() { declarations++; } }
+    visitor: {
+      Declaration() { declarations++; },
+      Rule(rule) {
+        if (rule.type === "font-face") declarations += rule.value.properties.length;
+      }
+    }
   });
   if (result.warnings.length || declarations === 0) {
     throw new Error(`${filename}: ${result.warnings.length} parser warnings, ${declarations} declarations`);
@@ -20,10 +25,12 @@ try {
   const files = process.argv.slice(2);
   if (files.length === 1 && files[0] === "--self-test") {
     assert.equal(parseCSS("valid.css", Buffer.from(":root { --ink: red; } .known { color: var(--ink); }")), 2);
+    assert.equal(parseCSS("fonts.css", Buffer.from('@font-face { font-family: "Example"; src: url(/fonts/example.woff2); font-display: optional; unicode-range: U+4E00-9FFF; }')), 4);
     for (const [name, css] of [
       ["selector", ":root { --ink: red; } .known: { color: var(--ink); }"],
       ["declaration", ".known { color red; }"],
-      ["empty", ":root {}"]
+      ["empty", ":root {}"],
+      ["empty-font-face", "@font-face {}"],
     ]) {
       assert.throws(() => parseCSS(`${name}.css`, Buffer.from(css)), undefined, `${name} must fail`);
     }

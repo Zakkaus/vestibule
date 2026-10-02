@@ -563,8 +563,8 @@ internal/app  verification  rules  telegram  console  settings  database  status
 #### 后续补充：为运维会话提供写入凭据（**已完成**）
 
 原实现中，`GET /enter/{token}` 仅写入 HttpOnly 会话 Cookie，再以 `303` 重定向到首页
-（`internal/console/api/server.go:262-279`）；CSRF 令牌仅由
-`POST /api/session` 的 JSON 响应返回（`internal/console/api/server.go:242-260`），
+（`internal/console/api/server.go:264-280`）；CSRF 令牌仅由
+`POST /api/session` 的 JSON 响应返回（`internal/console/api/server.go:244-261`），
 而结算要求 `X-CSRF-Token`（`internal/console/auth/manager.go:317-323`）。
 
 因此，通过一次性链接进入的运维可以读取群和队列，但无法执行写入；
@@ -681,7 +681,7 @@ internal/app  verification  rules  telegram  console  settings  database  status
 `GET /api/status`、`GET · PATCH /api/status/daily`、`GET /api/status/release` 和 `POST /api/status/upgrade`
 （`internal/console/api/server.go:152-194`）；`/api/chats/` 也已按群展开为
 `queue`、`audit`、`stats`、`settings`、`rules` 五组
-（`internal/console/api/server.go:292-321`）。
+（`internal/console/api/server.go:294-323`）。
 阶段七已经完成八个屏所依赖的设置端点。
 
 底层读写能力来自 `internal/settings/store.go:339` 的 `Settings(chatID)` 和

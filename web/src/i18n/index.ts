@@ -6,6 +6,29 @@ import ja from "./locales/ja.json";
 import ru from "./locales/ru.json";
 import zhCN from "./locales/zh-CN.json";
 import zhTW from "./locales/zh-TW.json";
+import fontsSC from "../fonts-sc.css?url";
+import fontsTC from "../fonts-tc.css?url";
+
+const systemSans = 'system-ui, ui-sans-serif, -apple-system, "Segoe UI"';
+const fontStacks: Record<AppLocale, string> = {
+  "zh-CN": `"Noto Sans SC", "Noto Sans TC", ${systemSans}, sans-serif`,
+  "zh-TW": `"Noto Sans TC", "Noto Sans SC", ${systemSans}, sans-serif`,
+  en: `${systemSans}, "Noto Sans SC", "Noto Sans TC", sans-serif`,
+  ja: `${systemSans}, "Noto Sans SC", "Noto Sans TC", sans-serif`,
+  ru: `${systemSans}, "Noto Sans SC", "Noto Sans TC", sans-serif`
+};
+
+for (const href of [fontsSC, fontsTC]) {
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = href;
+  document.head.append(link);
+}
+
+function applyLocaleFont(locale: AppLocale): void {
+  document.documentElement.lang = locale;
+  document.documentElement.style.setProperty("--console-font-family", fontStacks[locale]);
+}
 
 export const locales = ["zh-CN", "zh-TW", "en", "ja", "ru"] as const;
 
@@ -83,9 +106,11 @@ i18n.use(initReactI18next).init({
   returnNull: false
 });
 
+applyLocaleFont(initialLocale());
+
 export function setAppLocale(preference: LocalePreference): Promise<unknown> {
   const locale = preference === "system" ? localeFromBrowser() : preference;
-  document.documentElement.lang = locale;
+  applyLocaleFont(locale);
 
   try {
     if (preference === "system") {

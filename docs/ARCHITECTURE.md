@@ -1125,6 +1125,8 @@ policr-mini 选了另一条：把 Telegram 的权限镜像进 `permissions` 表�
 |---|---|
 | GET /livez | 进程事件循环存活即 200，不探测依赖，避免依赖抖动引发重启风暴 |
 | GET /readyz | 配置校验完成、数据库已迁移、Telegram 通道建立才 200 |
+| GET · HEAD /fonts/{file}.woff2 | 提供二进制内嵌的 Noto Sans SC/TC 字体子集，无需会话；浏览器按 unicode-range 下载所需字形 |
+| GET · HEAD /fonts/OFL.txt | 提供字体的 OFL-1.1 许可证与版权声明，无需会话 |
 | POST /api/session | 校验 `initData`，签发群管理员会话；不以可管理群数量限制身份验证。回传由服务端计算的 `is_owner`，供部署者入口使用 |
 | GET /api/instance | 把这台执行个体的机器人用户名交给还没有会话的浏览器。入口屏要说清该去开哪个机器人，而那个名字每台部署都不同，编进前端包里就会把别人的部署名字端给所有人。未被认领时返回空字符串，入口屏据此改说「还没有被认领」，不提任何机器人。机器人用户名在 Telegram 里本来就是公开的，因此这条不需要会话 |
 | GET /api/session | 把当前会话的 CSRF 令牌和实时计算的 `is_owner` 交给已经持有 Cookie 的浏览器。一次性运维链接只写 Cookie，CSRF 令牌统一由此提供，不另设可读 Cookie |
