@@ -1,117 +1,73 @@
 # Existing lint findings, frozen for the phase-zero snapshot.
 # Fields: kind<TAB>path<TAB>line<TAB>name<TAB>value
-cyclomatic-complexity	cmd/vestibule/main.go	249	main	17
-cyclomatic-complexity	cmd/vestibule/main.go	176	runRuntimeLifecycle	20
-cyclomatic-complexity	cmd/vestibule/main_test.go	393	TestRuntimeLifecycleStopRestart	25
-cyclomatic-complexity	cmd/vestibule/registration.go	406	(*registrationService).onMyChatMember	26
-cyclomatic-complexity	cmd/vestibule/registration_test.go	94	(*registrationCaller).Call	24
-cyclomatic-complexity	cmd/vestibule/registration_test.go	1440	TestEnrollmentTransportFailuresRetainDurableState	37
-cyclomatic-complexity	cmd/vestibule/registration_test.go	1032	TestOwnerCanUnregisterRuntimeGroupAndDropOverrides	27
-cyclomatic-complexity	internal/bot/bot_test.go	240	TestSetupCommandsLanguageScopes	20
-cyclomatic-complexity	internal/feed/feed.go	674	postFeedItems	21
-cyclomatic-complexity	internal/feed/feed.go	525	refreshTracked	25
+cyclomatic-complexity	internal/feed/feed.go	696	postFeedItems	21
 cyclomatic-complexity	internal/feed/feed_test.go	732	TestRefreshTrackedConfirmPing	18
 cyclomatic-complexity	internal/feed/feed_test.go	443	TestRefreshTrackedEditBranches	17
-cyclomatic-complexity	internal/i18n/catalog.go	194	loadLocaleValue	21
-cyclomatic-complexity	internal/i18n/catalog_test.go	266	indexedPlaceholders	17
-cyclomatic-complexity	internal/lookup/distros.go	340	(*Service).OnPkgs	27
-cyclomatic-complexity	internal/lookup/distros.go	800	deriveDebianReleaseData	19
-cyclomatic-complexity	internal/lookup/distros.go	174	familyChannels	20
-cyclomatic-complexity	internal/lookup/distros.go	259	fetchRepologyWith	17
-cyclomatic-complexity	internal/lookup/handlers_test.go	256	TestLookupHandlerArgumentsAndTelegramFallbacks	22
-cyclomatic-complexity	internal/lookup/packages.go	1421	(*Service).OnUse	17
-cyclomatic-complexity	internal/lookup/packages.go	1198	renderUseRich	16
-cyclomatic-complexity	internal/lookup/parser_fixtures_test.go	271	TestContentLiveFixtures	32
-cyclomatic-complexity	internal/lookup/parser_fixtures_test.go	143	TestPackagesGentooLiveFixtures	18
-cyclomatic-complexity	internal/lookup/parser_fixtures_test.go	381	TestReleaseMetadataLiveFixtures	21
-cyclomatic-complexity	internal/lookup/pkgs_test.go	168	TestSnapVersionAndUbuntuChannels	19
-cyclomatic-complexity	internal/moderate/service.go	74	(*Service).CheckGroupSetup	20
-cyclomatic-complexity	internal/panel/settings_controls_test.go	548	TestPanelNumericControlsMutateOnlyTargetRenderAndRejectStale	18
-cyclomatic-complexity	internal/panel/settings_controls_test.go	366	TestPanelRuntimeControlsMutateOnlyTargetRenderAndRejectStale	21
-cyclomatic-complexity	internal/panel/settings_controls_test.go	716	TestPanelTrustedGroupAndChannelControlsMutateOnlyTargetRenderAndRejectStale	30
-cyclomatic-complexity	internal/panel/settings_input.go	469	(*Panel).OnPanelChatShared	19
-cyclomatic-complexity	internal/panel/settings_input.go	400	(*Panel).OnPanelInput	18
-cyclomatic-complexity	internal/panel/settings_input.go	699	(*Panel).applySharedChat	16
-cyclomatic-complexity	internal/panel/settings_input.go	546	(*Panel).applyTextInput	37
-cyclomatic-complexity	internal/panel/settings_input.go	239	(*Panel).dispatchConfirmation	16
-cyclomatic-complexity	internal/panel/settings_input.go	145	(*Panel).dispatchFallbackDraft	19
-cyclomatic-complexity	internal/panel/settings_input.go	47	(*Panel).dispatchQuizDraft	25
-cyclomatic-complexity	internal/panel/settings_panel.go	149	(*Panel).OnSettingsCallback	23
-cyclomatic-complexity	internal/panel/settings_panel.go	505	(*Panel).buildScreen	16
-cyclomatic-complexity	internal/panel/settings_panel.go	223	(*Panel).dispatchCallback	21
-cyclomatic-complexity	internal/panel/settings_panel.go	1352	(*Panel).inputPrompt	18
-cyclomatic-complexity	internal/panel/settings_panel_behavior_test.go	75	(*panelAPICaller).Call	19
-cyclomatic-complexity	internal/panel/settings_panel_behavior_test.go	1016	TestPanelCommittedCallbackRenderFailuresReportSaved	16
-cyclomatic-complexity	internal/store/json_test.go	170	TestSaveOrdersSnapshotAndCommit	17
-cyclomatic-complexity	internal/tg/tg_test.go	280	TestAdminCacheAndFreshLookup	17
-cyclomatic-complexity	internal/tg/tg_test.go	477	TestErrorClassification	18
-cyclomatic-complexity	internal/verification/kernel.go	623	(*Service).gradeKernelAnswer	28
-cyclomatic-complexity	internal/verification/kernel_test.go	1014	TestReapplyKeepsAttemptsAndFallback	22
-cyclomatic-complexity	internal/verification/recovery_test.go	64	TestDeferredExpiryCapSettlesStrikeFree	17
-cyclomatic-complexity	internal/verification/service.go	1102	(*Service).OnMemberJoined	22
-cyclomatic-complexity	internal/verification/service.go	1342	(*Service).completeDMDelivery	23
-cyclomatic-complexity	internal/verification/service.go	2542	(*Service).finishDecline	16
-cyclomatic-complexity	internal/verification/service.go	822	(*Service).startPending	17
+cyclomatic-complexity	internal/i18n/catalog.go	207	loadLocaleValue	20
+cyclomatic-complexity	internal/i18n/catalog_test.go	344	indexedPlaceholders	17
+cyclomatic-complexity	internal/lookup/distros.go	474	deriveDebianReleaseData	19
+cyclomatic-complexity	internal/lookup/distros.go	262	fetchRepologyWith	17
+cyclomatic-complexity	internal/lookup/parser_fixtures_test.go	293	TestContentLiveFixtures	32
+cyclomatic-complexity	internal/lookup/parser_fixtures_test.go	165	TestPackagesGentooLiveFixtures	18
+cyclomatic-complexity	internal/lookup/pkgs_test.go	223	TestSnapVersionAndUbuntuChannels	19
+cyclomatic-complexity	internal/moderate/service.go	79	(*Service).CheckGroupSetup	20
+cyclomatic-complexity	internal/panel/settings_controls_test.go	349	TestPanelRuntimeControlsMutateOnlyTargetRenderAndRejectStale	21
+cyclomatic-complexity	internal/panel/settings_controls_test.go	678	TestPanelTrustedGroupAndChannelControlsMutateOnlyTargetRenderAndRejectStale	30
+cyclomatic-complexity	internal/panel/settings_input.go	468	(*Panel).OnPanelChatShared	19
+cyclomatic-complexity	internal/panel/settings_input.go	399	(*Panel).OnPanelInput	18
+cyclomatic-complexity	internal/panel/settings_input.go	545	(*Panel).applyTextInput	34
+cyclomatic-complexity	internal/panel/settings_input.go	238	(*Panel).dispatchConfirmation	16
+cyclomatic-complexity	internal/panel/settings_input.go	144	(*Panel).dispatchFallbackDraft	19
+cyclomatic-complexity	internal/panel/settings_input.go	46	(*Panel).dispatchQuizDraft	25
+cyclomatic-complexity	internal/panel/settings_panel.go	148	(*Panel).OnSettingsCallback	19
+cyclomatic-complexity	internal/panel/settings_panel.go	498	(*Panel).buildScreen	16
+cyclomatic-complexity	internal/panel/settings_panel.go	211	(*Panel).dispatchCallback	21
+cyclomatic-complexity	internal/panel/settings_panel.go	1330	(*Panel).inputPrompt	18
+cyclomatic-complexity	internal/panel/settings_panel_behavior_test.go	894	TestPanelCommittedCallbackRenderFailuresReportSaved	16
+cyclomatic-complexity	internal/store/json_test.go	171	TestSaveOrdersSnapshotAndCommit	17
+cyclomatic-complexity	internal/verification/kernel.go	299	(*Service).gradeKernelAnswer	28
+cyclomatic-complexity	internal/verification/recovery_test.go	62	TestDeferredExpiryCapSettlesStrikeFree	16
+cyclomatic-complexity	internal/verification/service.go	1133	(*Service).OnMemberJoined	19
+cyclomatic-complexity	internal/verification/service.go	1378	(*Service).completeDMDelivery	18
+cyclomatic-complexity	internal/verification/service.go	2356	(*Service).finishDecline	16
 cyclomatic-complexity	internal/verification/settings_test.go	116	TestPerGroupRuntimeSettingsIsolation	42
 cyclomatic-complexity	internal/verification/settings_test.go	58	TestUntouchedGroupUsesConfigAndDefaults	22
-cyclomatic-complexity	internal/verification/state.go	462	(*Service).load	34
-cyclomatic-complexity	internal/verification/state.go	643	(*Service).onExpiry	16
-cyclomatic-complexity	internal/verification/state.go	907	(*Service).onRecovery	18
-cyclomatic-complexity	internal/verification/state_compat_test.go	305	stateCompatAssertPending	25
-cyclomatic-complexity	internal/verification/state_write_failure_test.go	38	TestStateWriteFailuresKeepRuntimeStateButLoseRestartRecovery	25
-cyclomatic-complexity	internal/verification/verify_test.go	423	TestJoinRequestDMModeDeliversPrivatelyOrFallsBackToScopedGroupLink	23
-cyclomatic-complexity	internal/verification/verify_test.go	206	TestJoinRequestDefaultPostsGroupBeforePrivateChallenge	16
-cyclomatic-complexity	internal/verification/verify_test.go	1016	TestOnAdminActionTelegramFailureAfterAcknowledgement	20
-file-lines	cmd/vestibule/main_test.go	0		604
-file-lines	cmd/vestibule/registration.go	0		1044
-file-lines	cmd/vestibule/registration_test.go	0		1643
-file-lines	internal/bot/bot_test.go	0		1021
-file-lines	internal/feed/feed.go	0		975
+cyclomatic-complexity	internal/verification/state.go	823	(*Service).onRecovery	17
+cyclomatic-complexity	internal/verification/state_compat_test.go	309	stateCompatAssertPending	25
+cyclomatic-complexity	internal/verification/state_write_failure_test.go	86	TestStateWriteFailuresKeepRuntimeStateButLoseRestartRecovery	18
+cyclomatic-complexity	internal/verification/verify_test.go	369	TestJoinRequestDMModeDeliversPrivatelyOrFallsBackToScopedGroupLink	23
+cyclomatic-complexity	internal/verification/verify_test.go	152	TestJoinRequestDefaultPostsGroupBeforePrivateChallenge	16
+cyclomatic-complexity	internal/verification/verify_test.go	1000	TestOnAdminActionTelegramFailureAfterAcknowledgement	20
+file-lines	internal/feed/feed.go	0		934
 file-lines	internal/feed/feed_fix_test.go	0		653
 file-lines	internal/feed/feed_test.go	0		919
-file-lines	internal/lookup/content.go	0		697
-file-lines	internal/lookup/distros.go	0		941
-file-lines	internal/lookup/packages.go	0		1593
-file-lines	internal/moderate/moderate_test.go	0		973
-file-lines	internal/panel/settings_controls_test.go	0		1051
-file-lines	internal/panel/settings_input.go	0		851
-file-lines	internal/panel/settings_panel.go	0		1398
-file-lines	internal/panel/settings_panel_behavior_test.go	0		1243
-file-lines	internal/verification/kernel_test.go	0		1141
-file-lines	internal/verification/recovery_test.go	0		1014
-file-lines	internal/verification/service.go	0		2719
-file-lines	internal/verification/state.go	0		1078
-file-lines	internal/verification/verify_test.go	0		2329
-function-lines	cmd/vestibule/main.go	249	main	166
-function-lines	cmd/vestibule/main_test.go	393	TestRuntimeLifecycleStopRestart	212
-function-lines	cmd/vestibule/registration.go	406	(*registrationService).onMyChatMember	90
-function-lines	cmd/vestibule/registration_test.go	94	(*registrationCaller).Call	118
-function-lines	cmd/vestibule/registration_test.go	1440	TestEnrollmentTransportFailuresRetainDurableState	204
-function-lines	cmd/vestibule/registration_test.go	1032	TestOwnerCanUnregisterRuntimeGroupAndDropOverrides	122
-function-lines	cmd/vestibule/registration_test.go	320	TestRegistrationGlobalDispatch	85
-function-lines	cmd/vestibule/runtime_registration_integration_test.go	44	TestRuntimeRegistrationActivatesServicesWithoutRebuiltConfig	88
-function-lines	internal/bot/bot_test.go	817	TestGlobalDispatchRunsOnlyTheIntendedHandler	130
-function-lines	internal/feed/feed.go	525	refreshTracked	100
+file-lines	internal/lookup/distros.go	0		612
+file-lines	internal/lookup/packages.go	0		986
+file-lines	internal/moderate/moderate_test.go	0		906
+file-lines	internal/panel/settings_controls_test.go	0		1013
+file-lines	internal/panel/settings_input.go	0		828
+file-lines	internal/panel/settings_panel.go	0		1376
+file-lines	internal/panel/settings_panel_behavior_test.go	0		1119
+file-lines	internal/verification/kernel_test.go	0		1122
+file-lines	internal/verification/recovery_test.go	0		977
+file-lines	internal/verification/service.go	0		2553
+file-lines	internal/verification/state.go	0		983
+file-lines	internal/verification/verify_test.go	0		2318
 function-lines	internal/feed/feed_test.go	443	TestRefreshTrackedEditBranches	88
-function-lines	internal/lookup/distros.go	340	(*Service).OnPkgs	111
-function-lines	internal/lookup/handlers_test.go	256	TestLookupHandlerArgumentsAndTelegramFallbacks	120
-function-lines	internal/lookup/handlers_test.go	377	TestLookupHandlerAuthorizationRateAndScheduledCleanup	84
-function-lines	internal/lookup/parser_fixtures_test.go	271	TestContentLiveFixtures	109
-function-lines	internal/lookup/pkgs_test.go	308	TestFetchRepologyAvailability	91
-function-lines	internal/moderate/moderate_test.go	366	TestGroupSetupReportPermissionsAndChannelReadability	123
-function-lines	internal/panel/settings_controls_test.go	548	TestPanelNumericControlsMutateOnlyTargetRenderAndRejectStale	139
-function-lines	internal/panel/settings_controls_test.go	366	TestPanelRuntimeControlsMutateOnlyTargetRenderAndRejectStale	181
-function-lines	internal/panel/settings_controls_test.go	716	TestPanelTrustedGroupAndChannelControlsMutateOnlyTargetRenderAndRejectStale	336
-function-lines	internal/panel/settings_controls_test.go	156	testSettingsScreenContracts	209
-function-lines	internal/panel/settings_input.go	546	(*Panel).applyTextInput	130
-function-lines	internal/panel/settings_integration_test.go	201	TestRuntimeSettingsCommandHandlersPersistAndRespond	90
-function-lines	internal/panel/settings_panel_behavior_test.go	1016	TestPanelCommittedCallbackRenderFailuresReportSaved	142
-function-lines	internal/verification/kernel.go	295	(*Service).gradeKernelAnswer	105
-function-lines	internal/verification/kernel_test.go	50	TestKernelAnswerOK	90
-function-lines	internal/verification/service.go	1102	(*Service).OnMemberJoined	105
-function-lines	internal/verification/service.go	2542	(*Service).finishDecline	86
+function-lines	internal/lookup/parser_fixtures_test.go	293	TestContentLiveFixtures	109
+function-lines	internal/moderate/moderate_test.go	369	TestGroupSetupReportPermissionsAndChannelReadability	123
+function-lines	internal/panel/settings_controls_test.go	531	TestPanelNumericControlsMutateOnlyTargetRenderAndRejectStale	118
+function-lines	internal/panel/settings_controls_test.go	349	TestPanelRuntimeControlsMutateOnlyTargetRenderAndRejectStale	181
+function-lines	internal/panel/settings_controls_test.go	678	TestPanelTrustedGroupAndChannelControlsMutateOnlyTargetRenderAndRejectStale	336
+function-lines	internal/panel/settings_controls_test.go	146	testSettingsScreenContracts	202
+function-lines	internal/panel/settings_input.go	545	(*Panel).applyTextInput	115
+function-lines	internal/panel/settings_integration_test.go	314	TestRuntimeSettingsCommandHandlersPersistAndRespond	90
+function-lines	internal/panel/settings_panel_behavior_test.go	894	TestPanelCommittedCallbackRenderFailuresReportSaved	142
+function-lines	internal/verification/kernel.go	299	(*Service).gradeKernelAnswer	102
+function-lines	internal/verification/kernel_test.go	60	TestKernelAnswerOK	90
+function-lines	internal/verification/service.go	1133	(*Service).OnMemberJoined	87
+function-lines	internal/verification/service.go	2356	(*Service).finishDecline	82
 function-lines	internal/verification/settings_test.go	116	TestPerGroupRuntimeSettingsIsolation	115
-function-lines	internal/verification/state.go	462	(*Service).load	122
-function-lines	internal/verification/state_write_failure_test.go	38	TestStateWriteFailuresKeepRuntimeStateButLoseRestartRecovery	145
-function-lines	internal/verification/verify_test.go	423	TestJoinRequestDMModeDeliversPrivatelyOrFallsBackToScopedGroupLink	99
-function-lines	internal/verification/verify_test.go	1016	TestOnAdminActionTelegramFailureAfterAcknowledgement	126
+function-lines	internal/verification/state_write_failure_test.go	86	TestStateWriteFailuresKeepRuntimeStateButLoseRestartRecovery	101
+function-lines	internal/verification/verify_test.go	369	TestJoinRequestDMModeDeliversPrivatelyOrFallsBackToScopedGroupLink	99
+function-lines	internal/verification/verify_test.go	1000	TestOnAdminActionTelegramFailureAfterAcknowledgement	125
