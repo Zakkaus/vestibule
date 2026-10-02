@@ -894,8 +894,8 @@ func (v *Service) dropIfAlreadyJoined(c context.Context, bot Gateway, gid, uid i
 		return false
 	}
 	log.Printf("recovery: applicant %d already joined %d while the bot was offline — dropping the stale verification", uid, gid)
+	v.deleteChallenges(c, bot, gid, uid, p, messages)
 	v.discardPending(gid, uid, p)
-	v.deleteChallenges(c, bot, gid, uid, messages)
 	return true
 }
 
@@ -942,10 +942,10 @@ func (v *Service) renotifyPending(
 	}
 	v.mu.Unlock()
 	if !current {
-		v.deleteChallenges(c, bot, gid, uid, delivery.messages)
+		v.deleteChallenges(c, bot, gid, uid, p, delivery.messages)
 		return
 	}
-	v.deleteChallenges(c, bot, gid, uid, oldMessages)
+	v.deleteChallenges(c, bot, gid, uid, p, oldMessages)
 }
 
 // windowText renders how long the applicant now has, reusing the outage wording so a duration

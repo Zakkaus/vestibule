@@ -119,6 +119,8 @@ func (v *Service) executePendingAction(ctx context.Context, bot Gateway, owner s
 		v.executeUndoBanAction(ctx, bot, owner, action)
 	case actionDeleteGroup:
 		v.executeDeleteGroupAction(ctx, bot, owner, action)
+	case actionReleaseHold:
+		v.executeReleaseHoldAction(ctx, bot, owner, action)
 	default:
 		v.failPendingAction(action, owner, fmt.Errorf("unknown verification action kind %q", action.Kind))
 	}
@@ -228,7 +230,7 @@ func (v *Service) completeSettlementAction(gid int64, p *pending) {
 			return
 		}
 		followups = append(followups, ActionIntent{
-			ID:        p.actionID + ":group-delete",
+			ID:        fmt.Sprintf("cleanup:%d:%d:delete", gid, p.groupMsgID),
 			Kind:      actionDeleteGroup,
 			Payload:   string(payload),
 			NextTryAt: v.wallNow().Unix(),
@@ -242,7 +244,7 @@ func (v *Service) cleanupSettledChallenge(c context.Context, bot Gateway, gid, u
 		v.completeSettlementAction(gid, p)
 		return
 	}
-	v.deleteChallenges(c, bot, gid, uid, p.messages())
+	v.deleteChallenges(c, bot, gid, uid, p, p.messages())
 }
 
 func (v *Service) completePendingAction(action PendingAction, owner string, followups []ActionIntent) {
@@ -270,7 +272,7 @@ func (v *Service) retrySettlementAction(p *pending, err error) bool {
 
 func (v *Service) retryOrFailPendingAction(action PendingAction, owner string, err error) bool {
 	attempts := action.Attempts + 1
-	if attempts >= maxSettleFailures || giveUpSettling(err) {
+	if attempts >= maxSettleFailures || (action.Kind != actionDeleteGroup && action.Kind != actionReleaseHold && giveUpSettling(err)) {
 		v.failPendingAction(action, owner, err)
 		return false
 	}

@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/Zakkaus/vestibule/internal/verification"
@@ -30,7 +31,18 @@ func (s *VerificationStore) SupersedeGroupSettlements(_ string, groupID, at int6
 			}
 			records = append(records, record)
 		}
-		return rows.Err()
+		if err := rows.Err(); err != nil {
+			return err
+		}
+		if err := rows.Close(); err != nil {
+			return err
+		}
+		for _, record := range records {
+			if err := s.enqueueCancellationActions(ctx, record, at); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -57,22 +69,40 @@ func (s *VerificationStore) SettlementActionCurrent(
 
 func (s *VerificationStore) LoadRecentPasses(_ string, since, until int64) ([]verification.RecentPassRecord, error) {
 	rows, err := s.db.Query(context.Background(), `
-		SELECT challenge.chat_id, challenge.user_id, MAX(action.done_at)
+		SELECT challenge.chat_id, challenge.user_id, action.done_at, challenge.payload
 		  FROM challenge JOIN pending_action AS action ON action.challenge_id=challenge.id
 		 WHERE challenge.state='approved' AND action.kind='settle_approve' AND action.state='done'
-		   AND action.done_at >= $1 AND action.done_at <= $2
-		 GROUP BY challenge.chat_id, challenge.user_id`, since, until)
+		   AND action.done_at >= $1 AND action.done_at <= $2`, since, until)
 	if err != nil {
 		return nil, fmt.Errorf("load recent passes: %w", err)
 	}
 	defer rows.Close()
-	var records []verification.RecentPassRecord
+	latest := make(map[[2]int64]verification.RecentPassRecord)
 	for rows.Next() {
 		var record verification.RecentPassRecord
-		if err := rows.Scan(&record.GroupID, &record.UserID, &record.PassedAt); err != nil {
+		var payload string
+		if err := rows.Scan(&record.GroupID, &record.UserID, &record.PassedAt, &payload); err != nil {
 			return nil, fmt.Errorf("scan recent pass: %w", err)
 		}
+		var pending verification.PendingRecord
+		if err := json.Unmarshal([]byte(payload), &pending); err != nil {
+			return nil, fmt.Errorf("decode recent pass: %w", err)
+		}
+		// An unheld member was already admitted; their answer grants no new admission.
+		if pending.Gate == "mute" && !pending.Held {
+			continue
+		}
+		key := [2]int64{record.GroupID, record.UserID}
+		if previous, exists := latest[key]; !exists || record.PassedAt > previous.PassedAt {
+			latest[key] = record
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	records := make([]verification.RecentPassRecord, 0, len(latest))
+	for _, record := range latest {
 		records = append(records, record)
 	}
-	return records, rows.Err()
+	return records, nil
 }

@@ -152,11 +152,10 @@ func TestDurableSettlementRetriesGroupDeletionWithoutDeletingDM(t *testing.T) {
 	if bot.deletes != 2 || !reflect.DeepEqual(bot.deletedChats, []int64{gid, gid}) || !reflect.DeepEqual(bot.deletedMessageIDs, []int{42, 42}) {
 		t.Fatalf("retried delete = chats %v messages %v, want only retryable group challenge", bot.deletedChats, bot.deletedMessageIDs)
 	}
-	state.mu.Lock()
-	deferred := state.actions[claimed.actionID+":group-delete"]
-	state.mu.Unlock()
-	if deferred.state != "done" || deferred.Attempts != 1 {
-		t.Fatalf("group delete action = %#v, want done after one recorded retry", deferred)
+	now = now.Add(time.Hour)
+	v.RunPendingActionsOnce(context.Background())
+	if bot.deletes != 2 {
+		t.Fatalf("completed cleanup deleted again: %d calls", bot.deletes)
 	}
 }
 

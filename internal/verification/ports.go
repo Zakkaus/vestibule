@@ -477,6 +477,8 @@ type Store interface {
 	// ClaimActions leases ready actions to one worker. A lease expiry makes a crashed worker's
 	// action available again; every action implementation must therefore be idempotent.
 	ClaimActions(namespace, owner string, now, claimUntil int64, limit int) ([]PendingAction, error)
+	// EnqueueActions durably adds cleanup intents and leases newly ready work to their supplied owner.
+	EnqueueActions(namespace string, expected PendingRef, actions []ActionIntent) ([]PendingAction, error)
 	// SettlementActionCurrent checks the owned action and its durable challenge identity and state.
 	SettlementActionCurrent(namespace, id, owner string, expected PendingRef, state ChallengeState) (bool, error)
 	// CompleteAction marks one owned action done and persists follow-up intents atomically.
