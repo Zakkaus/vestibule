@@ -1,3 +1,4 @@
+import { useConfirmation } from "../../components/useConfirmation";
 import { Button, Text } from "@react-spectrum/s2/Button";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../../icons";
@@ -265,9 +266,11 @@ export function QuestionBankEditor({
   onChange
 }: QuestionBankEditorProps) {
   const { t } = useTranslation();
+  const { confirm, dialog } = useConfirmation();
 
   return (
     <div data-question-bank-editor>
+      {dialog}
       {questions.length === 0 ? (
         <p data-question-empty>
           <span data-state-heading>
@@ -287,11 +290,12 @@ export function QuestionBankEditor({
               onChange={(next) =>
                 onChange(questions.map((item) => (item.id === question.id ? next : item)))
               }
-              onDelete={() => {
-                if (window.confirm(t("questions.questionBank.confirmDelete", { number: index + 1 }))) {
-                  onChange(questions.filter((item) => item.id !== question.id));
-                }
-              }}
+              onDelete={() => confirm({
+                title: t("questions.actions.deleteQuestion"),
+                description: t("questions.questionBank.confirmDelete", { number: index + 1 }),
+                confirmLabel: t("questions.actions.deleteQuestion"),
+                action: () => onChange(questions.filter((item) => item.id !== question.id))
+              })}
             />
           ))}
         </div>

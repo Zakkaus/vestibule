@@ -129,7 +129,18 @@
     "data-mobile-navigation": "Mobile trigger identity supports focus checks; its Spectrum macro owns layout.",
     "data-capabilities-preset": "Preset identity is consumed by the journeys that press a preset, not CSS.",
     "data-feed-setting-source": "Feed source metadata is consumed by the journeys that read a setting's provenance, not CSS.",
-    "data-feed-setting": "Feed field identity is consumed by validation journeys; the shared setting slot owns layout."
+    "data-feed-setting": "Feed field identity is consumed by validation journeys; the shared setting slot owns layout.",
+    "data-bypass-feedback": "Feedback identity for tests; the shared feedback component owns its styling.",
+    "data-feeds-feedback": "Feedback identity for tests; the shared feedback component owns its styling.",
+    "data-moderation-feedback": "Feedback identity for tests; the shared feedback component owns its styling.",
+    "data-questions-feedback": "Feedback identity for tests; the shared feedback component owns its styling.",
+    "data-messages-rules-feedback": "Feedback identity for tests; the shared feedback component owns its styling.",
+    "data-messages-settings-feedback": "Feedback identity for tests; the shared feedback component owns its styling.",
+    "data-record-feedback": "Feedback identity for tests; the shared feedback component owns its styling.",
+    "data-verification-feedback": "Feedback identity for tests; the shared feedback component owns its styling.",
+    "data-feedback-level": "Feedback level metadata for tests; the S2 InlineAlert variant carries the styling.",
+    "data-verification-conflict": "Conflict panel identity for tests; Spectrum components own its layout.",
+    "data-verification-savebar": "Save footer identity for geometry tests; SettingsSaveFooter owns its layout."
   },
   "non_styling_classes": {
     "console-brand": "Brand identity is independent of its Spectrum Header layout.",

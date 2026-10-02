@@ -1,3 +1,4 @@
+import { Feedback, writeOutcomeUnknown } from "../../components/feedback";
 import { Button, Text } from "@react-spectrum/s2/Button";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -363,11 +364,11 @@ export function FeedsScreen() {
           />
           {screenState.process ? <><NewsURLSection settings={screenState.process.newsURL} /><OverlaySection settings={screenState.process.overlays} /></> : null}
           {feedback ? (
-            <div data-feeds-feedback data-tone={feedback.kind === "saved" ? "ok" : "error"} role={feedback.kind === "saved" ? "status" : "alert"} aria-atomic="true">
-              <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
-              {t(feedback.kind === "saved" ? "feeds.feedback.saved" : feedback.kind === "conflict" ? "feeds.feedback.conflict" : feedback.messageKey)}
-              {feedback.kind === "error" && feedback.error.kind === "network" ? <Button type="button" variant="secondary" size={size} data-slot="button" onPress={reloadFeeds}><Icon name="refreshCw" /><Text>{t("feeds.actions.reload")}</Text></Button> : null}
-            </div>
+            <Feedback data-feeds-feedback
+              level={feedback.kind === "saved" ? "positive" : feedback.kind === "conflict" ? "warning" : "negative"}
+              message={t(feedback.kind === "saved" ? "feeds.feedback.saved" : feedback.kind === "conflict" ? "feeds.feedback.conflict" : feedback.messageKey)}
+              unknown={feedback.kind === "error" && writeOutcomeUnknown(feedback.error)}
+              onRefetch={feedback.kind === "error" && writeOutcomeUnknown(feedback.error) ? reloadFeeds : undefined} />
           ) : null}
         </div>
       ) : null}

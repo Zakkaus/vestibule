@@ -217,7 +217,7 @@ test("verification restores only the selected chat override with null", async ({
   await expect(page.locator("[data-verification-feedback]")).toContainText("已保存验证设置");
 });
 
-test("verification conflict loads the newer revision and says another administrator changed it", async ({
+test("verification conflict keeps the draft until explicitly discarded", async ({
   page
 }) => {
   let reads = 0;
@@ -259,10 +259,9 @@ test("verification conflict loads the newer revision and says another administra
     "data-verification-state",
     "loaded"
   );
+  await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "quiz");
+  await page.locator("[data-verification-conflict]").getByRole("button", { name: "放弃我的更改" }).click();
   await expect(page.locator("#verification-mode")).toHaveAttribute("data-value", "mixed");
-  await expect(page.locator("[data-verification-feedback]")).toContainText(
-    "其他管理员已修改这些设置"
-  );
   expect(reads).toBe(2);
 });
 
@@ -311,7 +310,7 @@ test("verification discards a previous group's delayed settings response", async
   await expect(page.locator("[data-verification-form]")).toHaveCount(0);
 });
 
-test("verification ignores a previous group's delayed settings save", async ({ page }) => {
+test("verification waits for a pending save before clearing the group scope", async ({ page }) => {
   let markPatchRequested!: () => void;
   let releasePatch!: () => void;
   const patchRequested = new Promise<void>((resolve) => {
@@ -348,14 +347,14 @@ test("verification ignores a previous group's delayed settings save", async ({ p
   await page.getByRole("button", { name: "保存更改" }).click();
   await patchRequested;
   await selectAppOption(page.getByRole("button", { name: "当前群组" }), "all");
-  await expect(page).toHaveURL(/\/verification$/);
-  await expect(page.locator("[data-verification-page]")).toHaveAttribute(
-    "data-verification-state",
-    "group-required"
-  );
-
+  const leave = page.getByRole("alertdialog").getByRole("button", { name: "放弃更改并继续" });
+  await expect(leave).toBeDisabled();
+  await expect(page).toHaveURL(new RegExp(`/verification\\?group=${selectedGroupID}$`));
   releasePatch();
   await patchResponseSettled;
+  await expect(leave).toBeEnabled();
+  await leave.click();
+  await expect(page).toHaveURL(/\/verification$/);
   await expect(page.locator("[data-verification-page]")).toHaveAttribute(
     "data-verification-state",
     "group-required"
@@ -505,8 +504,8 @@ test("an interrupted verification save provides the settings reload it names", a
   await selectAppOption(page.locator("#verification-mode"), "quiz");
   await page.getByRole("button", { name: "保存更改" }).click();
   const feedback = page.locator("[data-verification-feedback]");
-  await expect(feedback).toContainText("连接已中断");
-  await feedback.getByRole("button", { name: "重新读取" }).click();
+  await expect(feedback).toHaveAttribute("data-feedback-level", "info");
+  await feedback.getByRole("button", { name: "重新获取最新状态" }).click();
   await expect.poll(() => settingsReads).toBe(2);
   await expect(feedback).toHaveCount(0);
 });

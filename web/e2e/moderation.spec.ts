@@ -256,7 +256,7 @@ test("moderation identifies another administrator's revision conflict before rel
     changes: { admin_log_chat_id: 0 }
   });
 
-  await page.getByRole("button", { name: "重新载入" }).click();
+  await page.getByRole("button", { name: "重新获取最新状态" }).click();
   await expect(page.locator("[data-moderation-page]")).toHaveAttribute(
     "data-moderation-state",
     "loaded"

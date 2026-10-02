@@ -1,3 +1,4 @@
+import { Feedback, writeOutcomeUnknown } from "../../components/feedback";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button } from "@react-spectrum/s2/Button";
 import { Text } from "@react-spectrum/s2";
@@ -18,7 +19,6 @@ import { auditFixtureFor, type AuditFixture } from "./fixtures";
 import { AuditTable, type PendingAuditActions } from "./AuditTable";
 
 const FIXTURE_ACTION_DELAY_MS = 700;
-const FEEDBACK_DURATION_MS = 5_000;
 
 const errorMessageKeys: Readonly<Record<string, string>> = {
   authentication_expired: "audit.errors.authenticationExpired",
@@ -54,6 +54,7 @@ type AuditFeedback = Readonly<{
   messageKey: string;
   tone: StatusTone;
   record: AuditRecord;
+  unknown: boolean;
 }>;
 
 function auditErrorMessageKey(error: ApiRequestError, fallback: string): string {
@@ -71,37 +72,12 @@ function AuditFeedbackNotice({
   onReload
 }: Readonly<{ feedback: AuditFeedback; onReload: () => void }>) {
   const { t } = useTranslation();
-  const reloadable = feedback.messageKey === "audit.errors.network";
+  const reloadable = feedback.unknown;
 
   return (
-    <div
-      data-record-feedback
-      data-audit-feedback
-      data-tone={feedback.tone}
-      role={feedback.tone === "error" ? "alert" : "status"}
-      aria-atomic="true"
-    >
-      <Icon
-        name={
-          feedback.tone === "ok"
-            ? "circleCheck"
-            : feedback.tone === "info"
-              ? "info"
-              : feedback.tone === "pending"
-                ? "loaderCircle"
-                : feedback.tone === "neutral"
-                  ? "circleMinus"
-                  : "circleAlert"
-        }
-      />
-      {t(feedback.messageKey, { user: feedback.record.user })}
-      {reloadable ? (
-        <Button type="button" variant="secondary" onPress={onReload}>
-          <Icon name="refreshCw" />
-          <Text>{t("audit.actions.reload")}</Text>
-        </Button>
-      ) : null}
-    </div>
+    <Feedback data-record-feedback data-audit-feedback message={t(feedback.messageKey, { user: feedback.record.user })}
+      level={feedback.tone === "ok" ? "positive" : feedback.tone === "error" ? "negative" : feedback.tone === "pending" ? "warning" : feedback.tone}
+      unknown={reloadable} onRefetch={reloadable ? onReload : undefined} />
   );
 }
 
@@ -163,7 +139,6 @@ export function AuditScreen() {
   const inFlightRecordIDsRef = useRef(new Set<string>());
   const activeScopeRef = useRef("");
   const feedbackSequenceRef = useRef(0);
-  const feedbackTimerRef = useRef<number | undefined>(undefined);
   const fixtureTimerIDsRef = useRef(new Set<number>());
   const dateFormatter = useMemo(
     () =>
@@ -239,10 +214,6 @@ export function AuditScreen() {
   }, [chatID, fixture, reloadVersion, session]);
 
   useEffect(() => {
-    if (feedbackTimerRef.current !== undefined) {
-      window.clearTimeout(feedbackTimerRef.current);
-      feedbackTimerRef.current = undefined;
-    }
     fixtureTimerIDsRef.current.forEach((timerID) => window.clearTimeout(timerID));
     fixtureTimerIDsRef.current.clear();
     inFlightRecordIDsRef.current.clear();
@@ -250,37 +221,14 @@ export function AuditScreen() {
     setFeedback(null);
 
     return () => {
-      if (feedbackTimerRef.current !== undefined) {
-        window.clearTimeout(feedbackTimerRef.current);
-        feedbackTimerRef.current = undefined;
-      }
       fixtureTimerIDsRef.current.forEach((timerID) => window.clearTimeout(timerID));
       fixtureTimerIDsRef.current.clear();
       inFlightRecordIDsRef.current.clear();
     };
   }, [chatID, session.state]);
 
-  function showFeedback(
-    messageKey: string,
-    tone: StatusTone,
-    record: AuditRecord,
-    dismissAfter: number | undefined
-  ): void {
-    if (feedbackTimerRef.current !== undefined) {
-      window.clearTimeout(feedbackTimerRef.current);
-      feedbackTimerRef.current = undefined;
-    }
-    const id = ++feedbackSequenceRef.current;
-    setFeedback({ id, messageKey, tone, record });
-    if (dismissAfter !== undefined) {
-      const timerID = window.setTimeout(() => {
-        if (feedbackSequenceRef.current === id) {
-          setFeedback(null);
-        }
-        feedbackTimerRef.current = undefined;
-      }, dismissAfter);
-      feedbackTimerRef.current = timerID;
-    }
+  function showFeedback(messageKey: string, tone: StatusTone, record: AuditRecord, unknown = false): void {
+    setFeedback({ id: ++feedbackSequenceRef.current, messageKey, tone, record, unknown });
   }
 
   function finishAction(recordID: string, scope: string): void {
@@ -298,16 +246,16 @@ export function AuditScreen() {
   function showUndoResult(record: AuditRecord): void {
     switch (record.undoState) {
       case "completed":
-        showFeedback("audit.feedback.undoSuccess", "ok", record, FEEDBACK_DURATION_MS);
+        showFeedback("audit.feedback.undoSuccess", "ok", record);
         break;
       case "pending":
-        showFeedback("audit.feedback.undoPending", "info", record, FEEDBACK_DURATION_MS);
+        showFeedback("audit.feedback.undoPending", "info", record);
         break;
       case "failed":
-        showFeedback("audit.feedback.undoFailure", "error", record, undefined);
+        showFeedback("audit.feedback.undoFailure", "error", record);
         break;
       default:
-        showFeedback("audit.errors.auditConflict", "error", record, undefined);
+        showFeedback("audit.errors.auditConflict", "error", record);
     }
   }
 
@@ -321,7 +269,7 @@ export function AuditScreen() {
         return;
       }
       if (shouldFail) {
-        showFeedback("audit.feedback.undoFailure", "error", record, undefined);
+        showFeedback("audit.feedback.undoFailure", "error", record);
       } else {
         const completedRecord: AuditRecord = { ...record, undoState: "completed" };
         setRecords((currentRecords) =>
@@ -370,12 +318,7 @@ export function AuditScreen() {
         }
 
         const error = result.error;
-        showFeedback(
-          auditErrorMessageKey(error, "audit.errors.undoUnavailable"),
-          "error",
-          record,
-          undefined
-        );
+        showFeedback(auditErrorMessageKey(error, "audit.errors.undoUnavailable"), "error", record, writeOutcomeUnknown(error));
         if (
           error.kind === "api" &&
           (error.code === "audit_conflict" || error.code === "audit_not_undoable")
@@ -485,7 +428,7 @@ export function AuditScreen() {
         />
       ) : null}
 
-      {feedback ? <AuditFeedbackNotice feedback={feedback} onReload={reloadAudit} /> : null}
+      {feedback ? <AuditFeedbackNotice key={feedback.id} feedback={feedback} onReload={reloadAudit} /> : null}
     </section>
   );
 }

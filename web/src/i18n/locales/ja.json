@@ -1,4 +1,23 @@
 {
+  "drafts": {
+    "leaveTitle": "未保存の変更",
+    "leaveDescription": "未保存の変更をすべて破棄して続行するか、キャンセルして編集を続けてください。",
+    "writePending": "書き込み中です。結果が確定するまでお待ちください。",
+    "cancel": "キャンセル",
+    "discardContinue": "破棄して続行",
+    "discard": "自分の変更を破棄",
+    "dirtyCount": "未保存の項目数：{{total}}",
+    "refetch": "最新の状態を再取得",
+    "unknownOutcome": "書き込み結果は不明です。再試行する前に最新の状態を取得してください。",
+    "conflictTitle": "最新の設定を確認",
+    "conflictDescription": "下書きは保持されています。自分の変更のみをリビジョン {{revision}} に再適用し、確認してから保存できます。",
+    "conflictField": "{{field}}：最新値 {{latest}}、自分の変更 {{mine}}",
+    "noOverlap": "双方で変更された項目はありません。",
+    "reapply": "自分の変更を再適用",
+    "enabled": "有効",
+    "disabled": "無効",
+    "inherited": "継承値"
+  },
   "app": {
     "title": "認証コンソール",
     "name": "認証コンソール"
@@ -268,8 +287,7 @@
       "release": "入場させる",
       "releaseFor": "{{user}} を入場させる",
       "releasing": "入場処理中…",
-      "releasingFor": "{{user}} を入場させています",
-      "reload": "再読み込み"
+      "releasingFor": "{{user}} を入場させています"
     },
     "feedback": {
       "releaseSuccess": "{{user}} を入場させました。これで「{{group}}」に入れます。",
@@ -360,8 +378,7 @@
       "cancelRestore": "復元をキャンセル",
       "discard": "破棄",
       "save": "保存",
-      "saving": "保存中…",
-      "reload": "再読み込み"
+      "saving": "保存中…"
     },
     "feedback": {
       "saved": "モデレーションと処分の設定を保存しました。",
@@ -485,8 +502,7 @@
       "removeRepository": "リポジトリを削除",
       "restoreFactory": "工場出荷時の既定値に戻す",
       "save": "フィード設定を保存",
-      "saving": "フィード設定を保存しています…",
-      "reload": "設定を再読み込み"
+      "saving": "フィード設定を保存しています…"
     },
     "save": {
       "label": "グループのフィード設定を保存",
@@ -598,8 +614,7 @@
       "cancelRestore": "復元をキャンセル",
       "discard": "破棄",
       "save": "保存",
-      "saving": "保存中…",
-      "reload": "再読み込み"
+      "saving": "保存中…"
     },
     "feedback": {
       "saved": "認証免除のソース設定を保存しました。",
@@ -657,8 +672,7 @@
       "undo": "アクセス禁止を取り消す",
       "undoFor": "{{user}} のアクセス禁止を取り消す",
       "undoing": "取り消し中…",
-      "undoingFor": "{{user}} のアクセス禁止を取り消しています",
-      "reload": "再読み込み"
+      "undoingFor": "{{user}} のアクセス禁止を取り消しています"
     },
     "undoState": {
       "pending": "取り消し待ち",
@@ -772,18 +786,15 @@
       "chatOverride": "このグループの上書き"
     },
     "save": {
-      "dirty": "保存していない変更があります。",
       "clean": "保存する変更はありません。"
     },
     "actions": {
       "restore": "継承値に戻す",
       "save": "変更を保存",
-      "saving": "保存中…",
-      "reload": "再読み込み"
+      "saving": "保存中…"
     },
     "feedback": {
-      "saved": "認証設定を保存しました。",
-      "conflict": "他の管理者が設定を変更しました。最新の値を読み込みました。必要な変更をもう一度適用してください。"
+      "saved": "認証設定を保存しました。"
     },
     "validation": {
       "integer": "整数を入力してください。",
@@ -932,8 +943,7 @@
       "removeAnswer": "削除",
       "removeAnswerFor": "回答 {{number}} を削除",
       "save": "変更を保存",
-      "saving": "保存中…",
-      "reload": "再読み込み"
+      "saving": "保存中…"
     },
     "save": {
       "dirty": "保存していない問題集の変更があります。",
@@ -1421,7 +1431,6 @@
     },
     "actions": {
       "retry": "再試行",
-      "reload": "再読み込み",
       "restore": "継承値に戻す",
       "cancelRestore": "復元をキャンセル",
       "saveSettings": "メッセージ設定を保存",

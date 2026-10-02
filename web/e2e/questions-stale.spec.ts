@@ -125,7 +125,7 @@ test("questions discard a previous group's delayed settings response", async ({ 
   await expect(page.getByLabel("题面").first()).toHaveValue(groupBQuestion.q);
 });
 
-test("questions ignore a previous group's delayed settings save", async ({ page }) => {
+test("questions wait for a pending save before switching groups", async ({ page }) => {
   let markPatchRequested!: () => void;
   let releasePatch!: () => void;
   const patchRequested = new Promise<void>((resolve) => {
@@ -161,11 +161,14 @@ test("questions ignore a previous group's delayed settings save", async ({ page 
   await page.getByRole("button", { name: "保存更改" }).click();
   await patchRequested;
   await selectAppOption(page.getByRole("button", { name: "当前群组" }), groupBID);
-  await expect(page).toHaveURL(new RegExp(`/questions\\?group=${groupBID}$`));
-  await expect(page.getByLabel("题面").first()).toHaveValue(groupBQuestion.q);
-
+  const leave = page.getByRole("alertdialog").getByRole("button", { name: "放弃更改并继续" });
+  await expect(leave).toBeDisabled();
+  await expect(page).toHaveURL(new RegExp(`/questions\\?group=${groupAID}$`));
   releasePatch();
   await patchResponseSettled;
+  await expect(leave).toBeEnabled();
+  await leave.click();
+  await expect(page).toHaveURL(new RegExp(`/questions\\?group=${groupBID}$`));
   await expect(page.getByLabel("题面").first()).toHaveValue(groupBQuestion.q);
 });
 
@@ -188,8 +191,9 @@ test("an interrupted question save provides the question-bank reload it names", 
   await page.getByLabel("题面").first().fill("Unsaved after a network failure");
   await page.getByRole("button", { name: "保存更改" }).click();
   const feedback = page.locator("[data-questions-feedback]");
-  await expect(feedback).toContainText("连接已中断");
-  await feedback.getByRole("button", { name: "重新读取" }).click();
+  await expect(feedback).toHaveAttribute("data-feedback-level", "info");
+  await feedback.getByRole("button", { name: "重新获取最新状态" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "放弃更改并继续" }).click();
   await expect.poll(() => settingsReads).toBe(2);
   await expect(feedback).toHaveCount(0);
 });

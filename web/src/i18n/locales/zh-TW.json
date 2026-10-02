@@ -1,4 +1,23 @@
 {
+  "drafts": {
+    "leaveTitle": "尚有未儲存的變更",
+    "leaveDescription": "捨棄所有未儲存的變更後繼續，或取消並繼續編輯。",
+    "writePending": "寫入尚未結束，請等待結果後再離開。",
+    "cancel": "取消",
+    "discardContinue": "捨棄變更並繼續",
+    "discard": "捨棄我的變更",
+    "dirtyCount": "未儲存欄位數：{{total}}",
+    "refetch": "重新取得最新狀態",
+    "unknownOutcome": "寫入結果未知，請重新取得最新狀態後再嘗試。",
+    "conflictTitle": "檢查最新設定",
+    "conflictDescription": "草稿已保留。可將本次變更重新套用至版本 {{revision}}，檢查後再儲存。",
+    "conflictField": "{{field}}：最新值為 {{latest}}，本次變更為 {{mine}}",
+    "noOverlap": "沒有雙方均已修改的欄位。",
+    "reapply": "重新套用我的變更",
+    "enabled": "已啟用",
+    "disabled": "已停用",
+    "inherited": "繼承值"
+  },
   "app": {
     "title": "驗證控制台",
     "name": "驗證控制台"
@@ -268,8 +287,7 @@
       "release": "放行",
       "releaseFor": "放行 {{user}}",
       "releasing": "放行中…",
-      "releasingFor": "正在放行 {{user}}",
-      "reload": "重新讀取"
+      "releasingFor": "正在放行 {{user}}"
     },
     "feedback": {
       "releaseSuccess": "已放行 {{user}}，現在可進入群組 {{group}}。",
@@ -360,8 +378,7 @@
       "cancelRestore": "取消還原",
       "discard": "放棄",
       "save": "儲存",
-      "saving": "正在儲存…",
-      "reload": "重新載入"
+      "saving": "正在儲存…"
     },
     "feedback": {
       "saved": "管理與處罰設定已儲存。",
@@ -485,8 +502,7 @@
       "removeRepository": "移除儲存庫",
       "restoreFactory": "還原程式預設值",
       "save": "儲存訂閱設定",
-      "saving": "正在儲存訂閱設定…",
-      "reload": "重新載入設定"
+      "saving": "正在儲存訂閱設定…"
     },
     "save": {
       "label": "儲存群組訂閱設定",
@@ -598,8 +614,7 @@
       "cancelRestore": "取消還原",
       "discard": "放棄",
       "save": "儲存",
-      "saving": "正在儲存…",
-      "reload": "重新讀取"
+      "saving": "正在儲存…"
     },
     "feedback": {
       "saved": "免驗證來源設定已儲存。",
@@ -657,8 +672,7 @@
       "undo": "撤銷封鎖",
       "undoFor": "撤銷對 {{user}} 的封鎖",
       "undoing": "正在撤銷…",
-      "undoingFor": "正在撤銷對 {{user}} 的封鎖",
-      "reload": "重新讀取"
+      "undoingFor": "正在撤銷對 {{user}} 的封鎖"
     },
     "undoState": {
       "pending": "等待撤銷",
@@ -772,18 +786,15 @@
       "chatOverride": "此群組覆寫"
     },
     "save": {
-      "dirty": "有未儲存的變更。",
       "clean": "沒有待儲存的變更。"
     },
     "actions": {
       "restore": "還原繼承值",
       "save": "儲存變更",
-      "saving": "正在儲存…",
-      "reload": "重新讀取"
+      "saving": "正在儲存…"
     },
     "feedback": {
-      "saved": "已儲存驗證設定。",
-      "conflict": "其他管理員已變更設定。已載入最新值；請重新套用仍需要的變更。"
+      "saved": "已儲存驗證設定。"
     },
     "validation": {
       "integer": "請輸入整數。",
@@ -932,8 +943,7 @@
       "removeAnswer": "移除",
       "removeAnswerFor": "移除答案 {{number}}",
       "save": "儲存變更",
-      "saving": "正在儲存…",
-      "reload": "重新讀取"
+      "saving": "正在儲存…"
     },
     "save": {
       "dirty": "有尚未儲存的題庫變更。",
@@ -1421,7 +1431,6 @@
     },
     "actions": {
       "retry": "重試",
-      "reload": "重新讀取",
       "restore": "恢復繼承值",
       "cancelRestore": "取消恢復",
       "saveSettings": "儲存訊息設定",

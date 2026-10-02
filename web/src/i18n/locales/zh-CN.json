@@ -1,4 +1,23 @@
 {
+  "drafts": {
+    "leaveTitle": "尚有未保存的更改",
+    "leaveDescription": "放弃所有未保存的更改后继续，或取消并继续编辑。",
+    "writePending": "写入尚未结束，请等待结果后再离开。",
+    "cancel": "取消",
+    "discardContinue": "放弃更改并继续",
+    "discard": "放弃我的更改",
+    "dirtyCount": "未保存字段数：{{total}}",
+    "refetch": "重新获取最新状态",
+    "unknownOutcome": "写入结果未知，请重新获取最新状态后再尝试。",
+    "conflictTitle": "检查最新设置",
+    "conflictDescription": "草稿已保留。可将本次更改重新应用到版本 {{revision}}，检查后再保存。",
+    "conflictField": "{{field}}：最新值为 {{latest}}，本次更改为 {{mine}}",
+    "noOverlap": "没有双方均已修改的字段。",
+    "reapply": "重新应用我的更改",
+    "enabled": "已启用",
+    "disabled": "已停用",
+    "inherited": "继承值"
+  },
   "app": {
     "title": "验证控制台",
     "name": "验证控制台"
@@ -268,8 +287,7 @@
       "release": "放行",
       "releaseFor": "放行 {{user}}",
       "releasing": "放行中…",
-      "releasingFor": "正在放行 {{user}}",
-      "reload": "重新读取"
+      "releasingFor": "正在放行 {{user}}"
     },
     "feedback": {
       "releaseSuccess": "已放行 {{user}}，该用户现在可以进入 {{group}}。",
@@ -360,8 +378,7 @@
       "cancelRestore": "取消恢复",
       "discard": "放弃更改",
       "save": "保存",
-      "saving": "正在保存…",
-      "reload": "重新载入"
+      "saving": "正在保存…"
     },
     "feedback": {
       "saved": "管理与处罚设置已保存。",
@@ -485,8 +502,7 @@
       "removeRepository": "移除仓库",
       "restoreFactory": "恢复出厂默认值",
       "save": "保存订阅设置",
-      "saving": "正在保存订阅设置…",
-      "reload": "重新载入设置"
+      "saving": "正在保存订阅设置…"
     },
     "save": {
       "label": "保存群级订阅设置",
@@ -598,8 +614,7 @@
       "cancelRestore": "取消恢复",
       "discard": "放弃更改",
       "save": "保存",
-      "saving": "正在保存…",
-      "reload": "重新读取"
+      "saving": "正在保存…"
     },
     "feedback": {
       "saved": "免验证来源设置已保存。",
@@ -657,8 +672,7 @@
       "undo": "撤销封禁",
       "undoFor": "撤销对 {{user}} 的封禁",
       "undoing": "正在撤销…",
-      "undoingFor": "正在撤销对 {{user}} 的封禁",
-      "reload": "重新读取"
+      "undoingFor": "正在撤销对 {{user}} 的封禁"
     },
     "undoState": {
       "pending": "等待撤销",
@@ -772,18 +786,15 @@
       "chatOverride": "当前群覆盖"
     },
     "save": {
-      "dirty": "有未保存的更改。",
       "clean": "没有待保存的更改。"
     },
     "actions": {
       "restore": "恢复继承值",
       "save": "保存更改",
-      "saving": "正在保存…",
-      "reload": "重新读取"
+      "saving": "正在保存…"
     },
     "feedback": {
-      "saved": "已保存验证设置。",
-      "conflict": "其他管理员已修改这些设置。已加载最新值，请重新应用需要的更改。"
+      "saved": "已保存验证设置。"
     },
     "validation": {
       "integer": "请输入整数。",
@@ -932,8 +943,7 @@
       "removeAnswer": "移除",
       "removeAnswerFor": "移除答案 {{number}}",
       "save": "保存更改",
-      "saving": "正在保存…",
-      "reload": "重新读取"
+      "saving": "正在保存…"
     },
     "save": {
       "dirty": "有未保存的题库更改。",
@@ -1421,7 +1431,6 @@
     },
     "actions": {
       "retry": "重试",
-      "reload": "重新读取",
       "restore": "恢复继承值",
       "cancelRestore": "取消恢复",
       "saveSettings": "保存消息设置",

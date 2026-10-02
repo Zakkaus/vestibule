@@ -1,3 +1,4 @@
+import { Feedback, writeOutcomeUnknown } from "../../components/feedback";
 import { type FormEvent, type ReactNode } from "react";
 import { Button } from "@react-spectrum/s2/Button";
 import { Text } from "@react-spectrum/s2";
@@ -170,32 +171,14 @@ function QuestionsFeedbackNotice({
       : feedback.kind === "conflict"
         ? "questions.feedback.conflict"
         : questionErrorMessageKey(feedback.error, "questions.errors.saveUnavailable");
-  const isError = feedback.kind !== "saved";
-  const reloadable = feedback.kind === "error" && feedback.error.kind === "network";
+  const unknown = feedback.kind === "error" && writeOutcomeUnknown(feedback.error);
   return (
-    <div
-      data-questions-feedback={feedback.kind}
-      data-tone={isError ? "error" : "ok"}
-      role={isError ? "alert" : "status"}
-      aria-atomic="true"
-    >
-      <div data-state-heading>
-        <Icon name={isError ? "circleAlert" : "circleCheck"} />
-        {feedback.kind === "error" &&
-        feedback.error.kind === "api" &&
-        feedback.error.code === "settings_limit_exceeded" ? (
-          <SettingsLimitNotice error={feedback.error} messageKey={messageKey} />
-        ) : (
-          t(messageKey)
-        )}
-      </div>
-      {reloadable ? (
-        <Button type="button" variant="secondary" onPress={onReload}>
-          <Icon name="refreshCw" />
-          <Text>{t("questions.actions.reload")}</Text>
-        </Button>
-      ) : null}
-    </div>
+    <Feedback data-questions-feedback={feedback.kind} message={t(messageKey)}
+      level={feedback.kind === "saved" ? "positive" : feedback.kind === "conflict" ? "warning" : "negative"}
+      unknown={unknown} onRefetch={unknown ? onReload : undefined}>
+      {feedback.kind === "error" && feedback.error.kind === "api" && feedback.error.code === "settings_limit_exceeded"
+        ? <SettingsLimitNotice error={feedback.error} messageKey={messageKey} /> : undefined}
+    </Feedback>
   );
 }
 

@@ -196,7 +196,7 @@ test("messages saves a sparse settings patch separately from rules", async ({ pa
   await page.locator("[data-messages-settings-savebar] [data-slot='button']").click();
   await patchSettled;
   await expect(page.locator("#messages-name-spoiler")).toHaveAttribute("aria-checked", "false");
-  await expect(page.locator("[data-messages-settings-feedback]")).toHaveAttribute("data-tone", "ok");
+  await expect(page.locator("[data-messages-settings-feedback]")).toBeVisible();
 });
 
 test("messages toggles one opaque rule without changing an unknown collection", async ({ page }) => {
@@ -324,7 +324,7 @@ test("messages reloads settings after a revision conflict", async ({ page }) => 
 
   await page.locator("#messages-name-spoiler").click();
   await page.locator("[data-messages-settings-savebar] [data-slot='button']").click();
-  await expect(page.locator("[data-messages-settings-feedback]")).toHaveAttribute("data-tone", "error");
+  await expect(page.locator("[data-messages-settings-feedback]")).toHaveAttribute("data-feedback-level", "warning");
   await expect(page.locator("#messages-name-spoiler")).toHaveAttribute("aria-checked", "false");
   await expect.poll(() => readCount).toBe(2);
 });

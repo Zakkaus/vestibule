@@ -1007,7 +1007,6 @@ const settlementFailureCases = [
   {
     name: "an interrupted network request",
     kind: "network",
-    message: "连接已中断",
     expectedState: "populated"
   }
 ] as const;
@@ -1048,7 +1047,14 @@ for (const failure of settlementFailureCases) {
     const row = rowFor(page, "@another");
     await row.getByRole("button", { name: "放行 @another" }).click();
 
-    await expect(page.locator("[data-queue-feedback]")).toContainText(failure.message);
+    if (failure.kind === "network") {
+      const feedback = page.locator("[data-queue-feedback]");
+      await expect(feedback).toHaveAttribute("data-feedback-level", "info");
+      await feedback.getByRole("button", { name: "重新获取最新状态" }).click();
+      await expect.poll(() => queueReadCount).toBe(2);
+    } else {
+      await expect(page.locator("[data-queue-feedback]")).toContainText(failure.message);
+    }
     await expect(page.locator("[data-queue-page]")).toHaveAttribute(
       "data-queue-state",
       failure.expectedState

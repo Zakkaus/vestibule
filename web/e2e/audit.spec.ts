@@ -425,8 +425,8 @@ test("an interrupted undo provides the activity-log reload it names", async ({ p
 
   await page.getByRole("button", { name: "撤销对 @undo_target 的封禁" }).click();
   const feedback = page.locator("[data-audit-feedback]");
-  await expect(feedback).toContainText("连接已中断");
-  await feedback.getByRole("button", { name: "重新读取" }).click();
+  await expect(feedback).toHaveAttribute("data-feedback-level", "info");
+  await feedback.getByRole("button", { name: "重新获取最新状态" }).click();
   await expect.poll(() => auditReads).toBe(2);
   await expect(feedback).toHaveCount(0);
 });

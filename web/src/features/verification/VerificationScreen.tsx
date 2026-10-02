@@ -1,3 +1,6 @@
+import { useDraftOwner, useScopeChange } from "../../app/drafts";
+import { Feedback, writeOutcomeUnknown } from "../../components/feedback";
+import { changedDraftFields, reapplyDraft, VerificationConflict } from "./VerificationConflict";
 import { Button } from "@react-spectrum/s2/Button";
 import { Text } from "@react-spectrum/s2";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
@@ -38,8 +41,7 @@ type VerificationScreenState =
 
 type SaveFeedback =
   | Readonly<{ kind: "saved" }>
-  | Readonly<{ kind: "conflict" }>
-  | Readonly<{ kind: "error"; error: ApiRequestError }>;
+  | Readonly<{ kind: "error"; error: ApiRequestError; unknown?: boolean; refetch?: boolean }>;
 
 const errorMessageKeys: Readonly<Record<string, string>> = {
   authentication_expired: "verification.errors.authenticationExpired",
@@ -116,8 +118,11 @@ export function VerificationScreen() {
   const [restored, setRestored] = useState<ReadonlySet<VerificationSettingField>>(new Set());
   const [reloadVersion, setReloadVersion] = useState(0);
   const [attemptedSave, setAttemptedSave] = useState(false);
+  const [touched, setTouched] = useState<ReadonlySet<VerificationSettingField>>(new Set());
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<SaveFeedback | null>(null);
+  const [conflict, setConflict] = useState<VerificationSettings | null>(null);
+  const requestScopeChange = useScopeChange();
   const activeScopeRef = useRef("");
   const saveSequenceRef = useRef(0);
 
@@ -129,7 +134,9 @@ export function VerificationScreen() {
     setDraft(null);
     setRestored(new Set());
     setAttemptedSave(false);
+    setTouched(new Set());
     setFeedback(null);
+    setConflict(null);
     let active = true;
 
     if (session.state === "loading" || session.state === "checking-groups") {
@@ -184,7 +191,29 @@ export function VerificationScreen() {
     screenState.kind === "loaded" && validation.values
       ? sparseChanges(screenState.settings, validation.values, restored)
       : {};
-  const errors: FieldErrors = attemptedSave ? validation.errors : {};
+  const errors: FieldErrors = attemptedSave ? validation.errors : Object.fromEntries(
+    Object.entries(validation.errors).filter(([field]) => touched.has(field as VerificationSettingField))
+  );
+  const dirtyCount = screenState.kind === "loaded" && draft ? changedDraftFields(screenState.settings, draft, restored).length : 0;
+  function discardDraft(): void {
+    if (screenState.kind !== "loaded") return;
+    const settings = conflict ?? screenState.settings;
+    setScreenState({ kind: "loaded", settings });
+    setDraft(settingsDraft(settings));
+    setRestored(new Set());
+    setAttemptedSave(false);
+    setFeedback(null);
+    setConflict(null);
+  }
+  useDraftOwner(hasChanges, saving, discardDraft);
+
+  function reapplyChanges(): void {
+    if (!conflict || screenState.kind !== "loaded" || !draft) return;
+    setDraft(reapplyDraft(screenState.settings, draft, conflict, restored));
+    setScreenState({ kind: "loaded", settings: conflict });
+    setConflict(null);
+    setFeedback(null);
+  }
 
   function updateDraft<K extends keyof DraftSettings>(field: K, value: DraftSettings[K]): void {
     setDraft((current) => (current ? { ...current, [field]: value } : current));
@@ -210,7 +239,7 @@ export function VerificationScreen() {
   }
 
   async function submitSettings(): Promise<void> {
-    if (screenState.kind !== "loaded" || !draft || !chatID || saving) {
+    if (screenState.kind !== "loaded" || !draft || !chatID || saving || conflict) {
       return;
     }
 
@@ -249,15 +278,11 @@ export function VerificationScreen() {
         return;
       }
       if (currentSettings.ok) {
-        setScreenState({ kind: "loaded", settings: currentSettings.data });
-        setDraft(settingsDraft(currentSettings.data));
-        setRestored(new Set());
-        setAttemptedSave(false);
-        setFeedback({ kind: "conflict" });
+        setConflict(currentSettings.data);
         setSaving(false);
         return;
       }
-      setScreenState({ kind: "unavailable", error: currentSettings.error });
+      setFeedback({ kind: "error", error: currentSettings.error, refetch: true });
       setSaving(false);
       return;
     }
@@ -266,14 +291,31 @@ export function VerificationScreen() {
       setSaving(false);
       return;
     }
-    setFeedback({ kind: "error", error: result.error });
+    setFeedback({ kind: "error", error: result.error, unknown: writeOutcomeUnknown(result.error), refetch: writeOutcomeUnknown(result.error) });
     setSaving(false);
   }
 
   function reloadVerification(): void {
-    if (!retryConsoleAccess(session)) {
-      setReloadVersion((version) => version + 1);
+    requestScopeChange(() => {
+      if (!retryConsoleAccess(session)) setReloadVersion((version) => version + 1);
+    });
+  }
+
+  async function refetchOutcome(): Promise<void> {
+    if (!chatID || saving) return;
+    setSaving(true);
+    const scope = activeScopeRef.current;
+    const latest = await loadVerificationSettings(consoleApi, chatID);
+    if (scope !== activeScopeRef.current) return;
+    setSaving(false);
+    if (!latest.ok) {
+      setFeedback({ kind: "error", error: latest.error, refetch: true });
+      return;
     }
+    // A read does not prove an unacknowledged write finished. Review this revision
+    // without dropping the local delta or resending the write.
+    setConflict(latest.data);
+    setFeedback(null);
   }
 
   function submit(event: FormEvent<HTMLFormElement>): void {
@@ -354,50 +396,28 @@ export function VerificationScreen() {
           draft={draft}
           errors={errors}
           saving={saving}
-          hasChanges={hasChanges}
+          dirtyCount={dirtyCount}
+          onDiscard={discardDraft}
+          saveBlocked={conflict !== null}
           onSubmit={submit}
           onDraftChange={updateDraft}
+          onFieldBlur={(field) => setTouched((current) => new Set(current).add(field))}
           onRestore={restoreSetting}
         />
       ) : null}
 
+      {conflict && screenState.kind === "loaded" && draft ? (
+        <VerificationConflict baseline={screenState.settings} draft={draft} latest={conflict}
+          restored={restored} onDiscard={discardDraft} onReapply={reapplyChanges} />
+      ) : null}
       {feedback ? (
-        <div
-          data-verification-feedback
-          data-tone={feedback.kind === "error" || feedback.kind === "conflict" ? "error" : "ok"}
-          role={feedback.kind === "error" || feedback.kind === "conflict" ? "alert" : "status"}
-          aria-atomic="true"
-        >
-          <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
-          {feedback.kind === "error" &&
-          feedback.error.kind === "api" &&
-          feedback.error.code === "settings_limit_exceeded" ? (
-            <SettingsLimitNotice
-              error={feedback.error}
-              messageKey="verification.errors.settingsLimitExceeded"
-            />
-          ) : (
-            t(
-              feedback.kind === "saved"
-                ? "verification.feedback.saved"
-                : feedback.kind === "conflict"
-                  ? "verification.feedback.conflict"
-                  : verificationErrorMessageKey(feedback.error, "verification.errors.saveUnavailable")
-            )
-          )}
-          {feedback.kind === "error" && feedback.error.kind === "network" ? (
-            <Button
-              type="button"
-              variant="secondary"
-              size={size}
-              data-slot="button"
-              onPress={reloadVerification}
-            >
-              <Icon name="refreshCw" />
-              <Text>{t("verification.actions.reload")}</Text>
-            </Button>
-          ) : null}
-        </div>
+        <Feedback data-verification-feedback level={feedback.kind === "saved" ? "positive" : "negative"}
+          message={t(feedback.kind === "saved" ? "verification.feedback.saved" : verificationErrorMessageKey(feedback.error, "verification.errors.saveUnavailable"))}
+          unknown={feedback.kind === "error" && feedback.unknown}
+          onRefetch={feedback.kind === "error" && feedback.refetch ? () => { void refetchOutcome(); } : undefined}>
+          {feedback.kind === "error" && feedback.error.kind === "api" && feedback.error.code === "settings_limit_exceeded"
+            ? <SettingsLimitNotice error={feedback.error} messageKey="verification.errors.settingsLimitExceeded" /> : undefined}
+        </Feedback>
       ) : null}
     </section>
   );

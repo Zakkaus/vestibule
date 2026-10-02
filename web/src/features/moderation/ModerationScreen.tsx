@@ -1,3 +1,4 @@
+import { Feedback, writeOutcomeUnknown } from "../../components/feedback";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -271,27 +272,14 @@ function ModerationFeedbackNotice({
       : feedback.kind === "conflict"
         ? "moderation.feedback.conflict"
         : moderationErrorMessageKey(feedback.error, "moderation.errors.saveUnavailable");
+  const unknown = feedback.kind === "error" && writeOutcomeUnknown(feedback.error);
   return (
-    <div
-      data-moderation-feedback={feedback.kind}
-      data-status={feedback.kind === "saved" ? "ok" : "error"}
-      role={feedback.kind === "saved" ? "status" : "alert"}
-    >
-      <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
-      {feedback.kind === "error" &&
-      feedback.error.kind === "api" &&
-      feedback.error.code === "settings_limit_exceeded" ? (
-        <SettingsLimitNotice error={feedback.error} messageKey={messageKey} />
-      ) : (
-        <span>{t(messageKey)}</span>
-      )}
-      {feedback.kind === "conflict" ? (
-        <Button type="button" variant="secondary" data-slot="button" onPress={onReload}>
-          <Icon name="refreshCw" />
-          {t("moderation.actions.reload")}
-        </Button>
-      ) : null}
-    </div>
+    <Feedback data-moderation-feedback={feedback.kind} message={t(messageKey)}
+      level={feedback.kind === "saved" ? "positive" : feedback.kind === "conflict" ? "warning" : "negative"}
+      unknown={unknown} onRefetch={unknown || feedback.kind === "conflict" ? onReload : undefined}>
+      {feedback.kind === "error" && feedback.error.kind === "api" && feedback.error.code === "settings_limit_exceeded"
+        ? <SettingsLimitNotice error={feedback.error} messageKey={messageKey} /> : undefined}
+    </Feedback>
   );
 }
 

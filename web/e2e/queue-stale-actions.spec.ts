@@ -327,8 +327,8 @@ test("an interrupted release provides the queue reload it names", async ({ page 
   await page.goto(`/queue?group=${groupAID}`);
   await queueRow(page, "@queue_group_a").getByRole("button").click();
   const feedback = page.locator("[data-queue-feedback]");
-  await expect(feedback).toContainText("连接已中断");
-  await feedback.getByRole("button", { name: "重新读取" }).click();
+  await expect(feedback).toHaveAttribute("data-feedback-level", "info");
+  await feedback.getByRole("button", { name: "重新获取最新状态" }).click();
   await expect.poll(() => queueReads).toBe(2);
   await expect(feedback).toHaveCount(0);
 });

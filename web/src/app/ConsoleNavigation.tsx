@@ -104,17 +104,19 @@ export function navigationSections(items: readonly NavigationItem[]): readonly N
 // its declared props stop at children. Name what we actually pass rather than casting
 // the call site to any.
 const NavigationLink = SideNavItemLink as (
-  props: SideNavItemLinkProps & { href: string } & Record<`data-${string}`, string>
+  props: SideNavItemLinkProps & { href: string; onPress?: () => void } & Record<`data-${string}`, string>
 ) => ReactNode;
 
 export function ConsoleNavigation({
   sections,
   selectedGroupSearch,
-  idPrefix
+  idPrefix,
+  onNavigate
 }: Readonly<{
   sections: readonly NavigationSection[];
   selectedGroupSearch: string;
   idPrefix: string;
+  onNavigate?: () => void;
 }>) {
   const { t } = useTranslation();
   const location = useLocation();
@@ -145,6 +147,7 @@ export function ConsoleNavigation({
               <SideNavItemContent>
                 <NavigationLink
                   href={`${item.path}${selectedGroupSearch}`}
+                  onPress={onNavigate}
                   data-navigation-item={item.path}
                   data-owner-navigation={item.path === "/owner" ? "true" : undefined}
                 >

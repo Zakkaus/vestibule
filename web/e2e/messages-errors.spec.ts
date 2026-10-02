@@ -95,7 +95,7 @@ test("a missing message rule provides the reload action named by its error", asy
   await page.locator("[data-messages-rule-item]").getByRole("switch").click();
   const feedback = page.locator("[data-messages-rules-feedback]");
   await expect(feedback).toContainText("该规则已不存在。请重新读取规则。");
-  await feedback.getByRole("button", { name: "重新读取" }).click();
+  await feedback.getByRole("button", { name: "重新获取最新状态" }).click();
   await expect.poll(() => ruleReads).toBe(2);
   await expect(feedback).toHaveCount(0);
 });
@@ -119,8 +119,8 @@ test("an interrupted message-settings save provides a reload action", async ({ p
   await page.locator("#messages-name-spoiler").click();
   await page.getByRole("button", { name: "保存消息设置" }).click();
   const feedback = page.locator("[data-messages-settings-feedback]");
-  await expect(feedback).toContainText("连接已中断");
-  await feedback.getByRole("button", { name: "重新读取" }).click();
+  await expect(feedback).toHaveAttribute("data-feedback-level", "info");
+  await feedback.getByRole("button", { name: "重新获取最新状态" }).click();
   await expect.poll(() => settingsReads).toBe(2);
   await expect(feedback).toHaveCount(0);
 });

@@ -1,3 +1,4 @@
+import { Feedback, writeOutcomeUnknown } from "../../components/feedback";
 import { Button } from "@react-spectrum/s2/Button";
 import { Text } from "@react-spectrum/s2";
 import type { FormEvent, ReactNode } from "react";
@@ -358,29 +359,14 @@ function BypassFeedbackNotice({
       : feedback.kind === "conflict"
         ? "bypass.feedback.conflict"
         : errorMessageKey(feedback.error);
-  const reloadable = feedback.kind === "error" && feedback.error.kind === "network";
-  const size = useConsoleSize("L");
+  const unknown = feedback.kind === "error" && writeOutcomeUnknown(feedback.error);
   return (
-    <div
-      data-bypass-feedback={feedback.kind}
-      data-status={feedback.kind === "saved" ? "ok" : "error"}
-      role={feedback.kind === "saved" ? "status" : "alert"}
-    >
-      <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
-      {feedback.kind === "error" &&
-      feedback.error.kind === "api" &&
-      feedback.error.code === "settings_limit_exceeded" ? (
-        <SettingsLimitNotice error={feedback.error} messageKey={messageKey} />
-      ) : (
-        t(messageKey)
-      )}
-      {reloadable ? (
-        <Button type="button" variant="secondary" size={size} data-slot="button" onPress={onReload}>
-          <Icon name="refreshCw" />
-          <Text>{t("bypass.actions.reload")}</Text>
-        </Button>
-      ) : null}
-    </div>
+    <Feedback data-bypass-feedback={feedback.kind} message={t(messageKey)}
+      level={feedback.kind === "saved" ? "positive" : feedback.kind === "conflict" ? "warning" : "negative"}
+      unknown={unknown} onRefetch={unknown ? onReload : undefined}>
+      {feedback.kind === "error" && feedback.error.kind === "api" && feedback.error.code === "settings_limit_exceeded"
+        ? <SettingsLimitNotice error={feedback.error} messageKey={messageKey} /> : undefined}
+    </Feedback>
   );
 }
 

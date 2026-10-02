@@ -8,6 +8,8 @@ import { Outlet, useLocation, useMatches } from "react-router-dom";
 
 import { UtilityControls } from "../components/UtilityControls";
 import { ConsoleProvider, useConsoleSize } from "../components/ConsoleProvider";
+import { ToastContainer } from "@react-spectrum/s2/Toast";
+import { DraftProvider } from "./drafts";
 import { GroupSwitcher } from "../features/groups";
 import { Icon } from "../icons";
 import {
@@ -248,6 +250,7 @@ function ShellContent() {
                     sections={visibleNavigationSections}
                     selectedGroupSearch={selectedGroupSearch}
                     idPrefix="mobile"
+                    onNavigate={() => setNavigationOpen(false)}
                   />
                 </Popover>
               </DialogTrigger>
@@ -272,5 +275,5 @@ function ShellContent() {
 }
 
 export function AppShell() {
-  return <ConsoleProvider><ShellContent /></ConsoleProvider>;
+  return <ConsoleProvider><DraftProvider><ShellContent /><ToastContainer placement="top" /></DraftProvider></ConsoleProvider>;
 }

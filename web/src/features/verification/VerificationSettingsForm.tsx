@@ -1,3 +1,4 @@
+import { TextField } from "@react-spectrum/s2/TextField";
 import { Button } from "@react-spectrum/s2/Button";
 import { Text } from "@react-spectrum/s2";
 import { type FormEvent, type ReactNode } from "react";
@@ -6,6 +7,8 @@ import { useTranslation } from "react-i18next";
 import { AppSelect, type AppSelectOption } from "../../components/AppSelect";
 import { useConsoleSize } from "../../components/ConsoleProvider";
 import { StatusBadge } from "../../components/StatusBadge";
+import { SettingsSection } from "../../components/SettingsSection";
+import { SettingsSaveFooter } from "../../components/SettingsSaveFooter";
 import { Icon } from "../../icons";
 import {
   deliveryModes,
@@ -23,9 +26,12 @@ type VerificationSettingsFormProps = Readonly<{
   draft: DraftSettings;
   errors: FieldErrors;
   saving: boolean;
-  hasChanges: boolean;
+  dirtyCount: number;
+  onDiscard: () => void;
+  saveBlocked: boolean;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onDraftChange: <K extends keyof DraftSettings>(field: K, value: DraftSettings[K]) => void;
+  onFieldBlur: (field: VerificationSettingField) => void;
   onRestore: (field: VerificationSettingField) => void;
 }>;
 
@@ -55,6 +61,7 @@ type NumericSettingProps = Readonly<{
   value: string;
   saving: boolean;
   onChange: (value: string) => void;
+  onBlur: () => void;
   onRestore: (field: VerificationSettingField) => void;
 }>;
 
@@ -147,8 +154,10 @@ function NumericSetting({
   value,
   saving,
   onChange,
+  onBlur,
   onRestore
 }: NumericSettingProps) {
+  const { t } = useTranslation();
   return (
     <SettingRow
       field={field}
@@ -160,18 +169,17 @@ function NumericSetting({
       onRestore={onRestore}
     >
       {(describedBy) => (
-        <input
+        <TextField
           id={controlID}
-          data-slot="input"
+          aria-label={t(labelKey)}
           data-verification-number
-          type="number"
           inputMode="numeric"
-          step="1"
-          aria-invalid={errorKey ? "true" : undefined}
+          isInvalid={Boolean(errorKey)}
           aria-describedby={describedBy}
           value={value}
-          readOnly={saving}
-          onChange={(event) => onChange(event.currentTarget.value)}
+          isReadOnly={saving}
+          onBlur={onBlur}
+          onChange={onChange}
         />
       )}
     </SettingRow>
@@ -183,13 +191,15 @@ export function VerificationSettingsForm({
   draft,
   errors,
   saving,
-  hasChanges,
+  dirtyCount,
+  onDiscard,
+  saveBlocked,
   onSubmit,
   onDraftChange,
+  onFieldBlur,
   onRestore
 }: VerificationSettingsFormProps) {
   const { t } = useTranslation();
-  const size = useConsoleSize("L");
   const deliveryOptions: readonly AppSelectOption<DeliveryMode>[] = deliveryModes.map((mode) => ({
     label: t(deliveryModeMessageKeys[mode]),
     value: mode
@@ -201,177 +211,147 @@ export function VerificationSettingsForm({
 
   return (
     <form data-verification-form onSubmit={onSubmit}>
-      <section data-slot="card" data-verification-section aria-labelledby="verification-delivery-title">
-        <div data-verification-section-heading>
-          <h2 id="verification-delivery-title">{t("verification.delivery.title")}</h2>
-          <p>{t("verification.delivery.description")}</p>
-        </div>
-        <SettingRow
-          field="delivery_mode"
-          controlID="verification-delivery-mode"
-          labelKey="verification.delivery.label"
-          descriptionKey={deliveryModeDescriptionKeys[draft.delivery_mode]}
-          source={settings.delivery_mode.source}
-          errorKey={errors.delivery_mode}
-          onRestore={onRestore}
-        >
-          {(describedBy) => (
-            <AppSelect
-              aria-label={t("verification.delivery.label")}
-              id="verification-delivery-mode"
-              aria-describedby={describedBy}
-              value={draft.delivery_mode}
-              aria-disabled={saving ? "true" : undefined}
-              options={deliveryOptions}
-              onValueChange={(value) => onDraftChange("delivery_mode", value)}
-            />
-          )}
-        </SettingRow>
-      </section>
+      <SettingsSection data-verification-section id="verification-delivery-title" title={t("verification.delivery.title")} description={t("verification.delivery.description")}><SettingRow
+        field="delivery_mode"
+        controlID="verification-delivery-mode"
+        labelKey="verification.delivery.label"
+        descriptionKey={deliveryModeDescriptionKeys[draft.delivery_mode]}
+        source={settings.delivery_mode.source}
+        errorKey={errors.delivery_mode}
+        onRestore={onRestore}
+      >
+        {(describedBy) => (
+          <AppSelect
+            aria-label={t("verification.delivery.label")}
+            id="verification-delivery-mode"
+            aria-describedby={describedBy}
+            value={draft.delivery_mode}
+            aria-disabled={saving ? "true" : undefined}
+            options={deliveryOptions}
+            onValueChange={(value) => onDraftChange("delivery_mode", value)}
+          />
+        )}
+      </SettingRow></SettingsSection>
 
-      <section data-slot="card" data-verification-section aria-labelledby="verification-challenge-title">
-        <div data-verification-section-heading>
-          <h2 id="verification-challenge-title">{t("verification.challenge.title")}</h2>
-          <p>{t("verification.challenge.description")}</p>
-        </div>
-        <SettingRow
-          field="verify_mode"
-          controlID="verification-mode"
-          labelKey="verification.challenge.label"
-          descriptionKey={verifyModeDescriptionKeys[draft.verify_mode]}
-          source={settings.verify_mode.source}
-          errorKey={errors.verify_mode}
-          onRestore={onRestore}
-        >
-          {(describedBy) => (
-            <AppSelect
-              aria-label={t("verification.challenge.label")}
-              id="verification-mode"
-              aria-describedby={describedBy}
-              value={draft.verify_mode}
-              aria-disabled={saving ? "true" : undefined}
-              options={verifyOptions}
-              onValueChange={(value) => onDraftChange("verify_mode", value)}
-            />
-          )}
-        </SettingRow>
-      </section>
+      <SettingsSection data-verification-section id="verification-challenge-title" title={t("verification.challenge.title")} description={t("verification.challenge.description")}><SettingRow
+        field="verify_mode"
+        controlID="verification-mode"
+        labelKey="verification.challenge.label"
+        descriptionKey={verifyModeDescriptionKeys[draft.verify_mode]}
+        source={settings.verify_mode.source}
+        errorKey={errors.verify_mode}
+        onRestore={onRestore}
+      >
+        {(describedBy) => (
+          <AppSelect
+            aria-label={t("verification.challenge.label")}
+            id="verification-mode"
+            aria-describedby={describedBy}
+            value={draft.verify_mode}
+            aria-disabled={saving ? "true" : undefined}
+            options={verifyOptions}
+            onValueChange={(value) => onDraftChange("verify_mode", value)}
+          />
+        )}
+      </SettingRow></SettingsSection>
 
-      <section data-slot="card" data-verification-section aria-labelledby="verification-timing-title">
-        <div data-verification-section-heading>
-          <h2 id="verification-timing-title">{t("verification.timing.title")}</h2>
-          <p>{t("verification.timing.description")}</p>
-        </div>
-        <NumericSetting
-          field="timeout_seconds"
-          controlID="verification-timeout-seconds"
-          labelKey="verification.timing.timeout.label"
-          descriptionKey="verification.timing.timeout.description"
-          source={settings.timeout_seconds.source}
-          errorKey={errors.timeout_seconds}
-          value={draft.timeout_seconds}
-          saving={saving}
-          onChange={(value) => onDraftChange("timeout_seconds", value)}
-          onRestore={onRestore}
-        />
-        <NumericSetting
-          field="verify_max_fails"
-          controlID="verification-max-fails"
-          labelKey="verification.timing.maxFails.label"
-          descriptionKey="verification.timing.maxFails.description"
-          source={settings.verify_max_fails.source}
-          errorKey={errors.verify_max_fails}
-          value={draft.verify_max_fails}
-          saving={saving}
-          onChange={(value) => onDraftChange("verify_max_fails", value)}
-          onRestore={onRestore}
-        />
-        <NumericSetting
-          field="verify_retry_seconds"
-          controlID="verification-retry-seconds"
-          labelKey="verification.timing.retry.label"
-          descriptionKey="verification.timing.retry.description"
-          source={settings.verify_retry_seconds.source}
-          errorKey={errors.verify_retry_seconds}
-          value={draft.verify_retry_seconds}
-          saving={saving}
-          onChange={(value) => onDraftChange("verify_retry_seconds", value)}
-          onRestore={onRestore}
-        />
-        <NumericSetting
-          field="ban_seconds"
-          controlID="verification-ban-seconds"
-          labelKey="verification.timing.ban.label"
-          descriptionKey="verification.timing.ban.description"
-          source={settings.ban_seconds.source}
-          errorKey={errors.ban_seconds}
-          value={draft.ban_seconds}
-          saving={saving}
-          onChange={(value) => onDraftChange("ban_seconds", value)}
-          onRestore={onRestore}
-        />
-        <NumericSetting
-          field="mute_seconds"
-          controlID="verification-mute-seconds"
-          labelKey="verification.timing.mute.label"
-          descriptionKey="verification.timing.mute.description"
-          source={settings.mute_seconds.source}
-          errorKey={errors.mute_seconds}
-          value={draft.mute_seconds}
-          saving={saving}
-          onChange={(value) => onDraftChange("mute_seconds", value)}
-          onRestore={onRestore}
-        />
-      </section>
+      <SettingsSection data-verification-section id="verification-timing-title" title={t("verification.timing.title")} description={t("verification.timing.description")}><NumericSetting
+        field="timeout_seconds"
+        controlID="verification-timeout-seconds"
+        labelKey="verification.timing.timeout.label"
+        descriptionKey="verification.timing.timeout.description"
+        source={settings.timeout_seconds.source}
+        errorKey={errors.timeout_seconds}
+        value={draft.timeout_seconds}
+        saving={saving}
+        onChange={(value) => onDraftChange("timeout_seconds", value)}
+        onBlur={() => onFieldBlur("timeout_seconds")}
+        onRestore={onRestore}
+      />
+      <NumericSetting
+        field="verify_max_fails"
+        controlID="verification-max-fails"
+        labelKey="verification.timing.maxFails.label"
+        descriptionKey="verification.timing.maxFails.description"
+        source={settings.verify_max_fails.source}
+        errorKey={errors.verify_max_fails}
+        value={draft.verify_max_fails}
+        saving={saving}
+        onChange={(value) => onDraftChange("verify_max_fails", value)}
+        onBlur={() => onFieldBlur("verify_max_fails")}
+        onRestore={onRestore}
+      />
+      <NumericSetting
+        field="verify_retry_seconds"
+        controlID="verification-retry-seconds"
+        labelKey="verification.timing.retry.label"
+        descriptionKey="verification.timing.retry.description"
+        source={settings.verify_retry_seconds.source}
+        errorKey={errors.verify_retry_seconds}
+        value={draft.verify_retry_seconds}
+        saving={saving}
+        onChange={(value) => onDraftChange("verify_retry_seconds", value)}
+        onBlur={() => onFieldBlur("verify_retry_seconds")}
+        onRestore={onRestore}
+      />
+      <NumericSetting
+        field="ban_seconds"
+        controlID="verification-ban-seconds"
+        labelKey="verification.timing.ban.label"
+        descriptionKey="verification.timing.ban.description"
+        source={settings.ban_seconds.source}
+        errorKey={errors.ban_seconds}
+        value={draft.ban_seconds}
+        saving={saving}
+        onChange={(value) => onDraftChange("ban_seconds", value)}
+        onBlur={() => onFieldBlur("ban_seconds")}
+        onRestore={onRestore}
+      />
+      <NumericSetting
+        field="mute_seconds"
+        controlID="verification-mute-seconds"
+        labelKey="verification.timing.mute.label"
+        descriptionKey="verification.timing.mute.description"
+        source={settings.mute_seconds.source}
+        errorKey={errors.mute_seconds}
+        value={draft.mute_seconds}
+        saving={saving}
+        onChange={(value) => onDraftChange("mute_seconds", value)}
+        onBlur={() => onFieldBlur("mute_seconds")}
+        onRestore={onRestore}
+      /></SettingsSection>
 
-      <section data-slot="card" data-verification-section aria-labelledby="verification-invited-title">
-        <div data-verification-section-heading>
-          <h2 id="verification-invited-title">{t("verification.invited.title")}</h2>
-          <p>{t("verification.invited.description")}</p>
-        </div>
-        <SettingRow
-          field="verify_invited"
-          controlID="verification-invited-members"
-          labelKey="verification.invited.label"
-          descriptionKey="verification.invited.settingDescription"
-          source={settings.verify_invited.source}
-          errorKey={errors.verify_invited}
-          onRestore={onRestore}
-        >
-          {(describedBy) => (
-            <input
-              id="verification-invited-members"
-              data-slot="switch"
-              type="checkbox"
-              role="switch"
-              aria-checked={draft.verify_invited}
-              aria-describedby={describedBy}
-              checked={draft.verify_invited}
-              aria-disabled={saving ? "true" : undefined}
-              onChange={(event) => {
-                if (!saving) {
-                  onDraftChange("verify_invited", event.currentTarget.checked);
-                }
-              }}
-            />
-          )}
-        </SettingRow>
-      </section>
+      <SettingsSection data-verification-section id="verification-invited-title" title={t("verification.invited.title")} description={t("verification.invited.description")}><SettingRow
+        field="verify_invited"
+        controlID="verification-invited-members"
+        labelKey="verification.invited.label"
+        descriptionKey="verification.invited.settingDescription"
+        source={settings.verify_invited.source}
+        errorKey={errors.verify_invited}
+        onRestore={onRestore}
+      >
+        {(describedBy) => (
+          <input
+            id="verification-invited-members"
+            data-slot="switch"
+            type="checkbox"
+            role="switch"
+            aria-checked={draft.verify_invited}
+            aria-describedby={describedBy}
+            checked={draft.verify_invited}
+            aria-disabled={saving ? "true" : undefined}
+            onChange={(event) => {
+              if (!saving) {
+                onDraftChange("verify_invited", event.currentTarget.checked);
+              }
+            }}
+          />
+        )}
+      </SettingRow></SettingsSection>
 
-      <footer data-slot="card" data-verification-savebar>
-        <p>{t(hasChanges ? "verification.save.dirty" : "verification.save.clean")}</p>
-        <Button
-          type="submit"
-          variant="accent"
-          size={size}
-          data-slot="button"
-          isDisabled={!hasChanges}
-          isPending={saving}
-        >
-          <Icon name="save" />
-          <Text>{t(saving ? "verification.actions.saving" : "verification.actions.save")}</Text>
-        </Button>
-      </footer>
+      <SettingsSaveFooter data-verification-savebar dirtyCount={dirtyCount} pending={saving} disabled={saveBlocked} onDiscard={onDiscard}
+        saveLabel={t("verification.actions.save")} savingLabel={t("verification.actions.saving")}
+        cleanLabel={t("verification.save.clean")} />
     </form>
   );
 }

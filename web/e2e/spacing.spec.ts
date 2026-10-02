@@ -256,14 +256,14 @@ test.describe("content pages use the stepped page and card hierarchy", () => {
           throw new Error("rendered route did not expose its page and heading");
         }
 
-        const cards = [...contentPage.querySelectorAll<HTMLElement>("[data-slot='card']")]
+        const cards = [...contentPage.querySelectorAll<HTMLElement>("[data-slot='card'], [data-verification-section], [data-verification-savebar]")]
           .filter((card) => card.checkVisibility());
         const cardPaddingMismatches = cards
           .map((card) => {
             const style = getComputedStyle(card);
             return `${style.paddingTop} ${style.paddingRight} ${style.paddingBottom} ${style.paddingLeft}`;
           })
-          .filter((padding) => padding !== "16px 24px 16px 24px");
+          .filter((padding) => padding !== (contentPage.matches("[data-verification-page]") ? "16px 16px 16px 16px" : "16px 24px 16px 24px"));
 
         return {
           pageGap: getComputedStyle(contentPage).gap,
@@ -285,7 +285,7 @@ test.describe("content pages use the stepped page and card hierarchy", () => {
       urlPath: "/verification",
       steps: [
         ["[data-verification-form]", "24px"],
-        ["[data-verification-section]", "16px"]
+        ["[data-verification-section]", "12px"]
       ]
     },
     {

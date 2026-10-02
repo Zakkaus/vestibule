@@ -320,7 +320,6 @@ test("feeds saves edited settings through the shared CSRF transport", async ({ p
   await expect(feedsSaveBar(page)).toHaveAttribute("data-save-state", "submitting");
   await expect(feedsSaveButton(page)).toHaveAttribute("aria-disabled", "true");
   releaseWrite();
-  await expect(page.locator("[data-feeds-feedback]")).toHaveAttribute("role", "status");
   await expect(page.locator("[data-feeds-feedback]")).toContainText("订阅设置已保存");
   await expect(feedsSaveBar(page)).toContainText("没有未保存的修改");
   expect(requests.write).toBe(1);

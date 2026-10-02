@@ -251,11 +251,11 @@ async function exerciseBusyVerificationControls(
   await expect(focusedSelect).toBeFocused();
   await expect(focusedSelect).toHaveAttribute("aria-disabled", "true");
   const controls = page.locator(
-    "#verification-delivery-mode, #verification-mode, [data-verification-number], #verification-invited-members"
+    "#verification-delivery-mode, #verification-mode, [data-verification-number] input, #verification-invited-members"
   );
   await expectControlsFocusable(controls);
   expect(
-    await page.locator("[data-verification-number]").evaluateAll((inputs) =>
+    await page.locator("[data-verification-number] input").evaluateAll((inputs) =>
       inputs.every((input) => (input as HTMLInputElement).readOnly)
     )
   ).toBe(true);
@@ -705,17 +705,14 @@ test("question deletion requires confirmation and language restoration writes nu
   const firstDelete = page.locator("[data-question-bank-editor] [data-question-item]").first().getByRole("button", {
     name: "删除选择题"
   });
-  let dismissedMessage: string | undefined;
-  page.once("dialog", async (dialog) => {
-    dismissedMessage = dialog.message();
-    await dialog.dismiss();
-  });
   await firstDelete.click();
-  expect(dismissedMessage).toContain("删除选择题 1");
+  const dialog = page.getByRole("alertdialog");
+  await expect(dialog).toContainText("删除选择题 1");
+  await dialog.getByRole("button", { name: "取消", exact: true }).click();
   await expect(page.locator("[data-question-bank-editor] [data-question-item]")).toHaveCount(2);
 
-  page.once("dialog", (dialog) => dialog.accept());
   await firstDelete.click();
+  await dialog.getByRole("button", { name: "删除选择题", exact: true }).click();
   await expect(page.locator("[data-question-bank-editor] [data-question-item]")).toHaveCount(1);
   await page
     .locator('[data-question-setting="lang"]')

@@ -1,4 +1,23 @@
 {
+  "drafts": {
+    "leaveTitle": "Unsaved changes",
+    "leaveDescription": "Discard all unsaved changes before continuing, or cancel to keep editing.",
+    "writePending": "A write is still pending. Wait for it to settle before leaving.",
+    "cancel": "Cancel",
+    "discardContinue": "Discard and continue",
+    "discard": "Discard my changes",
+    "dirtyCount": "Unsaved fields: {{total}}",
+    "refetch": "Refetch latest state",
+    "unknownOutcome": "The write outcome is unknown. Refetch the latest state before trying again.",
+    "conflictTitle": "Review the latest settings",
+    "conflictDescription": "Your draft is preserved. Reapply only your changes onto revision {{revision}}, then review and save.",
+    "conflictField": "{{field}}: latest {{latest}}; mine {{mine}}",
+    "noOverlap": "No fields were changed on both sides.",
+    "reapply": "Reapply my changes",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "inherited": "Inherited value"
+  },
   "app": {
     "title": "Verification Console",
     "name": "Verification Console"
@@ -269,8 +288,7 @@
       "release": "Release",
       "releaseFor": "Release {{user}}",
       "releasing": "Releasing…",
-      "releasingFor": "Releasing {{user}}",
-      "reload": "Reload queue"
+      "releasingFor": "Releasing {{user}}"
     },
     "feedback": {
       "releaseSuccess": "Released {{user}}. They can now enter “{{group}}”.",
@@ -362,8 +380,7 @@
       "cancelRestore": "Cancel restore",
       "discard": "Discard",
       "save": "Save",
-      "saving": "Saving…",
-      "reload": "Reload"
+      "saving": "Saving…"
     },
     "feedback": {
       "saved": "Moderation settings saved.",
@@ -488,8 +505,7 @@
       "removeRepository": "Remove repository",
       "restoreFactory": "Restore factory defaults",
       "save": "Save feed settings",
-      "saving": "Saving feed settings…",
-      "reload": "Reload settings"
+      "saving": "Saving feed settings…"
     },
     "save": {
       "label": "Save group feed settings",
@@ -602,8 +618,7 @@
       "cancelRestore": "Cancel restore",
       "discard": "Discard",
       "save": "Save",
-      "saving": "Saving…",
-      "reload": "Reload settings"
+      "saving": "Saving…"
     },
     "feedback": {
       "saved": "Verification bypass sources saved.",
@@ -661,8 +676,7 @@
       "undo": "Undo ban",
       "undoFor": "Undo the ban for {{user}}",
       "undoing": "Undoing…",
-      "undoingFor": "Undoing the ban for {{user}}",
-      "reload": "Reload activity log"
+      "undoingFor": "Undoing the ban for {{user}}"
     },
     "undoState": {
       "pending": "Undo pending",
@@ -776,18 +790,15 @@
       "chatOverride": "Group override"
     },
     "save": {
-      "dirty": "There are unsaved changes.",
       "clean": "There are no changes to save."
     },
     "actions": {
       "restore": "Restore inherited value",
       "save": "Save changes",
-      "saving": "Saving…",
-      "reload": "Reload settings"
+      "saving": "Saving…"
     },
     "feedback": {
-      "saved": "Verification settings were saved.",
-      "conflict": "Another administrator changed these settings. The latest values were loaded; reapply any changes you still need."
+      "saved": "Verification settings were saved."
     },
     "validation": {
       "integer": "Enter an integer.",
@@ -939,8 +950,7 @@
       "removeAnswer": "Remove",
       "removeAnswerFor": "Remove answer {{number}}",
       "save": "Save changes",
-      "saving": "Saving…",
-      "reload": "Reload question bank"
+      "saving": "Saving…"
     },
     "save": {
       "dirty": "There are unsaved question-bank changes.",
@@ -1428,7 +1438,6 @@
     },
     "actions": {
       "retry": "Try again",
-      "reload": "Reload",
       "restore": "Restore inherited value",
       "cancelRestore": "Cancel restore",
       "saveSettings": "Save message settings",

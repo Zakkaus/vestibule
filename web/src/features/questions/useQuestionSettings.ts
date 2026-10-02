@@ -1,3 +1,4 @@
+import { useDraftOwner, useScopeChange } from "../../app/drafts";
 import {
   useCallback,
   useEffect,
@@ -245,6 +246,13 @@ export function useQuestionSettings(): QuestionsController {
     state.kind === "loaded" && draft
       ? hasQuestionDraftChanges(state.settings, draft, restored)
       : false;
+  const requestScopeChange = useScopeChange();
+  useDraftOwner(hasChanges, saving, () => {
+    if (state.kind === "loaded") setDraft(draftFromSettings(state.settings));
+    setRestored(new Set());
+    setAttemptedSave(false);
+    setFeedback(null);
+  });
 
   const updateDraft = useCallback((next: QuestionsDraft, fields: readonly QuestionSettingField[]) => {
     setDraft(next);
@@ -309,11 +317,11 @@ export function useQuestionSettings(): QuestionsController {
     restore,
     restoreFallback,
     save,
-    reload: () => {
+    reload: () => requestScopeChange(() => {
       if (!retryConsoleAccess(session)) {
         setReloadVersion((version) => version + 1);
       }
-    },
+    }),
     feedback
   };
 }

@@ -412,8 +412,8 @@ test("an interrupted bypass save provides the settings reload it names", async (
   await page.locator("#bypass-trusted-member-group-ids").fill("-1007000000002");
   await page.getByRole("button", { name: "保存" }).click();
   const feedback = page.locator("[data-bypass-feedback]");
-  await expect(feedback).toContainText("连接已中断");
-  await feedback.getByRole("button", { name: "重新读取" }).click();
+  await expect(feedback).toHaveAttribute("data-feedback-level", "info");
+  await feedback.getByRole("button", { name: "重新获取最新状态" }).click();
   await expect.poll(() => settingsReads).toBe(2);
   await expect(feedback).toHaveCount(0);
 });

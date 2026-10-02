@@ -1,3 +1,4 @@
+import { useConfirmation } from "../../components/useConfirmation";
 import { Button, Text } from "@react-spectrum/s2/Button";
 import { useTranslation } from "react-i18next";
 import { Icon } from "../../icons";
@@ -189,9 +190,11 @@ export function FallbackQuestionEditor({
   onChange
 }: FallbackQuestionEditorProps) {
   const { t } = useTranslation();
+  const { confirm, dialog } = useConfirmation();
 
   return (
     <div data-fallback-question-editor>
+      {dialog}
       {listErrorKey ? (
         <p data-slot="field-error" role="alert">
           {t(listErrorKey)}
@@ -208,11 +211,12 @@ export function FallbackQuestionEditor({
             onChange={(next) =>
               onChange(questions.map((item) => (item.id === question.id ? next : item)))
             }
-            onDelete={() => {
-              if (window.confirm(t("questions.fallback.confirmDelete", { number: index + 1 }))) {
-                onChange(questions.filter((item) => item.id !== question.id));
-              }
-            }}
+            onDelete={() => confirm({
+              title: t("questions.actions.deleteQuestion"),
+              description: t("questions.fallback.confirmDelete", { number: index + 1 }),
+              confirmLabel: t("questions.actions.deleteQuestion"),
+              action: () => onChange(questions.filter((item) => item.id !== question.id))
+            })}
           />
         ))}
       </div>

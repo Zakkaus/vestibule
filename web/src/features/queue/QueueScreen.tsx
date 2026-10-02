@@ -1,8 +1,8 @@
+import { Feedback, writeOutcomeUnknown } from "../../components/feedback";
 import { Button } from "@react-spectrum/s2/Button";
 import { ButtonGroup } from "@react-spectrum/s2/ButtonGroup";
 import { Card } from "@react-spectrum/s2/Card";
 import { Content, Header, Heading, Text } from "@react-spectrum/s2";
-import { InlineAlert } from "@react-spectrum/s2/InlineAlert";
 import { TextField } from "@react-spectrum/s2/TextField";
 import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -62,7 +62,6 @@ const queueTableContainerStyles = style({
 });
 
 const FIXTURE_ACTION_DELAY_MS = 700;
-const FEEDBACK_DURATION_MS = 5_000;
 
 const errorMessageKeys: Readonly<Record<string, string>> = {
   authentication_expired: "queue.errors.authenticationExpired",
@@ -99,6 +98,7 @@ type QueueFeedback = Readonly<{
   messageKey: string;
   tone: StatusTone;
   record: QueueRecord;
+  unknown: boolean;
 }>;
 
 function queueErrorMessageKey(error: ApiRequestError, fallback: string): string {
@@ -118,11 +118,8 @@ function QueueFeedbackNotice({
   onReload
 }: Readonly<{ feedback: QueueFeedback; onReload: () => void }>) {
   const { t } = useTranslation();
-  // A dropped connection and a settlement the server rejected as stale both leave the
-  // screen showing something the operator cannot act on. Naming the recovery is not the
-  // same as offering it, so the notice carries the reload it names.
   const reloadable =
-    feedback.messageKey === "queue.errors.network" ||
+    feedback.unknown ||
     feedback.messageKey === "queue.errors.invalidSettlement";
   const session = useConsoleSession();
   const group = groupName(
@@ -131,40 +128,12 @@ function QueueFeedbackNotice({
       ? t(feedback.record.groupLabelKey)
       : session.state === "ready" ? session.chats.find((chat) => chat.id === feedback.record.groupKey)?.title : undefined
   );
-  const variant =
-    feedback.tone === "ok"
-      ? "positive"
-      : feedback.tone === "error"
-        ? "negative"
-        : feedback.tone === "pending"
-          ? "notice"
-          : feedback.tone === "info"
-            ? "informative"
-            : "neutral";
-
   return (
-    <InlineAlert
-      data-record-feedback
-      data-queue-feedback
-      data-tone={feedback.tone}
-      aria-atomic="true"
-      variant={variant}
-    >
-      <Text>
-        {t(feedback.messageKey, {
-          user: feedback.record.user,
-          group,
-          approved: t(challengeResults.approved.labelKey)
-        })}
-      </Text>
-      {reloadable ? (
-        <ButtonGroup>
-          <Button variant="secondary" onPress={onReload}>
-            {t("queue.actions.reload")}
-          </Button>
-        </ButtonGroup>
-      ) : null}
-    </InlineAlert>
+    <Feedback data-record-feedback data-queue-feedback
+      level={feedback.tone === "ok" ? "positive" : feedback.tone === "error" ? "negative" : feedback.tone === "pending" ? "warning" : feedback.tone}
+      message={t(feedback.messageKey, { user: feedback.record.user, group, approved: t(challengeResults.approved.labelKey) })}
+      unknown={feedback.unknown}
+      onRefetch={reloadable ? onReload : undefined} />
   );
 }
 
@@ -193,7 +162,6 @@ export function QueueScreen() {
   const inFlightRecordIdsRef = useRef(new Set<string>());
   const activeScopeRef = useRef("");
   const feedbackSequenceRef = useRef(0);
-  const feedbackTimerRef = useRef<number | undefined>(undefined);
   const fixtureTimerIdsRef = useRef(new Set<number>());
   const dateFormatter = useMemo(
     () =>
@@ -271,10 +239,6 @@ export function QueueScreen() {
   }, [chatID, fixture, reloadVersion, session]);
 
   useEffect(() => {
-    if (feedbackTimerRef.current !== undefined) {
-      window.clearTimeout(feedbackTimerRef.current);
-      feedbackTimerRef.current = undefined;
-    }
     fixtureTimerIdsRef.current.forEach((timerID) => window.clearTimeout(timerID));
     fixtureTimerIdsRef.current.clear();
     inFlightRecordIdsRef.current.clear();
@@ -283,10 +247,6 @@ export function QueueScreen() {
     setFeedback(null);
 
     return () => {
-      if (feedbackTimerRef.current !== undefined) {
-        window.clearTimeout(feedbackTimerRef.current);
-        feedbackTimerRef.current = undefined;
-      }
       fixtureTimerIdsRef.current.forEach((timerID) => window.clearTimeout(timerID));
       fixtureTimerIdsRef.current.clear();
       inFlightRecordIdsRef.current.clear();
@@ -301,29 +261,8 @@ export function QueueScreen() {
     }, { replace: true });
   }
 
-  function showFeedback(
-    messageKey: string,
-    tone: StatusTone,
-    record: QueueRecord,
-    dismissAfter: number | undefined
-  ): void {
-    if (feedbackTimerRef.current !== undefined) {
-      window.clearTimeout(feedbackTimerRef.current);
-      feedbackTimerRef.current = undefined;
-    }
-
-    const id = ++feedbackSequenceRef.current;
-    setFeedback({ id, messageKey, tone, record });
-
-    if (dismissAfter !== undefined) {
-      const timerID = window.setTimeout(() => {
-        if (feedbackSequenceRef.current === id) {
-          setFeedback(null);
-        }
-        feedbackTimerRef.current = undefined;
-      }, dismissAfter);
-      feedbackTimerRef.current = timerID;
-    }
+  function showFeedback(messageKey: string, tone: StatusTone, record: QueueRecord, unknown = false): void {
+    setFeedback({ id: ++feedbackSequenceRef.current, messageKey, tone, record, unknown });
   }
 
   function finishAction(recordID: string, scope: string): void {
@@ -362,9 +301,9 @@ export function QueueScreen() {
             currentRecord.id === record.id ? record : currentRecord
           )
         );
-        showFeedback("queue.feedback.releaseFailure", "error", record, undefined);
+        showFeedback("queue.feedback.releaseFailure", "error", record);
       } else {
-        showFeedback("queue.feedback.releaseSuccess", "ok", record, FEEDBACK_DURATION_MS);
+        showFeedback("queue.feedback.releaseSuccess", "ok", record);
       }
       finishAction(record.id, scope);
     }, FIXTURE_ACTION_DELAY_MS);
@@ -403,17 +342,12 @@ export function QueueScreen() {
               currentRecord.id === record.id ? result.data : currentRecord
             )
           );
-          showFeedback("queue.feedback.releaseSuccess", "ok", result.data, FEEDBACK_DURATION_MS);
+          showFeedback("queue.feedback.releaseSuccess", "ok", result.data);
           return;
         }
 
         const error = result.error;
-        showFeedback(
-          queueErrorMessageKey(error, "queue.errors.settlementUnavailable"),
-          "error",
-          record,
-          undefined
-        );
+        showFeedback(queueErrorMessageKey(error, "queue.errors.settlementUnavailable"), "error", record, writeOutcomeUnknown(error));
 
         if (error.kind === "api" && error.code === "challenge_conflict") {
           setReloadVersion((currentVersion) => currentVersion + 1);
@@ -549,7 +483,7 @@ export function QueueScreen() {
         ) : null}
       </Content>
 
-      {feedback ? <QueueFeedbackNotice feedback={feedback} onReload={reloadQueue} /> : null}
+      {feedback ? <QueueFeedbackNotice key={feedback.id} feedback={feedback} onReload={reloadQueue} /> : null}
     </Content>
   );
 }

@@ -1,3 +1,4 @@
+import { Feedback, writeOutcomeUnknown } from "../../components/feedback";
 import { useMemo, type ReactNode } from "react";
 import { Button } from "@react-spectrum/s2/Button";
 import { Text } from "@react-spectrum/s2";
@@ -268,6 +269,8 @@ function UpgradeFeedback({ controller }: Readonly<{ controller: VersionControlle
   if (upgradeState.kind === "applied" || upgradeState.kind === "failed") {
     return (
       <div data-version-upgrade-outcome={upgradeState.kind} role={upgradeState.kind === "failed" ? "alert" : "status"}>
+        <Feedback level={upgradeState.kind === "applied" ? "positive" : "negative"}
+          message={t(replacementStatusKeys[upgradeState.result.status] ?? "version.replacement.status.unknown")} />
         <ReplacementResultNotice result={upgradeState.result} />
         {upgradeState.kind === "failed" ? (
           <Button
@@ -288,14 +291,16 @@ function UpgradeFeedback({ controller }: Readonly<{ controller: VersionControlle
     const descriptionKey = upgradeState.kind === "request-unavailable"
       ? errorMessageKey(upgradeState.error, "upgrade")
       : "version.errors.monitorUnavailable";
+    const unknown = upgradeState.kind === "monitor-unavailable" || writeOutcomeUnknown(upgradeState.error);
     return (
-      <div data-version-upgrade-outcome="unavailable" role="alert">
-        <p>{t(descriptionKey)}</p>
+      <div data-version-upgrade-outcome="unavailable">
+        <Feedback level="negative" message={t(descriptionKey)} unknown={unknown}
+          onRefetch={unknown ? controller.retryUpgrade : undefined} />
         <div data-button-row>
-          <Button variant="primary" size={size} data-console-control data-control-size={size} onPress={controller.retryUpgrade}>
+          {!unknown ? <Button variant="primary" size={size} data-console-control data-control-size={size} onPress={controller.retryUpgrade}>
             <Icon name="refreshCw" />
             <Text>{t("version.actions.retry")}</Text>
-          </Button>
+          </Button> : null}
           <Button variant="secondary" size={size} data-console-control data-control-size={size} onPress={controller.cancelUpgrade}>
             <Icon name="x" />
             <Text>{t("version.actions.cancel")}</Text>

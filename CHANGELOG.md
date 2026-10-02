@@ -41,6 +41,11 @@ All notable changes to this project are documented here. The format is based on
 - A scheduled render gate covering every console locale, route, width, and theme.
 
 ### Fixed
+- Verification settings and question-bank drafts now guard navigation and scope reloads.
+  Verification conflicts retain local changes for explicit discard or reapplication against
+  the latest revision. Shared Spectrum save controls, confirmations, and notifications
+  distinguish confirmed results from unknown write outcomes. Phone save actions stack
+  at full width without splitting their labels.
 - Owner private help lists active owner commands. The owner menu and help omit
   `/console` when its link handler is disabled.
 - Production entry pages ignore preview query parameters and retain the authenticated

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Feedback } from "../../components/feedback";
 import { useTranslation } from "react-i18next";
 import { Button } from "@react-spectrum/s2/Button";
 
@@ -11,8 +11,9 @@ type RuleBusy =
   | null;
 
 type RuleFeedback = Readonly<{
-  tone: "ok" | "error";
-  content: ReactNode;
+  tone: "ok" | "error" | "warning";
+  content: string;
+  unknown: boolean;
   reloadable: boolean;
 }>;
 
@@ -206,20 +207,9 @@ export function RulesPanel({ items, busy, feedback, onReload, onToggle, onMove }
         </div>
       )}
       {feedback ? (
-        <div
-          data-messages-rules-feedback
-          data-tone={feedback.tone}
-          role={feedback.tone === "error" ? "alert" : "status"}
-        >
-          <Icon name={feedback.tone === "ok" ? "circleCheck" : "circleAlert"} />
-          {feedback.content}
-          {feedback.reloadable ? (
-            <Button variant="secondary" size="S" data-slot="button" data-size="sm" onPress={onReload}>
-              <Icon name="refreshCw" />
-              {t("messages.actions.reload")}
-            </Button>
-          ) : null}
-        </div>
+        <Feedback data-messages-rules-feedback message={feedback.content}
+          level={feedback.tone === "ok" ? "positive" : feedback.tone === "warning" ? "warning" : "negative"}
+          unknown={feedback.unknown} onRefetch={feedback.reloadable ? onReload : undefined} />
       ) : null}
     </section>
   );

@@ -1,3 +1,4 @@
+import { Feedback, writeOutcomeUnknown } from "../../components/feedback";
 import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router-dom";
@@ -85,29 +86,14 @@ function SettingsFeedbackNotice({
       : feedback.kind === "conflict"
         ? "messages.settingsFeedback.conflict"
         : errorMessageKey(feedback.error, "messages.errors.saveSettingsUnavailable");
-  const reloadable = feedback.kind === "error" && feedback.error.kind === "network";
-
+  const unknown = feedback.kind === "error" && writeOutcomeUnknown(feedback.error);
   return (
-    <div
-      data-messages-settings-feedback
-      data-tone={feedback.kind === "saved" ? "ok" : "error"}
-      role={feedback.kind === "saved" ? "status" : "alert"}
-    >
-      <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
-      {feedback.kind === "error" &&
-      feedback.error.kind === "api" &&
-      feedback.error.code === "settings_limit_exceeded" ? (
-        <SettingsLimitNotice error={feedback.error} messageKey={messageKey} />
-      ) : (
-        t(messageKey)
-      )}
-      {reloadable ? (
-        <Button variant="secondary" size="S" data-slot="button" data-size="sm" onPress={onReload}>
-          <Icon name="refreshCw" />
-          {t("messages.actions.reload")}
-        </Button>
-      ) : null}
-    </div>
+    <Feedback data-messages-settings-feedback message={t(messageKey)}
+      level={feedback.kind === "saved" ? "positive" : feedback.kind === "conflict" ? "warning" : "negative"}
+      unknown={unknown} onRefetch={unknown ? onReload : undefined}>
+      {feedback.kind === "error" && feedback.error.kind === "api" && feedback.error.code === "settings_limit_exceeded"
+        ? <SettingsLimitNotice error={feedback.error} messageKey={messageKey} /> : undefined}
+    </Feedback>
   );
 }
 
@@ -194,7 +180,7 @@ export function MessagesScreen() {
           tone:
             rules.feedback.kind === "saved-item" || rules.feedback.kind === "saved-order"
               ? ("ok" as const)
-              : ("error" as const),
+              : rules.feedback.kind === "conflict" ? ("warning" as const) : ("error" as const),
           content:
             rules.feedback.kind === "saved-item"
               ? t("messages.rules.feedback.itemSaved")
@@ -203,9 +189,10 @@ export function MessagesScreen() {
                 : rules.feedback.kind === "conflict"
                   ? t("messages.rules.feedback.conflict")
                   : t(errorMessageKey(rules.feedback.error, "messages.errors.saveRulesUnavailable")),
+          unknown: rules.feedback.kind === "error" && writeOutcomeUnknown(rules.feedback.error),
           reloadable:
             rules.feedback.kind === "error" &&
-            (rules.feedback.error.kind === "network" ||
+            (writeOutcomeUnknown(rules.feedback.error) ||
               (rules.feedback.error.kind === "api" &&
                 (rules.feedback.error.code === "invalid_rule" ||
                   rules.feedback.error.code === "rule_not_found")))
