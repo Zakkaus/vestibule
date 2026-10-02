@@ -22,6 +22,7 @@ type panelAPICaller struct {
 	lastAnswerAlert      bool
 	lastSendText         string
 	lastURL              string
+	lastInlineKeyboard   [][]telego.InlineKeyboardButton
 	sendChats            []int64
 	sendTexts            []string
 	messageID            int
@@ -101,10 +102,8 @@ func (c *panelAPICaller) callSendMessage(data *ta.RequestData) (*ta.Response, er
 		ChatID      int64  `json:"chat_id"`
 		Text        string `json:"text"`
 		ReplyMarkup struct {
-			InlineKeyboard [][]struct {
-				URL string `json:"url"`
-			} `json:"inline_keyboard"`
-			RemoveKeyboard bool `json:"remove_keyboard"`
+			InlineKeyboard [][]telego.InlineKeyboardButton `json:"inline_keyboard"`
+			RemoveKeyboard bool                            `json:"remove_keyboard"`
 		} `json:"reply_markup"`
 	}
 	if err := json.Unmarshal(data.BodyRaw, &request); err != nil {
@@ -113,6 +112,7 @@ func (c *panelAPICaller) callSendMessage(data *ta.RequestData) (*ta.Response, er
 	c.lastSendText = request.Text
 	c.sendChats = append(c.sendChats, request.ChatID)
 	c.sendTexts = append(c.sendTexts, request.Text)
+	c.lastInlineKeyboard = request.ReplyMarkup.InlineKeyboard
 	if len(request.ReplyMarkup.InlineKeyboard) > 0 && len(request.ReplyMarkup.InlineKeyboard[0]) > 0 {
 		c.lastURL = request.ReplyMarkup.InlineKeyboard[0][0].URL
 	}

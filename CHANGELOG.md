@@ -11,6 +11,8 @@ All notable changes to this project are documented here. The format is based on
   entity-based link and mention detection (private invites as `t.me/+`, `telegram.me`, `telegram.dog`,
   `joinchat/` and `tg://join?invite=`, excluding `t.me/+<phone>` contact links), emoji-aware
   hidden-character counting, and sample fixtures.
+- Private settings messages offer a Telegram Web App button when the console URL uses
+  HTTPS, opening the console with the requesting group selected.
 - Feed subscriptions are effective group settings with sourced reads and atomic full-replacement
   writes. Legacy `config.json` feed entries are imported once for managed chats; runtime
   polling follows subsequent store changes without restart. Bug and news factory defaults are off.
@@ -54,6 +56,8 @@ All notable changes to this project are documented here. The format is based on
   only until five minutes after the original admission.
 - Wrong-answer declines retain the same failure strike in direct console settlement and retries
   when Telegram reports that the join request is gone and confirms the applicant is outside the group.
+- The console captures Telegram Mini App launch data before routing and removes launch
+  parameters from its address without loading external scripts.
 - Owner private help lists active owner commands. The owner menu and help omit
   `/console` when its link handler is disabled.
 - Production entry pages ignore preview query parameters and retain the authenticated

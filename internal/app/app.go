@@ -382,6 +382,7 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 		settingsService, connector, runtime.cfg, &i18n.Messages,
 		verificationService, moderation, lookups, options.Version, startedAt,
 	)
+	administration.SetConsoleURL(options.ConsoleURL)
 	modules, err := newRuntimeModules(
 		runtime.cfg, runtime.settings, bot, options.StateDirectory, administration, moderation, lookups, consoleHandler != nil,
 	)
