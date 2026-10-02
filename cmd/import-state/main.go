@@ -25,6 +25,7 @@ func run(ctx context.Context, args []string) error {
 	databaseURI := flags.String("database-uri", os.Getenv("VT_DATABASE_URI"), "database URI (default STATE_DIRECTORY/vestibule.db)")
 	backupDirectory := flags.String("backup-dir", "", "exact directory for this import backup")
 	pending := flags.String("pending", "", "what to do with the previous generation's open challenges: carry or drop (required)")
+	acceptUnimported := flags.Bool("accept-unimported", false, "acknowledge that sidecar JSON files must be archived and carried over by hand")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -35,6 +36,9 @@ func run(ctx context.Context, args []string) error {
 	if pendingDisposition != database.PendingCarry && pendingDisposition != database.PendingDrop {
 		return fmt.Errorf("-pending must be carry or drop")
 	}
+	if _, err := database.CheckLegacySidecars(*stateDirectory, *acceptUnimported); err != nil {
+		return err
+	}
 	db, err := database.Open(ctx, database.Config{
 		Type: *databaseType, URI: *databaseURI, StateDirectory: *stateDirectory,
 	})
@@ -43,7 +47,7 @@ func run(ctx context.Context, args []string) error {
 	}
 	report, importErr := database.ImportLegacyState(ctx, db, database.ImportOptions{
 		StateDirectory: *stateDirectory, BackupDirectory: *backupDirectory,
-		Pending: pendingDisposition,
+		Pending: pendingDisposition, AcceptUnimported: *acceptUnimported,
 	})
 	closeErr := db.Close()
 	if importErr != nil {

@@ -247,7 +247,7 @@ func startActiveRuntime(parent context.Context, runtime *services) (*activeRunti
 		feedDone:      runtime.modules.Start(runtimeCtx),
 		heartbeatDone: startHeartbeat(runtimeCtx, runtime.verification, runtime.heartbeatBot),
 		expiryDone:    startExpiryScanner(runtimeCtx, runtime.verification),
-		actionDone:    startPendingActions(runtimeCtx, runtime.verification),
+		actionDone:    startPendingActions(runtimeCtx, runtime),
 	}
 	if err := polling.Start(runtimeCtx, runtime); err != nil {
 		stopActiveRuntime(active)
@@ -346,7 +346,12 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 	settingsService := newRuntimeCapabilitySettings(runtime, bot, lookups)
 	runtime.settingsService = settingsService
 	logRuntimeOptions(options)
-	alertPersistenceProblem(ctx, bot, runtime.cfg, runtime.settings)
+	liveVerificationGateway := telegram.NewVerificationGateway(connector)
+	verificationGateway, err := verificationGatewayForMode(ctx, runtime.cfg, runtime.database, liveVerificationGateway)
+	if err != nil {
+		return err
+	}
+	alertPersistenceProblem(ctx, verificationGateway, runtime.cfg, runtime.settings)
 	verificationStore := database.NewVerificationStore(runtime.database)
 	heartbeatBot := newOutageAwareBot(ctx, bot, runtime.settings, verificationStore, runtime.health)
 	// Count uptime before GetMe so operator-visible uptime includes its latency.
@@ -357,13 +362,6 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 	}
 	logPrivacyMode(me)
 	identity := verification.Identity{ID: me.ID, Username: me.Username}
-	liveVerificationGateway := telegram.NewVerificationGateway(connector)
-	verificationGateway, err := verificationGatewayForMode(
-		ctx, runtime.cfg, runtime.database, liveVerificationGateway,
-	)
-	if err != nil {
-		return err
-	}
 	stateNamespace := verificationStateNamespace(options.StateDirectory)
 	moderation, err := moderate.New(runtime.settings, connector, runtime.cfg, database.NewWarningStore(runtime.database))
 	if err != nil {

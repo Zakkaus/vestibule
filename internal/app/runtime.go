@@ -2,10 +2,12 @@ package app
 
 import (
 	"context"
+	"crypto/rand"
 	"log"
 	"strings"
 	"time"
 
+	"github.com/Zakkaus/vestibule/internal/database"
 	"github.com/Zakkaus/vestibule/internal/feed"
 	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/status"
@@ -84,11 +86,25 @@ func startExpiryScanner(ctx context.Context, verification *verification.Service)
 	return done
 }
 
-func startPendingActions(ctx context.Context, verification *verification.Service) <-chan struct{} {
+func startPendingActions(ctx context.Context, runtime *services) <-chan struct{} {
 	done := make(chan struct{})
+	releases := importedHoldExecutor{
+		store: database.NewVerificationStore(runtime.database), gateway: runtime.verificationGateway,
+		owner: "import-unrestrict-" + rand.Text(), now: time.Now,
+	}
 	go func() {
 		defer close(done)
-		verification.RunPendingActions(ctx)
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+		for {
+			releases.runOnce(ctx)
+			runtime.verification.RunPendingActionsOnce(ctx)
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+			}
+		}
 	}()
 	return done
 }
