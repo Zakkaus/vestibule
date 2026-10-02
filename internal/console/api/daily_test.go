@@ -12,6 +12,8 @@ import (
 	"github.com/Zakkaus/vestibule/internal/console/auth"
 	"github.com/Zakkaus/vestibule/internal/database"
 	"github.com/Zakkaus/vestibule/internal/status"
+
+	"go.mau.fi/util/dbutil"
 )
 
 type apiDailyService struct {
@@ -230,7 +232,11 @@ func TestDailyAPIRejectsReadOnlyPersistenceWithoutChangingSwitch(t *testing.T) {
 		Store: database.NewDailyStatusStore(db), Location: time.UTC,
 	})
 	server, cookies, csrf := newDailyAPIServer(t, auth.RoleOperator, daily)
-	if _, err := db.Exec(ctx, "PRAGMA query_only = ON"); err != nil {
+	readOnlySQL := "PRAGMA query_only = ON"
+	if db.Dialect == dbutil.Postgres {
+		readOnlySQL = "SET default_transaction_read_only = on"
+	}
+	if _, err := db.Exec(ctx, readOnlySQL); err != nil {
 		t.Fatal(err)
 	}
 	patch := dailyAPIRequest(server, cookies, http.MethodPatch, `{"enabled":false}`, csrf)

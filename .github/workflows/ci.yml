@@ -148,7 +148,7 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Test PostgreSQL stores and migrations
-        run: go test -race ./internal/database/... ./migrations/... ./internal/app/... ./internal/console/api/...
+        run: go test -race -shuffle=on ./internal/database/... ./migrations/... ./internal/app/... ./internal/console/api/...
 
   go-done:
     needs: [changes, go, postgres]

@@ -15,6 +15,8 @@ import (
 	"github.com/Zakkaus/vestibule/internal/i18n"
 	"github.com/Zakkaus/vestibule/internal/settings"
 	"github.com/Zakkaus/vestibule/internal/verification"
+
+	"go.mau.fi/util/dbutil"
 )
 
 const trialTestChatID int64 = -1009000000901
@@ -272,7 +274,7 @@ func seedTrialStateRows(t *testing.T, db *database.Database) {
 		{`INSERT INTO challenge (id, chat_id, user_id, state, kind, payload, delivery, attempts, reason, expires_at, settled_at, settled_by, epoch) VALUES ('trial-challenge', $1, 77, 'declined', 'quiz', '{}', 'group', 1, 'wrong', 100, 200, 9, 3)`, []any{trialTestChatID}},
 		{`INSERT INTO pending_action (id, challenge_id, kind, payload, state, attempts, next_try_at, claim_owner, claim_until, done_at, failed_at, last_error) VALUES ('trial-action', 'trial-challenge', 'delete', '{}', 'done', 1, 10, 'trial', 11, 12, 13, 'none')`, nil},
 		{`INSERT INTO update_poll_lease (singleton, holder, expires_at) VALUES (1, 'trial', 20)`, nil},
-		{`INSERT INTO rule (id, chat_id, collection, ordinal, enabled, definition) VALUES ('trial-rule', $1, 'allowlist', 0, 1, '{}')`, []any{trialTestChatID}},
+		{`INSERT INTO rule (id, chat_id, collection, ordinal, enabled, definition) VALUES ('trial-rule', $1, 'allowlist', 0, TRUE, '{}')`, []any{trialTestChatID}},
 		{`INSERT INTO verification_failure (chat_id, user_id, count, last_at) VALUES ($1, 77, 2, 30)`, []any{trialTestChatID}},
 		{`INSERT INTO agent_tally (model, count) VALUES ('trial-model', 4)`, nil},
 		{`INSERT INTO verification_runtime (key, value) VALUES ('trial-runtime', 5)`, nil},
@@ -288,7 +290,12 @@ func seedTrialStateRows(t *testing.T, db *database.Database) {
 func applicationSnapshot(t *testing.T, db *database.Database) string {
 	t.Helper()
 	ctx := context.Background()
-	rows, err := db.Query(ctx, `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)
+	tableSQL := `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name`
+	if db.Dialect == dbutil.Postgres {
+		tableSQL = `SELECT table_name FROM information_schema.tables
+			WHERE table_schema=current_schema() AND table_type='BASE TABLE' ORDER BY table_name`
+	}
+	rows, err := db.Query(ctx, tableSQL)
 	if err != nil {
 		t.Fatal(err)
 	}

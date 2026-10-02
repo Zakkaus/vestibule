@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"database/sql"
+	"net/url"
 	"os"
 	"strings"
 
@@ -25,12 +26,13 @@ func TestConfig(t testConfigOwner, sqlite Config) Config {
 	if dsn == "" {
 		return sqlite
 	}
+	var parsed *url.URL
 	if strings.HasPrefix(dsn, "postgres://") || strings.HasPrefix(dsn, "postgresql://") {
-		parsed, err := pq.ParseURL(dsn)
+		var err error
+		parsed, err = url.Parse(dsn)
 		if err != nil {
 			t.Fatalf("parse PostgreSQL test URI: %v", err)
 		}
-		dsn = parsed
 	}
 	admin, err := sql.Open("postgres", dsn)
 	if err != nil {
@@ -50,5 +52,12 @@ func TestConfig(t testConfigOwner, sqlite Config) Config {
 	})
 	sqlite.Type = "postgres"
 	sqlite.URI = dsn + " dbname='" + name + "'"
+	if parsed != nil {
+		parsed.Path, parsed.RawPath = "/"+name, ""
+		query := parsed.Query()
+		query.Del("dbname")
+		parsed.RawQuery = query.Encode()
+		sqlite.URI = parsed.String()
+	}
 	return sqlite
 }
