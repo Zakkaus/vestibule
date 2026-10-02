@@ -22,6 +22,14 @@ TABLE_END = "**这张表是穷举的"
 LIVE_ROUTES = {
     "GET /livez": ("server.go", "serveHTTP", ('request.URL.Path == "/livez"',)),
     "GET /readyz": ("server.go", "serveHTTP", ('request.URL.Path == "/readyz"',)),
+    "GET · HEAD /fonts/{file}.woff2": (
+        "fonts.go", "fonts",
+        ('strings.HasSuffix(request.URL.Path, ".woff2")', "web.FontHandler.ServeHTTP"),
+    ),
+    "GET · HEAD /fonts/OFL.txt": (
+        "fonts.go", "fonts",
+        ('request.URL.Path != "/fonts/OFL.txt"', "web.FontHandler.ServeHTTP"),
+    ),
     "GET /api/instance": ("instance.go", "instance", ("instanceResponse{BotUsername:",)),
     "POST /api/session": ("server.go", "apiRoute", ('request.URL.Path == "/api/session"', "http.MethodPost")),
     "GET /api/session": ("server.go", "apiRoute", ('request.URL.Path == "/api/session"', "http.MethodGet")),

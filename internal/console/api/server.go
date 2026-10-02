@@ -157,6 +157,8 @@ func (s *Server) serveHTTP(writer http.ResponseWriter, request *http.Request) {
 		s.live(writer)
 	case request.Method == http.MethodGet && request.URL.Path == "/readyz":
 		s.ready(writer, request)
+	case (request.Method == http.MethodGet || request.Method == http.MethodHead) && strings.HasPrefix(request.URL.Path, "/fonts/"):
+		s.fonts(writer, request)
 	case s.setup != nil && strings.HasPrefix(request.URL.Path, "/setup/"):
 		s.setupRoute(writer, request)
 	case strings.HasPrefix(request.URL.Path, "/setup/"):
