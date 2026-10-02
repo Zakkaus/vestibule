@@ -90,8 +90,9 @@ All notable changes to this project are documented here. The format is based on
   to enable; an absent or empty list enables none. Group lookup commands, menus and
   help also require `gentoo_lookups_enabled` or `linux_lookups_enabled`, both off by
   default. Private queries remain available when their process module is enabled.
-- Simplified and Traditional Chinese bot messages use formal written language without
-  decorative symbols, with consistent locale terminology and unchanged input matching.
+- Simplified and Traditional Chinese bot messages use formal written language and
+  subject-less applicant notices, with consistent locale terminology, no decorative symbols,
+  and unchanged input matching.
 - Gentoo lookups now use `/gpkg`, `/guse`, `/garm`, `/gbug`, `/gnews`, and `/gbbs`.
   The `/pkg`, `/use`, `/arm`, `/bug`, `/news`, and `/bbs` aliases only return rename notices,
   stay hidden from menus and `/help`, and will be removed in v5.1.0.
