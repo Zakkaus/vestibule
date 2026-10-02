@@ -6,12 +6,37 @@ import {
   type DeclineReason
 } from "../../lib/challenge";
 
+type QueueResult = ChallengeResultDefinition | Readonly<{
+  id: "approval_pending_retry" | "approval_unconfirmed";
+  state: "approval_pending_retry" | "approval_unconfirmed";
+  reason: null;
+  labelKey: string;
+  tone: "pending";
+}>;
+
+const approvalResults = {
+  approval_pending_retry: {
+    id: "approval_pending_retry",
+    state: "approval_pending_retry",
+    reason: null,
+    labelKey: "queue.status.approvalPendingRetry",
+    tone: "pending"
+  },
+  approval_unconfirmed: {
+    id: "approval_unconfirmed",
+    state: "approval_unconfirmed",
+    reason: null,
+    labelKey: "queue.status.approvalUnconfirmed",
+    tone: "pending"
+  }
+} as const satisfies Readonly<Record<string, QueueResult>>;
+
 export type QueueRecord = Readonly<{
   id: string;
   user: string;
   groupKey: string;
   groupLabelKey?: string;
-  result: ChallengeResultDefinition;
+  result: QueueResult;
   occurredAt: string | null;
   expiresAt: string;
   remainingSeconds?: number;
@@ -48,7 +73,7 @@ function timestamp(value: unknown): string | undefined {
   return parsed !== undefined && Number.isFinite(Date.parse(parsed)) ? parsed : undefined;
 }
 
-function resultFromPayload(value: unknown): ChallengeResultDefinition | undefined {
+function resultFromPayload(value: unknown): QueueResult | undefined {
   const result = objectFrom(value);
   const state = result ? nonEmptyString(result.state) : undefined;
 
@@ -56,6 +81,9 @@ function resultFromPayload(value: unknown): ChallengeResultDefinition | undefine
     return undefined;
   }
 
+  if (result.reason === null && state in approvalResults) {
+    return approvalResults[state as keyof typeof approvalResults];
+  }
   if (state === "declined") {
     const reason = result.reason;
     return typeof reason === "string" && reason in declinedResults

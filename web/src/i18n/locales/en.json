@@ -237,7 +237,9 @@
       "actions": "Actions"
     },
     "status": {
-      "pending": "Waiting {{time}}"
+      "pending": "Waiting {{time}}",
+      "approvalPendingRetry": "Approval pending retry",
+      "approvalUnconfirmed": "Approval unconfirmed"
     },
     "timeUnavailable": "Time unavailable",
     "loading": {
@@ -274,6 +276,8 @@
     },
     "feedback": {
       "releaseSuccess": "Released {{user}}. They can now enter “{{group}}”.",
+      "releasePendingRetry": "Release request for {{user}} to enter “{{group}}” accepted; Telegram approval is pending retry.",
+      "releaseUnconfirmed": "Release request for {{user}} to enter “{{group}}” accepted, but Telegram approval could not be confirmed.",
       "releaseFailure": "Could not release {{user}}. The application is still waiting and can be retried."
     },
     "errors": {
@@ -516,6 +520,7 @@
       "csrfInvalid": "This page's security token has expired. Refresh the page and try again.",
       "invalidRequest": "The feed settings were rejected. Review the highlighted fields and try again.",
       "reviewFields": "Review the highlighted feed fields and try again.",
+      "settingsLimitExceeded": "The effective group settings exceed an instance owner limit. Reduce the listed value or ask the owner to raise the limit.",
       "settingsUnavailable": "The process settings service is unavailable. Try again.",
       "loadUnavailable": "Feed settings cannot be read right now. Try again.",
       "saveUnavailable": "Feed settings cannot be saved right now. Try again.",

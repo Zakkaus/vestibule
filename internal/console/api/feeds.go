@@ -218,11 +218,7 @@ func writeFeedsError(writer http.ResponseWriter, err error) {
 	switch {
 	case errors.As(err, &validation):
 		writeFeedsInvalid(writer, []*settings.FeedValidationError{validation})
-	case errors.Is(err, settings.ErrSettingsConflict):
-		writeError(writer, http.StatusConflict, "settings_conflict")
-	case errors.Is(err, settings.ErrUnknownGroup):
-		writeError(writer, http.StatusNotFound, "chat_not_found")
 	default:
-		writeError(writer, http.StatusServiceUnavailable, "settings_unavailable")
+		writeSettingsError(writer, err)
 	}
 }

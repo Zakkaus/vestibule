@@ -236,7 +236,9 @@
       "actions": "操作"
     },
     "status": {
-      "pending": "等待中：{{time}}"
+      "pending": "等待中：{{time}}",
+      "approvalPendingRetry": "放行待重試",
+      "approvalUnconfirmed": "放行尚未確認"
     },
     "timeUnavailable": "時間未知",
     "loading": {
@@ -273,6 +275,8 @@
     },
     "feedback": {
       "releaseSuccess": "已放行 {{user}}，現在可進入群組 {{group}}。",
+      "releasePendingRetry": "已接受 {{user}} 加入群組 {{group}} 的放行請求。Telegram 未能核准，等待重試。",
+      "releaseUnconfirmed": "已接受 {{user}} 加入群組 {{group}} 的放行請求，但無法確認 Telegram 已核准。",
       "releaseFailure": "無法放行 {{user}}。該申請仍在等待中，可重試。"
     },
     "errors": {
@@ -513,6 +517,7 @@
       "csrfInvalid": "頁面安全權杖已過期。請重新整理頁面後重試。",
       "invalidRequest": "訂閱設定遭拒。請檢查醒目顯示的欄位後重試。",
       "reviewFields": "請檢查醒目顯示的訂閱欄位後重試。",
+      "settingsLimitExceeded": "群組目前生效的設定超過執行個體擁有者設定的上限。請降低所列數值，或請擁有者提高上限。",
       "settingsUnavailable": "處理程序設定服務暫時無法使用。請重試。",
       "loadUnavailable": "暫時無法讀取訂閱設定。請重試。",
       "saveUnavailable": "暫時無法儲存訂閱設定。請重試。",

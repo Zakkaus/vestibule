@@ -236,7 +236,9 @@
       "actions": "操作"
     },
     "status": {
-      "pending": "等待中 {{time}}"
+      "pending": "等待中 {{time}}",
+      "approvalPendingRetry": "放行待重试",
+      "approvalUnconfirmed": "放行未确认"
     },
     "timeUnavailable": "时间未知",
     "loading": {
@@ -273,6 +275,8 @@
     },
     "feedback": {
       "releaseSuccess": "已放行 {{user}}，该用户现在可以进入 {{group}}。",
+      "releasePendingRetry": "已接受 {{user}} 加入 {{group}} 的放行请求，Telegram 批准失败，等待重试。",
+      "releaseUnconfirmed": "已接受 {{user}} 加入 {{group}} 的放行请求，但无法确认 Telegram 已批准。",
       "releaseFailure": "无法放行 {{user}}。该申请仍处于等待状态，可以重试。"
     },
     "errors": {
@@ -513,6 +517,7 @@
       "csrfInvalid": "页面安全令牌已过期。请刷新页面后重试。",
       "invalidRequest": "订阅设置被拒绝。请检查突出显示的字段后重试。",
       "reviewFields": "请检查突出显示的订阅字段后重试。",
+      "settingsLimitExceeded": "群组的生效设置超过实例所有者设定的上限。请降低所列数值，或请实例所有者提高上限。",
       "settingsUnavailable": "进程设置服务暂时不可用。请重试。",
       "loadUnavailable": "暂时无法读取订阅设置。请重试。",
       "saveUnavailable": "暂时无法保存订阅设置。请重试。",

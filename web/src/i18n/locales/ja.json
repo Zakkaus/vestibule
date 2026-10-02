@@ -236,7 +236,9 @@
       "actions": "操作"
     },
     "status": {
-      "pending": "保留中 {{time}}"
+      "pending": "保留中 {{time}}",
+      "approvalPendingRetry": "承認の再試行待ち",
+      "approvalUnconfirmed": "承認未確認"
     },
     "timeUnavailable": "時刻不明",
     "loading": {
@@ -273,6 +275,8 @@
     },
     "feedback": {
       "releaseSuccess": "{{user}} を入場させました。これで「{{group}}」に入れます。",
+      "releasePendingRetry": "{{user}} の「{{group}}」への入場要求を受け付けました。Telegram の承認に失敗したため、再試行を待っています。",
+      "releaseUnconfirmed": "{{user}} の「{{group}}」への入場要求を受け付けましたが、Telegram の承認を確認できませんでした。",
       "releaseFailure": "{{user}} を入場させられませんでした。申請はまだ待機中のため、再試行できます。"
     },
     "errors": {
@@ -513,6 +517,7 @@
       "csrfInvalid": "このページのセキュリティトークンの有効期限が切れています。ページを更新して再試行してください。",
       "invalidRequest": "フィード設定が拒否されました。強調表示された項目を確認して再試行してください。",
       "reviewFields": "強調表示されたフィード項目を確認して再試行してください。",
+      "settingsLimitExceeded": "グループの有効な設定がインスタンス所有者の上限を超えています。表示された値を下げるか、所有者に上限の引き上げを依頼してください。",
       "settingsUnavailable": "プロセス設定サービスを一時的に利用できません。再試行してください。",
       "loadUnavailable": "フィード設定を読み込めません。再試行してください。",
       "saveUnavailable": "フィード設定を保存できません。再試行してください。",
