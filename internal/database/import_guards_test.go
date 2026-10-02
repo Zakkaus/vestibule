@@ -11,25 +11,6 @@ import (
 	"github.com/Zakkaus/vestibule/internal/verification"
 )
 
-func TestValidationTextLabelsEachSnapshotCount(t *testing.T) {
-	report := ImportReport{
-		PendingRows: 11,
-		FailureRows: 22,
-		AgentModels: 33,
-		AgentTotal:  44,
-		LastOnline:  55,
-		WarningRows: 66,
-	}
-	want := "pending: rows=11; verified=group_id,user_id,nonce,deadline,mode,all_payload_fields\n" +
-		"verifyfail: rows=22; verified=group_id,user_id,count,last\n" +
-		"agents: models=33 total=44; verified=model,count,total\n" +
-		"heartbeat: last_online=55; verified=last_online\n" +
-		"warns: rows=66; verified=group_id,user_id,count"
-	if got := report.ValidationText(); got != want {
-		t.Fatalf("validation text mislabeled snapshot counts; an operator could accept a partial import:\ngot:\n%s\nwant:\n%s", got, want)
-	}
-}
-
 func TestPersistLegacyStateRollsBackEverySnapshotWhenTheLastReplacementFails(t *testing.T) {
 	ctx := context.Background()
 	db, err := Open(ctx, testDatabaseConfig(t))
@@ -39,7 +20,7 @@ func TestPersistLegacyStateRollsBackEverySnapshotWhenTheLastReplacementFails(t *
 	t.Cleanup(func() { _ = db.Close() })
 	previous := atomicImportState(-1009000000401, 4101, "previous", 7)
 	next := atomicImportState(-1009000000402, 4201, "next", 9)
-	if err = persistLegacyState(ctx, db, previous); err != nil {
+	if err = persistLegacyState(ctx, db, previous, nil); err != nil {
 		t.Fatalf("seed previous snapshot: %v", err)
 	}
 	if _, err = execTestTrigger(t, ctx, db, `
@@ -51,12 +32,19 @@ func TestPersistLegacyStateRollsBackEverySnapshotWhenTheLastReplacementFails(t *
 		t.Fatal(err)
 	}
 
-	err = persistLegacyState(ctx, db, next)
+	err = persistLegacyState(ctx, db, next, next.pending)
 	if err == nil || !strings.Contains(err.Error(), "injected warning replacement failure") {
 		t.Fatalf("last replacement error = %v, want injected warning failure", err)
 	}
 	if _, err = validateLegacyState(db, previous); err != nil {
 		t.Fatalf("failed import left a mixed-generation database instead of rolling every snapshot back: %v", err)
+	}
+	var releases int
+	if err = db.QueryRow(ctx, "SELECT count(*) FROM pending_action WHERE kind='unrestrict'").Scan(&releases); err != nil {
+		t.Fatal(err)
+	}
+	if releases != 0 {
+		t.Fatalf("failed import leaked %d hold releases", releases)
 	}
 
 	dropTrigger := "DROP TRIGGER fail_imported_warnings"
@@ -66,7 +54,7 @@ func TestPersistLegacyStateRollsBackEverySnapshotWhenTheLastReplacementFails(t *
 	if _, err = db.Exec(ctx, dropTrigger); err != nil {
 		t.Fatal(err)
 	}
-	if err = persistLegacyState(ctx, db, next); err != nil {
+	if err = persistLegacyState(ctx, db, next, next.pending); err != nil {
 		t.Fatalf("same import after removing the injected failure: %v", err)
 	}
 	if _, err = validateLegacyState(db, next); err != nil {

@@ -34,7 +34,8 @@ type ImportOptions struct {
 	// generation's state was written. It has no default: the plan and the command
 	// disagreed about this for several phases, and a silent answer is how that
 	// happened. PendingCarry or PendingDrop, stated by whoever runs the import.
-	Pending PendingDisposition
+	Pending          PendingDisposition
+	AcceptUnimported bool
 }
 
 // PendingDisposition is what an import does with the previous generation's open challenges.
@@ -44,8 +45,7 @@ const (
 	// PendingCarry writes them into the new database, which then holds challenges the
 	// previous generation is still settling if it has not been stopped.
 	PendingCarry PendingDisposition = "carry"
-	// PendingDrop leaves them behind. The applicants stay with whichever bot is still
-	// answering for them; nothing about them is deleted from the backup.
+	// PendingDrop leaves challenges behind and queues release of verification holds.
 	PendingDrop PendingDisposition = "drop"
 )
 
@@ -58,10 +58,11 @@ type ImportReport struct {
 	AgentTotal      int
 	LastOnline      int64
 	WarningRows     int
+	UnimportedFiles []string
 }
 
 func (r ImportReport) ValidationText() string {
-	return fmt.Sprintf(
+	text := fmt.Sprintf(
 		"pending: rows=%d; verified=group_id,user_id,nonce,deadline,mode,all_payload_fields\n"+
 			"verifyfail: rows=%d; verified=group_id,user_id,count,last\n"+
 			"agents: models=%d total=%d; verified=model,count,total\n"+
@@ -69,6 +70,10 @@ func (r ImportReport) ValidationText() string {
 			"warns: rows=%d; verified=group_id,user_id,count",
 		r.PendingRows, r.FailureRows, r.AgentModels, r.AgentTotal, r.LastOnline, r.WarningRows,
 	)
+	if len(r.UnimportedFiles) > 0 {
+		text += "\nunimported: " + strings.Join(r.UnimportedFiles, ", ") + "; " + legacySidecarInstructions
+	}
+	return text
 }
 
 type legacyState struct {
@@ -89,8 +94,12 @@ func ImportLegacyState(ctx context.Context, db *Database, options ImportOptions)
 	default:
 		return ImportReport{}, fmt.Errorf(
 			"pending disposition is required: %q keeps the previous generation's open "+
-				"challenges, %q leaves them with the bot still answering for them",
+				"challenges, %q abandons them and queues release of held members",
 			PendingCarry, PendingDrop)
+	}
+	unimported, err := CheckLegacySidecars(options.StateDirectory, options.AcceptUnimported)
+	if err != nil {
+		return ImportReport{}, err
 	}
 	// The import deletes and rebuilds every per-group table it owns. Run against a database a
 	// bot is polling for, it replaces verifications that are in flight right now with a
@@ -114,14 +123,21 @@ func ImportLegacyState(ctx context.Context, db *Database, options ImportOptions)
 	if err != nil {
 		return ImportReport{BackupDirectory: backupDirectory}, err
 	}
+	var held []verification.PendingRecord
 	if options.Pending == PendingDrop {
+		for _, record := range state.pending {
+			if record.Held {
+				held = append(held, record)
+			}
+		}
 		state.pending = nil
 	}
-	if err = persistLegacyState(ctx, db, state); err != nil {
+	if err = persistLegacyState(ctx, db, state, held); err != nil {
 		return ImportReport{BackupDirectory: backupDirectory}, err
 	}
 	report, err := validateLegacyState(db, state)
 	report.BackupDirectory = backupDirectory
+	report.UnimportedFiles = unimported
 	return report, err
 }
 
@@ -223,11 +239,19 @@ func rejectMissingCorrupt(path string) error {
 	return nil
 }
 
-func persistLegacyState(ctx context.Context, db *Database, state legacyState) error {
+func persistLegacyState(ctx context.Context, db *Database, state legacyState, held []verification.PendingRecord) error {
 	snapshotWriteMu.Lock()
 	defer snapshotWriteMu.Unlock()
 	return db.DoTxn(ctx, nil, func(ctx context.Context) error {
 		if err := replacePending(ctx, db, state.pending); err != nil {
+			return err
+		}
+		if len(state.pending) > 0 {
+			if err := cancelCarriedUnrestrict(ctx, db); err != nil {
+				return err
+			}
+		}
+		if err := enqueueImportedUnrestrict(ctx, db, held); err != nil {
 			return err
 		}
 		if err := replaceFailures(ctx, db, state.failures); err != nil {

@@ -66,8 +66,14 @@ func TestConfiguredGroupPromotionKeepsRuntimeDecisions(t *testing.T) {
 	registration := second.Registrations()
 	requireEqual(t, registration.OwnerID, int64(42), "owner after configured-group promotion")
 	requireEqual(t, len(registration.RegisteredGroups), 0, "runtime registrations after promotion")
-	if second.Persistence().Writable {
-		t.Error("promotion reconciliation remained writable without operator acknowledgement")
+	overrides := group.Overrides()
+	overrides.Enabled = ptr(true)
+	_, err = second.Update(testRuntimeGroup, group.Revision(), overrides)
+	requireNoError(t, err)
+	third, err := NewStore(path, baseline, nil, nil)
+	requireNoError(t, err)
+	if !requireSettingsView(t, third, testRuntimeGroup).Enabled().Value {
+		t.Fatal("reconciliation blocked a durable settings update")
 	}
 }
 

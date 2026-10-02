@@ -257,9 +257,16 @@ func (s *Store) initializeSnapshot() (*Store, error) {
 	reconciled, adjustments := s.reconcileWithBaseline(s.state)
 	if len(adjustments) > 0 {
 		if snap, err = s.buildSnapshot(reconciled); err == nil {
-			s.writable = false
 			s.state = reconciled
-			s.setLastError(fmt.Errorf("%w: reconciled with config: %s", ErrSettingsUnavailable, strings.Join(adjustments, "; ")))
+			log.Printf("settings: reconciled with config: %s", strings.Join(adjustments, "; "))
+			if s.writable {
+				if err := s.writeState(&s.state); err != nil {
+					s.writable = false
+					s.setLastError(fmt.Errorf("%w: persist reconciliation: %v", ErrSettingsUnavailable, err))
+				} else {
+					s.setLastError(nil)
+				}
+			}
 			s.snapshot.Store(snap)
 			return s, nil
 		}

@@ -43,6 +43,11 @@ All notable changes to this project are documented here. The format is based on
   `VESTIBULE_TEST_POSTGRES_URI`; CI runs the store and migration suites against PostgreSQL 18.
 
 ### Fixed
+- Legacy cutover queues durable hold releases keyed by challenge and hold identity;
+  carry cancels outstanding releases for restored members, and release anchors stay out of
+  audit history. Imports require explicit acknowledgement of unimported settings and feed
+  sidecars. Startup settings alerts respect observe-only mode; successful registration
+  reconciliation no longer reports degraded storage.
 - Recovery alerts use each group's effective language and administrator-log destination,
   falling back to the group when no log chat is set. `/autodel` status and enable replies
   preserve second-based retention settings with localized durations. English duration

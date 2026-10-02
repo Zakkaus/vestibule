@@ -143,6 +143,10 @@ func (s *VerificationStore) ClaimActions(
 	now, claimUntil int64,
 	limit int,
 ) ([]verification.PendingAction, error) {
+	return s.claimActions(owner, now, claimUntil, limit, false)
+}
+
+func (s *VerificationStore) claimActions(owner string, now, claimUntil int64, limit int, imported bool) ([]verification.PendingAction, error) {
 	if limit <= 0 {
 		return nil, nil
 	}
@@ -159,8 +163,9 @@ func (s *VerificationStore) ClaimActions(
 			  FROM pending_action
 			 WHERE state='pending' AND next_try_at <= $1
 			   AND (claim_until IS NULL OR claim_until <= $1)
+			   AND ((kind=$3)=$4)
 			 ORDER BY next_try_at, id
-			 LIMIT $2`, now, limit)
+			 LIMIT $2`, now, limit, ImportedUnrestrict, imported)
 		if err != nil {
 			return fmt.Errorf("select ready actions: %w", err)
 		}

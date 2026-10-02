@@ -118,7 +118,7 @@ func alertRetentionOutage(
 	}
 }
 
-func alertPersistenceProblem(ctx context.Context, bot *telego.Bot, cfg *settings.Config, settings *settings.Store) {
+func alertPersistenceProblem(ctx context.Context, gateway verification.Gateway, cfg *settings.Config, settings *settings.Store) {
 	status := settings.Persistence()
 	if status.LastError == nil {
 		return
@@ -136,7 +136,7 @@ func alertPersistenceProblem(ctx context.Context, bot *telego.Bot, cfg *settings
 		}
 		language := i18n.FromStored(cfg.LangForGroup(target))
 		text := i18n.Messages.Verification.Admin.SettingsDegraded.Render(language, status.LastError.Error())
-		if _, err := bot.SendMessage(sendCtx, tu.Message(tu.ID(target), text)); err != nil && ctx.Err() == nil {
+		if _, err := gateway.Send(sendCtx, verification.OutgoingMessage{ChatID: target, Text: text}); err != nil && ctx.Err() == nil {
 			log.Printf("settings-degraded alert to %d failed: %v", target, err)
 		}
 	}
