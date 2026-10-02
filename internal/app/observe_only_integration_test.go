@@ -40,7 +40,7 @@ func (g *observationDecisionGateway) ApproveJoin(context.Context, int64, int64) 
 
 func TestObserveOnlyTrustedDecisionIsComputedAndPersistedWithoutApproval(t *testing.T) {
 	ctx := context.Background()
-	db, err := database.Open(ctx, database.Config{StateDirectory: t.TempDir()})
+	db, err := database.Open(ctx, database.TestConfig(t, database.Config{StateDirectory: t.TempDir()}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,7 +132,7 @@ func observationDecisionUpdate() verification.Update {
 
 func TestObserveOnlyModeReturnsStartupErrorWithoutDurableRecorder(t *testing.T) {
 	ctx := context.Background()
-	db, err := database.Open(ctx, database.Config{StateDirectory: t.TempDir()})
+	db, err := database.Open(ctx, database.TestConfig(t, database.Config{StateDirectory: t.TempDir()}))
 	if err != nil {
 		t.Fatal(err)
 	}

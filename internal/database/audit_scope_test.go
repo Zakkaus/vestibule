@@ -15,7 +15,7 @@ import (
 func TestChallengeAuditAndStatsAnswerOnlyTheGroupAsked(t *testing.T) {
 	const asked, neighbour int64 = -1009000000951, -1009000000952
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}

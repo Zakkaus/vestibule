@@ -38,7 +38,7 @@ func TestDailyAPIHarness(t *testing.T) {
 		t.Fatalf("invalid DAILY_E2E_FRONTEND_URL %q", frontendAddress)
 	}
 	ctx := context.Background()
-	db, err := database.Open(ctx, database.Config{StateDirectory: t.TempDir()})
+	db, err := database.Open(ctx, database.TestConfig(t, database.Config{StateDirectory: t.TempDir()}))
 	if err != nil {
 		t.Fatal(err)
 	}

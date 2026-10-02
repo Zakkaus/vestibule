@@ -33,7 +33,7 @@ func copyLegacyFixtures(t *testing.T) string {
 
 func TestImportLegacyStateReplay(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func TestImportLegacyStateReplay(t *testing.T) {
 
 func TestImportLegacyStateAcceptsEmptySnapshots(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +101,7 @@ func TestImportLegacyStateAcceptsEmptySnapshots(t *testing.T) {
 
 func TestImportPreservesCorruptJSON(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}

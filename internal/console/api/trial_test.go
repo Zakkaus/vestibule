@@ -220,7 +220,7 @@ func TestQuestionTrialRequiresWriteAccessCSRFAndCurrentChat(t *testing.T) {
 
 func TestQuestionTrialLeavesEveryApplicationTableUnchanged(t *testing.T) {
 	ctx := context.Background()
-	db, err := database.Open(ctx, database.Config{StateDirectory: t.TempDir()})
+	db, err := database.Open(ctx, database.TestConfig(t, database.Config{StateDirectory: t.TempDir()}))
 	if err != nil {
 		t.Fatal(err)
 	}

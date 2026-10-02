@@ -9,7 +9,7 @@ import (
 
 func guardStore(t *testing.T) *VerificationStore {
 	t.Helper()
-	db, err := Open(context.Background(), testSQLiteConfig(t))
+	db, err := Open(context.Background(), testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}

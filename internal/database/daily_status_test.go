@@ -7,7 +7,7 @@ import (
 )
 
 func TestDailyStatusStoreDefaultsAndPersistsSwitch(t *testing.T) {
-	db, err := Open(context.Background(), testSQLiteConfig(t))
+	db, err := Open(context.Background(), testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func TestDailyStatusStoreDefaultsAndPersistsSwitch(t *testing.T) {
 }
 
 func TestDailyStatusStoreKeepsDateWhenSwitchChanges(t *testing.T) {
-	db, err := Open(context.Background(), testSQLiteConfig(t))
+	db, err := Open(context.Background(), testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func TestDailyStatusStoreKeepsDateWhenSwitchChanges(t *testing.T) {
 
 func TestDailyStatusStoreConcurrentHandlesClaimOnlyOnce(t *testing.T) {
 	ctx := context.Background()
-	cfg := testSQLiteConfig(t)
+	cfg := testDatabaseConfig(t)
 	first, err := Open(ctx, cfg)
 	if err != nil {
 		t.Fatal(err)

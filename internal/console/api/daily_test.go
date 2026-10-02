@@ -79,7 +79,7 @@ func dailyAPIRequest(server *Server, cookies []*http.Cookie, method, body, csrf 
 
 func TestDailyAPIPersistsSwitchAcrossDatabaseReopen(t *testing.T) {
 	ctx := context.Background()
-	config := database.Config{StateDirectory: t.TempDir()}
+	config := database.TestConfig(t, database.Config{StateDirectory: t.TempDir()})
 	db, err := database.Open(ctx, config)
 	if err != nil {
 		t.Fatal(err)
@@ -122,7 +122,7 @@ func TestDailyAPIPersistsSwitchAcrossDatabaseReopen(t *testing.T) {
 
 func TestDailyAPIPatchReturnsCommittedStateWhenDatabaseClosesAfterSet(t *testing.T) {
 	ctx := context.Background()
-	config := database.Config{StateDirectory: t.TempDir()}
+	config := database.TestConfig(t, database.Config{StateDirectory: t.TempDir()})
 	db, err := database.Open(ctx, config)
 	if err != nil {
 		t.Fatal(err)
@@ -220,7 +220,7 @@ func TestDailyAPIRejectsManagerAndUnavailableStore(t *testing.T) {
 
 func TestDailyAPIRejectsReadOnlyPersistenceWithoutChangingSwitch(t *testing.T) {
 	ctx := context.Background()
-	db, err := database.Open(ctx, database.Config{StateDirectory: t.TempDir()})
+	db, err := database.Open(ctx, database.TestConfig(t, database.Config{StateDirectory: t.TempDir()}))
 	if err != nil {
 		t.Fatal(err)
 	}

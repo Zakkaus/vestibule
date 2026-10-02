@@ -24,8 +24,12 @@ import (
 func TestNewServicesFailsWhenPendingStateCannotLoad(t *testing.T) {
 	ctx := context.Background()
 	stateDirectory := t.TempDir()
-	db, err := database.Open(ctx, database.Config{StateDirectory: stateDirectory})
+	dbConfig := database.TestConfig(t, database.Config{StateDirectory: stateDirectory})
+	db, err := database.Open(ctx, dbConfig)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = db.Exec(ctx, "DROP TABLE pending_action"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = db.Exec(ctx, "DROP TABLE challenge"); err != nil {
@@ -44,6 +48,8 @@ func TestNewServicesFailsWhenPendingStateCannotLoad(t *testing.T) {
 	runtime, err := newServices(ctx, Options{
 		ConfigPath:     filepath.Join(stateDirectory, "missing-config.json"),
 		StateDirectory: stateDirectory,
+		DatabaseType:   dbConfig.Type,
+		DatabaseURI:    dbConfig.URI,
 		Token:          "1:" + strings.Repeat("a", 35),
 		TelegramAPIURL: api.URL,
 	}, make(chan struct{}, 1))
@@ -75,12 +81,12 @@ func TestNewServicesAllowsAllOptionalModulesDisabled(t *testing.T) {
 	}))
 	t.Cleanup(api.Close)
 
-	runtime, err := newServices(ctx, Options{
+	runtime, err := newServices(ctx, testStartupDatabaseOptions(t, Options{
 		ConfigPath:     configPath,
 		StateDirectory: stateDirectory,
 		Token:          "1:" + strings.Repeat("a", 35),
 		TelegramAPIURL: api.URL,
-	}, make(chan struct{}, 1))
+	}), make(chan struct{}, 1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,6 +250,7 @@ func TestRemovingConfiguredGroupRetainsTenantRows(t *testing.T) {
 		ConfigPath: configPath, StateDirectory: stateDirectory,
 		Token: "1:" + strings.Repeat("a", 35), TelegramAPIURL: telegramAPI.URL,
 	}
+	options = testStartupDatabaseOptions(t, options)
 
 	initial := openStartupTestServices(t, options)
 	removed, ok := initial.settings.Settings(removedGroup)
@@ -288,8 +295,20 @@ type startupTestServices struct {
 	closed  bool
 }
 
+func testStartupDatabaseOptions(t *testing.T, options Options) Options {
+	t.Helper()
+	if options.DatabaseURI == "" {
+		cfg := database.TestConfig(t, database.Config{
+			Type: options.DatabaseType, StateDirectory: options.StateDirectory,
+		})
+		options.DatabaseType, options.DatabaseURI = cfg.Type, cfg.URI
+	}
+	return options
+}
+
 func openStartupTestServices(t *testing.T, options Options) *startupTestServices {
 	t.Helper()
+	options = testStartupDatabaseOptions(t, options)
 	runtime, err := newServices(context.Background(), options, make(chan struct{}, 1))
 	if err != nil {
 		t.Fatal(err)

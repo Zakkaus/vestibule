@@ -15,7 +15,7 @@ import (
 func TestSeedSettingsWritesEachRecordIntoItsOwnChat(t *testing.T) {
 	const first, second int64 = -1009000000901, -1009000000902
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestSeedSettingsWritesEachRecordIntoItsOwnChat(t *testing.T) {
 func TestSeedSettingsLeavesATouchedRowAlone(t *testing.T) {
 	const chatID int64 = -1009000000903
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}

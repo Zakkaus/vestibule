@@ -14,12 +14,12 @@ import (
 	"go.mau.fi/util/dbutil"
 )
 
-func testSQLiteConfig(t *testing.T) Config {
+func testDatabaseConfig(t *testing.T) Config {
 	t.Helper()
-	return Config{
+	return TestConfig(t, Config{
 		Type: "sqlite3-fk-wal",
 		URI:  "file:" + filepath.Join(t.TempDir(), "vestibule.db") + "?_txlock=immediate",
-	}
+	})
 }
 
 func TestResolveConfigInfersPostgreSQLFromURI(t *testing.T) {
@@ -105,8 +105,8 @@ func parseDatabaseURI(t *testing.T, rawURI string) *url.URL {
 	return uri
 }
 
-func TestOpenMigratesSQLite(t *testing.T) {
-	db, err := Open(context.Background(), testSQLiteConfig(t))
+func TestOpenMigratesDatabase(t *testing.T) {
+	db, err := Open(context.Background(), testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,7 +132,7 @@ const (
 
 func TestSettingsRevisionMigrationAllowsSchemaV1Rollback(t *testing.T) {
 	ctx := context.Background()
-	cfg := testSQLiteConfig(t)
+	cfg := testDatabaseConfig(t)
 	legacy := openWithUpgradeTable(t, ctx, cfg, migrations.Table[:1])
 	insertSchemaV1Chat(t, ctx, legacy, settingsMigrationExistingChatID)
 	if err := legacy.Close(); err != nil {
@@ -191,7 +191,7 @@ const settingsStoreTestChatID int64 = -1009000000901
 
 func newTestSettingsStore(t *testing.T) *SettingsStore {
 	t.Helper()
-	db, err := Open(context.Background(), testSQLiteConfig(t))
+	db, err := Open(context.Background(), testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +269,7 @@ func TestSettingsStoreCompareAndSwapPersistsRecord(t *testing.T) {
 
 func TestOpenConfiguresSQLitePragmas(t *testing.T) {
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, Config{StateDirectory: t.TempDir()})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -323,7 +323,7 @@ func TestPostgresDriverIsRegistered(t *testing.T) {
 
 func TestOpenRejectsNewerSchema(t *testing.T) {
 	ctx := context.Background()
-	cfg := testSQLiteConfig(t)
+	cfg := testDatabaseConfig(t)
 	db, err := Open(ctx, cfg)
 	if err != nil {
 		t.Fatal(err)

@@ -11,7 +11,7 @@ import (
 )
 
 func TestVerificationStoreRoundTrip(t *testing.T) {
-	db, err := Open(context.Background(), testSQLiteConfig(t))
+	db, err := Open(context.Background(), testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func TestVerificationStoreRoundTrip(t *testing.T) {
 	}
 }
 func TestVerificationStoreRejectsRepeatedOpenChallenge(t *testing.T) {
-	db, err := Open(context.Background(), testSQLiteConfig(t))
+	db, err := Open(context.Background(), testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func TestVerificationStoreRejectsRepeatedOpenChallenge(t *testing.T) {
 }
 
 func TestVerificationStoreRejectsStaleChallengeTransitions(t *testing.T) {
-	db, err := Open(context.Background(), testSQLiteConfig(t))
+	db, err := Open(context.Background(), testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +145,7 @@ func TestVerificationStoreRejectsStaleChallengeTransitions(t *testing.T) {
 }
 
 func TestVerificationStatsAndWarningsRoundTrip(t *testing.T) {
-	db, err := Open(context.Background(), testSQLiteConfig(t))
+	db, err := Open(context.Background(), testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,7 +180,7 @@ func TestVerificationStatsAndWarningsRoundTrip(t *testing.T) {
 }
 
 func TestVerificationStoreClaimsExpiredChallenges(t *testing.T) {
-	db, err := Open(context.Background(), testSQLiteConfig(t))
+	db, err := Open(context.Background(), testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -216,12 +216,12 @@ func TestVerificationStoreClaimsExpiredChallenges(t *testing.T) {
 }
 
 func TestTransitionAndActionIntentRollbackTogether(t *testing.T) {
-	db, err := Open(context.Background(), testSQLiteConfig(t))
+	db, err := Open(context.Background(), testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	if _, err = db.RawDB.ExecContext(context.Background(), `
+	if _, err = execTestTrigger(t, context.Background(), db, `
 		CREATE TRIGGER fail_pending_action_insert
 		BEFORE INSERT ON pending_action
 		BEGIN
@@ -260,7 +260,7 @@ func TestTransitionAndActionIntentRollbackTogether(t *testing.T) {
 }
 
 func TestUpdatePollLeaseExcludesConcurrentOwners(t *testing.T) {
-	db, err := Open(context.Background(), testSQLiteConfig(t))
+	db, err := Open(context.Background(), testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -337,7 +337,7 @@ func requirePollLeaseAcquire(t *testing.T, lease *UpdatePollLease, owner string,
 }
 
 func TestPendingActionsPersistRetriesAndFollowups(t *testing.T) {
-	db, err := Open(context.Background(), testSQLiteConfig(t))
+	db, err := Open(context.Background(), testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}

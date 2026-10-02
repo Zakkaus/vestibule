@@ -293,7 +293,7 @@ func TestConfiguredGroupsKeepTenantStateIsolated(t *testing.T) {
 		[]byte(`{"groups":[{"id":-1009000000811},{"id":-1009000000812}]}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	db, err := database.Open(ctx, database.Config{StateDirectory: stateDirectory})
+	db, err := database.Open(ctx, database.TestConfig(t, database.Config{StateDirectory: stateDirectory}))
 	if err != nil {
 		t.Fatal(err)
 	}

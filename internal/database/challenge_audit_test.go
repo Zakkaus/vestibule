@@ -9,7 +9,7 @@ import (
 )
 
 func TestChallengeAuditLoadsTerminalHistoryAndPersistsOneUndo(t *testing.T) {
-	db, err := Open(context.Background(), testSQLiteConfig(t))
+	db, err := Open(context.Background(), testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestChallengeAuditLoadsTerminalHistoryAndPersistsOneUndo(t *testing.T) {
 }
 
 func TestChallengeAuditRejectsUndoAfterNewerDecision(t *testing.T) {
-	db, err := Open(context.Background(), testSQLiteConfig(t))
+	db, err := Open(context.Background(), testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestChallengeAuditRejectsUndoAfterNewerDecision(t *testing.T) {
 
 func TestChallengeUndoWaitsForTheBanActionToFinish(t *testing.T) {
 	const chatID int64 = -1009000000807
-	db, err := Open(context.Background(), testSQLiteConfig(t))
+	db, err := Open(context.Background(), testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}

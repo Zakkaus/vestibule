@@ -12,7 +12,7 @@ import (
 func TestUpdatingARuleRejectsAnEmptyIDCollectionOrNegativeOrdinal(t *testing.T) {
 	const chatID int64 = -1009000000805
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}

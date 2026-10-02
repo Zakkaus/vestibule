@@ -21,12 +21,12 @@ import (
 func importWithTrigger(t *testing.T, trigger string) error {
 	t.Helper()
 	ctx := context.Background()
-	db, err := Open(ctx, testSQLiteConfig(t))
+	db, err := Open(ctx, testDatabaseConfig(t))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	if _, err := db.Exec(ctx, trigger); err != nil {
+	if _, err := execTestTrigger(t, ctx, db, trigger); err != nil {
 		t.Fatalf("installing the trigger this test needs: %v", err)
 	}
 	_, err = ImportLegacyState(ctx, db, ImportOptions{
@@ -143,7 +143,7 @@ func TestTheFiveTableReplacementsCommitAsOneTransaction(t *testing.T) {
 	ctx, db, _ := importedFixtureDatabase(t)
 	before := snapshotCounts(t, db)
 
-	if _, err := db.Exec(ctx, `
+	if _, err := execTestTrigger(t, ctx, db, `
 		CREATE TRIGGER refuse_imported_warning
 		BEFORE INSERT ON warning_counter
 		BEGIN

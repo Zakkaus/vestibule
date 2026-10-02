@@ -55,7 +55,7 @@ func TestQuestionTrialBrowserServer(t *testing.T) {
 func newTrialBrowserHandler(t *testing.T) http.Handler {
 	t.Helper()
 	ctx := context.Background()
-	db, err := database.Open(ctx, database.Config{StateDirectory: t.TempDir()})
+	db, err := database.Open(ctx, database.TestConfig(t, database.Config{StateDirectory: t.TempDir()}))
 	if err != nil {
 		t.Fatal(err)
 	}

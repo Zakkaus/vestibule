@@ -121,8 +121,37 @@ jobs:
         # Telegram-supplied values, consumed by journald). The gate fails on any OTHER finding.
         run: go run github.com/securego/gosec/v2/cmd/gosec@v2.28.0 -exclude=G304,G703,G706 ./...
 
+  postgres:
+    needs: changes
+    if: needs.changes.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: vestibule
+          POSTGRES_PASSWORD: vestibule
+          POSTGRES_DB: vestibule_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vestibule -d vestibule_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      VESTIBULE_TEST_POSTGRES_URI: postgres://vestibule:vestibule@localhost:5432/vestibule_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Test PostgreSQL stores and migrations
+        run: go test -race ./internal/database/... ./migrations/... ./internal/app/... ./internal/console/api/...
+
   go-done:
-    needs: [changes, go]
+    needs: [changes, go, postgres]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -131,10 +160,12 @@ jobs:
         env:
           SCOPE: ${{ needs.changes.outputs.go }}
           RESULT: ${{ needs.go.result }}
+          POSTGRES_RESULT: ${{ needs.postgres.result }}
           CHANGES_RESULT: ${{ needs.changes.result }}
         run: |
           test "$CHANGES_RESULT" = success
           test "$RESULT" = success || { test "$SCOPE" = false && test "$RESULT" = skipped; }
+          test "$POSTGRES_RESULT" = success || { test "$SCOPE" = false && test "$POSTGRES_RESULT" = skipped; }
 
   static:
     needs: changes
