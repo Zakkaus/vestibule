@@ -57,3 +57,36 @@ func markChallengeExpired(service *Service, record PendingRecord) error {
 	}
 	return nil
 }
+
+func TestSettleConsoleReportsApprovalPendingRetry(t *testing.T) {
+	service := consoleContractService()
+	t.Cleanup(service.stopForShutdown)
+	gateway := &fakeVerifyBot{
+		member: &ChatMemberLeft{Status: MemberStatusLeft}, approveErr: errors.New("temporary approval failure"),
+	}
+	service.gateway = gateway
+	service.statePath = filepath.Join(t.TempDir(), "pending.json")
+	state := &actionTestStore{}
+	service.stateStore = state
+	item := consoleContractPending("retry")
+	key := pkey{gid: consoleContractGroupID, uid: consoleContractUserID}
+	service.pend[key] = item
+	if err := store.Write(service.statePath, []PendingRecord{pendingRecord(key, item)}); err != nil {
+		t.Fatal(err)
+	}
+
+	entry, err := service.SettleConsole(context.Background(), consoleContractSettlement(
+		key.gid, key.uid, item.nonce, ChallengeApproved, ""))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if entry.State != "approval_pending_retry" {
+		t.Fatalf("approval response state=%q, want approval_pending_retry", entry.State)
+	}
+	state.mu.Lock()
+	action := state.actions[item.actionID]
+	state.mu.Unlock()
+	if action.state != "pending" || action.Attempts != 1 || gateway.approves != 1 {
+		t.Fatalf("approval retry action=%+v calls=%d", action, gateway.approves)
+	}
+}

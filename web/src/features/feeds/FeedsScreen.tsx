@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import { consoleApi, retryConsoleAccess, useConsoleSession } from "../../app/session";
 import { useConsoleSize } from "../../components/ConsoleProvider";
+import { SettingsLimitNotice } from "../../components/SettingsLimitNotice";
 import { StatusBadge } from "../../components/StatusBadge";
 import { Icon, type IconName } from "../../icons";
 import { ApiError, type ApiRequestError } from "../../lib/api";
@@ -54,6 +55,7 @@ const errorMessageKeys: Readonly<Record<string, string>> = {
   csrf_invalid: "feeds.errors.csrfInvalid",
   chat_not_found: "feeds.errors.loadUnavailable",
   process_settings_unavailable: "feeds.errors.settingsUnavailable",
+  settings_limit_exceeded: "feeds.errors.settingsLimitExceeded",
   settings_unavailable: "feeds.errors.settingsUnavailable"
 };
 
@@ -365,7 +367,11 @@ export function FeedsScreen() {
           {feedback ? (
             <div data-feeds-feedback data-tone={feedback.kind === "saved" ? "ok" : "error"} role={feedback.kind === "saved" ? "status" : "alert"} aria-atomic="true">
               <Icon name={feedback.kind === "saved" ? "circleCheck" : "circleAlert"} />
-              {t(feedback.kind === "saved" ? "feeds.feedback.saved" : feedback.kind === "conflict" ? "feeds.feedback.conflict" : feedback.messageKey)}
+              {feedback.kind === "error" && feedback.error.kind === "api" && feedback.error.code === "settings_limit_exceeded" ? (
+                <SettingsLimitNotice error={feedback.error} messageKey={feedback.messageKey} />
+              ) : (
+                t(feedback.kind === "saved" ? "feeds.feedback.saved" : feedback.kind === "conflict" ? "feeds.feedback.conflict" : feedback.messageKey)
+              )}
               {feedback.kind === "error" && feedback.error.kind === "network" ? <Button type="button" variant="secondary" size={size} data-slot="button" onPress={reloadFeeds}><Icon name="refreshCw" /><Text>{t("feeds.actions.reload")}</Text></Button> : null}
             </div>
           ) : null}
