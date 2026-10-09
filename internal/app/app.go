@@ -379,6 +379,7 @@ func activateServices(ctx context.Context, runtime *services, options Options, p
 		settingsService, connector, runtime.cfg, &i18n.Messages,
 		verificationService, moderation, lookups, options.Version, startedAt,
 	)
+	setPanelConsoleURL(administration, options.ConsoleURL)
 	modules, err := newRuntimeModules(
 		runtime.cfg, runtime.settings, bot, options.StateDirectory, administration, moderation, lookups, consoleHandler != nil,
 		connector)
@@ -459,4 +460,10 @@ func newRegistration(
 		},
 		verification.RemoveGroup,
 	)
+}
+
+func setPanelConsoleURL(administration *panel.Panel, rawURL string) {
+	if !administration.SetConsoleURL(rawURL) && rawURL != "" {
+		log.Print("settings-message console button disabled: CONSOLE_URL must be an absolute HTTPS URL")
+	}
 }

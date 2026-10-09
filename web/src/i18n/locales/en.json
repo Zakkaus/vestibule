@@ -165,7 +165,7 @@
       },
       "initDataReplayed": {
         "title": "This launch request was already used",
-        "description": "Close this page, then open the console again from the Telegram bot menu."
+        "description": "Close this page, then reopen the console using the button in the Telegram bot's private settings message. Instance owners may also use /console."
       },
       "authenticationUnavailable": {
         "title": "Authentication service unavailable",

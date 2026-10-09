@@ -164,7 +164,7 @@
       },
       "initDataReplayed": {
         "title": "此開啟要求已使用",
-        "description": "關閉目前頁面，再從 Telegram 機器人選單重新開啟控制台。"
+        "description": "請關閉目前頁面，再透過 Telegram 機器人私訊中的設定訊息按鈕重新開啟控制台。若為執行個體部署者，也可使用 /console。"
       },
       "authenticationUnavailable": {
         "title": "驗證服務暫時無法使用",

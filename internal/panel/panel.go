@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -67,6 +68,7 @@ type Panel struct {
 	version    string
 	startedAt  time.Time
 	panelState *settingsPanelState
+	consoleURL *url.URL
 }
 
 // New constructs the existing administration surface from explicit dependencies.

@@ -235,7 +235,9 @@ func dailyRuntimeConsole(t *testing.T, runtime *startupTestServices) *consoleapi
 	}
 	request := httptest.NewRequest(http.MethodGet, "/api/status/daily", nil)
 	for _, cookie := range entry.Result().Cookies() {
-		request.AddCookie(cookie)
+		if cookie.MaxAge >= 0 {
+			request.AddCookie(cookie)
+		}
 	}
 	response := httptest.NewRecorder()
 	console.Handler().ServeHTTP(response, request)
