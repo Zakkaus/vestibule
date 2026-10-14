@@ -7,6 +7,9 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 ### Added
+- The console self-hosts Noto Sans SC and TC subsets, embedded in the Go binary, and shares one
+  language-specific sans stack across Spectrum components, body text, and native controls;
+  monospace is unchanged.
 - Pure structural-signal scoring with configurable weights, per-signal counts and points,
   entity-based link and mention detection (private invites as `t.me/+`, `telegram.me`, `telegram.dog`,
   `joinchat/` and `tg://join?invite=`, excluding `t.me/+<phone>` contact links), emoji-aware

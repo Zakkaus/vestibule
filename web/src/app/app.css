@@ -10,11 +10,22 @@
    renders at 40px, and a native field in the same row has to match it. */
 :root {
   --control-h: 2.5rem;
+  --console-font-family: system-ui, "Noto Sans SC", "Noto Sans TC", sans-serif;
+  --font-sans: var(--console-font-family);
+  --s2-font-family-sans: var(--console-font-family);
 }
 
 body {
   font-size: 0.9375rem;
   line-height: 1.6;
+  font-family: var(--font-sans);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
 /* Inside the shell a card is told apart by its fill, like every row on the home

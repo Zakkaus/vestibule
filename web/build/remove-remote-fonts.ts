@@ -117,11 +117,13 @@ function transformCharts(context: ParseContext, source: string, id: string): str
   const ast = parseSource(context, source, id);
   const cssLiterals: AstNode[] = [];
   const typekitFunctions: AstNode[] = [];
+  const sansStyles: AstNode[] = [];
   const fontDataDeclarations: AstNode[] = [];
   walkAst(ast, (node) => {
     if (node.type === "Literal" && typeof node.value === "string") {
       const value = node.value as string;
       if (value.includes("@font-face")) cssLiterals.push(node);
+      if (value.includes("font-family:") && !value.includes("@font-face")) sansStyles.push(node);
     }
     if (node.type === "FunctionDeclaration" && node.id && typeof (node.id as AstNode).name === "string") {
       const text = source.slice(node.start, node.end);
@@ -157,6 +159,14 @@ function transformCharts(context: ParseContext, source: string, id: string): str
   const data = fontDataDeclarations[0]!;
   const replacements: Replacement[] = [
     ...remoteCss.map((node) => ({ start: node.start, end: node.end, text: "\"\"" })),
+    ...sansStyles.map((node) => ({
+      start: node.start,
+      end: node.end,
+      text: JSON.stringify((node.value as string).replace(
+        /font-family:\s*(?:adobe-clean(?!-spectrum-srf)|myriad-(?:arabic|hebrew))[^;}]*;/g,
+        "font-family: var(--s2-font-family-sans);"
+      ))
+    })),
     { start: data.start, end: data.end, text: "" },
     { start: loader.start, end: loader.end, text: "function B() { return null; }" }
   ];

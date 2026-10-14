@@ -388,6 +388,13 @@ def render() -> str:
         APACHE_2_LICENSE.rstrip(),
         "----- END LICENSE -----",
     ]))
+    output.append(section("Self-hosted Noto Sans SC and TC subsets", [
+        "Files: web/public/fonts/*.woff2 and web/src/fonts-{sc,tc}.css",
+        "Source: Google Fonts Noto Sans SC / TC subsets, copied from doona",
+        "Upstream: https://github.com/notofonts/noto-cjk",
+        "License: OFL-1.1",
+        *notice_lines([ROOT / "web/public/fonts/OFL.txt"]),
+    ]))
     return "".join(output).rstrip() + "\n"
 
 
